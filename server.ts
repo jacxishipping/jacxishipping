@@ -1,3 +1,5 @@
+import './src/lib/env-bootstrap';
+
 import { createServer, IncomingMessage, ServerResponse } from 'http';
 import { parse } from 'url';
 import { pathToFileURL } from 'url';

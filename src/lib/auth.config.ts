@@ -1,3 +1,4 @@
+import "./env-bootstrap";
 import type { NextAuthConfig } from "next-auth";
 import { NextResponse } from "next/server";
 
@@ -94,5 +95,5 @@ export const authConfig = {
       },
     },
   },
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: process.env.NEXTAUTH_SECRET ?? process.env.NEXTAUTH_SECRET_2,
 } satisfies NextAuthConfig;
