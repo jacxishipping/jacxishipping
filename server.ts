@@ -58,7 +58,14 @@ function applyApiCors(req: IncomingMessage, res: ServerResponse<IncomingMessage>
 }
 
 export async function startServer() {
-  const app = next({ dev, hostname, port });
+  const app = next({
+    dev,
+    hostname,
+    port,
+    // The custom WebSocket server needs webpack in development. Turbopack's
+    // HMR stream can dispatch refresh actions before the App Router mounts.
+    webpack: dev,
+  });
 
   await app.prepare();
 
