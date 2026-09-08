@@ -13,7 +13,15 @@ enum ArrivalAlertStatus {
 }
 
 // This endpoint can be called by a cron job to check container arrival alerts
+export async function GET(request: NextRequest) {
+  return runDeliveryAlerts(request);
+}
+
 export async function POST(request: NextRequest) {
+  return runDeliveryAlerts(request);
+}
+
+async function runDeliveryAlerts(request: NextRequest) {
   try {
     // Verify cron secret for security
     if (!validateCronRequest(request)) {
