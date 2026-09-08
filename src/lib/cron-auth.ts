@@ -10,7 +10,7 @@ import crypto from 'crypto';
  */
 export function validateCronRequest(request: NextRequest): boolean {
   const authHeader = request.headers.get('authorization');
-  const cronSecret = process.env.CRON_SECRET;
+  const cronSecret = process.env.CRON_SECRET ?? process.env.CRON_SECRET_2;
 
   // Fail closed if secret is missing or empty
   if (!cronSecret) {
