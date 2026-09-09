@@ -1,4 +1,5 @@
 'use client';
+import { formatMoney } from '@/lib/format';
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -52,10 +53,6 @@ function formatDuration(seconds: number) {
 
 function formatVehicle(shipment: GetpassShipment) {
   return [shipment.vehicleYear, shipment.vehicleMake, shipment.vehicleModel].filter(Boolean).join(' ') || shipment.vehicleType;
-}
-
-function formatMoney(value: number) {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
 }
 
 function companyPaymentLabel(status: GetpassShipment['companyPayment']['status']) {

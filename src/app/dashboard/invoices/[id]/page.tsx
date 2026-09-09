@@ -1,4 +1,5 @@
 'use client';
+import { formatMoney as formatCurrency } from '@/lib/format';
 
 import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
@@ -236,13 +237,6 @@ export default function InvoiceDetailPage() {
 			console.error('PDF generation error:', error);
 			toast.error('Failed to generate PDF');
 		}
-	};
-
-	const formatCurrency = (amount: number) => {
-		return new Intl.NumberFormat('en-US', {
-			style: 'currency',
-			currency: 'USD',
-		}).format(amount);
 	};
 
 	const formatDate = (date: string | null) => {

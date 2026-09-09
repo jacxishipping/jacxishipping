@@ -1,3 +1,4 @@
+import { formatMoney as formatCurrency } from '@/lib/format';
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
 
@@ -328,13 +329,6 @@ interface InvoiceTemplateProps {
     }>;
   };
 }
-
-const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(amount);
-};
 
 const getLineItemTypeLabel = (type: string, description: string, expenseSource?: string | null): string => {
   const source = expenseSource?.toUpperCase();

@@ -1,4 +1,5 @@
 'use client';
+import { formatMoney as formatCurrency } from '@/lib/format';
 
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -202,13 +203,6 @@ export default function FinancialReportsPage() {
     } catch (error) {
       console.error('Error exporting report:', error);
     }
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount);
   };
 
   const formatDate = (dateString: string) => {

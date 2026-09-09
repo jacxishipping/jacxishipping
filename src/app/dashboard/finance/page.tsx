@@ -1,3 +1,4 @@
+import { formatMoney as formatCurrency } from '@/lib/format';
 import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
@@ -32,13 +33,6 @@ import {
 
 // Force dynamic rendering (requires database connection)
 export const dynamic = 'force-dynamic';
-
-const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD',
-    }).format(amount);
-};
 
 async function getFinancialData(userId: string | undefined, isAdmin: boolean) {
     // Basic permissions check logic for data scope

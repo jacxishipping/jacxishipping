@@ -1,4 +1,5 @@
 'use client';
+import { formatMoney as formatCurrency } from '@/lib/format';
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -228,13 +229,6 @@ export default function InvoicesPage() {
 		} finally {
 			setBackfillingCharges(false);
 		}
-	};
-
-	const formatCurrency = (amount: number) => {
-		return new Intl.NumberFormat('en-US', {
-			style: 'currency',
-			currency: 'USD',
-		}).format(amount);
 	};
 
 	const formatDate = (date: string | null) => {

@@ -1,4 +1,5 @@
 'use client';
+import { formatMoney } from '@/lib/format';
 
 import { useCallback, useEffect, useState, use } from 'react';
 import Link from 'next/link';
@@ -98,13 +99,6 @@ const invoiceStatusStyles: Record<string, string> = {
   PAID: 'border-[rgba(34,197,94,0.34)] bg-[rgba(34,197,94,0.12)] text-[rgb(21,128,61)]',
   OVERDUE: 'border-[rgba(239,68,68,0.34)] bg-[rgba(239,68,68,0.12)] text-[rgb(185,28,28)]',
 };
-
-function formatMoney(amount: number) {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(amount);
-}
 
 function formatLabel(value: string) {
   return value.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase());

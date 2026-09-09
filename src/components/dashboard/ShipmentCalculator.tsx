@@ -1,4 +1,5 @@
 'use client';
+import { formatMoney as formatCurrency } from '@/lib/format';
 
 import { useEffect, useState } from 'react';
 import { 
@@ -176,14 +177,6 @@ export default function ShipmentCalculator() {
         const location = [rate.branch, rate.city].filter(Boolean).join(' - ');
         const loadingPoint = rate.loadingPoint ? ` to ${rate.loadingPoint}` : '';
         return `${location || rate.stateCode}${loadingPoint} (${formatCurrency(rate.total)})`;
-    };
-
-    const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: config.currency,
-            maximumFractionDigits: 0
-        }).format(amount);
     };
 
     return (

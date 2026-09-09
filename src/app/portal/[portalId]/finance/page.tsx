@@ -1,4 +1,5 @@
 'use client';
+import { formatMoney as formatCurrency } from '@/lib/format';
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
@@ -91,10 +92,6 @@ type FinanceResponse = {
   customers: CustomerFinance[];
   invoices: InvoiceRow[];
 };
-
-function formatCurrency(amount: number) {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount || 0);
-}
 
 function formatDate(value: string | null) {
   if (!value) {

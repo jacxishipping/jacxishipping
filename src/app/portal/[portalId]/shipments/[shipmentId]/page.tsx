@@ -1,4 +1,5 @@
 'use client';
+import { formatMoney as formatCurrency } from '@/lib/format';
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -130,10 +131,6 @@ type ShipmentDetailResponse = {
     }>;
   };
 };
-
-function formatCurrency(amount: number) {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount || 0);
-}
 
 export default function PortalShipmentDetailPage() {
   const params = useParams();
