@@ -5,6 +5,7 @@ import { useRoute } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
 import { containersApi } from '../../api/containers';
 import { AppTopBar } from '../../components/shared/AppTopBar';
+import { ExpenseEditModal } from '../../components/admin/ExpenseEditModal';
 import { Card } from '../../components/ui/Card';
 import { DetailTabStrip, DetailTabOption } from '../../components/shared/DetailTabs';
 import { EmptyState } from '../../components/shared/EmptyState';
@@ -13,6 +14,7 @@ import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { Typography } from '../../constants/typography';
 import { BorderRadius, Spacing } from '../../constants/spacing';
+import { ContainerDetailExpense } from '../../types/container';
 
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount || 0);
@@ -42,6 +44,7 @@ const ContainerDetailScreen: React.FC = () => {
   );
   const [selectedDocumentType, setSelectedDocumentType] = useState<string>('all');
   const [activeTab, setActiveTab] = useState<string>('overview');
+  const [editingExpense, setEditingExpense] = useState<ContainerDetailExpense | null>(null);
 
   if (query.isLoading) return <LoadingSpinner fullScreen />;
   if (query.error) return <ErrorState message={(query.error as any).message} onRetry={query.refetch} />;
@@ -49,6 +52,8 @@ const ContainerDetailScreen: React.FC = () => {
   if (!container) {
     return <ErrorState message="Container not found." onRetry={query.refetch} />;
   }
+
+  const expensesEditable = container.status !== 'CLOSED';
 
   const visibleDocuments = selectedDocumentType === 'all'
     ? container.documents
@@ -248,14 +253,28 @@ const ContainerDetailScreen: React.FC = () => {
                     key={expense.id}
                     style={StyleSheet.flatten([
                       styles.detailRow,
+                      styles.rowWithAction,
                       index === container.expenses!.length - 1 ? styles.detailRowLast : null,
                       { borderBottomColor: colors.border },
                     ])}
                   >
-                    <Text style={[styles.rowTitle, { color: colors.textPrimary }]}>{expense.description}</Text>
-                    <Text style={[styles.rowMeta, { color: colors.textSecondary }]}>
-                      {formatCurrency(expense.amount)} • {expense.vendor || 'Vendor pending'} • {new Date(expense.date).toLocaleDateString()}
-                    </Text>
+                    <View style={styles.rowActionInfo}>
+                      <Text style={[styles.rowTitle, { color: colors.textPrimary }]}>
+                        {expense.description || titleCase(expense.type || 'Expense')}
+                      </Text>
+                      <Text style={[styles.rowMeta, { color: colors.textSecondary }]}>
+                        {formatCurrency(expense.amount)} • {expense.vendor || 'Vendor pending'} • {new Date(expense.date).toLocaleDateString()}
+                      </Text>
+                    </View>
+                    {expensesEditable ? (
+                      <TouchableOpacity
+                        activeOpacity={0.85}
+                        onPress={() => setEditingExpense(expense)}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Text style={[styles.editLink, { color: colors.accent }]}>Edit</Text>
+                      </TouchableOpacity>
+                    ) : null}
                   </View>
                 ))}
               </View>
@@ -374,6 +393,15 @@ const ContainerDetailScreen: React.FC = () => {
           </Card>
         ) : null}
       </ScrollView>
+
+      <ExpenseEditModal
+        visible={editingExpense !== null}
+        kind="container"
+        entityId={container.id}
+        expense={editingExpense}
+        onClose={() => setEditingExpense(null)}
+        onSaved={() => void query.refetch()}
+      />
     </SafeAreaView>
   );
 };
@@ -401,6 +429,20 @@ const styles = StyleSheet.create({
   linkText: { fontSize: Typography.fontSize.sm, fontWeight: Typography.fontWeight.semibold, marginTop: Spacing.xs },
   financialBlock: { marginTop: Spacing.base },
   blockTitle: { fontSize: Typography.fontSize.base, fontWeight: Typography.fontWeight.semibold, marginBottom: Spacing.sm },
+  rowWithAction: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: Spacing.sm,
+  },
+  rowActionInfo: {
+    flex: 1,
+  },
+  editLink: {
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.semibold,
+    paddingTop: Spacing.xs,
+  },
 });
 
 export default ContainerDetailScreen;

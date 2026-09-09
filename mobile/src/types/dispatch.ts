@@ -81,6 +81,19 @@ export interface DispatchDetailExpense {
   } | null;
 }
 
+export interface DispatchExpenseUpdateInput {
+  expenseId: string;
+  category: string;
+  type: string;
+  description: string;
+  amount: number;
+  currency?: string;
+  date?: string;
+  vendor?: string | null;
+  invoiceNumber?: string | null;
+  notes?: string | null;
+}
+
 export interface DispatchDetail {
   id: string;
   referenceNumber: string;

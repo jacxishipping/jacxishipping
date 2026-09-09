@@ -94,7 +94,20 @@ export interface ContainerDetailExpense {
   currency?: string;
   date: string;
   vendor?: string | null;
+  invoiceNumber?: string | null;
+  notes?: string | null;
   source?: string;
+}
+
+export interface ContainerExpenseUpdateInput {
+  expenseId: string;
+  type: string;
+  amount: number;
+  currency?: string;
+  date?: string;
+  vendor?: string | null;
+  invoiceNumber?: string | null;
+  notes?: string | null;
 }
 
 export interface ContainerDetailInvoice {

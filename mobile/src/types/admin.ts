@@ -199,6 +199,17 @@ export interface TransitExpense {
   source: 'TRANSIT_EXPENSE' | 'SHIPMENT_EXPENSE';
 }
 
+export interface TransitExpenseUpdateInput {
+  expenseId: string;
+  type: string;
+  amount: number;
+  currency?: string;
+  date?: string;
+  vendor?: string | null;
+  invoiceNumber?: string | null;
+  notes?: string | null;
+}
+
 export interface TransitShipment {
   id: string;
   status: string;
@@ -339,6 +350,16 @@ export interface CompanyLedgerEntry {
   reference?: string | null;
   notes?: string | null;
   metadata?: Record<string, unknown> | null;
+}
+
+export interface CompanyLedgerEntryUpdateInput {
+  description?: string;
+  type?: 'DEBIT' | 'CREDIT';
+  amount?: number;
+  transactionDate?: string;
+  category?: string | null;
+  reference?: string | null;
+  notes?: string | null;
 }
 
 export interface BankingLedgerEntry {

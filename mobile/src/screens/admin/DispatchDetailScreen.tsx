@@ -8,6 +8,7 @@ import { Button } from '../../components/ui/Button';
 import { DetailTabOption, DetailTabStrip } from '../../components/shared/DetailTabs';
 import { EmptyState } from '../../components/shared/EmptyState';
 import { ErrorState } from '../../components/shared/ErrorState';
+import { ExpenseEditModal } from '../../components/admin/ExpenseEditModal';
 import { ModuleSummaryHeader } from '../../components/shared/ModuleSummaryHeader';
 import { Card } from '../../components/ui/Card';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
@@ -15,6 +16,7 @@ import { BorderRadius, Spacing } from '../../constants/spacing';
 import { Typography } from '../../constants/typography';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { AdminStackParamList } from '../../navigation/AdminNavigator';
+import { DispatchDetailExpense } from '../../types/dispatch';
 
 type RouteProps = RouteProp<AdminStackParamList, 'DispatchDetail'>;
 
@@ -51,6 +53,7 @@ const DispatchDetailScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { colors } = useAppTheme();
   const [activeTab, setActiveTab] = useState<string>('shipments');
+  const [editingExpense, setEditingExpense] = useState<DispatchDetailExpense | null>(null);
 
   const { data: dispatch, isLoading, error, refetch } = useQuery({
     queryKey: ['dispatch', route.params.id],
@@ -62,6 +65,7 @@ const DispatchDetailScreen: React.FC = () => {
   if (!dispatch) return <ErrorState message="Dispatch not found" onRetry={refetch} />;
 
   const totalExpenses = dispatch.expenses.reduce((sum, expense) => sum + expense.amount, 0);
+  const expensesEditable = dispatch.status !== 'COMPLETED' && dispatch.status !== 'CANCELLED';
   const companyContactLines = buildContactLines(dispatch.company);
   const tabs: DetailTabOption[] = [
     { key: 'shipments', label: `Shipments (${dispatch._count.shipments})` },
@@ -220,8 +224,19 @@ const DispatchDetailScreen: React.FC = () => {
                     ) : null}
                     <Text style={[styles.itemMeta, { color: colors.textSecondary }]}>{expense.shipment ? buildShipmentLabel(expense.shipment) : 'General dispatch expense'}</Text>
                   </View>
-                  <View style={StyleSheet.flatten([styles.amountPill, { backgroundColor: `${colors.accent}16`, borderColor: `${colors.accent}32` }])}>
-                    <Text style={[styles.amountPillText, { color: colors.accent }]}>{formatCurrency(expense.amount)}</Text>
+                  <View style={styles.expenseSide}>
+                    <View style={StyleSheet.flatten([styles.amountPill, { backgroundColor: `${colors.accent}16`, borderColor: `${colors.accent}32` }])}>
+                      <Text style={[styles.amountPillText, { color: colors.accent }]}>{formatCurrency(expense.amount)}</Text>
+                    </View>
+                    {expensesEditable ? (
+                      <TouchableOpacity
+                        activeOpacity={0.85}
+                        onPress={() => setEditingExpense(expense)}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Text style={[styles.editLink, { color: colors.accent }]}>Edit</Text>
+                      </TouchableOpacity>
+                    ) : null}
                   </View>
                 </View>
               ))
@@ -229,6 +244,15 @@ const DispatchDetailScreen: React.FC = () => {
           </Card>
         ) : null}
       </ScrollView>
+
+      <ExpenseEditModal
+        visible={editingExpense !== null}
+        kind="dispatch"
+        entityId={dispatch.id}
+        expense={editingExpense}
+        onClose={() => setEditingExpense(null)}
+        onSaved={() => void refetch()}
+      />
     </SafeAreaView>
   );
 };
@@ -350,6 +374,10 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: Spacing.sm,
   },
+  expenseSide: {
+    alignItems: 'flex-end',
+    gap: Spacing.xs,
+  },
   amountPill: {
     alignSelf: 'flex-start',
     borderWidth: 1,
@@ -361,6 +389,10 @@ const styles = StyleSheet.create({
   amountPillText: {
     fontSize: Typography.fontSize.xs,
     fontWeight: Typography.fontWeight.bold,
+  },
+  editLink: {
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.semibold,
   },
 });
 

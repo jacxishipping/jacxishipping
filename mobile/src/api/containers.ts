@@ -1,5 +1,5 @@
 import client from './client';
-import { Container, ContainerDetail, ContainerFilters, ContainerListResponse } from '../types/container';
+import { Container, ContainerDetail, ContainerExpenseUpdateInput, ContainerFilters, ContainerListResponse } from '../types/container';
 import { PaginationParams } from '../types/api';
 
 export const containersApi = {
@@ -29,6 +29,14 @@ export const containersApi = {
 
   async updateContainer(id: string, data: Partial<Container>): Promise<Container> {
     const response = await client.patch<Container>(`/api/containers/${id}`, data);
+    return response.data;
+  },
+
+  async updateExpense(containerId: string, input: ContainerExpenseUpdateInput) {
+    const response = await client.patch<{ expense: unknown; message: string }>(
+      `/api/containers/${containerId}/expenses`,
+      input,
+    );
     return response.data;
   },
 

@@ -85,6 +85,7 @@ export const ShipmentStatusColors = {
 export const InvoiceStatusColors = {
   PAID: '#10B981',
   PENDING: '#F59E0B',
+  SENT: '#3B82F6',
   OVERDUE: '#EF4444',
   CANCELLED: '#6B7280',
   DRAFT: '#98989D',

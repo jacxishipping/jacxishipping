@@ -76,6 +76,9 @@ export interface Shipment {
   estimatedDelivery?: string;
   containerId?: string;
   containerNumber?: string;
+  containerStatus?: string | null;
+  transitId?: string | null;
+  releaseToken?: string | null;
   invoiceId?: string;
   pricing?: {
     shippingCost: number;

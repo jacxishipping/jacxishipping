@@ -2,17 +2,21 @@ import React, { useMemo, useState } from 'react';
 import { Alert, Image, Linking, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { format } from 'date-fns';
+import { useQueryClient } from '@tanstack/react-query';
 import { Shipment } from '../../types/shipment';
 import { AppTopBar } from './AppTopBar';
 import { AppIcon } from './AppIcon';
 import { Card } from '../ui/Card';
+import { Button } from '../ui/Button';
 import { StatusBadge } from './StatusBadge';
 import { Divider } from '../ui/Divider';
 import { TrackingTimeline } from '../customer/TrackingTimeline';
 import { ShipmentDocumentsCard } from './ShipmentDocumentsCard';
 import { EmptyState } from './EmptyState';
 import { DetailTabs, DetailTabOption } from './DetailTabs';
+import { AssignToTransitModal } from '../admin/AssignToTransitModal';
 import { useAppTheme } from '../../hooks/useAppTheme';
+import { useAuth } from '../../hooks/useAuth';
 import { BorderRadius, Spacing } from '../../constants/spacing';
 import { Typography } from '../../constants/typography';
 
@@ -49,12 +53,20 @@ const formatDateValue = (value?: string | null) => {
 
 export const ShipmentDetailContent: React.FC<ShipmentDetailContentProps> = ({ shipment, showCustomer }) => {
   const { colors } = useAppTheme();
+  const { isAdmin } = useAuth();
+  const queryClient = useQueryClient();
   const vehicleLabel = [shipment.vehicle.year, shipment.vehicle.make, shipment.vehicle.model].filter(Boolean).join(' ');
   const routeOrigin = [shipment.origin.city, shipment.origin.state].filter(Boolean).join(', ');
   const routeDestination = [shipment.destination.city, shipment.destination.country].filter(Boolean).join(', ');
   const activityCount = shipment.tracking.length;
   const totalPhotos = shipment.photos.length;
   const totalDocuments = shipment.documents.length;
+
+  const canAssignToTransit =
+    isAdmin &&
+    Boolean(shipment.releaseToken) &&
+    !shipment.transitId &&
+    (shipment.status === 'RELEASED' || shipment.containerStatus === 'RELEASED');
 
   const tabs = useMemo<DetailTabOption[]>(() => {
     const baseTabs: DetailTabOption[] = [
@@ -74,6 +86,7 @@ export const ShipmentDetailContent: React.FC<ShipmentDetailContentProps> = ({ sh
 
   const [activeTab, setActiveTab] = useState<ShipmentDetailTabKey>('overview');
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
+  const [assignToTransitVisible, setAssignToTransitVisible] = useState(false);
   const selectedPhoto = selectedPhotoIndex !== null ? shipment.photos[selectedPhotoIndex] : null;
 
   const openPhotoExternal = async (url?: string) => {
@@ -325,6 +338,20 @@ export const ShipmentDetailContent: React.FC<ShipmentDetailContentProps> = ({ sh
 
           </Card>
 
+          {canAssignToTransit ? (
+            <Card style={styles.assignCard} accentBorder>
+              <View style={styles.assignRow}>
+                <View style={styles.assignCopy}>
+                  <Text style={[styles.assignEyebrow, { color: colors.accent }]}>Released Shipment</Text>
+                  <Text style={[styles.assignText, { color: colors.textSecondary }]}>
+                    This shipment is released and ready for its inland road leg. Assign it to an open transit to keep it moving.
+                  </Text>
+                </View>
+                <Button title="Assign to Transit" size="sm" onPress={() => setAssignToTransitVisible(true)} />
+              </View>
+            </Card>
+          ) : null}
+
           <DetailTabs tabs={tabs} activeTab={activeTab} onChange={(key) => setActiveTab(key as ShipmentDetailTabKey)} />
 
           {renderTabContent()}
@@ -411,6 +438,18 @@ export const ShipmentDetailContent: React.FC<ShipmentDetailContentProps> = ({ sh
             ) : null}
           </View>
         </Modal>
+
+        <AssignToTransitModal
+          visible={assignToTransitVisible}
+          shipmentId={shipment.id}
+          shipmentLabel={vehicleLabel || shipment.trackingNumber}
+          releaseToken={shipment.releaseToken || ''}
+          onClose={() => setAssignToTransitVisible(false)}
+          onAssigned={() => {
+            setAssignToTransitVisible(false);
+            void queryClient.invalidateQueries({ queryKey: ['shipment', shipment.id] });
+          }}
+        />
       </>
     </SafeAreaView>
   );
@@ -510,6 +549,28 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
   },
   notes: { fontSize: Typography.fontSize.sm, lineHeight: 20, marginTop: Spacing.base },
+  assignCard: {
+    gap: Spacing.sm,
+  },
+  assignRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.base,
+  },
+  assignCopy: {
+    flex: 1,
+    gap: Spacing.xs,
+  },
+  assignEyebrow: {
+    fontSize: Typography.fontSize.xs,
+    fontWeight: Typography.fontWeight.semibold,
+    letterSpacing: 1.1,
+    textTransform: 'uppercase',
+  },
+  assignText: {
+    fontSize: Typography.fontSize.sm,
+    lineHeight: 20,
+  },
   viewerOverlay: {
     flex: 1,
     justifyContent: 'center',

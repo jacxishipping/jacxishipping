@@ -2,6 +2,7 @@ import client from './client';
 import {
   DispatchDetail,
   DispatchDetailResponse,
+  DispatchExpenseUpdateInput,
   DispatchHandoffInput,
   DispatchListResponse,
   DispatchStatus,
@@ -27,6 +28,14 @@ export const dispatchesApi = {
   async getDispatch(id: string): Promise<DispatchDetail> {
     const response = await client.get<DispatchDetailResponse>(`/api/dispatches/${id}`);
     return response.data.dispatch;
+  },
+
+  async updateExpense(dispatchId: string, input: DispatchExpenseUpdateInput) {
+    const response = await client.patch<{ expense: unknown; message: string }>(
+      `/api/dispatches/${dispatchId}/expenses`,
+      input,
+    );
+    return response.data;
   },
 
   async handoffDispatch(id: string, input: DispatchHandoffInput) {

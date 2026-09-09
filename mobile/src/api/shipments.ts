@@ -99,6 +99,9 @@ const normalizeShipment = (rawShipment: Record<string, any>): Shipment => {
       undefined,
     containerId: rawShipment.containerId || rawShipment.container?.id || undefined,
     containerNumber: rawShipment.containerNumber || rawShipment.container?.containerNumber || undefined,
+    containerStatus: rawShipment.container?.status || null,
+    transitId: rawShipment.transitId || rawShipment.transit?.id || null,
+    releaseToken: rawShipment.releaseToken || null,
     invoiceId: rawShipment.invoiceId || undefined,
     pricing:
       pricingTotal > 0

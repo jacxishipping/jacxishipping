@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -8,11 +8,13 @@ import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { ErrorState } from '../../components/shared/ErrorState';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
+import { LedgerEntryEditModal } from '../../components/admin/LedgerEntryEditModal';
 import { ModuleSummaryHeader } from '../../components/shared/ModuleSummaryHeader';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { Typography } from '../../constants/typography';
 import { BorderRadius, Spacing } from '../../constants/spacing';
 import { AdminStackParamList } from '../../navigation/AdminNavigator';
+import { CompanyLedgerEntry } from '../../types/admin';
 
 type RouteProps = RouteProp<AdminStackParamList, 'CompanyLedgerDetail'>;
 
@@ -39,6 +41,7 @@ const CompanyLedgerDetailScreen: React.FC = () => {
   const route = useRoute<RouteProps>();
   const navigation = useNavigation<any>();
   const { colors } = useAppTheme();
+  const [editingEntry, setEditingEntry] = useState<CompanyLedgerEntry | null>(null);
 
   const companyQuery = useQuery({
     queryKey: ['finance-company', route.params.id],
@@ -293,14 +296,30 @@ const CompanyLedgerDetailScreen: React.FC = () => {
                     {entry.type} • {formatDate(entry.transactionDate)} • Balance {formatCurrency(entry.balance)}
                   </Text>
                 </View>
-                <View style={StyleSheet.flatten([styles.amountPill, { backgroundColor: `${colors.accent}16`, borderColor: `${colors.accent}32` }])}>
-                  <Text style={[styles.amountPillText, { color: colors.accent }]}>{formatCurrency(entry.amount)}</Text>
+                <View style={styles.entrySide}>
+                  <View style={StyleSheet.flatten([styles.amountPill, { backgroundColor: `${colors.accent}16`, borderColor: `${colors.accent}32` }])}>
+                    <Text style={[styles.amountPillText, { color: colors.accent }]}>{formatCurrency(entry.amount)}</Text>
+                  </View>
+                  <TouchableOpacity
+                    activeOpacity={0.85}
+                    onPress={() => setEditingEntry(entry)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Text style={[styles.editLink, { color: colors.accent }]}>Edit</Text>
+                  </TouchableOpacity>
                 </View>
               </View>
             ))
           )}
         </Card>
       </ScrollView>
+
+      <LedgerEntryEditModal
+        visible={editingEntry !== null}
+        entry={editingEntry}
+        onClose={() => setEditingEntry(null)}
+        onSaved={refetchAll}
+      />
     </SafeAreaView>
   );
 };
@@ -406,6 +425,10 @@ const styles = StyleSheet.create({
   entryInfo: {
     flex: 1,
   },
+  entrySide: {
+    alignItems: 'flex-end',
+    gap: Spacing.xs,
+  },
   entryTitle: {
     fontSize: Typography.fontSize.base,
     fontWeight: Typography.fontWeight.semibold,
@@ -425,6 +448,10 @@ const styles = StyleSheet.create({
   amountPillText: {
     fontSize: Typography.fontSize.xs,
     fontWeight: Typography.fontWeight.bold,
+  },
+  editLink: {
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.semibold,
   },
 });
 

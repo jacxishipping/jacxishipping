@@ -6,6 +6,7 @@ import {
   BankingLedgerEntry,
   BankingLedgerResponse,
   CompanyLedgerEntry,
+  CompanyLedgerEntryUpdateInput,
   CompanyLedgerSummary,
   DueAgingReportData,
   FilteredBankSummary,
@@ -107,6 +108,14 @@ export const financeApi = {
 
   async updateLedgerEntry(id: string, input: UpdateLedgerEntryInput): Promise<{ entry: BankingLedgerEntry }> {
     const response = await client.patch<{ entry: BankingLedgerEntry }>(`/api/ledger/${id}`, input);
+    return response.data;
+  },
+
+  async updateCompanyLedgerEntry(entryId: string, input: CompanyLedgerEntryUpdateInput): Promise<{ entry: CompanyLedgerEntry }> {
+    const response = await client.patch<{ entry: CompanyLedgerEntry }>(
+      `/api/finance/companies/ledger/${entryId}`,
+      input,
+    );
     return response.data;
   },
 
