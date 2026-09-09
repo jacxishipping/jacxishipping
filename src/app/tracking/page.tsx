@@ -158,6 +158,21 @@ function TrackingPageInner() {
 		}
 	}, [handleTrack, searchParams]);
 
+	// RTL support for Dari (dr) and Pashto (ps) customers, activated via
+	// ?lang=ps|dr on the share links we send them. Direction applies while the
+	// tracking page is open and resets afterwards so the ops dashboard is
+	// unaffected.
+	useEffect(() => {
+		const langParam = searchParams.get('lang');
+		const isRtl = langParam === 'ps' || langParam === 'dr';
+		document.documentElement.lang = langParam || 'en';
+		document.documentElement.dir = isRtl ? 'rtl' : 'ltr';
+
+		return () => {
+			document.documentElement.dir = 'ltr';
+		};
+	}, [searchParams]);
+
 	const progressValue = normalizeProgress(trackingDetails?.progress);
 	const customerMilestones = trackingDetails?.customerTracking?.milestones || [];
 
