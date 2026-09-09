@@ -5,8 +5,8 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import {
-  Autocomplete,
   Box,
+  Checkbox,
   CircularProgress,
   Dialog,
   DialogActions,
@@ -30,8 +30,6 @@ import {
   Truck,
   Upload,
   User,
-  Eye,
-  EyeOff,
 } from 'lucide-react';
 import PermissionRoute from '@/components/auth/PermissionRoute';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
@@ -183,16 +181,13 @@ export default function TransitDetailPage() {
   const [transitExpenseModalOpen, setTransitExpenseModalOpen] = useState(false);
   const [selectedTransitExpense, setSelectedTransitExpense] = useState<TransitExpense | null>(null);
 
-  // Add shipment to transit
+  // Add shipments to transit (bulk multi-select)
   const [openAddShipment, setOpenAddShipment] = useState(false);
-  const [shipmentIdToAdd, setShipmentIdToAdd] = useState('');
-  const [shipmentReleaseToken, setShipmentReleaseToken] = useState('');
-  const [showShipmentReleaseToken, setShowShipmentReleaseToken] = useState(false);
   const [addingShipment, setAddingShipment] = useState(false);
-  const [loadingShipmentToken, setLoadingShipmentToken] = useState(false);
   const [availableShipments, setAvailableShipments] = useState<AssignableShipment[]>([]);
   const [shipmentSearch, setShipmentSearch] = useState('');
   const [loadingAvailableShipments, setLoadingAvailableShipments] = useState(false);
+  const [selectedShipmentIds, setSelectedShipmentIds] = useState<string[]>([]);
   const isClosedTransitState = transit ? transit.status === 'DELIVERED' || transit.status === 'CANCELLED' : false;
   const isTransitWorkflowLocked = isClosedTransitState && !canOverrideClosedStages;
 
@@ -231,45 +226,6 @@ export default function TransitDetailPage() {
       setLoadingAvailableShipments(false);
     }
   };
-
-  // When a shipment is picked, auto-fill its release token so the operator does
-  // not have to open the shipment record to copy it (server still verifies it).
-  useEffect(() => {
-    if (!openAddShipment) {
-      setLoadingShipmentToken(false);
-      return;
-    }
-
-    if (!shipmentIdToAdd) {
-      setShipmentReleaseToken('');
-      setLoadingShipmentToken(false);
-      return;
-    }
-
-    let cancelled = false;
-    setShipmentReleaseToken('');
-    setLoadingShipmentToken(true);
-    const loadToken = async () => {
-      try {
-        const response = await fetch(`/api/shipments/${shipmentIdToAdd}`, { cache: 'no-store' });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || 'Failed to load shipment');
-        if (!cancelled) {
-          setShipmentReleaseToken(data.shipment?.releaseToken || '');
-        }
-      } catch (error) {
-        console.error(error);
-        if (!cancelled) setShipmentReleaseToken('');
-      } finally {
-        if (!cancelled) setLoadingShipmentToken(false);
-      }
-    };
-
-    void loadToken();
-    return () => {
-      cancelled = true;
-    };
-  }, [openAddShipment, shipmentIdToAdd]);
 
   const fetchTransit = async () => {
     try {
@@ -465,28 +421,45 @@ export default function TransitDetailPage() {
     }
   };
 
+  const toggleShipmentSelection = (shipmentId: string) => {
+    setSelectedShipmentIds((current) =>
+      current.includes(shipmentId) ? current.filter((id) => id !== shipmentId) : [...current, shipmentId],
+    );
+  };
+
   const handleAddShipment = async () => {
-    if (!shipmentIdToAdd.trim()) { toast.error('Shipment selection is required'); return; }
-    if (!shipmentReleaseToken.trim()) { toast.error('Release token is required'); return; }
+    if (selectedShipmentIds.length === 0) {
+      toast.error('Select at least one released shipment');
+      return;
+    }
     try {
       setAddingShipment(true);
-      const response = await fetch(`/api/transits/${transitId}/shipments`, {
+      const response = await fetch(`/api/transits/${transitId}/shipments/bulk`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ shipmentId: shipmentIdToAdd, releaseToken: shipmentReleaseToken.trim() }),
+        body: JSON.stringify({ shipmentIds: selectedShipmentIds }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to add shipment');
-      toast.success('Shipment added to transit — you can add another or close');
-      // Keep the dialog open for batch assignment; reset the selection so the
-      // next shipment can be picked immediately, and refresh the eligible list
-      // so the shipment just added is no longer offered.
-      setShipmentIdToAdd('');
-      setShipmentReleaseToken('');
+      if (!response.ok) throw new Error(data.error || 'Failed to add shipments');
+
+      const assigned = Number(data.assigned || 0);
+      const errors = Array.isArray(data.errors) ? data.errors : [];
+      if (assigned > 0) {
+        toast.success(assigned === 1 ? 'Shipment added to transit' : `${assigned} shipments added to transit`);
+      }
+      if (errors.length > 0) {
+        toast.error(`${errors.length} shipment(s) skipped`, {
+          description: errors.map((entry: { shipmentId: string; error: string }) => entry.error).join(' | '),
+        });
+      }
+
+      // Keep the dialog open so another batch can be picked; clear the selection
+      // and refresh the eligible list so added shipments drop off.
+      setSelectedShipmentIds([]);
       await fetchTransit();
       void fetchAvailableShipments(shipmentSearch);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to add shipment');
+      toast.error(error instanceof Error ? error.message : 'Failed to add shipments');
     } finally {
       setAddingShipment(false);
     }
@@ -495,11 +468,9 @@ export default function TransitDetailPage() {
   const handleCloseAddShipment = () => {
     if (addingShipment) return;
     setOpenAddShipment(false);
-    setShipmentIdToAdd('');
     setShipmentSearch('');
     setAvailableShipments([]);
-    setShipmentReleaseToken('');
-    setShowShipmentReleaseToken(false);
+    setSelectedShipmentIds([]);
   };
 
   const handleRemoveShipment = async (shipmentId: string) => {
@@ -1019,85 +990,77 @@ export default function TransitDetailPage() {
         />
 
         {/* Add Shipment Dialog */}
-        <Dialog open={openAddShipment} onClose={handleCloseAddShipment} maxWidth="xs" fullWidth>
-          <DialogTitle>Add Shipment to Transit</DialogTitle>
+        <Dialog open={openAddShipment} onClose={handleCloseAddShipment} maxWidth="sm" fullWidth>
+          <DialogTitle>Add Shipments to Transit</DialogTitle>
           <DialogContent sx={{ pt: 1.5 }}>
-            <Autocomplete
-              options={availableShipments}
-              loading={loadingAvailableShipments}
-              value={availableShipments.find((shipment) => shipment.id === shipmentIdToAdd) || null}
-              onChange={(_, value) => setShipmentIdToAdd(value?.id || '')}
-              onInputChange={(_, value) => setShipmentSearch(value)}
-              getOptionLabel={(option) => {
-                const vehicle = `${option.vehicleYear || ''} ${option.vehicleMake || ''} ${option.vehicleModel || ''}`.trim() || 'Vehicle';
-                const vin = option.vehicleVIN ? ` - VIN ${option.vehicleVIN}` : '';
-                return `${vehicle}${vin}`;
-              }}
-              isOptionEqualToValue={(option, value) => option.id === value.id}
-              noOptionsText="No released shipments found"
-              renderOption={(props, option) => (
-                <li {...props} key={option.id}>
-                  <Box>
-                    <Box sx={{ fontWeight: 600 }}>
-                      {`${option.vehicleYear || ''} ${option.vehicleMake || ''} ${option.vehicleModel || ''}`.trim() || 'Vehicle'}
-                    </Box>
-                    <Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                      {option.vehicleVIN ? `VIN ${option.vehicleVIN}` : option.id}
-                    </Box>
-                    <Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                      {option.user.name || option.user.email}
-                    </Box>
-                  </Box>
-                </li>
-              )}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  fullWidth
-                  label="Shipment"
-                  helperText={loadingAvailableShipments ? 'Loading released shipments...' : 'Search and select a released shipment (release token auto-fills)'}
-                  sx={{ mb: 2 }}
-                  InputProps={{
-                    ...params.InputProps,
-                    endAdornment: (
-                      <>
-                        {loadingAvailableShipments ? <CircularProgress color="inherit" size={16} /> : null}
-                        {params.InputProps.endAdornment}
-                      </>
-                    ),
-                  }}
-                />
-              )}
-            />
             <TextField
               fullWidth
-              label="Release Token"
-              type={showShipmentReleaseToken ? 'text' : 'password'}
-              value={shipmentReleaseToken}
-              onChange={(e) => setShipmentReleaseToken(e.target.value)}
-              helperText={
-                shipmentReleaseToken
-                  ? 'Auto-filled from the selected shipment — verified before adding'
-                  : shipmentIdToAdd
-                    ? 'This shipment has no release token yet — generate one from its shipment page first'
-                    : 'Select a shipment above to auto-fill its release token'
-              }
+              size="small"
+              label="Search shipments"
+              value={shipmentSearch}
+              onChange={(e) => setShipmentSearch(e.target.value)}
+              helperText={loadingAvailableShipments ? 'Loading released shipments...' : 'Search by vehicle, VIN, or customer - released shipments only'}
+              sx={{ mb: 1.5 }}
               InputProps={{
-                endAdornment: (
-                  <button
-                    type="button"
-                    onClick={() => setShowShipmentReleaseToken((prev) => !prev)}
-                    style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-secondary)' }}
-                  >
-                    {showShipmentReleaseToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                ),
+                endAdornment: loadingAvailableShipments ? <CircularProgress color="inherit" size={16} /> : undefined,
               }}
             />
+            {loadingAvailableShipments ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                <CircularProgress size={24} />
+              </Box>
+            ) : availableShipments.length === 0 ? (
+              <Box sx={{ py: 4, textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                No released shipments found.
+              </Box>
+            ) : (
+              <Box sx={{ maxHeight: 320, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 1 }}>
+                {availableShipments.map((shipment) => {
+                  const vehicle = `${shipment.vehicleYear || ''} ${shipment.vehicleMake || ''} ${shipment.vehicleModel || ''}`.trim() || 'Vehicle';
+                  const checked = selectedShipmentIds.includes(shipment.id);
+                  return (
+                    <Box
+                      key={shipment.id}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                        px: 1,
+                        py: 0.75,
+                        borderBottom: '1px solid var(--border)',
+                        '&:hover': { bgcolor: 'var(--panel)' },
+                        cursor: 'pointer',
+                      }}
+                      onClick={() => toggleShipmentSelection(shipment.id)}
+                    >
+                      <Checkbox
+                        size="small"
+                        checked={checked}
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={() => toggleShipmentSelection(shipment.id)}
+                      />
+                      <Box sx={{ minWidth: 0 }}>
+                        <Box sx={{ fontWeight: 600, fontSize: '0.875rem' }}>{vehicle}</Box>
+                        <Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                          {shipment.vehicleVIN ? `VIN ${shipment.vehicleVIN}` : shipment.id} - {shipment.user.name || shipment.user.email}
+                        </Box>
+                      </Box>
+                    </Box>
+                  );
+                })}
+              </Box>
+            )}
+            <Box sx={{ mt: 1, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+              {selectedShipmentIds.length > 0
+                ? `${selectedShipmentIds.length} shipment(s) selected - release tokens are verified automatically.`
+                : 'Select one or more released shipments to add. You can add another batch right after.'}
+            </Box>
           </DialogContent>
           <DialogActions>
             <Button variant="outline" onClick={handleCloseAddShipment} disabled={addingShipment}>Cancel</Button>
-            <Button variant="primary" onClick={handleAddShipment} disabled={addingShipment || loadingShipmentToken}>{addingShipment ? 'Adding...' : loadingShipmentToken ? 'Loading token...' : 'Add'}</Button>
+            <Button variant="primary" onClick={handleAddShipment} disabled={addingShipment || selectedShipmentIds.length === 0}>
+              {addingShipment ? 'Adding...' : `Add${selectedShipmentIds.length ? ` (${selectedShipmentIds.length})` : ' Shipments'}`}
+            </Button>
           </DialogActions>
         </Dialog>
 
