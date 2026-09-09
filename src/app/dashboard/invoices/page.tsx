@@ -53,6 +53,8 @@ interface Invoice {
 	containerId: string | null;
 	shipmentId: string | null;
 	status: string;
+	reversedAt?: string | null;
+	reversedBy?: { name: string | null; email: string } | null;
 	issueDate: string;
 	dueDate: string | null;
 	total: number;
@@ -87,6 +89,8 @@ interface InvoiceTableRow {
 	dueDate: string | null;
 	status: string;
 	total: number;
+	reversedAt?: string | null;
+	reversedByLabel?: string | null;
 }
 
 const statusConfig: Record<string, { label: string; color: 'success' | 'warning' | 'error' | 'info' | 'default' }> = {
@@ -274,6 +278,11 @@ export default function InvoicesPage() {
 			dueDate: invoice.dueDate,
 			status: invoice.status,
 			total: invoice.total,
+			reversedAt: (invoice as { reversedAt?: string | null }).reversedAt ?? null,
+			reversedByLabel: (invoice as { reversedBy?: { name: string | null; email: string } | null }).reversedBy
+				? ((invoice as { reversedBy: { name: string | null; email: string } }).reversedBy.name ||
+					(invoice as { reversedBy: { name: string | null; email: string } }).reversedBy.email)
+				: null,
 		};
 	});
 
@@ -322,6 +331,25 @@ export default function InvoicesPage() {
 			key: 'status',
 			header: 'Status',
 			render: (value) => <StatusBadge status={String(value)} size="sm" />,
+		},
+		{
+			key: 'reversedAt',
+			header: 'Reversed',
+			render: (value, row) => {
+				if (!row.reversedAt) {
+					return <span className="text-[var(--text-secondary)]">-</span>;
+				}
+				return (
+					<span style={{ fontSize: '0.8rem' }}>
+						{formatDate(String(row.reversedAt))}
+						{row.reversedByLabel ? (
+							<Box component="span" sx={{ display: 'block', color: 'var(--text-secondary)' }}>
+								by {row.reversedByLabel}
+							</Box>
+						) : null}
+					</span>
+				);
+			},
 		},
 		{
 			key: 'total',
@@ -449,6 +477,7 @@ export default function InvoicesPage() {
 		{ value: 'pending', label: 'Pending', count: stats.pending },
 		{ value: 'paid', label: 'Paid', count: stats.paid },
 		{ value: 'draft', label: 'Draft', count: invoices.filter((invoice) => invoice.status === 'DRAFT').length },
+		{ value: 'cancelled', label: 'Reversed', count: invoices.filter((invoice) => invoice.status === 'CANCELLED').length },
 	];
 
 	if (loading) {
@@ -602,7 +631,7 @@ export default function InvoicesPage() {
 								<MenuItem value="sent">Sent</MenuItem>
 								<MenuItem value="paid">Paid</MenuItem>
 								<MenuItem value="overdue">Overdue</MenuItem>
-								<MenuItem value="cancelled">Cancelled</MenuItem>
+								<MenuItem value="cancelled">Cancelled / Reversed</MenuItem>
 							</Select>
 						</FormControl>
 					</Box>

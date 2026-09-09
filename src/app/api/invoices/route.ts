@@ -138,8 +138,49 @@ export async function GET(req: NextRequest) {
       prisma.userInvoice.count({ where: baseWhere }),
     ]);
 
+    // For cancelled (reversed) invoices, surface who reversed them and when from
+    // the invoice audit log so the list can be used as a reversal log.
+    const cancelledInvoiceIds = invoices
+      .filter((invoice) => invoice.status === 'CANCELLED')
+      .map((invoice) => invoice.id);
+    const reversalMap = new Map<string, { reversedAt: Date; reversedBy: { id: string; name: string | null; email: string } }>();
+    if (cancelledInvoiceIds.length > 0) {
+      const cancellationLogs = await prisma.invoiceAuditLog.findMany({
+        where: {
+          invoiceId: { in: cancelledInvoiceIds },
+          action: 'STATUS_CHANGE',
+          newValue: 'CANCELLED',
+        },
+        orderBy: { timestamp: 'desc' },
+      });
+      const actorIds = Array.from(new Set(cancellationLogs.map((log) => log.performedBy)));
+      const actors = actorIds.length
+        ? await prisma.user.findMany({
+            where: { id: { in: actorIds } },
+            select: { id: true, name: true, email: true },
+          })
+        : [];
+      const actorMap = new Map(actors.map((actor) => [actor.id, actor]));
+      for (const log of cancellationLogs) {
+        if (reversalMap.has(log.invoiceId)) continue;
+        const actor = actorMap.get(log.performedBy);
+        reversalMap.set(log.invoiceId, {
+          reversedAt: log.timestamp,
+          reversedBy: actor
+            ? { id: actor.id, name: actor.name, email: actor.email }
+            : { id: log.performedBy, name: null, email: log.performedBy },
+        });
+      }
+    }
+
+    const invoicesWithReversalInfo = invoices.map((invoice) => {
+      if (invoice.status !== 'CANCELLED') return invoice;
+      const reversal = reversalMap.get(invoice.id);
+      return reversal ? { ...invoice, reversedAt: reversal.reversedAt, reversedBy: reversal.reversedBy } : invoice;
+    });
+
     return NextResponse.json({
-      invoices,
+      invoices: invoicesWithReversalInfo,
       pagination: {
         total,
         totalAll,
