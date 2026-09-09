@@ -275,3 +275,13 @@ export type AvailableDispatchOption = {
   status: string;
   company: { name: string };
 };
+
+export type AvailableTransitOption = {
+  id: string;
+  referenceNumber: string;
+  origin: string;
+  destination: string;
+  status: string;
+  currentCompany: { id: string; name: string; code: string | null } | null;
+  _count?: { shipments: number; events: number; expenses: number };
+};

@@ -52,6 +52,7 @@ import { hasAnyPermission, hasPermission } from '@/lib/rbac';
 import { getShipmentWorkflowStage } from '@/lib/shipment-workflow-stage';
 import type {
   AvailableDispatchOption,
+  AvailableTransitOption,
   ClassifiedExpenseSource,
   ComparisonTransactionWithDrillDown,
   ExpenseActionContext,
@@ -203,6 +204,8 @@ export default function ShipmentDetailPage() {
   const [showReleaseToken, setShowReleaseToken] = useState(false);
   const [availableDispatches, setAvailableDispatches] = useState<AvailableDispatchOption[]>([]);
   const [loadingDispatches, setLoadingDispatches] = useState(false);
+  const [availableTransits, setAvailableTransits] = useState<AvailableTransitOption[]>([]);
+  const [loadingTransits, setLoadingTransits] = useState(false);
   const [assigningDispatch, setAssigningDispatch] = useState(false);
   const [assigningTransit, setAssigningTransit] = useState(false);
   const [creatingReleaseToken, setCreatingReleaseToken] = useState(false);
@@ -265,6 +268,31 @@ export default function ShipmentDetailPage() {
 
     void fetchDispatches();
   }, [openAssignDispatch]);
+
+  useEffect(() => {
+    if (!openAssignTransit) return;
+
+    const fetchTransits = async () => {
+      try {
+        setLoadingTransits(true);
+        const response = await fetch('/api/transits');
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Failed to load transits');
+        setAvailableTransits(
+          (data.transits || []).filter(
+            (transit: AvailableTransitOption) => transit.status !== 'DELIVERED' && transit.status !== 'CANCELLED'
+          )
+        );
+      } catch (error) {
+        console.error('Error fetching transits:', error);
+        toast.error('Failed to load transits');
+      } finally {
+        setLoadingTransits(false);
+      }
+    };
+
+    void fetchTransits();
+  }, [openAssignTransit]);
 
   const openLightbox = (images: string[], index: number, title: string) => {
     if (!images.length) return;
@@ -363,9 +391,17 @@ export default function ShipmentDetailPage() {
     return status.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
   };
 
+  const openAssignTransitDialog = () => {
+    // Seed the release token from this shipment so the operator does not have to
+    // copy/paste it (the server still verifies it on submit).
+    setReleaseTokenToAssign(shipment?.releaseToken || '');
+    setTransitIdToAssign('');
+    setOpenAssignTransit(true);
+  };
+
   const handleAssignTransit = async () => {
     if (!transitIdToAssign.trim()) {
-      toast.error('Transit ID is required');
+      toast.error('Select a transit');
       return;
     }
 
@@ -1136,7 +1172,7 @@ export default function ShipmentDetailPage() {
                     </Button>
                   )}
                   {canManageWorkflow && isReleasedForTransit && !shipment.transitId && (
-                    <Button variant="outline" size="sm" onClick={() => setOpenAssignTransit(true)}>
+                    <Button variant="outline" size="sm" onClick={openAssignTransitDialog}>
                       <Ship className="mr-2 h-4 w-4" />
                       Assign Transit
                     </Button>
@@ -1170,7 +1206,7 @@ export default function ShipmentDetailPage() {
           isReleasedForTransit={isReleasedForTransit}
           creatingReleaseToken={creatingReleaseToken}
           onAssignDispatch={() => setOpenAssignDispatch(true)}
-          onAssignTransit={() => setOpenAssignTransit(true)}
+          onAssignTransit={openAssignTransitDialog}
           onGenerateReleaseToken={handleGenerateReleaseToken}
           onOpenFinancials={() => openShipmentTab(4)}
           onOpenBilling={() => openShipmentTab(5)}
@@ -1257,7 +1293,7 @@ export default function ShipmentDetailPage() {
             creatingReleaseToken={creatingReleaseToken}
             formatStatus={formatStatus}
             onOpenAssignDispatch={() => setOpenAssignDispatch(true)}
-            onOpenAssignTransit={() => setOpenAssignTransit(true)}
+            onOpenAssignTransit={openAssignTransitDialog}
             onGenerateReleaseToken={() => {
               void handleGenerateReleaseToken();
             }}
@@ -1461,7 +1497,9 @@ export default function ShipmentDetailPage() {
         onAssignDispatch={handleAssignDispatch}
         openAssignTransit={openAssignTransit}
         onCloseAssignTransit={() => setOpenAssignTransit(false)}
+        loadingTransits={loadingTransits}
         assigningTransit={assigningTransit}
+        availableTransits={availableTransits}
         transitIdToAssign={transitIdToAssign}
         onTransitIdChange={setTransitIdToAssign}
         releaseTokenToAssign={releaseTokenToAssign}

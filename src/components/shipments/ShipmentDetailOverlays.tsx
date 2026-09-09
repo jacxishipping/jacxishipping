@@ -7,6 +7,7 @@ import AddShipmentExpenseModal from '@/components/shipments/AddShipmentExpenseMo
 import PhotoLightbox from '@/components/shipments/PhotoLightbox';
 import type {
   AvailableDispatchOption,
+  AvailableTransitOption,
   ExpenseActionContext,
   ShipmentPhotoLightboxState,
 } from '@/components/shipments/shipment-detail-types';
@@ -31,7 +32,9 @@ type ShipmentDetailOverlaysProps = {
   onAssignDispatch: () => void | Promise<void>;
   openAssignTransit: boolean;
   onCloseAssignTransit: () => void;
+  loadingTransits: boolean;
   assigningTransit: boolean;
+  availableTransits: AvailableTransitOption[];
   transitIdToAssign: string;
   onTransitIdChange: (value: string) => void;
   releaseTokenToAssign: string;
@@ -65,7 +68,9 @@ export default function ShipmentDetailOverlays({
   onAssignDispatch,
   openAssignTransit,
   onCloseAssignTransit,
+  loadingTransits,
   assigningTransit,
+  availableTransits,
   transitIdToAssign,
   onTransitIdChange,
   releaseTokenToAssign,
@@ -149,7 +154,7 @@ export default function ShipmentDetailOverlays({
           onClose={() => !assigningTransit && onCloseAssignTransit()}
           size="sm"
           title="Assign Shipment to Transit"
-          description="Link this shipment to a transit record and verify it with the release token."
+          description="Choose an open transit for this shipment. The release token is pre-filled for verification."
           showCloseButton={!assigningTransit}
           disableBackdropClick={assigningTransit}
           actions={
@@ -157,7 +162,11 @@ export default function ShipmentDetailOverlays({
               <Button variant="outline" onClick={onCloseAssignTransit} disabled={assigningTransit}>
                 Cancel
               </Button>
-              <Button variant="primary" onClick={() => void onAssignTransit()} disabled={assigningTransit}>
+              <Button
+                variant="primary"
+                onClick={() => void onAssignTransit()}
+                disabled={assigningTransit || loadingTransits || !transitIdToAssign}
+              >
                 {assigningTransit ? 'Assigning...' : 'Assign'}
               </Button>
             </>
@@ -165,21 +174,32 @@ export default function ShipmentDetailOverlays({
         >
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <TextField
+              select
               fullWidth
-              label="Transit ID"
+              label="Transit"
               value={transitIdToAssign}
               onChange={(event) => onTransitIdChange(event.target.value)}
-              helperText="Paste the transit ID from the Transits page"
+              helperText={loadingTransits ? 'Loading open transits...' : 'Select the transit this shipment will travel on'}
               size="small"
-              sx={{ mb: 2 }}
-            />
+              disabled={loadingTransits || assigningTransit}
+            >
+              {availableTransits.map((transit) => (
+                <MenuItem key={transit.id} value={transit.id}>
+                  {transit.referenceNumber}
+                  {transit.currentCompany ? ` - ${transit.currentCompany.name}` : ''} ({transit.origin} → {transit.destination})
+                </MenuItem>
+              ))}
+            </TextField>
+            {!loadingTransits && availableTransits.length === 0 && (
+              <p className="mt-3 text-sm text-[var(--text-secondary)]">No open transits are available. Create one from the Transits page first.</p>
+            )}
             <TextField
               fullWidth
               label="Release Token"
               type={showReleaseToken ? 'text' : 'password'}
               value={releaseTokenToAssign}
               onChange={(event) => onReleaseTokenChange(event.target.value)}
-              helperText="Paste the shipment release token to verify"
+              helperText="Auto-filled from this shipment — the token is verified before assigning"
               size="small"
               InputProps={{
                 endAdornment: (

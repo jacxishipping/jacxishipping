@@ -61,11 +61,14 @@ interface Shipment {
 
 interface AssignableShipment {
   id: string;
+  status: string;
+  transitId: string | null;
   vehicleMake: string | null;
   vehicleModel: string | null;
   vehicleYear: number | null;
   vehicleVIN: string | null;
   user: { id: string; name: string | null; email: string };
+  container?: { status: string | null } | null;
 }
 
 interface TransitEvent {
@@ -186,6 +189,7 @@ export default function TransitDetailPage() {
   const [shipmentReleaseToken, setShipmentReleaseToken] = useState('');
   const [showShipmentReleaseToken, setShowShipmentReleaseToken] = useState(false);
   const [addingShipment, setAddingShipment] = useState(false);
+  const [loadingShipmentToken, setLoadingShipmentToken] = useState(false);
   const [availableShipments, setAvailableShipments] = useState<AssignableShipment[]>([]);
   const [shipmentSearch, setShipmentSearch] = useState('');
   const [loadingAvailableShipments, setLoadingAvailableShipments] = useState(false);
@@ -195,9 +199,11 @@ export default function TransitDetailPage() {
   const fetchAvailableShipments = async (searchTerm = '') => {
     try {
       setLoadingAvailableShipments(true);
+      // Fetch a broad set and filter client-side using the same rule as the server
+      // (released = shipment released OR its container released) so that shipments
+      // released at container level are not hidden from the picker.
       const query = new URLSearchParams({
-        status: 'RELEASED',
-        limit: '50',
+        limit: '100',
         page: '1',
       });
 
@@ -212,7 +218,11 @@ export default function TransitDetailPage() {
         throw new Error(data.message || 'Failed to load shipments');
       }
 
-      setAvailableShipments((data.shipments || []) as AssignableShipment[]);
+      const eligible = (data.shipments || []).filter((shipment: AssignableShipment) => {
+        const released = shipment.status === 'RELEASED' || shipment.container?.status === 'RELEASED';
+        return released && !shipment.transitId;
+      });
+      setAvailableShipments(eligible as AssignableShipment[]);
     } catch (error) {
       console.error(error);
       toast.error('Failed to load released shipments');
@@ -221,6 +231,45 @@ export default function TransitDetailPage() {
       setLoadingAvailableShipments(false);
     }
   };
+
+  // When a shipment is picked, auto-fill its release token so the operator does
+  // not have to open the shipment record to copy it (server still verifies it).
+  useEffect(() => {
+    if (!openAddShipment) {
+      setLoadingShipmentToken(false);
+      return;
+    }
+
+    if (!shipmentIdToAdd) {
+      setShipmentReleaseToken('');
+      setLoadingShipmentToken(false);
+      return;
+    }
+
+    let cancelled = false;
+    setShipmentReleaseToken('');
+    setLoadingShipmentToken(true);
+    const loadToken = async () => {
+      try {
+        const response = await fetch(`/api/shipments/${shipmentIdToAdd}`, { cache: 'no-store' });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Failed to load shipment');
+        if (!cancelled) {
+          setShipmentReleaseToken(data.shipment?.releaseToken || '');
+        }
+      } catch (error) {
+        console.error(error);
+        if (!cancelled) setShipmentReleaseToken('');
+      } finally {
+        if (!cancelled) setLoadingShipmentToken(false);
+      }
+    };
+
+    void loadToken();
+    return () => {
+      cancelled = true;
+    };
+  }, [openAddShipment, shipmentIdToAdd]);
 
   const fetchTransit = async () => {
     try {
@@ -428,13 +477,14 @@ export default function TransitDetailPage() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Failed to add shipment');
-      toast.success('Shipment added to transit');
-      setOpenAddShipment(false);
+      toast.success('Shipment added to transit — you can add another or close');
+      // Keep the dialog open for batch assignment; reset the selection so the
+      // next shipment can be picked immediately, and refresh the eligible list
+      // so the shipment just added is no longer offered.
       setShipmentIdToAdd('');
-      setShipmentSearch('');
-      setAvailableShipments([]);
       setShipmentReleaseToken('');
       await fetchTransit();
+      void fetchAvailableShipments(shipmentSearch);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to add shipment');
     } finally {
@@ -1005,7 +1055,7 @@ export default function TransitDetailPage() {
                   {...params}
                   fullWidth
                   label="Shipment"
-                  helperText="Search and select a released shipment"
+                  helperText={loadingAvailableShipments ? 'Loading released shipments...' : 'Search and select a released shipment (release token auto-fills)'}
                   sx={{ mb: 2 }}
                   InputProps={{
                     ...params.InputProps,
@@ -1025,7 +1075,13 @@ export default function TransitDetailPage() {
               type={showShipmentReleaseToken ? 'text' : 'password'}
               value={shipmentReleaseToken}
               onChange={(e) => setShipmentReleaseToken(e.target.value)}
-              helperText="Paste the shipment release token for verification"
+              helperText={
+                shipmentReleaseToken
+                  ? 'Auto-filled from the selected shipment — verified before adding'
+                  : shipmentIdToAdd
+                    ? 'This shipment has no release token yet — generate one from its shipment page first'
+                    : 'Select a shipment above to auto-fill its release token'
+              }
               InputProps={{
                 endAdornment: (
                   <button
@@ -1041,7 +1097,7 @@ export default function TransitDetailPage() {
           </DialogContent>
           <DialogActions>
             <Button variant="outline" onClick={handleCloseAddShipment} disabled={addingShipment}>Cancel</Button>
-            <Button variant="primary" onClick={handleAddShipment} disabled={addingShipment}>{addingShipment ? 'Adding...' : 'Add'}</Button>
+            <Button variant="primary" onClick={handleAddShipment} disabled={addingShipment || loadingShipmentToken}>{addingShipment ? 'Adding...' : loadingShipmentToken ? 'Loading token...' : 'Add'}</Button>
           </DialogActions>
         </Dialog>
 
