@@ -698,7 +698,10 @@ export default function ShipmentDetailPage() {
 
   const canManageWorkflow = hasPermission(session?.user?.role, 'workflow:move') && hasPermission(session?.user?.role, 'shipments:manage');
   const canManageShipmentRecord = hasPermission(session?.user?.role, 'shipments:manage');
-  const canPostExpenses = hasPermission(session?.user?.role, 'expenses:post');
+  // Adding shipment expenses posts to /api/ledger/expense, which allows finance:manage OR shipments:manage.
+  const canAddLedgerExpense = hasAnyPermission(session?.user?.role, ['finance:manage', 'shipments:manage']);
+  // Editing/deleting an expense row hits /api/ledger/[id], which requires finance:manage.
+  const canManageShipmentExpenses = hasPermission(session?.user?.role, 'finance:manage');
   const canViewPurchasePrice = hasPermission(session?.user?.role, 'finance:manage');
   const canUploadArrivalPhotos = canManageWorkflow && 
     (shipment?.container?.status === 'ARRIVED_PORT' || 
@@ -713,7 +716,6 @@ export default function ShipmentDetailPage() {
 
   const statusStyles = useMemo(() => statusColors, []);
   const isAdmin = session?.user?.role === 'admin';
-  const canManageShipmentExpenses = canPostExpenses;
   const canViewLedgerComparison = hasAnyPermission(session?.user?.role, ['finance:view', 'finance:manage', 'shipments:read_all']);
   const canManageCompanyLedger = hasPermission(session?.user?.role, 'finance:manage');
   const canViewWorkflowCompanyDetails = hasPermission(session?.user?.role, 'shipments:read_all');
@@ -1351,6 +1353,7 @@ export default function ShipmentDetailPage() {
           <ShipmentFinancialsTab
             shipment={shipment}
             canManageShipmentExpenses={canManageShipmentExpenses}
+            canAddLedgerExpense={canAddLedgerExpense}
             canAddShipmentExpense={canAddShipmentExpense}
             canAddDispatchExpense={canAddDispatchExpense}
             canAddTransitExpense={canAddTransitExpense}

@@ -19,6 +19,7 @@ import type {
 type ShipmentFinancialsTabProps = {
   shipment: Shipment;
   canManageShipmentExpenses: boolean;
+  canAddLedgerExpense: boolean;
   canAddShipmentExpense: boolean;
   canAddDispatchExpense: boolean;
   canAddTransitExpense: boolean;
@@ -85,6 +86,7 @@ function formatSnapshotDate(value?: string | null) {
 export default function ShipmentFinancialsTab({
   shipment,
   canManageShipmentExpenses,
+  canAddLedgerExpense,
   canAddShipmentExpense,
   canAddDispatchExpense,
   canAddTransitExpense,
@@ -209,7 +211,7 @@ export default function ShipmentFinancialsTab({
       title="Shipment Financials"
       description="Costs and expenses associated with this shipment"
       actions={
-        canManageShipmentExpenses ? (
+        canAddLedgerExpense ? (
           <div className="flex flex-wrap items-center justify-end gap-2">
             <Button size="sm" icon={<DollarSign className="h-4 w-4" />} onClick={onOpenShipmentExpense} disabled={!canAddShipmentExpense}>
               Shipment Expense
