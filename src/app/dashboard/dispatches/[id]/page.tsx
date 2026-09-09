@@ -120,7 +120,7 @@ interface Dispatch {
   _count: { shipments: number; events: number; expenses: number };
 }
 
-const formatCurrency = (amount: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+import { formatMoney as formatCurrency } from '@/lib/format';
 const TabPanel = ({ children, value, index }: { children: React.ReactNode; value: number; index: number }) => <div hidden={value !== index}>{value === index && <Box sx={{ pt: 2 }}>{children}</Box>}</div>;
 
 function getDispatchEventStatusLabel(status: string) {

@@ -1,4 +1,5 @@
 'use client';
+import { formatMoney as formatCurrency } from '@/lib/format';
 
 import { ChangeEvent, ReactNode, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
@@ -332,9 +333,6 @@ export default function CompanyLedgerDetailPage() {
       : company?.companyType === 'DISPATCH'
       ? 'Dispatch'
       : 'Transit';
-
-  const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
 
   const activePriceListRows = useMemo(() => {
     const rows = company?.priceListConfig?.auctionRates || [];

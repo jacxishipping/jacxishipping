@@ -1,14 +1,7 @@
 'use client';
 
 import { DataTable, Column } from '@/components/ui/DataTable';
-
-// Helper if formatCurrency is not exported or different
-const formatMoney = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD',
-    }).format(amount);
-};
+import { formatMoney } from '@/lib/format';
 
 interface UserBalance {
     userId: string;

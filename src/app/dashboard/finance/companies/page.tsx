@@ -1,4 +1,5 @@
 'use client';
+import { formatMoney as formatCurrency } from '@/lib/format';
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -148,9 +149,6 @@ export default function CompanyFinancePage() {
       setCreating(false);
     }
   };
-
-  const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
 
   const openEditDialog = (company: Company, event: React.MouseEvent) => {
     event.stopPropagation();

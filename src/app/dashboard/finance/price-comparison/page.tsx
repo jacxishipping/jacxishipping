@@ -1,4 +1,5 @@
 'use client';
+import { formatMoney as formatCurrency } from '@/lib/format';
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
@@ -99,9 +100,6 @@ const viewModeToTab = (mode: ComparisonViewMode) => {
   if (mode === 'lane') return TAB_LANE;
   return TAB_SIDE_BY_SIDE;
 };
-
-const formatCurrency = (amount: number) =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(amount);
 
 const formatSignedCurrency = (amount: number) => {
   const prefix = amount > 0 ? '+' : amount < 0 ? '−' : '';

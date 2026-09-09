@@ -1,4 +1,5 @@
 'use client';
+import { formatMoney as formatCurrency } from '@/lib/format';
 
 import { ChangeEvent, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
@@ -109,9 +110,6 @@ export default function BankingFinancePage() {
     category: 'Bank Statement',
     statementEndingBalance: '',
   });
-
-  const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
 
   const resetImportForm = () => {
     setImportFile(null);

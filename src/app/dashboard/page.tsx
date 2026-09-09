@@ -1,4 +1,5 @@
 import { auth } from '@/lib/auth';
+import { formatMoney } from '@/lib/format';
 import { prisma } from '@/lib/db';
 import { hasPermission } from '@/lib/rbac';
 import { 
@@ -16,13 +17,6 @@ import { getEffectiveAiProviderSettings, isAiProviderConfigured } from '@/lib/ai
 export const dynamic = 'force-dynamic';
 
 // Helper for currency if not available
-const formatMoney = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD',
-    }).format(amount);
-};
-
 const formatDateKey = (date: Date) => {
     const normalized = new Date(date);
     normalized.setHours(0, 0, 0, 0);

@@ -1,5 +1,6 @@
 'use client';
 import { Box } from '@mui/material';
+import { formatMoney as formatCurrency } from '@/lib/format';
 
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -142,13 +143,6 @@ export default function AddExpensePage() {
   };
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount);
-  };
-
   const selectedShipment = shipments.find(s => s.id === selectedShipmentId);
 
   if (status === 'loading' || loadingShipments) {

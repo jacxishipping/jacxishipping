@@ -1,4 +1,5 @@
 'use client';
+import { formatMoney as formatCurrency } from '@/lib/format';
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -94,11 +95,6 @@ interface AnalyticsPayload {
   topCustomers: TopCustomer[];
   lastUpdated: string;
 }
-
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(
-    Number.isFinite(value) ? value : 0,
-  );
 
 export default function AnalyticsPage() {
   const { data: session, status } = useSession();

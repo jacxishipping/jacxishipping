@@ -1,4 +1,5 @@
 'use client';
+import { formatMoney } from '@/lib/format';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
@@ -169,11 +170,6 @@ function classifyExpenseSource(metadata: Record<string, unknown>): ClassifiedExp
   }
 
   return 'SHIPMENT';
-}
-
-function formatMoney(value: number | null | undefined) {
-  if (typeof value !== 'number' || Number.isNaN(value)) return 'Not set';
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
 }
 
 function formatShortDate(value: string | null | undefined) {

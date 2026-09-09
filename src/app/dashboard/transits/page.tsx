@@ -1,4 +1,5 @@
 'use client';
+import { formatMoney as formatCurrency } from '@/lib/format';
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -72,9 +73,6 @@ const statusLabels: Record<string, string> = {
 };
 
 const editableStatusOptions = ['PENDING', 'DISPATCHED', 'IN_TRANSIT', 'ARRIVED', 'CANCELLED'];
-
-const formatCurrency = (amount: number) =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
 
 export default function TransitsPage() {
   const router = useRouter();
