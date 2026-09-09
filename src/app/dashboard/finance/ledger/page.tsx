@@ -26,6 +26,7 @@ import { DataTable, Column } from '@/components/ui/DataTable';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { hasPermission } from '@/lib/rbac';
+import { formatMoney as formatCurrency } from '@/lib/format';
 
 interface LedgerEntry {
   id: string;
@@ -294,13 +295,6 @@ export default function LedgerPage() {
       console.error('Error adding entry:', error);
       toast.error('An error occurred');
     }
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount);
   };
 
   const formatDate = (dateString: string) => {

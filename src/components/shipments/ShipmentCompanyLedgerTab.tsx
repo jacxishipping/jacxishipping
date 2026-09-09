@@ -6,6 +6,7 @@ import { Building2, DollarSign, Pencil, Plus, ReceiptText } from 'lucide-react';
 import { Box, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, TextField } from '@mui/material';
 import { DashboardPanel } from '@/components/dashboard/DashboardSurface';
 import { Button, toast } from '@/components/design-system';
+import { formatMoney } from '@/lib/format';
 import type { Shipment } from '@/components/shipments/shipment-detail-types';
 
 type ShipmentCompanyLedgerTabProps = {
@@ -36,10 +37,6 @@ const emptyForm = (): EntryForm => ({
   reference: '',
   notes: '',
 });
-
-function formatMoney(amount: number) {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
-}
 
 /**
  * Auto-generated expense-recovery entries are managed from their originating expense

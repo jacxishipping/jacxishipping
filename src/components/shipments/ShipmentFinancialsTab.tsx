@@ -6,6 +6,7 @@ import { Alert, Box, Dialog, DialogActions, DialogContent, DialogTitle, TextFiel
 import { DashboardPanel } from '@/components/dashboard/DashboardSurface';
 import { Button, toast } from '@/components/design-system';
 import { cn } from '@/lib/utils';
+import { formatMoney as formatSnapshotMoney } from '@/lib/format';
 import type {
   ClassifiedExpenseSource,
   ClassifiedShipmentExpenseData,
@@ -51,18 +52,6 @@ type ShipmentFinancialsTabProps = {
   onDeleteExpense: (entryId: string) => void;
   onExpenseUpdated: () => void;
 };
-
-function formatSnapshotMoney(amount?: number | null, currency = 'USD') {
-  if (typeof amount !== 'number' || !Number.isFinite(amount)) {
-    return '-';
-  }
-
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: currency || 'USD',
-    maximumFractionDigits: 0,
-  }).format(amount);
-}
 
 function formatPriceListLane(snapshot: Shipment['priceListPricingSnapshot']) {
   const lane = snapshot?.matchedLane;

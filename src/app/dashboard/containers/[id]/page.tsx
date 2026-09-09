@@ -47,6 +47,7 @@ import {
     Pencil
 } from 'lucide-react';
 import QRCode from 'react-qr-code';
+import { formatMoney as formatCurrency } from '@/lib/format';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
 import { 
 	PageHeader, 
@@ -729,13 +730,6 @@ export default function ContainerDetailPage() {
 		} finally {
 			setGeneratingInvoices(false);
 		}
-	};
-
-	const formatCurrency = (amount: number, currency: string = 'USD') => {
-		return new Intl.NumberFormat('en-US', {
-			style: 'currency',
-			currency,
-		}).format(amount);
 	};
 
 	const formatDate = (date: string | null) => {

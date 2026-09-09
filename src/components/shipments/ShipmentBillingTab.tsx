@@ -7,6 +7,8 @@ import { AlertCircle, AlertTriangle, Download, FileText, Wallet } from 'lucide-r
 import { DashboardPanel } from '@/components/dashboard/DashboardSurface';
 import { Button, FormField, toast } from '@/components/design-system';
 import { hasAnyPermission } from '@/lib/rbac';
+import { formatMoney } from '@/lib/format';
+import { statusChipClass, statusTone } from '@/lib/status';
 
 type ShipmentCharge = {
   id: string;
@@ -133,30 +135,18 @@ type ShipmentBillingTabProps = {
   } | null;
 };
 
-const statusStyles: Record<string, string> = {
-  DRAFT: 'border-[var(--border)] bg-[var(--panel)] text-[var(--text-secondary)]',
-  PENDING_APPROVAL: 'border-[rgba(245,158,11,0.32)] bg-[rgba(245,158,11,0.12)] text-[rgb(180,83,9)]',
-  APPROVED: 'border-[rgba(59,130,246,0.32)] bg-[rgba(59,130,246,0.12)] text-[rgb(29,78,216)]',
-  INVOICED: 'border-[rgba(var(--accent-gold-rgb),0.32)] bg-[rgba(var(--accent-gold-rgb),0.14)] text-[var(--accent-gold)]',
-  PAID: 'border-[rgba(34,197,94,0.34)] bg-[rgba(34,197,94,0.12)] text-[rgb(21,128,61)]',
-  DISPUTED: 'border-[rgba(239,68,68,0.34)] bg-[rgba(239,68,68,0.12)] text-[rgb(185,28,28)]',
-  VOID: 'border-[var(--border)] bg-[var(--background)] text-[var(--text-secondary)]',
-};
+const shipmentChargeStatusKeys = ['DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'INVOICED', 'PAID', 'DISPUTED', 'VOID'];
+const statusStyles: Record<string, string> = Object.fromEntries(
+  shipmentChargeStatusKeys.map((value) => [value, statusChipClass(statusTone('shipmentCharge', value))]),
+);
 
 const readinessStyles: Record<ShipmentBillingResponse['readiness']['status'], string> = {
-  NOT_BILLABLE: 'border-[var(--border)] bg-[var(--background)] text-[var(--text-secondary)]',
-  PARTIALLY_BILLABLE: 'border-[rgba(245,158,11,0.32)] bg-[rgba(245,158,11,0.12)] text-[rgb(180,83,9)]',
-  READY_TO_INVOICE: 'border-[rgba(59,130,246,0.32)] bg-[rgba(59,130,246,0.12)] text-[rgb(29,78,216)]',
-  INVOICED: 'border-[rgba(var(--accent-gold-rgb),0.32)] bg-[rgba(var(--accent-gold-rgb),0.14)] text-[var(--accent-gold)]',
-  PAID: 'border-[rgba(34,197,94,0.34)] bg-[rgba(34,197,94,0.12)] text-[rgb(21,128,61)]',
+  NOT_BILLABLE: statusChipClass(statusTone('readiness', 'NOT_BILLABLE')),
+  PARTIALLY_BILLABLE: statusChipClass(statusTone('readiness', 'PARTIALLY_BILLABLE')),
+  READY_TO_INVOICE: statusChipClass(statusTone('readiness', 'READY_TO_INVOICE')),
+  INVOICED: statusChipClass(statusTone('readiness', 'INVOICED')),
+  PAID: statusChipClass(statusTone('readiness', 'PAID')),
 };
-
-function formatMoney(amount: number, currency: string) {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: currency || 'USD',
-  }).format(amount);
-}
 
 function formatLabel(value: string) {
   return value.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase());

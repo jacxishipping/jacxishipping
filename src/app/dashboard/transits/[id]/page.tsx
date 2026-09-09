@@ -38,6 +38,7 @@ import { DataTable, Column } from '@/components/ui/DataTable';
 import AddShipmentExpenseModal from '@/components/shipments/AddShipmentExpenseModal';
 import AddTransitExpenseModal from '@/components/transits/AddTransitExpenseModal';
 import { hasPermission } from '@/lib/rbac';
+import { formatMoney as formatCurrency } from '@/lib/format';
 
 interface Company {
   id: string;
@@ -138,9 +139,6 @@ const statusColors: Record<string, { bg: string; text: string; border: string }>
   CANCELLED: { bg: 'rgba(239, 68, 68, 0.15)', text: 'rgb(239, 68, 68)', border: 'rgba(239, 68, 68, 0.3)' },
 };
 const statusLabels: Record<string, string> = { PENDING: 'Pending', DISPATCHED: 'Dispatched', IN_TRANSIT: 'In Transit', ARRIVED: 'Arrived', DELIVERED: 'Delivered', CANCELLED: 'Cancelled' };
-
-const formatCurrency = (amount: number) =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
 
 const TabPanel = ({ children, value, index }: { children: React.ReactNode; value: number; index: number }) => (
   <div hidden={value !== index}>{value === index && <Box sx={{ pt: 2 }}>{children}</Box>}</div>
