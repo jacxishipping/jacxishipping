@@ -336,12 +336,36 @@ export async function PATCH(
       return NextResponse.json({ error: 'One or more shipment charges were not found' }, { status: 404 });
     }
 
-    const blockedCharge = charges.find((charge) => charge.invoiceId || !mutableStatuses.has(charge.status));
+    // Load the invoices linked to selected charges so draft/pending links can be
+    // released while issued-invoice links stay blocked.
+    const linkedInvoiceIds = Array.from(
+      new Set(charges.map((charge) => charge.invoiceId).filter((value): value is string => Boolean(value))),
+    );
+    const linkedInvoices = linkedInvoiceIds.length
+      ? await prisma.userInvoice.findMany({
+          where: { id: { in: linkedInvoiceIds } },
+          select: { id: true, invoiceNumber: true, status: true },
+        })
+      : [];
+    const linkedInvoiceMap = new Map(linkedInvoices.map((invoice) => [invoice.id, invoice]));
+    const mutableInvoiceStatuses = new Set(['DRAFT', 'PENDING']);
+
+    const blockedCharge = charges.find((charge) => {
+      const linkedInvoice = charge.invoiceId ? linkedInvoiceMap.get(charge.invoiceId) : undefined;
+      const invoiceMutable = Boolean(linkedInvoice && mutableInvoiceStatuses.has(linkedInvoice.status));
+
+      if (charge.invoiceId && !invoiceMutable) {
+        return true; // locked to an issued invoice
+      }
+
+      return !mutableStatuses.has(charge.status) && !(charge.status === 'INVOICED' && invoiceMutable);
+    });
+
     if (blockedCharge) {
       return NextResponse.json(
         {
           error: blockedCharge.invoiceId
-            ? 'One or more charges are already linked to an invoice.'
+            ? 'One or more charges are locked to an issued invoice. Reverse that invoice first.'
             : `Charge cannot be updated while it is ${blockedCharge.status.toLowerCase()}.`,
         },
         { status: 400 },
@@ -351,6 +375,8 @@ export async function PATCH(
     const actorId = session.user.id;
     await prisma.$transaction(async (tx) => {
       for (const charge of charges) {
+        const linkedInvoice = charge.invoiceId ? linkedInvoiceMap.get(charge.invoiceId) : undefined;
+
         await tx.shipmentCharge.update({
           where: { id: charge.id },
           data: {
@@ -358,6 +384,11 @@ export async function PATCH(
             approvedAt: body.status === 'APPROVED' ? new Date() : null,
             approvedBy: body.status === 'APPROVED' ? actorId : null,
             notes: trimmedNote,
+            // Release the charge from a not-yet-issued invoice; the next invoice
+            // generation rebuilds the draft from approved charges.
+            ...(linkedInvoice
+              ? { invoiceId: null, invoicedAt: null }
+              : {}),
           },
         });
 
@@ -376,6 +407,9 @@ export async function PATCH(
               mode: 'bulk',
               chargeIds: uniqueChargeIds,
               ...(trimmedNote ? { note: trimmedNote } : {}),
+              ...(linkedInvoice
+                ? { releasedFromInvoice: linkedInvoice.invoiceNumber, releasedFromInvoiceStatus: linkedInvoice.status }
+                : {}),
             },
           },
         });

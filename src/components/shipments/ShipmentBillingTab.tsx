@@ -172,7 +172,30 @@ function formatChargeCode(value: string) {
 }
 
 function isActionableCharge(charge: ShipmentCharge) {
-  return !charge.invoice && !['INVOICED', 'PAID', 'VOID'].includes(charge.status);
+  // Charges locked to an issued (sent/past-due/paid) invoice can only be changed
+  // after that invoice is reversed. Draft/pending invoices do not lock rows.
+  if (charge.invoice && !['DRAFT', 'PENDING'].includes(charge.invoice.status)) {
+    return false;
+  }
+
+  if (['PAID', 'VOID'].includes(charge.status)) {
+    return false;
+  }
+
+  if (charge.status === 'INVOICED') {
+    return Boolean(charge.invoice && ['DRAFT', 'PENDING'].includes(charge.invoice.status));
+  }
+
+  return ['DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'DISPUTED'].includes(charge.status);
+}
+
+function canDisputeCharge(charge: ShipmentCharge) {
+  if (charge.status === 'APPROVED') return true;
+  // A charge sitting on a draft/pending invoice can be pulled off it and disputed.
+  if (charge.status === 'INVOICED') {
+    return Boolean(charge.invoice && ['DRAFT', 'PENDING'].includes(charge.invoice.status));
+  }
+  return false;
 }
 
 function formatAuditAction(action: string) {
@@ -202,6 +225,7 @@ export default function ShipmentBillingTab({ shipmentId, refreshKey, purchasePri
   const [bulkNote, setBulkNote] = useState('');
   const [downloadingInvoiceId, setDownloadingInvoiceId] = useState<string | null>(null);
   const [generatingInvoice, setGeneratingInvoice] = useState(false);
+  const [invoiceActioningId, setInvoiceActioningId] = useState<string | null>(null);
 
   const canManageChargeStatus = hasAnyPermission(session?.user?.role, ['shipments:manage', 'invoices:manage', 'finance:manage']);
   const canGenerateInvoices = hasAnyPermission(session?.user?.role, ['invoices:manage']);
@@ -340,6 +364,53 @@ export default function ShipmentBillingTab({ shipmentId, refreshKey, purchasePri
       toast.error(downloadError instanceof Error ? downloadError.message : 'Failed to download invoice');
     } finally {
       setDownloadingInvoiceId(null);
+    }
+  };
+
+  const handleDiscardDraftInvoice = async (invoice: { id: string; invoiceNumber: string }) => {
+    const confirmed = window.confirm(
+      `Discard draft invoice ${invoice.invoiceNumber}?\n\nThe draft will be deleted and its charges released back to Approved so you can dispute or edit the rows. A new invoice will be generated next time you click Generate.`,
+    );
+    if (!confirmed) return;
+
+    try {
+      setInvoiceActioningId(invoice.id);
+      const response = await fetch(`/api/invoices/${invoice.id}`, { method: 'DELETE' });
+      const payload = (await response.json().catch(() => ({}))) as { error?: string };
+      if (!response.ok) throw new Error(payload.error || 'Failed to discard draft invoice');
+      toast.success(`Draft invoice ${invoice.invoiceNumber} discarded — charges released`);
+      await fetchCharges();
+    } catch (discardError) {
+      toast.error(discardError instanceof Error ? discardError.message : 'Failed to discard draft invoice');
+    } finally {
+      setInvoiceActioningId(null);
+    }
+  };
+
+  const handleReverseInvoice = async (invoice: { id: string; invoiceNumber: string }) => {
+    const confirmed = window.confirm(
+      `Reverse invoice ${invoice.invoiceNumber}?\n\nThe invoice will be cancelled (kept for the audit trail) and its charges released back to Approved so you can dispute or edit the rows. You can then generate a fresh invoice.`,
+    );
+    if (!confirmed) return;
+
+    try {
+      setInvoiceActioningId(invoice.id);
+      const response = await fetch(`/api/invoices/${invoice.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'CANCELLED',
+          notes: 'Reversed from shipment billing so rows could be disputed/edited',
+        }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as { error?: string };
+      if (!response.ok) throw new Error(payload.error || 'Failed to reverse invoice');
+      toast.success(`Invoice ${invoice.invoiceNumber} reversed — charges released for dispute`);
+      await fetchCharges();
+    } catch (reverseError) {
+      toast.error(reverseError instanceof Error ? reverseError.message : 'Failed to reverse invoice');
+    } finally {
+      setInvoiceActioningId(null);
     }
   };
 
@@ -711,6 +782,28 @@ export default function ShipmentBillingTab({ shipmentId, refreshKey, purchasePri
                         >
                           {downloadingInvoiceId === charge.invoice.id ? 'Downloading...' : 'Download'}
                         </Button>
+                        {canGenerateInvoices &&
+                          ['DRAFT', 'PENDING'].includes(charge.invoice!.status) && (
+                            <Button
+                              variant="danger"
+                              size="sm"
+                              onClick={() => void handleDiscardDraftInvoice(charge.invoice!)}
+                              disabled={invoiceActioningId === charge.invoice.id}
+                            >
+                              {invoiceActioningId === charge.invoice.id ? 'Discarding...' : 'Discard Draft'}
+                            </Button>
+                          )}
+                        {canGenerateInvoices &&
+                          ['SENT', 'OVERDUE'].includes(charge.invoice!.status) && (
+                            <Button
+                              variant="danger"
+                              size="sm"
+                              onClick={() => void handleReverseInvoice(charge.invoice!)}
+                              disabled={invoiceActioningId === charge.invoice.id}
+                            >
+                              {invoiceActioningId === charge.invoice.id ? 'Reversing...' : 'Reverse'}
+                            </Button>
+                          )}
                       </div>
                     ) : (
                       <span className="text-[var(--text-secondary)]">Not invoiced</span>
@@ -720,8 +813,8 @@ export default function ShipmentBillingTab({ shipmentId, refreshKey, purchasePri
                     {formatMoney(charge.totalAmount, charge.currency)}
                   </div>
                   <div className="col-span-1 flex justify-end">
-                    {canManageChargeStatus && !charge.invoice && !['INVOICED', 'PAID', 'VOID'].includes(charge.status) ? (
-                      charge.status === 'APPROVED' ? (
+                    {canManageChargeStatus && isActionableCharge(charge) ? (
+                      canDisputeCharge(charge) ? (
                         <Button
                           variant="outline"
                           size="sm"

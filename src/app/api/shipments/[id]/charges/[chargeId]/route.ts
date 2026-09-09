@@ -62,15 +62,34 @@ export async function PATCH(
       }
     }
 
-    if (!mutableStatuses.has(charge.status)) {
+    // A charge linked to a DRAFT/PENDING (not yet issued) invoice can still be
+    // approved/disputed: the link is released and the invoice is refreshed the
+    // next time it is generated. Charges on issued invoices must be reversed first.
+    let linkedInvoice: { id: string; invoiceNumber: string; status: string } | null = null;
+    if (charge.invoiceId) {
+      linkedInvoice = await prisma.userInvoice.findUnique({
+        where: { id: charge.invoiceId },
+        select: { id: true, invoiceNumber: true, status: true },
+      });
+
+      const invoiceIsMutable = linkedInvoice ? ['DRAFT', 'PENDING'].includes(linkedInvoice.status) : false;
+      if (!invoiceIsMutable) {
+        return NextResponse.json(
+          {
+            error: `Charge is locked to invoice ${linkedInvoice?.invoiceNumber ?? ''} (${(linkedInvoice?.status || 'unknown').toLowerCase()}). Reverse that invoice first, then dispute or approve this row.`,
+          },
+          { status: 400 },
+        );
+      }
+    }
+
+    const statusIsMutable =
+      mutableStatuses.has(charge.status) || (charge.status === 'INVOICED' && Boolean(linkedInvoice));
+    if (!statusIsMutable) {
       return NextResponse.json(
         { error: `Charge cannot be updated while it is ${charge.status.toLowerCase()}.` },
         { status: 400 },
       );
-    }
-
-    if (charge.invoiceId) {
-      return NextResponse.json({ error: 'Charge is already linked to an invoice.' }, { status: 400 });
     }
 
     const updatedCharge = await prisma.$transaction(async (tx) => {
@@ -81,6 +100,10 @@ export async function PATCH(
           approvedAt: body.status === 'APPROVED' ? new Date() : null,
           approvedBy: body.status === 'APPROVED' ? session.user.id : null,
           notes: body.note ? body.note.trim() : undefined,
+          // Release the charge from a not-yet-issued invoice so it can be disputed
+          // or approved again. The next invoice generation rebuilds the draft.
+          invoiceId: linkedInvoice ? null : undefined,
+          invoicedAt: linkedInvoice ? null : undefined,
         },
       });
 
@@ -95,7 +118,12 @@ export async function PATCH(
           performedBy: actorId,
           oldValue: charge.status,
           newValue: body.status,
-          metadata: body.note ? { note: body.note.trim() } : undefined,
+          metadata: {
+            ...(body.note ? { note: body.note.trim() } : {}),
+            ...(linkedInvoice
+              ? { releasedFromInvoice: linkedInvoice.invoiceNumber, releasedFromInvoiceStatus: linkedInvoice.status }
+              : {}),
+          },
         },
       });
 
