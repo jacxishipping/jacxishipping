@@ -43,7 +43,8 @@ import {
     Activity,
     QrCode,
     RefreshCw,
-    Search
+    Search,
+    Pencil
 } from 'lucide-react';
 import QRCode from 'react-qr-code';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
@@ -91,6 +92,8 @@ interface Expense {
 	currency: string;
 	date: string;
 	vendor: string | null;
+	invoiceNumber?: string | null;
+	notes?: string | null;
 	source?: 'CONTAINER' | 'SHIPMENT';
 	shipmentId?: string | null;
 	description?: string;
@@ -261,6 +264,7 @@ export default function ContainerDetailPage() {
 	const [updating, setUpdating] = useState(false);
 	const [statusUpdateError, setStatusUpdateError] = useState<string | null>(null);
 	const [expenseModalOpen, setExpenseModalOpen] = useState(false);
+	const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
 	const [expenseView, setExpenseView] = useState<'CONTAINER' | 'SHIPMENT'>('CONTAINER');
 	const [deletingExpenseId, setDeletingExpenseId] = useState<string | null>(null);
 	const [invoiceModalOpen, setInvoiceModalOpen] = useState(false);
@@ -1473,7 +1477,10 @@ export default function ContainerDetailPage() {
 										variant="primary"
 										size="sm"
 										icon={<Plus className="w-4 h-4" />}
-														onClick={() => setExpenseModalOpen(true)}
+														onClick={() => {
+															setSelectedExpense(null);
+															setExpenseModalOpen(true);
+														}}
 														disabled={isContainerWorkflowLocked}
 									>
 										Add Container Expense
@@ -1568,20 +1575,34 @@ export default function ContainerDetailPage() {
 															</Box>
 														) : (
 															canManageExpenses ? (
-																<Button
-																	variant="outline"
-																	size="sm"
-																	icon={<Trash2 className="w-3 h-3" />}
-																	onClick={() => handleDeleteExpense(expense.id)}
-																	disabled={deletingExpenseId === expense.id || isContainerWorkflowLocked}
-																	sx={{ 
-																		color: 'var(--error)',
-																		borderColor: 'var(--error)',
-																		'&:hover': { bgcolor: 'rgba(var(--error-rgb), 0.1)' }
-																	}}
-																>
-																	{deletingExpenseId === expense.id ? 'Deleting...' : 'Delete'}
-																</Button>
+																<Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+																	<Button
+																		variant="outline"
+																		size="sm"
+																		icon={<Pencil className="w-3 h-3" />}
+																		onClick={() => {
+																			setSelectedExpense(expense);
+																			setExpenseModalOpen(true);
+																		}}
+																		disabled={deletingExpenseId === expense.id || isContainerWorkflowLocked}
+																	>
+																		Edit
+																	</Button>
+																	<Button
+																		variant="outline"
+																		size="sm"
+																		icon={<Trash2 className="w-3 h-3" />}
+																		onClick={() => handleDeleteExpense(expense.id)}
+																		disabled={deletingExpenseId === expense.id || isContainerWorkflowLocked}
+																		sx={{ 
+																			color: 'var(--error)',
+																			borderColor: 'var(--error)',
+																			'&:hover': { bgcolor: 'rgba(var(--error-rgb), 0.1)' }
+																		}}
+																	>
+																		{deletingExpenseId === expense.id ? 'Deleting...' : 'Delete'}
+																	</Button>
+																</Box>
 															) : null
 														)}
 													</TableCell>
@@ -2106,11 +2127,15 @@ export default function ContainerDetailPage() {
                     )}
 				</Box>
 
-				{/* Add Container Expense Modal */}
+				{/* Add / Edit Container Expense Modal */}
 				<AddExpenseModal
 					open={expenseModalOpen}
-					onClose={() => setExpenseModalOpen(false)}
+					onClose={() => {
+						setExpenseModalOpen(false);
+						setSelectedExpense(null);
+					}}
 					containerId={container.id}
+					initialExpense={selectedExpense}
 					onSuccess={() => {
 						void refreshContainerPage();
 					}}

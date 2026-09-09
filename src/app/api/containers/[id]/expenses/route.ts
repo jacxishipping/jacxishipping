@@ -58,13 +58,14 @@ function allocateContainerExpense(
 }
 
 const expenseSchema = z.object({
+  expenseId: z.string().optional(),
   type: z.string().min(1),
   amount: z.number().positive(),
   currency: z.string().default('USD'),
   date: z.string().optional(),
-  vendor: z.string().optional(),
-  invoiceNumber: z.string().optional(),
-  notes: z.string().optional(),
+  vendor: z.string().optional().nullable(),
+  invoiceNumber: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
 });
 
 // GET - Fetch expenses for a container
@@ -302,6 +303,275 @@ export async function POST(
     console.error('Error adding expense:', error);
     return NextResponse.json(
       { error: 'Failed to add expense' },
+      { status: 500 }
+    );
+  }
+}
+
+// PATCH - Update a container expense (rebuilds the linked ledger effects)
+export async function PATCH(
+  request: NextRequest,
+  props: { params: Promise<{ id: string }> }
+) {
+  const params = await props.params;
+  try {
+    const session = await auth();
+
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (!ensureExpensePostingAllowed(session.user?.role)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    // Verify container exists and fetch current allocation context
+    const container = await prisma.container.findUnique({
+      where: { id: params.id },
+      select: {
+        id: true,
+        status: true,
+        companyId: true,
+        expenseAllocationMethod: true,
+        shipments: {
+          select: {
+            id: true,
+            userId: true,
+            insuranceValue: true,
+            weight: true,
+            vehicleYear: true,
+            vehicleMake: true,
+            vehicleModel: true,
+            vehicleVIN: true,
+          },
+        },
+      },
+    });
+
+    if (!container) {
+      return NextResponse.json({ error: 'Container not found' }, { status: 404 });
+    }
+
+    if (container.status === 'CLOSED' && !isClosedStageOverrideAllowed(session.user?.role)) {
+      return NextResponse.json({ error: 'Cannot edit expenses on a closed container' }, { status: 400 });
+    }
+
+    const body = await request.json();
+    const validatedData = expenseSchema.parse(body);
+    if (!validatedData.expenseId) {
+      return NextResponse.json({ error: 'Expense ID is required' }, { status: 400 });
+    }
+
+    const existingExpense = await prisma.containerExpense.findUnique({
+      where: { id: validatedData.expenseId },
+    });
+
+    if (!existingExpense || existingExpense.containerId !== params.id) {
+      return NextResponse.json({ error: 'Expense not found' }, { status: 404 });
+    }
+
+    if (!container.companyId) {
+      return NextResponse.json(
+        { error: 'Assign a company to this container before editing expenses' },
+        { status: 400 }
+      );
+    }
+
+    const allocations = allocateContainerExpense(
+      container.shipments.map((shipment) => ({
+        id: shipment.id,
+        insuranceValue: shipment.insuranceValue,
+        weight: shipment.weight,
+      })),
+      validatedData.amount,
+      container.expenseAllocationMethod
+    );
+
+    const expenseDate = validatedData.date ? new Date(validatedData.date) : existingExpense.date;
+
+    const updatedExpense = await prisma.$transaction(async (tx) => {
+      const expense = await tx.containerExpense.update({
+        where: { id: validatedData.expenseId },
+        data: {
+          type: validatedData.type,
+          amount: validatedData.amount,
+          currency: validatedData.currency,
+          date: expenseDate,
+          vendor: validatedData.vendor ?? null,
+          invoiceNumber: validatedData.invoiceNumber ?? null,
+          notes: validatedData.notes ?? null,
+        },
+      });
+
+      // Remove the ledger entries created by the previous version of this expense,
+      // then recreate them from the updated values so balances stay aligned.
+      const linkedUserEntries = await tx.ledgerEntry.findMany({
+        where: {
+          metadata: {
+            path: ['containerExpenseId'],
+            equals: validatedData.expenseId,
+          },
+        },
+        select: { id: true, userId: true },
+      });
+
+      const linkedCompanyEntries = await tx.companyLedgerEntry.findMany({
+        where: {
+          metadata: {
+            path: ['containerExpenseId'],
+            equals: validatedData.expenseId,
+          },
+        },
+        select: { id: true, companyId: true },
+      });
+
+      if (linkedUserEntries.length > 0) {
+        await tx.ledgerEntry.deleteMany({
+          where: {
+            id: { in: linkedUserEntries.map((entry) => entry.id) },
+          },
+        });
+      }
+
+      if (linkedCompanyEntries.length > 0) {
+        await tx.companyLedgerEntry.deleteMany({
+          where: {
+            id: { in: linkedCompanyEntries.map((entry) => entry.id) },
+          },
+        });
+      }
+
+      const reference = `container-expense:${expense.id}`;
+
+      await tx.companyLedgerEntry.create({
+        data: {
+          companyId: container.companyId as string,
+          description: `Container expense recovery - ${validatedData.type}`,
+          type: 'CREDIT',
+          amount: validatedData.amount,
+          balance: 0,
+          category: 'Container Expense Recovery',
+          reference,
+          notes: validatedData.notes ?? null,
+          createdBy: session.user!.id as string,
+          metadata: {
+            isContainerExpense: true,
+            containerExpenseId: expense.id,
+            containerId: params.id,
+            allocationMethod: container.expenseAllocationMethod,
+          },
+        },
+      });
+
+      for (const allocation of allocations) {
+        if (allocation.amount <= 0) {
+          continue;
+        }
+
+        const shipment = container.shipments.find((item) => item.id === allocation.shipmentId);
+        if (!shipment) {
+          continue;
+        }
+
+        const vehicleLabel = [shipment.vehicleYear, shipment.vehicleMake, shipment.vehicleModel]
+          .filter(Boolean)
+          .join(' ');
+        const vinSuffix = shipment.vehicleVIN ? ` (VIN: ${shipment.vehicleVIN})` : '';
+
+        await tx.ledgerEntry.create({
+          data: {
+            userId: shipment.userId,
+            shipmentId: shipment.id,
+            description: `Container expense allocation - ${validatedData.type} for ${vehicleLabel || 'shipment'}${vinSuffix}`,
+            type: 'DEBIT',
+            amount: allocation.amount,
+            balance: 0,
+            createdBy: session.user!.id as string,
+            notes: validatedData.notes ?? null,
+            metadata: {
+              isExpense: true,
+              isContainerExpense: true,
+              paymentMode: 'DUE',
+              pendingInvoice: true,
+              containerExpenseId: expense.id,
+              containerId: params.id,
+              expenseType: validatedData.type,
+              linkedCompanyId: container.companyId,
+            },
+          },
+        });
+
+        // Add line item to this shipment's pending invoice
+        await addExpenseLineItemToShipmentInvoice(
+          shipment.id,
+          {
+            description: validatedData.type,
+            type: mapExpenseTypeToLineItemType(validatedData.type),
+            amount: allocation.amount,
+            expenseSource: 'SHIPMENT',
+          },
+          tx
+        );
+      }
+
+      const affectedUserIds = Array.from(new Set([
+        ...linkedUserEntries.map((entry) => entry.userId),
+        ...container.shipments.map((shipment) => shipment.userId),
+      ]));
+      for (const userId of affectedUserIds) {
+        await recalculateUserLedgerBalances(tx, userId);
+      }
+
+      const affectedCompanyIds = new Set([
+        container.companyId as string,
+        ...linkedCompanyEntries.map((entry) => entry.companyId),
+      ]);
+      for (const companyId of affectedCompanyIds) {
+        await recalculateCompanyLedgerBalances(tx, companyId);
+      }
+
+      await tx.containerAuditLog.create({
+        data: {
+          containerId: params.id,
+          action: 'EXPENSE_UPDATED',
+          description: `Expense updated: ${validatedData.type} - $${validatedData.amount}`,
+          performedBy: session.user.id as string,
+          oldValue: JSON.stringify({
+            type: existingExpense.type,
+            amount: existingExpense.amount,
+            currency: existingExpense.currency,
+            date: existingExpense.date,
+            vendor: existingExpense.vendor,
+            invoiceNumber: existingExpense.invoiceNumber,
+          }),
+          newValue: JSON.stringify({
+            type: validatedData.type,
+            amount: validatedData.amount,
+            currency: validatedData.currency,
+            date: expenseDate,
+            vendor: validatedData.vendor,
+            invoiceNumber: validatedData.invoiceNumber,
+          }),
+        },
+      });
+
+      return expense;
+    });
+
+    return NextResponse.json({
+      expense: updatedExpense,
+      message: 'Expense updated successfully',
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Invalid data', details: error.issues },
+        { status: 400 }
+      );
+    }
+    console.error('Error updating expense:', error);
+    return NextResponse.json(
+      { error: 'Failed to update expense' },
       { status: 500 }
     );
   }

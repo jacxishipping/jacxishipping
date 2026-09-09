@@ -18,6 +18,7 @@ import {
   AttachMoney,
   LocalShipping,
   Delete,
+  Edit,
 } from '@mui/icons-material';
 import { Alert, Box, Dialog, DialogActions, DialogContent, DialogTitle, FormControl, IconButton, InputLabel, MenuItem, Select, TextField, Typography } from '@mui/material';
 import { Breadcrumbs, Button, toast, EmptyState, SkeletonCard, SkeletonTable, Tooltip, StatusBadge, TableSkeleton, StatsCard } from '@/components/design-system';
@@ -93,6 +94,9 @@ export default function LedgerPage() {
   });
   const [showFilters, setShowFilters] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editEntry, setEditEntry] = useState<LedgerEntry | null>(null);
+  const [editForm, setEditForm] = useState({ description: '', notes: '' });
   const [formData, setFormData] = useState({
     description: '',
     type: 'DEBIT' as 'DEBIT' | 'CREDIT',
@@ -212,6 +216,47 @@ export default function LedgerPage() {
       await fetchLedgerEntries();
     } catch (error) {
       toast.error('Unable to delete transaction', {
+        description: error instanceof Error ? error.message : 'Please try again',
+      });
+    }
+  };
+
+  const openEditEntry = (entry: LedgerEntry) => {
+    setEditEntry(entry);
+    setEditForm({
+      description: entry.description,
+      notes: entry.notes || '',
+    });
+    setShowEditModal(true);
+  };
+
+  const handleEditEntry = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editEntry) return;
+
+    try {
+      const response = await fetch(`/api/ledger/${editEntry.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          description: editForm.description,
+          notes: editForm.notes,
+        }),
+      });
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success('Transaction updated successfully');
+        setShowEditModal(false);
+        setEditEntry(null);
+        setEditForm({ description: '', notes: '' });
+        await fetchLedgerEntries();
+      } else {
+        toast.error(data.error || 'Failed to update transaction');
+      }
+    } catch (error) {
+      console.error('Error updating entry:', error);
+      toast.error('Unable to update transaction', {
         description: error instanceof Error ? error.message : 'Please try again',
       });
     }
@@ -455,18 +500,30 @@ export default function LedgerPage() {
       key: 'id' as const,
       header: 'Actions',
       align: 'center' as const,
-      width: '10%',
+      width: '12%',
       render: (_: unknown, row: LedgerEntry) => (
-        <Tooltip title="Delete transaction">
-          <IconButton
-            size="small"
-            color="error"
-            aria-label={`Delete ${row.description}`}
-            onClick={() => void handleDeleteEntry(row.id)}
-          >
-            <Delete fontSize="small" />
-          </IconButton>
-        </Tooltip>
+        <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
+          <Tooltip title="Edit transaction">
+            <IconButton
+              size="small"
+              aria-label={`Edit ${row.description}`}
+              onClick={() => openEditEntry(row)}
+              sx={{ color: 'var(--accent-gold)' }}
+            >
+              <Edit fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Delete transaction">
+            <IconButton
+              size="small"
+              color="error"
+              aria-label={`Delete ${row.description}`}
+              onClick={() => void handleDeleteEntry(row.id)}
+            >
+              <Delete fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </Box>
       ),
     }] : [])
   ], [canManageLedger]);
@@ -802,6 +859,66 @@ export default function LedgerPage() {
             </Button>
             <Button type="submit" variant="primary" icon={<Check />} sx={{ textTransform: 'none' }}>
               Add Transaction
+            </Button>
+          </DialogActions>
+        </form>
+      </Dialog>
+
+      {/* Edit Transaction Modal */}
+      <Dialog open={showEditModal} onClose={() => setShowEditModal(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Typography variant="h6">Edit Transaction</Typography>
+            <IconButton onClick={() => setShowEditModal(false)} size="small">
+              <Close />
+            </IconButton>
+          </Box>
+        </DialogTitle>
+        <form onSubmit={handleEditEntry}>
+          <DialogContent>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <Alert severity="warning" sx={{ fontSize: '0.85rem' }}>
+                Note: Type and amount cannot be edited to maintain ledger integrity. Only description and notes can be updated.
+              </Alert>
+
+              <TextField
+                label="Type (Read-only)"
+                value={editEntry?.type || ''}
+                disabled
+                fullWidth
+              />
+
+              <TextField
+                label="Amount (Read-only)"
+                value={editEntry ? formatCurrency(editEntry.amount) : ''}
+                disabled
+                fullWidth
+              />
+
+              <TextField
+                label="Description *"
+                value={editForm.description}
+                onChange={(e) => setEditForm((prev) => ({ ...prev, description: e.target.value }))}
+                required
+                fullWidth
+              />
+
+              <TextField
+                label="Notes"
+                value={editForm.notes}
+                onChange={(e) => setEditForm((prev) => ({ ...prev, notes: e.target.value }))}
+                multiline
+                rows={3}
+                fullWidth
+              />
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setShowEditModal(false)} sx={{ textTransform: 'none' }}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="primary" icon={<Check />} sx={{ textTransform: 'none' }}>
+              Update Transaction
             </Button>
           </DialogActions>
         </form>

@@ -38,6 +38,7 @@ import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/da
 import { Breadcrumbs, Button, StatsCard, TableSkeleton, toast } from '@/components/design-system';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import AddShipmentExpenseModal from '@/components/shipments/AddShipmentExpenseModal';
+import AddTransitExpenseModal from '@/components/transits/AddTransitExpenseModal';
 import { hasPermission } from '@/lib/rbac';
 
 interface Company {
@@ -176,6 +177,8 @@ export default function TransitDetailPage() {
   // Add expense state
   const [shipmentExpenseModalOpen, setShipmentExpenseModalOpen] = useState(false);
   const [selectedShipmentForExpense, setSelectedShipmentForExpense] = useState<string | undefined>(undefined);
+  const [transitExpenseModalOpen, setTransitExpenseModalOpen] = useState(false);
+  const [selectedTransitExpense, setSelectedTransitExpense] = useState<TransitExpense | null>(null);
 
   // Add shipment to transit
   const [openAddShipment, setOpenAddShipment] = useState(false);
@@ -626,11 +629,28 @@ export default function TransitDetailPage() {
       header: 'Actions',
       render: (_, row) => (
         canManageExpenses ? (
-          <Tooltip title="Delete expense">
-            <IconButton size="small" color="error" onClick={() => void handleDeleteExpense(row)} disabled={isTransitWorkflowLocked}>
-              <Trash2 className="w-4 h-4" />
-            </IconButton>
-          </Tooltip>
+          <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
+            {row.source === 'TRANSIT_EXPENSE' && (
+              <Tooltip title="Edit expense">
+                <IconButton
+                  size="small"
+                  onClick={() => {
+                    setSelectedTransitExpense(row);
+                    setTransitExpenseModalOpen(true);
+                  }}
+                  disabled={isTransitWorkflowLocked}
+                  sx={{ color: 'var(--accent-gold)' }}
+                >
+                  <Pencil className="w-4 h-4" />
+                </IconButton>
+              </Tooltip>
+            )}
+            <Tooltip title="Delete expense">
+              <IconButton size="small" color="error" onClick={() => void handleDeleteExpense(row)} disabled={isTransitWorkflowLocked}>
+                <Trash2 className="w-4 h-4" />
+              </IconButton>
+            </Tooltip>
+          </Box>
         ) : null
       ),
     },
@@ -933,6 +953,18 @@ export default function TransitDetailPage() {
           }))}
           contextType="TRANSIT"
           contextId={transitId}
+          onSuccess={() => void fetchTransit()}
+        />
+
+        {/* Add / Edit Transit Expense Modal */}
+        <AddTransitExpenseModal
+          open={transitExpenseModalOpen}
+          onClose={() => {
+            setTransitExpenseModalOpen(false);
+            setSelectedTransitExpense(null);
+          }}
+          transitId={transitId}
+          initialExpense={selectedTransitExpense}
           onSuccess={() => void fetchTransit()}
         />
 

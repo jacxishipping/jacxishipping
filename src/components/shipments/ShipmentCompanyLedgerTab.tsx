@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Building2, DollarSign, Plus, ReceiptText } from 'lucide-react';
+import { Building2, DollarSign, Pencil, Plus, ReceiptText } from 'lucide-react';
 import { Box, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, TextField } from '@mui/material';
 import { DashboardPanel } from '@/components/dashboard/DashboardSurface';
 import { Button, toast } from '@/components/design-system';
@@ -16,6 +16,8 @@ type ShipmentCompanyLedgerTabProps = {
   canManageLedger: boolean;
   onTransactionCreated: () => void;
 };
+
+type CompanyLedgerEntryRow = NonNullable<Shipment['companyLedgerEntries']>[number];
 
 type EntryForm = {
   description: string;
@@ -39,6 +41,31 @@ function formatMoney(amount: number) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
 }
 
+/**
+ * Auto-generated expense-recovery entries are managed from their originating expense
+ * surface and would desync from the customer ledger if edited here, so they are
+ * intentionally excluded from the row edit action (same rule as the company ledger page).
+ */
+function isExpenseRecoveryEntry(entry: CompanyLedgerEntryRow) {
+  const metadata = (entry.metadata ?? {}) as Record<string, unknown>;
+  const reference = (entry.reference || '').toLowerCase();
+
+  return (
+    metadata.isExpenseRecovery === true ||
+    metadata.isDispatchExpense === true ||
+    metadata.isTransitExpense === true ||
+    metadata.isContainerExpense === true ||
+    metadata.isShipmentShippingFare === true ||
+    metadata.isShipmentDamage === true ||
+    reference.startsWith('shipment-expense:') ||
+    reference.startsWith('dispatch-expense:') ||
+    reference.startsWith('transit-expense:') ||
+    reference.startsWith('container-expense:') ||
+    reference.startsWith('shipment-shipping-fare:') ||
+    reference.startsWith('shipment-damage:')
+  );
+}
+
 export default function ShipmentCompanyLedgerTab({
   shipmentId,
   companies,
@@ -52,6 +79,11 @@ export default function ShipmentCompanyLedgerTab({
   const [open, setOpen] = useState(false);
   const [posting, setPosting] = useState(false);
   const [selectedCompanyId, setSelectedCompanyId] = useState('');
+  const [editingEntry, setEditingEntry] = useState<CompanyLedgerEntryRow | null>(null);
+  const [editForm, setEditForm] = useState<EntryForm>(emptyForm);
+  const [editType, setEditType] = useState<'DEBIT' | 'CREDIT'>('CREDIT');
+  const [editOpen, setEditOpen] = useState(false);
+  const [updating, setUpdating] = useState(false);
   const company = companies.find((candidate) => candidate.id === selectedCompanyId) || companies[0] || null;
   const companyEntries = company ? entries.filter((entry) => entry.companyId === company.id) : [];
 
@@ -115,6 +147,79 @@ export default function ShipmentCompanyLedgerTab({
     }
   };
 
+  const openEditEntry = async (entry: CompanyLedgerEntryRow) => {
+    try {
+      // The shipment payload does not carry category, so fetch the full entry to prefill it.
+      const response = await fetch(`/api/finance/companies/ledger/${entry.id}`, { cache: 'no-store' });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to load transaction');
+
+      const fullEntry = data.entry as CompanyLedgerEntryRow & { category?: string | null };
+      setEditingEntry(entry);
+      setEditType(fullEntry.type === 'DEBIT' ? 'DEBIT' : 'CREDIT');
+      setEditForm({
+        description: fullEntry.description || '',
+        amount: String(fullEntry.amount),
+        transactionDate: new Date(fullEntry.transactionDate).toISOString().slice(0, 10),
+        category: fullEntry.category || '',
+        reference: fullEntry.reference || '',
+        notes: fullEntry.notes || '',
+      });
+      setEditOpen(true);
+    } catch (error) {
+      toast.error('Unable to load company transaction', {
+        description: error instanceof Error ? error.message : 'Please try again',
+      });
+    }
+  };
+
+  const handleUpdateEntry = async () => {
+    if (!editingEntry) return;
+    if (!editForm.description.trim()) {
+      toast.error('Description is required');
+      return;
+    }
+
+    const amount = Number(editForm.amount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      toast.error('Enter an amount greater than zero');
+      return;
+    }
+
+    setUpdating(true);
+    try {
+      const response = await fetch(`/api/finance/companies/ledger/${editingEntry.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          description: editForm.description.trim(),
+          type: editType,
+          amount,
+          transactionDate: editForm.transactionDate,
+          category: editForm.category.trim() || null,
+          reference: editForm.reference.trim() || null,
+          notes: editForm.notes.trim() || null,
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update company transaction');
+      }
+
+      toast.success('Company transaction updated');
+      setEditOpen(false);
+      setEditingEntry(null);
+      onTransactionCreated();
+    } catch (error) {
+      toast.error('Unable to update company transaction', {
+        description: error instanceof Error ? error.message : 'Please try again',
+      });
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   if (!company) {
     return (
       <DashboardPanel title="Company Ledger" description="Company transactions linked to this shipment">
@@ -174,7 +279,14 @@ export default function ShipmentCompanyLedgerTab({
           <div className="overflow-x-auto">
             <table className="min-w-full text-left text-sm">
               <thead className="border-b border-[var(--border)] text-xs uppercase text-[var(--text-secondary)]">
-                <tr><th className="px-3 py-3">Date</th><th className="px-3 py-3">Description</th><th className="px-3 py-3">Type</th><th className="px-3 py-3 text-right">Amount</th><th className="px-3 py-3 text-right">Balance</th></tr>
+                <tr>
+                  <th className="px-3 py-3">Date</th>
+                  <th className="px-3 py-3">Description</th>
+                  <th className="px-3 py-3">Type</th>
+                  <th className="px-3 py-3 text-right">Amount</th>
+                  <th className="px-3 py-3 text-right">Balance</th>
+                  {canManageLedger && <th className="px-3 py-3 text-right">Actions</th>}
+                </tr>
               </thead>
               <tbody>
                 {companyEntries.map((entry) => (
@@ -184,6 +296,20 @@ export default function ShipmentCompanyLedgerTab({
                     <td className="px-3 py-3"><span className={entry.type === 'DEBIT' ? 'text-emerald-600' : 'text-red-600'}>{entry.type === 'DEBIT' ? 'Payment' : 'Charge'}</span></td>
                     <td className="px-3 py-3 text-right font-medium text-[var(--text-primary)]">{formatMoney(entry.amount)}</td>
                     <td className="px-3 py-3 text-right text-[var(--text-secondary)]">{formatMoney(entry.balance)}</td>
+                    {canManageLedger && (
+                      <td className="px-3 py-3 text-right">
+                        {!isExpenseRecoveryEntry(entry) && (
+                          <button
+                            type="button"
+                            onClick={() => void openEditEntry(entry)}
+                            className="flex items-center justify-center rounded p-1 text-[var(--text-secondary)] transition-colors hover:bg-[rgba(var(--accent-gold-rgb),0.12)] hover:text-[var(--accent-gold)]"
+                            title="Edit transaction"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -207,6 +333,35 @@ export default function ShipmentCompanyLedgerTab({
           <TextField label="Notes" rows={3} multiline value={form.notes} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} />
         </DialogContent>
         <DialogActions><Button variant="outline" onClick={() => setOpen(false)} disabled={posting}>Cancel</Button><Button onClick={() => void handleSubmit()} disabled={posting}>{posting ? 'Saving...' : isPayment ? 'Record Payment' : 'Save Transaction'}</Button></DialogActions>
+      </Dialog>
+
+      <Dialog open={editOpen} onClose={() => !updating && setEditOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Edit Transaction for {company.name}</DialogTitle>
+        <DialogContent sx={{ display: 'grid', gap: 2, pt: 1.5 }}>
+          <TextField label="Description" value={editForm.description} onChange={(event) => setEditForm((current) => ({ ...current, description: event.target.value }))} required />
+          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+            <TextField
+              select
+              label="Type"
+              value={editType}
+              onChange={(event) => setEditType(event.target.value as 'DEBIT' | 'CREDIT')}
+            >
+              <MenuItem value="DEBIT">Payment</MenuItem>
+              <MenuItem value="CREDIT">Charge</MenuItem>
+            </TextField>
+            <TextField label="Amount" type="number" inputProps={{ min: 0.01, step: 0.01 }} value={editForm.amount} onChange={(event) => setEditForm((current) => ({ ...current, amount: event.target.value }))} required />
+          </Box>
+          <TextField label="Transaction Date" type="date" InputLabelProps={{ shrink: true }} value={editForm.transactionDate} onChange={(event) => setEditForm((current) => ({ ...current, transactionDate: event.target.value }))} />
+          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+            <TextField label="Category" value={editForm.category} onChange={(event) => setEditForm((current) => ({ ...current, category: event.target.value }))} />
+            <TextField label="Reference" value={editForm.reference} onChange={(event) => setEditForm((current) => ({ ...current, reference: event.target.value }))} />
+          </Box>
+          <TextField label="Notes" rows={3} multiline value={editForm.notes} onChange={(event) => setEditForm((current) => ({ ...current, notes: event.target.value }))} />
+        </DialogContent>
+        <DialogActions>
+          <Button variant="outline" onClick={() => setEditOpen(false)} disabled={updating}>Cancel</Button>
+          <Button onClick={() => void handleUpdateEntry()} disabled={updating}>{updating ? 'Saving...' : 'Save Changes'}</Button>
+        </DialogActions>
       </Dialog>
     </>
   );

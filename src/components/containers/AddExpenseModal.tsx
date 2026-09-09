@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
 	TextField,
 	FormControl,
@@ -13,11 +13,24 @@ import {
 import { DollarSign } from 'lucide-react';
 import { Button, Modal, toast } from '@/components/design-system';
 
+export interface EditableContainerExpense {
+	id: string;
+	type: string;
+	amount: number;
+	currency: string;
+	date: string;
+	vendor: string | null;
+	invoiceNumber?: string | null;
+	notes?: string | null;
+}
+
 interface AddExpenseModalProps {
 	open: boolean;
 	onClose: () => void;
 	containerId: string;
 	onSuccess: () => void;
+	/** When provided, the modal edits the existing expense instead of creating one. */
+	initialExpense?: EditableContainerExpense | null;
 }
 
 const expenseTypes = [
@@ -33,22 +46,34 @@ const expenseTypes = [
 	{ value: 'OTHER', label: 'Other' },
 ];
 
+function createInitialForm(expense?: EditableContainerExpense | null) {
+	return {
+		type: expense?.type || 'SHIPPING_FEE',
+		amount: expense ? String(expense.amount) : '',
+		currency: expense?.currency || 'USD',
+		vendor: expense?.vendor || '',
+		invoiceNumber: expense?.invoiceNumber || '',
+		date: expense?.date ? String(expense.date).slice(0, 10) : new Date().toISOString().split('T')[0],
+		notes: expense?.notes || '',
+	};
+}
+
 export default function AddExpenseModal({
 	open,
 	onClose,
 	containerId,
 	onSuccess,
+	initialExpense,
 }: AddExpenseModalProps) {
 	const [loading, setLoading] = useState(false);
-	const [formData, setFormData] = useState({
-		type: 'SHIPPING_FEE',
-		amount: '',
-		currency: 'USD',
-		vendor: '',
-		invoiceNumber: '',
-		date: new Date().toISOString().split('T')[0],
-		notes: '',
-	});
+	const [formData, setFormData] = useState(createInitialForm(initialExpense));
+	const isEditing = Boolean(initialExpense?.id);
+
+	useEffect(() => {
+		if (open) {
+			setFormData(createInitialForm(initialExpense));
+		}
+	}, [initialExpense, open]);
 
 	const handleChange = (field: string, value: string) => {
 		setFormData((prev) => ({ ...prev, [field]: value }));
@@ -67,29 +92,30 @@ export default function AddExpenseModal({
 
 		try {
 			const response = await fetch(`/api/containers/${containerId}/expenses`, {
-				method: 'POST',
+				method: isEditing ? 'PATCH' : 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
+					...(initialExpense?.id ? { expenseId: initialExpense.id } : {}),
 					type: formData.type,
 					amount: parseFloat(formData.amount),
 					currency: formData.currency,
 					date: formData.date,
-					vendor: formData.vendor || undefined,
-					invoiceNumber: formData.invoiceNumber || undefined,
-					notes: formData.notes || undefined,
+					vendor: formData.vendor || null,
+					invoiceNumber: formData.invoiceNumber || null,
+					notes: formData.notes || null,
 				}),
 			});
 
 			if (response.ok) {
-				toast.success('Expense added successfully');
+				toast.success(isEditing ? 'Expense updated successfully' : 'Expense added successfully');
 				onSuccess();
 				handleClose();
 			} else {
 				const data = await response.json();
-				toast.error(data.error || 'Failed to add expense');
+				toast.error(data.error || `Failed to ${isEditing ? 'update' : 'add'} expense`);
 			}
 		} catch (error) {
-			console.error('Error adding expense:', error);
+			console.error('Error saving expense:', error);
 			toast.error('An error occurred');
 		} finally {
 			setLoading(false);
@@ -98,15 +124,7 @@ export default function AddExpenseModal({
 
 	const handleClose = () => {
 		if (!loading) {
-			setFormData({
-				type: 'SHIPPING_FEE',
-				amount: '',
-				currency: 'USD',
-				vendor: '',
-				invoiceNumber: '',
-				date: new Date().toISOString().split('T')[0],
-				notes: '',
-			});
+			setFormData(createInitialForm(null));
 			onClose();
 		}
 	};
@@ -121,7 +139,7 @@ export default function AddExpenseModal({
 			title={
 				<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
 					<DollarSign style={{ fontSize: 24, color: 'var(--accent-gold)' }} />
-					<span>Add Expense</span>
+					<span>{isEditing ? 'Edit Container Expense' : 'Add Container Expense'}</span>
 				</Box>
 			}
 			description="Capture a container expense with vendor and invoice details so the ledger stays reconciled."
@@ -133,7 +151,7 @@ export default function AddExpenseModal({
 						Cancel
 					</Button>
 					<Button type="submit" form={formId} variant="primary" disabled={loading}>
-						{loading ? 'Adding...' : 'Add Expense'}
+						{loading ? 'Saving...' : isEditing ? 'Save Changes' : 'Add Expense'}
 					</Button>
 				</>
 			}
@@ -146,6 +164,11 @@ export default function AddExpenseModal({
 							onChange={(e) => handleChange('type', e.target.value)}
 							label="Expense Type"
 						>
+							{!expenseTypes.some((type) => type.value === formData.type) && (
+								<MenuItem value={formData.type}>
+									{formData.type.replace(/_/g, ' ')}
+								</MenuItem>
+							)}
 							{expenseTypes.map((type) => (
 								<MenuItem key={type.value} value={type.value}>
 									{type.label}

@@ -1358,6 +1358,9 @@ export default function ShipmentDetailPage() {
             onDeleteExpense={(entryId) => {
               void handleDeleteExpense(entryId);
             }}
+            onExpenseUpdated={() => {
+              void refreshShipmentPage();
+            }}
           />
         </TabPanel>
 

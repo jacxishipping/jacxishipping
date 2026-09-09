@@ -160,6 +160,7 @@ export interface Shipment {
     type: string;
     amount: number;
     balance: number;
+    notes?: string | null;
     metadata?: Record<string, unknown> | null;
   }>;
   companyLedgerEntries?: Array<{

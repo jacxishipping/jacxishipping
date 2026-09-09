@@ -183,6 +183,7 @@ export async function GET(
             type: true,
             amount: true,
             balance: true,
+            notes: true,
             metadata: true,
           },
           orderBy: {

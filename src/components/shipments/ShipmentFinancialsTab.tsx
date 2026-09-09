@@ -1,8 +1,10 @@
 'use client';
 
-import { CheckCircle2, CircleDashed, DollarSign, ReceiptText, Ship, Trash2, Truck } from 'lucide-react';
+import { useState } from 'react';
+import { CheckCircle2, CircleDashed, DollarSign, Pencil, ReceiptText, Ship, Trash2, Truck } from 'lucide-react';
+import { Alert, Box, Dialog, DialogActions, DialogContent, DialogTitle, TextField } from '@mui/material';
 import { DashboardPanel } from '@/components/dashboard/DashboardSurface';
-import { Button } from '@/components/design-system';
+import { Button, toast } from '@/components/design-system';
 import { cn } from '@/lib/utils';
 import type {
   ClassifiedExpenseSource,
@@ -46,6 +48,7 @@ type ShipmentFinancialsTabProps = {
   onExpenseSourceFilterChange: (value: ExpenseSourceFilter) => void;
   onOpenCompanyLedgerEntry: (entry: NonNullable<Shipment['companyLedgerEntries']>[number]) => void;
   onDeleteExpense: (entryId: string) => void;
+  onExpenseUpdated: () => void;
 };
 
 function formatSnapshotMoney(amount?: number | null, currency = 'USD') {
@@ -111,8 +114,52 @@ export default function ShipmentFinancialsTab({
   onExpenseSourceFilterChange,
   onOpenCompanyLedgerEntry,
   onDeleteExpense,
+  onExpenseUpdated,
 }: ShipmentFinancialsTabProps) {
   const priceListSnapshot = shipment.priceListPricingSnapshot;
+  const [editingExpense, setEditingExpense] = useState<ShipmentExpenseEntryWithCompanyLedger | null>(null);
+  const [editDescription, setEditDescription] = useState('');
+  const [editNotes, setEditNotes] = useState('');
+  const [updatingExpense, setUpdatingExpense] = useState(false);
+
+  const openEditExpense = (entry: ShipmentExpenseEntryWithCompanyLedger) => {
+    setEditingExpense(entry);
+    setEditDescription(entry.description);
+    setEditNotes(entry.notes || '');
+  };
+
+  const handleUpdateExpense = async () => {
+    if (!editingExpense) return;
+    if (!editDescription.trim()) {
+      toast.error('Description is required');
+      return;
+    }
+
+    setUpdatingExpense(true);
+    try {
+      const response = await fetch(`/api/ledger/${editingExpense.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          description: editDescription.trim(),
+          notes: editNotes.trim() || undefined,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update expense');
+      }
+      toast.success('Expense updated');
+      setEditingExpense(null);
+      onExpenseUpdated();
+    } catch (error) {
+      toast.error('Unable to update expense', {
+        description: error instanceof Error ? error.message : 'Please try again',
+      });
+    } finally {
+      setUpdatingExpense(false);
+    }
+  };
   const priceListCurrency = priceListSnapshot?.currency || 'USD';
   const priceListDispatchPosted = Boolean(priceListSnapshot?.posted?.dispatch?.chargeId);
   const priceListShippingPosted = Boolean(priceListSnapshot?.posted?.shipping?.chargeId);
@@ -157,7 +204,8 @@ export default function ShipmentFinancialsTab({
   ];
 
   return (
-    <DashboardPanel
+    <>
+      <DashboardPanel
       title="Shipment Financials"
       description="Costs and expenses associated with this shipment"
       actions={
@@ -481,15 +529,25 @@ export default function ShipmentFinancialsTab({
                     <div className="shrink-0 flex items-center gap-3">
                       <span className="text-sm font-medium text-[var(--error)]">${entry.amount.toFixed(2)}</span>
                       {canManageShipmentExpenses && (
-                        <button
-                          type="button"
-                          onClick={() => onDeleteExpense(entry.id)}
-                          disabled={deletingExpenseId === entry.id}
-                          className="flex items-center justify-center rounded p-1 text-[var(--text-secondary)] transition-colors hover:bg-red-500/10 hover:text-red-400 disabled:opacity-50"
-                          title="Delete expense"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => openEditExpense(entry)}
+                            className="flex items-center justify-center rounded p-1 text-[var(--text-secondary)] transition-colors hover:bg-[rgba(var(--accent-gold-rgb),0.12)] hover:text-[var(--accent-gold)]"
+                            title="Edit expense"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onDeleteExpense(entry.id)}
+                            disabled={deletingExpenseId === entry.id}
+                            className="flex items-center justify-center rounded p-1 text-[var(--text-secondary)] transition-colors hover:bg-red-500/10 hover:text-red-400 disabled:opacity-50"
+                            title="Delete expense"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </>
                       )}
                     </div>
                   </div>
@@ -506,6 +564,45 @@ export default function ShipmentFinancialsTab({
           <span className="font-bold text-[var(--accent-gold)]">${totalEstimatedCost.toFixed(2)}</span>
         </div>
       </div>
-    </DashboardPanel>
+      </DashboardPanel>
+
+      <Dialog open={Boolean(editingExpense)} onClose={() => !updatingExpense && setEditingExpense(null)} maxWidth="sm" fullWidth>
+        <DialogTitle>Edit Expense</DialogTitle>
+        <DialogContent sx={{ display: 'grid', gap: 2, pt: 1.5 }}>
+          <Alert severity="warning" sx={{ fontSize: '0.85rem' }}>
+            Note: Type and amount cannot be edited to maintain ledger integrity. Only description and notes can be updated.
+          </Alert>
+          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+            <TextField
+              label="Amount (Read-only)"
+              value={editingExpense ? `$${editingExpense.amount.toFixed(2)}` : ''}
+              disabled
+            />
+            <TextField
+              label="Date (Read-only)"
+              value={editingExpense ? new Date(editingExpense.transactionDate).toLocaleDateString() : ''}
+              disabled
+            />
+          </Box>
+          <TextField
+            label="Description *"
+            value={editDescription}
+            onChange={(event) => setEditDescription(event.target.value)}
+            required
+          />
+          <TextField
+            label="Notes"
+            rows={3}
+            multiline
+            value={editNotes}
+            onChange={(event) => setEditNotes(event.target.value)}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button variant="outline" onClick={() => setEditingExpense(null)} disabled={updatingExpense}>Cancel</Button>
+          <Button onClick={() => void handleUpdateExpense()} disabled={updatingExpense}>{updatingExpense ? 'Saving...' : 'Save Changes'}</Button>
+        </DialogActions>
+      </Dialog>
+    </>
   );
 }

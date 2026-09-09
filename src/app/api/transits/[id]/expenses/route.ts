@@ -26,13 +26,14 @@ function allocateTransitExpense(
 }
 
 const expenseSchema = z.object({
+  expenseId: z.string().optional(),
   type: z.string().min(1),
   amount: z.number().positive(),
   currency: z.string().default('USD'),
   date: z.string().optional(),
-  vendor: z.string().optional(),
-  invoiceNumber: z.string().optional(),
-  notes: z.string().optional(),
+  vendor: z.string().optional().nullable(),
+  invoiceNumber: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
 });
 
 export async function GET(
@@ -297,6 +298,272 @@ export async function POST(
     }
     console.error('Error creating transit expense:', error);
     return NextResponse.json({ error: 'Failed to create transit expense' }, { status: 500 });
+  }
+}
+
+export async function PATCH(
+  request: NextRequest,
+  props: { params: Promise<{ id: string }> }
+) {
+  const params = await props.params;
+
+  try {
+    const session = await auth();
+
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (!ensureExpensePostingAllowed(session.user?.role)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    // Fetch transit with company and all shipments for allocation
+    const transit = await prisma.transit.findUnique({
+      where: { id: params.id },
+      select: {
+        id: true,
+        status: true,
+        referenceNumber: true,
+        events: {
+          orderBy: [{ eventDate: 'desc' }, { createdAt: 'desc' }],
+          take: 1,
+          select: {
+            id: true,
+            companyId: true,
+            origin: true,
+            destination: true,
+            company: {
+              select: {
+                id: true,
+                name: true,
+                code: true,
+              },
+            },
+          },
+        },
+        shipments: {
+          select: {
+            id: true,
+            userId: true,
+            insuranceValue: true,
+            weight: true,
+            vehicleYear: true,
+            vehicleMake: true,
+            vehicleModel: true,
+            vehicleVIN: true,
+          },
+        },
+      },
+    });
+
+    if (!transit) {
+      return NextResponse.json({ error: 'Transit not found' }, { status: 404 });
+    }
+
+    if (['DELIVERED', 'CANCELLED'].includes(String(transit.status)) && !isClosedStageOverrideAllowed(session.user?.role)) {
+      return NextResponse.json({ error: 'Delivered or cancelled transit expenses cannot be edited' }, { status: 400 });
+    }
+
+    const currentEvent = transit.events[0] ?? null;
+
+    if (!currentEvent) {
+      return NextResponse.json(
+        { error: 'Add a transit event with route and company before editing expenses' },
+        { status: 400 }
+      );
+    }
+
+    const body = await request.json();
+    const validatedData = expenseSchema.parse(body);
+    if (!validatedData.expenseId) {
+      return NextResponse.json({ error: 'Expense ID is required' }, { status: 400 });
+    }
+
+    const existingExpense = await prisma.transitExpense.findUnique({
+      where: { id: validatedData.expenseId },
+    });
+
+    if (!existingExpense || existingExpense.transitId !== params.id) {
+      return NextResponse.json({ error: 'Expense not found' }, { status: 404 });
+    }
+
+    const allocations = allocateTransitExpense(
+      transit.shipments.map((s) => ({
+        id: s.id,
+        insuranceValue: s.insuranceValue,
+        weight: s.weight,
+      })),
+      validatedData.amount
+    );
+
+    const expenseDate = validatedData.date ? new Date(validatedData.date) : existingExpense.date;
+
+    const updatedExpense = await prisma.$transaction(async (tx) => {
+      // 1. Update the transit expense record
+      const expense = await tx.transitExpense.update({
+        where: { id: validatedData.expenseId },
+        data: {
+          type: validatedData.type,
+          description: `Transit expense - ${validatedData.type}`,
+          amount: validatedData.amount,
+          currency: validatedData.currency,
+          date: expenseDate,
+          vendor: validatedData.vendor ?? null,
+          invoiceNumber: validatedData.invoiceNumber ?? null,
+          category: validatedData.type,
+          notes: validatedData.notes ?? null,
+        },
+      });
+
+      // Remove the ledger entries created by the previous version of this expense,
+      // then recreate them from the updated values so balances stay aligned.
+      const linkedUserEntries = await tx.ledgerEntry.findMany({
+        where: {
+          metadata: {
+            path: ['transitExpenseId'],
+            equals: expense.id,
+          },
+        },
+        select: { id: true, userId: true },
+      });
+
+      const linkedCompanyEntries = await tx.companyLedgerEntry.findMany({
+        where: {
+          metadata: {
+            path: ['transitExpenseId'],
+            equals: expense.id,
+          },
+        },
+        select: { id: true, companyId: true },
+      });
+
+      if (linkedUserEntries.length > 0) {
+        await tx.ledgerEntry.deleteMany({
+          where: {
+            id: { in: linkedUserEntries.map((entry) => entry.id) },
+          },
+        });
+      }
+
+      if (linkedCompanyEntries.length > 0) {
+        await tx.companyLedgerEntry.deleteMany({
+          where: {
+            id: { in: linkedCompanyEntries.map((entry) => entry.id) },
+          },
+        });
+      }
+
+      // 2. CREDIT transit company ledger (company service credit)
+      const reference = `transit-expense:${expense.id}`;
+
+      await tx.companyLedgerEntry.create({
+        data: {
+          companyId: currentEvent.companyId,
+          description: `Transit expense recovery - ${validatedData.type} (${transit.referenceNumber} • ${currentEvent.origin} → ${currentEvent.destination})`,
+          type: 'CREDIT',
+          amount: validatedData.amount,
+          balance: 0,
+          transactionDate: expenseDate,
+          category: 'Transit Expense Recovery',
+          reference,
+          notes: validatedData.notes ?? null,
+          createdBy: session.user!.id as string,
+          metadata: {
+            isTransitExpense: true,
+            transitExpenseId: expense.id,
+            transitId: params.id,
+            transitRef: transit.referenceNumber,
+            transitEventId: currentEvent.id,
+            transitEventOrigin: currentEvent.origin,
+            transitEventDestination: currentEvent.destination,
+          },
+        },
+      });
+
+      // 3. DEBIT each user ledger for their allocated share
+      for (const allocation of allocations) {
+        if (allocation.amount <= 0) {
+          continue;
+        }
+
+        const shipment = transit.shipments.find((s) => s.id === allocation.shipmentId);
+        if (!shipment) {
+          continue;
+        }
+
+        const vehicleLabel = [shipment.vehicleYear, shipment.vehicleMake, shipment.vehicleModel]
+          .filter(Boolean)
+          .join(' ');
+        const vinSuffix = shipment.vehicleVIN ? ` (VIN: ${shipment.vehicleVIN})` : '';
+
+        await tx.ledgerEntry.create({
+          data: {
+            userId: shipment.userId,
+            shipmentId: shipment.id,
+            description: `Transit expense allocation - ${validatedData.type} for ${vehicleLabel || 'shipment'}${vinSuffix}`,
+            type: 'DEBIT',
+            amount: allocation.amount,
+            balance: 0,
+            createdBy: session.user!.id as string,
+            notes: validatedData.notes ?? null,
+            metadata: {
+              isExpense: true,
+              isTransitExpense: true,
+              paymentMode: 'DUE',
+              pendingInvoice: true,
+              transitExpenseId: expense.id,
+              transitId: params.id,
+              transitRef: transit.referenceNumber,
+              transitEventId: currentEvent.id,
+              transitEventOrigin: currentEvent.origin,
+              transitEventDestination: currentEvent.destination,
+              expenseType: validatedData.type,
+              linkedCompanyId: currentEvent.companyId,
+            },
+          },
+        });
+
+        // Add line item to this shipment's pending invoice
+        await addExpenseLineItemToShipmentInvoice(
+          shipment.id,
+          {
+            description: validatedData.type,
+            type: mapExpenseTypeToLineItemType(validatedData.type),
+            amount: allocation.amount,
+            expenseSource: 'TRANSIT',
+          },
+          tx
+        );
+      }
+
+      // 4. Recalculate all affected user balances and company balance
+      const affectedUserIds = Array.from(new Set([
+        ...linkedUserEntries.map((entry) => entry.userId),
+        ...transit.shipments.map((s) => s.userId),
+      ]));
+      for (const userId of affectedUserIds) {
+        await recalculateUserLedgerBalances(tx, userId);
+      }
+
+      const affectedCompanyIds = new Set([
+        currentEvent.companyId,
+        ...linkedCompanyEntries.map((entry) => entry.companyId),
+      ]);
+      for (const companyId of affectedCompanyIds) {
+        await recalculateCompanyLedgerBalances(tx, companyId);
+      }
+
+      return expense;
+    });
+
+    return NextResponse.json({ expense: updatedExpense, message: 'Expense updated successfully' });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: 'Invalid data', details: error.issues }, { status: 400 });
+    }
+    console.error('Error updating transit expense:', error);
+    return NextResponse.json({ error: 'Failed to update transit expense' }, { status: 500 });
   }
 }
 
