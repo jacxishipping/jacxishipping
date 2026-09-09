@@ -28,7 +28,8 @@ import {
   Ship,
   AlertTriangle,
 } from 'lucide-react';
-import { Tabs, Tab, Box } from '@mui/material';
+import { Tabs, Tab, Box, Menu, MenuItem } from '@mui/material';
+import { MoreVertical } from 'lucide-react';
 import { Breadcrumbs, toast, Tooltip } from '@/components/design-system';
 
 import ShipmentDetailOverlays from '@/components/shipments/ShipmentDetailOverlays';
@@ -209,6 +210,7 @@ export default function ShipmentDetailPage() {
   const [assigningDispatch, setAssigningDispatch] = useState(false);
   const [assigningTransit, setAssigningTransit] = useState(false);
   const [creatingReleaseToken, setCreatingReleaseToken] = useState(false);
+  const [headerMenuAnchor, setHeaderMenuAnchor] = useState<null | HTMLElement>(null);
   const [expenseAction, setExpenseAction] = useState<ExpenseActionContext | null>(null);
   const [expenseSourceFilter, setExpenseSourceFilter] = useState<ExpenseSourceFilter>('ALL');
   const [deletingExpenseId, setDeletingExpenseId] = useState<string | null>(null);
@@ -1145,28 +1147,7 @@ export default function ShipmentDetailPage() {
                   </button>
                 </div>
 
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {canManageWorkflow && !shipment.releaseToken && (
-                    <Tooltip
-                      title={
-                        isReleasedForTransit
-                          ? 'Generate release token for this shipment'
-                          : 'Release token can be generated after shipment/container status is Released'
-                      }
-                    >
-                      <span>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          icon={<FileText className="w-4 h-4" />}
-                          onClick={() => void handleGenerateReleaseToken()}
-                          disabled={creatingReleaseToken || !isReleasedForTransit}
-                        >
-                          {creatingReleaseToken ? 'Generating...' : 'Generate Token'}
-                        </Button>
-                      </span>
-                    </Tooltip>
-                  )}
+                <div className="mt-4 flex flex-wrap items-center gap-2">
                   {canAssignDispatch && (
                     <Button variant="outline" size="sm" onClick={() => setOpenAssignDispatch(true)}>
                       <Truck className="mr-2 h-4 w-4" />
@@ -1179,11 +1160,45 @@ export default function ShipmentDetailPage() {
                       Assign Transit
                     </Button>
                   )}
-                  {canManageShipmentRecord && (
-                    <Button variant="outline" size="sm" onClick={handleDelete} className="border-[var(--error)] text-[var(--error)]">
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Delete
-                    </Button>
+                  {((canManageWorkflow && !shipment.releaseToken) || canManageShipmentRecord) && (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        icon={<MoreVertical className="h-4 w-4" />}
+                        onClick={(event) => setHeaderMenuAnchor(event.currentTarget)}
+                      >
+                        More
+                      </Button>
+                      <Menu
+                        anchorEl={headerMenuAnchor}
+                        open={Boolean(headerMenuAnchor)}
+                        onClose={() => setHeaderMenuAnchor(null)}
+                      >
+                        {canManageWorkflow && !shipment.releaseToken && (
+                          <MenuItem
+                            onClick={() => {
+                              setHeaderMenuAnchor(null);
+                              void handleGenerateReleaseToken();
+                            }}
+                            disabled={creatingReleaseToken || !isReleasedForTransit}
+                          >
+                            Generate Release Token
+                          </MenuItem>
+                        )}
+                        {canManageShipmentRecord && (
+                          <MenuItem
+                            onClick={() => {
+                              setHeaderMenuAnchor(null);
+                              handleDelete();
+                            }}
+                            sx={{ color: 'var(--error)' }}
+                          >
+                            Delete Shipment
+                          </MenuItem>
+                        )}
+                      </Menu>
+                    </>
                   )}
                 </div>
               </div>

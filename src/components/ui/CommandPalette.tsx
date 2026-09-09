@@ -3,8 +3,17 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Command } from 'cmdk';
-import { Search, FileText, Package, Ship, Users, Settings, Home, TrendingUp } from 'lucide-react';
+import { Search, FileText, Package, Ship, Users, Settings, Home, TrendingUp, Car } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+interface ShipmentSearchHit {
+  id: string;
+  vehicleYear: number | null;
+  vehicleMake: string | null;
+  vehicleModel: string | null;
+  vehicleVIN: string | null;
+  user: { name: string | null; email: string };
+}
 
 interface CommandPaletteProps {
   open: boolean;
@@ -14,6 +23,51 @@ interface CommandPaletteProps {
 export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   const router = useRouter();
   const [search, setSearch] = useState('');
+  const [shipmentHits, setShipmentHits] = useState<ShipmentSearchHit[]>([]);
+  const [searchingShipments, setSearchingShipments] = useState(false);
+
+  // Live shipment lookup: VIN / vehicle / customer. Works with as few as 3
+  // characters so operators can jump by VIN or invoice reference quickly.
+  useEffect(() => {
+    if (!open) return;
+    const term = search.trim();
+    if (term.length < 3) {
+      setShipmentHits([]);
+      return;
+    }
+
+    let cancelled = false;
+    setSearchingShipments(true);
+    const timer = setTimeout(async () => {
+      try {
+        const response = await fetch(`/api/shipments?search=${encodeURIComponent(term)}&limit=6&page=1`);
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || 'Search failed');
+        if (!cancelled) {
+          setShipmentHits((data.shipments || []).slice(0, 6) as ShipmentSearchHit[]);
+        }
+      } catch {
+        if (!cancelled) setShipmentHits([]);
+      } finally {
+        if (!cancelled) setSearchingShipments(false);
+      }
+    }, 250);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [search, open]);
+
+  useEffect(() => {
+    if (!open) {
+      setSearch('');
+      setShipmentHits([]);
+    }
+  }, [open]);
+
+  const vehicleLabel = (hit: ShipmentSearchHit) =>
+    [hit.vehicleYear, hit.vehicleMake, hit.vehicleModel].filter(Boolean).join(' ').trim() || 'Vehicle';
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -69,8 +123,36 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 
         <Command.List className="max-h-[400px] overflow-y-auto p-2">
           <Command.Empty className="py-6 text-center text-sm text-[var(--text-secondary)]">
-            No results found.
+            {searchingShipments ? 'Searching shipments...' : 'No results found.'}
           </Command.Empty>
+
+          {shipmentHits.length > 0 && (
+            <>
+              <Command.Group heading="Shipments" className="px-2 py-2 text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wide">
+                {shipmentHits.map((hit) => (
+                  <Command.Item
+                    key={hit.id}
+                    onSelect={() => runCommand(() => router.push(`/dashboard/shipments/${hit.id}`))}
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer text-[var(--text-primary)] hover:bg-[var(--background)] data-[selected=true]:bg-[var(--background)]"
+                  >
+                    <Car className="w-4 h-4 text-[var(--text-secondary)]" />
+                    <span className="flex-1 min-w-0">
+                      <span className="block truncate">{vehicleLabel(hit)}</span>
+                      <span className="block truncate text-xs text-[var(--text-secondary)]">
+                        {hit.vehicleVIN ? `VIN ${hit.vehicleVIN} · ` : ''}
+                        {hit.user.name || hit.user.email}
+                      </span>
+                    </span>
+                    <kbd className="px-1.5 py-0.5 text-[10px] text-[var(--text-secondary)] bg-[var(--background)] border border-[var(--border)] rounded">
+                      open
+                    </kbd>
+                  </Command.Item>
+                ))}
+              </Command.Group>
+
+              <Command.Separator className="h-px bg-[var(--border)] my-2" />
+            </>
+          )}
 
           <Command.Group heading="Navigation" className="px-2 py-2 text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wide">
             <Command.Item
@@ -165,7 +247,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 
         <div className="border-t border-[var(--border)] px-4 py-3 text-xs text-[var(--text-secondary)] flex items-center justify-between">
           <span>Press <kbd className="px-1.5 py-0.5 bg-[var(--background)] border border-[var(--border)] rounded">⌘K</kbd> or <kbd className="px-1.5 py-0.5 bg-[var(--background)] border border-[var(--border)] rounded">Ctrl+K</kbd> to open</span>
-          <span>↑↓ Navigate • ↵ Select • ESC Close</span>
+          <span>↑↓ Navigate · ↵ Select · ESC Close</span>
         </div>
       </Command.Dialog>
     </>
