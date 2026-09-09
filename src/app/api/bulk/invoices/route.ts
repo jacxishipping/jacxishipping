@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db';
 import { NotificationType } from '@prisma/client';
 import { createInvoiceAuditLogs } from '@/lib/entity-audit-history';
 import { createNotifications } from '@/lib/notifications';
+import { resetInvoiceShipmentCharges } from '@/lib/billing/shipment-charges';
 
 const allowedStatuses = ['DRAFT', 'PENDING', 'SENT', 'PAID', 'OVERDUE', 'CANCELLED'];
 
@@ -103,15 +104,34 @@ export async function POST(request: NextRequest) {
       }
 
       case 'delete': {
-        const result = await prisma.$transaction(async (tx) => {
-          const invoices = await tx.userInvoice.findMany({
-            where: { id: { in: invoiceIds } },
-            select: {
-              id: true,
-              invoiceNumber: true,
-              paymentReference: true,
+        const invoices = await prisma.userInvoice.findMany({
+          where: { id: { in: invoiceIds } },
+          select: {
+            id: true,
+            invoiceNumber: true,
+            paymentReference: true,
+            status: true,
+          },
+        });
+
+        // Only un-issued invoices may be deleted. Issued invoices carry customer
+        // and ledger state; they must be reversed (cancelled) instead, which keeps
+        // the document for the audit trail and releases its charges.
+        const lockedInvoices = invoices.filter(
+          (invoice) => !['DRAFT', 'PENDING'].includes(invoice.status),
+        );
+        if (lockedInvoices.length > 0) {
+          return NextResponse.json(
+            {
+              message: `Only draft or pending invoices can be deleted. Reverse these invoices first (this releases their charges while keeping the audit trail): ${lockedInvoices
+                .map((invoice) => invoice.invoiceNumber)
+                .join(', ')}`,
             },
-          });
+            { status: 400 },
+          );
+        }
+
+        const result = await prisma.$transaction(async (tx) => {
 
           const invoiceNumbers = invoices.map((invoice) => invoice.invoiceNumber);
           const paymentReferenceIds = invoices
@@ -185,6 +205,12 @@ export async function POST(request: NextRequest) {
             await tx.companyLedgerEntry.deleteMany({
               where: { id: { in: companyLedgerEntryIds } },
             });
+          }
+
+          // Release any charges still linked to these draft invoices so they are
+          // not orphaned (mirrors the single-invoice DELETE endpoint).
+          for (const invoice of invoices) {
+            await resetInvoiceShipmentCharges(tx, invoice.id);
           }
 
           const deletedInvoices = await tx.userInvoice.deleteMany({

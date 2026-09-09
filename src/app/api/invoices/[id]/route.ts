@@ -716,6 +716,21 @@ export async function DELETE(
       return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
     }
 
+    // Only un-issued invoices may be deleted. Issued invoices carry customer and
+    // ledger state; they must be reversed (cancelled) instead, which keeps the
+    // document for the audit trail and releases its charges for dispute.
+    if (!['DRAFT', 'PENDING'].includes(invoice.status)) {
+      return NextResponse.json(
+        {
+          error:
+            invoice.status === 'PAID'
+              ? 'Paid invoices cannot be deleted. Record the refund/reversal first.'
+              : `Invoice ${invoice.invoiceNumber} is ${invoice.status.toLowerCase()} and cannot be deleted. Reverse it instead — that releases its charges while keeping the audit trail.`,
+        },
+        { status: 400 },
+      );
+    }
+
     const result = await prisma.$transaction(async (tx) => {
       const userLedgerLinks = await tx.ledgerEntry.findMany({
         where: {
