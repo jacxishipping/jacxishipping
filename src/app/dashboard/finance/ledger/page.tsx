@@ -30,6 +30,7 @@ import { formatMoney as formatCurrency } from '@/lib/format';
 
 interface LedgerEntry {
   id: string;
+  user?: { id: string; name: string | null; email: string } | null;
   transactionDate: string;
   description: string;
   type: 'DEBIT' | 'CREDIT';
@@ -75,6 +76,7 @@ export default function LedgerPage() {
   const isAdmin = session?.user?.role === 'admin';
   const canManageLedger = hasPermission(session?.user?.role, 'finance:manage');
   const [entries, setEntries] = useState<LedgerEntry[]>([]);
+  const [ledgerScope, setLedgerScope] = useState<'own' | 'single' | 'all'>('single');
   const [summary, setSummary] = useState<LedgerSummary>({
     totalDebit: 0,
     totalCredit: 0,
@@ -137,6 +139,7 @@ export default function LedgerPage() {
 
       const data = await response.json();
       setEntries(data.entries);
+      setLedgerScope(data.scope === 'all' ? 'all' : data.scope === 'own' ? 'own' : 'single');
       setSummary(data.summary);
       setTotalPages(data.pagination.totalPages);
     } catch (error) {
@@ -330,6 +333,20 @@ export default function LedgerPage() {
   };
 
   const columns = useMemo<Column<LedgerEntry>[]>(() => [
+    ...(ledgerScope === 'all' && canManageLedger
+      ? [
+          {
+            key: 'userEmail' as const,
+            header: 'Customer',
+            width: '18%',
+            render: (_: unknown, row: LedgerEntry) => (
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>
+                {row.user?.name || row.user?.email || '—'}
+              </span>
+            ),
+          },
+        ]
+      : []),
     {
       key: 'transactionDate',
       header: 'Date',

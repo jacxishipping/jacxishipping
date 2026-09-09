@@ -77,9 +77,12 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50');
     const search = searchParams.get('search');
 
-    // Users without finance:manage can only view their own ledger
-    const isAdmin = hasPermission(session.user.role, 'finance:manage');
-    const targetUserId = isAdmin && userId ? userId : session.user.id;
+    // Users without finance:manage can only view their own ledger. Finance staff
+    // see one customer's ledger when a userId filter is provided, and every
+    // customer's ledger by default (so the Ledger page is not empty for admins).
+    const canViewAllLedgers = hasPermission(session.user.role, 'finance:manage');
+    const targetUserId = !canViewAllLedgers ? session.user.id : userId || undefined;
+    const ledgerScope = !canViewAllLedgers ? 'own' : targetUserId ? 'single' : 'all';
 
     if (targetUserId) {
       await recalculateUserLedgerBalances(prisma, targetUserId);
@@ -87,7 +90,7 @@ export async function GET(request: NextRequest) {
 
     // Build base where clause for summary cards.
     const summaryWhere: Record<string, unknown> = {
-      userId: targetUserId,
+      ...(targetUserId ? { userId: targetUserId } : {}),
     };
 
     if (shipmentId) {
@@ -294,6 +297,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       entries: pagedEntries,
+      scope: ledgerScope,
       pagination: {
         page,
         limit,
@@ -306,7 +310,7 @@ export async function GET(request: NextRequest) {
         totalShipmentPurchaseAmount: shipmentPurchaseSummary._sum.purchasePrice || 0,
         totalUnpaidShipmentPurchaseAmount: unpaidShipmentPurchaseSummary._sum.purchasePrice || 0,
         totalShipmentExpenses: summary.totalShipmentExpenses,
-        currentBalance: latestEntry?.balance || 0,
+        currentBalance: ledgerScope === 'all' ? 0 : latestEntry?.balance || 0,
         transactionInfoBreakdown: summary.transactionInfoBreakdown,
       },
       filteredSummary,

@@ -404,6 +404,45 @@ export default function ShipmentBillingTab({ shipmentId, refreshKey, purchasePri
     }
   };
 
+  const handleDisputeIssuedCharge = async (charge: ShipmentCharge) => {
+    if (!charge.invoice) return;
+    const confirmed = window.confirm(
+      `Dispute this charge on issued invoice ${charge.invoice.invoiceNumber}?\n\nThe invoice will be reversed (cancelled) first, which releases ALL of its charges back to Approved so they can be reviewed. You can then fix the rows and generate a fresh invoice.`,
+    );
+    if (!confirmed) return;
+
+    try {
+      setInvoiceActioningId(charge.invoice.id);
+      // 1. Reverse the issued invoice (releases its charges server-side).
+      const reverseResponse = await fetch(`/api/invoices/${charge.invoice.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'CANCELLED',
+          notes: 'Reversed to dispute a charge from the billing tab',
+        }),
+      });
+      const reversePayload = (await reverseResponse.json().catch(() => ({}))) as { error?: string };
+      if (!reverseResponse.ok) throw new Error(reversePayload.error || 'Failed to reverse invoice');
+
+      // 2. Dispute the charge itself.
+      const disputeResponse = await fetch(`/api/shipments/${shipmentId}/charges/${charge.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'DISPUTED' }),
+      });
+      const disputePayload = (await disputeResponse.json().catch(() => ({}))) as { error?: string };
+      if (!disputeResponse.ok) throw new Error(disputePayload.error || 'Failed to dispute charge');
+
+      toast.success('Invoice reversed and charge disputed');
+      await fetchCharges();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to dispute charge');
+    } finally {
+      setInvoiceActioningId(null);
+    }
+  };
+
   const generateInvoice = async () => {
     try {
       setGeneratingInvoice(true);
@@ -822,6 +861,19 @@ export default function ShipmentBillingTab({ shipmentId, refreshKey, purchasePri
                           {updatingChargeId === charge.id ? '...' : 'Approve'}
                         </Button>
                       )
+                    ) : canGenerateInvoices &&
+                      charge.invoice &&
+                      ['SENT', 'OVERDUE'].includes(charge.invoice.status) &&
+                      charge.status === 'INVOICED' ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => void handleDisputeIssuedCharge(charge)}
+                        disabled={invoiceActioningId === charge.invoice.id || bulkUpdating}
+                        title="Disputing this charge first reverses (cancels) its invoice and releases all its charges"
+                      >
+                        {invoiceActioningId === charge.invoice.id ? 'Working...' : 'Dispute'}
+                      </Button>
                     ) : (
                       <span className="text-[11px] text-[var(--text-secondary)]">-</span>
                     )}
