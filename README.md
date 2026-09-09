@@ -1,100 +1,79 @@
-## Jacxi Shipping Platform
+# Jacxi Shipping Platform
 
-Jacxi Shipping is a Next.js 15 dashboard and customer portal for creating, monitoring, and closing out vehicle shipments. It includes protected admin tooling, shipment timelines, invoice exports, tracking pages, and secure media uploads for arrival/container photos.
+Vehicle shipping operations platform for importing vehicles from the USA/Canada to
+Afghanistan (Mersin and UAE routes): auction sourcing (Copart/IAAI), containerization,
+shipment lifecycle, transit/dispatch legs, invoicing, customer/company ledgers,
+tracking, partner portals, and a companion mobile app.
 
-## Getting Started
+## Stack
 
-### Quick Setup
+| Layer | Tech |
+|---|---|
+| Web | Next.js 16 (App Router), React 19, TypeScript (strict), MUI 7 + Tailwind 4, in-repo design system (`src/components/design-system`, design tokens in `src/lib/design-tokens`) |
+| Backend | Next.js route handlers under `src/app/api` (141 routes); business logic in `src/lib` |
+| Server | Custom Node server (`server.ts`): CORS for the Expo app + WebSocket bridge for the voice agent (`/api/voice/live`) |
+| Data | Prisma 6 + PostgreSQL (Prisma Accelerate pool at runtime, direct URL for migrations). Schema: `prisma/schema.prisma`; migrations in `prisma/migrations` |
+| Auth | NextAuth v5 beta — email/password, Google, low-literacy login codes; mobile JWT flow (`src/lib/mobile-auth.ts`) |
+| Mobile | Expo SDK 54 / React Native app in `mobile/` (admin + customer roles) |
+| Infra | Vercel (crons in `vercel.json`, Blob storage) + Dockerfile / docker-compose |
+
+## Repository layout
+
+- `src/app/` — pages + API routes (`src/app/api`)
+- `src/components/` — React components (dashboard, shipments, containers, transits, finance, ui, …)
+- `src/lib/` — domain logic: workflows, ledger/company-ledger, billing/shipment-charges, financial (Plaid/Finicity/bank CSV), ai, voice, copart/iaai clients, pdf generation, validations
+- `mobile/` — Expo React Native app (own package.json)
+- `prisma/` — schema + migrations (80+ migrations, Nov 2025 → Aug 2026)
+- `docs/` — curated project documentation (flow diagrams, business logic index, invoice/accounting design, API specs)
+- `docs/archive/` — historical session/summary notes from earlier development (keep for reference, not for onboarding)
+
+## Core domain notes
+
+- **Container** = the unit being shipped (vehicle); holds expenses, damages, invoices, documents, tracking events, audit logs.
+- **Shipment lifecycle**: `ON_HAND → DISPATCHING → IN_TRANSIT → RELEASED → IN_TRANSIT_TO_DESTINATION → DELIVERED`; sub-workflows for transit and dispatch (events, expenses, delivery confirmation).
+- **Billing**: approved *shipment charges* are the source of truth. Generate issues a customer invoice (per container/shipment) and marks charges `INVOICED`. Charges on DRAFT/PENDING invoices can still be disputed/approved (they are released from the draft). Issued invoices must be **reversed** (cancel → releases charges) before rows can change. Only DRAFT/PENDING invoices can be **deleted**.
+- **Ledgers**: customer (`LedgerEntry`), company (`CompanyLedgerEntry`), partner portal; balances are recalculated transactionally after mutations.
+- **Release token**: a shipment must be released (shipment or container status `RELEASED`) and carry a release token before it can be assigned to a transit.
+
+## Getting started
 
 ```bash
-# 1. Install dependencies
-npm install
+npm install                     # runs prisma generate + type fixer via postinstall
+cp .env.example .env.local      # then fill in values
+npm run db:setup                # generate client + db push + seed (dev)
+npm run dev                     # custom server on :3000 (voice WS + mobile CORS)
+```
 
-# 2. Set up environment variables (see below)
-cp .env.example .env.local
+Production: `npm run build && npm run start` (or the Dockerfile / Vercel).
 
-# 3. Generate Prisma client
-npm run db:generate
+## Environment variables
 
-# 4. Apply database migrations (MUST be done before building)
+See `.env.example` for the full list. Critical ones:
+
+- DB (runtime, via Prisma Accelerate): `jacxi_PRISMA_DATABASE_URL`
+- DB (migrations/CLI): `jacxi_POSTGRES_URL` / `jacxi_DATABASE_URL` / `DATABASE_URL` (legacy aliases — keep in sync)
+- `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `NEXT_PUBLIC_APP_URL`
+- `BLOB_READ_WRITE_TOKEN` (shipment photo uploads)
+- `RESEND_API_KEY` (invoice/notification emails)
+- Copart/IAAI scraping: `OXYLABS_*`, `LOT_FETCH_PROXY_*`, `IAAI_API_*` (optional)
+- `VOICE_WEBHOOK_TOKEN` (call agent); Twilio + Gemini settings are managed in Dashboard → Settings → Call Agent
+
+## Useful scripts
+
+```bash
+npm run dev              # dev server (custom)
+npm run build            # prisma generate --no-engine && next build --webpack
+npm run lint             # eslint
+npm test                 # unit tests (tsx --test over src/**/*.test.ts)
+npm run test:e2e         # Playwright specs
 npm run db:migrate:deploy
-
-# 5. Build the application
-npm run build
-
-# 6. Start development server
-npm run dev
+npm run db:studio
+npm run db:backup
+# mobile (from mobile/ or via npm run mobile:*)
 ```
 
-Visit `http://localhost:3000` and sign in with an admin account to unlock shipment management features.
+## Verification notes
 
-**⚠️ Important:** If you see an error about `User.loginCode` column not existing, see [FIX_LOGINCODE_ERROR.md](./FIX_LOGINCODE_ERROR.md) for the solution.
-
-## Environment Variables
-
-Copy `.env.example` to `.env.local` and fill in the values. **Important:** Use the exact variable names shown:
-
-```env
-# Database - REQUIRED: Use these exact names
-jacxi_DATABASE_URL="postgresql://..."
-jacxi_POSTGRES_URL="postgresql://..."
-
-# NextAuth
-NEXTAUTH_SECRET="your-secret-here"
-NEXTAUTH_URL="http://localhost:3000"
-```
-
-For shipment photo uploads you must also configure a Vercel Blob token:
-
-- `BLOB_READ_WRITE_TOKEN` – obtain via `vercel blob tokens create jacxi-shipments --rw`.
-
-Without this token, `/api/upload` will return a configuration error.
-
-For auction lot auto-fill in production, public Copart or IAAI pages may block Vercel serverless IPs. If that happens, configure one of these server-side fallbacks:
-
-- `OXYLABS_DATA_API_USERNAME` and `OXYLABS_DATA_API_PASSWORD` – preferred Copart provider when you have Oxylabs Web Scraper API access.
-- `OXYLABS_COPART_PARSER_PRESET` – optional Copart parser preset for Oxylabs. Defaults to `shkrcopart`.
-
-- `LOT_FETCH_PROXY_MODE` – `connect` for a real outbound proxy such as Oxylabs, or `template` for a fetch endpoint that accepts a target URL.
-- `LOT_FETCH_PROXY_URL` – proxy address. For Oxylabs, use the proxy server URL such as `http://dc.oxylabs.io:8000`. For template mode, use a URL containing `{url}` or an endpoint that accepts `?url=`.
-- `LOT_FETCH_PROXY_USERNAME` and `LOT_FETCH_PROXY_PASSWORD` – proxy credentials for `connect` mode.
-- `LOT_FETCH_PROXY_AUTH_TOKEN` – optional token for `template` mode.
-- `LOT_FETCH_PROXY_AUTH_HEADER` – optional header name for the template-mode auth token. Defaults to `authorization`.
-- `LOT_FETCH_PROXY_AUTH_SCHEME` – optional auth scheme for template mode. Defaults to `Bearer`. Set it to an empty string if your proxy expects the raw token.
-- `IAAI_API_URL` and `IAAI_API_KEY` – optional approved JSON provider for IAAI if public page scraping is blocked.
-
-For the call agent service, configure these server-side variables:
-
-- `VOICE_WEBHOOK_TOKEN` – shared secret appended to the inbound voice webhook URL, for example `/api/voice?token=...`.
-
-Then configure the call-agent Gemini API keys and model overrides from Dashboard > Settings > Call Agent.
-
-## Shipment Photo Uploads
-
-Arrival and container photos are uploaded via the `/api/upload` route, which now writes directly to [Vercel Blob Storage](https://vercel.com/docs/storage/vercel-blob). Only authenticated admins can call this endpoint. Files are validated for type (JPEG, PNG, WebP) and size (<5 MB) before being persisted to a public `shipments/...` object key. The generated URL is saved on the shipment record and rendered in the dashboard gallery components.
-
-## Scripts
-
-- `npm run dev` – start the Next.js development server.
-- `npm run build && npm run start` – create a production build and serve it.
-- `npm run lint` – run ESLint across the project.
-
-Additional database utilities live under the `scripts/` directory (see `QUICK_START.md` for the full list).
-
-## Deployment
-
-Deploy to Vercel for the standard dashboard experience. Ensure the environment variables above (including `BLOB_READ_WRITE_TOKEN`) are configured in the project settings so uploads continue to work in production.
-
-## Voice Call Agent
-
-The project now includes a Twilio-compatible inbound voice webhook at `/api/voice`. The call flow asks for an 8-character access code, then offers shipment tracking, finance summary, recent shipments, and a live Gemini-backed voice assistant.
-
-Set your phone number webhook to `POST https://your-domain/api/voice?token=YOUR_VOICE_WEBHOOK_TOKEN` and make sure the same token is configured in `VOICE_WEBHOOK_TOKEN`.
-
-Keypad entry works best when the caller's 8-character login code is numeric. Existing alphanumeric login codes are still supported through spoken input, so callers can say the code if needed.
-
-Option 4 now uses a bidirectional Twilio Media Streams bridge to Gemini Live over WebSockets. That requires a long-running Node server with WebSocket upgrade support, so it is compatible with the included Docker/container deployment and other VM-style hosts, but not with Vercel serverless routing.
-
-The app now starts through the custom [server.ts](./server.ts) entrypoint so the dashboard HTTP traffic and `/api/voice/live` WebSocket traffic share the same host.
-
-If lot-number auto-fill works locally but fails after deployment, the usual cause is Copart or IAAI blocking Vercel serverless requests. For Copart, prefer the Oxylabs data API by setting `OXYLABS_DATA_API_USERNAME`, `OXYLABS_DATA_API_PASSWORD`, and optionally `OXYLABS_COPART_PARSER_PRESET`. Keep the proxy variables only as fallback. Also set `IAAI_API_URL`/`IAAI_API_KEY` if you use an approved IAAI provider.
+- `npx tsc --noEmit` reports a small set of pre-existing errors from a stale
+  `.next/types` artifact (deleted routes) plus one in
+  `src/components/ui/SmoothScrolling.tsx` — clean `rm -rf .next` and rebuild to refresh.
