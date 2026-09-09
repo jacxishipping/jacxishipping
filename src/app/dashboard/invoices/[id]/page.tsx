@@ -147,6 +147,7 @@ export default function InvoiceDetailPage() {
 	const [invoice, setInvoice] = useState<Invoice | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [updating, setUpdating] = useState(false);
+	const [disputedLineIds, setDisputedLineIds] = useState<Set<string>>(() => new Set());
 
 	const isAdmin = hasPermission(session?.user?.role, 'invoices:manage');
 
@@ -170,6 +171,42 @@ export default function InvoiceDetailPage() {
 			toast.error('An error occurred');
 		} finally {
 			setLoading(false);
+		}
+	};
+
+	const handleDisputeLine = async (line: { id: string; description: string; amount: number }, shipmentId: string | null) => {
+		if (!invoice) return;
+		const reason = window.prompt(
+			`Why are you disputing "${line.description}"?\n\nPlease describe the issue briefly so our team can review it.`,
+		);
+		if (!reason) return;
+		const trimmedReason = reason.trim();
+		if (trimmedReason.length < 5) {
+			toast.error('Please describe the reason in a few words');
+			return;
+		}
+
+		try {
+			const response = await fetch(`/api/invoices/${invoice.id}/dispute`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					shipmentId,
+					description: line.description,
+					amount: line.amount,
+					reason: trimmedReason,
+				}),
+			});
+			const data = await response.json();
+			if (!response.ok) throw new Error(data.error || 'Failed to submit dispute');
+			toast.success('Dispute submitted', { description: 'Our team will review it and reply shortly.' });
+			setDisputedLineIds((current) => {
+				const next = new Set(current);
+				next.add(line.id);
+				return next;
+			});
+		} catch (error) {
+			toast.error(error instanceof Error ? error.message : 'Failed to submit dispute');
 		}
 	};
 
@@ -288,22 +325,16 @@ export default function InvoiceDetailPage() {
 	}, {} as Record<string, { shipment?: LineItem['shipment']; items: LineItem[] }>);
 
 	if (loading) {
-		return (
-			<AdminRoute>
-				<DetailPageSkeleton />
-			</AdminRoute>
-		);
+		return <DetailPageSkeleton />;
 	}
 
 	if (!invoice) {
 		return (
-			<AdminRoute>
-				<EmptyState
-					icon={<FileText className="w-16 h-16" />}
-					title="Invoice Not Found"
-					description="The invoice you're looking for doesn't exist or you don't have permission to view it"
-				/>
-			</AdminRoute>
+			<EmptyState
+				icon={<FileText className="w-16 h-16" />}
+				title="Invoice Not Found"
+				description="The invoice you're looking for doesn't exist or you don't have permission to view it"
+			/>
 		);
 	}
 
@@ -317,9 +348,25 @@ export default function InvoiceDetailPage() {
 		: 0;
 	const balanceDue = invoice.total - purchasePaid;
 
-	return (
-		<AdminRoute>
+	const viewerIsOwner = Boolean(session?.user?.id && invoice.userId === session.user.id);
+	const canViewInvoice = isAdmin || viewerIsOwner;
+	const canDisputeLines =
+		canViewInvoice && invoice.status !== 'DRAFT' && invoice.status !== 'CANCELLED' && invoice.status !== 'PENDING';
+
+	if (!canViewInvoice) {
+		return (
 			<Box sx={{ maxWidth: '1400px', mx: 'auto', p: { xs: 2, md: 3 } }}>
+				<EmptyState
+					icon={<FileText className="w-16 h-16" />}
+					title="Invoice Not Found"
+					description="The invoice you're looking for doesn't exist or you don't have permission to view it"
+				/>
+			</Box>
+		);
+	}
+
+	return (
+		<Box sx={{ maxWidth: '1400px', mx: 'auto', p: { xs: 2, md: 3 } }}>
 				{/* Breadcrumbs */}
 				<Breadcrumbs
 					items={[
@@ -652,6 +699,20 @@ export default function InvoiceDetailPage() {
 													<TableCell align="left" sx={{ pl: 2, pr: 2 }}>
 														<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 1, flexWrap: 'wrap', textAlign: 'left' }}>
 															<span>{getExpenseShortLabel(item)}</span>
+								{canDisputeLines && !disputedLineIds.has(item.id) && (
+									<Button
+										variant="outline"
+										size="sm"
+										onClick={() =>
+											void handleDisputeLine(
+												{ id: item.id, description: item.description, amount: item.amount },
+												group.shipment?.id ?? null,
+											)}
+										sx={{ minWidth: 'auto', px: 1 }}
+									>
+										Dispute
+									</Button>
+								)}
 															{(item.type === 'PURCHASE_PRICE' || item.type === 'VEHICLE_PRICE') &&
 																invoice.shipment?.paymentStatus === 'COMPLETED' && (
 																<Chip
@@ -661,7 +722,7 @@ export default function InvoiceDetailPage() {
 																	sx={{ fontSize: '0.65rem' }}
 																/>
 															)}
-															{item.linkedCompanyLedgerEntry && (
+															{isAdmin && item.linkedCompanyLedgerEntry && (
 																<Button
 																	variant="outline"
 																	size="sm"
@@ -819,11 +880,12 @@ export default function InvoiceDetailPage() {
 							title="Activity History"
 							description="Audit log of invoice creation, updates, and status changes"
 						>
-							<ActivityLog logs={invoice.auditLogs || []} />
+							{isAdmin && (
+								<ActivityLog logs={invoice.auditLogs || []} />
+							)}
 						</DashboardPanel>
 					</Box>
 				</DashboardSurface>
 			</Box>
-		</AdminRoute>
 	);
 }
