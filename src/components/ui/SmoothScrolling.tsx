@@ -18,7 +18,7 @@ export default function SmoothScrolling({ children }: { children: React.ReactNod
   }, [pathname]);
 
   // Use the wrapper element if available, otherwise fall back to root
-  const targetElement = wrapperRef.current || (typeof document !== 'undefined' ? document.documentElement : null);
+  const targetElement = wrapperRef.current ?? (typeof document !== 'undefined' ? document.documentElement : undefined);
 
   return (
     <ReactLenis 

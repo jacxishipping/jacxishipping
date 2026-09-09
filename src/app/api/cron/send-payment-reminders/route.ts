@@ -1,12 +1,11 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { sendPaymentReminderEmail } from '@/lib/email';
+import { validateCronRequest } from '@/lib/cron-auth';
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   // Verify cron secret for security
-  const authHeader = request.headers.get('authorization');
-  const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+  if (!validateCronRequest(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

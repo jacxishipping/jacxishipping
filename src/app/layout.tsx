@@ -8,6 +8,7 @@ import Script from "next/script";
 import PWARegister from "@/components/pwa/PWARegister";
 import OfflineStatusBanner from "@/components/pwa/OfflineStatusBanner";
 import SmoothScrolling from "@/components/ui/SmoothScrolling";
+import { LenisWrapperProvider } from "@/components/providers/LenisWrapperProvider";
 
 // Use system fonts as fallback when Google Fonts aren't available
 const fontVariables = '';
@@ -58,14 +59,16 @@ export default function RootLayout({
         <Providers>
           <PWARegister />
           <OfflineStatusBanner />
-          <SmoothScrolling>
+          <LenisWrapperProvider>
+            <SmoothScrolling>
             <div className="relative flex min-h-screen flex-col">
               <ConditionalLayout>
                 {children}
               </ConditionalLayout>
             </div>
-            <Toaster />
-          </SmoothScrolling>
+              <Toaster />
+            </SmoothScrolling>
+          </LenisWrapperProvider>
         </Providers>
       </body>
     </html>
