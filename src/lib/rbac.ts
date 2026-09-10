@@ -131,8 +131,9 @@ const ROLE_PERMISSIONS: Record<AppRole, Set<Permission>> = {
 };
 
 export function normalizeRole(role?: string | null): AppRole {
-  if (!role) return 'user';
-  if (role in ROLE_PERMISSIONS) return role as AppRole;
+  const normalizedRole = role?.trim().toLowerCase();
+  if (!normalizedRole) return 'user';
+  if (normalizedRole in ROLE_PERMISSIONS) return normalizedRole as AppRole;
   return 'user';
 }
 

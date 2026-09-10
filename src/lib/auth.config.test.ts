@@ -58,4 +58,19 @@ describe('authConfig.callbacks.authorized', () => {
     const result = await authorized({ auth, request });
     assert.strictEqual(result, true);
   });
+
+  it('should normalize uppercase roles before storing them in session', async () => {
+    const sessionCallback = authConfig.callbacks?.session;
+
+    if (!sessionCallback) {
+      throw new Error('session callback is not defined');
+    }
+
+    const result = await sessionCallback({
+      session: { user: { id: '1', role: 'ADMIN' } },
+      token: { id: '1', role: 'ADMIN' },
+    } as any);
+
+    assert.strictEqual(result.user.role, 'admin');
+  });
 });

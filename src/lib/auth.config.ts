@@ -47,7 +47,7 @@ export const authConfig = {
           token.id = user.id;
         }
         if (user.role) {
-          token.role = user.role;
+          token.role = String(user.role).trim().toLowerCase();
         }
         if (user.image !== undefined) {
           token.image = user.image;
@@ -68,7 +68,7 @@ export const authConfig = {
           session.user.id = token.id;
         }
         if (typeof token.role === "string") {
-          session.user.role = token.role;
+          session.user.role = token.role.trim().toLowerCase();
         }
         if (typeof token.image === 'string') {
           session.user.image = token.image;
