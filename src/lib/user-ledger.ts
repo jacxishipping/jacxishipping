@@ -16,8 +16,6 @@ export async function recalculateUserLedgerBalances(db: DbClient, userId: string
 
   let runningBalance = 0;
 
-  const updates = [];
-
   for (const entry of entries) {
     const meta = (entry.metadata ?? {}) as Record<string, unknown>;
     // Payment allocation entries track how a payment was split across shipments.
@@ -29,18 +27,13 @@ export async function recalculateUserLedgerBalances(db: DbClient, userId: string
     if (!isPaymentAllocation && !isRemovedBankImport) {
       runningBalance = applyLedgerDelta(runningBalance, entry.type, entry.amount);
     }
-    if (entry.balance !== runningBalance) {
-      updates.push(
-        db.ledgerEntry.update({
-          where: { id: entry.id },
-          data: { balance: runningBalance },
-        })
-      );
-    }
-  }
 
-  if (updates.length > 0) {
-    await Promise.all(updates);
+    if (entry.balance !== runningBalance) {
+      await db.ledgerEntry.update({
+        where: { id: entry.id },
+        data: { balance: runningBalance },
+      });
+    }
   }
 
   return runningBalance;

@@ -47,8 +47,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-		<html lang="en" className={fontVariables} dir="ltr" data-scroll-behavior="smooth">
-      <body className="min-h-screen bg-background antialiased" style={{ fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
+		<html lang="en" className={fontVariables} dir="ltr" data-scroll-behavior="smooth" suppressHydrationWarning>
+      <body suppressHydrationWarning className="min-h-screen bg-background antialiased" style={{ fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
           <Script id="ux-sniff" strategy="afterInteractive">
             {`(function(u,x,s,n,i,f){
   u.ux=u.ux||function(){(u.ux.q=u.ux.q||[]).push(arguments)};

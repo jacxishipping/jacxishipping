@@ -6,6 +6,7 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { allocateExpenses } from '@/lib/expense-allocation';
+import { createInvoiceWithUniqueNumber } from '@/lib/shipment-invoice';
 import {
   buildInvoiceLineItemFromCharge,
   markInvoiceShipmentChargesInvoiced,
@@ -110,7 +111,6 @@ export class AutoInvoiceService {
 					: [],
 			]);
 
-			let invoiceCount = await prisma.userInvoice.count();
 			const auditLogs: Array<{
 				invoiceId: string;
 				action: string;
@@ -182,36 +182,39 @@ export class AutoInvoiceService {
 						continue;
 					}
 
-					invoiceCount += 1;
-					const invoiceNumber = `AUTO-INV-${new Date().getFullYear()}-${String(invoiceCount).padStart(6, '0')}`;
 					const subtotal = charges.reduce((sum, charge) => sum + charge.totalAmount, 0);
 					const lineItems = charges.map((charge) => buildInvoiceLineItemFromCharge(charge));
 
-					const invoice = await tx.userInvoice.create({
-						data: {
-							invoiceNumber,
-							userId,
-							containerId: container.id,
-							status: 'PAID',
-							issueDate: new Date(),
-							dueDate: new Date(),
-							paidDate: new Date(),
-							subtotal,
-							discount: 0,
-							tax: 0,
-							total: subtotal,
-							paymentMethod: 'CASH',
-							internalNotes: 'Auto-generated from completed cash shipment charges',
-							lineItems: {
-								create: lineItems,
-							},
-						},
-						select: {
-							id: true,
-							invoiceNumber: true,
-							total: true,
-						},
-					});
+					const invoice = await createInvoiceWithUniqueNumber(
+						tx,
+						async (invoiceNumber) =>
+							tx.userInvoice.create({
+								data: {
+									invoiceNumber,
+									userId,
+									containerId: container.id,
+									status: 'PAID',
+									issueDate: new Date(),
+									dueDate: new Date(),
+									paidDate: new Date(),
+									subtotal,
+									discount: 0,
+									tax: 0,
+									total: subtotal,
+									paymentMethod: 'CASH',
+									internalNotes: 'Auto-generated from completed cash shipment charges',
+									lineItems: {
+										create: lineItems,
+									},
+								},
+								select: {
+									id: true,
+									invoiceNumber: true,
+									total: true,
+								},
+							}),
+						'AUTO-INV',
+					);
 
 					await markInvoiceShipmentChargesInvoiced(tx, invoice.id, charges.map((charge) => charge.id));
 					await markInvoiceShipmentChargesPaid(tx, invoice.id);

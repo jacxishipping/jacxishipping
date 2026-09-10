@@ -272,8 +272,9 @@ type CreateShipmentPayload = {
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
+    const actorId = session?.user?.id;
     
-    if (!session) {
+    if (!session || !actorId) {
       return NextResponse.json(
         { message: 'Unauthorized' },
         { status: 401 }
@@ -483,22 +484,37 @@ export async function POST(request: NextRequest) {
       }
 
       // Auto-create a per-shipment invoice
-      const invoiceNumber = await generateInvoiceNumber(tx);
-      const initialSubtotal = parsedPurchasePrice && parsedPurchasePrice > 0 ? parsedPurchasePrice : 0;
-      const invoice = await tx.userInvoice.create({
-        data: {
-          invoiceNumber,
-          userId,
-          shipmentId: createdShipment.id,
-          status: 'PENDING',
-          subtotal: initialSubtotal,
-          total: initialSubtotal,
-          tax: 0,
-          discount: 0,
-        },
-      });
+      const createInvoice = async (attempt = 0): Promise<{ id: string; [key: string]: unknown }> => {
+        const invoiceNumber = await generateInvoiceNumber(tx);
 
-      // Add purchase price as a line item if applicable
+        try {
+          return await tx.userInvoice.create({
+            data: {
+              invoiceNumber,
+              userId,
+              shipmentId: createdShipment.id,
+              status: 'PENDING',
+              subtotal: parsedPurchasePrice && parsedPurchasePrice > 0 ? parsedPurchasePrice : 0,
+              total: parsedPurchasePrice && parsedPurchasePrice > 0 ? parsedPurchasePrice : 0,
+              tax: 0,
+              discount: 0,
+            },
+          });
+        } catch (error) {
+          if (
+            error instanceof Prisma.PrismaClientKnownRequestError &&
+            error.code === 'P2002' &&
+            attempt < 5
+          ) {
+            return createInvoice(attempt + 1);
+          }
+
+          throw error;
+        }
+      };
+
+      const invoice = await createInvoice();
+
       if (parsedPurchasePrice && parsedPurchasePrice > 0) {
         const vehicleLabel = [parsedVehicleYear, vehicleMake, vehicleModel].filter(Boolean).join(' ') || vehicleType;
         await tx.invoiceLineItem.create({
@@ -514,29 +530,32 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      // When a PURCHASE_AND_SHIPPING shipment is created on DUE, post a DEBIT ledger
-      // entry so the owed amount appears in the customer's ledger immediately.
-      if (
+      const purchasePriceSyncInput =
         paymentMode === 'DUE' &&
         serviceType === 'PURCHASE_AND_SHIPPING' &&
         parsedPurchasePrice &&
         parsedPurchasePrice > 0
-      ) {
-        const vehicleLabel =
-          [parsedVehicleYear, vehicleMake, vehicleModel].filter(Boolean).join(' ') || vehicleType;
-        await syncShipmentPurchasePriceEntries(tx, {
-          shipmentId: createdShipment.id,
-          userId,
-          purchasePriceAmount: parsedPurchasePrice,
-          serviceType: 'PURCHASE_AND_SHIPPING',
-          vehicleLabel,
-          vehicleVIN: vehicleVIN ?? null,
-          actorUserId: session.user!.id as string,
-        });
-      }
+          ? {
+              shipmentId: createdShipment.id,
+              userId,
+              purchasePriceAmount: parsedPurchasePrice,
+              serviceType: 'PURCHASE_AND_SHIPPING' as const,
+              vehicleLabel:
+                [parsedVehicleYear, vehicleMake, vehicleModel].filter(Boolean).join(' ') || vehicleType,
+              vehicleVIN: vehicleVIN ?? null,
+              actorUserId: actorId,
+            }
+          : null;
 
-      return createdShipment;
+      return {
+        createdShipment,
+        purchasePriceSyncInput,
+      };
     });
+
+    if (shipment.purchasePriceSyncInput) {
+      await syncShipmentPurchasePriceEntries(prisma, shipment.purchasePriceSyncInput);
+    }
 
     return NextResponse.json(
       { 
@@ -546,9 +565,15 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown database error';
     console.error('Error creating shipment:', error);
     return NextResponse.json(
-      { message: 'Internal server error' },
+      {
+        message:
+          process.env.NODE_ENV === 'development'
+            ? message
+            : 'Internal server error',
+      },
       { status: 500 }
     );
   }

@@ -6,13 +6,74 @@ type DbClient = Prisma.TransactionClient | typeof prisma;
 const db = (client: DbClient) => client as typeof prisma;
 
 /**
- * Generate the next invoice number (INV-YYYY-NNNN).
- * Must be called inside a transaction to be race-safe.
+ * Generate the next invoice number for the given prefix.
+ * Examples: INV-2026-0001, SUP-2026-0001, CRN-2026-0001, AUTO-INV-2026-0001.
+ * Uses the highest existing sequence for the current year to avoid collisions
+ * without relying on a global invoice count.
  */
-export async function generateInvoiceNumber(client: DbClient): Promise<string> {
-  const count = await db(client).userInvoice.count();
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+export async function generateInvoiceNumber(client: DbClient, prefix = 'INV'): Promise<string> {
   const year = new Date().getFullYear();
-  return `INV-${year}-${String(count + 1).padStart(4, '0')}`;
+  const normalizedPrefix = prefix.replace(/-+$/, '');
+  const prefixString = `${normalizedPrefix}-${year}-`;
+  const invoices = await db(client).userInvoice.findMany({
+    where: {
+      invoiceNumber: {
+        startsWith: prefixString,
+      },
+    },
+    select: {
+      invoiceNumber: true,
+    },
+  });
+
+  let maxSequence = 0;
+  const pattern = new RegExp(`^${escapeRegExp(normalizedPrefix)}-${year}-(\\d+)$`);
+
+  for (const invoice of invoices) {
+    const match = invoice.invoiceNumber.match(pattern);
+    if (!match) continue;
+
+    const sequence = Number.parseInt(match[1], 10);
+    if (!Number.isNaN(sequence) && sequence > maxSequence) {
+      maxSequence = sequence;
+    }
+  }
+
+  return `${prefixString}${String(maxSequence + 1).padStart(4, '0')}`;
+}
+
+export async function createInvoiceWithUniqueNumber<T>(
+  client: DbClient,
+  create: (invoiceNumber: string) => Promise<T>,
+  prefix = 'INV',
+  maxAttempts = 10,
+): Promise<T> {
+  let attempt = 0;
+
+  while (attempt < maxAttempts) {
+    const invoiceNumber = await generateInvoiceNumber(client, prefix);
+
+    try {
+      return await create(invoiceNumber);
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002' &&
+        attempt < maxAttempts - 1
+      ) {
+        attempt += 1;
+        continue;
+      }
+
+      throw error;
+    }
+  }
+
+  throw new Error(`Failed to create unique invoice number for prefix ${prefix} after ${maxAttempts} attempts`);
 }
 
 /**

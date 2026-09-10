@@ -14,22 +14,9 @@ import {
   markInvoiceShipmentChargesInvoiced,
   releaseInvoiceShipmentCharges,
 } from '@/lib/billing/shipment-charges';
+import { createInvoiceWithUniqueNumber, generateInvoiceNumber } from '@/lib/shipment-invoice';
 
 const mutableInvoiceStatuses = new Set(['DRAFT', 'PENDING']);
-
-function buildInvoiceNumber(year: number, sequence: number, kind: 'invoice' | 'supplemental' | 'credit_note') {
-  const paddedSequence = String(sequence).padStart(4, '0');
-
-  if (kind === 'credit_note') {
-    return `CRN-${year}-${paddedSequence}`;
-  }
-
-  if (kind === 'supplemental') {
-    return `SUP-${year}-${paddedSequence}`;
-  }
-
-  return `INV-${year}-${paddedSequence}`;
-}
 
 // Schema for generating invoices
 const generateInvoicesSchema = z.object({
@@ -274,8 +261,6 @@ export async function POST(req: NextRequest) {
       metadata?: Prisma.InputJsonValue;
     }> = [];
 
-    // ⚡ Bolt: Removed N+1 query inside loop by pre-fetching the count once and incrementing.
-    let invoiceCount = await prisma.userInvoice.count();
     const isShipmentScopedGeneration = Boolean(shipmentId);
 
     for (const [userId, { user, shipments }] of Object.entries(shipmentsByUser)) {
@@ -397,11 +382,13 @@ export async function POST(req: NextRequest) {
             },
           });
         } else {
-          invoiceCount += 1;
-          const invoiceNumber = buildInvoiceNumber(
-            new Date().getFullYear(),
-            invoiceCount,
-            documentKind === 'credit_note' ? 'credit_note' : documentKind === 'supplemental' ? 'supplemental' : 'invoice',
+          const invoiceNumber = await generateInvoiceNumber(
+            tx,
+            documentKind === 'credit_note'
+              ? 'CRN'
+              : documentKind === 'supplemental'
+              ? 'SUP'
+              : 'INV',
           );
 
           const deltaNote = latestIssuedInvoice
@@ -410,30 +397,35 @@ export async function POST(req: NextRequest) {
               : `Supplemental invoice issued for shipment charges approved after ${latestIssuedInvoice.invoiceNumber}.`
             : null;
 
-          nextInvoice = await tx.userInvoice.create({
-            data: {
-              invoiceNumber,
-              userId,
-              containerId: scopeContainerId,
-              shipmentId: isShipmentScopedGeneration ? shipments[0]?.id : null,
-              status: 'DRAFT',
-              issueDate: new Date(),
-              dueDate: invoiceDueDate,
-              subtotal,
-              discount: discountAmount,
-              total,
-              notes: deltaNote,
-              internalNotes: deltaNote,
-              lineItems: {
-                create: lineItems,
-              },
-            },
-            select: {
-              id: true,
-              invoiceNumber: true,
-              total: true,
-            },
-          });
+          nextInvoice = await createInvoiceWithUniqueNumber(
+            tx,
+            async (generatedInvoiceNumber) =>
+              tx.userInvoice.create({
+                data: {
+                  invoiceNumber: generatedInvoiceNumber,
+                  userId,
+                  containerId: scopeContainerId,
+                  shipmentId: isShipmentScopedGeneration ? shipments[0]?.id : null,
+                  status: 'DRAFT',
+                  issueDate: new Date(),
+                  dueDate: invoiceDueDate,
+                  subtotal,
+                  discount: discountAmount,
+                  total,
+                  notes: deltaNote,
+                  internalNotes: deltaNote,
+                  lineItems: {
+                    create: lineItems,
+                  },
+                },
+                select: {
+                  id: true,
+                  invoiceNumber: true,
+                  total: true,
+                },
+              }),
+            documentKind === 'credit_note' ? 'CRN' : documentKind === 'supplemental' ? 'SUP' : 'INV',
+          );
         }
 
         await markInvoiceShipmentChargesInvoiced(
