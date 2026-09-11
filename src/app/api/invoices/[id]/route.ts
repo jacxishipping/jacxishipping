@@ -13,6 +13,7 @@ import {
   releaseInvoiceShipmentCharges,
   resetInvoiceShipmentCharges,
 } from '@/lib/billing/shipment-charges';
+import { recalculateInvoiceTotal } from '@/lib/shipment-invoice';
 
 function normalizeShipmentRefInDescription(
   description: string,
@@ -408,14 +409,14 @@ export async function PATCH(
 
     const updateSchema = z.object({
       status: z.enum(['DRAFT', 'PENDING', 'SENT', 'PAID', 'OVERDUE', 'CANCELLED']).optional(),
-      dueDate: z.string().optional(),
-      paidDate: z.string().optional(),
-      paymentMethod: z.string().optional(),
-      paymentReference: z.string().optional(),
-      notes: z.string().optional(),
-      internalNotes: z.string().optional(),
-      discount: z.number().optional(),
-      tax: z.number().optional(),
+      dueDate: z.string().nullable().optional(),
+      paidDate: z.string().nullable().optional(),
+      paymentMethod: z.string().nullable().optional(),
+      paymentReference: z.string().nullable().optional(),
+      notes: z.string().nullable().optional(),
+      internalNotes: z.string().nullable().optional(),
+      discount: z.number().min(0).optional(),
+      tax: z.number().min(0).optional(),
     });
 
     const validatedData = updateSchema.parse(body);
@@ -437,7 +438,7 @@ export async function PATCH(
       const subtotal = currentInvoice.subtotal;
       const discount = validatedData.discount ?? currentInvoice.discount;
       const tax = validatedData.tax ?? currentInvoice.tax;
-      total = subtotal - discount + tax;
+      total = recalculateInvoiceTotal(subtotal, discount, tax);
     }
 
     const previousStatus = currentInvoice.status;
@@ -582,9 +583,14 @@ export async function PATCH(
         data: {
           ...validatedData,
           total,
-          paymentReference: paymentLedgerEntryId ?? validatedData.paymentReference,
-          dueDate: validatedData.dueDate ? new Date(validatedData.dueDate) : undefined,
-          paidDate: validatedData.paidDate ? new Date(validatedData.paidDate) : undefined,
+          paymentReference: paymentLedgerEntryId ?? validatedData.paymentReference ?? null,
+          dueDate: validatedData.dueDate ? new Date(validatedData.dueDate) : validatedData.dueDate === null ? null : undefined,
+          paidDate: validatedData.paidDate ? new Date(validatedData.paidDate) : validatedData.paidDate === null ? null : undefined,
+          paymentMethod: validatedData.paymentMethod ?? null,
+          notes: validatedData.notes ?? null,
+          internalNotes: validatedData.internalNotes ?? null,
+          discount: validatedData.discount ?? currentInvoice.discount,
+          tax: validatedData.tax ?? currentInvoice.tax,
         },
         include: {
           user: true,

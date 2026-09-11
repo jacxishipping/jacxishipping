@@ -5,6 +5,10 @@ type DbClient = Prisma.TransactionClient | typeof prisma;
 
 const db = (client: DbClient) => client as typeof prisma;
 
+export function recalculateInvoiceTotal(subtotal: number, discount = 0, tax = 0) {
+  return subtotal - discount + tax;
+}
+
 /**
  * Generate the next invoice number for the given prefix.
  * Examples: INV-2026-0001, SUP-2026-0001, CRN-2026-0001, AUTO-INV-2026-0001.
@@ -151,7 +155,7 @@ export async function addExpenseLineItemToShipmentInvoice(
   });
 
   const newSubtotal = invoice.subtotal + lineItemData.amount;
-  const newTotal = newSubtotal - (invoice.discount ?? 0) + (invoice.tax ?? 0);
+  const newTotal = recalculateInvoiceTotal(newSubtotal, invoice.discount ?? 0, invoice.tax ?? 0);
 
   await db(client).userInvoice.update({
     where: { id: invoice.id },

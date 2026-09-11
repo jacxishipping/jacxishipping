@@ -19,6 +19,11 @@ import {
 	Select,
 	FormControl,
 	InputLabel,
+	TextField,
+	Dialog,
+	DialogTitle,
+	DialogContent,
+	DialogActions,
 } from '@mui/material';
 import {
 	ArrowLeft,
@@ -148,6 +153,16 @@ export default function InvoiceDetailPage() {
 	const [loading, setLoading] = useState(true);
 	const [updating, setUpdating] = useState(false);
 	const [disputedLineIds, setDisputedLineIds] = useState<Set<string>>(() => new Set());
+	const [isEditOpen, setIsEditOpen] = useState(false);
+	const [editForm, setEditForm] = useState({
+		dueDate: '',
+		discount: '0',
+		tax: '0',
+		paymentMethod: '',
+		paymentReference: '',
+		notes: '',
+		internalNotes: '',
+	});
 
 	const isAdmin = hasPermission(session?.user?.role, 'invoices:manage');
 
@@ -207,6 +222,62 @@ export default function InvoiceDetailPage() {
 			});
 		} catch (error) {
 			toast.error(error instanceof Error ? error.message : 'Failed to submit dispute');
+		}
+	};
+
+	const openInvoiceEditor = () => {
+		if (!invoice) return;
+		setEditForm({
+			dueDate: invoice.dueDate ? new Date(invoice.dueDate).toISOString().slice(0, 10) : '',
+			discount: String(invoice.discount ?? 0),
+			tax: String(invoice.tax ?? 0),
+			paymentMethod: invoice.paymentMethod ?? '',
+			paymentReference: invoice.paymentReference ?? '',
+			notes: invoice.notes ?? '',
+			internalNotes: invoice.internalNotes ?? '',
+		});
+		setIsEditOpen(true);
+	};
+
+	const handleInvoiceEdit = async () => {
+		if (!invoice) return;
+
+		const discount = Number(editForm.discount);
+		const tax = Number(editForm.tax);
+		if (!Number.isFinite(discount) || !Number.isFinite(tax) || discount < 0 || tax < 0) {
+			toast.error('Discount and tax must be valid non-negative numbers');
+			return;
+		}
+
+		try {
+			setUpdating(true);
+			const response = await fetch(`/api/invoices/${params.id}`, {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					dueDate: editForm.dueDate || null,
+					discount,
+					tax,
+					paymentMethod: editForm.paymentMethod || null,
+					paymentReference: editForm.paymentReference || null,
+					notes: editForm.notes || null,
+					internalNotes: editForm.internalNotes || null,
+				}),
+			});
+
+			if (response.ok) {
+				toast.success('Invoice updated successfully');
+				setIsEditOpen(false);
+				await fetchInvoice();
+			} else {
+				const data = await response.json();
+				toast.error(data.error || 'Failed to update invoice');
+			}
+		} catch (error) {
+			console.error('Error updating invoice:', error);
+			toast.error('An error occurred while saving the invoice');
+		} finally {
+			setUpdating(false);
 		}
 	};
 
@@ -366,7 +437,72 @@ export default function InvoiceDetailPage() {
 	}
 
 	return (
-		<Box sx={{ maxWidth: '1400px', mx: 'auto', p: { xs: 2, md: 3 } }}>
+		<>
+			<Dialog open={isEditOpen} onClose={() => setIsEditOpen(false)} maxWidth="sm" fullWidth>
+				<DialogTitle>Edit Invoice</DialogTitle>
+				<DialogContent>
+					<Box sx={{ display: 'grid', gap: 2, mt: 1 }}>
+						<TextField
+							label="Due Date"
+							type="date"
+							value={editForm.dueDate}
+							onChange={(event) => setEditForm((current) => ({ ...current, dueDate: event.target.value }))}
+							InputLabelProps={{ shrink: true }}
+							fullWidth
+						/>
+						<TextField
+							label="Discount"
+							type="number"
+							value={editForm.discount}
+							onChange={(event) => setEditForm((current) => ({ ...current, discount: event.target.value }))}
+							inputProps={{ min: 0, step: '0.01' }}
+							fullWidth
+						/>
+						<TextField
+							label="Tax"
+							type="number"
+							value={editForm.tax}
+							onChange={(event) => setEditForm((current) => ({ ...current, tax: event.target.value }))}
+							inputProps={{ min: 0, step: '0.01' }}
+							fullWidth
+						/>
+						<TextField
+							label="Payment Method"
+							value={editForm.paymentMethod}
+							onChange={(event) => setEditForm((current) => ({ ...current, paymentMethod: event.target.value }))}
+							fullWidth
+						/>
+						<TextField
+							label="Payment Reference"
+							value={editForm.paymentReference}
+							onChange={(event) => setEditForm((current) => ({ ...current, paymentReference: event.target.value }))}
+							fullWidth
+						/>
+						<TextField
+							label="Customer Notes"
+							value={editForm.notes}
+							onChange={(event) => setEditForm((current) => ({ ...current, notes: event.target.value }))}
+							multiline
+							rows={3}
+							fullWidth
+						/>
+						<TextField
+							label="Internal Notes"
+							value={editForm.internalNotes}
+							onChange={(event) => setEditForm((current) => ({ ...current, internalNotes: event.target.value }))}
+							multiline
+							rows={3}
+							fullWidth
+						/>
+					</Box>
+				</DialogContent>
+				<DialogActions>
+					<Button variant="outline" onClick={() => setIsEditOpen(false)} disabled={updating}>Cancel</Button>
+					<Button variant="primary" onClick={handleInvoiceEdit} disabled={updating}>{updating ? 'Saving...' : 'Save Changes'}</Button>
+				</DialogActions>
+			</Dialog>
+
+			<Box sx={{ maxWidth: '1400px', mx: 'auto', p: { xs: 2, md: 3 } }}>
 				{/* Breadcrumbs */}
 				<Breadcrumbs
 					items={[
@@ -401,6 +537,16 @@ export default function InvoiceDetailPage() {
 									disabled={updating}
 								>
 									Mark as Paid
+								</Button>
+							)}
+							{isAdmin && invoice.status !== 'PAID' && invoice.status !== 'CANCELLED' && (
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={openInvoiceEditor}
+									disabled={updating}
+								>
+									Edit Invoice
 								</Button>
 							)}
 							<Button
@@ -887,5 +1033,6 @@ export default function InvoiceDetailPage() {
 					</Box>
 				</DashboardSurface>
 			</Box>
+		</>
 	);
 }

@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
 import { Prisma } from '@prisma/client';
-import { createInvoiceWithUniqueNumber, generateInvoiceNumber } from './shipment-invoice.ts';
+import { createInvoiceWithUniqueNumber, generateInvoiceNumber, recalculateInvoiceTotal } from './shipment-invoice.ts';
 
 describe('generateInvoiceNumber', () => {
   it('uses the highest current-year invoice sequence instead of total invoice count', async () => {
@@ -47,5 +47,16 @@ describe('generateInvoiceNumber', () => {
 
     assert.strictEqual(result, 'INV-2026-0011');
     assert.strictEqual(attempts, 2);
+  });
+});
+
+describe('recalculateInvoiceTotal', () => {
+  it('recalculates subtotal minus discount plus tax', () => {
+    assert.strictEqual(recalculateInvoiceTotal(1500, 100, 75), 1475);
+  });
+
+  it('keeps totals stable for zero or missing values', () => {
+    assert.strictEqual(recalculateInvoiceTotal(1000), 1000);
+    assert.strictEqual(recalculateInvoiceTotal(1000, 0, 0), 1000);
   });
 });
