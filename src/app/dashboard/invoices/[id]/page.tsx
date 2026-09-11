@@ -168,12 +168,14 @@ export default function InvoiceDetailPage() {
 		type: 'OTHER_FEE',
 		quantity: '1',
 		amount: '0',
+		companyAmount: '0',
 	});
 	const [lineItemEdits, setLineItemEdits] = useState<Record<string, {
 		description: string;
 		type: string;
 		quantity: string;
 		amount: string;
+		companyAmount: string;
 	}>>({});
 
 	const isAdmin = hasPermission(session?.user?.role, 'invoices:manage');
@@ -193,6 +195,7 @@ export default function InvoiceDetailPage() {
 						type: item.type,
 						quantity: String(item.quantity ?? 1),
 						amount: String(item.amount ?? 0),
+						companyAmount: String((item as any).linkedCompanyLedgerEntry?.amount ?? 0),
 					},
 				])
 			)
@@ -265,7 +268,7 @@ export default function InvoiceDetailPage() {
 			notes: invoice.notes ?? '',
 			internalNotes: invoice.internalNotes ?? '',
 		});
-		setManualLineItem({ description: '', type: 'OTHER_FEE', quantity: '1', amount: '0' });
+		setManualLineItem({ description: '', type: 'OTHER_FEE', quantity: '1', amount: '0', companyAmount: '0' });
 		setIsEditOpen(true);
 	};
 
@@ -275,6 +278,7 @@ export default function InvoiceDetailPage() {
 		const description = manualLineItem.description.trim();
 		const quantity = Number(manualLineItem.quantity || 1);
 		const amount = Number(manualLineItem.amount || 0);
+		const companyAmount = Number(manualLineItem.companyAmount || 0);
 
 		if (!description) {
 			toast.error('Expense description is required');
@@ -286,6 +290,14 @@ export default function InvoiceDetailPage() {
 		}
 		if (!Number.isFinite(amount) || amount < 0) {
 			toast.error('Expense amount must be a valid non-negative number');
+			return;
+		}
+		if (!Number.isFinite(companyAmount) || companyAmount < 0) {
+			toast.error('Company amount must be a valid non-negative number');
+			return;
+		}
+		if (companyAmount > amount) {
+			toast.error('Company amount cannot exceed the expense amount');
 			return;
 		}
 
@@ -301,6 +313,7 @@ export default function InvoiceDetailPage() {
 						type: manualLineItem.type,
 						quantity,
 						amount,
+						companyAmount,
 					}],
 				}),
 			});
@@ -309,7 +322,7 @@ export default function InvoiceDetailPage() {
 			if (!response.ok) throw new Error(payload.error || 'Failed to add expense line');
 
 			toast.success('Expense line added');
-			setManualLineItem({ description: '', type: 'OTHER_FEE', quantity: '1', amount: '0' });
+			setManualLineItem({ description: '', type: 'OTHER_FEE', quantity: '1', amount: '0', companyAmount: '0' });
 			await fetchInvoice();
 		} catch (error) {
 			toast.error(error instanceof Error ? error.message : 'Failed to add expense line');
@@ -355,6 +368,7 @@ export default function InvoiceDetailPage() {
 				type: item.type,
 				quantity: String(item.quantity ?? 1),
 				amount: String(item.amount ?? 0),
+				companyAmount: String((item as any).linkedCompanyLedgerEntry?.amount ?? 0),
 			},
 		}));
 	};
@@ -370,6 +384,7 @@ export default function InvoiceDetailPage() {
 						type: item.type,
 						quantity: String(item.quantity ?? 1),
 						amount: String(item.amount ?? 0),
+						companyAmount: String((item as any).linkedCompanyLedgerEntry?.amount ?? 0),
 					},
 				])
 			)
@@ -384,6 +399,7 @@ export default function InvoiceDetailPage() {
 		const description = edit.description.trim();
 		const quantity = Number(edit.quantity || 1);
 		const amount = Number(edit.amount || 0);
+		const companyAmount = Number(edit.companyAmount || 0);
 
 		if (!description) {
 			toast.error('Expense description is required');
@@ -395,6 +411,14 @@ export default function InvoiceDetailPage() {
 		}
 		if (!Number.isFinite(amount) || amount < 0) {
 			toast.error('Amount must be a valid non-negative number');
+			return;
+		}
+		if (!Number.isFinite(companyAmount) || companyAmount < 0) {
+			toast.error('Company amount must be a valid non-negative number');
+			return;
+		}
+		if (companyAmount > amount) {
+			toast.error('Company amount cannot exceed the expense amount');
 			return;
 		}
 
@@ -411,6 +435,7 @@ export default function InvoiceDetailPage() {
 						type: edit.type,
 						quantity,
 						amount,
+						companyAmount,
 					}],
 				}),
 			});
@@ -702,6 +727,7 @@ export default function InvoiceDetailPage() {
 														type: current[item.id]?.type ?? item.type,
 														quantity: current[item.id]?.quantity ?? String(item.quantity ?? 1),
 														amount: current[item.id]?.amount ?? String(item.amount ?? 0),
+														companyAmount: current[item.id]?.companyAmount ?? String((item as any).linkedCompanyLedgerEntry?.amount ?? 0),
 														description: event.target.value,
 													},
 												}))}
@@ -713,14 +739,15 @@ export default function InvoiceDetailPage() {
 													<Select
 														value={lineItemEdits[item.id]?.type ?? item.type}
 														onChange={(event) => setLineItemEdits((current) => ({
-															...current,
-															[item.id]: {
-																description: current[item.id]?.description ?? item.description,
-																type: event.target.value,
-																quantity: current[item.id]?.quantity ?? String(item.quantity ?? 1),
-																amount: current[item.id]?.amount ?? String(item.amount ?? 0),
-															},
-														}))}
+														...current,
+														[item.id]: {
+															description: current[item.id]?.description ?? item.description,
+															type: event.target.value,
+															quantity: current[item.id]?.quantity ?? String(item.quantity ?? 1),
+															amount: current[item.id]?.amount ?? String(item.amount ?? 0),
+															companyAmount: current[item.id]?.companyAmount ?? String((item as any).linkedCompanyLedgerEntry?.amount ?? 0),
+														},
+													}))}
 													>
 														<MenuItem value="OTHER_FEE">Other Fee</MenuItem>
 														<MenuItem value="SHIPPING_FEE">Shipping</MenuItem>
@@ -735,14 +762,15 @@ export default function InvoiceDetailPage() {
 													type="number"
 													value={lineItemEdits[item.id]?.quantity ?? String(item.quantity ?? 1)}
 													onChange={(event) => setLineItemEdits((current) => ({
-														...current,
-														[item.id]: {
-															description: current[item.id]?.description ?? item.description,
-															type: current[item.id]?.type ?? item.type,
-															quantity: event.target.value,
-															amount: current[item.id]?.amount ?? String(item.amount ?? 0),
-														},
-													}))}
+													...current,
+													[item.id]: {
+														description: current[item.id]?.description ?? item.description,
+														type: current[item.id]?.type ?? item.type,
+														quantity: event.target.value,
+														amount: current[item.id]?.amount ?? String(item.amount ?? 0),
+														companyAmount: current[item.id]?.companyAmount ?? String((item as any).linkedCompanyLedgerEntry?.amount ?? 0),
+													},
+												}))}
 													inputProps={{ min: 0, step: '1' }}
 												/>
 											</Box>
@@ -751,17 +779,35 @@ export default function InvoiceDetailPage() {
 												type="number"
 												value={lineItemEdits[item.id]?.amount ?? String(item.amount ?? 0)}
 												onChange={(event) => setLineItemEdits((current) => ({
+												...current,
+												[item.id]: {
+													description: current[item.id]?.description ?? item.description,
+													type: current[item.id]?.type ?? item.type,
+													quantity: current[item.id]?.quantity ?? String(item.quantity ?? 1),
+													amount: event.target.value,
+													companyAmount: current[item.id]?.companyAmount ?? String((item as any).linkedCompanyLedgerEntry?.amount ?? 0),
+												},
+											}))}
+												inputProps={{ min: 0, step: '0.01' }}
+												fullWidth
+											/>
+											<TextField
+												label="Company Amount"
+												type="number"
+												value={lineItemEdits[item.id]?.companyAmount ?? String((item as any).linkedCompanyLedgerEntry?.amount ?? 0)}
+												onChange={(event) => setLineItemEdits((current) => ({
 													...current,
 													[item.id]: {
 														description: current[item.id]?.description ?? item.description,
 														type: current[item.id]?.type ?? item.type,
 														quantity: current[item.id]?.quantity ?? String(item.quantity ?? 1),
-														amount: event.target.value,
+														amount: current[item.id]?.amount ?? String(item.amount ?? 0),
+														companyAmount: event.target.value,
 													},
 												}))}
 												inputProps={{ min: 0, step: '0.01' }}
 												fullWidth
-											/>
+												/>
 											<Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
 												<Button variant="outline" size="sm" onClick={() => resetLineItemEdit(item.id)} disabled={updating}>Reset</Button>
 																																																																<Button variant="outline" size="sm" onClick={() => void handleUpdateLineItem(item.id)} disabled={updating}>Save</Button>
@@ -810,6 +856,14 @@ export default function InvoiceDetailPage() {
 									inputProps={{ min: 0, step: '0.01' }}
 									fullWidth
 								/>
+										<TextField
+											label="Company Amount"
+											type="number"
+											value={manualLineItem.companyAmount}
+											onChange={(event) => setManualLineItem((current) => ({ ...current, companyAmount: event.target.value }))}
+											inputProps={{ min: 0, step: '0.01' }}
+											fullWidth
+										/>
 								<Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
 									<Button variant="outline" onClick={() => void handleAddManualLineItem()} disabled={updating}>Add Line</Button>
 								</Box>

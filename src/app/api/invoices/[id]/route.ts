@@ -725,6 +725,7 @@ export async function PATCH(
       quantity: z.number().min(0).optional(),
       unitPrice: z.number().min(0).optional(),
       amount: z.number().finite().optional(),
+      companyAmount: z.number().min(0).optional(),
       shipmentId: z.string().nullable().optional(),
       expenseSource: z.string().nullable().optional(),
     });
