@@ -359,6 +359,23 @@ export default function InvoiceDetailPage() {
 		}));
 	};
 
+	const resetAllLineItemEdits = () => {
+		if (!invoice) return;
+		setLineItemEdits(
+			Object.fromEntries(
+				invoice.lineItems.map((item) => [
+					item.id,
+					{
+						description: item.description,
+						type: item.type,
+						quantity: String(item.quantity ?? 1),
+						amount: String(item.amount ?? 0),
+					},
+				])
+			)
+		);
+	};
+
 	const handleUpdateLineItem = async (lineItemId: string) => {
 		if (!invoice) return;
 		const edit = lineItemEdits[lineItemId];
@@ -666,7 +683,10 @@ export default function InvoiceDetailPage() {
 							fullWidth
 						/>
 						<Box sx={{ border: '1px solid var(--border)', borderRadius: 1, p: 2, display: 'grid', gap: 2 }}>
-							<Box sx={{ fontSize: '0.875rem', fontWeight: 600 }}>Existing Expense Lines</Box>
+							<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+																													<Box sx={{ fontSize: '0.875rem', fontWeight: 600 }}>Existing Expense Lines</Box>
+																													<Button variant="outline" size="sm" onClick={resetAllLineItemEdits} disabled={updating || invoice.lineItems.length === 0}>Reset all</Button>
+																												</Box>
 							{invoice.lineItems.length === 0 ? (
 								<Box sx={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>No expense lines yet.</Box>
 							) : (
