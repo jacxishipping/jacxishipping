@@ -85,9 +85,9 @@ export async function GET(request: NextRequest) {
         user: invoice.user,
         total: invoice.total,
         amountRemaining: remaining,
-        dueDate: invoice.dueDate,
+        dueDate: invoice.dueDate!,
         daysOverdue,
-        status: invoice.status,
+        status: String(invoice.status),
       };
 
       if (daysOverdue <= 30) {
