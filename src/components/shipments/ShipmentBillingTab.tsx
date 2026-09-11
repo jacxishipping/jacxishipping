@@ -224,7 +224,7 @@ export default function ShipmentBillingTab({ shipmentId, refreshKey, purchasePri
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch(`/api/shipments/${shipmentId}/charges`, { cache: 'no-store' });
+      const response = await fetch(`/api/shipments/${shipmentId}/charges?materialize=true`, { cache: 'no-store' });
       const payload = (await response.json()) as ShipmentBillingResponse & { error?: string };
 
       if (!response.ok) {

@@ -180,7 +180,7 @@ export default function RecordPaymentPage() {
   const fetchCustomerBalance = async (userId: string) => {
     try {
       setLoadingBalance(true);
-      const response = await fetch(`/api/ledger?userId=${userId}&limit=1`);
+      const response = await fetch(`/api/ledger?recalc=true&userId=${userId}&limit=1`);
       if (response.ok) {
         const data = await response.json();
         setCustomerBalance(data.summary?.currentBalance ?? 0);

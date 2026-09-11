@@ -76,6 +76,10 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '50');
     const search = searchParams.get('search');
+    // Phase 2: balance recalculation is a write. It is now opt-in via
+    // `?recalc=true` so a plain GET is a pure read and does not rewrite every
+    // ledger balance on each page view.
+    const recalcBalances = searchParams.get('recalc') === 'true';
 
     // Users without finance:manage can only view their own ledger. Finance staff
     // see one customer's ledger when a userId filter is provided, and every
@@ -84,7 +88,7 @@ export async function GET(request: NextRequest) {
     const targetUserId = !canViewAllLedgers ? session.user.id : userId || undefined;
     const ledgerScope = !canViewAllLedgers ? 'own' : targetUserId ? 'single' : 'all';
 
-    if (targetUserId) {
+    if (recalcBalances && targetUserId) {
       await recalculateUserLedgerBalances(prisma, targetUserId);
     }
 

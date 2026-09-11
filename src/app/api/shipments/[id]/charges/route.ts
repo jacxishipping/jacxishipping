@@ -139,7 +139,7 @@ async function assertShipmentAccess(shipmentId: string, sessionUserId: string, r
 }
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
@@ -156,29 +156,37 @@ export async function GET(
 
     const fallbackActorId = session.user.id as string;
 
-    await prisma.$transaction(async (tx) => {
-      const ledgerEntries = await tx.ledgerEntry.findMany({
-        where: {
-          shipmentId: id,
-          type: 'DEBIT',
-        },
-        select: {
-          id: true,
-          userId: true,
-          shipmentId: true,
-          description: true,
-          type: true,
-          amount: true,
-          transactionDate: true,
-          transactionInfoType: true,
-          notes: true,
-          metadata: true,
-          createdBy: true,
-        },
-      });
+    // Phase 2: make the GET a pure read by default. Materializing charges is
+    // a write — it is only performed when the client explicitly opts in with
+    // `?materialize=true` (e.g. the billing tab that needs up-to-date rows).
+    const { searchParams } = new URL(request.url);
+    const shouldMaterialize = searchParams.get('materialize') === 'true';
 
-      await materializeShipmentLedgerCharges(tx, ledgerEntries, fallbackActorId);
-    });
+    if (shouldMaterialize) {
+      await prisma.$transaction(async (tx) => {
+        const ledgerEntries = await tx.ledgerEntry.findMany({
+          where: {
+            shipmentId: id,
+            type: 'DEBIT',
+          },
+          select: {
+            id: true,
+            userId: true,
+            shipmentId: true,
+            description: true,
+            type: true,
+            amount: true,
+            transactionDate: true,
+            transactionInfoType: true,
+            notes: true,
+            metadata: true,
+            createdBy: true,
+          },
+        });
+
+        await materializeShipmentLedgerCharges(tx, ledgerEntries, fallbackActorId);
+      });
+    }
 
     const charges = await prisma.shipmentCharge.findMany({
       where: {

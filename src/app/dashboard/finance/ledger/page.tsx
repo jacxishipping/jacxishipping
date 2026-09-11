@@ -131,7 +131,7 @@ export default function LedgerPage() {
         ...(filters.endDate && { endDate: filters.endDate }),
       });
 
-      const response = await fetch(`/api/ledger?${params}`);
+      const response = await fetch(`/api/ledger?recalc=true&${params}`);
       
       if (!response.ok) {
         throw new Error('Failed to fetch ledger entries');

@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { hasPermission } from '@/lib/rbac';
 import { buildLinkedCompanyLedgerEntryMap } from '@/lib/company-ledger-links';
+import { roundToCents, sumCents } from '@/lib/financial/money';
 
 // GET - Generate financial reports
 export async function GET(request: NextRequest) {
@@ -308,9 +309,13 @@ export async function GET(request: NextRequest) {
           }
         }
 
-        const amountDue = totalDebit - totalCredit;
-        const revenue = totalCredit; // What was actually paid
-        const profit = revenue - totalExpenses; // Revenue minus expenses
+        // Phase 2 P&L fix: revenue = company's shipping price (shipment.price),
+        // NOT totalCredit (what the customer paid). In a freight-forwarding P&L,
+        // the company earns its shipping margin, not the full vehicle price.
+        // profit = (price - expenses) — the company's operating profit on this shipment.
+        const revenue = roundToCents(shipment.price || 0);
+        const totalExpensesRounded = roundToCents(totalExpenses);
+        const profit = roundToCents(revenue - totalExpensesRounded);
 
         return {
           shipmentId: shipment.id,
@@ -318,10 +323,10 @@ export async function GET(request: NextRequest) {
           price: shipment.price || 0,
           paymentStatus: shipment.paymentStatus,
           paymentMode: shipment.paymentMode,
-          totalCharged: totalDebit,
-          totalPaid: totalCredit,
-          amountDue: Math.max(0, amountDue),
-          totalExpenses,
+          totalCharged: roundToCents(totalDebit),
+          totalPaid: roundToCents(totalCredit),
+          amountDue: Math.max(0, roundToCents(totalDebit - totalCredit)),
+          totalExpenses: totalExpensesRounded,
           revenue,
           profit,
           profitMargin: revenue > 0 ? (profit / revenue) * 100 : 0,
@@ -342,10 +347,10 @@ export async function GET(request: NextRequest) {
         };
       });
 
-      // Calculate overall summary
-      const totalRevenue = shipmentReports.reduce((sum, s) => sum + s.revenue, 0);
-      const totalExpenses = shipmentReports.reduce((sum, s) => sum + s.totalExpenses, 0);
-      const totalProfit = totalRevenue - totalExpenses;
+      // Calculate overall summary (Phase 2: all values rounded to cents)
+      const totalRevenue = roundToCents(shipmentReports.reduce((sum, s) => sum + s.revenue, 0));
+      const totalExpensesAll = roundToCents(shipmentReports.reduce((sum, s) => sum + s.totalExpenses, 0));
+      const totalProfit = roundToCents(totalRevenue - totalExpensesAll);
       const avgProfitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
 
       return NextResponse.json({
@@ -356,7 +361,7 @@ export async function GET(request: NextRequest) {
         },
         summary: {
           totalRevenue,
-          totalExpenses,
+          totalExpenses: totalExpensesAll,
           totalProfit,
           avgProfitMargin,
           shipmentCount: shipmentReports.length,

@@ -683,6 +683,10 @@ model UserInvoice {
   voidedReason  String?
   reversedInvoiceId String? // If this is a credit-note reversal, the original invoice it offsets
 
+  // Reminder tracking (Phase 2)
+  lastReminderAt DateTime?
+  lastReminderDaysAgo Int?
+
   // Payment
   paymentMethod    String?
   paymentReference String?

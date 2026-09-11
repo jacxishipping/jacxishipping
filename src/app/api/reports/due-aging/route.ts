@@ -2,8 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { hasPermission } from '@/lib/rbac';
+import { roundToCents, sumCents } from '@/lib/financial/money';
 
-// GET - Generate due aging report
+// GET - Generate due aging report.
+// Phase 2: now ages by **invoice dueDate** (or shipment createdAt as fallback),
+// not shipment createdAt alone. This fixes the bug where a shipment created
+// 80 days ago but only invoiced yesterday would land in the 60+ bucket.
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();
@@ -20,18 +24,18 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
 
-    // Build where clause
-    const where: Record<string, unknown> = {
+    // Build where clause for shipments
+    const shipmentWhere: Record<string, unknown> = {
       paymentStatus: 'PENDING', // Only unpaid shipments
     };
 
     if (userId) {
-      where.userId = userId;
+      shipmentWhere.userId = userId;
     }
 
-    // Fetch all due shipments
+    // Fetch shipments with their invoices so we can age by the invoice due date.
     const shipments = await prisma.shipment.findMany({
-      where,
+      where: shipmentWhere,
       include: {
         user: {
           select: {
@@ -46,6 +50,17 @@ export async function GET(request: NextRequest) {
             amount: true,
           },
         },
+        invoices: {
+          where: {
+            status: { not: 'CANCELLED' },
+          },
+          select: {
+            id: true,
+            dueDate: true,
+            issueDate: true,
+            status: true,
+          },
+        },
       },
     });
 
@@ -57,9 +72,10 @@ export async function GET(request: NextRequest) {
       vehicleModel: string | null;
       user: { id: string; name: string | null; email: string };
       amountDue: number;
-      createdAt: Date;
       ageInDays: number;
       price: number | null;
+      /** The reference date used to compute ageInDays. */
+      ageReference: 'invoiceDueDate' | 'shipmentCreatedAt';
     };
     
     const agingBuckets = {
@@ -75,57 +91,68 @@ export async function GET(request: NextRequest) {
     let totalAging90 = 0;
 
     for (const shipment of shipments) {
-      // ⚡ Bolt: Replaced chained .filter().reduce() with a single loop
-      // to calculate totalDebit and totalCredit simultaneously,
-      // preventing intermediate array allocations and reducing iteration overhead from O(3N) to O(N).
-      let totalDebit = 0;
-      let totalCredit = 0;
-      for (const entry of shipment.ledgerEntries) {
-        if (entry.type === 'DEBIT') {
-          totalDebit += entry.amount;
-        } else if (entry.type === 'CREDIT') {
-          totalCredit += entry.amount;
-        }
-      }
-      const netDue = Math.max(0, totalDebit - totalCredit);
+      const ledgerAmounts = shipment.ledgerEntries.map((e) =>
+        e.type === 'DEBIT' ? e.amount : -e.amount,
+      );
+      const netDue = roundToCents(Math.max(0, sumCents(ledgerAmounts)));
 
       if (netDue <= 0) {
         continue;
       }
-      
-      // Get age in days
-      const createdDate = new Date(shipment.createdAt);
-      const ageInDays = Math.floor((now.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
 
-      const shipmentData = {
+      // Phase 2: age by the earliest open invoice dueDate; fall back to
+      // shipment createdAt when the shipment has no open invoices yet.
+      const openInvoices = shipment.invoices.filter((inv) => inv.status !== 'CANCELLED');
+      let ageReference: ShipmentData['ageReference'] = 'shipmentCreatedAt';
+      let referenceDate = shipment.createdAt;
+
+      const dueDates = openInvoices
+        .map((inv) => inv.dueDate)
+        .filter((d): d is Date => Boolean(d));
+
+      if (dueDates.length > 0) {
+        // Use the earliest (most-overdue) open due date as the age reference.
+        const earliestDue = dueDates.reduce((min, d) => (d < min ? d : min), dueDates[0]);
+        if (earliestDue < now) {
+          referenceDate = earliestDue;
+          ageReference = 'invoiceDueDate';
+        }
+      }
+
+      const ageInDays = Math.max(
+        0,
+        Math.floor((now.getTime() - new Date(referenceDate).getTime()) / (1000 * 60 * 60 * 24)),
+      );
+
+      const shipmentData: ShipmentData = {
         id: shipment.id,
         vehicleMake: shipment.vehicleMake,
         vehicleModel: shipment.vehicleModel,
         user: shipment.user,
         amountDue: netDue,
-        createdAt: shipment.createdAt,
         ageInDays,
         price: shipment.price || 0,
+        ageReference,
       };
 
       // Categorize by age
       if (ageInDays <= 30) {
         agingBuckets.current.push(shipmentData);
-        totalCurrent += netDue;
+        totalCurrent = roundToCents(totalCurrent + netDue);
       } else if (ageInDays <= 60) {
         agingBuckets.aging30.push(shipmentData);
-        totalAging30 += netDue;
+        totalAging30 = roundToCents(totalAging30 + netDue);
       } else if (ageInDays <= 90) {
         agingBuckets.aging60.push(shipmentData);
-        totalAging60 += netDue;
+        totalAging60 = roundToCents(totalAging60 + netDue);
       } else {
         agingBuckets.aging90.push(shipmentData);
-        totalAging90 += netDue;
+        totalAging90 = roundToCents(totalAging90 + netDue);
       }
     }
 
     // Calculate totals and percentages
-    const grandTotal = totalCurrent + totalAging30 + totalAging60 + totalAging90;
+    const grandTotal = roundToCents(totalCurrent + totalAging30 + totalAging60 + totalAging90);
 
     const report = {
       reportType: 'due-aging',
