@@ -163,6 +163,12 @@ export default function InvoiceDetailPage() {
 		notes: '',
 		internalNotes: '',
 	});
+	const [manualLineItem, setManualLineItem] = useState({
+		description: '',
+		type: 'OTHER_FEE',
+		quantity: '1',
+		amount: '0',
+	});
 
 	const isAdmin = hasPermission(session?.user?.role, 'invoices:manage');
 
@@ -236,7 +242,82 @@ export default function InvoiceDetailPage() {
 			notes: invoice.notes ?? '',
 			internalNotes: invoice.internalNotes ?? '',
 		});
+		setManualLineItem({ description: '', type: 'OTHER_FEE', quantity: '1', amount: '0' });
 		setIsEditOpen(true);
+	};
+
+	const handleAddManualLineItem = async () => {
+		if (!invoice) return;
+
+		const description = manualLineItem.description.trim();
+		const quantity = Number(manualLineItem.quantity || 1);
+		const amount = Number(manualLineItem.amount || 0);
+
+		if (!description) {
+			toast.error('Expense description is required');
+			return;
+		}
+		if (!Number.isFinite(quantity) || quantity <= 0) {
+			toast.error('Quantity must be greater than zero');
+			return;
+		}
+		if (!Number.isFinite(amount) || amount < 0) {
+			toast.error('Expense amount must be a valid non-negative number');
+			return;
+		}
+
+		try {
+			setUpdating(true);
+			const response = await fetch(`/api/invoices/${invoice.id}`, {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					lineItems: [{
+						action: 'add',
+						description,
+						type: manualLineItem.type,
+						quantity,
+						amount,
+					}],
+				}),
+			});
+
+			const payload = await response.json().catch(() => ({}));
+			if (!response.ok) throw new Error(payload.error || 'Failed to add expense line');
+
+			toast.success('Expense line added');
+			setManualLineItem({ description: '', type: 'OTHER_FEE', quantity: '1', amount: '0' });
+			await fetchInvoice();
+		} catch (error) {
+			toast.error(error instanceof Error ? error.message : 'Failed to add expense line');
+		} finally {
+			setUpdating(false);
+		}
+	};
+
+	const handleRemoveLineItem = async (lineItemId: string) => {
+		if (!invoice) return;
+
+		try {
+			setUpdating(true);
+			const response = await fetch(`/api/invoices/${invoice.id}`, {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					lineItems: [{ action: 'remove', id: lineItemId }],
+				}),
+			});
+
+			const payload = await response.json().catch(() => ({}));
+			if (!response.ok) throw new Error(payload.error || 'Failed to remove expense line');
+
+			toast.success('Expense line removed');
+			await fetchInvoice();
+		} catch (error) {
+			toast.error(error instanceof Error ? error.message : 'Failed to remove expense line');
+		} finally {
+			setUpdating(false);
+		}
 	};
 
 	const handleInvoiceEdit = async () => {
@@ -494,6 +575,49 @@ export default function InvoiceDetailPage() {
 							rows={3}
 							fullWidth
 						/>
+						<Box sx={{ border: '1px solid var(--border)', borderRadius: 1, p: 2, display: 'grid', gap: 2 }}>
+							<Box sx={{ fontSize: '0.875rem', fontWeight: 600 }}>Add Expense Line</Box>
+							<TextField
+								label="Description"
+								value={manualLineItem.description}
+								onChange={(event) => setManualLineItem((current) => ({ ...current, description: event.target.value }))}
+								fullWidth
+							/>
+							<Box sx={{ display: 'grid', gridTemplateColumns: '1fr 120px', gap: 2 }}>
+								<FormControl fullWidth size="small">
+									<InputLabel>Type</InputLabel>
+									<Select
+										value={manualLineItem.type}
+										onChange={(event) => setManualLineItem((current) => ({ ...current, type: event.target.value }))}
+									>
+										<MenuItem value="OTHER_FEE">Other Fee</MenuItem>
+										<MenuItem value="SHIPPING_FEE">Shipping</MenuItem>
+										<MenuItem value="INSURANCE">Insurance</MenuItem>
+										<MenuItem value="CUSTOMS_FEE">Customs</MenuItem>
+										<MenuItem value="STORAGE_FEE">Storage</MenuItem>
+										<MenuItem value="HANDLING_FEE">Handling</MenuItem>
+									</Select>
+								</FormControl>
+								<TextField
+									label="Qty"
+									type="number"
+									value={manualLineItem.quantity}
+									onChange={(event) => setManualLineItem((current) => ({ ...current, quantity: event.target.value }))}
+									inputProps={{ min: 1, step: '1' }}
+								/>
+							</Box>
+							<TextField
+								label="Amount"
+								type="number"
+								value={manualLineItem.amount}
+								onChange={(event) => setManualLineItem((current) => ({ ...current, amount: event.target.value }))}
+								inputProps={{ min: 0, step: '0.01' }}
+								fullWidth
+							/>
+							<Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+								<Button variant="outline" onClick={() => void handleAddManualLineItem()} disabled={updating}>Add Line</Button>
+							</Box>
+						</Box>
 					</Box>
 				</DialogContent>
 				<DialogActions>

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { NotificationType, Prisma } from '@prisma/client';
+import { LineItemType, NotificationType, Prisma } from '@prisma/client';
 import { createNotification } from '@/lib/notifications';
 import { createInvoiceAuditLogs } from '@/lib/entity-audit-history';
 import { z } from 'zod';
@@ -24,6 +24,35 @@ function normalizeShipmentRefInDescription(
     .replace(new RegExp(`\\(Shipment\\s+${shipment.id}\\)`, 'gi'), `(VIN ${shipment.vehicleVIN})`)
     .replace(new RegExp(`Shipment\\s+${shipment.id}`, 'gi'), `VIN ${shipment.vehicleVIN}`)
     .replace(new RegExp(`shipment\\s+${shipment.id}`, 'g'), `VIN ${shipment.vehicleVIN}`);
+}
+
+function coerceLineItemType(value: string | null | undefined): LineItemType {
+  const normalized = (value ?? 'OTHER_FEE')
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9_]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+
+  const aliasMap: Record<string, LineItemType> = {
+    SHIPPING: LineItemType.SHIPPING_FEE,
+    SHIPPING_FEE: LineItemType.SHIPPING_FEE,
+    INSURANCE: LineItemType.INSURANCE,
+    CUSTOMS: LineItemType.CUSTOMS_FEE,
+    CUSTOMS_FEE: LineItemType.CUSTOMS_FEE,
+    STORAGE: LineItemType.STORAGE_FEE,
+    STORAGE_FEE: LineItemType.STORAGE_FEE,
+    HANDLING: LineItemType.HANDLING_FEE,
+    HANDLING_FEE: LineItemType.HANDLING_FEE,
+    OTHER: LineItemType.OTHER_FEE,
+    OTHER_FEE: LineItemType.OTHER_FEE,
+    DISCOUNT: LineItemType.DISCOUNT,
+    VEHICLE: LineItemType.VEHICLE_PRICE,
+    VEHICLE_PRICE: LineItemType.VEHICLE_PRICE,
+    PURCHASE: LineItemType.PURCHASE_PRICE,
+    PURCHASE_PRICE: LineItemType.PURCHASE_PRICE,
+  };
+
+  return aliasMap[normalized] ?? LineItemType.OTHER_FEE;
 }
 
 function buildExpenseLineItemKey(shipmentId: string, description: string, amount: number) {
@@ -407,6 +436,18 @@ export async function PATCH(
 
     const body = await req.json();
 
+    const lineItemOperationSchema = z.object({
+      action: z.enum(['add', 'remove']).optional(),
+      id: z.string().optional(),
+      description: z.string().min(1).optional(),
+      type: z.string().min(1).default('OTHER_FEE'),
+      quantity: z.number().min(0).default(1),
+      unitPrice: z.number().min(0).optional(),
+      amount: z.number().finite().optional(),
+      shipmentId: z.string().nullable().optional(),
+      expenseSource: z.string().nullable().optional(),
+    });
+
     const updateSchema = z.object({
       status: z.enum(['DRAFT', 'PENDING', 'SENT', 'PAID', 'OVERDUE', 'CANCELLED']).optional(),
       dueDate: z.string().nullable().optional(),
@@ -417,9 +458,11 @@ export async function PATCH(
       internalNotes: z.string().nullable().optional(),
       discount: z.number().min(0).optional(),
       tax: z.number().min(0).optional(),
+      lineItems: z.array(lineItemOperationSchema).optional(),
     });
 
     const validatedData = updateSchema.parse(body);
+    const { lineItems: lineItemOperations, ...invoiceUpdateData } = validatedData;
 
     // Get current invoice to recalculate total if discount or tax changes
     const currentInvoice = await prisma.userInvoice.findUnique({
@@ -432,16 +475,114 @@ export async function PATCH(
       return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
     }
 
-    // Recalculate total if discount or tax is updated
-    let total = currentInvoice.total;
-    if (validatedData.discount !== undefined || validatedData.tax !== undefined) {
-      const subtotal = currentInvoice.subtotal;
-      const discount = validatedData.discount ?? currentInvoice.discount;
-      const tax = validatedData.tax ?? currentInvoice.tax;
-      total = recalculateInvoiceTotal(subtotal, discount, tax);
+    const previousStatus = currentInvoice.status;
+
+    if (lineItemOperations?.length && ['PAID', 'CANCELLED'].includes(currentInvoice.status)) {
+      return NextResponse.json(
+        { error: `Invoice ${currentInvoice.invoiceNumber} is ${currentInvoice.status.toLowerCase()} and cannot have its line items changed.` },
+        { status: 400 },
+      );
     }
 
-    const previousStatus = currentInvoice.status;
+    let subtotal = currentInvoice.subtotal;
+    let total = currentInvoice.total;
+
+    const invoice = await prisma.$transaction(async (tx) => {
+      if (lineItemOperations?.length) {
+        for (const operation of lineItemOperations) {
+          if (operation.action === 'remove') {
+            if (!operation.id) {
+              throw new Error('A line item removal requires an id.');
+            }
+
+            const lineItem = await tx.invoiceLineItem.findUnique({ where: { id: operation.id } });
+            if (!lineItem || lineItem.invoiceId !== currentInvoice.id) {
+              continue;
+            }
+
+            await tx.invoiceLineItem.delete({ where: { id: operation.id } });
+            continue;
+          }
+
+          if (operation.action === 'add' || (!operation.action && operation.description)) {
+            const quantity = Number(operation.quantity ?? 1);
+            const unitPrice = Number(operation.unitPrice ?? 0);
+            const explicitAmount = Number(operation.amount ?? 0);
+            const computedAmount = explicitAmount > 0 ? explicitAmount : quantity * unitPrice;
+            const finalDescription = operation.description?.trim();
+
+            if (!finalDescription) {
+              throw new Error('Invoice line item description is required.');
+            }
+
+            if (!Number.isFinite(computedAmount) || computedAmount < 0) {
+              throw new Error('Invoice line item amount must be a valid non-negative number.');
+            }
+
+            await tx.invoiceLineItem.create({
+              data: {
+                invoiceId: currentInvoice.id,
+                description: finalDescription,
+                shipmentId: operation.shipmentId ?? null,
+                type: coerceLineItemType(operation.type),
+                quantity,
+                unitPrice: explicitAmount > 0 && quantity > 0 ? explicitAmount / quantity : unitPrice,
+                amount: computedAmount,
+                expenseSource: operation.expenseSource ?? null,
+              },
+            });
+          }
+        }
+      }
+
+      const refreshedLineItems = await tx.invoiceLineItem.findMany({
+        where: { invoiceId: currentInvoice.id },
+      });
+
+      subtotal = refreshedLineItems.reduce((sum, lineItem) => sum + lineItem.amount, 0);
+      const discount = invoiceUpdateData.discount ?? currentInvoice.discount;
+      const tax = invoiceUpdateData.tax ?? currentInvoice.tax;
+      total = recalculateInvoiceTotal(subtotal, discount, tax);
+
+      const updatedInvoice = await tx.userInvoice.update({
+        where: { id: params.id },
+        data: {
+          ...invoiceUpdateData,
+          total,
+          subtotal,
+          dueDate: invoiceUpdateData.dueDate ? new Date(invoiceUpdateData.dueDate) : invoiceUpdateData.dueDate === null ? null : undefined,
+          paidDate: invoiceUpdateData.paidDate ? new Date(invoiceUpdateData.paidDate) : invoiceUpdateData.paidDate === null ? null : undefined,
+          paymentMethod: invoiceUpdateData.paymentMethod ?? null,
+          paymentReference: invoiceUpdateData.paymentReference ?? null,
+          notes: invoiceUpdateData.notes ?? null,
+          internalNotes: invoiceUpdateData.internalNotes ?? null,
+          discount,
+          tax,
+          status: invoiceUpdateData.status ?? currentInvoice.status,
+        },
+        include: {
+          user: true,
+          container: true,
+          lineItems: {
+            include: {
+              shipment: true,
+            },
+          },
+        },
+      });
+
+      if (invoiceUpdateData.status === 'CANCELLED' && previousStatus !== 'PAID') {
+        await releaseInvoiceShipmentCharges(tx, updatedInvoice.id);
+      }
+
+      return updatedInvoice;
+    });
+
+    if (invoiceUpdateData.discount !== undefined || invoiceUpdateData.tax !== undefined) {
+      const discount = invoiceUpdateData.discount ?? currentInvoice.discount;
+      const tax = invoiceUpdateData.tax ?? currentInvoice.tax;
+      total = recalculateInvoiceTotal(subtotal, discount, tax);
+    }
 
     // When marking as PAID:
     //   1. Check customer credit balance is sufficient for the portion not already posted
@@ -576,39 +717,6 @@ export async function PATCH(
       });
     }
 
-    // Update invoice and synchronize linked shipment charge states.
-    const invoice = await prisma.$transaction(async (tx) => {
-      const updatedInvoice = await tx.userInvoice.update({
-        where: { id: params.id },
-        data: {
-          ...validatedData,
-          total,
-          paymentReference: paymentLedgerEntryId ?? validatedData.paymentReference ?? null,
-          dueDate: validatedData.dueDate ? new Date(validatedData.dueDate) : validatedData.dueDate === null ? null : undefined,
-          paidDate: validatedData.paidDate ? new Date(validatedData.paidDate) : validatedData.paidDate === null ? null : undefined,
-          paymentMethod: validatedData.paymentMethod ?? null,
-          notes: validatedData.notes ?? null,
-          internalNotes: validatedData.internalNotes ?? null,
-          discount: validatedData.discount ?? currentInvoice.discount,
-          tax: validatedData.tax ?? currentInvoice.tax,
-        },
-        include: {
-          user: true,
-          container: true,
-          lineItems: {
-            include: {
-              shipment: true,
-            },
-          },
-        },
-      });
-
-      if (validatedData.status === 'CANCELLED' && previousStatus !== 'PAID') {
-        await releaseInvoiceShipmentCharges(tx, updatedInvoice.id);
-      }
-
-      return updatedInvoice;
-    });
 
     const invoiceAuditLogs: Array<{
       invoiceId: string;
