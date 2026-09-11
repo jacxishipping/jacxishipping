@@ -270,6 +270,8 @@ export async function syncShipmentChargeFromLedgerEntry(
       ? ShipmentChargeStatus.PAID
       : existingCharge?.status === 'INVOICED'
       ? ShipmentChargeStatus.INVOICED
+      : existingCharge?.status === 'DISPUTED'
+      ? ShipmentChargeStatus.DISPUTED
       : ShipmentChargeStatus.APPROVED;
 
   if (existingCharge) {
