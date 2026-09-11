@@ -437,11 +437,11 @@ export async function PATCH(
     const body = await req.json();
 
     const lineItemOperationSchema = z.object({
-      action: z.enum(['add', 'remove']).optional(),
+      action: z.enum(['add', 'remove', 'update']).optional(),
       id: z.string().optional(),
       description: z.string().min(1).optional(),
-      type: z.string().min(1).default('OTHER_FEE'),
-      quantity: z.number().min(0).default(1),
+      type: z.string().min(1).optional(),
+      quantity: z.number().min(0).optional(),
       unitPrice: z.number().min(0).optional(),
       amount: z.number().finite().optional(),
       shipmentId: z.string().nullable().optional(),
@@ -504,6 +504,45 @@ export async function PATCH(
             continue;
           }
 
+          if (operation.action === 'update') {
+            if (!operation.id) {
+              throw new Error('A line item update requires an id.');
+            }
+
+            const lineItem = await tx.invoiceLineItem.findUnique({ where: { id: operation.id } });
+            if (!lineItem || lineItem.invoiceId !== currentInvoice.id) {
+              continue;
+            }
+
+            const nextDescription = operation.description?.trim() ?? lineItem.description;
+            const nextQuantity = Number(operation.quantity ?? lineItem.quantity ?? 1);
+            const nextUnitPrice = Number(operation.unitPrice ?? lineItem.unitPrice ?? 0);
+            const nextAmount = Number(operation.amount ?? lineItem.amount ?? 0);
+            const computedAmount = nextAmount > 0 ? nextAmount : nextQuantity * nextUnitPrice;
+
+            if (!nextDescription) {
+              throw new Error('Invoice line item description is required.');
+            }
+
+            if (!Number.isFinite(computedAmount) || computedAmount < 0) {
+              throw new Error('Invoice line item amount must be a valid non-negative number.');
+            }
+
+            await tx.invoiceLineItem.update({
+              where: { id: operation.id },
+              data: {
+                description: nextDescription,
+                shipmentId: operation.shipmentId ?? lineItem.shipmentId ?? null,
+                type: coerceLineItemType(operation.type ?? lineItem.type),
+                quantity: nextQuantity,
+                unitPrice: nextAmount > 0 && nextQuantity > 0 ? nextAmount / nextQuantity : nextUnitPrice,
+                amount: computedAmount,
+                expenseSource: operation.expenseSource ?? lineItem.expenseSource ?? null,
+              },
+            });
+            continue;
+          }
+
           if (operation.action === 'add' || (!operation.action && operation.description)) {
             const quantity = Number(operation.quantity ?? 1);
             const unitPrice = Number(operation.unitPrice ?? 0);
@@ -524,7 +563,7 @@ export async function PATCH(
                 invoiceId: currentInvoice.id,
                 description: finalDescription,
                 shipmentId: operation.shipmentId ?? null,
-                type: coerceLineItemType(operation.type),
+                type: coerceLineItemType(operation.type ?? 'OTHER_FEE'),
                 quantity,
                 unitPrice: explicitAmount > 0 && quantity > 0 ? explicitAmount / quantity : unitPrice,
                 amount: computedAmount,

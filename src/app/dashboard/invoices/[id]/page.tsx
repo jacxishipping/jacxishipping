@@ -169,12 +169,35 @@ export default function InvoiceDetailPage() {
 		quantity: '1',
 		amount: '0',
 	});
+	const [lineItemEdits, setLineItemEdits] = useState<Record<string, {
+		description: string;
+		type: string;
+		quantity: string;
+		amount: string;
+	}>>({});
 
 	const isAdmin = hasPermission(session?.user?.role, 'invoices:manage');
 
 	useEffect(() => {
 		fetchInvoice();
 	}, [params.id]);
+
+	useEffect(() => {
+		if (!invoice) return;
+		setLineItemEdits(
+			Object.fromEntries(
+				invoice.lineItems.map((item) => [
+					item.id,
+					{
+						description: item.description,
+						type: item.type,
+						quantity: String(item.quantity ?? 1),
+						amount: String(item.amount ?? 0),
+					},
+				])
+			)
+		);
+	}, [invoice]);
 
 	const fetchInvoice = async () => {
 		try {
@@ -315,6 +338,73 @@ export default function InvoiceDetailPage() {
 			await fetchInvoice();
 		} catch (error) {
 			toast.error(error instanceof Error ? error.message : 'Failed to remove expense line');
+		} finally {
+			setUpdating(false);
+		}
+	};
+
+	const resetLineItemEdit = (lineItemId: string) => {
+		if (!invoice) return;
+		const item = invoice.lineItems.find((entry) => entry.id === lineItemId);
+		if (!item) return;
+
+		setLineItemEdits((current) => ({
+			...current,
+			[lineItemId]: {
+				description: item.description,
+				type: item.type,
+				quantity: String(item.quantity ?? 1),
+				amount: String(item.amount ?? 0),
+			},
+		}));
+	};
+
+	const handleUpdateLineItem = async (lineItemId: string) => {
+		if (!invoice) return;
+		const edit = lineItemEdits[lineItemId];
+		if (!edit) return;
+
+		const description = edit.description.trim();
+		const quantity = Number(edit.quantity || 1);
+		const amount = Number(edit.amount || 0);
+
+		if (!description) {
+			toast.error('Expense description is required');
+			return;
+		}
+		if (!Number.isFinite(quantity) || quantity < 0) {
+			toast.error('Quantity must be a valid non-negative number');
+			return;
+		}
+		if (!Number.isFinite(amount) || amount < 0) {
+			toast.error('Amount must be a valid non-negative number');
+			return;
+		}
+
+		try {
+			setUpdating(true);
+			const response = await fetch(`/api/invoices/${invoice.id}`, {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					lineItems: [{
+						action: 'update',
+						id: lineItemId,
+						description,
+						type: edit.type,
+						quantity,
+						amount,
+					}],
+				}),
+			});
+
+			const payload = await response.json().catch(() => ({}));
+			if (!response.ok) throw new Error(payload.error || 'Failed to update expense line');
+
+			toast.success('Expense line updated');
+			await fetchInvoice();
+		} catch (error) {
+			toast.error(error instanceof Error ? error.message : 'Failed to update expense line');
 		} finally {
 			setUpdating(false);
 		}
@@ -576,46 +666,133 @@ export default function InvoiceDetailPage() {
 							fullWidth
 						/>
 						<Box sx={{ border: '1px solid var(--border)', borderRadius: 1, p: 2, display: 'grid', gap: 2 }}>
-							<Box sx={{ fontSize: '0.875rem', fontWeight: 600 }}>Add Expense Line</Box>
-							<TextField
-								label="Description"
-								value={manualLineItem.description}
-								onChange={(event) => setManualLineItem((current) => ({ ...current, description: event.target.value }))}
-								fullWidth
-							/>
-							<Box sx={{ display: 'grid', gridTemplateColumns: '1fr 120px', gap: 2 }}>
-								<FormControl fullWidth size="small">
-									<InputLabel>Type</InputLabel>
-									<Select
-										value={manualLineItem.type}
-										onChange={(event) => setManualLineItem((current) => ({ ...current, type: event.target.value }))}
-									>
-										<MenuItem value="OTHER_FEE">Other Fee</MenuItem>
-										<MenuItem value="SHIPPING_FEE">Shipping</MenuItem>
-										<MenuItem value="INSURANCE">Insurance</MenuItem>
-										<MenuItem value="CUSTOMS_FEE">Customs</MenuItem>
-										<MenuItem value="STORAGE_FEE">Storage</MenuItem>
-										<MenuItem value="HANDLING_FEE">Handling</MenuItem>
-									</Select>
-								</FormControl>
+							<Box sx={{ fontSize: '0.875rem', fontWeight: 600 }}>Existing Expense Lines</Box>
+							{invoice.lineItems.length === 0 ? (
+								<Box sx={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>No expense lines yet.</Box>
+							) : (
+								<Box sx={{ display: 'grid', gap: 2 }}>
+									{invoice.lineItems.map((item) => (
+										<Box key={item.id} sx={{ border: '1px solid var(--border)', borderRadius: 1, p: 1.5, display: 'grid', gap: 1.5 }}>
+											<TextField
+												label="Description"
+												value={lineItemEdits[item.id]?.description ?? item.description}
+												onChange={(event) => setLineItemEdits((current) => ({
+													...current,
+													[item.id]: {
+														type: current[item.id]?.type ?? item.type,
+														quantity: current[item.id]?.quantity ?? String(item.quantity ?? 1),
+														amount: current[item.id]?.amount ?? String(item.amount ?? 0),
+														description: event.target.value,
+													},
+												}))}
+												fullWidth
+											/>
+											<Box sx={{ display: 'grid', gridTemplateColumns: '1fr 120px', gap: 2 }}>
+												<FormControl fullWidth size="small">
+													<InputLabel>Type</InputLabel>
+													<Select
+														value={lineItemEdits[item.id]?.type ?? item.type}
+														onChange={(event) => setLineItemEdits((current) => ({
+															...current,
+															[item.id]: {
+																description: current[item.id]?.description ?? item.description,
+																type: event.target.value,
+																quantity: current[item.id]?.quantity ?? String(item.quantity ?? 1),
+																amount: current[item.id]?.amount ?? String(item.amount ?? 0),
+															},
+														}))}
+													>
+														<MenuItem value="OTHER_FEE">Other Fee</MenuItem>
+														<MenuItem value="SHIPPING_FEE">Shipping</MenuItem>
+														<MenuItem value="INSURANCE">Insurance</MenuItem>
+														<MenuItem value="CUSTOMS_FEE">Customs</MenuItem>
+														<MenuItem value="STORAGE_FEE">Storage</MenuItem>
+														<MenuItem value="HANDLING_FEE">Handling</MenuItem>
+													</Select>
+												</FormControl>
+												<TextField
+													label="Qty"
+													type="number"
+													value={lineItemEdits[item.id]?.quantity ?? String(item.quantity ?? 1)}
+													onChange={(event) => setLineItemEdits((current) => ({
+														...current,
+														[item.id]: {
+															description: current[item.id]?.description ?? item.description,
+															type: current[item.id]?.type ?? item.type,
+															quantity: event.target.value,
+															amount: current[item.id]?.amount ?? String(item.amount ?? 0),
+														},
+													}))}
+													inputProps={{ min: 0, step: '1' }}
+												/>
+											</Box>
+											<TextField
+												label="Amount"
+												type="number"
+												value={lineItemEdits[item.id]?.amount ?? String(item.amount ?? 0)}
+												onChange={(event) => setLineItemEdits((current) => ({
+													...current,
+													[item.id]: {
+														description: current[item.id]?.description ?? item.description,
+														type: current[item.id]?.type ?? item.type,
+														quantity: current[item.id]?.quantity ?? String(item.quantity ?? 1),
+														amount: event.target.value,
+													},
+												}))}
+												inputProps={{ min: 0, step: '0.01' }}
+												fullWidth
+											/>
+											<Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+												<Button variant="outline" size="sm" onClick={() => resetLineItemEdit(item.id)} disabled={updating}>Reset</Button>
+																																																																<Button variant="outline" size="sm" onClick={() => void handleUpdateLineItem(item.id)} disabled={updating}>Save</Button>
+												<Button variant="outline" size="sm" color="error" onClick={() => void handleRemoveLineItem(item.id)} disabled={updating}>Remove</Button>
+											</Box>
+										</Box>
+									))}
+								</Box>
+							)}
+							<Box sx={{ borderTop: '1px solid var(--border)', pt: 2, display: 'grid', gap: 2 }}>
+								<Box sx={{ fontSize: '0.875rem', fontWeight: 600 }}>Add Expense Line</Box>
 								<TextField
-									label="Qty"
-									type="number"
-									value={manualLineItem.quantity}
-									onChange={(event) => setManualLineItem((current) => ({ ...current, quantity: event.target.value }))}
-									inputProps={{ min: 1, step: '1' }}
+									label="Description"
+									value={manualLineItem.description}
+									onChange={(event) => setManualLineItem((current) => ({ ...current, description: event.target.value }))}
+									fullWidth
 								/>
-							</Box>
-							<TextField
-								label="Amount"
-								type="number"
-								value={manualLineItem.amount}
-								onChange={(event) => setManualLineItem((current) => ({ ...current, amount: event.target.value }))}
-								inputProps={{ min: 0, step: '0.01' }}
-								fullWidth
-							/>
-							<Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-								<Button variant="outline" onClick={() => void handleAddManualLineItem()} disabled={updating}>Add Line</Button>
+								<Box sx={{ display: 'grid', gridTemplateColumns: '1fr 120px', gap: 2 }}>
+									<FormControl fullWidth size="small">
+										<InputLabel>Type</InputLabel>
+										<Select
+											value={manualLineItem.type}
+											onChange={(event) => setManualLineItem((current) => ({ ...current, type: event.target.value }))}
+										>
+											<MenuItem value="OTHER_FEE">Other Fee</MenuItem>
+											<MenuItem value="SHIPPING_FEE">Shipping</MenuItem>
+											<MenuItem value="INSURANCE">Insurance</MenuItem>
+											<MenuItem value="CUSTOMS_FEE">Customs</MenuItem>
+											<MenuItem value="STORAGE_FEE">Storage</MenuItem>
+											<MenuItem value="HANDLING_FEE">Handling</MenuItem>
+										</Select>
+									</FormControl>
+									<TextField
+										label="Qty"
+										type="number"
+										value={manualLineItem.quantity}
+										onChange={(event) => setManualLineItem((current) => ({ ...current, quantity: event.target.value }))}
+										inputProps={{ min: 1, step: '1' }}
+									/>
+								</Box>
+								<TextField
+									label="Amount"
+									type="number"
+									value={manualLineItem.amount}
+									onChange={(event) => setManualLineItem((current) => ({ ...current, amount: event.target.value }))}
+									inputProps={{ min: 0, step: '0.01' }}
+									fullWidth
+								/>
+								<Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+									<Button variant="outline" onClick={() => void handleAddManualLineItem()} disabled={updating}>Add Line</Button>
+								</Box>
 							</Box>
 						</Box>
 					</Box>
