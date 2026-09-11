@@ -443,17 +443,48 @@ model Payment {
   id            String        @id @default(cuid())
   userId        String
   shipmentId    String
+  invoiceId     String?
   amount        Float
   currency      String        @default("USD")
   status        PaymentStatus @default(PENDING)
   method        PaymentMethod
   transactionId String?
   gateway       String?
+  idempotencyKey String?      @unique
+  refundedAt    DateTime?
+  refundReason  String?
+  refundOfPaymentId String?   // Self-reference for refund payments
   metadata      Json?
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   shipment      Shipment      @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
   user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  invoice       UserInvoice?  @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  allocations   PaymentAllocation[]
+
+  @@index([userId])
+  @@index([shipmentId])
+  @@index([invoiceId])
+  @@index([status])
+}
+
+/// Tracks how a single Payment is allocated across one or more invoices.
+/// Replaces the previous convention of storing `shipmentIds` in Payment.metadata
+/// without a schema-enforced link to UserInvoice.
+model PaymentAllocation {
+  id           String    @id @default(cuid())
+  paymentId    String
+  invoiceId    String
+  /// Amount of this payment applied to this invoice.
+  amount       Float
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  payment      Payment   @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  invoice      UserInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([paymentId])
+  @@index([invoiceId])
+  @@unique([paymentId, invoiceId])
 }
 
 model UserSettings {
@@ -643,6 +674,14 @@ model UserInvoice {
   tax      Float @default(0)
   discount Float @default(0)
   total    Float
+  // Partial-payment tracking
+  amountPaid      Float @default(0)
+  amountRemaining Float
+
+  // Reversal / void tracking
+  voidedAt      DateTime?
+  voidedReason  String?
+  reversedInvoiceId String? // If this is a credit-note reversal, the original invoice it offsets
 
   // Payment
   paymentMethod    String?
@@ -663,6 +702,8 @@ model UserInvoice {
   lineItems InvoiceLineItem[]
   auditLogs InvoiceAuditLog[]
   shipmentCharges ShipmentCharge[]
+  payments  Payment[]
+  allocations PaymentAllocation[]
 
   @@index([userId])
   @@index([containerId])
@@ -672,6 +713,7 @@ model UserInvoice {
   @@index([issueDate])
   @@index([dueDate])
   @@index([createdAt]) // ⚡ Bolt: Added index to optimize frequent sorting by createdAt
+  @@index([userId, status, dueDate]) // AR-aging composite index
 }
 
 model PlaidItem {
@@ -1334,9 +1376,11 @@ enum QuoteStatus {
 
 enum PaymentStatus {
   PENDING
+  PROCESSING
   COMPLETED
   FAILED
   REFUNDED
+  PARTIALLY_REFUNDED
   CANCELLED
 }
 
@@ -1433,9 +1477,12 @@ enum InvoiceStatus {
   DRAFT
   SENT
   PAID
+  PARTIALLY_PAID
   OVERDUE
   CANCELLED
   PENDING
+  VOID
+  REFUNDED
 }
 
 enum UserInvoiceStatus {
@@ -1443,8 +1490,11 @@ enum UserInvoiceStatus {
   PENDING
   SENT
   PAID
+  PARTIALLY_PAID
   OVERDUE
   CANCELLED
+  VOID
+  REFUNDED
 }
 
 enum LineItemType {

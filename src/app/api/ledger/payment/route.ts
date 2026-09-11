@@ -4,8 +4,9 @@ import { prisma } from '@/lib/db';
 import { z } from 'zod';
 import { hasPermission } from '@/lib/rbac';
 import { recalculateUserLedgerBalances } from '@/lib/user-ledger';
-import { TransactionInfoType } from '@prisma/client';
+import { TransactionInfoType, PaymentMethod } from '@prisma/client';
 import { sendLedgerTransactionEmail } from '@/lib/email';
+import { roundToCents } from '@/lib/financial/money';
 
 type PaymentCategory = 'PURCHASE_PRICE' | 'EXPENSES';
 
@@ -58,7 +59,12 @@ const recordPaymentSchema = z.object({
   amount: z.number().positive(),
   paymentCategory: z.enum(['PURCHASE_PRICE', 'EXPENSES']).default('PURCHASE_PRICE'),
   paymentMethod: z.enum(['CASH', 'BANK_TRANSFER', 'CHECK', 'CREDIT_CARD', 'WIRE']).optional().default('CASH'),
+  invoiceId: z.string().nullable().optional(), // Phase 1: link payment to an invoice
   notes: z.string().optional(),
+  // Idempotency key: client-supplied unique string (e.g. UUID). If the same key
+  // is submitted twice, the second request returns the result of the first one
+  // instead of double-applying the payment.
+  idempotencyKey: z.string().min(8).max(128).optional(),
 });
 
 const paymentCategoryLabels: Record<PaymentCategory, string> = {
@@ -191,7 +197,42 @@ export async function POST(request: NextRequest) {
     const paymentCategoryLabel = paymentCategoryLabels[validatedData.paymentCategory];
     const description = `${paymentCategoryLabel} payment received for shipment(s): ${shipmentInfo}`;
 
+    // Phase 1 – Idempotency: if an idempotencyKey was supplied and a payment
+    // with that key already exists, return the existing result instead of
+    // double-applying.
+    if (validatedData.idempotencyKey) {
+      const existingPayment = await prisma.payment.findFirst({
+        where: { idempotencyKey: validatedData.idempotencyKey, userId: validatedData.userId },
+        select: { id: true, amount: true, status: true },
+      });
+      if (existingPayment) {
+        return NextResponse.json(
+          {
+            entry: { id: existingPayment.id, amount: existingPayment.amount, status: existingPayment.status },
+            message: 'Payment already recorded (idempotent replay).',
+          },
+          { status: 200 },
+        );
+      }
+    }
+
     const result = await prisma.$transaction(async (tx) => {
+      // Create the Payment row (Phase 1) and link it to the invoice if provided.
+      const payment = await tx.payment.create({
+        data: {
+          userId: validatedData.userId,
+          shipmentId: validatedData.shipmentIds[0],
+          invoiceId: validatedData.invoiceId ?? null,
+          amount: roundToCents(validatedData.amount),
+          status: 'COMPLETED',
+          method: (['CREDIT_CARD', 'DEBIT_CARD', 'BANK_TRANSFER', 'WIRE_TRANSFER'].includes(validatedData.paymentMethod)
+            ? validatedData.paymentMethod
+            : 'BANK_TRANSFER') as PaymentMethod,
+          idempotencyKey: validatedData.idempotencyKey ?? null,
+        },
+        select: { id: true },
+      });
+
       const entry = await tx.ledgerEntry.create({
         data: {
           userId: validatedData.userId,
@@ -207,6 +248,7 @@ export async function POST(request: NextRequest) {
             paymentType: 'payment_received',
             paymentCategory: validatedData.paymentCategory,
             paymentMethod: validatedData.paymentMethod,
+            paymentId: payment.id,
           },
         },
         include: {
@@ -353,6 +395,36 @@ export async function POST(request: NextRequest) {
           },
         });
 
+        // Phase 1: create PaymentAllocation rows for each completed invoice
+        // and update amountPaid / amountRemaining.
+        const completedInvoices = await tx.userInvoice.findMany({
+          where: {
+            shipmentId: { in: completedShipmentIds },
+            status: { in: ['DRAFT', 'PENDING', 'SENT', 'OVERDUE'] },
+          },
+          select: { id: true, total: true, amountPaid: true },
+        });
+
+        for (const inv of completedInvoices) {
+          const appliedToInvoice = roundToCents(Math.min(
+            validatedData.amount,
+            Math.max(0, inv.total - (inv.amountPaid ?? 0)),
+          ));
+          await tx.paymentAllocation.create({
+            data: {
+              paymentId: payment.id,
+              invoiceId: inv.id,
+              amount: appliedToInvoice,
+            },
+          });
+          await tx.userInvoice.update({
+            where: { id: inv.id },
+            data: {
+              amountPaid: roundToCents((inv.amountPaid ?? 0) + appliedToInvoice),
+            },
+          });
+        }
+
         await tx.userInvoice.updateMany({
           where: {
             shipmentId: { in: completedShipmentIds },
@@ -363,6 +435,7 @@ export async function POST(request: NextRequest) {
           data: {
             status: 'PAID',
             paidDate: new Date(),
+            amountRemaining: 0,
             paymentMethod: validatedData.paymentMethod,
             paymentReference: entry.id,
           },

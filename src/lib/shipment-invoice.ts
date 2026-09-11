@@ -1,12 +1,13 @@
 import { LineItemType, Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
+import { roundToCents } from '@/lib/financial/money';
 
 type DbClient = Prisma.TransactionClient | typeof prisma;
 
 const db = (client: DbClient) => client as typeof prisma;
 
-export function recalculateInvoiceTotal(subtotal: number, discount = 0, tax = 0) {
-  return subtotal - discount + tax;
+export function recalculateInvoiceTotal(subtotal: number, discount = 0, tax = 0): number {
+  return roundToCents(subtotal - discount + tax);
 }
 
 /**

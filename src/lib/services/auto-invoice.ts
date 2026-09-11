@@ -201,6 +201,8 @@ export class AutoInvoiceService {
 									discount: 0,
 									tax: 0,
 									total: subtotal,
+									amountPaid: subtotal,
+									amountRemaining: 0,
 									paymentMethod: 'CASH',
 									internalNotes: 'Auto-generated from completed cash shipment charges',
 									lineItems: {

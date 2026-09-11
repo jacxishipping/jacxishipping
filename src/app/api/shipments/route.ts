@@ -496,6 +496,8 @@ export async function POST(request: NextRequest) {
               status: 'PENDING',
               subtotal: parsedPurchasePrice && parsedPurchasePrice > 0 ? parsedPurchasePrice : 0,
               total: parsedPurchasePrice && parsedPurchasePrice > 0 ? parsedPurchasePrice : 0,
+              amountPaid: 0,
+              amountRemaining: parsedPurchasePrice && parsedPurchasePrice > 0 ? parsedPurchasePrice : 0,
               tax: 0,
               discount: 0,
             },

@@ -15,6 +15,7 @@ import {
   releaseInvoiceShipmentCharges,
 } from '@/lib/billing/shipment-charges';
 import { createInvoiceWithUniqueNumber, generateInvoiceNumber } from '@/lib/shipment-invoice';
+import { applyPercentDiscount, roundToCents, sumCents } from '@/lib/financial/money';
 
 const mutableInvoiceStatuses = new Set(['DRAFT', 'PENDING']);
 
@@ -347,9 +348,8 @@ export async function POST(req: NextRequest) {
           return null;
         }
 
-        const subtotal = invoiceCharges.reduce((sum, charge) => sum + charge.totalAmount, 0);
-        const discountAmount = subtotal > 0 ? (subtotal * discountPercent) / 100 : 0;
-        const total = subtotal - discountAmount;
+        const subtotal = sumCents(invoiceCharges.map((c) => c.totalAmount));
+        const { discount: discountAmount, total } = applyPercentDiscount(subtotal, discountPercent);
         const lineItems = invoiceCharges.map((charge) => buildInvoiceLineItemFromCharge(charge));
         const isIssuedDelta = !mutableInvoice && Boolean(latestIssuedInvoice);
         const documentKind: 'created' | 'updated' | 'supplemental' | 'credit_note' = mutableInvoice
@@ -412,6 +412,8 @@ export async function POST(req: NextRequest) {
                   subtotal,
                   discount: discountAmount,
                   total,
+                  amountPaid: 0,
+                  amountRemaining: total,
                   notes: deltaNote,
                   internalNotes: deltaNote,
                   lineItems: {

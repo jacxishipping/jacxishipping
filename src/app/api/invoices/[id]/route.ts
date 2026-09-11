@@ -13,8 +13,10 @@ import {
   releaseInvoiceShipmentCharges,
   resetInvoiceShipmentCharges,
 } from '@/lib/billing/shipment-charges';
+import { invoiceTransitionError } from '@/lib/billing/invoice-status';
 import { recalculateInvoiceTotal } from '@/lib/shipment-invoice';
 import { invoiceLineItemMatchesLedgerEntry } from '@/lib/invoice-ledger-sync';
+import { roundToCents, withinOneCent } from '@/lib/financial/money';
 
 async function syncInvoiceLineItemLedgerEntries(
   tx: Prisma.TransactionClient,
@@ -731,7 +733,7 @@ export async function PATCH(
     });
 
     const updateSchema = z.object({
-      status: z.enum(['DRAFT', 'PENDING', 'SENT', 'PAID', 'OVERDUE', 'CANCELLED']).optional(),
+      status: z.enum(['DRAFT', 'PENDING', 'SENT', 'PAID', 'PARTIALLY_PAID', 'OVERDUE', 'CANCELLED', 'VOID', 'REFUNDED']).optional(),
       dueDate: z.string().nullable().optional(),
       paidDate: z.string().nullable().optional(),
       paymentMethod: z.string().nullable().optional(),
@@ -759,7 +761,15 @@ export async function PATCH(
 
     const previousStatus = currentInvoice.status;
 
-    if (lineItemOperations?.length && ['PAID', 'CANCELLED'].includes(currentInvoice.status)) {
+    // State-machine guard: reject any status transition not explicitly allowed.
+    if (validatedData.status && validatedData.status !== previousStatus) {
+      const transitionError = invoiceTransitionError(previousStatus, validatedData.status);
+      if (transitionError) {
+        return NextResponse.json({ error: transitionError }, { status: 400 });
+      }
+    }
+
+    if (lineItemOperations?.length && ['PAID', 'CANCELLED', 'VOID', 'REFUNDED'].includes(currentInvoice.status)) {
       return NextResponse.json(
         { error: `Invoice ${currentInvoice.invoiceNumber} is ${currentInvoice.status.toLowerCase()} and cannot have its line items changed.` },
         { status: 400 },
@@ -914,10 +924,20 @@ export async function PATCH(
         where: { invoiceId: currentInvoice.id },
       });
 
-      subtotal = refreshedLineItems.reduce((sum, lineItem) => sum + lineItem.amount, 0);
+      subtotal = roundToCents(refreshedLineItems.reduce((sum, lineItem) => sum + lineItem.amount, 0));
       const discount = invoiceUpdateData.discount ?? currentInvoice.discount;
       const tax = invoiceUpdateData.tax ?? currentInvoice.tax;
-      total = recalculateInvoiceTotal(subtotal, discount, tax);
+      total = roundToCents(recalculateInvoiceTotal(subtotal, discount, tax));
+
+      // For partial-payment tracking: compute how much of this invoice has been paid.
+      let amountPaid = currentInvoice.amountPaid ?? 0;
+      if (invoiceUpdateData.status === 'PAID') {
+        amountPaid = total;
+      } else if (invoiceUpdateData.status === 'PARTIALLY_PAID') {
+        // Partially paid: update amountPaid via payments/allocation later;
+        // for now, keep existing amountPaid (will be set by the payment endpoint).
+      }
+      const amountRemaining = roundToCents(Math.max(0, total - amountPaid));
 
       const updatedInvoice = await tx.userInvoice.update({
         where: { id: params.id },
@@ -925,6 +945,8 @@ export async function PATCH(
           ...invoiceUpdateData,
           total,
           subtotal,
+          amountPaid,
+          amountRemaining,
           dueDate: invoiceUpdateData.dueDate ? new Date(invoiceUpdateData.dueDate) : invoiceUpdateData.dueDate === null ? null : undefined,
           paidDate: invoiceUpdateData.paidDate ? new Date(invoiceUpdateData.paidDate) : invoiceUpdateData.paidDate === null ? null : undefined,
           paymentMethod: invoiceUpdateData.paymentMethod ?? null,
@@ -946,8 +968,17 @@ export async function PATCH(
         },
       });
 
-      if (invoiceUpdateData.status === 'CANCELLED' && previousStatus !== 'PAID') {
+      // When marking as VOID: release charges so they can be re-invoiced.
+      if (invoiceUpdateData.status === 'VOID' && previousStatus !== 'VOID') {
         await releaseInvoiceShipmentCharges(tx, updatedInvoice.id);
+      }
+
+      // When marking as REFUNDED: flip related charges to a refund-able state.
+      if (invoiceUpdateData.status === 'REFUNDED' && previousStatus !== 'REFUNDED') {
+        await tx.shipmentCharge.updateMany({
+          where: { invoiceId: updatedInvoice.id, status: 'PAID' },
+          data: { status: 'VOID', voidedAt: new Date() },
+        });
       }
 
       return updatedInvoice;
@@ -983,16 +1014,23 @@ export async function PATCH(
       ];
 
       // Car purchase price line items are excluded from the customer ledger.
-      // Cap at invoiceTotal to ensure ledgerRelevantTotal is never negative.
+      // Fetch a fresh line-item snapshot (post-transaction) to avoid the stale-data
+      // bug where a line-item add/remove in the same request changed `total`
+      // but the purchase-price total was computed from the pre-transaction read.
+      const freshLineItems = await prisma.invoiceLineItem.findMany({
+        where: { invoiceId: currentInvoice.id },
+      });
       const purchasePriceTotal = Math.min(
-        currentInvoice.lineItems
-          .filter((li) => li.type === 'PURCHASE_PRICE')
-          .reduce((sum, li) => sum + li.amount, 0),
+        roundToCents(
+          freshLineItems
+            .filter((li) => li.type === 'PURCHASE_PRICE')
+            .reduce((sum, li) => sum + li.amount, 0),
+        ),
         invoiceTotal
       );
 
       // The ledger-relevant total excludes the car purchase price
-      const ledgerRelevantTotal = invoiceTotal - purchasePriceTotal;
+      const ledgerRelevantTotal = roundToCents(invoiceTotal - purchasePriceTotal);
 
       // Find all pending expense entries for those shipments belonging to this customer
       const pendingExpenseEntries = invoiceShipmentIds.length > 0
@@ -1010,7 +1048,7 @@ export async function PATCH(
           })
         : [];
 
-      const pendingExpenseTotal = pendingExpenseEntries.reduce((sum, e) => sum + e.amount, 0);
+      const pendingExpenseTotal = roundToCents(pendingExpenseEntries.reduce((sum, e) => sum + e.amount, 0));
 
       // Effective balance already includes pending shipment expenses.
       const latestEntry = await prisma.ledgerEntry.findFirst({
@@ -1023,9 +1061,9 @@ export async function PATCH(
 
       // The non-expense portion = invoice items not already tracked as ledger entries
       // (insurance, shared container expenses, etc.) — car purchase price is excluded.
-      const nonExpenseAmount = Math.max(0, ledgerRelevantTotal - pendingExpenseTotal);
+      const nonExpenseAmount = roundToCents(Math.max(0, ledgerRelevantTotal - pendingExpenseTotal));
 
-      if (nonExpenseAmount > availableCredit + 0.001) {
+      if (nonExpenseAmount > availableCredit && !withinOneCent(nonExpenseAmount, availableCredit)) {
         return NextResponse.json(
           {
             error: `Insufficient credit balance. Customer has $${availableCredit.toFixed(2)} available but invoice needs $${nonExpenseAmount.toFixed(2)} more for non-shipment charges. Please deposit credit first.`,
