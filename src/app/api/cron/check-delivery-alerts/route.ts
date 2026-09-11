@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ContainerLifecycleStatus } from '@prisma/client';
+import { ContainerLifecycleStatus, NotificationType } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { validateCronRequest } from '@/lib/cron-auth';
 import { logger } from '@/lib/logger';
+import { createNotifications } from '@/lib/notifications';
 
 // Arrival alert status
 enum ArrivalAlertStatus {
@@ -10,6 +11,51 @@ enum ArrivalAlertStatus {
   WARNING = 'WARNING',
   OVERDUE = 'OVERDUE',
   ARRIVED = 'ARRIVED',
+}
+
+type DeliveryAlertCandidate = {
+  containerId: string;
+  containerNumber: string;
+  estimatedArrival: Date;
+  alertStatus: ArrivalAlertStatus;
+  userIds: string[];
+};
+
+export function buildDeliveryAlertNotifications(
+  candidates: DeliveryAlertCandidate[],
+) {
+  const seen = new Set<string>();
+  const notifications: Parameters<typeof createNotifications>[0] = [];
+
+  for (const candidate of candidates) {
+    if (
+      candidate.alertStatus === ArrivalAlertStatus.ON_TIME ||
+      candidate.alertStatus === ArrivalAlertStatus.ARRIVED
+    ) {
+      continue;
+    }
+
+    const uniqueUserIds = Array.from(new Set(candidate.userIds.filter(Boolean)));
+
+    for (const userId of uniqueUserIds) {
+      const dedupeKey = `${candidate.containerId}:${userId}`;
+      if (seen.has(dedupeKey)) {
+        continue;
+      }
+      seen.add(dedupeKey);
+
+      const isOverdue = candidate.alertStatus === ArrivalAlertStatus.OVERDUE;
+      notifications.push({
+        userId,
+        title: `ETA alert for container ${candidate.containerNumber}`,
+        description: `Container ${candidate.containerNumber} is ${isOverdue ? 'past' : 'approaching'} its ETA (${new Date(candidate.estimatedArrival).toLocaleDateString()}).`,
+        type: NotificationType.WARNING,
+        link: `/dashboard/containers/${candidate.containerId}`,
+      });
+    }
+  }
+
+  return notifications;
 }
 
 // This endpoint can be called by a cron job to check container arrival alerts
@@ -51,8 +97,10 @@ async function runDeliveryAlerts(request: NextRequest) {
         status: true,
         shipments: {
           select: {
+            userId: true,
             user: {
               select: {
+                id: true,
                 name: true,
                 email: true,
               },
@@ -76,6 +124,8 @@ async function runDeliveryAlerts(request: NextRequest) {
       }>,
     };
 
+    const alertCandidates: DeliveryAlertCandidate[] = [];
+
     // Check each container
     for (const container of containersToCheck) {
       try {
@@ -84,15 +134,12 @@ async function runDeliveryAlerts(request: NextRequest) {
 
         // Determine alert status
         if (now > eta) {
-          // Past ETA - OVERDUE
           alertStatus = ArrivalAlertStatus.OVERDUE;
           results.overdue++;
         } else if (eta <= threeDaysFromNow) {
-          // Within 3 days of ETA - WARNING
           alertStatus = ArrivalAlertStatus.WARNING;
           results.warnings++;
         } else {
-          // More than 3 days until ETA - ON_TIME
           alertStatus = ArrivalAlertStatus.ON_TIME;
           results.onTime++;
         }
@@ -105,10 +152,53 @@ async function runDeliveryAlerts(request: NextRequest) {
           alertStatus: alertStatus,
         });
 
-        // TODO: Send notification to users with shipments in this container
-        // You can implement email/SMS notifications here based on the alert status
+        const userIds = Array.from(
+          new Set(
+            container.shipments
+              .map((shipment) => shipment.userId ?? shipment.user?.id)
+              .filter((userId): userId is string => Boolean(userId)),
+          ),
+        );
+
+        alertCandidates.push({
+          containerId: container.id,
+          containerNumber: container.containerNumber,
+          estimatedArrival: eta,
+          alertStatus,
+          userIds,
+        });
       } catch (error) {
         logger.error(`Error checking container ${container.id}:`, error);
+      }
+    }
+
+    const notificationInputs = buildDeliveryAlertNotifications(alertCandidates);
+    if (notificationInputs.length > 0) {
+      const userIdsToNotify = new Set(notificationInputs.map((input) => input.userId));
+      const userSettings = await prisma.userSettings.findMany({
+        where: {
+          userId: {
+            in: Array.from(userIdsToNotify),
+          },
+        },
+        select: {
+          userId: true,
+          notifyShipmentPush: true,
+        },
+      });
+
+      const disabledUserIds = new Set(
+        userSettings
+          .filter((setting) => setting.notifyShipmentPush === false)
+          .map((setting) => setting.userId),
+      );
+
+      const filteredNotifications = notificationInputs.filter(
+        (notification) => !disabledUserIds.has(notification.userId),
+      );
+
+      if (filteredNotifications.length > 0) {
+        await createNotifications(filteredNotifications);
       }
     }
 
