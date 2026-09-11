@@ -511,6 +511,7 @@ export default function ShipmentBillingTab({ shipmentId, refreshKey, purchasePri
   }
 
   const summary = data?.summary || { total: 0, invoiced: 0, paid: 0, open: 0, counts: {} };
+  const readOnlyOrDraftInvoice = charges.some((charge) => charge.invoice && ['DRAFT', 'PENDING'].includes(charge.invoice.status));
   const readiness =
     data?.readiness ||
     {
@@ -522,6 +523,7 @@ export default function ShipmentBillingTab({ shipmentId, refreshKey, purchasePri
       settledCount: 0,
       totalCharges: 0,
     };
+  const canGenerateFromDraft = readiness.approvedUninvoicedCount > 0 || readOnlyOrDraftInvoice;
   const postIssueDelta =
     data?.postIssueDelta ||
     {
@@ -544,7 +546,7 @@ export default function ShipmentBillingTab({ shipmentId, refreshKey, purchasePri
             <Button
               size="sm"
               onClick={() => void generateInvoice()}
-              disabled={generatingInvoice || readiness.approvedUninvoicedCount === 0}
+              disabled={generatingInvoice || !canGenerateFromDraft}
             >
               {generatingInvoice
                 ? 'Generating...'
@@ -552,6 +554,8 @@ export default function ShipmentBillingTab({ shipmentId, refreshKey, purchasePri
                 ? postIssueDelta.kind === 'CREDIT_NOTE'
                   ? 'Generate Credit Note'
                   : 'Generate Supplemental Invoice'
+                : readOnlyOrDraftInvoice && readiness.approvedUninvoicedCount === 0
+                ? 'Refresh Draft Invoice'
                 : 'Generate Invoice'}
             </Button>
           )}

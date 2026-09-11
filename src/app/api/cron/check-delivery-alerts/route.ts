@@ -1,62 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ContainerLifecycleStatus, NotificationType } from '@prisma/client';
+import { ContainerLifecycleStatus } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { validateCronRequest } from '@/lib/cron-auth';
 import { logger } from '@/lib/logger';
 import { createNotifications } from '@/lib/notifications';
-
-// Arrival alert status
-enum ArrivalAlertStatus {
-  ON_TIME = 'ON_TIME',
-  WARNING = 'WARNING',
-  OVERDUE = 'OVERDUE',
-  ARRIVED = 'ARRIVED',
-}
-
-type DeliveryAlertCandidate = {
-  containerId: string;
-  containerNumber: string;
-  estimatedArrival: Date;
-  alertStatus: ArrivalAlertStatus;
-  userIds: string[];
-};
-
-export function buildDeliveryAlertNotifications(
-  candidates: DeliveryAlertCandidate[],
-) {
-  const seen = new Set<string>();
-  const notifications: Parameters<typeof createNotifications>[0] = [];
-
-  for (const candidate of candidates) {
-    if (
-      candidate.alertStatus === ArrivalAlertStatus.ON_TIME ||
-      candidate.alertStatus === ArrivalAlertStatus.ARRIVED
-    ) {
-      continue;
-    }
-
-    const uniqueUserIds = Array.from(new Set(candidate.userIds.filter(Boolean)));
-
-    for (const userId of uniqueUserIds) {
-      const dedupeKey = `${candidate.containerId}:${userId}`;
-      if (seen.has(dedupeKey)) {
-        continue;
-      }
-      seen.add(dedupeKey);
-
-      const isOverdue = candidate.alertStatus === ArrivalAlertStatus.OVERDUE;
-      notifications.push({
-        userId,
-        title: `ETA alert for container ${candidate.containerNumber}`,
-        description: `Container ${candidate.containerNumber} is ${isOverdue ? 'past' : 'approaching'} its ETA (${new Date(candidate.estimatedArrival).toLocaleDateString()}).`,
-        type: NotificationType.WARNING,
-        link: `/dashboard/containers/${candidate.containerId}`,
-      });
-    }
-  }
-
-  return notifications;
-}
+import { ArrivalAlertStatus, buildDeliveryAlertNotifications, type DeliveryAlertCandidate } from './notifications';
 
 // This endpoint can be called by a cron job to check container arrival alerts
 export async function GET(request: NextRequest) {

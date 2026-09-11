@@ -2,7 +2,7 @@ import { NotificationType } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { publishNotificationRefresh } from '@/lib/notification-stream';
 
-type NotificationInput = {
+export type NotificationInput = {
   userId: string;
   senderId?: string | null;
   title: string;

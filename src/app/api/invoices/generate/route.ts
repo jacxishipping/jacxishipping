@@ -343,7 +343,7 @@ export async function POST(req: NextRequest) {
           },
         });
 
-        if (!invoiceCharges.length) {
+        if (!invoiceCharges.length && !mutableInvoice) {
           return null;
         }
 

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { buildDeliveryAlertNotifications } from './route';
+import { buildDeliveryAlertNotifications } from './notifications';
 
 describe('buildDeliveryAlertNotifications', () => {
   it('only includes warning or overdue alerts and deduplicates user IDs within a container', () => {
@@ -34,7 +34,7 @@ describe('buildDeliveryAlertNotifications', () => {
       ['user-1', 'user-2', 'user-2'],
     );
     assert.ok(notifications.every((notification) => notification.type === 'WARNING'));
-    assert.ok(notifications.every((notification) => notification.link.includes('/dashboard/containers/')));
+    assert.ok(notifications.every((notification) => typeof notification.link === 'string' && notification.link.includes('/dashboard/containers/')));
     assert.ok(notifications.every((notification) => notification.title.includes('ETA')));
   });
 });
