@@ -14,6 +14,287 @@ import {
   resetInvoiceShipmentCharges,
 } from '@/lib/billing/shipment-charges';
 import { recalculateInvoiceTotal } from '@/lib/shipment-invoice';
+import { invoiceLineItemMatchesLedgerEntry } from '@/lib/invoice-ledger-sync';
+
+async function syncInvoiceLineItemLedgerEntries(
+  tx: Prisma.TransactionClient,
+  invoice: { id: string; userId: string; notes?: string | null },
+  lineItem: { shipmentId: string | null; description: string; amount: number; type: string; expenseSource?: string | null },
+  actorId: string,
+) {
+  if (!lineItem.shipmentId) {
+    return;
+  }
+
+  const shipment = await tx.shipment.findUnique({
+    where: { id: lineItem.shipmentId },
+    select: {
+      userId: true,
+      container: {
+        select: {
+          companyId: true,
+        },
+      },
+    },
+  });
+
+  if (!shipment) {
+    return;
+  }
+
+  const pendingEntries = await tx.ledgerEntry.findMany({
+    where: {
+      userId: invoice.userId,
+      shipmentId: lineItem.shipmentId,
+      type: 'DEBIT',
+      metadata: {
+        path: ['pendingInvoice'],
+        equals: true,
+      },
+    },
+    select: {
+      id: true,
+      description: true,
+      amount: true,
+      metadata: true,
+      shipmentId: true,
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+  });
+
+  const matchingEntry = pendingEntries.find((entry) =>
+    invoiceLineItemMatchesLedgerEntry(
+      {
+        shipmentId: lineItem.shipmentId,
+        description: lineItem.description,
+        amount: lineItem.amount,
+      },
+      {
+        shipmentId: entry.shipmentId,
+        description: entry.description,
+        amount: Number(entry.amount ?? 0),
+      },
+    )
+  );
+
+  if (matchingEntry) {
+    await tx.ledgerEntry.update({
+      where: { id: matchingEntry.id },
+      data: {
+        description: lineItem.description,
+        amount: lineItem.amount,
+        notes: invoice.notes ?? null,
+        metadata: {
+          ...(matchingEntry.metadata && typeof matchingEntry.metadata === 'object' && !Array.isArray(matchingEntry.metadata)
+            ? (matchingEntry.metadata as Record<string, unknown>)
+            : {}),
+          pendingInvoice: true,
+          isExpense: true,
+          expenseType: lineItem.type,
+          expenseSource: lineItem.expenseSource ?? 'SHIPMENT',
+          paymentMode: 'DUE',
+        },
+      },
+    });
+
+    const companyLedgerEntry = await tx.companyLedgerEntry.findFirst({
+      where: {
+        OR: [
+          {
+            reference: `shipment-expense:${matchingEntry.id}`,
+          },
+          {
+            metadata: {
+              path: ['linkedUserExpenseEntryId'],
+              equals: matchingEntry.id,
+            },
+          },
+        ],
+      },
+      select: { id: true, metadata: true },
+    });
+
+    if (companyLedgerEntry) {
+      await tx.companyLedgerEntry.update({
+        where: { id: companyLedgerEntry.id },
+        data: {
+          description: `Expense recovery - ${lineItem.description}`,
+          amount: lineItem.amount,
+          notes: invoice.notes ?? null,
+          metadata: {
+            ...(companyLedgerEntry.metadata && typeof companyLedgerEntry.metadata === 'object' && !Array.isArray(companyLedgerEntry.metadata)
+              ? (companyLedgerEntry.metadata as Record<string, unknown>)
+              : {}),
+            linkedUserExpenseEntryId: matchingEntry.id,
+            shipmentId: lineItem.shipmentId,
+            userId: invoice.userId,
+            expenseType: lineItem.type,
+            paymentMode: 'DUE',
+          },
+        },
+      });
+    } else if (shipment.container?.companyId) {
+      await tx.companyLedgerEntry.create({
+        data: {
+          companyId: shipment.container.companyId,
+          description: `Expense recovery - ${lineItem.description}`,
+          type: 'CREDIT',
+          amount: lineItem.amount,
+          balance: 0,
+          category: 'Shipment Expense Recovery',
+          reference: `shipment-expense:${matchingEntry.id}`,
+          notes: invoice.notes ?? null,
+          createdBy: actorId,
+          metadata: {
+            isExpenseRecovery: true,
+            expenseSource: lineItem.expenseSource ?? 'SHIPMENT',
+            linkedUserExpenseEntryId: matchingEntry.id,
+            shipmentId: lineItem.shipmentId,
+            userId: invoice.userId,
+            expenseType: lineItem.type,
+            paymentMode: 'DUE',
+          },
+        },
+      });
+    }
+
+    return;
+  }
+
+  if (lineItem.amount <= 0) {
+    return;
+  }
+
+  const createdEntry = await tx.ledgerEntry.create({
+    data: {
+      userId: invoice.userId,
+      shipmentId: lineItem.shipmentId,
+      description: lineItem.description,
+      type: 'DEBIT',
+      amount: lineItem.amount,
+      balance: 0,
+      createdBy: actorId,
+      notes: invoice.notes ?? null,
+      metadata: {
+        isExpense: true,
+        paymentMode: 'DUE',
+        pendingInvoice: true,
+        expenseType: lineItem.type,
+        expenseSource: lineItem.expenseSource ?? 'SHIPMENT',
+        ...(shipment.container?.companyId ? { linkedCompanyId: shipment.container.companyId } : {}),
+      },
+    },
+  });
+
+  if (shipment.container?.companyId) {
+    await tx.companyLedgerEntry.create({
+      data: {
+        companyId: shipment.container.companyId,
+        description: `Expense recovery - ${lineItem.description}`,
+        type: 'CREDIT',
+        amount: lineItem.amount,
+        balance: 0,
+        category: 'Shipment Expense Recovery',
+        reference: `shipment-expense:${createdEntry.id}`,
+        notes: invoice.notes ?? null,
+        createdBy: actorId,
+        metadata: {
+          isExpenseRecovery: true,
+          expenseSource: lineItem.expenseSource ?? 'SHIPMENT',
+          linkedUserExpenseEntryId: createdEntry.id,
+          shipmentId: lineItem.shipmentId,
+          userId: invoice.userId,
+          expenseType: lineItem.type,
+          paymentMode: 'DUE',
+        },
+      },
+    });
+  }
+}
+
+async function removeInvoiceLineItemLedgerEntries(
+  tx: Prisma.TransactionClient,
+  invoice: { userId: string },
+  lineItem: { shipmentId: string | null; description: string; amount: number },
+) {
+  if (!lineItem.shipmentId) {
+    return;
+  }
+
+  const pendingEntries = await tx.ledgerEntry.findMany({
+    where: {
+      userId: invoice.userId,
+      shipmentId: lineItem.shipmentId,
+      type: 'DEBIT',
+      metadata: {
+        path: ['pendingInvoice'],
+        equals: true,
+      },
+    },
+    select: {
+      id: true,
+      description: true,
+      amount: true,
+      shipmentId: true,
+    },
+  });
+
+  const matchingEntryIds = pendingEntries
+    .filter((entry) =>
+      invoiceLineItemMatchesLedgerEntry(
+        {
+          shipmentId: lineItem.shipmentId,
+          description: lineItem.description,
+          amount: lineItem.amount,
+        },
+        {
+          shipmentId: entry.shipmentId,
+          description: entry.description,
+          amount: Number(entry.amount ?? 0),
+        },
+      )
+    )
+    .map((entry) => entry.id);
+
+  if (!matchingEntryIds.length) {
+    return;
+  }
+
+  const companyEntries = await tx.companyLedgerEntry.findMany({
+    where: {
+      OR: [
+        {
+          reference: {
+            in: matchingEntryIds.map((entryId) => `shipment-expense:${entryId}`),
+          },
+        },
+        {
+          metadata: {
+            path: ['linkedUserExpenseEntryId'],
+            equals: matchingEntryIds[0],
+          },
+        },
+      ],
+    },
+    select: { id: true },
+  });
+
+  if (companyEntries.length) {
+    await tx.companyLedgerEntry.deleteMany({
+      where: {
+        id: { in: companyEntries.map((entry) => entry.id) },
+      },
+    });
+  }
+
+  await tx.ledgerEntry.deleteMany({
+    where: {
+      id: { in: matchingEntryIds },
+    },
+  });
+}
 
 function normalizeShipmentRefInDescription(
   description: string,
@@ -500,6 +781,16 @@ export async function PATCH(
               continue;
             }
 
+            await removeInvoiceLineItemLedgerEntries(
+              tx,
+              { userId: currentInvoice.userId },
+              {
+                shipmentId: lineItem.shipmentId,
+                description: lineItem.description,
+                amount: Number(lineItem.amount ?? 0),
+              },
+            );
+
             await tx.invoiceLineItem.delete({ where: { id: operation.id } });
             continue;
           }
@@ -528,18 +819,49 @@ export async function PATCH(
               throw new Error('Invoice line item amount must be a valid non-negative number.');
             }
 
+            const updatedLineItem = {
+              shipmentId: operation.shipmentId ?? lineItem.shipmentId ?? null,
+              description: nextDescription,
+              amount: computedAmount,
+              type: coerceLineItemType(operation.type ?? lineItem.type),
+              expenseSource: operation.expenseSource ?? lineItem.expenseSource ?? null,
+            };
+
+            await removeInvoiceLineItemLedgerEntries(
+              tx,
+              { userId: currentInvoice.userId },
+              {
+                shipmentId: lineItem.shipmentId,
+                description: lineItem.description,
+                amount: Number(lineItem.amount ?? 0),
+              },
+            );
+
             await tx.invoiceLineItem.update({
               where: { id: operation.id },
               data: {
                 description: nextDescription,
-                shipmentId: operation.shipmentId ?? lineItem.shipmentId ?? null,
-                type: coerceLineItemType(operation.type ?? lineItem.type),
+                shipmentId: updatedLineItem.shipmentId,
+                type: updatedLineItem.type,
                 quantity: nextQuantity,
                 unitPrice: nextAmount > 0 && nextQuantity > 0 ? nextAmount / nextQuantity : nextUnitPrice,
                 amount: computedAmount,
-                expenseSource: operation.expenseSource ?? lineItem.expenseSource ?? null,
+                expenseSource: updatedLineItem.expenseSource,
               },
             });
+
+            await syncInvoiceLineItemLedgerEntries(
+              tx,
+              { id: currentInvoice.id, userId: currentInvoice.userId, notes: invoiceUpdateData.notes ?? currentInvoice.notes },
+              {
+                shipmentId: updatedLineItem.shipmentId,
+                description: updatedLineItem.description,
+                amount: updatedLineItem.amount,
+                type: updatedLineItem.type,
+                expenseSource: updatedLineItem.expenseSource,
+              },
+              actorId,
+            );
             continue;
           }
 
@@ -558,7 +880,7 @@ export async function PATCH(
               throw new Error('Invoice line item amount must be a valid non-negative number.');
             }
 
-            await tx.invoiceLineItem.create({
+            const createdLineItem = await tx.invoiceLineItem.create({
               data: {
                 invoiceId: currentInvoice.id,
                 description: finalDescription,
@@ -570,6 +892,19 @@ export async function PATCH(
                 expenseSource: operation.expenseSource ?? null,
               },
             });
+
+            await syncInvoiceLineItemLedgerEntries(
+              tx,
+              { id: currentInvoice.id, userId: currentInvoice.userId, notes: invoiceUpdateData.notes ?? currentInvoice.notes },
+              {
+                shipmentId: createdLineItem.shipmentId,
+                description: createdLineItem.description,
+                amount: createdLineItem.amount,
+                type: createdLineItem.type,
+                expenseSource: createdLineItem.expenseSource,
+              },
+              actorId,
+            );
           }
         }
       }
