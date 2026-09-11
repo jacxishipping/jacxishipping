@@ -691,6 +691,12 @@ model UserInvoice {
   paymentMethod    String?
   paymentReference String?
 
+  // Phase 3: FX snapshot so a foreign-currency invoice preserves the exact rate
+  // used at issue time (no silent re-pricing on report day).
+  currency    String  @default("USD")
+  fxRate      Float? // 1 base currency = fxRate of `currency`; null when USD
+  fxEffective DateTime?
+
   // Notes
   notes         String?
   internalNotes String?
@@ -708,6 +714,7 @@ model UserInvoice {
   shipmentCharges ShipmentCharge[]
   payments  Payment[]
   allocations PaymentAllocation[]
+  bankReconciliations BankReconciliation[]
 
   @@index([userId])
   @@index([containerId])
@@ -789,6 +796,7 @@ model ShipmentCharge {
   user      User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   invoice   UserInvoice?           @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
   auditLogs ShipmentChargeAuditLog[]
+  lineItems InvoiceLineItem[]
 
   @@index([shipmentId])
   @@index([userId])
@@ -872,6 +880,11 @@ model InvoiceLineItem {
   amount    Float // quantity × unitPrice
   expenseSource String?
 
+  // Phase 3: schema-enforced link to the ShipmentCharge this line item was
+  // materialised from. Replaces the previous description-string matching in
+  // invoice-ledger-sync.ts.
+  chargeId String?
+
   // Metadata
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -879,11 +892,13 @@ model InvoiceLineItem {
   // Relations
   invoice  UserInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
   shipment Shipment?   @relation(fields: [shipmentId], references: [id], onDelete: SetNull)
+  charge   ShipmentCharge? @relation(fields: [chargeId], references: [id], onDelete: SetNull)
 
   @@index([invoiceId])
   @@index([shipmentId])
   @@index([type])
   @@index([expenseSource])
+  @@index([chargeId])
 }
 
 // ============================================
@@ -908,6 +923,7 @@ model LedgerEntry {
   user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   shipment        Shipment?       @relation(fields: [shipmentId], references: [id], onDelete: SetNull)
   auditLogs       AuditLog[]
+  bankReconciliations BankReconciliation[]
 
   @@index([userId])
   @@index([shipmentId])
@@ -1622,4 +1638,49 @@ model RateLimit {
 
   @@index([identifier])
   @@index([expiresAt])
+}
+
+// ============================================
+// PHASE 3: FX RATE + BANK RECONCILIATION MODELS
+// ============================================
+
+/// Snapshot of a currency exchange rate, so invoices can store the exact rate
+/// used at the time of calculation (no silent re-pricing on report day).
+model ExchangeRate {
+  id        String   @id @default(cuid())
+  base      String   @default("USD")
+  currency  String
+  rate      Float    // 1 base currency = `rate` of `currency`
+  source    String   @default("MANUAL") // MANUAL | EXCHANGERATE_API | OPENEXCHANGERATES | FIXED
+  effective DateTime @default(now())
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@unique([currency, effective])
+  @@index([currency])
+  @@index([effective])
+}
+
+/// Per-row reconciliation between an imported bank transaction and the ledger
+/// entry it was matched to. Replaces the previous "metadata-only" convention.
+model BankReconciliation {
+  id          String  @id @default(cuid())
+  bankSource  String // PLAIN | PLIAD | FINICITY | BOA_CSV
+  sourceKey   String // plaidTransactionId | finicityCustomerId:accountId:transactionId | sha256 fingerprint
+  ledgerEntryId String?
+  invoiceId   String?
+  matchedAt   DateTime?
+  matchedBy   String? // user who confirmed the match
+  status      String  @default("UNMATCHED") // UNMATCHED | MATCHED | DISPUTED | IGNORED
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  ledgerEntry LedgerEntry?  @relation(fields: [ledgerEntryId], references: [id], onDelete: SetNull)
+  invoice     UserInvoice?  @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+
+  @@unique([bankSource, sourceKey])
+  @@index([ledgerEntryId])
+  @@index([invoiceId])
+  @@index([status])
 }

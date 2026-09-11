@@ -16,6 +16,8 @@ import {
 } from '@/lib/billing/shipment-charges';
 import { createInvoiceWithUniqueNumber, generateInvoiceNumber } from '@/lib/shipment-invoice';
 import { applyPercentDiscount, roundToCents, sumCents } from '@/lib/financial/money';
+import { captureFxSnapshot } from '@/lib/financial/fx-snapshot';
+import type { Currency } from '@/lib/financial/currency';
 
 const mutableInvoiceStatuses = new Set(['DRAFT', 'PENDING']);
 
@@ -435,6 +437,19 @@ export async function POST(req: NextRequest) {
           nextInvoice.id,
           invoiceCharges.map((charge) => charge.id),
         );
+
+        // Phase 3: capture an FX snapshot when the container's expenses carry
+        // a non-USD currency, so the invoice preserves the exact rate used.
+        const firstChargeCurrency = invoiceCharges.length
+          ? (await tx.shipmentCharge.findFirst({
+              where: { id: invoiceCharges[0].id },
+              select: { currency: true },
+            }))?.currency
+          : null;
+
+        if (firstChargeCurrency && firstChargeCurrency !== 'USD') {
+          await captureFxSnapshot(tx, nextInvoice.id, firstChargeCurrency as Currency);
+        }
 
         return {
           ...nextInvoice,

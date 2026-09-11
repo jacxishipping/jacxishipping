@@ -232,6 +232,30 @@ async function applyTransactionUpdates(
       });
     }
 
+    // Phase 3: upsert a BankReconciliation row so the bank row is linked to
+    // the ledger entry by a global key, not just by Plaid-internal metadata.
+    // This makes cross-source dedup and reporting possible.
+    await db.bankReconciliation.upsert({
+      where: {
+        bankSource_sourceKey: {
+          bankSource: 'PLAID',
+          sourceKey: transaction.transaction_id,
+        },
+      },
+      update: {
+        ledgerEntryId: createdEntry.id,
+        status: 'MATCHED',
+        matchedAt: new Date(),
+      },
+      create: {
+        bankSource: 'PLAID',
+        sourceKey: transaction.transaction_id,
+        ledgerEntryId: createdEntry.id,
+        status: 'MATCHED',
+        matchedAt: new Date(),
+      },
+    });
+
     counts.importedCount += 1;
   }
 

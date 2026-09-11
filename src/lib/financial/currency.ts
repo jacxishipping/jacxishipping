@@ -85,14 +85,45 @@ export function getExchangeRate(
 }
 
 /**
- * Fetch latest exchange rates from API (stub for future implementation)
- * In production, integrate with: exchangerate-api.com, fixer.io, or xe.com
+ * Fetch latest exchange rates from the database ExchangeRate model.
+ *
+ * Phase 3: replaces the previous TODO stub that returned stale hardcoded rates.
+ * Reads the most recent `ExchangeRate` row per currency (effective <= now).
+ * Falls back to DEFAULT_RATES when no rows exist yet (e.g. first deploy).
  */
 export async function fetchExchangeRates(): Promise<Record<Currency, number>> {
-  // TODO: Implement actual API call
-  // Example: const response = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
-  // For now, return default rates
-  return DEFAULT_RATES;
+  const { prisma } = await import('@/lib/db');
+
+  try {
+    const now = new Date();
+    const rows = await prisma.exchangeRate.findMany({
+      where: { effective: { lte: now } },
+      orderBy: { effective: 'desc' },
+    });
+
+    if (rows.length === 0) {
+      return { ...DEFAULT_RATES };
+    }
+
+    // Deduplicate: keep the most recent effective row per currency.
+    const byCurrency = new Map<Currency, { rate: number }>();
+    for (const row of rows) {
+      if (!byCurrency.has(row.currency as Currency)) {
+        byCurrency.set(row.currency as Currency, { rate: row.rate });
+      }
+    }
+
+    const merged: Record<Currency, number> = { ...DEFAULT_RATES };
+    for (const [currency, { rate }] of byCurrency.entries()) {
+      merged[currency] = rate;
+    }
+    return merged;
+  } catch (error) {
+    // If the DB is unavailable, fall back to defaults rather than crashing
+    // every invoice/report call.
+    console.warn('fetchExchangeRates: DB lookup failed, using defaults', error);
+    return { ...DEFAULT_RATES };
+  }
 }
 
 /**

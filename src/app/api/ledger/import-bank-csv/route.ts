@@ -258,7 +258,7 @@ export async function POST(request: NextRequest) {
       let importedCount = 0;
 
       for (const transaction of preview.importableRows) {
-        await tx.ledgerEntry.create({
+        const createdEntry = await tx.ledgerEntry.create({
           data: {
             userId: session.user.id as string,
             description: transaction.description,
@@ -276,6 +276,34 @@ export async function POST(request: NextRequest) {
               sourceLabel,
               category,
               rawRow: transaction.rawRow,
+            } as Prisma.InputJsonValue,
+          },
+        });
+
+        // Phase 3: link the bank row to the ledger entry via a global
+        // BankReconciliation record keyed by the SHA-256 fingerprint.
+        await tx.bankReconciliation.upsert({
+          where: {
+            bankSource_sourceKey: {
+              bankSource: 'BOA_CSV',
+              sourceKey: transaction.importFingerprint,
+            },
+          },
+          update: {
+            ledgerEntryId: createdEntry.id,
+            status: 'MATCHED',
+            matchedAt: new Date(),
+          },
+          create: {
+            bankSource: 'BOA_CSV',
+            sourceKey: transaction.importFingerprint,
+            ledgerEntryId: createdEntry.id,
+            status: 'MATCHED',
+            matchedAt: new Date(),
+            metadata: {
+              importedFileName: file.name,
+              sourceLabel,
+              category,
             } as Prisma.InputJsonValue,
           },
         });

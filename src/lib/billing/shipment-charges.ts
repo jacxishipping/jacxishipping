@@ -435,6 +435,7 @@ export function buildInvoiceLineItemFromCharge(charge: ShipmentChargeRecord) {
     quantity: charge.quantity || 1,
     unitPrice: charge.unitAmount,
     amount: charge.totalAmount,
+    chargeId: charge.id, // Phase 3: schema-enforced link to the source charge
   };
 }
 
