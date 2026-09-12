@@ -4,9 +4,10 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
-import { User, UserPlus, Eye, EyeOff, Copy, Check } from 'lucide-react';
+import { User, UserPlus, Eye, EyeOff, Copy, Check, Download } from 'lucide-react';
 import { Box, Typography, IconButton, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@mui/material';
 import { Breadcrumbs, toast, SkeletonCard, Button, CompactSkeleton } from '@/components/design-system';
+import { exportToCSVWithHeaders } from '@/lib/export';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import EditIcon from '@mui/icons-material/Edit';
@@ -230,6 +231,82 @@ export default function CustomersPage() {
     setDeletingUserId(null);
   };
 
+  const handleExportCustomerVinCsv = useCallback(async () => {
+    try {
+      const firstPageResponse = await fetch('/api/users?page=1&pageSize=200&roleType=customers');
+      if (!firstPageResponse.ok) {
+        throw new Error('Failed to load customers for export');
+      }
+
+      const firstPageData = await firstPageResponse.json();
+      const totalCustomersForExport = Number(firstPageData.total ?? 0);
+      const pageSize = 200;
+      const pageCount = Math.max(1, Math.ceil(totalCustomersForExport / pageSize));
+
+      const customerPageResponses = await Promise.all(
+        Array.from({ length: pageCount }, (_, index) =>
+          fetch(`/api/users?page=${index + 1}&pageSize=${pageSize}&roleType=customers`),
+        ),
+      );
+
+      const customerPages = await Promise.all(
+        customerPageResponses.map(async (response) => {
+          if (!response.ok) {
+            throw new Error('Failed to fetch customer export data');
+          }
+          return response.json();
+        }),
+      );
+
+      const customerList = customerPages.flatMap((page) => page.users ?? []);
+
+      const rows = await Promise.all(
+        customerList.map(async (customer: UserData) => {
+          try {
+            const detailResponse = await fetch(`/api/users/${customer.id}`);
+            if (!detailResponse.ok) {
+              return {
+                customerName: customer.name || 'Unnamed Customer',
+                shipmentVins: 'N/A',
+              };
+            }
+
+            const detail = await detailResponse.json();
+            const shipmentVins = (detail.user?.shipments ?? [])
+              .map((shipment: { vehicleVIN?: string | null }) => shipment.vehicleVIN)
+              .filter((vin: string | null | undefined): vin is string => Boolean(vin && vin.trim()))
+              .join(' | ');
+
+            return {
+              customerName: detail.user?.name || customer.name || 'Unnamed Customer',
+              shipmentVins: shipmentVins || 'N/A',
+            };
+          } catch (error) {
+            console.error(`Error exporting customer ${customer.id}:`, error);
+            return {
+              customerName: customer.name || 'Unnamed Customer',
+              shipmentVins: 'N/A',
+            };
+          }
+        }),
+      );
+
+      exportToCSVWithHeaders(
+        rows,
+        [
+          { key: 'customerName', label: 'Customer Name' },
+          { key: 'shipmentVins', label: 'Shipment VINs' },
+        ],
+        'customers-shipment-vins',
+      );
+
+      toast.success(`Exported ${rows.length} customers with VINs`);
+    } catch (error) {
+      console.error('Export customer VINs failed:', error);
+      toast.error('Failed to export customer VIN data');
+    }
+  }, []);
+
   if (status === 'loading') {
     return (
       <DashboardSurface>
@@ -259,12 +336,18 @@ export default function CustomersPage() {
         description="All customer accounts"
         noBodyPadding
         actions={
-          <Link href="/dashboard/customers/new" style={{ textDecoration: 'none' }}>
-            <Button variant="primary" size="sm" sx={{ textTransform: 'none', fontWeight: 600 }}>
-              <UserPlus style={{ width: 16, height: 16, marginRight: 8 }} />
-              Create Customer
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+            <Button variant="outline" size="sm" onClick={() => void handleExportCustomerVinCsv()} sx={{ textTransform: 'none', fontWeight: 600 }}>
+              <Download style={{ width: 16, height: 16, marginRight: 8 }} />
+              Export VINs
             </Button>
-          </Link>
+            <Link href="/dashboard/customers/new" style={{ textDecoration: 'none' }}>
+              <Button variant="primary" size="sm" sx={{ textTransform: 'none', fontWeight: 600 }}>
+                <UserPlus style={{ width: 16, height: 16, marginRight: 8 }} />
+                Create Customer
+              </Button>
+            </Link>
+          </Box>
         }
       >
         <Box sx={{ px: 1.5, py: 1.5 }}>
