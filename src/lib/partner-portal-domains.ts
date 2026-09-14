@@ -68,9 +68,24 @@ export function isSystemHost(host: string | null | undefined) {
     return false;
   }
 
-  if (getSystemHosts().has(normalizedHost)) {
+  const systemHosts = getSystemHosts();
+
+  if (systemHosts.has(normalizedHost)) {
     return true;
   }
 
-  return normalizedHost.endsWith('.vercel.app') || normalizedHost.endsWith('.github.dev');
+  if (normalizedHost.endsWith('.vercel.app') || normalizedHost.endsWith('.github.dev')) {
+    return true;
+  }
+
+  // Check if the host is a subdomain of any system host.
+  // Example: portal.jacxishipping.com is a subdomain of jacxishipping.com
+  // (if jacxishipping.com is the main app domain configured on Vercel).
+  for (const systemHost of systemHosts) {
+    if (normalizedHost.endsWith(`.${systemHost}`)) {
+      return true;
+    }
+  }
+
+  return false;
 }
