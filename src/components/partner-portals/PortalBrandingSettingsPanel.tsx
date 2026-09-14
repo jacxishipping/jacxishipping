@@ -46,6 +46,9 @@ export default function PortalBrandingSettingsPanel({
   const [form, setForm] = useState({ companyLabel: '', accentColor: '', logoUrl: '', customDomain: '' });
   const [saving, setSaving] = useState(false);
   const [verifyingDomain, setVerifyingDomain] = useState(false);
+  const [checkingDomain, setCheckingDomain] = useState(false);
+  const [disconnectingDomain, setDisconnectingDomain] = useState(false);
+  const [domainCheckError, setDomainCheckError] = useState<string | null>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [pendingLogoFile, setPendingLogoFile] = useState<File | null>(null);
   const [pendingLogoPreviewUrl, setPendingLogoPreviewUrl] = useState<string | null>(null);
@@ -141,6 +144,68 @@ export default function PortalBrandingSettingsPanel({
       toast.error(error instanceof Error ? error.message : 'Failed to verify custom domain');
     } finally {
       setVerifyingDomain(false);
+    }
+  };
+
+  const handleCheckDomain = async () => {
+    if (!canEdit || !form.customDomain) {
+      return;
+    }
+
+    try {
+      setCheckingDomain(true);
+      setDomainCheckError(null);
+      const response = await fetch(`/api/partner-portals/${portalId}/check-domain?domain=${encodeURIComponent(form.customDomain)}`, {
+        cache: 'no-store',
+      });
+      const data = await response.json();
+
+      if (!response.ok || !data.valid) {
+        setDomainCheckError(data.error || 'Domain is not available');
+      } else {
+        setDomainCheckError(null);
+        toast.success('Domain is available for this portal');
+      }
+    } catch (error) {
+      setDomainCheckError('Failed to check domain availability');
+    } finally {
+      setCheckingDomain(false);
+    }
+  };
+
+  const handleDisconnectDomain = async () => {
+    if (!canEdit || !portal?.customDomain) {
+      return;
+    }
+
+    if (!confirm(`Remove the custom domain ${portal.customDomain} from this portal?`)) {
+      return;
+    }
+
+    try {
+      setDisconnectingDomain(true);
+      const response = await fetch(`/api/partner-portals/${portalId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customDomain: '',
+          customDomainVerificationToken: null,
+          customDomainVerifiedAt: null,
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to disconnect domain');
+      }
+
+      setForm((prev) => ({ ...prev, customDomain: '' }));
+      toast.success('Custom domain disconnected');
+      onSaved?.(data.portal);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to disconnect domain');
+    } finally {
+      setDisconnectingDomain(false);
     }
   };
 
@@ -376,7 +441,28 @@ export default function PortalBrandingSettingsPanel({
             value={form.customDomain}
             onChange={(event) => setForm((prev) => ({ ...prev, customDomain: event.target.value.trim().toLowerCase() }))}
             disabled={!canEdit || saving}
+            error={Boolean(domainCheckError)}
+            helperText={
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                <span>Hostname only. No http://, https://, ports, or paths. After saving, point this DNS record to the main app host.</span>
+                {canEdit && form.customDomain && !hasUnsavedDomainChange && (
+                  <span style={{ color: 'var(--error)', fontSize: '0.8rem' }}>
+                    {domainCheckError || 'Domain is available'}
+                  </span>
+                )}
+              </Box>
+            }
           />
+          {canEdit && form.customDomain && !hasUnsavedDomainChange && (
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+              <Button variant="outline" size="sm" onClick={() => void handleCheckDomain()} disabled={checkingDomain || saving}>
+                {checkingDomain ? 'Checking...' : 'Check Availability'}
+              </Button>
+              {domainCheckError ? (
+                <Typography sx={{ fontSize: '0.82rem', color: 'var(--error)' }}>{domainCheckError}</Typography>
+              ) : null}
+            </Box>
+          )}
 
           <Box sx={{ border: '1px solid var(--border)', borderRadius: 2.5, p: 1.5, bgcolor: 'rgba(var(--brand-primary-rgb),0.05)', display: 'grid', gap: 0.65 }}>
             <Typography sx={{ fontSize: '0.76rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
@@ -438,6 +524,13 @@ export default function PortalBrandingSettingsPanel({
                     <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
                       <Button variant="outline" size="sm" onClick={() => void handleVerifyDomain()} disabled={verifyingDomain || saving}>
                         {verifyingDomain ? 'Verifying...' : 'Verify Domain'}
+                      </Button>
+                    </Box>
+                  ) : null}
+                  {canEdit && portal?.customDomainVerifiedAt ? (
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                      <Button variant="outline" size="sm" color="error" onClick={() => void handleDisconnectDomain()} disabled={disconnectingDomain || saving}>
+                        {disconnectingDomain ? 'Disconnecting...' : 'Disconnect Domain'}
                       </Button>
                     </Box>
                   ) : null}
