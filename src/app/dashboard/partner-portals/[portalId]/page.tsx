@@ -20,7 +20,7 @@ import {
   Typography,
 } from '@mui/material';
 import { DashboardSurface, DashboardPanel } from '@/components/dashboard/DashboardSurface';
-import { Breadcrumbs, Button, EmptyState, toast } from '@/components/design-system';
+import { Breadcrumbs, Button, ConfirmDialog, EmptyState, toast } from '@/components/design-system';
 import { PortalActivityList } from '@/components/partner-portals/PortalActivityList';
 import PortalBrandingSettingsPanel from '@/components/partner-portals/PortalBrandingSettingsPanel';
 import { DataTable, type Column } from '@/components/ui/DataTable';
@@ -102,7 +102,7 @@ type ShipmentOption = {
   user?: { name: string | null; email: string };
 };
 
-type PortalManageTab = 'shipments' | 'members' | 'activity' | 'branding' | 'customers';
+type PortalManageTab = 'shipments' | 'members' | 'activity' | 'branding' | 'customers' | 'danger';
 
 const initialInviteForm = {
   name: '',
@@ -143,6 +143,11 @@ export default function PartnerPortalDetailPage() {
   const [activeTab, setActiveTab] = useState<PortalManageTab>('shipments');
   const [openAddMemberDialog, setOpenAddMemberDialog] = useState(false);
   const [openCreatePortalUserDialog, setOpenCreatePortalUserDialog] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [deletingPortal, setDeletingPortal] = useState(false);
+  const [pendingRemoveMembership, setPendingRemoveMembership] = useState<PortalMembership | null>(null);
+  const [pendingUnassignShipment, setPendingUnassignShipment] = useState<ShipmentAssignment | null>(null);
 
   const publicSiteHref = useMemo(() => {
     if (portal?.customDomainVerifiedAt && portal?.customDomain) {
@@ -351,7 +356,7 @@ export default function PartnerPortalDetailPage() {
           >
             {regeneratingLoginCodeMembershipId === row.id ? 'Generating...' : 'Generate Code'}
           </Button>
-          <Button variant="outline" size="sm" onClick={() => void handleRemoveMembership(row.id)} disabled={removingMembershipId === row.id}>
+          <Button variant="outline" size="sm" onClick={() => setPendingRemoveMembership(row)} disabled={removingMembershipId === row.id}>
             {removingMembershipId === row.id ? 'Removing...' : 'Remove'}
           </Button>
         </Box>
@@ -388,7 +393,7 @@ export default function PartnerPortalDetailPage() {
           <Link href={`/portal/${portalId}/shipments/${row.shipment.id}`} style={{ textDecoration: 'none' }}>
             <Button variant="outline" size="sm">View</Button>
           </Link>
-          <Button variant="outline" size="sm" onClick={() => void handleUnassignShipment(row.shipment.id)} disabled={savingShipmentId === row.shipment.id}>
+          <Button variant="outline" size="sm" onClick={() => setPendingUnassignShipment(row)} disabled={savingShipmentId === row.shipment.id}>
             {savingShipmentId === row.shipment.id ? 'Removing...' : 'Unassign'}
           </Button>
         </Box>
@@ -480,10 +485,6 @@ export default function PartnerPortalDetailPage() {
   };
 
   const handleRemoveMembership = async (membershipId: string) => {
-    if (!confirm('Remove this member from the portal?')) {
-      return;
-    }
-
     try {
       setRemovingMembershipId(membershipId);
       const response = await fetch(`/api/partner-portals/${portalId}/memberships/${membershipId}`, { method: 'DELETE' });
@@ -555,10 +556,6 @@ export default function PartnerPortalDetailPage() {
   };
 
   const handleUnassignShipment = async (shipmentId: string) => {
-    if (!confirm('Remove this shipment from the portal? The partner will no longer see it.')) {
-      return;
-    }
-
     try {
       setSavingShipmentId(shipmentId);
       const response = await fetch(`/api/partner-portals/${portalId}/shipments/${shipmentId}`, { method: 'DELETE' });
@@ -574,6 +571,36 @@ export default function PartnerPortalDetailPage() {
       toast.error(error instanceof Error ? error.message : 'Failed to unassign shipment');
     } finally {
       setSavingShipmentId(null);
+    }
+  };
+
+  const handleDeletePortal = async () => {
+    if (deleteConfirmText !== portal?.name) {
+      toast.error('Type the portal name exactly to confirm deletion');
+      return;
+    }
+
+    try {
+      setDeletingPortal(true);
+      const response = await fetch(`/api/partner-portals/${portalId}`, { method: 'DELETE' });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to delete portal');
+      }
+
+      const counts = data.deletedCounts || {};
+      const removedParts = [
+        counts.memberships ? `${counts.memberships} member${counts.memberships === 1 ? '' : 's'}` : null,
+        counts.customers ? `${counts.customers} customer${counts.customers === 1 ? '' : 's'}` : null,
+        counts.shipmentAssignments ? `${counts.shipmentAssignments} shipment link${counts.shipmentAssignments === 1 ? '' : 's'}` : null,
+      ].filter(Boolean);
+
+      toast.success(`Portal deleted${removedParts.length ? ` along with ${removedParts.join(', ')}` : ''}`);
+      router.push('/dashboard/partner-portals');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to delete portal');
+      setDeletingPortal(false);
     }
   };
 
@@ -677,6 +704,7 @@ export default function PartnerPortalDetailPage() {
                 <Tab value="activity" label={`Activity (${activities.length})`} />
                 <Tab value="branding" label="Branding" />
                 <Tab value="customers" label={`Customers (${customers.length})`} />
+                <Tab value="danger" label="Danger Zone" />
               </Tabs>
             </Box>
 
@@ -843,6 +871,46 @@ export default function PartnerPortalDetailPage() {
               </DashboardPanel>
             ) : null}
 
+            {activeTab === 'danger' ? (
+              <DashboardPanel title="Danger Zone" description="Irreversible actions for this partner portal">
+                <Box sx={{ display: 'grid', gap: 2 }}>
+                  <Box
+                    sx={{
+                      border: '1px solid rgba(var(--error-rgb, 239, 68, 68), 0.35)',
+                      borderRadius: 2.5,
+                      p: 2,
+                      display: 'grid',
+                      gap: 1.25,
+                      bgcolor: 'rgba(239, 68, 68, 0.05)',
+                    }}
+                  >
+                    <Typography sx={{ fontWeight: 700, color: 'var(--error, #ef4444)' }}>
+                      Delete this portal permanently
+                    </Typography>
+                    <Typography sx={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                      Deleting <strong>{portal?.name || 'this portal'}</strong> permanently removes the workspace along with
+                      {' '}{memberships.length} member{memberships.length === 1 ? '' : 's'},
+                      {' '}{customers.length} customer{customers.length === 1 ? '' : 's'}, and
+                      {' '}{assignments.length} shipment link{assignments.length === 1 ? '' : 's'}.
+                      The shipments themselves stay in the main system — only the portal assignments, portal customers, member access, and portal finance records are deleted. This cannot be undone.
+                    </Typography>
+                    <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap' }}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setDeleteConfirmText('');
+                          setOpenDeleteDialog(true);
+                        }}
+                      >
+                        Delete Portal
+                      </Button>
+                    </Box>
+                  </Box>
+                </Box>
+              </DashboardPanel>
+            ) : null}
+
             <Dialog
               open={openAddMemberDialog}
               onClose={() => {
@@ -937,6 +1005,83 @@ export default function PartnerPortalDetailPage() {
                 </Button>
               </DialogActions>
             </Dialog>
+
+            <Dialog
+              open={openDeleteDialog}
+              onClose={() => {
+                if (!deletingPortal) {
+                  setOpenDeleteDialog(false);
+                  setDeleteConfirmText('');
+                }
+              }}
+              fullWidth
+              maxWidth="sm"
+            >
+              <DialogTitle>Delete Portal Permanently</DialogTitle>
+              <DialogContent sx={{ pt: 1.5, display: 'grid', gap: 2 }}>
+                <Typography sx={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                  This will permanently delete <strong>{portal?.name}</strong> and all of its members, customers, shipment links, and finance records. The shipments themselves remain in the main system. This action cannot be undone.
+                </Typography>
+                <TextField
+                  label={`Type "${portal?.name || ''}" to confirm`}
+                  value={deleteConfirmText}
+                  onChange={(event) => setDeleteConfirmText(event.target.value)}
+                  disabled={deletingPortal}
+                  fullWidth
+                />
+              </DialogContent>
+              <DialogActions sx={{ px: 3, pb: 3 }}>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setOpenDeleteDialog(false);
+                    setDeleteConfirmText('');
+                  }}
+                  disabled={deletingPortal}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="primary"
+                  onClick={() => void handleDeletePortal()}
+                  disabled={deletingPortal || deleteConfirmText !== portal?.name}
+                >
+                  {deletingPortal ? 'Deleting...' : 'Delete Portal Forever'}
+                </Button>
+              </DialogActions>
+            </Dialog>
+
+            <ConfirmDialog
+              open={pendingRemoveMembership !== null}
+              onClose={() => setPendingRemoveMembership(null)}
+              onConfirm={() => {
+                if (pendingRemoveMembership) {
+                  void handleRemoveMembership(pendingRemoveMembership.id);
+                }
+                setPendingRemoveMembership(null);
+              }}
+              title="Remove portal member"
+              message={`Remove ${pendingRemoveMembership?.user.name || pendingRemoveMembership?.user.email || 'this member'} from the portal? They will immediately lose access to this workspace.`}
+              confirmText="Remove member"
+              severity="warning"
+              loading={removingMembershipId !== null}
+            />
+
+            <ConfirmDialog
+              open={pendingUnassignShipment !== null}
+              onClose={() => setPendingUnassignShipment(null)}
+              onConfirm={() => {
+                if (pendingUnassignShipment) {
+                  void handleUnassignShipment(pendingUnassignShipment.shipment.id);
+                }
+                setPendingUnassignShipment(null);
+              }}
+              title="Unassign shipment"
+              message={`Remove ${[pendingUnassignShipment?.shipment.vehicleYear, pendingUnassignShipment?.shipment.vehicleMake, pendingUnassignShipment?.shipment.vehicleModel].filter(Boolean).join(' ') || 'this shipment'} from the portal? The partner will no longer see it, but the shipment stays in the main system.`}
+              confirmText="Unassign"
+              severity="warning"
+              loading={savingShipmentId !== null}
+            />
           </Box>
         )}
       </DashboardPanel>

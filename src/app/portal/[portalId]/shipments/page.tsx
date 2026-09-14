@@ -11,7 +11,7 @@ import PersonOutlineOutlinedIcon from '@mui/icons-material/PersonOutlineOutlined
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import { Box, MenuItem, TextField, Typography } from '@mui/material';
 import { DashboardSurface, DashboardPanel, DashboardGrid, DashboardHeader } from '@/components/dashboard/DashboardSurface';
-import { Button, EmptyState, toast } from '@/components/design-system';
+import { Button, ConfirmDialog, EmptyState, Skeleton, SkeletonParagraph, SkeletonTable, toast } from '@/components/design-system';
 import { DataTable, type Column } from '@/components/ui/DataTable';
 
 type PortalCustomer = {
@@ -88,6 +88,13 @@ export default function PortalShipmentsPage() {
   const [readinessFilter, setReadinessFilter] = useState<'all' | 'ready' | 'not-ready'>('all');
   const [selectedCustomers, setSelectedCustomers] = useState<Record<string, string>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [bulkAction, setBulkAction] = useState<'LINK_CUSTOMER' | 'SET_NOTES' | ''>('');
+  const [bulkCustomerId, setBulkCustomerId] = useState('');
+  const [bulkNotes, setBulkNotes] = useState('');
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [selectedShipmentIds, setSelectedShipmentIds] = useState<string[]>([]);
+  const [bulkUnassignTargets, setBulkUnassignTargets] = useState<string[] | null>(null);
+  const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
 
   const fetchData = async () => {
     try {
@@ -111,6 +118,7 @@ export default function PortalShipmentsPage() {
       setPortal(shipmentsData.portal);
       setAssignments(shipmentsData.assignments || []);
       setCustomers(customersData.customers || []);
+      setLastRefreshedAt(new Date());
       setSelectedCustomers(
         Object.fromEntries(
           (shipmentsData.assignments || []).map((assignment: ShipmentAssignment) => [assignment.shipment.id, assignment.partnerCustomer?.id || ''])
@@ -191,6 +199,67 @@ export default function PortalShipmentsPage() {
     }
   };
 
+  const runBulkAction = async (
+    action: 'UNASSIGN' | 'LINK_CUSTOMER' | 'SET_NOTES' | 'CLEAR_NOTES',
+    shipmentIds: string[],
+    options?: { partnerCustomerId?: string | null; notes?: string },
+  ) => {
+    if (shipmentIds.length === 0) {
+      toast.error('Select at least one shipment first');
+      return;
+    }
+
+    try {
+      setBulkBusy(true);
+      const response = await fetch(`/api/partner-portals/${portalId}/shipments/bulk`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action,
+          shipmentIds,
+          ...(action === 'LINK_CUSTOMER' ? { partnerCustomerId: options?.partnerCustomerId || null } : {}),
+          ...(action === 'SET_NOTES' ? { notes: options?.notes || '' } : {}),
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Bulk action failed');
+      }
+
+      const labels: Record<string, string> = {
+        UNASSIGN: 'removed from portal',
+        LINK_CUSTOMER: options?.partnerCustomerId ? 'linked to customer' : 'unlinked from customers',
+        SET_NOTES: 'notes updated',
+        CLEAR_NOTES: 'notes cleared',
+      };
+
+      toast.success(`${data.updatedCount} shipment${data.updatedCount === 1 ? '' : 's'} ${labels[action]}`);
+      setBulkAction('');
+      setBulkCustomerId('');
+      setBulkNotes('');
+      await fetchData();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Bulk action failed');
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
+  const handleBulkDelete = (selectedIds: string[]) => {
+    setBulkUnassignTargets(selectedIds);
+  };
+
+  const handleBulkLinkCustomer = (selectedIds: string[]) => {
+    void runBulkAction('LINK_CUSTOMER', selectedIds, {
+      partnerCustomerId: bulkCustomerId || null,
+    });
+  };
+
+  const handleBulkSetNotes = (selectedIds: string[]) => {
+    void runBulkAction('SET_NOTES', selectedIds, { notes: bulkNotes });
+  };
+
   const columns = useMemo<Column<ShipmentAssignment>[]>(() => [
     {
       key: 'vehicle',
@@ -218,7 +287,12 @@ export default function PortalShipmentsPage() {
       render: (_, row) => {
         const readiness = getPortalReadiness(portal, row);
         return (
-          <Box sx={{ px: 1.2, py: 0.45, borderRadius: 999, display: 'inline-flex', alignItems: 'center', bgcolor: readiness.tone === 'ready' ? 'rgba(34,197,94,0.12)' : 'rgba(245,158,11,0.14)', color: readiness.tone === 'ready' ? 'var(--success)' : '#b45309', fontSize: '0.75rem', fontWeight: 700 }}>
+          <Box
+            component="span"
+            role="status"
+            aria-label={readiness.label}
+            sx={{ px: 1.2, py: 0.45, borderRadius: 999, display: 'inline-flex', alignItems: 'center', bgcolor: readiness.tone === 'ready' ? 'rgba(34,197,94,0.12)' : 'rgba(245,158,11,0.14)', color: readiness.tone === 'ready' ? 'var(--success)' : 'var(--warning)', fontSize: '0.75rem', fontWeight: 700 }}
+          >
             {readiness.label}
           </Box>
         );
@@ -230,7 +304,7 @@ export default function PortalShipmentsPage() {
       render: (_, row) => {
         const noteSource = getAssignmentNoteSource(row);
         return (
-          <Box sx={{ px: 1.2, py: 0.45, borderRadius: 999, display: 'inline-flex', alignItems: 'center', bgcolor: noteSource.tone === 'manual' ? 'rgba(var(--brand-primary-rgb),0.12)' : noteSource.tone === 'default' ? 'rgba(59,130,246,0.12)' : 'rgba(148,163,184,0.12)', color: noteSource.tone === 'manual' ? 'var(--brand-primary)' : noteSource.tone === 'default' ? '#1d4ed8' : 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700 }}>
+          <Box sx={{ px: 1.2, py: 0.45, borderRadius: 999, display: 'inline-flex', alignItems: 'center', bgcolor: noteSource.tone === 'manual' ? 'rgba(var(--brand-primary-rgb),0.12)' : noteSource.tone === 'default' ? 'rgba(59,130,246,0.12)' : 'rgba(var(--text-primary-rgb),0.08)', color: noteSource.tone === 'manual' ? 'var(--brand-primary)' : noteSource.tone === 'default' ? 'var(--info)' : 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700 }}>
             {noteSource.label}
           </Box>
         );
@@ -284,16 +358,40 @@ export default function PortalShipmentsPage() {
           { label: 'Customers', value: customers.length, helper: 'Available for assignment handoff' },
         ]}
         actions={
-          <Link href={`/portal/${portalId}/customers`} style={{ textDecoration: 'none' }}>
-            <Button variant="outline" size="sm">Open Customers</Button>
-          </Link>
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+            {lastRefreshedAt ? (
+              <Typography sx={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }} aria-live="polite">
+                Updated {lastRefreshedAt.toLocaleTimeString()}
+              </Typography>
+            ) : null}
+            <Button variant="outline" size="sm" onClick={() => void fetchData()} disabled={loading}>
+              Refresh
+            </Button>
+            <Link href={`/portal/${portalId}/customers`} style={{ textDecoration: 'none' }}>
+              <Button variant="outline" size="sm">Open Customers</Button>
+            </Link>
+          </Box>
         }
       />
 
       {loading ? (
-        <DashboardPanel title="Loading shipments" description="Fetching portal shipment assignments.">
-          <Box sx={{ color: 'var(--text-secondary)' }}>Loading assigned shipments...</Box>
-        </DashboardPanel>
+        <>
+          <DashboardGrid className="grid-cols-1 gap-3 md:grid-cols-3 xl:grid-cols-5">
+            {[0, 1, 2, 3, 4].map((index) => (
+              <Box key={index} sx={{ border: '1px solid var(--border)', borderRadius: 3, p: 2, bgcolor: 'var(--panel)', display: 'grid', gap: 0.75 }}>
+                <Skeleton variant="text" width="60%" height={14} />
+                <Skeleton variant="text" width="35%" height={34} />
+              </Box>
+            ))}
+          </DashboardGrid>
+          <DashboardPanel title="Shipment Workspace" description="Search, review, and link assigned shipments to portal customers.">
+            <Box sx={{ display: 'grid', gap: 2 }}>
+              <Skeleton variant="rounded" height={56} />
+              <Skeleton variant="rounded" height={48} />
+              <SkeletonTable rows={6} columns={5} />
+            </Box>
+          </DashboardPanel>
+        </>
       ) : (
         <>
           <DashboardGrid className="grid-cols-1 gap-3 md:grid-cols-3 xl:grid-cols-5">
@@ -307,7 +405,7 @@ export default function PortalShipmentsPage() {
               <Typography sx={{ fontSize: '1.55rem', fontWeight: 800 }}>{linkedCount}</Typography>
               <AssignmentTurnedInOutlinedIcon sx={{ color: 'var(--text-secondary)' }} />
             </Box>
-            <Box sx={{ border: '1px solid var(--border)', borderRadius: 3, p: 2, bgcolor: 'rgba(15,23,42,0.05)', display: 'grid', gap: 0.75 }}>
+            <Box sx={{ border: '1px solid var(--border)', borderRadius: 3, p: 2, bgcolor: 'rgba(var(--text-primary-rgb),0.05)', display: 'grid', gap: 0.75 }}>
               <Typography sx={{ fontSize: '0.76rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Needs Handoff</Typography>
               <Typography sx={{ fontSize: '1.55rem', fontWeight: 800 }}>{unlinkedCount}</Typography>
               <PersonOutlineOutlinedIcon sx={{ color: 'var(--text-secondary)' }} />
@@ -345,12 +443,125 @@ export default function PortalShipmentsPage() {
                   <MenuItem value="not-ready">Not ready only</MenuItem>
                 </TextField>
 
+                <Box
+                  sx={{
+                    border: '1px solid var(--border)',
+                    borderRadius: 2.5,
+                    p: 1.75,
+                    bgcolor: 'var(--panel)',
+                    display: 'grid',
+                    gap: 1.25,
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1.5, flexWrap: 'wrap' }}>
+                    <Typography sx={{ fontSize: '0.8rem', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
+                      Bulk actions
+                    </Typography>
+                    <Typography sx={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                      Select rows in the table below, then apply an action to all of them at once.
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+                    <TextField
+                      select
+                      size="small"
+                      label="Action"
+                      value={bulkAction}
+                      onChange={(event) => setBulkAction(event.target.value as 'LINK_CUSTOMER' | 'SET_NOTES' | '')}
+                      sx={{ minWidth: 200 }}
+                    >
+                      <MenuItem value="">Choose action...</MenuItem>
+                      <MenuItem value="LINK_CUSTOMER">Link / unlink customer</MenuItem>
+                      <MenuItem value="SET_NOTES">Set notes</MenuItem>
+                    </TextField>
+
+                    {bulkAction === 'LINK_CUSTOMER' ? (
+                      <TextField
+                        select
+                        size="small"
+                        label="Customer"
+                        value={bulkCustomerId}
+                        onChange={(event) => setBulkCustomerId(event.target.value)}
+                        sx={{ minWidth: 220 }}
+                      >
+                        <MenuItem value="">Unassigned (unlink all)</MenuItem>
+                        {customers.map((customer) => (
+                          <MenuItem key={customer.id} value={customer.id}>{customer.name}</MenuItem>
+                        ))}
+                      </TextField>
+                    ) : null}
+
+                    {bulkAction === 'SET_NOTES' ? (
+                      <TextField
+                        size="small"
+                        label="Notes"
+                        placeholder="Note to apply to selected shipments"
+                        value={bulkNotes}
+                        onChange={(event) => setBulkNotes(event.target.value)}
+                        sx={{ minWidth: 260, maxWidth: 380 }}
+                      />
+                    ) : null}
+                  </Box>
+                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      disabled={!bulkAction || bulkBusy || selectedShipmentIds.length === 0}
+                      onClick={() => {
+                        if (bulkAction === 'LINK_CUSTOMER') {
+                          handleBulkLinkCustomer(selectedShipmentIds);
+                        } else if (bulkAction === 'SET_NOTES') {
+                          handleBulkSetNotes(selectedShipmentIds);
+                        }
+                      }}
+                    >
+                      {bulkBusy
+                        ? 'Applying...'
+                        : `Apply to ${selectedShipmentIds.length} selected`}
+                    </Button>
+                    {selectedShipmentIds.length === 0 && !bulkBusy ? (
+                      <Typography sx={{ fontSize: '0.8rem', color: 'var(--warning)', fontWeight: 600 }} role="status">
+                        Select shipments using the checkboxes in the table to enable this.
+                      </Typography>
+                    ) : null}
+                  </Box>
+                  <Typography sx={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                    Tip: use the checkboxes in the table and the toolbar that appears above it to remove shipments from the portal in bulk. Removing a shipment only unassigns it from this portal — the shipment itself stays untouched in the main system.
+                  </Typography>
+                </Box>
+
                 {assignments.length === 0 ? (
                   <EmptyState icon={<Inventory2OutlinedIcon />} title="No assigned shipments" description="Your portal does not have any shipments assigned yet. Ask the internal team to assign shipments to this portal first." />
                 ) : filteredAssignments.length === 0 ? (
                   <Box sx={{ color: 'var(--text-secondary)' }}>No shipments matched the current search and ready-state filters.</Box>
                 ) : (
-                  <DataTable data={filteredAssignments} columns={columns} keyField="id" />
+                  <DataTable
+                    data={filteredAssignments}
+                    columns={columns}
+                    keyField="id"
+                    selectable
+                    onSelectionChange={setSelectedShipmentIds}
+                    onDelete={handleBulkDelete}
+                    onExport={(rows) => {
+                      const csv = [
+                        ['Vehicle', 'VIN', 'Status', 'Customer', 'Ready State'].join(','),
+                        ...rows.map((row) => [
+                          formatShipmentLabel(row.shipment),
+                          row.shipment.vehicleVIN || '',
+                          row.shipment.status,
+                          row.partnerCustomer?.name || 'Unassigned',
+                          getPortalReadiness(portal, row).label,
+                        ].map((value) => `"${String(value).replaceAll('"', '""')}"`).join(',')),
+                      ].join('\n');
+                      const blob = new Blob([csv], { type: 'text/csv' });
+                      const url = URL.createObjectURL(blob);
+                      const anchor = document.createElement('a');
+                      anchor.href = url;
+                      anchor.download = `portal-shipments-${new Date().toISOString().slice(0, 10)}.csv`;
+                      anchor.click();
+                      URL.revokeObjectURL(url);
+                    }}
+                  />
                 )}
               </Box>
             </DashboardPanel>
@@ -371,7 +582,7 @@ export default function PortalShipmentsPage() {
                     <Box sx={{ color: 'var(--text-secondary)' }}>No shipment links have been created yet.</Box>
                   ) : (
                     topCustomers.map(([name, count]) => (
-                      <Box key={name} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, p: 1.25, borderRadius: 2, bgcolor: 'rgba(15,23,42,0.04)' }}>
+                      <Box key={name} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, p: 1.25, borderRadius: 2, bgcolor: 'rgba(var(--text-primary-rgb),0.04)' }}>
                         <Typography sx={{ fontSize: '0.92rem', fontWeight: 600 }}>{name}</Typography>
                         <Typography sx={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{count} linked</Typography>
                       </Box>
@@ -388,10 +599,10 @@ export default function PortalShipmentsPage() {
                       <Typography sx={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                         {assignment.partnerCustomer?.name || 'Awaiting portal customer link'}
                       </Typography>
-                      <Typography sx={{ fontSize: '0.8rem', color: getAssignmentNoteSource(assignment).tone === 'manual' ? 'var(--brand-primary)' : getAssignmentNoteSource(assignment).tone === 'default' ? '#1d4ed8' : 'var(--text-secondary)', fontWeight: 700 }}>
+                      <Typography sx={{ fontSize: '0.8rem', color: getAssignmentNoteSource(assignment).tone === 'manual' ? 'var(--brand-primary)' : getAssignmentNoteSource(assignment).tone === 'default' ? 'var(--info)' : 'var(--text-secondary)', fontWeight: 700 }}>
                         {getAssignmentNoteSource(assignment).label}
                       </Typography>
-                      <Typography sx={{ fontSize: '0.8rem', color: getPortalReadiness(portal, assignment).tone === 'ready' ? 'var(--success)' : '#b45309', fontWeight: 700 }}>
+                      <Typography sx={{ fontSize: '0.8rem', color: getPortalReadiness(portal, assignment).tone === 'ready' ? 'var(--success)' : 'var(--warning)', fontWeight: 700 }}>
                         {getPortalReadiness(portal, assignment).label}
                       </Typography>
                     </Box>
@@ -402,6 +613,22 @@ export default function PortalShipmentsPage() {
           </DashboardGrid>
         </>
       )}
+
+      <ConfirmDialog
+        open={bulkUnassignTargets !== null}
+        onClose={() => setBulkUnassignTargets(null)}
+        onConfirm={() => {
+          if (bulkUnassignTargets) {
+            void runBulkAction('UNASSIGN', bulkUnassignTargets);
+          }
+          setBulkUnassignTargets(null);
+        }}
+        title="Remove shipments from portal"
+        message={`Remove ${bulkUnassignTargets?.length || 0} shipment${(bulkUnassignTargets?.length || 0) === 1 ? '' : 's'} from this portal? The shipments stay in the main system but will no longer be visible to this portal.`}
+        confirmText="Remove"
+        severity="warning"
+        loading={bulkBusy}
+      />
     </DashboardSurface>
   );
 }

@@ -8,7 +8,7 @@ import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import FmdGoodOutlinedIcon from '@mui/icons-material/FmdGoodOutlined';
 import { Box, TextField, Typography } from '@mui/material';
 import { DashboardSurface, DashboardPanel, DashboardGrid, DashboardHeader } from '@/components/dashboard/DashboardSurface';
-import { Button, EmptyState, toast } from '@/components/design-system';
+import { Button, EmptyState, Skeleton, SkeletonTable, toast } from '@/components/design-system';
 import { DataTable, type Column } from '@/components/ui/DataTable';
 
 type PortalCustomer = {
@@ -295,9 +295,18 @@ export default function PortalCustomersPage() {
       />
 
       {loading ? (
-        <DashboardPanel title="Loading customers" description="Fetching portal-owned customers.">
-          <Box sx={{ color: 'var(--text-secondary)' }}>Loading customers...</Box>
-        </DashboardPanel>
+        <DashboardGrid className="grid-cols-1 gap-3 lg:grid-cols-[0.95fr_1.35fr]">
+          <DashboardPanel title="Customer Directory" description="Capture the downstream customer identity for this portal.">
+            <Box sx={{ display: 'grid', gap: 2 }}>
+              {[0, 1, 2, 3].map((index) => (
+                <Skeleton key={index} variant="rounded" height={48} />
+              ))}
+            </Box>
+          </DashboardPanel>
+          <DashboardPanel title="Portal Customers" description="Accounts created inside this partner workspace.">
+            <SkeletonTable rows={5} columns={4} />
+          </DashboardPanel>
+        </DashboardGrid>
       ) : (
         <>
           <DashboardGrid className="grid-cols-1 gap-3 lg:grid-cols-[0.95fr_1.35fr]">
@@ -362,7 +371,7 @@ export default function PortalCustomersPage() {
                     <Typography sx={{ fontSize: '1.4rem', fontWeight: 800 }}>{totalAssignedShipments}</Typography>
                     <Inventory2OutlinedIcon sx={{ color: 'var(--text-secondary)' }} />
                   </Box>
-                  <Box sx={{ border: '1px solid var(--border)', borderRadius: 2.5, p: 1.8, bgcolor: 'rgba(15,23,42,0.05)', display: 'grid', gap: 0.65 }}>
+                  <Box sx={{ border: '1px solid var(--border)', borderRadius: 2.5, p: 1.8, bgcolor: 'rgba(var(--text-primary-rgb),0.05)', display: 'grid', gap: 0.65 }}>
                     <Typography sx={{ fontSize: '0.75rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Geographies</Typography>
                     <Typography sx={{ fontSize: '1.4rem', fontWeight: 800 }}>{locationsTracked}</Typography>
                     <FmdGoodOutlinedIcon sx={{ color: 'var(--text-secondary)' }} />

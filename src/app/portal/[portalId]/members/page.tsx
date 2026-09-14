@@ -11,7 +11,7 @@ import AdminPanelSettingsOutlinedIcon from '@mui/icons-material/AdminPanelSettin
 import { Box, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, TextField, Typography } from '@mui/material';
 import { useSession } from 'next-auth/react';
 import { DashboardSurface, DashboardPanel, DashboardGrid, DashboardHeader } from '@/components/dashboard/DashboardSurface';
-import { Button, EmptyState, toast } from '@/components/design-system';
+import { Button, ConfirmDialog, EmptyState, Skeleton, SkeletonTable, toast } from '@/components/design-system';
 import { PortalActivityList } from '@/components/partner-portals/PortalActivityList';
 import { DataTable, type Column } from '@/components/ui/DataTable';
 
@@ -64,6 +64,7 @@ export default function PortalMembersPage() {
   const [memberRoleDrafts, setMemberRoleDrafts] = useState<Record<string, string>>({});
   const [savingMembershipRoleId, setSavingMembershipRoleId] = useState<string | null>(null);
   const [removingMembershipId, setRemovingMembershipId] = useState<string | null>(null);
+  const [pendingRemoveMembership, setPendingRemoveMembership] = useState<PortalMembership | null>(null);
   const [regeneratingLoginCodeMembershipId, setRegeneratingLoginCodeMembershipId] = useState<string | null>(null);
   const [inviteForm, setInviteForm] = useState(initialInviteForm);
   const [inviting, setInviting] = useState(false);
@@ -181,10 +182,6 @@ export default function PortalMembersPage() {
 
   const handleRemoveMembership = async (membershipId: string) => {
     if (!canManageMembers) {
-      return;
-    }
-
-    if (!confirm('Remove this member from the portal?')) {
       return;
     }
 
@@ -329,7 +326,7 @@ export default function PortalMembersPage() {
           >
             {regeneratingLoginCodeMembershipId === row.id ? 'Generating...' : 'Generate Code'}
           </Button>
-          <Button variant="outline" size="sm" onClick={() => void handleRemoveMembership(row.id)} disabled={removingMembershipId === row.id}>
+          <Button variant="outline" size="sm" onClick={() => setPendingRemoveMembership(row)} disabled={removingMembershipId === row.id}>
             {removingMembershipId === row.id ? 'Removing...' : 'Remove'}
           </Button>
         </Box>
@@ -367,8 +364,8 @@ export default function PortalMembersPage() {
       />
 
       {loading ? (
-        <DashboardPanel title="Loading members" description="Fetching the latest portal member data.">
-          <Box sx={{ color: 'var(--text-secondary)' }}>Loading portal members...</Box>
+        <DashboardPanel title="Portal Members" description="People who can access this partner workspace.">
+          <SkeletonTable rows={5} columns={4} />
         </DashboardPanel>
       ) : memberships.length === 0 ? (
         <DashboardPanel>
@@ -396,12 +393,12 @@ export default function PortalMembersPage() {
                 </Box>
                 <Box sx={{ display: 'grid', gap: 1.2 }}>
                   {memberships.slice(0, 4).map((membership) => (
-                    <Box key={membership.id} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, p: 1.2, borderRadius: 2, bgcolor: 'rgba(15,23,42,0.04)' }}>
+                    <Box key={membership.id} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, p: 1.2, borderRadius: 2, bgcolor: 'rgba(var(--text-primary-rgb),0.04)' }}>
                       <Box>
                         <Typography sx={{ fontSize: '0.9rem', fontWeight: 700 }}>{membership.user.name || membership.user.email}</Typography>
                         <Typography sx={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>{membership.user.email}</Typography>
                       </Box>
-                      <Box sx={{ px: 1.1, py: 0.45, borderRadius: 999, bgcolor: membership.role === 'ADMIN' ? 'rgba(var(--brand-primary-rgb),0.12)' : 'rgba(15,23,42,0.06)', color: membership.role === 'ADMIN' ? 'var(--brand-primary)' : 'var(--text-secondary)', fontSize: '0.74rem', fontWeight: 700 }}>
+                      <Box sx={{ px: 1.1, py: 0.45, borderRadius: 999, bgcolor: membership.role === 'ADMIN' ? 'rgba(var(--brand-primary-rgb),0.12)' : 'rgba(var(--text-primary-rgb),0.06)', color: membership.role === 'ADMIN' ? 'var(--brand-primary)' : 'var(--text-secondary)', fontSize: '0.74rem', fontWeight: 700 }}>
                         {membership.role}
                       </Box>
                     </Box>
@@ -531,6 +528,22 @@ export default function PortalMembersPage() {
           </Dialog>
         </Box>
       )}
+
+      <ConfirmDialog
+        open={pendingRemoveMembership !== null}
+        onClose={() => setPendingRemoveMembership(null)}
+        onConfirm={() => {
+          if (pendingRemoveMembership) {
+            void handleRemoveMembership(pendingRemoveMembership.id);
+          }
+          setPendingRemoveMembership(null);
+        }}
+        title="Remove portal member"
+        message={`Remove ${pendingRemoveMembership?.user.name || pendingRemoveMembership?.user.email || 'this member'} from the portal? They will immediately lose access to this workspace.`}
+        confirmText="Remove member"
+        severity="warning"
+        loading={removingMembershipId !== null}
+      />
     </DashboardSurface>
   );
 }

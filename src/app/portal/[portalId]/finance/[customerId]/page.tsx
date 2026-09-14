@@ -16,7 +16,7 @@ import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
 import ReceiptOutlinedIcon from '@mui/icons-material/ReceiptOutlined';
 import { Box, MenuItem, TextField, Typography } from '@mui/material';
 import { DashboardGrid, DashboardHeader, DashboardPanel, DashboardSurface } from '@/components/dashboard/DashboardSurface';
-import { Button, EmptyState, PaymentStatusBadge, toast } from '@/components/design-system';
+import { Button, EmptyState, PaymentStatusBadge, Skeleton, SkeletonTable, toast } from '@/components/design-system';
 import { DataTable, type Column } from '@/components/ui/DataTable';
 
 type PortalInfo = {
@@ -570,7 +570,7 @@ export default function PortalCustomerFinanceDetailPage() {
           { label: 'Shipments', value: data.summary.linkedShipmentCount, helper: 'Linked to this customer' },
         ] : undefined}
         actions={
-          <>
+          <Box className="no-print" sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
             <a href={activityExportHref} style={{ textDecoration: 'none' }}>
               <Button variant="outline" size="sm">Export Portal-Only Activity</Button>
             </a>
@@ -580,14 +580,27 @@ export default function PortalCustomerFinanceDetailPage() {
             <Link href={`/portal/${portalId}/customers`} style={{ textDecoration: 'none' }}>
               <Button variant="outline" size="sm">Customers</Button>
             </Link>
-          </>
+          </Box>
         }
       />
 
       {loading ? (
-        <DashboardPanel title="Loading customer finance" description="Collecting invoices, portal ledgers, and shipment balances for this customer.">
-          <Box sx={{ color: 'var(--text-secondary)' }}>Loading customer finance...</Box>
-        </DashboardPanel>
+        <DashboardGrid className="grid-cols-1 gap-3 xl:grid-cols-[0.95fr_1.35fr]">
+          <DashboardPanel title="Customer Profile" description="Portal identity, main aging, and downstream customer context.">
+            <Box sx={{ display: 'grid', gap: 1.5 }}>
+              {[0, 1, 2, 3, 4].map((index) => (
+                <Skeleton key={index} variant="rounded" height={44} />
+              ))}
+            </Box>
+          </DashboardPanel>
+          <DashboardPanel title="Balances" description="Outstanding, overdue, and paid totals.">
+            <Box sx={{ display: 'grid', gap: 1.5 }}>
+              {[0, 1, 2].map((index) => (
+                <Skeleton key={index} variant="rounded" height={72} />
+              ))}
+            </Box>
+          </DashboardPanel>
+        </DashboardGrid>
       ) : !data ? (
         <DashboardPanel title="Customer finance unavailable">
           <EmptyState icon={<AccountBalanceWalletOutlinedIcon />} title="Customer finance unavailable" description="This customer finance view could not be loaded." />
@@ -604,7 +617,7 @@ export default function PortalCustomerFinanceDetailPage() {
                   <Typography sx={{ color: 'var(--text-secondary)' }}>{[data.customer.city, data.customer.country].filter(Boolean).join(', ') || 'No location saved'}</Typography>
                 </Box>
                 {data.customer.notes ? (
-                  <Box sx={{ border: '1px solid var(--border)', borderRadius: 2.5, p: 1.5, bgcolor: 'rgba(15,23,42,0.03)' }}>
+                  <Box sx={{ border: '1px solid var(--border)', borderRadius: 2.5, p: 1.5, bgcolor: 'rgba(var(--text-primary-rgb),0.03)' }}>
                     <Typography sx={{ fontSize: '0.76rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-secondary)', mb: 0.75 }}>Portal Notes</Typography>
                     <Typography sx={{ color: 'var(--text-secondary)' }}>{data.customer.notes}</Typography>
                   </Box>
@@ -765,7 +778,7 @@ export default function PortalCustomerFinanceDetailPage() {
                     <Typography sx={{ fontSize: '0.76rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Activity Credits</Typography>
                     <Typography sx={{ fontSize: '1.35rem', fontWeight: 800 }}>{formatCurrency(data.activitySummary.creditAmount)}</Typography>
                   </Box>
-                  <Box sx={{ border: '1px solid var(--border)', borderRadius: 2.5, p: 1.6, bgcolor: 'rgba(15,23,42,0.05)', display: 'grid', gap: 0.65 }}>
+                  <Box sx={{ border: '1px solid var(--border)', borderRadius: 2.5, p: 1.6, bgcolor: 'rgba(var(--text-primary-rgb),0.05)', display: 'grid', gap: 0.65 }}>
                     <Typography sx={{ fontSize: '0.76rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Activity Payments</Typography>
                     <Typography sx={{ fontSize: '1.35rem', fontWeight: 800 }}>{data.activitySummary.paymentRecordCount}</Typography>
                   </Box>
@@ -816,7 +829,7 @@ export default function PortalCustomerFinanceDetailPage() {
               <Typography sx={{ fontSize: '1.55rem', fontWeight: 800 }}>{formatCurrency(data.summary.overdueAmount)}</Typography>
               <WarningAmberOutlinedIcon sx={{ color: 'var(--text-secondary)' }} />
             </Box>
-            <Box sx={{ border: '1px solid var(--border)', borderRadius: 3, p: 2, bgcolor: 'rgba(15,23,42,0.05)', display: 'grid', gap: 0.75 }}>
+            <Box sx={{ border: '1px solid var(--border)', borderRadius: 3, p: 2, bgcolor: 'rgba(var(--text-primary-rgb),0.05)', display: 'grid', gap: 0.75 }}>
               <Typography sx={{ fontSize: '0.76rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Portal-Only Ledger Entries</Typography>
               <Typography sx={{ fontSize: '1.55rem', fontWeight: 800 }}>{data.portalLedgerSummary.ledgerEntryCount}</Typography>
               <NoteAddOutlinedIcon sx={{ color: 'var(--text-secondary)' }} />

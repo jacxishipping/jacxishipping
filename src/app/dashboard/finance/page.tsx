@@ -21,15 +21,16 @@ import {
   DollarSign,
   Users,
   FileText,
-    Landmark,
+  Landmark,
   PlusCircle,
   AlertCircle,
   CheckCircle,
-    Building2,
-        Truck,
-    HandCoins,
-    GitCompareArrows,
+  Building2,
+  Truck,
+  HandCoins,
+  GitCompareArrows,
 } from 'lucide-react';
+import type { ReactNode } from 'react';
 
 // Force dynamic rendering (requires database connection)
 export const dynamic = 'force-dynamic';
@@ -48,7 +49,7 @@ async function getFinancialData(userId: string | undefined, isAdmin: boolean) {
         ledgerSummary,
         shipmentSummaryRaw,
         users,
-        activeUsersCount,
+        usersWithBalanceCount,
         dispatchStats,
         dispatchExpenseSummary
     ] = await Promise.all([
@@ -76,7 +77,15 @@ async function getFinancialData(userId: string | undefined, isAdmin: boolean) {
                 },
             },
         }) : Promise.resolve([]),
-        isAdmin ? prisma.user.count() : Promise.resolve(1),
+        // Count users with any ledger entry directly instead of inferring
+        // from the capped top-10 outstanding list.
+        isAdmin ? prisma.user.count({
+            where: {
+                ledgerEntries: {
+                    some: {},
+                },
+            },
+        }) : Promise.resolve(0),
         isAdmin ? prisma.dispatch.groupBy({
             by: ['status'],
             _count: true,
@@ -120,7 +129,7 @@ async function getFinancialData(userId: string | undefined, isAdmin: boolean) {
             due: { count: dueShipments._count.id, amount: dueShipments._sum.price || 0 }
         },
         userBalances,
-        activeUsersCount,
+        usersWithBalanceCount,
         dispatches: {
             active: dispatchStats.reduce((total, entry) => {
                 return ['PENDING', 'DISPATCHED', 'ARRIVED_AT_PORT'].includes(entry.status)
@@ -133,12 +142,33 @@ async function getFinancialData(userId: string | undefined, isAdmin: boolean) {
     };
 }
 
+// Data-driven quick actions so the card markup is declared once.
+type QuickAction = {
+    href: string;
+    label: string;
+    description: string;
+    icon: ReactNode;
+    adminOnly?: boolean;
+};
+
 export default async function FinancePage() {
     const session = await auth();
     if (!session?.user) redirect('/auth/signin');
 
     const isAdmin = hasPermission(session.user.role, 'finance:manage');
     const data = await getFinancialData(session.user.id, isAdmin);
+
+    const quickActions: QuickAction[] = [
+        { href: '/dashboard/finance/ledger', label: 'My Ledger', description: 'View your transaction history', icon: <FileText className="w-5 h-5" /> },
+        { href: '/dashboard/finance/banking', label: 'Banking', description: 'Preview and import bank CSV statements into your ledger', icon: <Landmark className="w-5 h-5" /> },
+        { href: '/dashboard/finance/admin/ledgers', label: 'User Ledgers', description: 'Manage all user accounts', icon: <Users className="w-5 h-5" />, adminOnly: true },
+        { href: '/dashboard/finance/reports', label: 'Financial Reports', description: 'Generate detailed analysis', icon: <FileText className="w-5 h-5" />, adminOnly: true },
+        { href: '/dashboard/finance/companies', label: 'Company Ledgers', description: 'Manage partner company accounts', icon: <Building2 className="w-5 h-5" />, adminOnly: true },
+        { href: '/dashboard/finance/price-comparison', label: 'Price Comparison', description: 'Compare shipping rate sheets across companies', icon: <GitCompareArrows className="w-5 h-5" />, adminOnly: true },
+    ];
+
+    const visibleQuickActions = quickActions.filter((action) => !action.adminOnly || isAdmin);
+    const showOutstandingBalances = isAdmin && data.userBalances.length > 0;
 
     return (
         <DashboardSurface>
@@ -186,8 +216,9 @@ export default async function FinancePage() {
                 />
                 <StatsCard
                     icon={<Users className="w-5 h-5" />}
-                    title={isAdmin ? "Users with Balance" : "Active Status"}
-                    value={isAdmin ? data.userBalances.length : "Active"}
+                    title="Users with Balance"
+                    value={data.usersWithBalanceCount}
+                    subtitle={showOutstandingBalances ? 'Showing top 10 below' : undefined}
                     variant="default"
                 />
                 {isAdmin && (
@@ -214,165 +245,50 @@ export default async function FinancePage() {
             {/* Shipment Payment Status */}
             <DashboardPanel title="Shipment Payment Status" description="Overview of paid and pending shipments">
                 <DashboardGrid className="grid-cols-1 md:grid-cols-2">
-                    {/* Paid Shipments Box */}
-                    <div className="p-5 rounded-xl border border-border bg-panel flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-lg border border-border bg-[rgba(var(--accent-gold-rgb),0.12)] flex items-center justify-center text-[var(--accent-gold)]">
-                            <CheckCircle className="w-6 h-6" />
-                        </div>
-                        <div className="flex-1">
-                            <h4 className="text-sm font-semibold text-primary">Paid Shipments</h4>
-                            <div className="text-2xl font-bold text-primary mt-1">
-                                {data.shipments.paid.count}
-                            </div>
-                            <p className="text-xs text-muted-foreground mt-1">
-                                Total: {formatCurrency(data.shipments.paid.amount)}
-                            </p>
-                        </div>
-                    </div>
-
-                    {/* Due Shipments Box */}
-                    <div className="p-5 rounded-xl border border-border bg-panel flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-lg border border-border bg-[rgba(var(--accent-gold-rgb),0.12)] flex items-center justify-center text-[var(--accent-gold)]">
-                            <AlertCircle className="w-6 h-6" />
-                        </div>
-                        <div className="flex-1">
-                            <h4 className="text-sm font-semibold text-primary">Due Shipments</h4>
-                            <div className="text-2xl font-bold text-primary mt-1">
-                                {data.shipments.due.count}
-                            </div>
-                            <p className="text-xs text-muted-foreground mt-1">
-                                Total: {formatCurrency(data.shipments.due.amount)}
-                            </p>
-                        </div>
-                    </div>
+                    <StatsCard
+                        icon={<CheckCircle className="w-6 h-6" />}
+                        title="Paid Shipments"
+                        value={data.shipments.paid.count}
+                        subtitle={`Total collected: ${formatCurrency(data.shipments.paid.amount)}`}
+                        variant="success"
+                    />
+                    <StatsCard
+                        icon={<AlertCircle className="w-6 h-6" />}
+                        title="Due Shipments"
+                        value={data.shipments.due.count}
+                        subtitle={`Outstanding: ${formatCurrency(data.shipments.due.amount)}`}
+                        variant="warning"
+                    />
                 </DashboardGrid>
             </DashboardPanel>
-
-            {isAdmin && (
-                <DashboardPanel title="Dispatch Finance Snapshot" description="Operational dispatch costs and workload">
-                    <DashboardGrid className="grid-cols-1 md:grid-cols-2">
-                        <div className="p-5 rounded-xl border border-border bg-panel flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-lg border border-border bg-[rgba(var(--accent-gold-rgb),0.12)] flex items-center justify-center text-[var(--accent-gold)]">
-                                <Truck className="w-6 h-6" />
-                            </div>
-                            <div className="flex-1">
-                                <h4 className="text-sm font-semibold text-primary">Active Dispatches</h4>
-                                <div className="text-2xl font-bold text-primary mt-1">
-                                    {data.dispatches.active}
-                                </div>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                    Pending, dispatched, and port-arrived dispatches
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="p-5 rounded-xl border border-border bg-panel flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-lg border border-border bg-[rgba(var(--accent-gold-rgb),0.12)] flex items-center justify-center text-[var(--accent-gold)]">
-                                <HandCoins className="w-6 h-6" />
-                            </div>
-                            <div className="flex-1">
-                                <h4 className="text-sm font-semibold text-primary">Dispatch Expenses</h4>
-                                <div className="text-2xl font-bold text-primary mt-1">
-                                    {formatCurrency(data.dispatches.totalSpend)}
-                                </div>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                    Across {data.dispatches.expenseCount} dispatch expense records
-                                </p>
-                            </div>
-                        </div>
-                    </DashboardGrid>
-                </DashboardPanel>
-            )}
 
             {/* Quick Actions & User Balances */}
             <DashboardGrid className={isAdmin ? "grid-cols-1 lg:grid-cols-3" : "grid-cols-1"}>
                 
                 {/* Quick Actions */}
-                <DashboardPanel 
-                    title="Quick Actions" 
-                    className={isAdmin && data.userBalances.length > 0 ? "lg:col-span-1" : "lg:col-span-3"}
+                <DashboardPanel
+                    title="Quick Actions"
+                    className={showOutstandingBalances ? "lg:col-span-1" : "lg:col-span-3"}
                 >
                     <div className="grid grid-cols-1 gap-3">
-                         <Link href="/dashboard/finance/ledger">
-                            <div className="p-4 rounded-xl border border-border bg-panel hover:border-[var(--accent-gold)] hover:shadow-lg transition-all cursor-pointer group">
-                                <div className="flex items-center gap-3 mb-2">
-                                    <div className="w-9 h-9 rounded-lg border border-border bg-[rgba(var(--accent-gold-rgb),0.12)] flex items-center justify-center text-[var(--accent-gold)] group-hover:scale-110 transition-transform">
-                                        <FileText className="w-5 h-5" />
+                        {visibleQuickActions.map((action) => (
+                            <Link key={action.href} href={action.href}>
+                                <div className="p-4 rounded-xl border border-border bg-panel hover:border-[var(--accent-gold)] hover:shadow-lg transition-all cursor-pointer group">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <div className="w-9 h-9 rounded-lg border border-border bg-[rgba(var(--accent-gold-rgb),0.12)] flex items-center justify-center text-[var(--accent-gold)] group-hover:scale-110 transition-transform">
+                                            {action.icon}
+                                        </div>
+                                        <span className="font-semibold text-primary">{action.label}</span>
                                     </div>
-                                    <span className="font-semibold text-primary">My Ledger</span>
+                                    <p className="text-xs text-muted-foreground">{action.description}</p>
                                 </div>
-                                <p className="text-xs text-muted-foreground">View your transaction history</p>
-                            </div>
-                        </Link>
-
-                        <Link href="/dashboard/finance/banking">
-                            <div className="p-4 rounded-xl border border-border bg-panel hover:border-[var(--accent-gold)] hover:shadow-lg transition-all cursor-pointer group">
-                                <div className="flex items-center gap-3 mb-2">
-                                    <div className="w-9 h-9 rounded-lg border border-border bg-[rgba(var(--accent-gold-rgb),0.12)] flex items-center justify-center text-[var(--accent-gold)] group-hover:scale-110 transition-transform">
-                                        <Landmark className="w-5 h-5" />
-                                    </div>
-                                    <span className="font-semibold text-primary">Banking</span>
-                                </div>
-                                <p className="text-xs text-muted-foreground">Preview and import bank CSV statements into your ledger</p>
-                            </div>
-                        </Link>
-
-                        {isAdmin && (
-                            <>
-                                <Link href="/dashboard/finance/admin/ledgers">
-                                    <div className="p-4 rounded-xl border border-border bg-panel hover:border-[var(--accent-gold)] hover:shadow-lg transition-all cursor-pointer group">
-                                        <div className="flex items-center gap-3 mb-2">
-                                            <div className="w-9 h-9 rounded-lg border border-border bg-[rgba(var(--accent-gold-rgb),0.12)] flex items-center justify-center text-[var(--accent-gold)] group-hover:scale-110 transition-transform">
-                                                <Users className="w-5 h-5" />
-                                            </div>
-                                            <span className="font-semibold text-primary">User Ledgers</span>
-                                        </div>
-                                        <p className="text-xs text-muted-foreground">Manage all user accounts</p>
-                                    </div>
-                                </Link>
-
-                                <Link href="/dashboard/finance/reports">
-                                    <div className="p-4 rounded-xl border border-border bg-panel hover:border-[var(--accent-gold)] hover:shadow-lg transition-all cursor-pointer group">
-                                        <div className="flex items-center gap-3 mb-2">
-                                            <div className="w-9 h-9 rounded-lg border border-border bg-[rgba(var(--accent-gold-rgb),0.12)] flex items-center justify-center text-[var(--accent-gold)] group-hover:scale-110 transition-transform">
-                                                <FileText className="w-5 h-5" />
-                                            </div>
-                                            <span className="font-semibold text-primary">Financial Reports</span>
-                                        </div>
-                                        <p className="text-xs text-muted-foreground">Generate detailed analysis</p>
-                                    </div>
-                                </Link>
-
-                                <Link href="/dashboard/finance/companies">
-                                    <div className="p-4 rounded-xl border border-border bg-panel hover:border-[var(--accent-gold)] hover:shadow-lg transition-all cursor-pointer group">
-                                        <div className="flex items-center gap-3 mb-2">
-                                            <div className="w-9 h-9 rounded-lg border border-border bg-[rgba(var(--accent-gold-rgb),0.12)] flex items-center justify-center text-[var(--accent-gold)] group-hover:scale-110 transition-transform">
-                                                <Building2 className="w-5 h-5" />
-                                            </div>
-                                            <span className="font-semibold text-primary">Company Ledgers</span>
-                                        </div>
-                                        <p className="text-xs text-muted-foreground">Manage partner company accounts</p>
-                                    </div>
-                                </Link>
-
-                                <Link href="/dashboard/finance/price-comparison">
-                                    <div className="p-4 rounded-xl border border-border bg-panel hover:border-[var(--accent-gold)] hover:shadow-lg transition-all cursor-pointer group">
-                                        <div className="flex items-center gap-3 mb-2">
-                                            <div className="w-9 h-9 rounded-lg border border-border bg-[rgba(var(--accent-gold-rgb),0.12)] flex items-center justify-center text-[var(--accent-gold)] group-hover:scale-110 transition-transform">
-                                                <GitCompareArrows className="w-5 h-5" />
-                                            </div>
-                                            <span className="font-semibold text-primary">Price Comparison</span>
-                                        </div>
-                                        <p className="text-xs text-muted-foreground">Compare shipping rate sheets across companies</p>
-                                    </div>
-                                </Link>
-                            </>
-                        )}
+                            </Link>
+                        ))}
                     </div>
                 </DashboardPanel>
 
                 {/* Top User Balances (Admin Only) */}
-                {isAdmin && data.userBalances.length > 0 && (
+                {showOutstandingBalances && (
                     <DashboardPanel 
                         title="Outstanding Balances" 
                         description="Top users with dues"

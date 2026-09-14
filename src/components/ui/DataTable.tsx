@@ -27,6 +27,7 @@ interface DataTableProps<T> {
   onDelete?: (selectedIds: string[]) => void;
   onEdit?: (row: T) => void;
   onExport?: (selectedRows: T[]) => void;
+  onSelectionChange?: (selectedIds: string[]) => void;
   bulkStatusOptions?: { value: string; label: string }[];
   onBulkStatusChange?: (selectedIds: string[], status: string) => void;
   currentPage?: number;
@@ -52,6 +53,7 @@ export function DataTable<T extends Record<string, any>>({
   onDelete,
   onEdit,
   onExport,
+  onSelectionChange,
   bulkStatusOptions = [],
   onBulkStatusChange,
   currentPage,
@@ -128,8 +130,10 @@ export function DataTable<T extends Record<string, any>>({
     if (checked) {
       const allIds = new Set(data.map((row) => String(row[keyField])));
       setSelectedIds(allIds);
+      onSelectionChange?.(Array.from(allIds));
     } else {
       setSelectedIds(new Set());
+      onSelectionChange?.([]);
     }
   };
 
@@ -141,6 +145,7 @@ export function DataTable<T extends Record<string, any>>({
       newSelectedIds.delete(id);
     }
     setSelectedIds(newSelectedIds);
+    onSelectionChange?.(Array.from(newSelectedIds));
   };
 
   const isAllSelected = data.length > 0 && selectedIds.size === data.length;

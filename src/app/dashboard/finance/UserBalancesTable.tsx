@@ -28,7 +28,7 @@ export default function UserBalancesTable({ data }: UserBalancesTableProps) {
             header: 'Balance',
             sortable: true,
             render: (_, row) => (
-                <span className={`font-mono font-medium ${row.currentBalance > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-cyan-600 dark:text-cyan-400'}`}>
+                <span className="font-mono font-medium text-[var(--text-primary)]">
                     {formatMoney(Math.abs(row.currentBalance))}
                 </span>
             ),
@@ -39,13 +39,13 @@ export default function UserBalancesTable({ data }: UserBalancesTableProps) {
             render: (_, row) => {
                 if (row.currentBalance > 0) {
                     return (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 uppercase tracking-wider">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider" style={{ backgroundColor: 'rgba(245, 158, 11, 0.14)', color: 'var(--warning, #b45309)' }}>
                             Due
                         </span>
                     );
                 }
                 return (
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400 uppercase tracking-wider">
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider" style={{ backgroundColor: 'rgba(var(--accent-gold-rgb), 0.12)', color: 'var(--accent-gold)' }}>
                         Credit
                     </span>
                 );

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, usePathname } from 'next/navigation';
 import SpaceDashboardOutlinedIcon from '@mui/icons-material/SpaceDashboardOutlined';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
@@ -12,7 +12,7 @@ import TuneOutlinedIcon from '@mui/icons-material/TuneOutlined';
 import LayersOutlinedIcon from '@mui/icons-material/LayersOutlined';
 import AccountBalanceWalletOutlinedIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
 import ArrowBackOutlinedIcon from '@mui/icons-material/ArrowBackOutlined';
-import { Box, CircularProgress, Typography } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import { Button } from '@/components/design-system';
 import { getPortalBrandIdentity } from '@/lib/partner-portal-branding';
 import { normalizeRequestHost } from '@/lib/partner-portal-domains';
@@ -87,7 +87,6 @@ export default function PortalWorkspaceShell({ children }: PortalWorkspaceShellP
   const pathname = usePathname();
   const portalId = typeof params.portalId === 'string' ? params.portalId : null;
   const [portal, setPortal] = useState<PortalSummary | null>(null);
-  const [loadingPortal, setLoadingPortal] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -99,8 +98,9 @@ export default function PortalWorkspaceShell({ children }: PortalWorkspaceShellP
       }
 
       try {
-        setLoadingPortal(true);
-        const response = await fetch('/api/partner-portals', { cache: 'no-store' });
+        // Fetch only this portal so branding renders in one round trip
+        // instead of loading the full portal list and filtering client-side.
+        const response = await fetch(`/api/partner-portals/${portalId}`, { cache: 'no-store' });
         const data = await response.json();
 
         if (!response.ok) {
@@ -108,17 +108,12 @@ export default function PortalWorkspaceShell({ children }: PortalWorkspaceShellP
         }
 
         if (!cancelled) {
-          const match = (data.portals || []).find((item: PortalSummary) => item.id === portalId) || null;
-          setPortal(match);
+          setPortal(data.portal || null);
         }
       } catch (error) {
         console.error(error);
         if (!cancelled) {
           setPortal(null);
-        }
-      } finally {
-        if (!cancelled) {
-          setLoadingPortal(false);
         }
       }
     };
@@ -177,6 +172,24 @@ export default function PortalWorkspaceShell({ children }: PortalWorkspaceShellP
   const portalAccessLabel = portal?.memberships?.[0]?.partnerCustomer?.name
     ? `${portal.memberships[0].partnerCustomer.name} Customer`
     : portal?.memberships?.[0]?.role || 'Member';
+
+  // Keep the active nav pill visible on mobile by scrolling it into view
+  // whenever the route changes.
+  const mobileNavRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!hasPortalWorkspace) {
+      return;
+    }
+
+    const container = mobileNavRef.current;
+    if (!container) {
+      return;
+    }
+
+    const activePill = container.querySelector<HTMLElement>('[data-nav-active="true"]');
+    activePill?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+  }, [pathname, hasPortalWorkspace]);
 
   return (
     <Box
@@ -265,6 +278,7 @@ export default function PortalWorkspaceShell({ children }: PortalWorkspaceShellP
 
         {portalId ? (
           <Box
+            ref={mobileNavRef}
             sx={{
               mt: 1.25,
               display: { xs: 'flex', lg: 'none' },
@@ -281,8 +295,9 @@ export default function PortalWorkspaceShell({ children }: PortalWorkspaceShellP
             {navItems.map((item) => {
               const active = isWorkspaceRouteActive(pathname, item.href);
               return (
-                <Link key={item.href} href={item.href} style={{ textDecoration: 'none' }}>
+                <Link key={item.href} href={item.href} style={{ textDecoration: 'none' }} aria-current={active ? 'page' : undefined}>
                   <Box
+                    data-nav-active={active ? 'true' : undefined}
                     sx={{
                       display: 'flex',
                       alignItems: 'center',
@@ -294,7 +309,7 @@ export default function PortalWorkspaceShell({ children }: PortalWorkspaceShellP
                       flexShrink: 0,
                       border: '1px solid',
                       borderColor: active ? brand.accentColor : 'var(--border)',
-                      bgcolor: active ? `rgba(${brand.accentRgb}, 0.10)` : 'rgba(255,255,255,0.82)',
+                      bgcolor: active ? `rgba(${brand.accentRgb}, 0.10)` : 'var(--panel)',
                       color: active ? brand.accentColor : 'var(--text-primary)',
                     }}
                   >
@@ -318,7 +333,7 @@ export default function PortalWorkspaceShell({ children }: PortalWorkspaceShellP
               px: 2,
               py: 2,
               display: { xs: 'none', lg: 'block' },
-              bgcolor: 'rgba(255,255,255,0.7)',
+              bgcolor: 'var(--panel)',
               backdropFilter: 'blur(16px)',
             }}
           >
@@ -337,7 +352,6 @@ export default function PortalWorkspaceShell({ children }: PortalWorkspaceShellP
                 <Typography sx={{ fontSize: '0.82rem', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
                   Workspace
                 </Typography>
-                {loadingPortal ? <CircularProgress size={16} /> : null}
               </Box>
               <Box>
                 <Typography sx={{ fontSize: '1.1rem', fontWeight: 800 }}>{brand.companyLabel}</Typography>
@@ -360,24 +374,24 @@ export default function PortalWorkspaceShell({ children }: PortalWorkspaceShellP
                 </Box>
                 <Box sx={{ p: 1.25, borderRadius: 2, bgcolor: `rgba(${brand.accentRgb}, 0.08)` }}>
                   <Typography sx={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-secondary)' }}>
-                    Finance
+                    Access
                   </Typography>
-                  <Typography sx={{ fontSize: '1.1rem', fontWeight: 700 }}>Read-only</Typography>
+                  <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, overflowWrap: 'anywhere' }}>{portalAccessLabel}</Typography>
                 </Box>
               </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1.25, borderRadius: 2, bgcolor: 'rgba(15,23,42,0.04)' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1.25, borderRadius: 2, bgcolor: 'rgba(var(--text-primary-rgb),0.04)' }}>
                 <LayersOutlinedIcon sx={{ fontSize: 18, color: 'var(--text-secondary)' }} />
                 <Typography sx={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                  Access level: <strong style={{ color: 'var(--text-primary)' }}>{portalAccessLabel}</strong>
+                  Finance access: <strong style={{ color: 'var(--text-primary)' }}>Read-only</strong>
                 </Typography>
               </Box>
             </Box>
 
-            <Box component="nav" sx={{ display: 'grid', gap: 1, mt: 2 }}>
+            <Box component="nav" aria-label="Portal workspace" sx={{ display: 'grid', gap: 1, mt: 2 }}>
               {navItems.map((item) => {
                 const active = isWorkspaceRouteActive(pathname, item.href);
                 return (
-                  <Link key={item.href} href={item.href} style={{ textDecoration: 'none' }}>
+                  <Link key={item.href} href={item.href} style={{ textDecoration: 'none' }} aria-current={active ? 'page' : undefined}>
                     <Box
                       sx={{
                         display: 'flex',

@@ -12,7 +12,7 @@ import PersonAddAltOutlinedIcon from '@mui/icons-material/PersonAddAltOutlined';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import { Box, Typography } from '@mui/material';
 import { DashboardGrid, DashboardPanel, DashboardSurface } from '@/components/dashboard/DashboardSurface';
-import { Button, EmptyState, toast } from '@/components/design-system';
+import { Button, EmptyState, Skeleton, SkeletonParagraph, toast } from '@/components/design-system';
 import { formatRelativeTime } from '@/lib/relative-time';
 
 type PortalInfo = {
@@ -123,16 +123,40 @@ function MetricCard({
         background: backgrounds[tone],
         display: 'grid',
         gap: 0.85,
+        alignContent: 'start',
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
         <Typography sx={{ fontSize: '0.78rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
           {label}
         </Typography>
-        <Box sx={{ color: 'var(--text-secondary)', display: 'inline-flex' }}>{icon}</Box>
+        <Box sx={{ color: 'var(--text-secondary)', display: 'inline-flex', flexShrink: 0 }}>{icon}</Box>
       </Box>
-      <Typography sx={{ fontSize: '1.45rem', fontWeight: 800, letterSpacing: '-0.03em' }}>{value}</Typography>
-      <Typography sx={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{helper}</Typography>
+      <Typography sx={{ fontSize: '1.45rem', fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.1 }}>{value}</Typography>
+      <Typography sx={{ fontSize: '0.82rem', color: 'var(--text-secondary)', overflowWrap: 'anywhere' }}>{helper}</Typography>
+    </Box>
+  );
+}
+
+function MetricCardSkeleton() {
+  return (
+    <Box
+      sx={{
+        border: '1px solid var(--border)',
+        borderRadius: 3,
+        p: 1.75,
+        bgcolor: 'var(--panel)',
+        display: 'grid',
+        gap: 0.85,
+        alignContent: 'start',
+      }}
+    >
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+        <Skeleton variant="text" width="55%" height={16} />
+        <Skeleton variant="rounded" width={22} height={22} />
+      </Box>
+      <Skeleton variant="text" width="35%" height={34} />
+      <Skeleton variant="text" width="85%" height={14} />
     </Box>
   );
 }
@@ -147,6 +171,7 @@ export default function PortalOverviewPage() {
   const [activities, setActivities] = useState<PortalActivity[]>([]);
   const [canViewActivity, setCanViewActivity] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [partialLoadWarning, setPartialLoadWarning] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -188,7 +213,16 @@ export default function PortalOverviewPage() {
           setCanViewActivity(true);
         } else {
           setActivities([]);
-          setCanViewActivity(false);
+          // Distinguish "no permission" from a real failure so admins are not
+          // shown the admin-only copy when the activity API actually failed.
+          const activityError = activityResult.reason as Error & { status?: number };
+          if (activityError?.status === 403) {
+            setCanViewActivity(false);
+            setPartialLoadWarning(null);
+          } else {
+            setCanViewActivity(true);
+            setPartialLoadWarning('Recent activity could not be loaded. It may be temporarily unavailable.');
+          }
         }
       } catch (error) {
         console.error(error);
@@ -200,9 +234,7 @@ export default function PortalOverviewPage() {
           setLoading(false);
         }
       }
-    };
-
-    if (portalId) {
+    };    if (portalId) {
       void loadOverview();
     }
 
@@ -262,28 +294,128 @@ export default function PortalOverviewPage() {
               : `${portal?.name || 'Portal'} workspace: ${assignments.length} shipments, ${customers.length} customers, ${memberships.length} members, ${adminCount} admin${adminCount === 1 ? '' : 's'}.`}
           </Typography>
         </Box>
-
-        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-          <Link href={`/portal/${portalId}/shipments`} style={{ textDecoration: 'none' }}>
-            <Button variant="primary" size="sm">Open Shipments</Button>
-          </Link>
-          <Link href={`/portal/${portalId}/customers`} style={{ textDecoration: 'none' }}>
-            <Button variant="outline" size="sm">Manage Customers</Button>
-          </Link>
-        </Box>
       </Box>
 
       {loading ? (
-        <DashboardPanel title="Loading workspace" description="Fetching the latest portal data from the shared system.">
-          <Box sx={{ color: 'var(--text-secondary)' }}>Loading portal overview...</Box>
-        </DashboardPanel>
+        <>
+          <DashboardGrid className="grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <MetricCardSkeleton />
+            <MetricCardSkeleton />
+            <MetricCardSkeleton />
+            <MetricCardSkeleton />
+          </DashboardGrid>
+          <DashboardGrid className="grid-cols-1 gap-3 xl:grid-cols-[1.35fr_1fr]">
+            <DashboardPanel title="Operational Snapshot" description="See what is moving through this partner workspace right now.">
+              <Box sx={{ display: 'grid', gap: 1.75 }}>
+                {[0, 1, 2, 3].map((index) => (
+                  <Box key={index} sx={{ display: 'grid', gap: 0.65 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Skeleton variant="text" width="40%" height={18} />
+                      <Skeleton variant="text" width="8%" height={16} />
+                    </Box>
+                    <Skeleton variant="rounded" height={10} />
+                  </Box>
+                ))}
+              </Box>
+            </DashboardPanel>
+            <DashboardPanel title="Customer Coverage" description="Track how much of the portal workload is already linked to end customers.">
+              <Box sx={{ display: 'grid', gap: 1.5 }}>
+                <Skeleton variant="rounded" height={92} />
+                <SkeletonParagraph lines={3} />
+              </Box>
+            </DashboardPanel>
+          </DashboardGrid>
+          <DashboardGrid className="grid-cols-1 gap-3 xl:grid-cols-[1.15fr_0.85fr]">
+            <DashboardPanel title="Recent Shipment Activity" description="The latest vehicles currently visible in this partner workspace.">
+              <Box sx={{ display: 'grid', gap: 1.5 }}>
+                {[0, 1, 2].map((index) => (
+                  <Skeleton key={index} variant="rounded" height={96} />
+                ))}
+              </Box>
+            </DashboardPanel>
+            <DashboardPanel title="Team And Activity" description="Who has access to this workspace and what has changed recently.">
+              <Box sx={{ display: 'grid', gap: 1.5 }}>
+                {[0, 1, 2, 3].map((index) => (
+                  <Box key={index} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+                    <Box sx={{ flex: 1, display: 'grid', gap: 0.5 }}>
+                      <Skeleton variant="text" width="55%" height={16} />
+                      <Skeleton variant="text" width="75%" height={13} />
+                    </Box>
+                    <Skeleton variant="rounded" width={64} height={24} />
+                  </Box>
+                ))}
+              </Box>
+            </DashboardPanel>
+          </DashboardGrid>
+        </>
       ) : assignments.length === 0 && customers.length === 0 && memberships.length === 0 ? (
         <DashboardPanel>
-          <EmptyState
-            icon={<DashboardOutlinedIcon />}
-            title="Portal workspace is still empty"
-            description="This portal is active, but it does not have shipments, customers, or members loaded yet."
-          />
+          <Box sx={{ display: 'grid', gap: 2.5 }}>
+            <EmptyState
+              icon={<DashboardOutlinedIcon />}
+              title="Portal workspace is still empty"
+              description="This portal is active, but it does not have shipments, customers, or members loaded yet."
+            />
+            <Box
+              sx={{
+                border: '1px solid var(--border)',
+                borderRadius: 2.5,
+                p: 2,
+                bgcolor: 'var(--panel)',
+                display: 'grid',
+                gap: 1.25,
+              }}
+            >
+              <Typography sx={{ fontSize: '0.8rem', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
+                Getting started
+              </Typography>
+              {[
+                { step: 1, label: 'Invite your team members', href: `/portal/${portalId}/members`, done: memberships.length > 0, description: 'Give teammates their own portal login.' },
+                { step: 2, label: 'Add your portal customers', href: `/portal/${portalId}/customers`, done: customers.length > 0, description: 'Create the downstream customer records shipments roll up under.' },
+                { step: 3, label: 'Link assigned shipments', href: `/portal/${portalId}/shipments`, done: assignments.length > 0, description: 'Map the shipments shared from the main system to your customers.' },
+              ].map((item) => (
+                <Box
+                  key={item.step}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1.5,
+                    p: 1.25,
+                    borderRadius: 2,
+                    border: '1px solid var(--border)',
+                    bgcolor: item.done ? 'rgba(34,197,94,0.06)' : 'transparent',
+                  }}
+                >
+                  <Box
+                    aria-hidden
+                    sx={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: '50%',
+                      display: 'grid',
+                      placeItems: 'center',
+                      flexShrink: 0,
+                      bgcolor: item.done ? 'var(--success)' : 'rgba(var(--text-primary-rgb),0.08)',
+                      color: item.done ? '#fff' : 'var(--text-secondary)',
+                      fontWeight: 800,
+                      fontSize: '0.8rem',
+                    }}
+                  >
+                    {item.done ? '✓' : item.step}
+                  </Box>
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography sx={{ fontSize: '0.92rem', fontWeight: 700 }}>{item.label}</Typography>
+                    <Typography sx={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{item.description}</Typography>
+                  </Box>
+                  <Link href={item.href} style={{ textDecoration: 'none' }}>
+                    <Button variant={item.done ? 'outline' : 'primary'} size="sm">
+                      {item.done ? 'Review' : 'Start'}
+                    </Button>
+                  </Link>
+                </Box>
+              ))}
+            </Box>
+          </Box>
         </DashboardPanel>
       ) : (
         <>
@@ -340,7 +472,7 @@ export default function PortalOverviewPage() {
                           <Typography sx={{ fontSize: '0.9rem', fontWeight: 600 }}>{formatStatusLabel(status)}</Typography>
                           <Typography sx={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{count}</Typography>
                         </Box>
-                        <Box sx={{ width: '100%', height: 10, borderRadius: 999, bgcolor: 'rgba(15,23,42,0.08)', overflow: 'hidden' }}>
+                        <Box sx={{ width: '100%', height: 10, borderRadius: 999, bgcolor: 'rgba(var(--text-primary-rgb),0.08)', overflow: 'hidden' }}>
                           <Box sx={{ width: `${ratio}%`, height: '100%', bgcolor: 'var(--brand-primary)', borderRadius: 999 }} />
                         </Box>
                       </Box>
@@ -402,7 +534,7 @@ export default function PortalOverviewPage() {
                         p: 1.5,
                         display: 'grid',
                         gap: 0.5,
-                        bgcolor: 'rgba(255,255,255,0.72)',
+                        bgcolor: 'var(--panel)',
                       }}
                     >
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -444,7 +576,7 @@ export default function PortalOverviewPage() {
                         <Typography sx={{ fontSize: '0.9rem', fontWeight: 600 }}>{membership.user.name || membership.user.email || 'Portal member'}</Typography>
                         <Typography sx={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>{membership.user.email || 'No email'}</Typography>
                       </Box>
-                      <Box sx={{ px: 1.2, py: 0.45, borderRadius: 999, bgcolor: membership.role === 'ADMIN' ? 'rgba(var(--brand-primary-rgb),0.12)' : 'rgba(15,23,42,0.06)', color: membership.role === 'ADMIN' ? 'var(--brand-primary)' : 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700 }}>
+                      <Box sx={{ px: 1.2, py: 0.45, borderRadius: 999, bgcolor: membership.role === 'ADMIN' ? 'rgba(var(--brand-primary-rgb),0.12)' : 'rgba(var(--text-primary-rgb),0.06)', color: membership.role === 'ADMIN' ? 'var(--brand-primary)' : 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700, whiteSpace: 'nowrap' }}>
                         {membership.role}
                       </Box>
                     </Box>
@@ -458,6 +590,19 @@ export default function PortalOverviewPage() {
                   {!canViewActivity ? (
                     <Box sx={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
                       Activity is available to portal admins so member changes and login access events stay controlled.
+                    </Box>
+                  ) : partialLoadWarning ? (
+                    <Box
+                      sx={{
+                        border: '1px solid rgba(var(--accent-gold-rgb),0.35)',
+                        borderRadius: 2,
+                        p: 1.25,
+                        bgcolor: 'rgba(var(--accent-gold-rgb),0.08)',
+                        fontSize: '0.85rem',
+                        color: 'var(--text-primary)',
+                      }}
+                    >
+                      {partialLoadWarning}
                     </Box>
                   ) : activities.length === 0 ? (
                     <Box sx={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>No recent membership activity was recorded for this portal.</Box>
