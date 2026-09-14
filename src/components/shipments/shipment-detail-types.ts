@@ -41,6 +41,8 @@ export interface ShipmentTransit {
   origin: string;
   destination: string;
   status: string;
+  estimatedDelivery: string | null;
+  actualDelivery: string | null;
   currentCompany: { id: string; name: string } | null;
   currentEvent: {
     id: string;
