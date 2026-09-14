@@ -11,9 +11,10 @@ ENV jacxi_DATABASE_URL=${jacxi_DATABASE_URL}
 ENV jacxi_POSTGRES_URL=${jacxi_POSTGRES_URL}
 ENV jacxi_PRISMA_DATABASE_URL=${jacxi_PRISMA_DATABASE_URL}
 
-# Install dependencies with Prisma schema available
+# Install dependencies with Prisma schema and postinstall scripts available
 COPY package*.json ./
 COPY prisma ./prisma
+COPY scripts ./scripts
 RUN npm ci
 
 # Build the application
