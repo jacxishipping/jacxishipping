@@ -1301,6 +1301,7 @@ export default function ShipmentDetailPage() {
             canViewWorkflowCompanyDetails={canViewWorkflowCompanyDetails}
             canAssignDispatch={canAssignDispatch}
             canManageWorkflow={canManageWorkflow}
+            canManageShipmentRecord={canManageShipmentRecord}
             canViewPurchasePrice={canViewPurchasePrice}
             isReleasedForTransit={isReleasedForTransit}
             creatingReleaseToken={creatingReleaseToken}

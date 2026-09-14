@@ -1,4 +1,4 @@
-import { formatMoney as formatCurrency } from '@/lib/format';
+import { formatMoney as formatCurrency, formatMoneyCompact } from '@/lib/format';
 import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
@@ -162,18 +162,21 @@ export default async function FinancePage() {
                     icon={<TrendingUp className="w-5 h-5" />}
                     title="Total Debit"
                     value={formatCurrency(data.ledger.totalDebit)}
+                    compactValue={formatMoneyCompact(data.ledger.totalDebit)}
                     variant="default"
                 />
                 <StatsCard
                     icon={<TrendingDown className="w-5 h-5" />}
                     title="Total Credit"
                     value={formatCurrency(data.ledger.totalCredit)}
+                    compactValue={formatMoneyCompact(data.ledger.totalCredit)}
                     variant="default"
                 />
                 <StatsCard
                     icon={<DollarSign className="w-5 h-5" />}
                     title="Net Balance"
                     value={formatCurrency(Math.abs(data.ledger.netBalance))}
+                    compactValue={formatMoneyCompact(Math.abs(data.ledger.netBalance))}
                     subtitle={data.ledger.netBalance > 0 ? "Receivable" : "Payable"}
                     variant="default"
                     trend={{ 
@@ -201,6 +204,7 @@ export default async function FinancePage() {
                         icon={<HandCoins className="w-5 h-5" />}
                         title="Dispatch Spend"
                         value={formatCurrency(data.dispatches.totalSpend)}
+                        compactValue={formatMoneyCompact(data.dispatches.totalSpend)}
                         subtitle={`${data.dispatches.expenseCount} expense entries`}
                         variant="default"
                     />

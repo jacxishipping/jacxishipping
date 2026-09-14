@@ -15,6 +15,7 @@ interface StatsCardProps {
 	title: string;
 	value: string | number;
 	subtitle?: string;
+	compactValue?: string | number;
 	trend?: {
 		value: number;
 		isPositive: boolean;
@@ -29,6 +30,7 @@ export default function StatsCard({
 	title,
 	value,
 	subtitle,
+	compactValue,
 	trend,
 	variant = 'default',
 	size = 'md',
@@ -169,14 +171,20 @@ export default function StatsCard({
 						{title}
 					</Typography>
 					<Typography
+						component="span"
+						title={typeof value === 'string' && value.length > 12 ? value : undefined}
 						sx={{
 							fontSize: sizes.fontSize,
 							fontWeight: 700,
 							color: 'var(--text-primary)',
 							lineHeight: 1.15,
+							width: '100%',
+							overflow: 'hidden',
+							textOverflow: 'ellipsis',
+							whiteSpace: 'nowrap',
 						}}
 					>
-						{value}
+						{compactValue || value}
 					</Typography>
 					{subtitle && (
 						<Typography

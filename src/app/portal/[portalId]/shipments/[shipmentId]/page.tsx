@@ -2,11 +2,15 @@
 import { formatMoney as formatCurrency } from '@/lib/format';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
+import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
+import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined';
+import AccountBalanceWalletOutlinedIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
+import ScheduleOutlinedIcon from '@mui/icons-material/ScheduleOutlined';
 import { Box, Typography } from '@mui/material';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
 import { Button, EmptyState, PaymentStatusBadge, toast } from '@/components/design-system';
@@ -59,6 +63,13 @@ type ShipmentDetailResponse = {
         destination: string;
         status: string;
         dispatchDate: string | null;
+        events: Array<{
+          id: string;
+          status: string;
+          location: string | null;
+          description: string | null;
+          eventDate: string;
+        }>;
       } | null;
       transit: {
         referenceNumber: string;
@@ -67,6 +78,15 @@ type ShipmentDetailResponse = {
         status: string;
         estimatedDelivery: string | null;
         actualDelivery: string | null;
+        events: Array<{
+          id: string;
+          origin: string;
+          destination: string;
+          status: string;
+          location: string | null;
+          description: string | null;
+          eventDate: string;
+        }>;
       } | null;
       container: {
         containerNumber: string;
@@ -80,6 +100,14 @@ type ShipmentDetailResponse = {
         currentLocation: string | null;
         progress: number | null;
         status: string;
+        trackingEvents: Array<{
+          id: string;
+          status: string;
+          location: string | null;
+          description: string | null;
+          eventDate: string;
+          completed: boolean;
+        }>;
       } | null;
     };
   };
@@ -254,6 +282,48 @@ export default function PortalShipmentDetailPage() {
               )}
             </DashboardPanel>
 
+            {shipment.dispatch?.events && shipment.dispatch.events.length > 0 ? (
+              <DashboardPanel title="Dispatch Events" description="Internal dispatch movement updates">
+                <Box sx={{ display: 'grid', gap: 1.5 }}>
+                  {shipment.dispatch.events.map((event) => (
+                    <Box key={event.id} sx={{ border: '1px solid var(--border)', borderRadius: 2, p: 2 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
+                        <Typography sx={{ fontWeight: 600 }}>{event.status}</Typography>
+                        <Typography sx={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{new Date(event.eventDate).toLocaleString()}</Typography>
+                      </Box>
+                      {event.location ? <Typography sx={{ mt: 0.5 }}><LocationOnOutlinedIcon sx={{ fontSize: 14, mr: 0.5, color: 'var(--text-secondary)' }}/>{event.location}</Typography> : null}
+                      {event.description ? <Typography sx={{ color: 'var(--text-secondary)', mt: 0.5 }}>{event.description}</Typography> : null}
+                    </Box>
+                  ))}
+                </Box>
+              </DashboardPanel>
+            ) : null}
+
+            {shipment.container?.trackingEvents && shipment.container.trackingEvents.length > 0 ? (
+              <DashboardPanel title="Container Tracking" description="Container-level tracking events">
+                <Box sx={{ display: 'grid', gap: 1.5 }}>
+                  {shipment.container.trackingEvents.map((event) => (
+                    <Box key={event.id} sx={{ border: '1px solid var(--border)', borderRadius: 2, p: 2, display: 'flex', gap: 2, alignItems: 'flex-start' }}>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 48 }}>
+                        <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: event.completed ? 'var(--success)' : 'var(--accent-gold)' }} />
+                        <Typography sx={{ fontSize: '0.7rem', color: 'var(--text-secondary)', mt: 0.5, textTransform: 'uppercase' }}>
+                          {event.completed ? 'Done' : 'Pending'}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ flex: 1 }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
+                          <Typography sx={{ fontWeight: 600 }}>{event.status}</Typography>
+                          <Typography sx={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{new Date(event.eventDate).toLocaleString()}</Typography>
+                        </Box>
+                        {event.location ? <Typography sx={{ mt: 0.5 }}><LocationOnOutlinedIcon sx={{ fontSize: 14, mr: 0.5, color: 'var(--text-secondary)' }}/>{event.location}</Typography> : null}
+                        {event.description ? <Typography sx={{ color: 'var(--text-secondary)', mt: 0.5 }}>{event.description}</Typography> : null}
+                      </Box>
+                    </Box>
+                  ))}
+                </Box>
+              </DashboardPanel>
+            ) : null}
+
             <DashboardPanel title="Documents" description="Public shipment documents shared to the portal">
               {shipment.documents.length === 0 ? (
                 <EmptyState icon={<DescriptionOutlinedIcon />} title="No public documents" description="No public documents have been shared for this shipment yet." />
@@ -279,7 +349,21 @@ export default function PortalShipmentDetailPage() {
 
           <Box sx={{ display: 'grid', gap: 2 }}>
             <DashboardPanel title="Vehicle Info">
-              <Box sx={{ display: 'grid', gap: 1 }}>
+              <Box sx={{ display: 'grid', gap: 1.5 }}>
+                {(shipment.vehiclePhotos.length > 0 || shipment.arrivalPhotos.length > 0) ? (
+                  <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+                    {shipment.vehiclePhotos.slice(0, 3).map((photoUrl, index) => (
+                      <a key={`vehicle-${index}`} href={photoUrl} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>
+                        <Box component="img" src={photoUrl} alt={`Vehicle photo ${index + 1}`} sx={{ width: 80, height: 80, borderRadius: 2, border: '1px solid var(--border)', objectFit: 'cover' }} />
+                      </a>
+                    ))}
+                    {shipment.arrivalPhotos.slice(0, 2).map((photoUrl, index) => (
+                      <a key={`arrival-${index}`} href={photoUrl} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>
+                        <Box component="img" src={photoUrl} alt={`Arrival photo ${index + 1}`} sx={{ width: 80, height: 80, borderRadius: 2, border: '1px solid var(--border)', objectFit: 'cover' }} />
+                      </a>
+                    ))}
+                  </Box>
+                ) : null}
                 <Typography><strong>VIN:</strong> {shipment.vehicleVIN || '—'}</Typography>
                 <Typography><strong>Color:</strong> {shipment.vehicleColor || '—'}</Typography>
                 <Typography><strong>Lot:</strong> {shipment.lotNumber || '—'}</Typography>
@@ -298,7 +382,12 @@ export default function PortalShipmentDetailPage() {
                   <Typography sx={{ color: 'var(--text-secondary)' }}>{[data.assignment.partnerCustomer.city, data.assignment.partnerCustomer.country].filter(Boolean).join(', ') || 'No location'}</Typography>
                 </Box>
               ) : (
-                <EmptyState icon={<PersonOutlineIcon />} title="No linked portal customer" description="This shipment has not been linked to one of your portal customers yet." />
+                <Box sx={{ display: 'grid', gap: 1.5, alignItems: 'center' }}>
+                  <EmptyState icon={<PersonOutlineIcon />} title="No linked portal customer" description="This shipment has not been linked to one of your portal customers yet." />
+                  <Link href={`/portal/${portalId}/customers`} style={{ textDecoration: 'none' }}>
+                    <Button variant="outline" size="sm">Link a Customer</Button>
+                  </Link>
+                </Box>
               )}
             </DashboardPanel>
 
@@ -352,22 +441,57 @@ export default function PortalShipmentDetailPage() {
             </DashboardPanel>
 
             <DashboardPanel title="Route Snapshot">
-              <Box sx={{ display: 'grid', gap: 1 }}>
-                {shipment.dispatch ? <Typography><strong>Dispatch:</strong> {shipment.dispatch.origin} to {shipment.dispatch.destination}</Typography> : null}
-                {shipment.container ? <Typography><strong>Container:</strong> {shipment.container.containerNumber}</Typography> : null}
-                {shipment.container?.currentLocation ? <Typography><strong>Current Location:</strong> {shipment.container.currentLocation}</Typography> : null}
-                {shipment.container?.estimatedArrival ? <Typography><strong>ETA:</strong> {new Date(shipment.container.estimatedArrival).toLocaleDateString()}</Typography> : null}
-                {shipment.transit ? <Typography><strong>Destination Transit:</strong> {shipment.transit.origin} to {shipment.transit.destination}</Typography> : null}
-                {shipment.transit?.actualDelivery ? <Typography><strong>Delivered:</strong> {new Date(shipment.transit.actualDelivery).toLocaleDateString()}</Typography> : null}
+              <Box sx={{ display: 'grid', gap: 1.5 }}>
+                {shipment.dispatch ? (
+                  <Box sx={{ border: '1px solid var(--border)', borderRadius: 2, p: 1.5, bgcolor: 'rgba(var(--brand-primary-rgb),0.04)' }}>
+                    <Typography sx={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                      <LocalShippingOutlinedIcon sx={{ fontSize: 16, color: 'var(--text-secondary)' }} />
+                      Dispatch: {shipment.dispatch.referenceNumber}
+                    </Typography>
+                    <Typography sx={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                      {shipment.dispatch.origin} → {shipment.dispatch.destination}
+                    </Typography>
+                    {shipment.dispatch.dispatchDate ? (
+                      <Typography sx={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                        <ScheduleOutlinedIcon sx={{ fontSize: 12, mr: 0.5 }} />
+                        Dispatched: {new Date(shipment.dispatch.dispatchDate).toLocaleString()}
+                      </Typography>
+                    ) : null}
+                  </Box>
+                ) : null}
+                {shipment.container ? (
+                  <Box sx={{ border: '1px solid var(--border)', borderRadius: 2, p: 1.5, bgcolor: 'rgba(var(--accent-rgb),0.05)' }}>
+                    <Typography sx={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                      <Inventory2OutlinedIcon sx={{ fontSize: 16, color: 'var(--text-secondary)' }} />
+                      Container: {shipment.container.containerNumber}
+                    </Typography>
+                    {shipment.container.vesselName ? <Typography sx={{ fontSize: '0.85rem' }}>Vessel: {shipment.container.vesselName} ({shipment.container.voyageNumber || '—'})</Typography> : null}
+                    {shipment.container.trackingNumber ? <Typography sx={{ fontSize: '0.85rem' }}>Tracking: {shipment.container.trackingNumber}</Typography> : null}
+                    {shipment.container.currentLocation ? <Typography sx={{ fontSize: '0.85rem' }}><LocationOnOutlinedIcon sx={{ fontSize: 14, mr: 0.5, color: 'var(--text-secondary)' }}/>{shipment.container.currentLocation}</Typography> : null}
+                    {shipment.container.estimatedArrival ? <Typography sx={{ fontSize: '0.85rem' }}>ETA: {new Date(shipment.container.estimatedArrival).toLocaleDateString()}</Typography> : null}
+                    {shipment.container.actualArrival ? <Typography sx={{ fontSize: '0.85rem' }}>Arrived: {new Date(shipment.container.actualArrival).toLocaleDateString()}</Typography> : null}
+                  </Box>
+                ) : null}
+                {shipment.transit ? (
+                  <Box sx={{ border: '1px solid var(--border)', borderRadius: 2, p: 1.5, bgcolor: 'rgba(15,23,42,0.03)' }}>
+                    <Typography sx={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                      <AccountBalanceWalletOutlinedIcon sx={{ fontSize: 16, color: 'var(--text-secondary)' }} />
+                      Final Transit
+                    </Typography>
+                    <Typography sx={{ fontSize: '0.85rem' }}>{shipment.transit.origin} → {shipment.transit.destination}</Typography>
+                    {shipment.transit.estimatedDelivery ? <Typography sx={{ fontSize: '0.85rem' }}>Estimated Delivery: {new Date(shipment.transit.estimatedDelivery).toLocaleDateString()}</Typography> : null}
+                    {shipment.transit.actualDelivery ? <Typography sx={{ fontSize: '0.85rem', color: 'var(--success)' }}>Delivered: {new Date(shipment.transit.actualDelivery).toLocaleDateString()}</Typography> : null}
+                  </Box>
+                ) : null}
               </Box>
             </DashboardPanel>
 
             {(shipment.vehiclePhotos.length > 0 || shipment.arrivalPhotos.length > 0) ? (
               <DashboardPanel title="Photos">
-                <Box sx={{ display: 'grid', gap: 1.5 }}>
-                  {[...shipment.vehiclePhotos, ...shipment.arrivalPhotos].slice(0, 6).map((photoUrl, index) => (
+                <Box sx={{ display: 'grid', gap: 1.5, gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))' }}>
+                  {[...shipment.vehiclePhotos, ...shipment.arrivalPhotos].slice(0, 8).map((photoUrl, index) => (
                     <a key={`${photoUrl}-${index}`} href={photoUrl} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>
-                      <Box component="img" src={photoUrl} alt={`Shipment photo ${index + 1}`} sx={{ width: '100%', borderRadius: 2, border: '1px solid var(--border)', objectFit: 'cover' }} />
+                      <Box component="img" src={photoUrl} alt={`Shipment photo ${index + 1}`} sx={{ width: '100%', height: 120, borderRadius: 2, border: '1px solid var(--border)', objectFit: 'cover' }} />
                     </a>
                   ))}
                 </Box>

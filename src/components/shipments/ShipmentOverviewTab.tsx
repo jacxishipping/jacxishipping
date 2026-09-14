@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { History, MapPin, Truck } from 'lucide-react';
+import { History, MapPin, Truck, Ship, PenLine, FileText } from 'lucide-react';
 import { DashboardGrid, DashboardPanel } from '@/components/dashboard/DashboardSurface';
 import { Button, toast } from '@/components/design-system';
 import type { Shipment, StatusColors } from '@/components/shipments/shipment-detail-types';
@@ -14,6 +14,7 @@ type ShipmentOverviewTabProps = {
   canViewWorkflowCompanyDetails: boolean;
   canAssignDispatch: boolean;
   canManageWorkflow: boolean;
+  canManageShipmentRecord: boolean;
   canViewPurchasePrice: boolean;
   isReleasedForTransit: boolean;
   creatingReleaseToken: boolean;
@@ -33,6 +34,7 @@ export default function ShipmentOverviewTab({
   canViewWorkflowCompanyDetails,
   canAssignDispatch,
   canManageWorkflow,
+  canManageShipmentRecord,
   canViewPurchasePrice,
   isReleasedForTransit,
   creatingReleaseToken,
@@ -535,10 +537,71 @@ export default function ShipmentOverviewTab({
               <p className="mt-1 text-sm font-semibold text-[var(--text-primary)]">{new Date(shipment.container.actualArrival).toLocaleDateString()}</p>
             </div>
           )}
-          {!shipment.container && (
+          {shipment.transit?.estimatedDelivery && (
+            <div className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-3">
+              <p className="text-xs uppercase tracking-wide text-[var(--text-secondary)]">Estimated Delivery</p>
+              <p className="mt-1 text-sm font-semibold text-[var(--text-primary)]">{new Date(shipment.transit.estimatedDelivery).toLocaleDateString()}</p>
+            </div>
+          )}
+          {shipment.transit?.actualDelivery && (
+            <div className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-3">
+              <p className="text-xs uppercase tracking-wide text-[var(--text-secondary)]">Actual Delivery</p>
+              <p className="mt-1 text-sm font-semibold text-[var(--success)]">{new Date(shipment.transit.actualDelivery).toLocaleDateString()}</p>
+            </div>
+          )}
+          {!shipment.container && !shipment.transit && (
             <p className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-6 text-center text-sm text-[var(--text-secondary)]">
-              Delivery timeline will be available once assigned to a container.
+              Delivery timeline will be available once assigned to a container or transit.
             </p>
+          )}
+        </div>
+      </DashboardPanel>
+
+      <DashboardPanel title="Quick Actions">
+        <div className="grid gap-2 sm:grid-cols-2">
+          {canManageWorkflow && shipment.container && shipment.container.status !== 'RELEASED' && shipment.container.status !== 'CLOSED' && (
+            <Link href={`/dashboard/containers/${shipment.containerId}`}>
+              <Button variant="outline" size="sm" className="w-full">
+                <Truck className="mr-2 h-4 w-4" />
+                View Container Details
+              </Button>
+            </Link>
+          )}
+          {canManageWorkflow && shipment.dispatch && (
+            <Link href={`/dashboard/dispatches/${shipment.dispatch.id}`}>
+              <Button variant="outline" size="sm" className="w-full">
+                <Truck className="mr-2 h-4 w-4" />
+                View Dispatch Details
+              </Button>
+            </Link>
+          )}
+          {canManageWorkflow && shipment.transit && (
+            <Link href={`/dashboard/transits/${shipment.transit.id}`}>
+              <Button variant="outline" size="sm" className="w-full">
+                <Ship className="mr-2 h-4 w-4" />
+                View Transit Details
+              </Button>
+            </Link>
+          )}
+          {shipment.releaseToken && (
+            <button
+              onClick={() => {
+                void navigator.clipboard.writeText(shipment.releaseToken || '');
+                toast.success('Release token copied');
+              }}
+              className="inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-[var(--border)] bg-[var(--panel)] px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:border-[var(--accent-gold)]"
+            >
+              <FileText className="h-3.5 w-3.5" />
+              Copy Release Token
+            </button>
+          )}
+          {canManageShipmentRecord && (
+            <Link href={`/dashboard/shipments/${shipment.id}/edit`}>
+              <Button variant="outline" size="sm" className="w-full">
+                <PenLine className="mr-2 h-4 w-4" />
+                Edit Shipment
+              </Button>
+            </Link>
           )}
         </div>
       </DashboardPanel>
