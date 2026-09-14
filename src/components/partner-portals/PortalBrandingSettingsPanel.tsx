@@ -437,7 +437,6 @@ export default function PortalBrandingSettingsPanel({
           <TextField
             label="Custom Domain"
             placeholder="portal.partner.com"
-            helperText="Hostname only. No http://, https://, ports, or paths. After saving, point this DNS record to the main app host."
             value={form.customDomain}
             onChange={(event) => setForm((prev) => ({ ...prev, customDomain: event.target.value.trim().toLowerCase() }))}
             disabled={!canEdit || saving}
