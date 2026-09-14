@@ -98,13 +98,14 @@ export default function AgingReportPage() {
   const getBucketColor = (bucket: string) => {
     switch (bucket) {
       case 'current':
-        return 'text-green-400 bg-green-500/10 border-green-500/30';
+        return 'text-[var(--success)] bg-[rgba(var(--success-rgb),0.08)] border-[rgba(var(--success-rgb),0.3)]';
       case 'aging30':
-        return 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30';
+        return 'text-[var(--warning)] bg-[rgba(var(--warning-rgb),0.08)] border-[rgba(var(--warning-rgb),0.3)]';
       case 'aging60':
-        return 'text-orange-400 bg-orange-500/10 border-orange-500/30';
+        // Orange between warning and error per status mapping (61-90 days)
+        return 'text-[#B45309] bg-[rgba(245,158,11,0.08)] border-[rgba(245,158,11,0.3)]';
       case 'aging90':
-        return 'text-red-400 bg-red-500/10 border-red-500/30';
+        return 'text-[var(--error)] bg-[rgba(var(--error-rgb),0.08)] border-[rgba(var(--error-rgb),0.3)]';
       default:
         return 'text-[var(--text-primary)]';
     }
@@ -118,7 +119,7 @@ export default function AgingReportPage() {
       render: (_, shipment) => (
         <Link
           href={`/dashboard/shipments/${shipment.id}`}
-          className="text-cyan-400 hover:text-cyan-300 hover:underline"
+          className="text-[var(--accent-gold)] hover:underline"
         >
           {shipment.trackingNumber || '—'}
         </Link>
@@ -217,7 +218,7 @@ export default function AgingReportPage() {
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-start gap-3 min-w-0 flex-1">
               <Link href="/dashboard/finance/reports">
-                <Button variant="outline" size="sm" className="border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/10">
+                <Button variant="outline" size="sm" className="border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--accent-gold)]">
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Back
                 </Button>
@@ -244,19 +245,19 @@ export default function AgingReportPage() {
             <button
               onClick={() => setSelectedBucket('current')}
               className={`text-left p-4 rounded-lg border-2 transition-all ${
-                selectedBucket === 'current' ? 'border-green-500 bg-green-500/10' : 'border-white/10 hover:border-green-500/50'
+                selectedBucket === 'current' ? 'border-[var(--success)] bg-[rgba(var(--success-rgb),0.08)]' : 'border-[var(--border)] hover:border-[rgba(var(--success-rgb),0.5)]'
               }`}
             >
               <div className="flex items-center justify-between mb-2">
-                <Clock className="w-5 h-5 text-green-400" />
-                <span className="text-xs font-semibold text-green-400">
+                <Clock className="w-5 h-5 text-[var(--success)]" />
+                <span className="text-xs font-semibold text-[var(--success)]">
                   {report.summary.buckets.current.percentage.toFixed(1)}%
                 </span>
               </div>
               <p className="text-xs text-[var(--text-secondary)] uppercase tracking-wide mb-1">
                 {report.summary.buckets.current.label}
               </p>
-              <p className="text-2xl font-bold text-green-400">
+              <p className="text-2xl font-bold text-[var(--success)]">
                 {formatCurrency(report.summary.buckets.current.total)}
               </p>
               <p className="text-xs text-[var(--text-secondary)] mt-1">
@@ -268,19 +269,19 @@ export default function AgingReportPage() {
             <button
               onClick={() => setSelectedBucket('aging30')}
               className={`text-left p-4 rounded-lg border-2 transition-all ${
-                selectedBucket === 'aging30' ? 'border-yellow-500 bg-yellow-500/10' : 'border-white/10 hover:border-yellow-500/50'
+                selectedBucket === 'aging30' ? 'border-[var(--warning)] bg-[rgba(var(--warning-rgb),0.08)]' : 'border-[var(--border)] hover:border-[rgba(var(--warning-rgb),0.5)]'
               }`}
             >
               <div className="flex items-center justify-between mb-2">
-                <Clock className="w-5 h-5 text-yellow-400" />
-                <span className="text-xs font-semibold text-yellow-400">
+                <Clock className="w-5 h-5 text-[var(--warning)]" />
+                <span className="text-xs font-semibold text-[var(--warning)]">
                   {report.summary.buckets.aging30.percentage.toFixed(1)}%
                 </span>
               </div>
               <p className="text-xs text-[var(--text-secondary)] uppercase tracking-wide mb-1">
                 {report.summary.buckets.aging30.label}
               </p>
-              <p className="text-2xl font-bold text-yellow-400">
+              <p className="text-2xl font-bold text-[var(--warning)]">
                 {formatCurrency(report.summary.buckets.aging30.total)}
               </p>
               <p className="text-xs text-[var(--text-secondary)] mt-1">
@@ -292,19 +293,19 @@ export default function AgingReportPage() {
             <button
               onClick={() => setSelectedBucket('aging60')}
               className={`text-left p-4 rounded-lg border-2 transition-all ${
-                selectedBucket === 'aging60' ? 'border-orange-500 bg-orange-500/10' : 'border-white/10 hover:border-orange-500/50'
+                selectedBucket === 'aging60' ? 'border-[rgba(245,158,11,0.6)] bg-[rgba(245,158,11,0.08)]' : 'border-[var(--border)] hover:border-[rgba(245,158,11,0.5)]'
               }`}
             >
               <div className="flex items-center justify-between mb-2">
-                <Clock className="w-5 h-5 text-orange-400" />
-                <span className="text-xs font-semibold text-orange-400">
+                <Clock className="w-5 h-5 text-[#B45309]" />
+                <span className="text-xs font-semibold text-[#B45309]">
                   {report.summary.buckets.aging60.percentage.toFixed(1)}%
                 </span>
               </div>
               <p className="text-xs text-[var(--text-secondary)] uppercase tracking-wide mb-1">
                 {report.summary.buckets.aging60.label}
               </p>
-              <p className="text-2xl font-bold text-orange-400">
+              <p className="text-2xl font-bold text-[#B45309]">
                 {formatCurrency(report.summary.buckets.aging60.total)}
               </p>
               <p className="text-xs text-[var(--text-secondary)] mt-1">
@@ -316,19 +317,19 @@ export default function AgingReportPage() {
             <button
               onClick={() => setSelectedBucket('aging90')}
               className={`text-left p-4 rounded-lg border-2 transition-all ${
-                selectedBucket === 'aging90' ? 'border-red-500 bg-red-500/10' : 'border-white/10 hover:border-red-500/50'
+                selectedBucket === 'aging90' ? 'border-[var(--error)] bg-[rgba(var(--error-rgb),0.08)]' : 'border-[var(--border)] hover:border-[rgba(var(--error-rgb),0.5)]'
               }`}
             >
               <div className="flex items-center justify-between mb-2">
-                <AlertCircle className="w-5 h-5 text-red-400" />
-                <span className="text-xs font-semibold text-red-400">
+                <AlertCircle className="w-5 h-5 text-[var(--error)]" />
+                <span className="text-xs font-semibold text-[var(--error)]">
                   {report.summary.buckets.aging90.percentage.toFixed(1)}%
                 </span>
               </div>
               <p className="text-xs text-[var(--text-secondary)] uppercase tracking-wide mb-1">
                 {report.summary.buckets.aging90.label}
               </p>
-              <p className="text-2xl font-bold text-red-400">
+              <p className="text-2xl font-bold text-[var(--error)]">
                 {formatCurrency(report.summary.buckets.aging90.total)}
               </p>
               <p className="text-xs text-[var(--text-secondary)] mt-1">
@@ -357,7 +358,7 @@ export default function AgingReportPage() {
                     Across {report.summary.totalShipments} shipments
                   </p>
                 </div>
-                <TrendingUp className="w-12 h-12 text-cyan-400 opacity-50" />
+                <TrendingUp className="w-12 h-12 text-[var(--accent-gold)] opacity-50" />
               </div>
             </CardContent>
           </Card>
@@ -371,7 +372,7 @@ export default function AgingReportPage() {
 
         <Section className="pb-16">
           <Card className="border-0 bg-[var(--panel)] backdrop-blur-md shadow-lg">
-            <CardHeader className="p-4 border-b border-white/5">
+            <CardHeader className="p-4 border-b border-[var(--border)]">
               <CardTitle className="text-lg font-bold text-[var(--text-primary)]">
                 {report.summary.buckets[selectedBucket].label} - Detailed View
               </CardTitle>

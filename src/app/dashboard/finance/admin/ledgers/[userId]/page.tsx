@@ -334,8 +334,8 @@ export default function UserLedgerManagementPage() {
   };
 
   const getBalanceColor = (balance: number) => {
-    if (balance > 0) return '#ef4444';
-    if (balance < 0) return '#22c55e';
+    if (balance > 0) return 'var(--error)';
+    if (balance < 0) return 'var(--success)';
     return 'var(--text-secondary)';
   };
 
@@ -377,9 +377,9 @@ export default function UserLedgerManagementPage() {
                     fontSize: '0.65rem',
                     fontWeight: 700,
                     letterSpacing: '0.05em',
-                    backgroundColor: 'rgba(234, 179, 8, 0.15)',
-                    color: '#ca8a04',
-                    border: '1px solid rgba(234, 179, 8, 0.3)',
+                    backgroundColor: 'rgba(var(--warning-rgb), 0.15)',
+                    color: 'var(--warning-dark, #B45309)',
+                    border: '1px solid rgba(var(--warning-rgb), 0.3)',
                     textTransform: 'uppercase',
                   }}
                 >
@@ -398,9 +398,9 @@ export default function UserLedgerManagementPage() {
                     fontSize: '0.65rem',
                     fontWeight: 700,
                     letterSpacing: '0.05em',
-                    backgroundColor: 'rgba(34, 197, 94, 0.15)',
-                    color: '#16a34a',
-                    border: '1px solid rgba(34, 197, 94, 0.3)',
+                    backgroundColor: 'rgba(var(--success-rgb), 0.15)',
+                    color: 'var(--success-dark, #047857)',
+                    border: '1px solid rgba(var(--success-rgb), 0.3)',
                     textTransform: 'uppercase',
                   }}
                 >
@@ -437,8 +437,8 @@ export default function UserLedgerManagementPage() {
           size="small"
           icon={row.type === 'DEBIT' ? <TrendingUpIcon /> : <TrendingDownIcon />}
           sx={{
-            backgroundColor: row.type === 'DEBIT' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(34, 197, 94, 0.1)',
-            color: row.type === 'DEBIT' ? '#ef4444' : '#22c55e',
+            backgroundColor: row.type === 'DEBIT' ? 'rgba(var(--error-rgb), 0.1)' : 'rgba(var(--success-rgb), 0.1)',
+            color: row.type === 'DEBIT' ? 'var(--error)' : 'var(--success)',
             fontWeight: 600,
             fontSize: '0.75rem',
           }}
@@ -452,7 +452,7 @@ export default function UserLedgerManagementPage() {
       align: 'right' as const,
       width: '15%',
       render: (_, row) => (
-        <span style={{ fontSize: '0.9rem', fontWeight: 600, color: row.type === 'DEBIT' ? '#ef4444' : '#22c55e' }}>
+        <span style={{ fontSize: '0.9rem', fontWeight: 600, color: row.type === 'DEBIT' ? 'var(--error)' : 'var(--success)' }}>
           {row.type === 'DEBIT' ? '+' : '-'}{formatCurrency(row.amount)}
         </span>
       )

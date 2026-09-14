@@ -170,7 +170,7 @@ export default function AddExpensePage() {
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-start gap-3 min-w-0 flex-1">
               <Link href={shipmentIdParam ? `/dashboard/shipments/${shipmentIdParam}` : '/dashboard/finance'}>
-                <Button variant="outline" size="sm" className="border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/10">
+                <Button variant="outline" size="sm" className="border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--accent-gold)]">
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Back
                 </Button>
@@ -194,20 +194,20 @@ export default function AddExpensePage() {
           <form onSubmit={handleSubmit} className="space-y-6 max-w-3xl">
             {/* Shipment Selection */}
             <Card className="border-0 bg-[var(--panel)] backdrop-blur-md shadow-lg">
-              <CardHeader className="p-4 sm:p-6 border-b border-white/5">
+              <CardHeader className="p-4 sm:p-6 border-b border-[var(--border)]">
                 <CardTitle className="text-lg font-bold text-[var(--text-primary)]">Select Shipment</CardTitle>
               </CardHeader>
               <CardContent className="p-4 sm:p-6">
                 <div>
                   <label htmlFor="shipment" className="block text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wide mb-2">
-                    Shipment <span className="text-red-400">*</span>
+                    Shipment <span className="text-[var(--error)]">*</span>
                   </label>
                   <select
                     id="shipment"
                     value={selectedShipmentId}
                     onChange={(e) => setSelectedShipmentId(e.target.value)}
                     disabled={!!shipmentIdParam}
-                    className="w-full px-4 py-2 rounded-lg border border-white/10 bg-white/3 text-[var(--text-primary)] focus:ring-2 focus:ring-cyan-500/40 disabled:opacity-50"
+                    className="w-full px-4 py-2 rounded-lg border border-[var(--border)] bg-[var(--panel)] text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:outline-none focus:ring-2 focus:ring-[rgba(var(--accent-gold-rgb),0.25)] focus:border-[var(--accent-gold)] transition-colors"
                     required
                   >
                     <option value="">Select a shipment...</option>
@@ -225,9 +225,9 @@ export default function AddExpensePage() {
                 </div>
 
                 {selectedShipment && (
-                  <div className="mt-4 p-4 rounded-lg bg-cyan-500/10 border border-cyan-500/30">
+                  <div className="mt-4 p-4 rounded-lg bg-[rgba(var(--info-rgb),0.08)] border-[rgba(var(--info-rgb),0.25)]">
                     <div className="flex items-center gap-3">
-                      <Package className="w-5 h-5 text-cyan-400" />
+                      <Package className="w-5 h-5 text-[var(--info)]" />
                       <div>
                         <p className="text-sm font-semibold text-[var(--text-primary)]">
                           {selectedShipment.trackingNumber}
@@ -245,19 +245,19 @@ export default function AddExpensePage() {
             {/* Expense Details */}
             {selectedShipmentId && (
               <Card className="border-0 bg-[var(--panel)] backdrop-blur-md shadow-lg">
-                <CardHeader className="p-4 sm:p-6 border-b border-white/5">
+                <CardHeader className="p-4 sm:p-6 border-b border-[var(--border)]">
                   <CardTitle className="text-lg font-bold text-[var(--text-primary)]">Expense Details</CardTitle>
                 </CardHeader>
                 <CardContent className="p-4 sm:p-6 space-y-4">
                   <div>
                     <label htmlFor="expenseType" className="block text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wide mb-2">
-                      Expense Type <span className="text-red-400">*</span>
+                      Expense Type <span className="text-[var(--error)]">*</span>
                     </label>
                     <select
                       id="expenseType"
                       value={expenseType}
                       onChange={(e) => setExpenseType(e.target.value)}
-                      className="w-full px-4 py-2 rounded-lg border border-white/10 bg-white/3 text-[var(--text-primary)] focus:ring-2 focus:ring-cyan-500/40"
+                      className="w-full px-4 py-2 rounded-lg border border-[var(--border)] bg-[var(--panel)] text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:outline-none focus:ring-2 focus:ring-[rgba(var(--accent-gold-rgb),0.25)] focus:border-[var(--accent-gold)] transition-colors"
                       required
                     >
                       {expenseTypes.map((type) => (
@@ -270,7 +270,7 @@ export default function AddExpensePage() {
 
                   <div>
                     <label htmlFor="description" className="block text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wide mb-2">
-                      Description <span className="text-red-400">*</span>
+                      Description <span className="text-[var(--error)]">*</span>
                     </label>
                     <input
                       type="text"
@@ -278,14 +278,14 @@ export default function AddExpensePage() {
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
                       placeholder="e.g., Port clearance fee at Dubai Port"
-                      className="w-full px-4 py-2 rounded-lg border border-white/10 bg-white/3 text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:ring-2 focus:ring-cyan-500/40"
+                      className="w-full px-4 py-2 rounded-lg border border-[var(--border)] bg-[var(--panel)] text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:outline-none focus:ring-2 focus:ring-[rgba(var(--accent-gold-rgb),0.25)] focus:border-[var(--accent-gold)] transition-colors"
                       required
                     />
                   </div>
 
                   <div>
                     <label htmlFor="amount" className="block text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wide mb-2">
-                      Amount (USD) <span className="text-red-400">*</span>
+                      Amount (USD) <span className="text-[var(--error)]">*</span>
                     </label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -299,7 +299,7 @@ export default function AddExpensePage() {
                         value={amount}
                         onChange={(e) => setAmount(e.target.value)}
                         placeholder="0.00"
-                        className="w-full pl-10 pr-4 py-2 rounded-lg border border-white/10 bg-white/3 text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:ring-2 focus:ring-cyan-500/40"
+                        className="w-full pl-10 pr-4 py-2 rounded-lg border border-[var(--border)] bg-[var(--panel)] text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:outline-none focus:ring-2 focus:ring-[rgba(var(--accent-gold-rgb),0.25)] focus:border-[var(--accent-gold)] transition-colors"
                         required
                       />
                     </div>
@@ -308,10 +308,10 @@ export default function AddExpensePage() {
                   {/* Payment Mode */}
                   <div>
                     <label className="block text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wide mb-2">
-                      Payment Mode <span className="text-red-400">*</span>
+                      Payment Mode <span className="text-[var(--error)]">*</span>
                     </label>
                     <div className="flex gap-3">
-                      <label className={`flex-1 flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${paymentMode === 'DUE' ? 'border-[var(--accent-gold)] bg-[rgba(var(--accent-gold-rgb),0.1)]' : 'border-white/10 bg-white/3 hover:border-white/20'}`}>
+                      <label className={`flex-1 flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${paymentMode === 'DUE' ? 'border-[var(--accent-gold)] bg-[rgba(var(--accent-gold-rgb),0.1)]' : 'border-[var(--border)] bg-[var(--panel)] hover:border-[rgba(var(--accent-gold-rgb),0.5)]'}`}>
                         <input
                           type="radio"
                           name="paymentMode"
@@ -325,7 +325,7 @@ export default function AddExpensePage() {
                           <p className="text-xs text-[var(--text-secondary)]">Only DEBIT — customer still owes</p>
                         </div>
                       </label>
-                      <label className={`flex-1 flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${paymentMode === 'CASH' ? 'border-green-500 bg-green-500/10' : 'border-white/10 bg-white/3 hover:border-white/20'}`}>
+                      <label className={`flex-1 flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${paymentMode === 'CASH' ? 'border-[var(--success)] bg-[rgba(var(--success-rgb),0.08)]' : 'border-[var(--border)] bg-[var(--panel)] hover:border-[rgba(var(--accent-gold-rgb),0.5)]'}`}>
                         <input
                           type="radio"
                           name="paymentMode"
@@ -352,15 +352,15 @@ export default function AddExpensePage() {
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
                       placeholder="Additional notes about this expense..."
-                      className="w-full px-4 py-2 rounded-lg border border-white/10 bg-white/3 text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:ring-2 focus:ring-cyan-500/40 resize-none"
+                      className="w-full px-4 py-2 rounded-lg border border-[var(--border)] bg-[var(--panel)] text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:outline-none focus:ring-2 focus:ring-[rgba(var(--accent-gold-rgb),0.25)] focus:border-[var(--accent-gold)] transition-colors"
                     />
                   </div>
 
-                  <div className={`p-4 rounded-lg border ${paymentMode === 'CASH' ? 'bg-green-500/10 border-green-500/30' : 'bg-yellow-500/10 border-yellow-500/30'}`}>
+                  <div className={`p-4 rounded-lg border ${paymentMode === 'CASH' ? 'bg-[rgba(var(--success-rgb),0.08)] border-[rgba(var(--success-rgb),0.25)]' : 'bg-[rgba(var(--warning-rgb),0.08)] border-[rgba(var(--warning-rgb),0.25)]'}`}>
                     <div className="flex items-start gap-2">
-                      <AlertCircle className={`w-5 h-5 flex-shrink-0 mt-0.5 ${paymentMode === 'CASH' ? 'text-green-400' : 'text-yellow-400'}`} />
+                      <AlertCircle className={`w-5 h-5 flex-shrink-0 mt-0.5 ${paymentMode === 'CASH' ? 'text-[var(--success)]' : 'text-[var(--warning)]'}`} />
                       <div>
-                        <p className={`text-sm font-semibold ${paymentMode === 'CASH' ? 'text-green-400' : 'text-yellow-400'}`}>
+                        <p className={`text-sm font-semibold ${paymentMode === 'CASH' ? 'text-[var(--success)]' : 'text-[var(--warning)]'}`}>
                           {paymentMode === 'CASH' ? 'Cash Payment' : 'Due Payment'}
                         </p>
                         <p className="text-xs text-[var(--text-secondary)] mt-1">
@@ -377,7 +377,7 @@ export default function AddExpensePage() {
 
             {/* Error/Success Messages */}
             {error && (
-              <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+              <div className="rounded-lg border border-[rgba(var(--error-rgb),0.3)] bg-[rgba(var(--error-rgb),0.08)] px-4 py-3 text-sm text-[var(--error)]">
                 <div className="flex items-center gap-2">
                   <AlertCircle className="w-4 h-4" />
                   {error}
@@ -386,7 +386,7 @@ export default function AddExpensePage() {
             )}
 
             {success && (
-              <div className="rounded-lg border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm text-green-200">
+              <div className="rounded-lg border border-[rgba(var(--success-rgb),0.3)] bg-[rgba(var(--success-rgb),0.08)] px-4 py-3 text-sm text-[var(--success)]">
                 <div className="flex items-center gap-2">
                   <CheckCircle className="w-4 h-4" />
                   {success}
@@ -402,7 +402,7 @@ export default function AddExpensePage() {
                     type="button"
                     variant="outline"
                     disabled={loading}
-                    className="border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/10"
+                    className="border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--accent-gold)]"
                   >
                     Cancel
                   </Button>
@@ -411,7 +411,6 @@ export default function AddExpensePage() {
                   type="submit"
                   disabled={loading}
                   className="bg-[var(--accent-gold)] hover:bg-[var(--accent-gold)]"
-                  style={{ color: 'white' }}
                 >
                   {loading ? 'Adding...' : 'Add Expense'}
                 </Button>

@@ -129,21 +129,21 @@ export default function NewItemPage() {
 								<path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" strokeWidth="1" />
 							</pattern>
 						</defs>
-						<rect width="100%" height="100%" fill="url(#grid-new-item)" className="text-cyan-400" />
+						<rect width="100%" height="100%" fill="url(#grid-new-item)" className="text-white" />
 					</svg>
 				</div>
 
 				<div className="relative z-10">
 					<div className="flex items-center gap-6">
 						<Link href={`/dashboard/containers/${containerId ?? ''}`}>
-							<Button variant="outline" size="sm" className="border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10">
+							<Button variant="outline" size="sm" className="border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--accent-gold)]">
 								<ArrowLeft className="w-4 h-4 mr-2" />
 								Back
 							</Button>
 						</Link>
 						<div>
 							<h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white leading-tight">Add Item</h1>
-							<p className="text-lg sm:text-xl text-white/70 mt-2">Add a new item to container</p>
+							<p className="text-lg sm:text-xl text-[var(--panel)]/85 mt-2">Add a new item to container</p>
 						</div>
 					</div>
 				</div>
@@ -156,59 +156,59 @@ export default function NewItemPage() {
 						<motion.div
 							initial={{ opacity: 0, y: 20 }}
 							animate={{ opacity: 1, y: 0 }}
-							className="relative rounded-xl bg-[var(--text-primary)]/50 backdrop-blur-sm border border-cyan-500/30 p-6 sm:p-8"
+							className="relative rounded-xl bg-[var(--panel)] backdrop-blur-sm border border-[var(--border)] p-6 sm:p-8"
 						>
 							<div className="flex items-center gap-3 mb-6">
-								<div className="w-10 h-10 rounded-xl bg-[var(--text-primary)] border border-cyan-500/40 flex items-center justify-center">
-									<Package className="w-5 h-5 text-cyan-400" />
+								<div className="w-10 h-10 rounded-xl bg-[var(--panel)] border border-[var(--border)] flex items-center justify-center">
+									<Package className="w-5 h-5 text-[var(--info)]" />
 								</div>
 								<h2 className="text-xl sm:text-2xl font-bold text-white">Item Information</h2>
 							</div>
 
 							<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 								<div>
-									<label htmlFor="vin" className="block text-sm font-medium text-white/90 mb-2">
-										VIN <span className="text-red-400">*</span>
+									<label htmlFor="vin" className="block text-sm font-medium text-[var(--panel)]/90 mb-2">
+										VIN <span className="text-[var(--error)]">*</span>
 									</label>
 									<input
 										type="text"
 										id="vin"
 										{...register('vin', { required: 'VIN is required' })}
-										className={`w-full px-4 py-3 bg-[var(--text-primary)] border rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 ${
-											errors.vin ? 'border-red-500/50' : 'border-cyan-500/30'
+										className={`w-full px-4 py-3 bg-[var(--panel)] border border-[var(--border)] rounded-lg text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:outline-none focus:ring-2 focus:ring-[rgba(var(--accent-gold-rgb),0.25)] ${
+											errors.vin ? 'border-[rgba(var(--error-rgb),0.5)]' : 'border-[var(--border)]'
 										}`}
 									/>
-									{errors.vin && <p className="mt-2 text-sm text-red-400">{errors.vin.message as string}</p>}
+									{errors.vin && <p className="mt-2 text-sm text-[var(--error)]">{errors.vin.message as string}</p>}
 								</div>
 
 								<div>
-									<label htmlFor="lotNumber" className="block text-sm font-medium text-white/90 mb-2">
-										Lot Number <span className="text-red-400">*</span>
+									<label htmlFor="lotNumber" className="block text-sm font-medium text-[var(--panel)]/90 mb-2">
+										Lot Number <span className="text-[var(--error)]">*</span>
 									</label>
 									<input
 										type="text"
 										id="lotNumber"
 										{...register('lotNumber', { required: 'Lot number is required' })}
-										className={`w-full px-4 py-3 bg-[var(--text-primary)] border rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 ${
-											errors.lotNumber ? 'border-red-500/50' : 'border-cyan-500/30'
+										className={`w-full px-4 py-3 bg-[var(--panel)] border border-[var(--border)] rounded-lg text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:outline-none focus:ring-2 focus:ring-[rgba(var(--accent-gold-rgb),0.25)] ${
+											errors.lotNumber ? 'border-[rgba(var(--error-rgb),0.5)]' : 'border-[var(--border)]'
 										}`}
 									/>
-									{errors.lotNumber && <p className="mt-2 text-sm text-red-400">{errors.lotNumber.message as string}</p>}
+									{errors.lotNumber && <p className="mt-2 text-sm text-[var(--error)]">{errors.lotNumber.message as string}</p>}
 								</div>
 
 								<div className="md:col-span-2">
-									<label htmlFor="auctionCity" className="block text-sm font-medium text-white/90 mb-2">
-										Auction City <span className="text-red-400">*</span>
+									<label htmlFor="auctionCity" className="block text-sm font-medium text-[var(--panel)]/90 mb-2">
+										Auction City <span className="text-[var(--error)]">*</span>
 									</label>
 									<input
 										type="text"
 										id="auctionCity"
 										{...register('auctionCity', { required: 'Auction city is required' })}
-										className={`w-full px-4 py-3 bg-[var(--text-primary)] border rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 ${
-											errors.auctionCity ? 'border-red-500/50' : 'border-cyan-500/30'
+										className={`w-full px-4 py-3 bg-[var(--panel)] border border-[var(--border)] rounded-lg text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:outline-none focus:ring-2 focus:ring-[rgba(var(--accent-gold-rgb),0.25)] ${
+											errors.auctionCity ? 'border-[rgba(var(--error-rgb),0.5)]' : 'border-[var(--border)]'
 										}`}
 									/>
-									{errors.auctionCity && <p className="mt-2 text-sm text-red-400">{errors.auctionCity.message as string}</p>}
+									{errors.auctionCity && <p className="mt-2 text-sm text-[var(--error)]">{errors.auctionCity.message as string}</p>}
 								</div>
 							</div>
 						</motion.div>
@@ -218,63 +218,63 @@ export default function NewItemPage() {
 							initial={{ opacity: 0, y: 20 }}
 							animate={{ opacity: 1, y: 0 }}
 							transition={{ delay: 0.1 }}
-							className="relative rounded-xl bg-[var(--text-primary)]/50 backdrop-blur-sm border border-cyan-500/30 p-6 sm:p-8"
+							className="relative rounded-xl bg-[var(--panel)] backdrop-blur-sm border border-[var(--border)] p-6 sm:p-8"
 						>
 							<div className="flex items-center gap-3 mb-6">
-								<div className="w-10 h-10 rounded-xl bg-[var(--text-primary)] border border-cyan-500/40 flex items-center justify-center">
-									<DollarSign className="w-5 h-5 text-cyan-400" />
+								<div className="w-10 h-10 rounded-xl bg-[var(--panel)] border border-[var(--border)] flex items-center justify-center">
+									<DollarSign className="w-5 h-5 text-[var(--info)]" />
 								</div>
 								<h2 className="text-xl sm:text-2xl font-bold text-white">Costs (USD)</h2>
 							</div>
 
 							<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 								<div>
-									<label htmlFor="freightCost" className="block text-sm font-medium text-white/90 mb-2">Freight Cost</label>
-									<input type="number" step="0.01" id="freightCost" {...register('freightCost')} defaultValue={0} className="w-full px-4 py-3 bg-[var(--text-primary)] border border-cyan-500/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50" />
+									<label htmlFor="freightCost" className="block text-sm font-medium text-[var(--panel)]/90 mb-2">Freight Cost</label>
+									<input type="number" step="0.01" id="freightCost" {...register('freightCost')} defaultValue={0} className="w-full px-4 py-3 bg-[var(--panel)] border border-[var(--border)] rounded-lg text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[rgba(var(--accent-gold-rgb),0.25)]" />
 								</div>
 								<div>
-									<label htmlFor="towingCost" className="block text-sm font-medium text-white/90 mb-2">Towing Cost</label>
-									<input type="number" step="0.01" id="towingCost" {...register('towingCost')} defaultValue={0} className="w-full px-4 py-3 bg-[var(--text-primary)] border border-cyan-500/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50" />
+									<label htmlFor="towingCost" className="block text-sm font-medium text-[var(--panel)]/90 mb-2">Towing Cost</label>
+									<input type="number" step="0.01" id="towingCost" {...register('towingCost')} defaultValue={0} className="w-full px-4 py-3 bg-[var(--panel)] border border-[var(--border)] rounded-lg text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[rgba(var(--accent-gold-rgb),0.25)]" />
 								</div>
 								<div>
-									<label htmlFor="clearanceCost" className="block text-sm font-medium text-white/90 mb-2">Clearance Cost</label>
-									<input type="number" step="0.01" id="clearanceCost" {...register('clearanceCost')} defaultValue={0} className="w-full px-4 py-3 bg-[var(--text-primary)] border border-cyan-500/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50" />
+									<label htmlFor="clearanceCost" className="block text-sm font-medium text-[var(--panel)]/90 mb-2">Clearance Cost</label>
+									<input type="number" step="0.01" id="clearanceCost" {...register('clearanceCost')} defaultValue={0} className="w-full px-4 py-3 bg-[var(--panel)] border border-[var(--border)] rounded-lg text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[rgba(var(--accent-gold-rgb),0.25)]" />
 								</div>
 								<div>
-									<label htmlFor="vatCost" className="block text-sm font-medium text-white/90 mb-2">VAT Cost</label>
-									<input type="number" step="0.01" id="vatCost" {...register('vatCost')} defaultValue={0} className="w-full px-4 py-3 bg-[var(--text-primary)] border border-cyan-500/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50" />
+									<label htmlFor="vatCost" className="block text-sm font-medium text-[var(--panel)]/90 mb-2">VAT Cost</label>
+									<input type="number" step="0.01" id="vatCost" {...register('vatCost')} defaultValue={0} className="w-full px-4 py-3 bg-[var(--panel)] border border-[var(--border)] rounded-lg text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[rgba(var(--accent-gold-rgb),0.25)]" />
 								</div>
 								<div>
-									<label htmlFor="customsCost" className="block text-sm font-medium text-white/90 mb-2">Customs Cost</label>
-									<input type="number" step="0.01" id="customsCost" {...register('customsCost')} defaultValue={0} className="w-full px-4 py-3 bg-[var(--text-primary)] border border-cyan-500/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50" />
+									<label htmlFor="customsCost" className="block text-sm font-medium text-[var(--panel)]/90 mb-2">Customs Cost</label>
+									<input type="number" step="0.01" id="customsCost" {...register('customsCost')} defaultValue={0} className="w-full px-4 py-3 bg-[var(--panel)] border border-[var(--border)] rounded-lg text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[rgba(var(--accent-gold-rgb),0.25)]" />
 								</div>
 								<div>
-									<label htmlFor="otherCost" className="block text-sm font-medium text-white/90 mb-2">Other Cost</label>
-									<input type="number" step="0.01" id="otherCost" {...register('otherCost')} defaultValue={0} className="w-full px-4 py-3 bg-[var(--text-primary)] border border-cyan-500/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50" />
+									<label htmlFor="otherCost" className="block text-sm font-medium text-[var(--panel)]/90 mb-2">Other Cost</label>
+									<input type="number" step="0.01" id="otherCost" {...register('otherCost')} defaultValue={0} className="w-full px-4 py-3 bg-[var(--panel)] border border-[var(--border)] rounded-lg text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[rgba(var(--accent-gold-rgb),0.25)]" />
 								</div>
 							</div>
 
-							<div className="mt-6 p-4 rounded-lg bg-[var(--text-primary)]/50 border border-cyan-500/20">
+							<div className="mt-6 p-4 rounded-lg bg-[var(--panel)]/25 border border-[rgba(var(--panel-rgb),0.2)]">
 								<div className="flex items-center justify-between">
-									<span className="text-sm font-medium text-white/70">Total Cost:</span>
-									<span className="text-xl font-bold text-cyan-400">${totalCost.toFixed(2)}</span>
+									<span className="text-sm font-medium text-[var(--panel)]/85">Total Cost:</span>
+									<span className="text-xl font-bold text-[var(--info)]">${totalCost.toFixed(2)}</span>
 								</div>
 							</div>
 						</motion.div>
 
 						{error && (
-							<motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="relative rounded-xl bg-red-500/10 backdrop-blur-sm border border-red-500/30 p-6">
-								<p className="text-sm text-red-400">{error}</p>
+							<motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="relative rounded-xl bg-[rgba(var(--error-rgb),0.08)] backdrop-blur-sm border border-[rgba(var(--error-rgb),0.3)] p-6">
+								<p className="text-sm text-[var(--error)]">{error}</p>
 							</motion.div>
 						)}
 
 						<motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="flex flex-col sm:flex-row justify-end gap-4 pt-4">
 							<Link href={`/dashboard/containers/${containerId ?? ''}`} className="sm:w-auto w-full">
-								<Button type="button" variant="outline" disabled={isSubmitting} className="w-full sm:w-auto border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10">
+								<Button type="button" variant="outline" disabled={isSubmitting} className="w-full sm:w-auto border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--accent-gold)]">
 									Cancel
 								</Button>
 							</Link>
-							<Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto bg-[var(--accent-gold)] text-white hover:bg-[var(--accent-gold)] shadow-lg shadow-cyan-500/30">
+							<Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto bg-[var(--accent-gold)] text-[var(--text-primary)] hover:bg-[var(--accent-gold)] shadow-lg shadow-[rgba(var(--accent-gold-rgb),0.25)]">
 								{isSubmitting ? 'Creating...' : 'Create Item'}
 							</Button>
 						</motion.div>

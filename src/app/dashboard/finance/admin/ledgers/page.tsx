@@ -131,8 +131,8 @@ export default function AdminLedgersPage() {
           size="small"
           icon={<TrendingUpIcon />}
           sx={{
-            backgroundColor: 'rgba(239, 68, 68, 0.1)',
-            color: '#ef4444',
+            backgroundColor: 'rgba(var(--error-rgb), 0.1)',
+            color: 'var(--error)',
             fontWeight: 600,
             fontSize: '0.8rem',
           }}
@@ -146,8 +146,8 @@ export default function AdminLedgersPage() {
           size="small"
           icon={<TrendingDownIcon />}
           sx={{
-            backgroundColor: 'rgba(34, 197, 94, 0.1)',
-            color: '#22c55e',
+            backgroundColor: 'rgba(var(--success-rgb), 0.1)',
+            color: 'var(--success)',
             fontWeight: 600,
             fontSize: '0.8rem',
           }}
@@ -236,7 +236,7 @@ export default function AdminLedgersPage() {
       sortable: true,
       align: 'right' as const,
       render: (_, row) => (
-        <span style={{ fontSize: '0.85rem', color: '#22c55e' }}>
+        <span style={{ fontSize: '0.85rem', color: 'var(--success)' }}>
           {formatCurrency(row.totalCredit)}
         </span>
       )

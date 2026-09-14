@@ -199,7 +199,7 @@ export default function NewContainerPage() {
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-start gap-3 min-w-0 flex-1">
               <Link href="/dashboard/containers">
-                <Button variant="outline" size="sm" className="border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/10 flex-shrink-0 text-xs sm:text-sm">
+                <Button variant="outline" size="sm" className="border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--accent-gold)] flex-shrink-0 text-xs sm:text-sm">
                   <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
                   Back
                 </Button>
@@ -258,7 +258,7 @@ export default function NewContainerPage() {
           <form onSubmit={handleSubmit} className="space-y-8">
             {/* Fetch Data Success/Error Messages */}
             {fetchSuccess && (
-              <div className="rounded-lg border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm text-green-300">
+              <div className="rounded-lg border border-[rgba(var(--success-rgb),0.3)] bg-[rgba(var(--success-rgb),0.08)] px-4 py-3 text-sm text-[var(--success)]">
                 <div className="flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 flex-shrink-0" />
                   <p>{fetchSuccess}</p>
@@ -266,7 +266,7 @@ export default function NewContainerPage() {
               </div>
             )}
             {fetchError && (
-              <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-300">
+              <div className="rounded-lg border border-[rgba(var(--warning-rgb),0.3)] bg-[rgba(var(--warning-rgb),0.08)] px-4 py-3 text-sm text-[var(--warning)]">
                 <div className="flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 flex-shrink-0" />
                   <p>{fetchError}</p>
@@ -277,9 +277,9 @@ export default function NewContainerPage() {
             {/* Step 0: Basic Information */}
             {activeStep === 0 && (
             <Card className="border-0 bg-[var(--panel)] backdrop-blur-md shadow-lg">
-              <CardHeader className="p-4 sm:p-6 border-b border-white/5">
+              <CardHeader className="p-4 sm:p-6 border-b border-[var(--border)]">
                 <CardTitle className="flex items-center gap-2 text-base sm:text-lg font-bold text-[var(--text-primary)]">
-                  <Ship className="h-5 w-5 text-cyan-300" />
+                  <Ship className="h-5 w-5 text-[var(--info)]" />
                   Basic Information
                 </CardTitle>
               </CardHeader>
@@ -303,7 +303,7 @@ export default function NewContainerPage() {
                       onClick={fetchContainerData}
                       disabled={fetching || !formData.containerNumber.trim()}
                       variant="outline"
-                      className="sm:w-auto w-full border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/10 whitespace-nowrap mb-6"
+                      className="sm:w-auto w-full border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--accent-gold)] whitespace-nowrap mb-6"
                     >
                       {fetching ? (
                         <>
@@ -381,9 +381,9 @@ export default function NewContainerPage() {
             {/* Step 1: Shipping Details */}
             {activeStep === 1 && (
             <Card className="border-0 bg-[var(--panel)] backdrop-blur-md shadow-lg">
-              <CardHeader className="p-4 sm:p-6 border-b border-white/5">
+              <CardHeader className="p-4 sm:p-6 border-b border-[var(--border)]">
                 <CardTitle className="flex items-center gap-2 text-base sm:text-lg font-bold text-[var(--text-primary)]">
-                  <Anchor className="h-5 w-5 text-cyan-300" />
+                  <Anchor className="h-5 w-5 text-[var(--info)]" />
                   Shipping Details
                 </CardTitle>
               </CardHeader>
@@ -425,9 +425,9 @@ export default function NewContainerPage() {
             {/* Step 2: Ports */}
             {activeStep === 2 && (
             <Card className="border-0 bg-[var(--panel)] backdrop-blur-md shadow-lg">
-              <CardHeader className="p-4 sm:p-6 border-b border-white/5">
+              <CardHeader className="p-4 sm:p-6 border-b border-[var(--border)]">
                 <CardTitle className="flex items-center gap-2 text-base sm:text-lg font-bold text-[var(--text-primary)]">
-                  <MapPin className="h-5 w-5 text-cyan-300" />
+                  <MapPin className="h-5 w-5 text-[var(--info)]" />
                   Ports
                 </CardTitle>
               </CardHeader>
@@ -471,7 +471,7 @@ export default function NewContainerPage() {
                           type="button"
                           onClick={() => removeTransshipmentPort(index)}
                           variant="outline"
-                          className="border-red-500/40 text-red-300 hover:bg-red-500/10 mb-1"
+                          className="border-[rgba(var(--error-rgb),0.4)] text-[var(--error)] hover:bg-[rgba(var(--error-rgb),0.08)] mb-1"
                         >
                           Remove
                         </Button>
@@ -482,7 +482,7 @@ export default function NewContainerPage() {
                     type="button"
                     onClick={addTransshipmentPort}
                     variant="outline"
-                    className="mt-3 border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/10"
+                    className="mt-3 border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--accent-gold)]"
                   >
                     + Add Transshipment Port
                   </Button>
@@ -494,9 +494,9 @@ export default function NewContainerPage() {
             {/* Step 3: Dates */}
             {activeStep === 3 && (
             <Card className="border-0 bg-[var(--panel)] backdrop-blur-md shadow-lg">
-              <CardHeader className="p-4 sm:p-6 border-b border-white/5">
+              <CardHeader className="p-4 sm:p-6 border-b border-[var(--border)]">
                 <CardTitle className="flex items-center gap-2 text-base sm:text-lg font-bold text-[var(--text-primary)]">
-                  <Calendar className="h-5 w-5 text-cyan-300" />
+                  <Calendar className="h-5 w-5 text-[var(--info)]" />
                   Important Dates
                 </CardTitle>
               </CardHeader>
@@ -539,7 +539,7 @@ export default function NewContainerPage() {
             {/* Step 4: Notes and Settings */}
             {activeStep === 4 && (
             <Card className="border-0 bg-[var(--panel)] backdrop-blur-md shadow-lg">
-              <CardHeader className="p-4 sm:p-6 border-b border-white/5">
+              <CardHeader className="p-4 sm:p-6 border-b border-[var(--border)]">
                 <CardTitle className="text-base sm:text-lg font-bold text-[var(--text-primary)]">Additional Information</CardTitle>
               </CardHeader>
               <CardContent className="p-4 sm:p-6 space-y-4">
@@ -561,7 +561,7 @@ export default function NewContainerPage() {
                     name="autoTrackingEnabled"
                     checked={formData.autoTrackingEnabled}
                     onChange={(e) => setFormData(prev => ({ ...prev, autoTrackingEnabled: e.target.checked }))}
-                    className="w-5 h-5 text-cyan-500 border-cyan-500/30 rounded focus:ring-cyan-500/50"
+                    className="w-5 h-5 text-[var(--info)] border-[rgba(var(--info-rgb),0.3)] rounded focus:ring-[rgba(var(--info-rgb),0.4)]"
                   />
                   <label htmlFor="autoTrackingEnabled" className="text-sm font-medium text-[var(--text-primary)]">
                     Enable automatic tracking updates
@@ -579,7 +579,7 @@ export default function NewContainerPage() {
                     type="button"
                     variant="outline"
                     disabled={loading}
-                    className="border-red-500/40 text-red-300 hover:bg-red-500/10"
+                    className="border-[rgba(var(--error-rgb),0.4)] text-[var(--error)] hover:bg-[rgba(var(--error-rgb),0.08)]"
                   >
                     Cancel
                   </Button>
@@ -590,7 +590,7 @@ export default function NewContainerPage() {
                     onClick={handleBack}
                     variant="outline"
                     disabled={loading}
-                    className="border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/10"
+                    className="border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--accent-gold)]"
                   >
                     <ChevronLeft className="w-4 h-4 mr-2" />
                     Back
@@ -604,7 +604,7 @@ export default function NewContainerPage() {
                     type="button"
                     onClick={handleNext}
                     disabled={loading || (activeStep === 0 && (!formData.containerNumber || !formData.companyId))}
-                    className="bg-[var(--accent-gold)] hover:bg-[var(--accent-gold)] shadow-cyan-500/30"
+                    className="bg-[var(--accent-gold)] hover:bg-[var(--accent-gold)] shadow-[rgba(var(--accent-gold-rgb),0.25)]"
                     style={{ color: 'white' }}
                   >
                     Next
@@ -614,7 +614,7 @@ export default function NewContainerPage() {
                   <Button
                     type="submit"
                     disabled={loading || !formData.containerNumber || !formData.companyId}
-                    className="bg-[var(--accent-gold)] hover:bg-[var(--accent-gold)] shadow-cyan-500/30"
+                    className="bg-[var(--accent-gold)] hover:bg-[var(--accent-gold)] shadow-[rgba(var(--accent-gold-rgb),0.25)]"
                     style={{ color: 'white' }}
                   >
                     {loading ? 'Creating...' : 'Create Container'}

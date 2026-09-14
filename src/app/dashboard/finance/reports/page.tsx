@@ -228,7 +228,7 @@ export default function FinancialReportsPage() {
       header: 'Balance',
       sortable: true,
       render: (_, row) => (
-        <span className={`font-semibold ${row.currentBalance >= 0 ? 'text-[var(--text-primary)]' : 'text-red-400'}`}>
+        <span className={`font-semibold ${row.currentBalance >= 0 ? 'text-[var(--text-primary)]' : 'text-[var(--error)]'}`}>
           {formatCurrency(Math.abs(row.currentBalance))}
         </span>
       ),
@@ -259,7 +259,7 @@ export default function FinancialReportsPage() {
       header: 'Charged',
       sortable: true,
       render: (_, row) => (
-        <span className="text-sm text-right text-red-400">
+        <span className="text-sm text-right text-[var(--error)]">
           {formatCurrency(row.totalCharged)}
         </span>
       ),
@@ -269,7 +269,7 @@ export default function FinancialReportsPage() {
       header: 'Paid',
       sortable: true,
       render: (_, row) => (
-        <span className="text-sm text-right text-green-400">
+        <span className="text-sm text-right text-[var(--success)]">
           {formatCurrency(row.totalPaid)}
         </span>
       ),
@@ -279,7 +279,7 @@ export default function FinancialReportsPage() {
       header: 'Due',
       sortable: true,
       render: (_, row) => (
-        <span className="text-sm text-right text-yellow-400">
+        <span className="text-sm text-right text-[var(--warning)]">
           {formatCurrency(row.amountDue)}
         </span>
       ),
@@ -291,8 +291,8 @@ export default function FinancialReportsPage() {
       render: (_, row) => (
         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
           row.paymentStatus === 'COMPLETED'
-            ? 'bg-green-500/10 text-green-400'
-            : 'bg-yellow-500/10 text-yellow-400'
+            ? 'bg-[rgba(var(--success-rgb),0.08)] text-[var(--success)]'
+            : 'bg-[rgba(var(--warning-rgb),0.08)] text-[var(--warning)]'
         }`}>
           {row.paymentStatus === 'COMPLETED' ? 'Paid' : 'Due'}
         </span>
@@ -350,7 +350,7 @@ export default function FinancialReportsPage() {
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div className="flex items-start gap-3 min-w-0 flex-1">
               <Link href="/dashboard/finance">
-                <Button variant="outline" size="sm" className="border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/10">
+                <Button variant="outline" size="sm" className="border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--accent-gold)]">
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Back
                 </Button>
@@ -367,7 +367,7 @@ export default function FinancialReportsPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => setShowFilters(!showFilters)}
-                className="border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/10"
+                className="border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--accent-gold)]"
               >
                 <Filter className="w-4 h-4 mr-2" />
                 Filters
@@ -376,7 +376,7 @@ export default function FinancialReportsPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => handleExportReport('json')}
-                className="border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/10"
+                className="border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--accent-gold)]"
               >
                 <Download className="w-4 h-4 mr-2" />
                 Export JSON
@@ -388,7 +388,7 @@ export default function FinancialReportsPage() {
         {/* Report Type Selection */}
         <Section className="pb-6">
           <Card className="border-0 bg-[var(--panel)] backdrop-blur-md shadow-lg">
-            <CardHeader className="p-4 border-b border-white/5">
+            <CardHeader className="p-4 border-b border-[var(--border)]">
               <CardTitle className="text-lg font-bold text-[var(--text-primary)]">Report Type</CardTitle>
             </CardHeader>
             <CardContent className="p-4">
@@ -397,11 +397,11 @@ export default function FinancialReportsPage() {
                   onClick={() => setReportType('summary')}
                   className={`p-4 rounded-lg border-2 transition-all text-left ${
                     reportType === 'summary'
-                      ? 'border-cyan-500 bg-cyan-500/10'
-                      : 'border-white/10 hover:border-cyan-500/50'
+                      ? 'border-[var(--accent-gold)] bg-[rgba(var(--accent-gold-rgb),0.08)]'
+                      : 'border-[var(--border)] hover:border-[rgba(var(--accent-gold-rgb),0.5)]'
                   }`}
                 >
-                  <FileText className="w-6 h-6 text-cyan-400 mb-2" />
+                  <FileText className="w-6 h-6 text-[var(--info)] mb-2" />
                   <p className="text-sm font-semibold text-[var(--text-primary)]">Summary Report</p>
                   <p className="text-xs text-[var(--text-secondary)] mt-1">Overall financial overview</p>
                 </button>
@@ -410,11 +410,11 @@ export default function FinancialReportsPage() {
                   onClick={() => setReportType('user-wise')}
                   className={`p-4 rounded-lg border-2 transition-all text-left ${
                     reportType === 'user-wise'
-                      ? 'border-cyan-500 bg-cyan-500/10'
-                      : 'border-white/10 hover:border-cyan-500/50'
+                      ? 'border-[var(--accent-gold)] bg-[rgba(var(--accent-gold-rgb),0.08)]'
+                      : 'border-[var(--border)] hover:border-[rgba(var(--accent-gold-rgb),0.5)]'
                   }`}
                 >
-                  <Users className="w-6 h-6 text-cyan-400 mb-2" />
+                  <Users className="w-6 h-6 text-[var(--info)] mb-2" />
                   <p className="text-sm font-semibold text-[var(--text-primary)]">User-wise Report</p>
                   <p className="text-xs text-[var(--text-secondary)] mt-1">Detailed by user accounts</p>
                 </button>
@@ -423,11 +423,11 @@ export default function FinancialReportsPage() {
                   onClick={() => setReportType('shipment-wise')}
                   className={`p-4 rounded-lg border-2 transition-all text-left ${
                     reportType === 'shipment-wise'
-                      ? 'border-cyan-500 bg-cyan-500/10'
-                      : 'border-white/10 hover:border-cyan-500/50'
+                      ? 'border-[var(--accent-gold)] bg-[rgba(var(--accent-gold-rgb),0.08)]'
+                      : 'border-[var(--border)] hover:border-[rgba(var(--accent-gold-rgb),0.5)]'
                   }`}
                 >
-                  <Package className="w-6 h-6 text-cyan-400 mb-2" />
+                  <Package className="w-6 h-6 text-[var(--info)] mb-2" />
                   <p className="text-sm font-semibold text-[var(--text-primary)]">Shipment-wise Report</p>
                   <p className="text-xs text-[var(--text-secondary)] mt-1">Payment status by shipment</p>
                 </button>
@@ -440,7 +440,7 @@ export default function FinancialReportsPage() {
         {showFilters && (
           <Section className="pb-6">
             <Card className="border-0 bg-[var(--panel)] backdrop-blur-md shadow-lg">
-              <CardHeader className="p-4 border-b border-white/5">
+              <CardHeader className="p-4 border-b border-[var(--border)]">
                 <CardTitle className="text-lg font-bold text-[var(--text-primary)]">Filters</CardTitle>
               </CardHeader>
               <CardContent className="p-4">
@@ -453,7 +453,7 @@ export default function FinancialReportsPage() {
                       type="date"
                       value={filters.startDate}
                       onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
-                      className="w-full px-4 py-2 rounded-lg border border-white/10 bg-white/3 text-[var(--text-primary)] focus:ring-2 focus:ring-cyan-500/40"
+                      className="w-full px-4 py-2 rounded-lg border border-[var(--border)] bg-[var(--panel)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[rgba(var(--accent-gold-rgb),0.25)] focus:border-[var(--accent-gold)]"
                     />
                   </div>
 
@@ -465,7 +465,7 @@ export default function FinancialReportsPage() {
                       type="date"
                       value={filters.endDate}
                       onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
-                      className="w-full px-4 py-2 rounded-lg border border-white/10 bg-white/3 text-[var(--text-primary)] focus:ring-2 focus:ring-cyan-500/40"
+                      className="w-full px-4 py-2 rounded-lg border border-[var(--border)] bg-[var(--panel)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[rgba(var(--accent-gold-rgb),0.25)] focus:border-[var(--accent-gold)]"
                     />
                   </div>
 
@@ -473,7 +473,6 @@ export default function FinancialReportsPage() {
                     <Button
                       onClick={fetchReport}
                       className="w-full bg-[var(--accent-gold)] hover:bg-[var(--accent-gold)]"
-                      style={{ color: 'white' }}
                     >
                       Apply Filters
                     </Button>
@@ -505,7 +504,7 @@ export default function FinancialReportsPage() {
                     <Card className="border-0 bg-[var(--panel)] backdrop-blur-md shadow-lg">
                       <CardContent className="p-6">
                         <p className="text-xs text-[var(--text-secondary)] uppercase tracking-wide">Total Debit</p>
-                        <p className="text-2xl font-bold text-red-400 mt-2">
+                        <p className="text-2xl font-bold text-[var(--error)] mt-2">
                           {formatCurrency(reportData.ledgerSummary?.totalDebit || 0)}
                         </p>
                         <p className="text-xs text-[var(--text-secondary)] mt-1">
@@ -517,7 +516,7 @@ export default function FinancialReportsPage() {
                     <Card className="border-0 bg-[var(--panel)] backdrop-blur-md shadow-lg">
                       <CardContent className="p-6">
                         <p className="text-xs text-[var(--text-secondary)] uppercase tracking-wide">Total Credit</p>
-                        <p className="text-2xl font-bold text-green-400 mt-2">
+                        <p className="text-2xl font-bold text-[var(--success)] mt-2">
                           {formatCurrency(reportData.ledgerSummary?.totalCredit || 0)}
                         </p>
                         <p className="text-xs text-[var(--text-secondary)] mt-1">
@@ -530,7 +529,7 @@ export default function FinancialReportsPage() {
                       <CardContent className="p-6">
                         <p className="text-xs text-[var(--text-secondary)] uppercase tracking-wide">Net Balance</p>
                         <p className={`text-2xl font-bold mt-2 ${
-                          (reportData.ledgerSummary?.netBalance || 0) >= 0 ? 'text-green-400' : 'text-red-400'
+                          (reportData.ledgerSummary?.netBalance || 0) >= 0 ? 'text-[var(--success)]' : 'text-[var(--error)]'
                         }`}>
                           {formatCurrency(Math.abs(reportData.ledgerSummary?.netBalance || 0))}
                         </p>
@@ -542,11 +541,11 @@ export default function FinancialReportsPage() {
 
                     <Card className="border-0 bg-[var(--panel)] backdrop-blur-md shadow-lg">
                       <CardContent className="p-6">
-                        <div className="flex items-center gap-2 text-amber-400">
+                        <div className="flex items-center gap-2 text-[var(--warning)]">
                           <Truck className="w-4 h-4" />
                           <p className="text-xs uppercase tracking-wide">Active Dispatches</p>
                         </div>
-                        <p className="text-2xl font-bold text-amber-400 mt-2">
+                        <p className="text-2xl font-bold text-[var(--warning)] mt-2">
                           {reportData.dispatchSummary?.activeCount || 0}
                         </p>
                         <p className="text-xs text-[var(--text-secondary)] mt-1">
@@ -557,11 +556,11 @@ export default function FinancialReportsPage() {
 
                     <Card className="border-0 bg-[var(--panel)] backdrop-blur-md shadow-lg">
                       <CardContent className="p-6">
-                        <div className="flex items-center gap-2 text-rose-400">
+                        <div className="flex items-center gap-2 text-[var(--error)]">
                           <HandCoins className="w-4 h-4" />
                           <p className="text-xs uppercase tracking-wide">Dispatch Expenses</p>
                         </div>
-                        <p className="text-2xl font-bold text-rose-400 mt-2">
+                        <p className="text-2xl font-bold text-[var(--error)] mt-2">
                           {formatCurrency(reportData.dispatchSummary?.totalExpenseAmount || 0)}
                         </p>
                         <p className="text-xs text-[var(--text-secondary)] mt-1">
@@ -574,13 +573,13 @@ export default function FinancialReportsPage() {
 
                 <Section className="pb-6">
                   <Card className="border-0 bg-[var(--panel)] backdrop-blur-md shadow-lg">
-                    <CardHeader className="p-4 border-b border-white/5">
+                    <CardHeader className="p-4 border-b border-[var(--border)]">
                       <CardTitle className="text-lg font-bold text-[var(--text-primary)]">Dispatch Status Summary</CardTitle>
                     </CardHeader>
                     <CardContent className="p-4">
                       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
                         {(reportData.dispatchSummary?.statuses || []).map((status) => (
-                          <div key={status.status} className="rounded-lg border border-white/10 bg-white/5 p-4">
+                          <div key={status.status} className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-4">
                             <p className="text-xs uppercase tracking-wide text-[var(--text-secondary)]">
                               {getDispatchStatusLabel(status.status)}
                             </p>
@@ -597,7 +596,7 @@ export default function FinancialReportsPage() {
 
                 <Section className="pb-6">
                   <Card className="border-0 bg-[var(--panel)] backdrop-blur-md shadow-lg">
-                    <CardHeader className="p-4 border-b border-white/5">
+                    <CardHeader className="p-4 border-b border-[var(--border)]">
                       <CardTitle className="text-lg font-bold text-[var(--text-primary)]">User Balances</CardTitle>
                     </CardHeader>
                     <CardContent className="p-0">
@@ -615,7 +614,7 @@ export default function FinancialReportsPage() {
                           {
                             label: 'Balance',
                             value: (
-                              <span className={`font-semibold ${user.currentBalance >= 0 ? 'text-[var(--text-primary)]' : 'text-red-400'}`}>
+                              <span className={`font-semibold ${user.currentBalance >= 0 ? 'text-[var(--text-primary)]' : 'text-[var(--error)]'}`}>
                                 {formatCurrency(Math.abs(user.currentBalance))}
                               </span>
                             ),
@@ -634,13 +633,13 @@ export default function FinancialReportsPage() {
                 <div className="space-y-6">
                   {reportData.users?.map((user) => (
                     <Card key={user.userId} className="border-0 bg-[var(--panel)] backdrop-blur-md shadow-lg">
-                      <CardHeader className="p-4 border-b border-white/5">
+                      <CardHeader className="p-4 border-b border-[var(--border)]">
                         <div className="flex items-center justify-between">
                           <div>
                             <CardTitle className="text-lg font-bold text-[var(--text-primary)]">{user.userName}</CardTitle>
                             <p className="text-sm text-[var(--text-secondary)] mt-1">{user.email}</p>
                           </div>
-                          <div className={`text-xl font-bold ${user.currentBalance >= 0 ? 'text-[var(--text-primary)]' : 'text-red-400'}`}>
+                          <div className={`text-xl font-bold ${user.currentBalance >= 0 ? 'text-[var(--text-primary)]' : 'text-[var(--error)]'}`}>
                             {formatCurrency(Math.abs(user.currentBalance))}
                           </div>
                         </div>
@@ -649,11 +648,11 @@ export default function FinancialReportsPage() {
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                           <div>
                             <p className="text-xs text-[var(--text-secondary)]">Total Debit</p>
-                            <p className="text-lg font-semibold text-red-400">{formatCurrency(user.totalDebit)}</p>
+                            <p className="text-lg font-semibold text-[var(--error)]">{formatCurrency(user.totalDebit)}</p>
                           </div>
                           <div>
                             <p className="text-xs text-[var(--text-secondary)]">Total Credit</p>
-                            <p className="text-lg font-semibold text-green-400">{formatCurrency(user.totalCredit)}</p>
+                            <p className="text-lg font-semibold text-[var(--success)]">{formatCurrency(user.totalCredit)}</p>
                           </div>
                           <div>
                             <p className="text-xs text-[var(--text-secondary)]">Paid Shipments</p>
@@ -661,7 +660,7 @@ export default function FinancialReportsPage() {
                           </div>
                           <div>
                             <p className="text-xs text-[var(--text-secondary)]">Due Shipments</p>
-                            <p className="text-lg font-semibold text-yellow-400">{user.shipmentStats.due}</p>
+                            <p className="text-lg font-semibold text-[var(--warning)]">{user.shipmentStats.due}</p>
                           </div>
                         </div>
                       </CardContent>
@@ -676,7 +675,7 @@ export default function FinancialReportsPage() {
               <Section className="pb-16">
                 <div className="space-y-6">
                   <Card className="border-0 bg-[var(--panel)] backdrop-blur-md shadow-lg">
-                    <CardHeader className="p-4 border-b border-white/5">
+                    <CardHeader className="p-4 border-b border-[var(--border)]">
                       <CardTitle className="text-lg font-bold text-[var(--text-primary)]">Shipment Payment Details</CardTitle>
                     </CardHeader>
                     <CardContent className="p-0">
@@ -694,23 +693,23 @@ export default function FinancialReportsPage() {
                           { label: 'Vehicle', value: shipment.vehicle },
                           {
                             label: 'Charged',
-                            value: <span className="text-red-400">{formatCurrency(shipment.totalCharged)}</span>,
+                            value: <span className="text-[var(--error)]">{formatCurrency(shipment.totalCharged)}</span>,
                           },
                           {
                             label: 'Paid',
-                            value: <span className="text-green-400">{formatCurrency(shipment.totalPaid)}</span>,
+                            value: <span className="text-[var(--success)]">{formatCurrency(shipment.totalPaid)}</span>,
                           },
                           {
                             label: 'Due',
-                            value: <span className="text-yellow-400">{formatCurrency(shipment.amountDue)}</span>,
+                            value: <span className="text-[var(--warning)]">{formatCurrency(shipment.amountDue)}</span>,
                           },
                           {
                             label: 'Status',
                             value: (
                               <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                                 shipment.paymentStatus === 'COMPLETED'
-                                  ? 'bg-green-500/10 text-green-400'
-                                  : 'bg-yellow-500/10 text-yellow-400'
+                                  ? 'bg-[rgba(var(--success-rgb),0.08)] text-[var(--success)]'
+                                  : 'bg-[rgba(var(--warning-rgb),0.08)] text-[var(--warning)]'
                               }`}>
                                 {shipment.paymentStatus === 'COMPLETED' ? 'Paid' : 'Due'}
                               </span>
@@ -723,7 +722,7 @@ export default function FinancialReportsPage() {
 
                   {(reportData.shipments ?? []).some((shipment) => (shipment.expenses || []).some((expense) => expense.linkedCompanyLedgerEntry)) && (
                     <Card className="border-0 bg-[var(--panel)] backdrop-blur-md shadow-lg">
-                      <CardHeader className="p-4 border-b border-white/5">
+                      <CardHeader className="p-4 border-b border-[var(--border)]">
                         <CardTitle className="text-lg font-bold text-[var(--text-primary)]">Expense Recovery Drill-Through</CardTitle>
                       </CardHeader>
                       <CardContent className="p-4">
@@ -753,7 +752,7 @@ export default function FinancialReportsPage() {
                                         <p className="text-xs text-[var(--text-secondary)]">{new Date(expense.date).toLocaleDateString()} • {expense.type}</p>
                                       </div>
                                       <div className="flex items-center gap-3">
-                                        <span className="text-sm font-semibold text-red-400">{formatCurrency(expense.amount)}</span>
+                                        <span className="text-sm font-semibold text-[var(--error)]">{formatCurrency(expense.amount)}</span>
                                         <button
                                           type="button"
                                           onClick={() => router.push(`/dashboard/finance/companies/${expense.linkedCompanyLedgerEntry!.companyId}?entryId=${expense.linkedCompanyLedgerEntry!.id}`)}
