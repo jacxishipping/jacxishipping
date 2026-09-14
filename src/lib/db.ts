@@ -1,8 +1,15 @@
+import '@/lib/env-bootstrap';
 import { PrismaClient } from '@prisma/client';
+
+const databaseUrl =
+  process.env.DATABASE_URL ??
+  process.env.jacxi_PRISMA_DATABASE_URL ??
+  process.env.jacxi_DATABASE_URL ??
+  process.env.jacxi_POSTGRES_URL;
 
 const prismaClientSingleton = () => {
   return new PrismaClient({
-    datasourceUrl: process.env.jacxi_PRISMA_DATABASE_URL
+    datasourceUrl: databaseUrl,
   });
 };
 
