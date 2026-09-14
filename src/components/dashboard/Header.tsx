@@ -31,6 +31,7 @@ import Link from 'next/link';
 import { ThemeToggle } from '@/components/design-system';
 import SiteLogo from '@/components/brand/SiteLogo';
 import { NotificationCenter } from '@/components/ui/NotificationCenter';
+import GlobalSearch from '@/components/dashboard/GlobalSearch';
 import { hasPermission, type Permission } from '@/lib/rbac';
 
 interface HeaderProps {
@@ -201,6 +202,10 @@ export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
 
 				{/* Right Actions */}
 				<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
+					{/* Global Search (⌘K) */}
+					<Box sx={{ display: { xs: 'none', sm: 'flex' }, mr: 0.5 }}>
+						<GlobalSearch />
+					</Box>
 					{quickActions.length > 0 && (
 						<Tooltip title="Quick Actions">
 							<IconButton
