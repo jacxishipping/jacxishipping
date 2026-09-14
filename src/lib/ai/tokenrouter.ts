@@ -47,10 +47,11 @@ export async function createTokenRouterChatCompletion(
     throw new Error('TokenRouter AI is not configured. Save an enabled API key and endpoint in Settings > AI.');
   }
 
+  // Venice rejects requests that carry X-API-Key or duplicate authorization
+  // headers (returns 401 "Authentication failed" even for valid keys), so send
+  // only the standard single Authorization header.
   const authHeaders: Record<string, string> = {
     Authorization: `Bearer ${apiKey}`,
-    authorization: `Bearer ${apiKey}`,
-    'X-API-Key': apiKey,
   };
 
   // OpenRouter integrations often expect origin metadata for allowlists/analytics.
