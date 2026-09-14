@@ -295,6 +295,7 @@ function NavItem({ item, isActive, badge, badgeColor, onNavClick }: NavItemProps
 			href={item.href}
 			onClick={onNavClick}
 			selected={active}
+			aria-current={active ? 'page' : undefined}
 			sx={{
 				position: 'relative',
 				borderRadius: 1.5,

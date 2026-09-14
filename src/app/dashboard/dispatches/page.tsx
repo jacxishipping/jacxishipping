@@ -14,7 +14,7 @@ import {
 import { Eye, Pencil, Plus, Search, Trash2, Truck } from 'lucide-react';
 import PermissionRoute from '@/components/auth/PermissionRoute';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
-import { Breadcrumbs, Button, EmptyState, StatsCard, toast } from '@/components/design-system';
+import { Breadcrumbs, Button, EmptyState, SkeletonTable, StatsCard, toast } from '@/components/design-system';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { DISPATCH_STATUS_COLORS, DISPATCH_STATUS_OPTIONS, getDispatchStatusLabel } from '@/lib/dispatch-workflow';
 
@@ -336,7 +336,9 @@ export default function DispatchesPage() {
           </Box>
 
           {loading ? (
-            <Box sx={{ py: 3, textAlign: 'center', color: 'var(--text-secondary)' }}>Loading dispatches...</Box>
+            <Box sx={{ py: 1 }}>
+              <SkeletonTable rows={6} columns={5} />
+            </Box>
           ) : dispatches.length === 0 ? (
             <EmptyState
               icon={<Truck className="w-8 h-8" />}

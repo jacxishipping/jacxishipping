@@ -11,6 +11,7 @@ import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/da
 import { PageHeader, StatsCard, Button, EmptyState, FormField, Select, toast, SkeletonCard, DashboardPageSkeleton, CompactSkeleton, StatusBadge } from '@/components/design-system';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { exportToCSVWithHeaders } from '@/lib/export';
+import { useConfirmAction } from '@/components/ui/ConfirmActionProvider';
 
 interface Container {
   id: string;
@@ -126,10 +127,16 @@ export default function ContainersPage() {
     }
   };
 
+  const confirmAction = useConfirmAction();
+
   const handleBulkDelete = async (containerIds: string[]) => {
     if (!isAdmin) return;
 
-    if (!confirm(`Delete ${containerIds.length} container(s)? This cannot be undone.`)) {
+    if (!(await confirmAction({
+      message: `Delete ${containerIds.length} container(s)? This cannot be undone.`,
+      confirmText: 'Delete containers',
+      severity: 'error',
+    }))) {
       return;
     }
 
@@ -229,7 +236,11 @@ export default function ContainersPage() {
       return;
     }
 
-    if (!confirm(`Are you sure you want to delete container ${selectedContainer.containerNumber}?`)) {
+    if (!(await confirmAction({
+      message: `Delete container ${selectedContainer.containerNumber}? This cannot be undone.`,
+      confirmText: 'Delete container',
+      severity: 'error',
+    }))) {
       handleMenuClose();
       return;
     }

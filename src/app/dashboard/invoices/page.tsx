@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { hasPermission } from '@/lib/rbac';
+import { useConfirmAction } from '@/components/ui/ConfirmActionProvider';
 import Link from 'next/link';
 import { 
 	Box, 
@@ -383,10 +384,16 @@ export default function InvoicesPage() {
 		}
 	};
 
-	const handleBulkDelete = async (invoiceIds: string[]) => {
-		if (!isAdmin) return;
+const confirmAction = useConfirmAction();
 
-		if (!confirm(`Delete ${invoiceIds.length} invoice(s)? This cannot be undone.`)) {
+        const handleBulkDelete = async (invoiceIds: string[]) => {
+                if (!isAdmin) return;
+
+                if (!(await confirmAction({
+                        message: `Delete ${invoiceIds.length} invoice(s)? This cannot be undone.`,
+                        confirmText: 'Delete invoices',
+                        severity: 'error',
+                }))) {
 			return;
 		}
 

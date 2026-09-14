@@ -16,8 +16,6 @@ import {
   Button,
 } from '@/components/design-system';
 import {
-  TrendingUp,
-  TrendingDown,
   DollarSign,
   Users,
   FileText,
@@ -26,7 +24,6 @@ import {
   AlertCircle,
   CheckCircle,
   Building2,
-  Truck,
   HandCoins,
   GitCompareArrows,
 } from 'lucide-react';
@@ -49,8 +46,6 @@ async function getFinancialData(userId: string | undefined, isAdmin: boolean) {
         ledgerSummary,
         shipmentSummaryRaw,
         users,
-        usersWithBalanceCount,
-        dispatchStats,
         dispatchExpenseSummary
     ] = await Promise.all([
         prisma.ledgerEntry.groupBy({
@@ -76,19 +71,6 @@ async function getFinancialData(userId: string | undefined, isAdmin: boolean) {
                     select: { balance: true },
                 },
             },
-        }) : Promise.resolve([]),
-        // Count users with any ledger entry directly instead of inferring
-        // from the capped top-10 outstanding list.
-        isAdmin ? prisma.user.count({
-            where: {
-                ledgerEntries: {
-                    some: {},
-                },
-            },
-        }) : Promise.resolve(0),
-        isAdmin ? prisma.dispatch.groupBy({
-            by: ['status'],
-            _count: true,
         }) : Promise.resolve([]),
         isAdmin ? prisma.dispatchExpense.aggregate({
             _sum: { amount: true },
@@ -129,13 +111,7 @@ async function getFinancialData(userId: string | undefined, isAdmin: boolean) {
             due: { count: dueShipments._count.id, amount: dueShipments._sum.price || 0 }
         },
         userBalances,
-        usersWithBalanceCount,
         dispatches: {
-            active: dispatchStats.reduce((total, entry) => {
-                return ['PENDING', 'DISPATCHED', 'ARRIVED_AT_PORT'].includes(entry.status)
-                    ? total + entry._count
-                    : total;
-            }, 0),
             totalSpend: dispatchExpenseSummary._sum.amount || 0,
             expenseCount: dispatchExpenseSummary._count.id || 0,
         },
@@ -187,49 +163,33 @@ export default async function FinancePage() {
             />
 
             {/* Summary Stats */}
-            <DashboardGrid className={isAdmin ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4'}>
-                <StatsCard
-                    icon={<TrendingUp className="w-5 h-5" />}
-                    title="Total Debit"
-                    value={formatCurrency(data.ledger.totalDebit)}
-                    compactValue={formatMoneyCompact(data.ledger.totalDebit)}
-                    variant="default"
-                />
-                <StatsCard
-                    icon={<TrendingDown className="w-5 h-5" />}
-                    title="Total Credit"
-                    value={formatCurrency(data.ledger.totalCredit)}
-                    compactValue={formatMoneyCompact(data.ledger.totalCredit)}
-                    variant="default"
-                />
+            <DashboardGrid className={isAdmin ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4' : 'grid-cols-1 md:grid-cols-3'}>
                 <StatsCard
                     icon={<DollarSign className="w-5 h-5" />}
                     title="Net Balance"
                     value={formatCurrency(Math.abs(data.ledger.netBalance))}
                     compactValue={formatMoneyCompact(Math.abs(data.ledger.netBalance))}
-                    subtitle={data.ledger.netBalance > 0 ? "Receivable" : "Payable"}
+                    subtitle={`${data.ledger.netBalance > 0 ? 'Receivable' : 'Payable'} • Debit ${formatMoneyCompact(data.ledger.totalDebit)} / Credit ${formatMoneyCompact(data.ledger.totalCredit)}`}
                     variant="default"
-                    trend={{ 
-                        value: 0, 
+                    trend={{
+                        value: 0,
                         isPositive: data.ledger.netBalance >= 0
                     }}
                 />
                 <StatsCard
-                    icon={<Users className="w-5 h-5" />}
-                    title="Users with Balance"
-                    value={data.usersWithBalanceCount}
-                    subtitle={showOutstandingBalances ? 'Showing top 10 below' : undefined}
-                    variant="default"
+                    icon={<CheckCircle className="w-5 h-5" />}
+                    title="Paid Shipments"
+                    value={data.shipments.paid.count}
+                    subtitle={`Collected ${formatMoneyCompact(data.shipments.paid.amount)}`}
+                    variant="success"
                 />
-                {isAdmin && (
-                    <StatsCard
-                        icon={<Truck className="w-5 h-5" />}
-                        title="Active Dispatches"
-                        value={data.dispatches.active}
-                        subtitle="Origin to port workflow"
-                        variant="default"
-                    />
-                )}
+                <StatsCard
+                    icon={<AlertCircle className="w-5 h-5" />}
+                    title="Due Shipments"
+                    value={data.shipments.due.count}
+                    subtitle={`Outstanding ${formatMoneyCompact(data.shipments.due.amount)}`}
+                    variant="warning"
+                />
                 {isAdmin && (
                     <StatsCard
                         icon={<HandCoins className="w-5 h-5" />}
@@ -241,26 +201,6 @@ export default async function FinancePage() {
                     />
                 )}
             </DashboardGrid>
-
-            {/* Shipment Payment Status */}
-            <DashboardPanel title="Shipment Payment Status" description="Overview of paid and pending shipments">
-                <DashboardGrid className="grid-cols-1 md:grid-cols-2">
-                    <StatsCard
-                        icon={<CheckCircle className="w-6 h-6" />}
-                        title="Paid Shipments"
-                        value={data.shipments.paid.count}
-                        subtitle={`Total collected: ${formatCurrency(data.shipments.paid.amount)}`}
-                        variant="success"
-                    />
-                    <StatsCard
-                        icon={<AlertCircle className="w-6 h-6" />}
-                        title="Due Shipments"
-                        value={data.shipments.due.count}
-                        subtitle={`Outstanding: ${formatCurrency(data.shipments.due.amount)}`}
-                        variant="warning"
-                    />
-                </DashboardGrid>
-            </DashboardPanel>
 
             {/* Quick Actions & User Balances */}
             <DashboardGrid className={isAdmin ? "grid-cols-1 lg:grid-cols-3" : "grid-cols-1"}>

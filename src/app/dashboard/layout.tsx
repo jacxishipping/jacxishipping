@@ -11,6 +11,7 @@ import { Box } from '@mui/material';
 
 import { CommandPaletteProvider } from '@/components/providers/CommandPaletteProvider';
 import { LenisWrapperProvider, useLenisWrapper } from '@/components/providers/LenisWrapperProvider';
+import { ConfirmActionProvider } from '@/components/ui/ConfirmActionProvider';
 
 // Inner component that uses the Lenis wrapper
 function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
@@ -97,7 +98,9 @@ export default function DashboardLayout({
       <ProtectedRoute>
         <CommandPaletteProvider>
           <LenisWrapperProvider>
-            <DashboardLayoutInner>{children}</DashboardLayoutInner>
+            <ConfirmActionProvider>
+              <DashboardLayoutInner>{children}</DashboardLayoutInner>
+            </ConfirmActionProvider>
           </LenisWrapperProvider>
         </CommandPaletteProvider>
       </ProtectedRoute>

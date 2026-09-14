@@ -151,7 +151,7 @@ export default function AddExpensePage() {
         <div className="min-h-screen bg-[var(--background)] flex items-center justify-center">
           <div className="text-center space-y-4 text-[var(--text-secondary)]">
             <div className="animate-spin rounded-full h-12 w-12 border-4 border-[var(--border)] border-t-[var(--accent-gold)] mx-auto" />
-            <p>Loading...</p>
+            <p>Loading expense form…</p>
           </div>
         </div>
       </AdminRoute>

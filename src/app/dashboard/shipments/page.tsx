@@ -13,6 +13,7 @@ import type { Shipment, ShipmentTableRow } from '@/components/shipments/shipment
 import { Column } from '@/components/ui/DataTable';
 import { exportToCSVWithHeaders } from '@/lib/export';
 import { hasPermission } from '@/lib/rbac';
+import { useConfirmAction } from '@/components/ui/ConfirmActionProvider';
 
 export default function ShipmentsListPage() {
 	const router = useRouter();
@@ -192,9 +193,15 @@ export default function ShipmentsListPage() {
 		{ value: 'RELEASED', label: 'Released' },
 	];
 
-	const handleBulkDelete = async (shipmentIds: string[]) => {
-		if (!canManageShipments) return;
-		if (!confirm(`Delete ${shipmentIds.length} shipment(s)? This cannot be undone.`)) {
+const confirmAction = useConfirmAction();
+
+        const handleBulkDelete = async (shipmentIds: string[]) => {
+                if (!canManageShipments) return;
+                if (!(await confirmAction({
+                        message: `Delete ${shipmentIds.length} shipment(s)? This cannot be undone.`,
+                        confirmText: 'Delete shipments',
+                        severity: 'error',
+                }))) {
 			return;
 		}
 
