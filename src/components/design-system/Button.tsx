@@ -23,7 +23,8 @@ export interface ButtonProps extends Omit<MuiButtonProps, 'variant' | 'size'> {
 const variantStyles = {
   primary: {
     bgcolor: 'var(--accent-gold)',
-    color: 'var(--background)',
+    // Dark text on gold for WCAG AA contrast (light text on #D4AF37 is only ~2.1:1)
+    color: 'var(--text-primary)',
     border: 'none',
     '&:hover': {
       bgcolor: 'var(--accent-gold)',
@@ -31,7 +32,7 @@ const variantStyles = {
     },
     '&:disabled': {
       bgcolor: 'rgba(var(--accent-gold-rgb), 0.5)',
-      color: 'rgba(var(--background-rgb), 0.7)',
+      color: 'rgba(var(--text-primary-rgb), 0.7)',
     },
   },
   secondary: {

@@ -23,13 +23,14 @@ export const theme = createTheme({
         main: palette.accentGold,
         light: palette.accentGold,
         dark: '#BD9430',
-        contrastText: palette.background,
+        // Dark text on gold for WCAG AA contrast (light text on #D4AF37 is only ~2.1:1)
+        contrastText: palette.textPrimary,
       },
       secondary: {
         main: palette.accentGold,
         light: palette.accentGold,
         dark: '#BD9430',
-        contrastText: palette.background,
+        contrastText: palette.textPrimary,
       },
       success: {
         main: palette.success,

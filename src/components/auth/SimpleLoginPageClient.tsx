@@ -103,7 +103,8 @@ export default function SimpleLoginPageClient({ portal }: SimpleLoginPageClientP
 				}}
 			>
 				<motion.div
-					initial={{ opacity: 0, y: 20 }}
+					// Start visible so SSR HTML is never blank; animation only from a small offset
+					initial={{ opacity: 1, y: 20 }}
 					animate={{ opacity: 1, y: 0 }}
 					transition={{ duration: 0.6 }}
 					style={{ maxWidth: 448, width: '100%', position: 'relative', zIndex: 10 }}
@@ -321,7 +322,8 @@ export default function SimpleLoginPageClient({ portal }: SimpleLoginPageClientP
 			}}
 		>
 			<motion.div
-				initial={{ opacity: 0, y: 20 }}
+				// Start visible so SSR HTML is never blank; animation only from a small offset
+				initial={{ opacity: 1, y: 20 }}
 				animate={{ opacity: 1, y: 0 }}
 				transition={{ duration: 0.6 }}
 				style={{ maxWidth: 560, width: '100%', position: 'relative', zIndex: 10 }}

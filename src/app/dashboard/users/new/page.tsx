@@ -73,7 +73,7 @@ export default function CreateUserPage() {
 					<Typography variant="h4" sx={{ mb: 2, fontWeight: 700 }}>Access Restricted</Typography>
           <Typography sx={{ mb: 3 }}>You do not have permission to create this account type.</Typography>
 					<Link href="/dashboard" style={{ textDecoration: 'none' }}>
-					<MuiButton variant="contained" sx={{ bgcolor: 'var(--accent-gold)', color: 'var(--background)', '&:hover': { bgcolor: 'var(--accent-gold)' } }}>
+					<MuiButton variant="contained" sx={{ bgcolor: 'var(--accent-gold)', color: 'var(--text-primary)', '&:hover': { bgcolor: 'var(--accent-gold)' } }}>
 						Go to Dashboard
 					</MuiButton>
 					</Link>
@@ -183,7 +183,8 @@ export default function CreateUserPage() {
 			}}
 		>
 			<motion.div
-				initial={{ opacity: 0, y: 20 }}
+				// Start visible so SSR HTML is never blank; animation only from a small offset
+				initial={{ opacity: 1, y: 20 }}
 				animate={{ opacity: 1, y: 0 }}
 				transition={{ duration: 0.6 }}
 				style={{ maxWidth: 800, width: '100%', position: 'relative', zIndex: 10, marginTop: -24 }}

@@ -122,7 +122,7 @@ export default function SignInPage() {
 			}}
 		>
 			<motion.div
-				initial={{ opacity: 0 }}
+				initial={{ opacity: 1 }}
 				animate={{ opacity: 1 }}
 				transition={{ duration: 1.2 }}
 				style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}
@@ -145,7 +145,8 @@ export default function SignInPage() {
 
 			{/* Main Content */}
 			<motion.div
-				initial={{ opacity: 0, y: 20 }}
+				// Start visible so SSR HTML is never blank; animation only from a small offset
+				initial={{ opacity: 1, y: 20 }}
 				animate={{ opacity: 1, y: 0 }}
 				transition={{ duration: 0.6 }}
 				style={{ maxWidth: 448, width: '100%', position: 'relative', zIndex: 10 }}
@@ -313,7 +314,7 @@ export default function SignInPage() {
 								sx={{
 									width: '100%',
 									background: 'linear-gradient(135deg, var(--accent-gold) 0%, #B8960C 100%)',
-									color: 'var(--background)',
+									color: 'var(--text-primary)',
 									fontWeight: 600,
 									py: 1.5,
 									fontSize: '1rem',
@@ -324,13 +325,13 @@ export default function SignInPage() {
 									},
 									'&:disabled': {
 										background: 'linear-gradient(135deg, rgba(var(--accent-gold-rgb), 0.55) 0%, rgba(184, 150, 12, 0.55) 100%)',
-										color: 'rgba(var(--background-rgb), 0.85)',
+										color: 'rgba(var(--text-primary-rgb), 0.7)',
 									},
 								}}
 							>
 								{isLoading ? (
 									<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-										<CircularProgress size={20} sx={{ color: 'var(--background)' }} />
+										<CircularProgress size={20} sx={{ color: 'inherit' }} />
 										<Typography component="span">{t('auth.signingIn')}</Typography>
 									</Box>
 								) : (
@@ -349,12 +350,13 @@ export default function SignInPage() {
 									sx={{
 										background: 'none',
 										border: 'none',
-										color: 'var(--accent-gold)',
+										// Gold-800 from the design token scale: passes AA on white panels (gold-500 is too light for text)
+										color: '#8D7A1F',
 										fontWeight: 500,
 										cursor: 'pointer',
 										transition: 'color 0.2s ease',
 										'&:hover': {
-											color: 'var(--accent-gold)',
+											color: '#6B5C17',
 										},
 									}}
 								>
