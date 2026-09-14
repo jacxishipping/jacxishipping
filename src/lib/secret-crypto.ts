@@ -55,7 +55,20 @@ export function decryptSecret(value: string | null | undefined) {
   }
 
   const encoded = storedValue.slice(ENCRYPTED_PREFIX.length);
-  const [ivText, tagText, encryptedText] = encoded.split(':');
+
+  // encryptSecret joins [iv, tag, ciphertext] with '' (no separators), producing
+  // fixed-width base64url segments: IV = 12 bytes -> 16 chars, tag = 16 bytes -> 22 chars.
+  // Older/correct-format values may instead be colon-separated; support both.
+  let ivText: string;
+  let tagText: string;
+  let encryptedText: string;
+  if (encoded.includes(':')) {
+    [ivText, tagText, encryptedText] = encoded.split(':');
+  } else {
+    ivText = encoded.slice(0, 16);
+    tagText = encoded.slice(16, 38);
+    encryptedText = encoded.slice(38);
+  }
   if (!ivText || !tagText || !encryptedText) {
     return '';
   }
