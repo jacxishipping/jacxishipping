@@ -43,11 +43,12 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
 
       {/* Content Area with Sidebar */}
       <Box
-        sx={{
-          display: 'flex',
-          flexGrow: 1,
-          overflow: 'hidden',
-        }}
+          sx={{
+            display: 'flex',
+            flexGrow: 1,
+            minHeight: 0,
+            overflow: 'hidden',
+          }}
       >
         {/* Sidebar */}
         <Sidebar mobileOpen={mobileOpen} onMobileClose={() => setMobileOpen(false)} />
@@ -59,7 +60,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
           sx={{
             flexGrow: 1,
             minWidth: 0,
-            height: { xs: 'calc(100vh - 56px - 68px)', lg: 'calc(100vh - 56px)' },
+            minHeight: 0,
             bgcolor: 'var(--background)',
             backgroundImage: 'none',
             overflow: 'auto',
