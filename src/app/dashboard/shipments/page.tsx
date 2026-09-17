@@ -41,6 +41,7 @@ export default function ShipmentsListPage() {
 			if (searchFilters.status) params.append('status', searchFilters.status);
 			if (searchFilters.workflowStage) params.append('workflowStage', searchFilters.workflowStage);
 			if (searchFilters.yardReceived) params.append('yardReceived', searchFilters.yardReceived);
+			if (searchFilters.delivery) params.append('delivery', searchFilters.delivery);
 			if (searchFilters.dateFrom) params.append('dateFrom', searchFilters.dateFrom);
 			if (searchFilters.dateTo) params.append('dateTo', searchFilters.dateTo);
 			if (searchFilters.minPrice) params.append('minPrice', searchFilters.minPrice);
@@ -283,6 +284,7 @@ const confirmAction = useConfirmAction();
 				onSearch={handleSearch}
 				canManageShipments={canManageShipments}
 				isAdmin={isAdmin}
+				showDeliveryFilter
 			/>
 
 			<ShipmentsResultsPanel

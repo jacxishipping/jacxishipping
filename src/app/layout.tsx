@@ -4,7 +4,6 @@ import "./print.css";
 import ConditionalLayout from "@/components/layout/ConditionalLayout";
 import { Providers } from "@/components/providers/Providers";
 import { Toaster } from "@/components/design-system";
-import Script from "next/script";
 import PWARegister from "@/components/pwa/PWARegister";
 import OfflineStatusBanner from "@/components/pwa/OfflineStatusBanner";
 import SmoothScrolling from "@/components/ui/SmoothScrolling";
@@ -49,13 +48,6 @@ export default function RootLayout({
   return (
 		<html lang="en" className={fontVariables} dir="ltr" data-scroll-behavior="smooth" suppressHydrationWarning>
       <body suppressHydrationWarning className="min-h-screen bg-background antialiased" style={{ fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
-          <Script id="ux-sniff" strategy="afterInteractive">
-            {`(function(u,x,s,n,i,f){
-  u.ux=u.ux||function(){(u.ux.q=u.ux.q||[]).push(arguments)};
-  i=x.getElementsByTagName('head')[0]; f=x.createElement('script');f.async=1; f.src=s+n;
-  i.appendChild(f);
-})(window,document,'https://api.uxsniff.com/cdn/js/uxsnf_track','.js');`}
-          </Script>
         <Providers>
           <PWARegister />
           <OfflineStatusBanner />

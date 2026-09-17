@@ -43,6 +43,7 @@ interface SmartSearchProps {
   showDateFilter?: boolean;
   showPriceFilter?: boolean;
   showUserFilter?: boolean;
+  showDeliveryFilter?: boolean;
   defaultType?: 'all' | 'shipments' | 'items' | 'users';
 }
 
@@ -57,6 +58,7 @@ export interface SearchFilters {
   minPrice?: string;
   maxPrice?: string;
   userId?: string;
+  delivery?: 'delivered' | 'undelivered';
 }
 
 const SHIPMENT_STATUSES = [
@@ -83,6 +85,7 @@ export default function SmartSearch({
   showDateFilter = true,
   showPriceFilter = true,
   showUserFilter = false,
+  showDeliveryFilter = false,
   defaultType = 'all',
 }: SmartSearchProps) {
   const [query, setQuery] = useState('');
@@ -99,6 +102,7 @@ export default function SmartSearch({
     if (filters.status) count++;
     if (filters.workflowStage) count++;
     if (filters.yardReceived) count++;
+    if (filters.delivery) count++;
     if (filters.dateFrom || filters.dateTo) count++;
     if (filters.minPrice || filters.maxPrice) count++;
     if (filters.userId) count++;
@@ -426,6 +430,47 @@ export default function SmartSearch({
               </FormControl>
             )}
 
+            {showDeliveryFilter && filters.type === 'shipments' && (
+              <FormControl fullWidth>
+                <InputLabel
+                  sx={{
+                    color: 'var(--text-secondary)',
+                    fontSize: '0.875rem',
+                    '&.Mui-focused': {
+                      color: 'var(--accent-gold)',
+                    },
+                  }}
+                >
+                  Delivery Status
+                </InputLabel>
+                <Select
+                  value={filters.delivery || ''}
+                  onChange={(e) => updateFilter('delivery', e.target.value)}
+                  label="Delivery Status"
+                  sx={{
+                    bgcolor: 'var(--panel)',
+                    color: 'var(--text-primary)',
+                    '& .MuiOutlinedInput-notchedOutline': {
+                      borderColor: 'var(--border)',
+                    },
+                    '&:hover .MuiOutlinedInput-notchedOutline': {
+                      borderColor: 'var(--border)',
+                    },
+                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                      borderColor: 'rgba(var(--accent-gold-rgb), 0.5)',
+                    },
+                    '& .MuiSvgIcon-root': {
+                      color: 'var(--text-secondary)',
+                    },
+                  }}
+                >
+                  <MenuItem value="">All Shipments</MenuItem>
+                  <MenuItem value="delivered">Delivered</MenuItem>
+                  <MenuItem value="undelivered">Not Delivered</MenuItem>
+                </Select>
+              </FormControl>
+            )}
+
             {showYardFilter && filters.type === 'shipments' && (
               <FormControl fullWidth>
                 <InputLabel
@@ -669,6 +714,17 @@ export default function SmartSearch({
                       {filters.status && (
                         <Chip
                           label={`Status: ${filters.status}`}
+                          size="small"
+                          sx={{
+                            bgcolor: 'rgba(var(--accent-gold-rgb), 0.2)',
+                            color: 'var(--accent-gold)',
+                            fontSize: '0.75rem',
+                          }}
+                        />
+                      )}
+                      {filters.delivery && (
+                        <Chip
+                          label={filters.delivery === 'delivered' ? 'Delivered' : 'Not Delivered'}
                           size="small"
                           sx={{
                             bgcolor: 'rgba(var(--accent-gold-rgb), 0.2)',

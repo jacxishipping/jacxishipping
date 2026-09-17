@@ -6,15 +6,12 @@
 import { logger } from '@/lib/logger';
 
 const PGL_TRACKING_ENDPOINT = 'https://api.pglsystem.com/api/public/tracking';
-const TIMETOCARGO_ENDPOINT = 'https://tracking.timetocargo.com/webapi/track';
-const TIMETOCARGO_HEADERS = {
-	Accept: 'application/json, text/plain, */*',
-	'Content-Type': 'application/json',
-	Origin: 'https://timetocargo.com',
-	Referer: 'https://timetocargo.com/',
-	'User-Agent':
-		'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36',
-};
+
+// In-memory TTL cache for PGL lookups. The upstream API is slow (1-4s) and
+// tracking data changes infrequently, so a short cache dramatically speeds up
+// repeat lookups (page refreshes, share-link visits, status syncs).
+const PGL_CACHE_TTL_MS = 5 * 60 * 1000;
+const pglCache = new Map<string, { entries: PGLTrackingEntry[]; expiresAt: number }>();
 
 interface ExternalTrackingEvent {
 	status: string;
@@ -61,77 +58,6 @@ interface PGLTrackingResponse {
 	data?: PGLTrackingEntry[];
 }
 
-interface TimeToCargoResponse {
-	success?: boolean;
-	status?: string;
-	status_description?: string;
-	data?: TimeToCargoEntry[];
-}
-
-interface TimeToCargoEntry {
-	summary?: {
-		origin?: { location?: number | null; terminal?: number | null; date?: string | null };
-		pol?: { location?: number | null; terminal?: number | null; date?: string | null };
-		pod?: { location?: number | null; terminal?: number | null; date?: string | null };
-		destination?: { location?: number | null; terminal?: number | null; date?: string | null };
-		company?: { full_name?: string | null; url?: string | null; scacs?: string[] };
-	};
-	locations?: Array<{
-		id?: number;
-		name?: string | null;
-		state?: string | null;
-		terminal?: string | null;
-		country?: string | null;
-		lat?: number | null;
-		lng?: number | null;
-		locode?: string | null;
-		country_iso_code?: string | null;
-	}>;
-	terminals?: Array<{
-		id?: number;
-		name?: string | null;
-	}>;
-	container?: {
-		number?: string | null;
-		type?: string | null;
-		events?: Array<{
-			location?: number | null;
-			terminal?: number | null;
-			status?: string | null;
-			status_code?: string | null;
-			date?: string | null;
-			actual?: boolean | null;
-			vessel?: string | null;
-			voyage?: string | null;
-		}>;
-	};
-	route_info?: {
-		route?: unknown;
-		current_position?: [number, number];
-		last_updated?: string | null;
-		course?: unknown;
-	};
-	shipment_status?: string | null;
-}
-
-interface LegacyTrackingSupplement {
-	containerNumber: string;
-	trackingNumber: string;
-	vesselName?: string;
-	voyageNumber?: string;
-	shippingLine?: string;
-	loadingPort?: string;
-	destinationPort?: string;
-	loadingDate?: string;
-	departureDate?: string;
-	estimatedArrival?: string;
-	containerType?: string;
-	status?: string;
-	trackingEvents: ExternalTrackingEvent[];
-	progress: number;
-	currentLocation?: string;
-}
-
 interface PGLTrackingEntry {
 	status?: string | null;
 	container_id?: number;
@@ -174,17 +100,10 @@ export class TrackingAPIService {
 		try {
 			const entries = await this.fetchPGLEntries(trackingNumber);
 			if (entries.length === 0) {
-				const legacyFallback = await this.fetchLegacyTrackingSupplement(trackingNumber);
-				return legacyFallback?.trackingEvents ?? [];
+				return [];
 			}
 
-			const events = this.transformEntriesToEvents(entries);
-			if (events.length > 0) {
-				return events;
-			}
-
-			const legacyFallback = await this.fetchLegacyTrackingSupplement(trackingNumber);
-			return legacyFallback?.trackingEvents ?? [];
+			return this.transformEntriesToEvents(entries);
 		} catch (error) {
 			logger.error('Error fetching tracking data:', error);
 			return [];
@@ -200,24 +119,11 @@ export class TrackingAPIService {
 		try {
 			const normalizedContainerNumber = containerNumber.trim().toUpperCase();
 			const entries = await this.fetchPGLEntries(normalizedContainerNumber);
-			const primarySnapshot = entries.length > 0
-				? this.buildSnapshotFromPGLEntries(normalizedContainerNumber, entries)
-				: null;
-
-			if (primarySnapshot && !this.needsLegacyFallback(primarySnapshot)) {
-				return primarySnapshot;
+			if (entries.length === 0) {
+				return null;
 			}
 
-			const legacyFallback = await this.fetchLegacyTrackingSupplement(normalizedContainerNumber);
-			if (!primarySnapshot) {
-				return legacyFallback ? this.convertLegacySupplementToSnapshot(legacyFallback) : null;
-			}
-
-			if (!legacyFallback) {
-				return primarySnapshot;
-			}
-
-			return this.mergeSnapshotWithLegacyFallback(primarySnapshot, legacyFallback);
+			return this.buildSnapshotFromPGLEntries(normalizedContainerNumber, entries);
 		} catch (error) {
 			logger.error('Error fetching container tracking data:', error);
 			return null;
@@ -270,22 +176,16 @@ export class TrackingAPIService {
 	): Promise<Date | null> {
 		try {
 			const entries = await this.fetchPGLEntries(trackingNumber);
-			if (entries.length > 0) {
-				const eta = entries[0].containers?.bookings?.eta;
-				if (eta) {
-					const date = new Date(eta);
-					if (!Number.isNaN(date.getTime())) {
-						return date;
-					}
-				}
-			}
-
-			const legacyFallback = await this.fetchLegacyTrackingSupplement(trackingNumber);
-			if (!legacyFallback?.estimatedArrival) {
+			if (entries.length === 0) {
 				return null;
 			}
 
-			const date = new Date(legacyFallback.estimatedArrival);
+			const eta = entries[0].containers?.bookings?.eta;
+			if (!eta) {
+				return null;
+			}
+
+			const date = new Date(eta);
 			return Number.isNaN(date.getTime()) ? null : date;
 		} catch (error) {
 			logger.error('Error fetching ETA:', error);
@@ -340,6 +240,12 @@ export class TrackingAPIService {
 
 	private async fetchPGLEntries(containerNumber: string): Promise<PGLTrackingEntry[]> {
 		const normalizedContainerNumber = containerNumber.trim().toUpperCase();
+
+		const cached = pglCache.get(normalizedContainerNumber);
+		if (cached && cached.expiresAt > Date.now()) {
+			return cached.entries;
+		}
+
 		const url = `${PGL_TRACKING_ENDPOINT}?tracking_value=${encodeURIComponent(normalizedContainerNumber)}`;
 
 		const response = await fetch(url, {
@@ -360,187 +266,16 @@ export class TrackingAPIService {
 			return [];
 		}
 
-		return payload.data
+		const entries = payload.data
 			.slice()
 			.sort((left, right) => this.getTimestamp(right.created_at) - this.getTimestamp(left.created_at));
-	}
 
-	private async fetchLegacyTrackingSupplement(
-		containerNumber: string
-	): Promise<LegacyTrackingSupplement | null> {
-		const normalizedContainerNumber = containerNumber.trim().toUpperCase();
+		pglCache.set(normalizedContainerNumber, {
+			entries,
+			expiresAt: Date.now() + PGL_CACHE_TTL_MS,
+		});
 
-		try {
-			const payload = {
-				track_number: {
-					value: normalizedContainerNumber,
-					type: 'container',
-				},
-				company: 'AUTO',
-				need_route: true,
-				lang: 'en',
-			};
-
-			const response = await fetch(TIMETOCARGO_ENDPOINT, {
-				method: 'POST',
-				headers: TIMETOCARGO_HEADERS,
-				body: JSON.stringify(payload),
-				cache: 'no-store',
-			});
-
-			if (!response.ok) {
-				logger.warn(`Legacy tracking provider unavailable for ${normalizedContainerNumber}: ${response.status}`);
-				return null;
-			}
-
-			const payloadData = (await response.json()) as TimeToCargoResponse;
-			if (!payloadData?.success || !Array.isArray(payloadData.data) || payloadData.data.length === 0) {
-				return null;
-			}
-
-			return this.normalizeLegacyTrackingSupplement(payloadData.data[0], normalizedContainerNumber);
-		} catch (error) {
-			logger.warn('Error fetching legacy tracking fallback:', error);
-			return null;
-		}
-	}
-
-	private normalizeLegacyTrackingSupplement(
-		entry: TimeToCargoEntry,
-		requestedContainerNumber: string
-	): LegacyTrackingSupplement | null {
-		const containerNumber = entry.container?.number || requestedContainerNumber;
-		if (!containerNumber) {
-			return null;
-		}
-
-		const loadingPort =
-			this.formatLegacyLocation(entry, entry.summary?.pol?.location) ||
-			this.formatLegacyLocation(entry, entry.summary?.origin?.location);
-		const destinationPort =
-			this.formatLegacyLocation(entry, entry.summary?.pod?.location) ||
-			this.formatLegacyLocation(entry, entry.summary?.destination?.location);
-
-		const trackingEvents = (entry.container?.events || [])
-			.map((event) => {
-				const location = this.formatLegacyLocation(entry, event.location);
-				const terminal = this.formatLegacyTerminal(entry, event.terminal);
-				const descriptionParts = [
-					event.vessel ? `Vessel: ${event.vessel}` : null,
-					event.voyage ? `Voyage: ${event.voyage}` : null,
-					terminal ? `Terminal: ${terminal}` : null,
-				].filter(Boolean);
-
-				return {
-					status: event.status || 'Status Update',
-					location: location || 'Unknown',
-					timestamp: this.toIsoString(event.date) || new Date().toISOString(),
-					description: descriptionParts.length > 0 ? descriptionParts.join(' • ') : undefined,
-					vesselName: event.vessel || undefined,
-					voyageNumber: event.voyage || undefined,
-					completed: Boolean(event.actual),
-				};
-			})
-			.filter((event) => event.status !== 'Status Update')
-			.sort((left, right) => right.timestamp.localeCompare(left.timestamp));
-
-		const latestEventWithVessel = trackingEvents.find(
-			(event) => event.vesselName || event.voyageNumber
-		);
-		const latestCompletedEvent = trackingEvents.find((event) => event.completed);
-		const completedEvents = trackingEvents.filter((event) => event.completed).length;
-		const progress = trackingEvents.length > 0 ? Math.round((completedEvents / trackingEvents.length) * 100) : 0;
-
-		return {
-			containerNumber,
-			trackingNumber: containerNumber,
-			vesselName: latestEventWithVessel?.vesselName || undefined,
-			voyageNumber: latestEventWithVessel?.voyageNumber || undefined,
-			shippingLine: entry.summary?.company?.full_name || undefined,
-			loadingPort: loadingPort || undefined,
-			destinationPort: destinationPort || undefined,
-			loadingDate: this.toIsoString(entry.summary?.origin?.date) || undefined,
-			departureDate: this.toIsoString(entry.summary?.pol?.date) || undefined,
-			estimatedArrival:
-				this.toIsoString(entry.summary?.pod?.date || entry.summary?.destination?.date) || undefined,
-			containerType: entry.container?.type || undefined,
-			status: entry.shipment_status || trackingEvents[0]?.status,
-			trackingEvents,
-			progress,
-			currentLocation: latestCompletedEvent?.location || loadingPort || undefined,
-		};
-	}
-
-	private convertLegacySupplementToSnapshot(
-		legacy: LegacyTrackingSupplement
-	): ContainerTrackingSnapshot {
-		return {
-			containerNumber: legacy.containerNumber,
-			trackingNumber: legacy.trackingNumber,
-			bookingNumber: undefined,
-			vesselName: legacy.vesselName,
-			voyageNumber: legacy.voyageNumber,
-			shippingLine: legacy.shippingLine,
-			loadingPort: legacy.loadingPort,
-			destinationPort: legacy.destinationPort,
-			loadingDate: legacy.loadingDate,
-			departureDate: legacy.departureDate,
-			estimatedArrival: legacy.estimatedArrival,
-			containerType: legacy.containerType,
-			status: legacy.status,
-			trackingEvents: this.mapExternalEventsToSnapshotEvents(legacy.trackingEvents),
-			progress: legacy.progress,
-			currentLocation: legacy.currentLocation,
-		};
-	}
-
-	private mergeSnapshotWithLegacyFallback(
-		primary: ContainerTrackingSnapshot,
-		legacy: LegacyTrackingSupplement
-	): ContainerTrackingSnapshot {
-		const legacyEvents = this.mapExternalEventsToSnapshotEvents(legacy.trackingEvents);
-		const useLegacyEvents = legacyEvents.length > primary.trackingEvents.length;
-
-		return {
-			...primary,
-			vesselName: primary.vesselName || legacy.vesselName,
-			voyageNumber: primary.voyageNumber || legacy.voyageNumber,
-			shippingLine: primary.shippingLine || legacy.shippingLine,
-			loadingPort: primary.loadingPort || legacy.loadingPort,
-			destinationPort: primary.destinationPort || legacy.destinationPort,
-			loadingDate: primary.loadingDate || legacy.loadingDate,
-			departureDate: primary.departureDate || legacy.departureDate,
-			estimatedArrival: primary.estimatedArrival || legacy.estimatedArrival,
-			containerType: primary.containerType || legacy.containerType,
-			status: primary.status || legacy.status,
-			trackingEvents: useLegacyEvents ? legacyEvents : primary.trackingEvents,
-			progress: useLegacyEvents || primary.trackingEvents.length === 0 ? legacy.progress : primary.progress,
-			currentLocation: primary.currentLocation || legacy.currentLocation,
-		};
-	}
-
-	private needsLegacyFallback(snapshot: ContainerTrackingSnapshot): boolean {
-		return (
-			!snapshot.vesselName ||
-			!snapshot.voyageNumber ||
-			!snapshot.shippingLine ||
-			!snapshot.containerType ||
-			snapshot.trackingEvents.length === 0
-		);
-	}
-
-	private mapExternalEventsToSnapshotEvents(
-		events: ExternalTrackingEvent[]
-	): ContainerTrackingSnapshot['trackingEvents'] {
-		return events.map((event) => ({
-			status: event.status,
-			location: event.location || undefined,
-			vesselName: event.vesselName || undefined,
-			description: event.description || undefined,
-			eventDate: event.timestamp,
-			completed: Boolean(event.completed),
-			source: 'API' as const,
-		}));
+		return entries;
 	}
 
 	private normalizeStatus(status?: string | null): string {
@@ -601,7 +336,9 @@ export class TrackingAPIService {
 			status.includes('destination') ||
 			status.includes('deliver') ||
 			status.includes('customs') ||
-			status.includes('release')
+			status.includes('release') ||
+			status.includes('arrived') ||
+			status.includes('discharge')
 		) {
 			return destinationPort || loadingPort;
 		}
@@ -655,20 +392,6 @@ export class TrackingAPIService {
 
 		const date = new Date(value);
 		return Number.isNaN(date.getTime()) ? 0 : date.getTime();
-	}
-
-	private formatLegacyLocation(entry: TimeToCargoEntry, id?: number | null): string | undefined {
-		if (id === undefined || id === null) return undefined;
-		const location = entry.locations?.find((loc) => loc.id === id);
-		if (!location) return undefined;
-		const parts = [location.name, location.state, location.country].filter(Boolean);
-		return parts.length ? parts.join(', ') : undefined;
-	}
-
-	private formatLegacyTerminal(entry: TimeToCargoEntry, id?: number | null): string | undefined {
-		if (id === undefined || id === null) return undefined;
-		const terminal = entry.terminals?.find((term) => term.id === id);
-		return terminal?.name || undefined;
 	}
 }
 

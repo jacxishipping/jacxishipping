@@ -318,7 +318,7 @@ function TrackingPageInner() {
 			</div>
 
 			{/* ── Results ── */}
-			<main className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-20 space-y-12">
+			<div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-20 space-y-12">
 
 				{/* Empty state */}
 				{!trackingDetails && !errorMessage && (
@@ -547,7 +547,7 @@ function TrackingPageInner() {
 						</motion.div>
 					</div>
 				)}
-			</main>
+			</div>
 
 			<Footer />
 		</div>

@@ -12,6 +12,7 @@ type ShipmentsSearchPanelProps = {
 	canManageShipments: boolean;
 	isAdmin: boolean;
 	showBreadcrumbs?: boolean;
+	showDeliveryFilter?: boolean;
 };
 
 export default function ShipmentsSearchPanel({
@@ -19,6 +20,7 @@ export default function ShipmentsSearchPanel({
 	canManageShipments,
 	isAdmin,
 	showBreadcrumbs = false,
+	showDeliveryFilter = false,
 }: ShipmentsSearchPanelProps) {
 	return (
 		<>
@@ -62,8 +64,7 @@ export default function ShipmentsSearchPanel({
 						showYardFilter
 						showDateFilter
 						showPriceFilter
-						showUserFilter={isAdmin}
-						defaultType="shipments"
+						showUserFilter={isAdmin}					showDeliveryFilter={showDeliveryFilter}						defaultType="shipments"
 					/>
 				</Box>
 			</DashboardPanel>
