@@ -1,34 +1,9 @@
 import '@/lib/env-bootstrap';
 import { PrismaClient } from '@prisma/client';
 
-// The client is generated with `--no-engine` (Prisma Accelerate mode), so it can
-// ONLY talk through an Accelerate URL (`prisma://` / `prisma+postgres://`).
-// Some environments inject a direct `postgres://` DATABASE_URL (sandboxes, CI,
-// hosting panels) which the no-engine client rejects with P6001. Prefer the
-// first Accelerate-protocol URL if one is configured, then fall back to the
-// legacy ordering.
-const candidateUrls = [
-  process.env.DATABASE_URL,
-  process.env.jacxi_PRISMA_DATABASE_URL,
-  process.env.jacxi_DATABASE_URL,
-  process.env.jacxi_POSTGRES_URL,
-];
-
-const isAccelerateUrl = (url: string | undefined): url is string =>
-  !!url && (url.startsWith('prisma://') || url.startsWith('prisma+postgres://'));
-
-const databaseUrl =
-  candidateUrls.find(isAccelerateUrl) ??
-  process.env.DATABASE_URL ??
-  process.env.jacxi_PRISMA_DATABASE_URL ??
-  process.env.jacxi_DATABASE_URL ??
-  process.env.jacxi_POSTGRES_URL;
-
-const prismaClientSingleton = () => {
-  return new PrismaClient({
-    datasourceUrl: databaseUrl,
-  });
-};
+// Use Prisma's standard engine so direct PostgreSQL URLs work in local,
+// preview, and hosted environments without requiring Prisma Accelerate.
+const prismaClientSingleton = () => new PrismaClient();
 
 type PrismaClientSingleton = ReturnType<typeof prismaClientSingleton>;
 
