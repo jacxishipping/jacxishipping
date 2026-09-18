@@ -34,25 +34,20 @@ function ask(rl, question, hidden) {
       rl.question(question, resolve);
       return;
     }
-    // Mute echo for the password prompt
+    // Hidden prompt: read a single line with echo disabled.
     const stdin = process.stdin;
-    const onData = (char, key) => {
-      if (key && (key.name === 'return' || key.name === 'enter')) {
-        stdin.removeListener('data', onData);
-        // re-enable echo
-        stdin.setRawMode && stdin.setRawMode(false);
-        process.stdout.write('\n');
-        rl.question('', () => resolve(answer));
-      }
-    };
     let answer = '';
     process.stdout.write(question);
     stdin.setRawMode && stdin.setRawMode(true);
     stdin.resume();
-    stdin.on('data', (chunk, key) => {
-      if (key && key.ctrl && key.name === 'c') process.exit(1);
+    const onData = (chunk, key) => {
+      if (key && key.ctrl && key.name === 'c') {
+        stdin.setRawMode && stdin.setRawMode(false);
+        process.exit(1);
+      }
       if (key && (key.name === 'return' || key.name === 'enter')) {
         stdin.setRawMode && stdin.setRawMode(false);
+        stdin.removeListener('data', onData);
         stdin.pause();
         process.stdout.write('\n');
         resolve(answer);
@@ -63,7 +58,8 @@ function ask(rl, question, hidden) {
         return;
       }
       answer += typeof chunk === 'string' ? chunk : '';
-    });
+    };
+    stdin.on('data', onData);
   });
 }
 

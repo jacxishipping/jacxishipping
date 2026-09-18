@@ -1,23 +1,25 @@
 import '@/lib/env-bootstrap';
 import { PrismaClient } from '@prisma/client';
 
-// The client is generated with `--no-engine` (Prisma Accelerate mode), so it can
-// ONLY talk through an Accelerate URL (`prisma://` / `prisma+postgres://`).
-// Some environments inject a direct `postgres://` DATABASE_URL (sandboxes, CI,
-// hosting panels) which the no-engine client rejects with P6001. Prefer the
-// first Accelerate-protocol URL if one is configured, then fall back to the
-// legacy ordering.
+// The client is generated with the standard engine, so it connects directly to
+// Postgres via a `postgres://` URL. An Accelerate URL (`prisma://` /
+// `prisma+postgres://`) is also accepted if one is configured. Prefer the first
+// direct Postgres URL, then fall back to any Accelerate URL, then legacy order.
 const candidateUrls = [
   process.env.DATABASE_URL,
-  process.env.jacxi_PRISMA_DATABASE_URL,
   process.env.jacxi_DATABASE_URL,
   process.env.jacxi_POSTGRES_URL,
+  process.env.jacxi_PRISMA_DATABASE_URL,
 ];
+
+const isPostgresUrl = (url: string | undefined): url is string =>
+  !!url && (url.startsWith('postgres://') || url.startsWith('postgresql://'));
 
 const isAccelerateUrl = (url: string | undefined): url is string =>
   !!url && (url.startsWith('prisma://') || url.startsWith('prisma+postgres://'));
 
 const databaseUrl =
+  candidateUrls.find(isPostgresUrl) ??
   candidateUrls.find(isAccelerateUrl) ??
   process.env.DATABASE_URL ??
   process.env.jacxi_PRISMA_DATABASE_URL ??

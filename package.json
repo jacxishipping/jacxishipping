@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "cross-env RUN_CUSTOM_SERVER=1 NODE_ENV=development tsx server.ts",
     "dev:turbopack": "next dev",
-    "build": "prisma generate --no-engine && next build --webpack",
+    "build": "prisma generate && next build --webpack",
     "start": "cross-env RUN_CUSTOM_SERVER=1 NODE_ENV=production tsx server.ts",
     "lint": "eslint",
     "mobile:start": "npm --prefix mobile run start",
@@ -14,7 +14,7 @@
     "mobile:web": "npm --prefix mobile run web",
     "mobile:eas:build:ios": "npm --prefix mobile run eas:build:ios",
     "mobile:eas:build:android": "npm --prefix mobile run eas:build:android",
-    "db:generate": "prisma generate --no-engine",
+    "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",
@@ -30,7 +30,7 @@
     "test": "tsx --test \"src/**/*.test.ts\"",
     "test:routes": "tsx --test src/app/api/workflow-routes.test.ts",
     "test:e2e": "playwright test",
-    "postinstall": "prisma generate --no-engine && node scripts/fix-tanstack-react-query-types.js"
+    "postinstall": "prisma generate && node scripts/fix-tanstack-react-query-types.js"
   },
   "dependencies": {
     "@auth/prisma-adapter": "2.11.2",
