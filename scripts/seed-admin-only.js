@@ -12,6 +12,19 @@ for (const line of fs.readFileSync('.env', 'utf8').split(/\r?\n/)) {
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
 
+/**
+ * ⚠️ SAFETY NOTE — READ BEFORE EDITING
+ *
+ * An earlier version of this script ran:
+ *   await prisma.user.deleteMany({ where: { role: { not: 'admin' } } })
+ * Because Shipment.user has onDelete: Cascade in prisma/schema.prisma,
+ * deleting a customer user cascade-deleted ALL of their shipments.
+ * That run wiped 200+ production shipments (incident 2026-09-18).
+ *
+ * This script must NEVER delete users. If you need to remove users,
+ * write an explicit, reviewed migration script — do not re-add
+ * deleteMany here.
+ */
 async function main() {
   const prisma = new PrismaClient({
     datasourceUrl:
@@ -22,9 +35,10 @@ async function main() {
   });
 
   try {
-    await prisma.user.deleteMany({
-      where: { role: { not: 'admin' } },
-    });
+    // Diagnostic output so it's obvious which DB is being targeted.
+    const totalUsers = await prisma.user.count();
+    const totalShipments = await prisma.shipment.count();
+    console.log(`Target DB — users: ${totalUsers}, shipments: ${totalShipments}`);
 
     const adminEmail = 'admin@jacxi.com';
     const hashed = await bcrypt.hash('admin123', 12);
@@ -48,14 +62,9 @@ async function main() {
       },
     });
 
-    const remainingNonAdminUsers = await prisma.user.findMany({
-      where: { role: { not: 'admin' } },
-      select: { email: true, role: true },
-    });
-
     console.log('Admin seeded:', admin.email, admin.role);
-    console.log('Remaining non-admin users:', remainingNonAdminUsers.length ? remainingNonAdminUsers.map((u) => u.email).join(', ') : 'none');
     console.log('Total users in DB:', await prisma.user.count());
+    console.log('OK — no user or shipment data was deleted.');
   } finally {
     await prisma.$disconnect();
   }
