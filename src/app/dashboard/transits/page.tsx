@@ -15,7 +15,7 @@ import {
 import { Eye, Package, Pencil, Plus, Search, Trash2, Truck } from 'lucide-react';
 import AdminRoute from '@/components/auth/AdminRoute';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
-import { Breadcrumbs, Button, StatsCard, toast } from '@/components/design-system';
+import { Breadcrumbs, Button, StatsCard, toast, CopyButton, StatusFilterPills } from '@/components/design-system';
 import { DataTable, Column } from '@/components/ui/DataTable';
 
 interface Company {
@@ -271,7 +271,10 @@ export default function TransitsPage() {
       sortable: true,
       render: (_, row) => (
         <Box>
-          <Box sx={{ fontWeight: 600 }}>{row.referenceNumber}</Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <span style={{ fontWeight: 600, fontFamily: 'monospace' }}>{row.referenceNumber}</span>
+            <CopyButton value={row.referenceNumber} label="Transit #" />
+          </Box>
           <Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{row.currentCompany?.name || 'No current event company'}</Box>
         </Box>
       ),
@@ -427,6 +430,22 @@ export default function TransitsPage() {
               ))}
             </TextField>
           </Box>
+
+          <div className="pt-1 pb-3">
+            <StatusFilterPills
+              options={[
+                { value: '', label: 'All Statuses' },
+                { value: 'PENDING', label: 'Pending', color: '#9CA3AF' },
+                { value: 'DISPATCHED', label: 'Dispatched', color: '#F59E0B' },
+                { value: 'IN_TRANSIT', label: 'In Transit', color: '#6366F1' },
+                { value: 'ARRIVED', label: 'Arrived', color: '#8B5CF6' },
+                { value: 'CUSTOMS_CLEARANCE', label: 'Customs', color: '#F97316' },
+                { value: 'DELIVERED', label: 'Delivered', color: '#10B981' },
+              ]}
+              selectedValue={statusFilter}
+              onSelect={(val) => setStatusFilter(val)}
+            />
+          </div>
 
           {loading ? (
             <Box sx={{ py: 3, textAlign: 'center', color: 'var(--text-secondary)' }}>Loading transits...</Box>

@@ -33,7 +33,7 @@ import {
 } from 'lucide-react';
 import PermissionRoute from '@/components/auth/PermissionRoute';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
-import { Breadcrumbs, Button, StatsCard, TableSkeleton, toast } from '@/components/design-system';
+import { Breadcrumbs, Button, StatsCard, TableSkeleton, toast, CopyButton } from '@/components/design-system';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import AddShipmentExpenseModal from '@/components/shipments/AddShipmentExpenseModal';
 import AddTransitExpenseModal from '@/components/transits/AddTransitExpenseModal';
@@ -511,7 +511,10 @@ export default function TransitDetailPage() {
       render: (_, row) => (
         <Box>
           <Box sx={{ fontWeight: 600 }}>{`${row.vehicleYear || ''} ${row.vehicleMake || ''} ${row.vehicleModel || ''}`.trim() || 'Unknown'}</Box>
-          <Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{row.vehicleVIN || '-'}</Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+            <span style={{ fontFamily: 'monospace' }}>{row.vehicleVIN || '-'}</span>
+            {row.vehicleVIN && <CopyButton value={row.vehicleVIN} label="VIN" />}
+          </Box>
         </Box>
       ),
     },
@@ -714,7 +717,8 @@ export default function TransitDetailPage() {
           title={transit.referenceNumber}
           description={`${currentLegLabel} • ${currentCompanyLabel}`}
           actions={
-            <Box sx={{ display: 'flex', gap: 1 }}>
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+              <CopyButton value={transit.referenceNumber} label="Transit #" />
               <Link href="/dashboard/transits" style={{ textDecoration: 'none' }}>
                 <Button variant="outline" icon={<ArrowLeft className="w-4 h-4" />}>Back</Button>
               </Link>

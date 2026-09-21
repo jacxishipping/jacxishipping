@@ -42,6 +42,7 @@ import {
 	toast, 
 	EmptyState, 
 	DetailPageSkeleton,
+	CopyButton,
 } from '@/components/design-system';
 import { AdminRoute } from '@/components/auth/AdminRoute';
 
@@ -897,12 +898,13 @@ export default function InvoiceDetailPage() {
 					title={invoice.invoiceNumber}
 					description={`Invoice for ${invoice.user.name || invoice.user.email}`}
 					actions={
-						<Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+						<Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
 							<Chip 
 								label={statusInfo.label} 
 								color={statusInfo.color}
 								sx={{ fontWeight: 600 }}
 							/>
+							<CopyButton value={invoice.invoiceNumber} label="Invoice #" />
 							{isAdmin && invoice.status !== 'PAID' && invoice.status !== 'CANCELLED' && (
 								<Button
 									variant="outline"
@@ -967,10 +969,13 @@ export default function InvoiceDetailPage() {
 							description="Basic invoice information"
 						>
 							<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-								<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+								<Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
 									<Box sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Invoice Number</Box>
-									<Box sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'monospace' }}>
-										{invoice.invoiceNumber}
+									<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+										<span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'monospace' }}>
+											{invoice.invoiceNumber}
+										</span>
+										<CopyButton value={invoice.invoiceNumber} label="Invoice #" />
 									</Box>
 								</Box>
 								<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -1036,15 +1041,17 @@ export default function InvoiceDetailPage() {
 								</Box>
 								<Box>
 									<Box sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)', mb: 0.5 }}>Email</Box>
-									<Box sx={{ fontSize: '0.875rem', color: 'var(--text-primary)' }}>
-										{invoice.user.email}
+									<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+										<span style={{ fontSize: '0.875rem', color: 'var(--text-primary)' }}>{invoice.user.email}</span>
+										<CopyButton value={invoice.user.email} label="Email" />
 									</Box>
 								</Box>
 								{invoice.user.phone && (
 									<Box>
 										<Box sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)', mb: 0.5 }}>Phone</Box>
-										<Box sx={{ fontSize: '0.875rem', color: 'var(--text-primary)' }}>
-											{invoice.user.phone}
+										<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+											<span style={{ fontSize: '0.875rem', color: 'var(--text-primary)' }}>{invoice.user.phone}</span>
+											<CopyButton value={invoice.user.phone} label="Phone" />
 										</Box>
 									</Box>
 								)}

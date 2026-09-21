@@ -22,7 +22,7 @@ import {
 import { ArrowLeft, DollarSign, History, Package, Pencil, Plus, Trash2, Truck, User } from 'lucide-react';
 import PermissionRoute from '@/components/auth/PermissionRoute';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
-import { Breadcrumbs, Button, EmptyState, StatsCard, TableSkeleton, toast } from '@/components/design-system';
+import { Breadcrumbs, Button, EmptyState, StatsCard, TableSkeleton, toast, CopyButton } from '@/components/design-system';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { DISPATCH_STATUS_COLORS, DISPATCH_STATUS_OPTIONS, getDispatchStatusLabel, isDispatchClosed } from '@/lib/dispatch-workflow';
 import DispatchExpenseModal, { type EditableDispatchExpense } from '@/components/dispatches/DispatchExpenseModal';
@@ -462,7 +462,10 @@ export default function DispatchDetailPage() {
       render: (_, row) => (
         <Box>
           <Box sx={{ fontWeight: 600 }}>{[row.vehicleYear, row.vehicleMake, row.vehicleModel].filter(Boolean).join(' ') || 'Shipment'}</Box>
-          <Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{row.vehicleVIN || 'No VIN'}</Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+            <span style={{ fontFamily: 'monospace' }}>{row.vehicleVIN || 'No VIN'}</span>
+            {row.vehicleVIN && <CopyButton value={row.vehicleVIN} label="VIN" />}
+          </Box>
         </Box>
       ),
     },
@@ -656,7 +659,8 @@ export default function DispatchDetailPage() {
           title={dispatch.referenceNumber}
           description={`${dispatch.origin} → ${dispatch.destination}`}
           actions={
-            <Box sx={{ display: 'flex', gap: 1 }}>
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+              <CopyButton value={dispatch.referenceNumber} label="Dispatch #" />
               <Button variant="outline" icon={<Truck className="w-4 h-4" />} onClick={() => void handleReceiveToYard()} disabled={!canReceiveToYard || receivingToYard}>{receivingToYard ? 'Receiving...' : 'Receive to Yard'}</Button>
               {canManageWorkflow ? (
                 <Button
