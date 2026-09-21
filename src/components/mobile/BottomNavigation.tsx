@@ -3,18 +3,24 @@
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Home, Ship, Package, FileText, Menu } from 'lucide-react';
+import { useSession } from 'next-auth/react';
 import { cn } from '@/lib/utils';
+import { hasPermission, type Permission } from '@/lib/rbac';
 
 const navItems = [
-  { icon: Home, label: 'Home', href: '/dashboard' },
-  { icon: Ship, label: 'Shipments', href: '/dashboard/shipments' },
-  { icon: Package, label: 'Containers', href: '/dashboard/containers' },
-  { icon: FileText, label: 'Invoices', href: '/dashboard/invoices' },
-  { icon: Menu, label: 'More', href: '/dashboard/settings' },
+  { icon: Home, label: 'Home', href: '/dashboard', permission: 'dashboard:view' as Permission },
+  { icon: Ship, label: 'Shipments', href: '/dashboard/shipments', permission: 'shipments:view' as Permission },
+  { icon: Package, label: 'Containers', href: '/dashboard/containers', permission: 'containers:view' as Permission },
+  { icon: FileText, label: 'Invoices', href: '/dashboard/invoices', permission: 'invoices:view' as Permission },
+  { icon: Menu, label: 'Track', href: '/dashboard/tracking', permission: 'tracking:view' as Permission },
 ];
 
 export function BottomNavigation() {
   const pathname = usePathname();
+  const { data: session, status } = useSession();
+  const visibleNavItems = navItems.filter((item) =>
+    status === 'loading' || hasPermission(session?.user?.role, item.permission)
+  );
 
   return (
     <nav
@@ -27,7 +33,7 @@ export function BottomNavigation() {
       }}
     >
       <div className="flex items-center justify-around h-[68px] px-2">
-        {navItems.map((item) => {
+        {visibleNavItems.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
           const Icon = item.icon;
 

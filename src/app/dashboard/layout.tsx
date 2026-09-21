@@ -65,13 +65,17 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
             bgcolor: 'var(--background)',
             backgroundImage: 'none',
             overflow: 'auto',
-            /* Hide scrollbar completely */
+            /* Keep the scroll affordance visible on dense operational pages. */
             '&::-webkit-scrollbar': {
-              width: 0,
-              height: 0,
+              width: 10,
+              height: 10,
             },
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none',
+            '&::-webkit-scrollbar-thumb': {
+              backgroundColor: 'rgba(var(--text-primary-rgb), 0.24)',
+              border: '3px solid var(--background)',
+              borderRadius: 10,
+            },
+            scrollbarColor: 'rgba(var(--text-primary-rgb), 0.24) var(--background)',
             pb: { xs: '68px', lg: 0 },
           }}
         >

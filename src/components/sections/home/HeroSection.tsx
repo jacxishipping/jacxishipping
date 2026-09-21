@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import gsap from 'gsap';
 import Magnetic from '@/components/ui/Magnetic';
+import HeroTrackingForm from '@/components/sections/home/HeroTrackingForm';
 
 const corridorCards = [
   {
@@ -91,14 +92,16 @@ export default function HeroSection() {
       >
         <video
           className="h-full w-full object-cover object-center"
-          src="/Pull-back_to_wide_shot_202607030933.mp4"
+          poster="/hero-shipping.jpg"
           autoPlay
           muted
           loop
           playsInline
-          preload="metadata"
+          preload="none"
           aria-label="Vehicle shipping hero preview"
-        />
+        >
+          <source src="/Pull-back_to_wide_shot_202607030933.mp4" media="(min-width: 768px)" type="video/mp4" />
+        </video>
       </motion.div>
 
       {/* High-end cinematic overlays */}
@@ -198,6 +201,11 @@ export default function HeroSection() {
                 How it works
               </Link>
             </Magnetic>
+          </motion.div>
+
+          <motion.div variants={itemVariants} className="mt-6 max-w-xl">
+            <p className="mb-3 text-sm font-semibold text-black/70">Already shipping with us? Track your container.</p>
+            <HeroTrackingForm />
           </motion.div>
 
           {/* Corridor Features */}

@@ -1,15 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calculator, ChevronRight, DollarSign, MapPin, Truck } from 'lucide-react';
 import Magnetic from '@/components/ui/Magnetic';
 
 const origins = [
-  { id: 'ca-east', name: 'East Coast (NY/NJ/PA)', price: 1200 },
-  { id: 'ca-west', name: 'West Coast (CA/WA)', price: 1800 },
-  { id: 'canada', name: 'Canada (Toronto/Montreal)', price: 1500 },
-  { id: 'tx', name: 'South (TX/FL)', price: 1400 },
+  { id: 'ca-east', name: 'East Coast (NY/NJ/PA)', stateCode: 'NJ' },
+  { id: 'ca-west', name: 'West Coast (CA/WA)', stateCode: 'CA' },
+  { id: 'canada', name: 'Canada (Toronto/Montreal)', stateCode: null },
+  { id: 'tx', name: 'South (TX/FL)', stateCode: 'TX' },
 ];
 
 const destinations = [
@@ -29,8 +29,40 @@ export default function PublicRateCalculatorSection() {
   const [origin, setOrigin] = useState(origins[0]);
   const [dest, setDest] = useState(destinations[0]);
   const [vType, setVType] = useState(vehicleTypes[1]);
+  const [originRate, setOriginRate] = useState<number | null>(null);
+  const [rateStatus, setRateStatus] = useState<'loading' | 'available' | 'unavailable'>('loading');
 
-  const basePrice = (origin.price + dest.price) * vType.multiplier;
+  useEffect(() => {
+    if (!origin.stateCode) {
+      setOriginRate(null);
+      setRateStatus('unavailable');
+      return;
+    }
+
+    const controller = new AbortController();
+    setRateStatus('loading');
+    fetch(`/api/public/shipping-rate-estimate?originState=${origin.stateCode}`, { signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) throw new Error('Rate unavailable');
+        return response.json();
+      })
+      .then((data) => {
+        const rate = data?.estimate?.averageBaseRate;
+        if (typeof rate !== 'number' || rate <= 0) throw new Error('Rate unavailable');
+        setOriginRate(rate);
+        setRateStatus('available');
+      })
+      .catch((error: unknown) => {
+        if ((error as { name?: string }).name !== 'AbortError') {
+          setOriginRate(null);
+          setRateStatus('unavailable');
+        }
+      });
+
+    return () => controller.abort();
+  }, [origin.stateCode]);
+
+  const basePrice = originRate === null ? null : (originRate + dest.price) * vType.multiplier;
 
   return (
     <section className="relative bg-[#F9FAFB] py-32 text-gray-900 overflow-hidden">
@@ -50,7 +82,7 @@ export default function PublicRateCalculatorSection() {
             Instant lane pricing.
           </h2>
           <p className="text-xl text-black/60">
-            Generate an interactive estimate for the specific corridor combinations. For a binding contract, submit an official quote request.
+            Estimates use active shipping price lists where available. A firm quote confirms vehicle, pickup, and destination details.
           </p>
         </div>
 
@@ -66,6 +98,7 @@ export default function PublicRateCalculatorSection() {
                   <button
                     key={o.id}
                     onClick={() => setOrigin(o)}
+                    aria-pressed={origin.id === o.id}
                     className={`flex items-start p-4 rounded-[1.5rem] border text-left transition-all ${
                       origin.id === o.id 
                         ? 'border-[#D4AF37] bg-[#D4AF37]/5 shadow-[0_0_20px_rgba(212,175,55,0.15)] ring-1 ring-[#D4AF37]/50'
@@ -87,6 +120,7 @@ export default function PublicRateCalculatorSection() {
                   <button
                     key={d.id}
                     onClick={() => setDest(d)}
+                    aria-pressed={dest.id === d.id}
                     className={`flex flex-col items-start p-4 rounded-[1.5rem] border text-left transition-all ${
                       dest.id === d.id 
                         ? 'border-[#D4AF37] bg-[#D4AF37]/5 shadow-[0_0_20px_rgba(212,175,55,0.15)] ring-1 ring-[#D4AF37]/50'
@@ -110,6 +144,7 @@ export default function PublicRateCalculatorSection() {
                     <button
                       key={v.id}
                       onClick={() => setVType(v)}
+                      aria-pressed={vType.id === v.id}
                       className={`flex-1 flex justify-center py-4 rounded-full border transition-all ${
                         vType.id === v.id
                            ? 'border-[#D4AF37] bg-[#D4AF37] text-black font-bold shadow-[0_0_20px_rgba(212,175,55,0.3)]'
@@ -142,21 +177,28 @@ export default function PublicRateCalculatorSection() {
                   transition={{ duration: 0.4, type: 'spring', bounce: 0.2 }}
                   className="text-[6rem] font-black tracking-tighter leading-none"
                 >
-                  {basePrice.toLocaleString()}
+                  {basePrice === null ? '—' : basePrice.toLocaleString()}
                 </motion.span>
               </AnimatePresence>
             </div>
 
             <div className="space-y-4 mb-12 border-t border-black/5 pt-8">
               <div className="flex justify-between text-sm">
-                <span className="text-black/60">Origin Transport</span>
-                <span className="font-mono text-black/80">${(origin.price * vType.multiplier).toLocaleString()}</span>
+                <span className="text-black/60">Origin transport</span>
+                <span className="font-mono text-black/80">
+                  {originRate === null ? 'Request quote' : `$${(originRate * vType.multiplier).toLocaleString()}`}
+                </span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-black/60">Ocean / Export Transit</span>
                 <span className="font-mono text-black/80">${(dest.price * vType.multiplier).toLocaleString()}</span>
               </div>
             </div>
+            <p className="mb-6 text-sm text-black/60" role="status">
+              {rateStatus === 'loading' && 'Checking current origin pricing…'}
+              {rateStatus === 'available' && 'Based on currently active origin pricing; destination transit is an estimate.'}
+              {rateStatus === 'unavailable' && 'A live rate is not available for this origin. Request a firm quote.'}
+            </p>
 
             <Magnetic className="w-full" style={{ display: 'block' }}>
               <div className="w-full">

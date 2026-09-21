@@ -27,6 +27,7 @@ const labelClassName = 'pointer-events-none absolute left-0 top-4 text-lg text-b
 
 export default function QuoteFormSection() {
   const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState('');
   
   const containerRef = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({
@@ -47,11 +48,31 @@ export default function QuoteFormSection() {
 
   const onSubmit = async (data: QuoteFormData) => {
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      setSubmitError('');
+      const response = await fetch('/api/quotes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: data.fullName,
+          email: data.email,
+          phone: data.phone,
+          message: [
+            'Vehicle quote request',
+            `Vehicle: ${data.vehicleYear} ${data.vehicleMake} ${data.vehicleModel}`,
+            `Origin: ${data.pickupLocation}`,
+            `Destination: ${data.destinationProvince}`,
+            data.additionalNotes ? `Notes: ${data.additionalNotes}` : '',
+          ].filter(Boolean).join('\n'),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('We could not send your request. Please try again or contact us directly.');
+      }
       setSubmitted(true);
       reset();
-    } catch {
-      // Simulate error handling
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : 'We could not send your request. Please try again.');
     }
   };
 
@@ -199,6 +220,9 @@ export default function QuoteFormSection() {
                   </button>
                 </Magnetic>
               </div>
+              {submitError ? (
+                <p className="text-sm font-medium text-[var(--error)]" role="alert">{submitError}</p>
+              ) : null}
 
             </form>
           </motion.div>

@@ -20,10 +20,10 @@ const contactNumbers = [
   { href: 'tel:+93704117413', label: '+93 704 117 413' },
 ];
 
-const inputClassName = 'w-full rounded-lg border border-[black/10] bg-[#F9FAFB] px-4 py-3 text-base text-black outline-none transition placeholder:text-black/60 focus:border-[#D4AF37] focus:ring-4 focus:ring-[rgba(var(--accent-gold-rgb),0.16)]';
+const inputClassName = 'w-full rounded-lg border border-black/10 bg-[#F9FAFB] px-4 py-3 text-base text-black outline-none transition placeholder:text-black/60 focus:border-[#D4AF37] focus:ring-4 focus:ring-[rgba(var(--accent-gold-rgb),0.16)]';
 
 export default function ContactSection({ isAuthenticated = false }: ContactSectionProps) {
-  const [formState, setFormState] = useState({ name: '', email: '', message: '' });
+  const [formState, setFormState] = useState({ name: '', email: '', phone: '', message: '' });
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
@@ -44,7 +44,7 @@ export default function ContactSection({ isAuthenticated = false }: ContactSecti
         body: JSON.stringify({
           name: formState.name,
           email: formState.email,
-          phone: '+19252008927',
+          phone: formState.phone,
           message: `General inquiry:\n${formState.message}`,
         }),
       });
@@ -54,7 +54,7 @@ export default function ContactSection({ isAuthenticated = false }: ContactSecti
       }
 
       setSubmitted(true);
-      setFormState({ name: '', email: '', message: '' });
+      setFormState({ name: '', email: '', phone: '', message: '' });
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'Failed to send message');
     } finally {
@@ -150,7 +150,7 @@ export default function ContactSection({ isAuthenticated = false }: ContactSecti
               <div className="flex items-center gap-3">
                 
                 <div>
-                  <h3 className="text-sm font-semibold uppercase tracking-widest text-[#D4AF37] mb-2">Estimated Subtotal</h3>
+                  <h3 className="text-sm font-semibold uppercase tracking-widest text-[#D4AF37] mb-2">Send a message</h3>
                   <p className="mt-1 text-sm text-black/60">We usually respond within one business day.</p>
                 </div>
               </div>
@@ -158,13 +158,14 @@ export default function ContactSection({ isAuthenticated = false }: ContactSecti
 
             <div className="relative">
               {submitted ? (
-                <div className="rounded-lg border border-[#D4AF37/30] bg-[#D4AF37/10] p-6 text-black">
+                <div className="rounded-lg border border-[#D4AF37]/30 bg-[#D4AF37]/10 p-6 text-black" role="status">
                   Your message has been sent. Our team will respond shortly.
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-5">
                   <div className="grid gap-5 md:grid-cols-2">
                     <input
+                      aria-label="Your name"
                       value={formState.name}
                       onChange={(event) => handleChange('name', event.target.value)}
                       placeholder="Your name"
@@ -172,6 +173,7 @@ export default function ContactSection({ isAuthenticated = false }: ContactSecti
                       required
                     />
                     <input
+                      aria-label="Email address"
                       value={formState.email}
                       onChange={(event) => handleChange('email', event.target.value)}
                       placeholder="Email address"
@@ -180,7 +182,18 @@ export default function ContactSection({ isAuthenticated = false }: ContactSecti
                       required
                     />
                   </div>
+                  <input
+                    aria-label="Phone number"
+                    value={formState.phone}
+                    onChange={(event) => handleChange('phone', event.target.value)}
+                    placeholder="Phone number"
+                    type="tel"
+                    autoComplete="tel"
+                    className={inputClassName}
+                    required
+                  />
                   <textarea
+                    aria-label="Message"
                     value={formState.message}
                     onChange={(event) => handleChange('message', event.target.value)}
                     placeholder="Message"
