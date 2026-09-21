@@ -31,7 +31,8 @@ import {
 } from 'lucide-react';
 import { Tabs, Tab, Box, Menu, MenuItem } from '@mui/material';
 import { MoreVertical } from 'lucide-react';
-import { Breadcrumbs, toast, Tooltip } from '@/components/design-system';
+import { Breadcrumbs, CopyButton, toast, Tooltip } from '@/components/design-system';
+import ShipmentMilestoneStepper from '@/components/shipments/ShipmentMilestoneStepper';
 
 import ShipmentDetailOverlays from '@/components/shipments/ShipmentDetailOverlays';
 import ShipmentActivityTab from '@/components/shipments/ShipmentActivityTab';
@@ -1053,9 +1054,17 @@ export default function ShipmentDetailPage() {
                     <h1 className="text-2xl font-semibold leading-tight text-[var(--text-primary)] sm:text-3xl">
                       {vehicleLabel}
                     </h1>
-                    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-[var(--text-secondary)]">
-                      <span>VIN: <strong className="text-[var(--text-primary)]">{shipment.vehicleVIN || 'Not recorded'}</strong></span>
-                      <span>Lot: <strong className="text-[var(--text-primary)]">{shipment.lotNumber || 'Not recorded'}</strong></span>
+                    <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm text-[var(--text-secondary)]">
+                      <span className="inline-flex items-center gap-1.5">
+                        <span>VIN:</span>
+                        <strong className="font-mono text-[var(--text-primary)]">{shipment.vehicleVIN || 'Not recorded'}</strong>
+                        {shipment.vehicleVIN && <CopyButton value={shipment.vehicleVIN} label="VIN" />}
+                      </span>
+                      <span className="inline-flex items-center gap-1.5">
+                        <span>Lot:</span>
+                        <strong className="font-mono text-[var(--text-primary)]">{shipment.lotNumber || 'Not recorded'}</strong>
+                        {shipment.lotNumber && <CopyButton value={shipment.lotNumber} label="Lot #" />}
+                      </span>
                       <span>Auction: <strong className="text-[var(--text-primary)]">{shipment.auctionName || 'Not recorded'}</strong></span>
                     </div>
                   </div>
@@ -1201,6 +1210,11 @@ export default function ShipmentDetailPage() {
             </div>
           </DashboardPanel>
         </div>
+
+        <ShipmentMilestoneStepper
+          shipment={shipment}
+          onOpenTab={openShipmentTab}
+        />
 
         <ShipmentWorkflowStrip
           shipmentStatus={shipment.status}

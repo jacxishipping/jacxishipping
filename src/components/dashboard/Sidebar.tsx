@@ -5,9 +5,9 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { Session } from 'next-auth';
 import type { SvgIconComponent } from '@mui/icons-material';
-import { Dashboard, Inventory2, Description, Search, Analytics, Group, AllInbox, Receipt, AccountBalance, Payment, Business, LocalShipping, SmartToy, PhoneInTalk, Route, ExpandLess, ExpandMore, AdminPanelSettings, CompareArrows, Settings, Timer } from '@mui/icons-material';
+import { Dashboard, Inventory2, Description, Search, Analytics, Group, AllInbox, Receipt, AccountBalance, Payment, Business, LocalShipping, SmartToy, PhoneInTalk, Route, ExpandLess, ExpandMore, AdminPanelSettings, CompareArrows, Settings, Timer, ChevronLeft, ChevronRight, Logout } from '@mui/icons-material';
 import { signOut, useSession } from 'next-auth/react';
-import { Drawer, Box, List, ListItemButton, ListItemIcon, ListItemText, Typography, Collapse, IconButton, Avatar, Button } from '@mui/material';
+import { Drawer, Box, List, ListItemButton, ListItemIcon, ListItemText, Typography, Collapse, IconButton, Avatar, Button, Tooltip, Divider } from '@mui/material';
 import { hasPermission, type Permission } from '@/lib/rbac';
 
 type NavigationItem = {
@@ -182,18 +182,36 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }: SidebarPr
 	const visibleAdminItems = filterNavigationItems(adminNavigation, userRole);
 	const hasActiveAdminItem = visibleAdminItems.some((item) => isNavigationItemActive(pathname, item.href));
 	const [adminCollapsedPreference, setAdminCollapsedPreference] = useState(false);
+	const [isDesktopCollapsed, setIsDesktopCollapsed] = useState(false);
 
-	const drawerWidth = 260;
 	const adminCollapsed = hasActiveAdminItem ? false : adminCollapsedPreference;
+	const desktopDrawerWidth = isDesktopCollapsed ? 72 : 260;
 
 	useEffect(() => {
 		setAdminCollapsedPreference(window.localStorage.getItem(ADMIN_SECTION_STORAGE_KEY) === 'true');
+		try {
+			setIsDesktopCollapsed(window.localStorage.getItem('jacxi.sidebar_collapsed') === 'true');
+		} catch {
+			// ignore storage errors
+		}
 	}, []);
 
 	const toggleAdminCollapsed = () => {
 		setAdminCollapsedPreference((prev) => {
 			const next = !prev;
 			window.localStorage.setItem(ADMIN_SECTION_STORAGE_KEY, String(next));
+			return next;
+		});
+	};
+
+	const toggleDesktopCollapsed = () => {
+		setIsDesktopCollapsed((prev) => {
+			const next = !prev;
+			try {
+				window.localStorage.setItem('jacxi.sidebar_collapsed', String(next));
+			} catch {
+				// ignore storage errors
+			}
 			return next;
 		});
 	};
@@ -211,7 +229,7 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }: SidebarPr
 				sx={{
 					display: { xs: 'block', lg: 'none' },
 					'& .MuiDrawer-paper': {
-						width: drawerWidth,
+						width: 260,
 						boxSizing: 'border-box',
 						background: 'linear-gradient(180deg, var(--panel) 0%, rgba(var(--panel-rgb), 0.97) 100%)',
 						color: 'var(--text-primary)',
@@ -222,13 +240,13 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }: SidebarPr
 					},
 				}}
 			>
-			<SidebarContent
-				pathname={pathname}
-				session={session}
-				adminCollapsed={adminCollapsed}
-				onToggleAdminCollapsed={toggleAdminCollapsed}
-				onNavClick={onMobileClose}
-			/>
+				<SidebarContent
+					pathname={pathname}
+					session={session}
+					adminCollapsed={adminCollapsed}
+					onToggleAdminCollapsed={toggleAdminCollapsed}
+					onNavClick={onMobileClose}
+				/>
 			</Drawer>
 
 			{/* Desktop Drawer */}
@@ -236,10 +254,11 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }: SidebarPr
 				variant="permanent"
 				sx={{
 					display: { xs: 'none', lg: 'block' },
-					width: drawerWidth,
+					width: desktopDrawerWidth,
 					flexShrink: 0,
+					transition: 'width 200ms cubic-bezier(0.4, 0, 0.2, 1)',
 					'& .MuiDrawer-paper': {
-						width: drawerWidth,
+						width: desktopDrawerWidth,
 						boxSizing: 'border-box',
 						background: 'linear-gradient(180deg, var(--panel) 0%, rgba(var(--panel-rgb), 0.97) 100%)',
 						color: 'var(--text-primary)',
@@ -249,6 +268,7 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }: SidebarPr
 						position: 'relative',
 						height: '100%',
 						overflow: 'hidden',
+						transition: 'width 200ms cubic-bezier(0.4, 0, 0.2, 1)',
 					},
 				}}
 			>
@@ -257,6 +277,8 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }: SidebarPr
 					session={session}
 					adminCollapsed={adminCollapsed}
 					onToggleAdminCollapsed={toggleAdminCollapsed}
+					collapsed={isDesktopCollapsed}
+					onToggleCollapse={toggleDesktopCollapsed}
 				/>
 			</Drawer>
 		</>
@@ -269,9 +291,10 @@ type NavItemProps = {
 	badge?: number;
 	badgeColor?: BadgeColor;
 	onNavClick?: () => void;
+	collapsed?: boolean;
 };
 
-function NavItem({ item, isActive, badge, badgeColor, onNavClick }: NavItemProps) {
+function NavItem({ item, isActive, badge, badgeColor, onNavClick, collapsed }: NavItemProps) {
 	const Icon = item.icon;
 	const active = isActive(item.href);
 	const badgeStyles: Record<BadgeColor, { background: string; color: string; border: string }> = {
@@ -289,7 +312,7 @@ function NavItem({ item, isActive, badge, badgeColor, onNavClick }: NavItemProps
 	const badgeStyle = badgeColor ? badgeStyles[badgeColor] : null;
 	const badgeLabel = typeof badge === 'number' && badge > 99 ? '99+' : badge;
 
-	return (
+	const itemButton = (
 		<ListItemButton
 			component={Link}
 			href={item.href}
@@ -299,9 +322,11 @@ function NavItem({ item, isActive, badge, badgeColor, onNavClick }: NavItemProps
 			sx={{
 				position: 'relative',
 				borderRadius: 1.5,
-				mx: 1,
+				mx: collapsed ? 0.5 : 1,
 				my: 0.25,
 				py: 0.75,
+				px: collapsed ? 1 : 1.5,
+				justifyContent: collapsed ? 'center' : 'initial',
 				minHeight: 0,
 				transition: 'all 150ms ease',
 				color: active ? 'var(--accent-gold)' : 'var(--text-primary)',
@@ -328,21 +353,38 @@ function NavItem({ item, isActive, badge, badgeColor, onNavClick }: NavItemProps
 		>
 			<ListItemIcon
 				sx={{
-					minWidth: 32,
+					minWidth: collapsed ? 0 : 32,
+					justifyContent: 'center',
 					color: active ? 'var(--accent-gold)' : 'var(--text-primary)',
 				}}
 			>
 				<Icon sx={{ fontSize: 18, filter: active ? 'drop-shadow(0 0 4px rgba(var(--accent-gold-rgb), 0.5))' : 'none' }} />
+				{collapsed && typeof badge === 'number' && badge > 0 && (
+					<Box
+						component="span"
+						sx={{
+							position: 'absolute',
+							top: 6,
+							right: 14,
+							width: 7,
+							height: 7,
+							borderRadius: '50%',
+							bgcolor: badgeColor === 'error' ? 'var(--error)' : 'var(--warning)',
+						}}
+					/>
+				)}
 			</ListItemIcon>
-			<ListItemText
-				primary={item.name}
-				primaryTypographyProps={{
-					fontSize: '0.9rem',
-					fontWeight: 500,
-					color: 'inherit',
-				}}
-			/>
-			{typeof badge === 'number' && badge > 0 && badgeStyle && (
+			{!collapsed && (
+				<ListItemText
+					primary={item.name}
+					primaryTypographyProps={{
+						fontSize: '0.9rem',
+						fontWeight: 500,
+						color: 'inherit',
+					}}
+				/>
+			)}
+			{!collapsed && typeof badge === 'number' && badge > 0 && badgeStyle && (
 				<Box
 					component="span"
 					sx={{
@@ -369,6 +411,16 @@ function NavItem({ item, isActive, badge, badgeColor, onNavClick }: NavItemProps
 			)}
 		</ListItemButton>
 	);
+
+	if (collapsed) {
+		return (
+			<Tooltip title={item.name} placement="right" arrow>
+				{itemButton}
+			</Tooltip>
+		);
+	}
+
+	return itemButton;
 }
 
 type NavSectionProps = {
@@ -378,6 +430,7 @@ type NavSectionProps = {
 	isActive: (href: string) => boolean;
 	badgeMap?: BadgeMap;
 	onNavClick?: () => void;
+	collapsed?: boolean;
 };
 
 const ADMIN_SECTION_STORAGE_KEY = 'sidebar_admin_collapsed';
@@ -411,12 +464,12 @@ function filterNavigationItems(items: NavigationItem[], role?: string) {
 	);
 }
 
-function NavSection({ title, items, role, isActive, badgeMap, onNavClick }: NavSectionProps) {
+function NavSection({ title, items, role, isActive, badgeMap, onNavClick, collapsed }: NavSectionProps) {
 	const SectionIcon = title ? sectionIcons[title] : undefined;
 
 	return (
 		<Box sx={{ mb: 0.5 }}>
-			{title && (
+			{title && !collapsed && (
 				<Box sx={{ px: 2, py: 0.5, mt: 1 }}>
 					<Typography
 						variant="caption"
@@ -436,6 +489,9 @@ function NavSection({ title, items, role, isActive, badgeMap, onNavClick }: NavS
 					</Typography>
 				</Box>
 			)}
+			{title && collapsed && (
+				<Divider sx={{ my: 0.75, mx: 1.2, borderColor: 'var(--border)' }} />
+			)}
 			<List sx={{ py: 0 }}>
 				{filterNavigationItems(items, role).map((item) => (
 					<NavItem
@@ -445,6 +501,7 @@ function NavSection({ title, items, role, isActive, badgeMap, onNavClick }: NavS
 						badge={badgeMap?.[item.href]?.count}
 						badgeColor={badgeMap?.[item.href]?.color}
 						onNavClick={onNavClick}
+						collapsed={collapsed}
 					/>
 				))}
 			</List>
@@ -460,12 +517,35 @@ function CollapsibleAdminSection({
 	onNavClick,
 	collapsed,
 	onToggleCollapsed,
+	isSidebarCollapsed,
 }: NavSectionProps & {
 	collapsed: boolean;
 	onToggleCollapsed: () => void;
+	isSidebarCollapsed?: boolean;
 }) {
 	const visibleItems = filterNavigationItems(items, role);
 	const SectionIcon = sectionIcons.Admin;
+
+	if (isSidebarCollapsed) {
+		return (
+			<Box sx={{ mb: 0.5 }}>
+				<Divider sx={{ my: 0.75, mx: 1.2, borderColor: 'var(--border)' }} />
+				<List sx={{ py: 0 }}>
+					{visibleItems.map((item) => (
+						<NavItem
+							key={item.name}
+							item={item}
+							isActive={isActive}
+							badge={badgeMap?.[item.href]?.count}
+							badgeColor={badgeMap?.[item.href]?.color}
+							onNavClick={onNavClick}
+							collapsed={true}
+						/>
+					))}
+				</List>
+			</Box>
+		);
+	}
 
 	return (
 		<Box sx={{ mb: 0.5 }}>
@@ -536,12 +616,16 @@ function SidebarContent({
 	adminCollapsed,
 	onToggleAdminCollapsed,
 	onNavClick,
+	collapsed = false,
+	onToggleCollapse,
 }: {
 	pathname: string;
 	session: Session | null;
 	adminCollapsed: boolean;
 	onToggleAdminCollapsed: () => void;
 	onNavClick?: () => void;
+	collapsed?: boolean;
+	onToggleCollapse?: () => void;
 }) {
 	type AppUser = Session['user'] & { role?: string };
 	const appUser = session?.user as AppUser | undefined;
@@ -611,93 +695,169 @@ function SidebarContent({
 				}}
 			>
 				{/* Main */}
-				<NavSection items={mainNavigation} role={userRole} isActive={isActive} onNavClick={onNavClick} />
+				<NavSection items={mainNavigation} role={userRole} isActive={isActive} onNavClick={onNavClick} collapsed={collapsed} />
 
 				{/* Operations */}
-				<NavSection title="Operations" items={shipmentNavigation} role={userRole} isActive={isActive} badgeMap={badgeMap} onNavClick={onNavClick} />
+				<NavSection title="Operations" items={shipmentNavigation} role={userRole} isActive={isActive} badgeMap={badgeMap} onNavClick={onNavClick} collapsed={collapsed} />
 
 				{/* Finance */}
-				<NavSection title="Finance" items={financeNavigation} role={userRole} isActive={isActive} badgeMap={badgeMap} onNavClick={onNavClick} />
+				<NavSection title="Finance" items={financeNavigation} role={userRole} isActive={isActive} badgeMap={badgeMap} onNavClick={onNavClick} collapsed={collapsed} />
 
 				{/* Companies & Customers */}
-				<NavSection title="Companies & Customers" items={companyNavigation} role={userRole} isActive={isActive} onNavClick={onNavClick} />
+				<NavSection title="Companies & Customers" items={companyNavigation} role={userRole} isActive={isActive} onNavClick={onNavClick} collapsed={collapsed} />
 
 				{/* AI & Documents */}
-				<NavSection title="AI & Documents" items={aiDocumentNavigation} role={userRole} isActive={isActive} onNavClick={onNavClick} />
+				<NavSection title="AI & Documents" items={aiDocumentNavigation} role={userRole} isActive={isActive} onNavClick={onNavClick} collapsed={collapsed} />
 
 				{/* Settings */}
-				<NavSection title="Settings" items={settingsNavigation} role={userRole} isActive={isActive} onNavClick={onNavClick} />
+				<NavSection title="Settings" items={settingsNavigation} role={userRole} isActive={isActive} onNavClick={onNavClick} collapsed={collapsed} />
 
 				{/* Admin / Internal Section */}
-				<CollapsibleAdminSection items={adminNavigation} role={userRole} isActive={isActive} badgeMap={badgeMap} onNavClick={onNavClick} collapsed={adminCollapsed} onToggleCollapsed={onToggleAdminCollapsed} />
+				<CollapsibleAdminSection items={adminNavigation} role={userRole} isActive={isActive} badgeMap={badgeMap} onNavClick={onNavClick} collapsed={adminCollapsed} onToggleCollapsed={onToggleAdminCollapsed} isSidebarCollapsed={collapsed} />
 
 			</Box>
-			<Box
-				sx={{
-					borderTop: '1px solid var(--border)',
-					px: 1.5,
-					py: 1.5,
-					background: 'rgba(var(--panel-rgb), 0.92)',
-				}}
-			>
-				<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mb: 1.25, minWidth: 0 }}>
-					<Avatar
-						src={userImage}
-						sx={{
-							width: 32,
-							height: 32,
-							bgcolor: 'var(--accent-gold)',
-							fontSize: '0.875rem',
-							fontWeight: 600,
-							color: 'var(--background)',
-							flexShrink: 0,
-						}}
-					>
-						{userInitial}
-					</Avatar>
-					<Box sx={{ minWidth: 0 }}>
-						<Typography
-							sx={{
-								fontSize: '0.875rem',
-								fontWeight: 600,
-								color: 'var(--text-primary)',
-								overflow: 'hidden',
-								textOverflow: 'ellipsis',
-								whiteSpace: 'nowrap',
-							}}
-						>
-							{userName}
-						</Typography>
-						<Typography
-							sx={{
-								fontSize: '0.75rem',
-								color: 'var(--text-secondary)',
-								textTransform: 'capitalize',
-							}}
-						>
-							{userRole || 'user'}
-						</Typography>
-					</Box>
-				</Box>
-				<Button
-					fullWidth
-					size="small"
-					variant="outlined"
-					onClick={() => signOut({ callbackUrl: '/auth/signin' })}
+			{collapsed ? (
+				<Box
 					sx={{
-						borderColor: 'var(--border)',
-						color: 'var(--text-primary)',
-						textTransform: 'none',
-						fontWeight: 600,
-						'&:hover': {
-							borderColor: 'var(--accent-gold)',
-							backgroundColor: 'rgba(var(--accent-gold-rgb), 0.08)',
-						},
+						borderTop: '1px solid var(--border)',
+						p: 1,
+						display: 'flex',
+						flexDirection: 'column',
+						alignItems: 'center',
+						gap: 1,
+						background: 'rgba(var(--panel-rgb), 0.92)',
 					}}
 				>
-					Sign Out
-				</Button>
-			</Box>
+					<Tooltip title={`${userName} (${userRole || 'user'})`} placement="right">
+						<Avatar
+							src={userImage}
+							sx={{
+								width: 32,
+								height: 32,
+								bgcolor: 'var(--accent-gold)',
+								fontSize: '0.875rem',
+								fontWeight: 600,
+								color: 'var(--background)',
+								flexShrink: 0,
+							}}
+						>
+							{userInitial}
+						</Avatar>
+					</Tooltip>
+					{onToggleCollapse && (
+						<Tooltip title="Expand sidebar" placement="right">
+							<IconButton
+								size="small"
+								onClick={onToggleCollapse}
+								aria-label="Expand sidebar"
+								sx={{
+									color: 'var(--text-secondary)',
+									'&:hover': { color: 'var(--accent-gold)', bgcolor: 'rgba(var(--accent-gold-rgb), 0.1)' },
+								}}
+							>
+								<ChevronRight sx={{ fontSize: 18 }} />
+							</IconButton>
+						</Tooltip>
+					)}
+					<Tooltip title="Sign Out" placement="right">
+						<IconButton
+							size="small"
+							onClick={() => signOut({ callbackUrl: '/auth/signin' })}
+							aria-label="Sign out"
+							sx={{
+								color: 'var(--text-secondary)',
+								'&:hover': { color: 'var(--error, #ef4444)', bgcolor: 'rgba(239, 68, 68, 0.1)' },
+							}}
+						>
+							<Logout sx={{ fontSize: 18 }} />
+						</IconButton>
+					</Tooltip>
+				</Box>
+			) : (
+				<Box
+					sx={{
+						borderTop: '1px solid var(--border)',
+						px: 1.5,
+						py: 1.5,
+						background: 'rgba(var(--panel-rgb), 0.92)',
+					}}
+				>
+					<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.25 }}>
+						<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0, flex: 1 }}>
+							<Avatar
+								src={userImage}
+								sx={{
+									width: 32,
+									height: 32,
+									bgcolor: 'var(--accent-gold)',
+									fontSize: '0.875rem',
+									fontWeight: 600,
+									color: 'var(--background)',
+									flexShrink: 0,
+								}}
+							>
+								{userInitial}
+							</Avatar>
+							<Box sx={{ minWidth: 0 }}>
+								<Typography
+									sx={{
+										fontSize: '0.875rem',
+										fontWeight: 600,
+										color: 'var(--text-primary)',
+										overflow: 'hidden',
+										textOverflow: 'ellipsis',
+										whiteSpace: 'nowrap',
+									}}
+								>
+									{userName}
+								</Typography>
+								<Typography
+									sx={{
+										fontSize: '0.75rem',
+										color: 'var(--text-secondary)',
+										textTransform: 'capitalize',
+									}}
+								>
+									{userRole || 'user'}
+								</Typography>
+							</Box>
+						</Box>
+						{onToggleCollapse && (
+							<Tooltip title="Collapse sidebar" placement="right">
+								<IconButton
+									size="small"
+									onClick={onToggleCollapse}
+									aria-label="Collapse sidebar"
+									sx={{
+										color: 'var(--text-secondary)',
+										'&:hover': { color: 'var(--text-primary)', bgcolor: 'rgba(var(--accent-gold-rgb), 0.1)' },
+									}}
+								>
+									<ChevronLeft sx={{ fontSize: 18 }} />
+								</IconButton>
+							</Tooltip>
+						)}
+					</Box>
+					<Button
+						fullWidth
+						size="small"
+						variant="outlined"
+						onClick={() => signOut({ callbackUrl: '/auth/signin' })}
+						sx={{
+							borderColor: 'var(--border)',
+							color: 'var(--text-primary)',
+							textTransform: 'none',
+							fontWeight: 600,
+							'&:hover': {
+								borderColor: 'var(--accent-gold)',
+								backgroundColor: 'rgba(var(--accent-gold-rgb), 0.08)',
+							},
+						}}
+					>
+						Sign Out
+					</Button>
+				</Box>
+			)}
 		</Box>
 	);
 }

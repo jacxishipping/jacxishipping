@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { ArrowUpDown, ArrowUp, ArrowDown, Trash2, Download, Edit, Columns, Eye, Search } from 'lucide-react';
+import { ArrowUpDown, ArrowUp, ArrowDown, Trash2, Download, Edit, Columns, Eye, Search, AlignJustify, ListFilter, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@mui/material';
 import { EmptyState } from '@/components/design-system';
@@ -71,6 +71,7 @@ export function DataTable<T extends Record<string, any>>({
   const columnMenuRef = useRef<HTMLDivElement | null>(null);
   const columnButtonRef = useRef<HTMLButtonElement | null>(null);
   const [bulkStatus, setBulkStatus] = useState('');
+  const [density, setDensity] = useState<'compact' | 'comfortable'>('comfortable');
   const hasActionsColumn = Boolean(onRowClick || onEdit || onDelete);
 
   // Handle sorting
@@ -224,24 +225,58 @@ export function DataTable<T extends Record<string, any>>({
 
   return (
     <div className={cn('space-y-4', className)}>
-      {enableColumnVisibility && (
-        <div className="flex items-center justify-end">
+      {/* Table Controls Toolbar */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        {/* Density Mode Switcher */}
+        <div className="inline-flex items-center rounded-lg border border-[var(--border)] bg-[var(--panel)] p-0.5 text-xs text-[var(--text-secondary)] shadow-xs">
+          <button
+            type="button"
+            onClick={() => setDensity('compact')}
+            className={cn(
+              'flex items-center gap-1.5 rounded-md px-2.5 py-1 font-medium transition-all',
+              density === 'compact'
+                ? 'bg-[var(--accent-gold)] text-black font-semibold shadow-xs'
+                : 'hover:text-[var(--text-primary)] hover:bg-[var(--background)]'
+            )}
+            title="Compact row density"
+          >
+            <AlignJustify className="w-3.5 h-3.5" />
+            <span>Compact</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setDensity('comfortable')}
+            className={cn(
+              'flex items-center gap-1.5 rounded-md px-2.5 py-1 font-medium transition-all',
+              density === 'comfortable'
+                ? 'bg-[var(--accent-gold)] text-black font-semibold shadow-xs'
+                : 'hover:text-[var(--text-primary)] hover:bg-[var(--background)]'
+            )}
+            title="Comfortable row density"
+          >
+            <ListFilter className="w-3.5 h-3.5" />
+            <span>Comfortable</span>
+          </button>
+        </div>
+
+        {/* Columns Customization */}
+        {enableColumnVisibility && (
           <div className="relative">
             <button
               ref={columnButtonRef}
               onClick={() => setIsColumnMenuOpen((prev) => !prev)}
-              className="inline-flex items-center gap-2 rounded-lg border border-[var(--border)] px-3 py-2 text-sm font-medium text-[var(--text-primary)] bg-[var(--panel)] hover:bg-[var(--background)] transition-colors"
+              className="inline-flex items-center gap-2 rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] bg-[var(--panel)] hover:bg-[var(--background)] transition-colors shadow-xs"
               type="button"
               aria-haspopup="menu"
               aria-expanded={isColumnMenuOpen}
             >
-              <Columns className="h-4 w-4" />
+              <Columns className="h-3.5 w-3.5" />
               Columns
             </button>
             {isColumnMenuOpen && (
               <div
                 ref={columnMenuRef}
-                className="absolute right-0 z-20 mt-2 w-56 rounded-lg border border-[var(--border)] bg-[var(--panel)] p-2 shadow-lg"
+                className="absolute right-0 z-20 mt-2 w-56 rounded-xl border border-[var(--border)] bg-[var(--panel)] p-2 shadow-xl"
                 role="menu"
               >
                 {columns.map((column) => {
@@ -250,7 +285,7 @@ export function DataTable<T extends Record<string, any>>({
                   return (
                     <label
                       key={column.key}
-                      className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-[var(--text-primary)] hover:bg-[var(--background)]"
+                      className="flex items-center gap-2 rounded-md px-2 py-1.5 text-xs text-[var(--text-primary)] hover:bg-[var(--background)] cursor-pointer"
                     >
                       <Checkbox
                         checked={isVisible}
@@ -258,6 +293,7 @@ export function DataTable<T extends Record<string, any>>({
                         size="small"
                         disabled={isLastVisible}
                         sx={{
+                          p: 0.5,
                           color: 'var(--text-secondary)',
                           '&.Mui-checked': { color: 'var(--accent-gold)' },
                         }}
@@ -269,24 +305,27 @@ export function DataTable<T extends Record<string, any>>({
               </div>
             )}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
-      {/* Bulk Actions Bar */}
+      {/* Floating Bulk Actions Dock */}
       {selectable && selectedIds.size > 0 && (
-        <div className="flex items-center justify-between p-4 bg-[var(--panel)] border border-[var(--border)] rounded-lg">
-          <span className="text-sm font-medium text-[var(--text-primary)]">
-            {selectedIds.size} selected
-          </span>
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-2xl border border-[var(--border)] bg-[var(--panel)]/95 px-4 py-2.5 shadow-2xl backdrop-blur-md animate-in slide-in-from-bottom-5 duration-200">
+          <div className="flex items-center gap-2 pr-3 border-r border-[var(--border)]">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--accent-gold)] text-[11px] font-bold text-black">
+              {selectedIds.size}
+            </span>
+            <span className="text-xs font-semibold text-[var(--text-primary)] whitespace-nowrap">Selected</span>
+          </div>
           <div className="flex items-center gap-2">
             {onBulkStatusChange && bulkStatusOptions.length > 0 && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <select
                   value={bulkStatus}
                   onChange={(event) => setBulkStatus(event.target.value)}
-                  className="rounded-lg border border-[var(--border)] bg-[var(--background)] px-2 py-1.5 text-sm text-[var(--text-primary)]"
+                  className="rounded-lg border border-[var(--border)] bg-[var(--background)] px-2.5 py-1 text-xs font-medium text-[var(--text-primary)] focus:border-[var(--accent-gold)] focus:outline-none"
                 >
-                  <option value="">Update status...</option>
+                  <option value="">Status...</option>
                   {bulkStatusOptions.map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
@@ -296,30 +335,40 @@ export function DataTable<T extends Record<string, any>>({
                 <button
                   onClick={handleBulkStatusUpdate}
                   disabled={!bulkStatus}
-                  className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-[var(--text-primary)] bg-[var(--background)] hover:bg-[var(--border)] rounded-lg transition-colors disabled:opacity-60"
+                  className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-black bg-[var(--accent-gold)] hover:brightness-105 rounded-lg transition-all disabled:opacity-50"
                 >
-                  Update
+                  Apply
                 </button>
               </div>
             )}
             {onExport && (
               <button
                 onClick={handleBulkExport}
-                className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-[var(--text-primary)] bg-[var(--background)] hover:bg-[var(--border)] rounded-lg transition-colors"
+                className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-[var(--text-primary)] bg-[var(--background)] hover:bg-[var(--border)] rounded-lg transition-colors border border-[var(--border)]"
               >
-                <Download className="w-4 h-4" />
-                Export
+                <Download className="w-3.5 h-3.5" />
+                <span>Export</span>
               </button>
             )}
             {onDelete && (
               <button
                 onClick={handleBulkDelete}
-                className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-[var(--error)] hover:bg-red-600 rounded-lg transition-colors"
+                className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-white bg-[var(--error)] hover:bg-red-600 rounded-lg transition-colors"
               >
-                <Trash2 className="w-4 h-4" />
-                Delete
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Delete</span>
               </button>
             )}
+            <button
+              onClick={() => {
+                setSelectedIds(new Set());
+                onSelectionChange?.([]);
+              }}
+              className="p-1 rounded-md text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--background)] transition-colors ml-1"
+              title="Clear selection"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
       )}
@@ -335,13 +384,14 @@ export function DataTable<T extends Record<string, any>>({
           >
             <tr>
               {selectable && (
-                <th className="w-12 px-4 py-3 text-left">
+                <th className={cn("w-12 text-left", density === 'compact' ? 'px-3 py-1.5' : 'px-4 py-3')}>
                   <Checkbox
                     checked={isAllSelected}
                     indeterminate={isSomeSelected}
                     onChange={(e) => handleSelectAll(e.target.checked)}
                     size="small"
                     sx={{
+                      p: density === 'compact' ? 0.25 : 0.5,
                       color: 'var(--text-secondary)',
                       '&.Mui-checked': {
                         color: 'var(--accent-gold)',
@@ -359,7 +409,8 @@ export function DataTable<T extends Record<string, any>>({
                   scope="col"
                   aria-sort={column.sortable ? getAriaSort(column.key) : undefined}
                   className={cn(
-                    'px-4 py-3 text-left text-sm font-semibold text-[var(--text-primary)]'
+                    'text-left font-semibold text-[var(--text-primary)]',
+                    density === 'compact' ? 'px-3 py-1.5 text-xs' : 'px-4 py-3 text-sm'
                   )}
                   style={{ width: column.width }}
                 >
@@ -367,7 +418,7 @@ export function DataTable<T extends Record<string, any>>({
                     <button
                       type="button"
                       onClick={() => handleSort(column.key)}
-                      className="flex w-full items-center gap-2 rounded-md px-1 py-1 text-left text-sm font-semibold text-[var(--text-primary)] transition-colors hover:bg-[var(--background)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--panel)]"
+                      className="flex w-full items-center gap-2 rounded-md px-1 py-1 text-left font-semibold text-[var(--text-primary)] transition-colors hover:bg-[var(--background)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--panel)]"
                       aria-label={getSortButtonLabel(column.header, column.key)}
                     >
                       <span>{column.header}</span>
@@ -381,8 +432,14 @@ export function DataTable<T extends Record<string, any>>({
                 </th>
               ))}
               {hasActionsColumn && (
-                <th scope="col" className="w-28 px-4 py-3 text-left">
-                  <span className="text-sm font-semibold text-[var(--text-primary)]">Actions</span>
+                <th
+                  scope="col"
+                  className={cn(
+                    'w-28 text-left font-semibold text-[var(--text-primary)]',
+                    density === 'compact' ? 'px-3 py-1.5 text-xs' : 'px-4 py-3 text-sm'
+                  )}
+                >
+                  <span>Actions</span>
                 </th>
               )}
             </tr>
@@ -421,12 +478,13 @@ export function DataTable<T extends Record<string, any>>({
                     onClick={() => onRowClick?.(row)}
                   >
                     {selectable && (
-                      <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                      <td className={cn(density === 'compact' ? 'px-3 py-1.5' : 'px-4 py-3')} onClick={(e) => e.stopPropagation()}>
                         <Checkbox
                           checked={isSelected}
                           onChange={(e) => handleSelectRow(rowId, e.target.checked)}
                           size="small"
                           sx={{
+                            p: density === 'compact' ? 0.25 : 0.5,
                             color: 'var(--text-secondary)',
                             '&.Mui-checked': {
                               color: 'var(--accent-gold)',
@@ -438,7 +496,10 @@ export function DataTable<T extends Record<string, any>>({
                     {visibleColumns.map((column) => (
                       <td
                         key={column.key}
-                        className="px-4 py-3 text-sm text-[var(--text-primary)]"
+                        className={cn(
+                          'text-[var(--text-primary)]',
+                          density === 'compact' ? 'px-3 py-1.5 text-xs' : 'px-4 py-3 text-sm'
+                        )}
                       >
                         {column.render
                           ? column.render(row[column.key], row)
@@ -446,7 +507,7 @@ export function DataTable<T extends Record<string, any>>({
                       </td>
                     ))}
                     {hasActionsColumn && (
-                      <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                      <td className={cn(density === 'compact' ? 'px-3 py-1.5' : 'px-4 py-3')} onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center gap-1">
                           {onRowClick && (
                             <button

@@ -21,7 +21,7 @@ export default function DashboardKpiGrid({
 }: DashboardKpiGridProps) {
   return (
     <div id="kpi-grid" className="animate-fade-in-up" style={{ animationDelay: '0.05s' }}>
-      <DashboardGrid className={`${canManageDispatches ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-2 md:grid-cols-3'} gap-3`}>
+      <DashboardGrid className={`${canManageDispatches ? 'grid-cols-2 lg:grid-cols-4' : 'grid-cols-2 lg:grid-cols-3'} gap-3.5`}>
         <StatsCard
           title="Active Shipments"
           value={activeShipmentsCount}
@@ -29,21 +29,23 @@ export default function DashboardKpiGrid({
           variant="default"
           subtitle="On hand or moving"
           trend={shipmentTrend}
-          size="sm"
+          size="md"
         />
         <StatsCard
           title="Active Containers"
           value={activeContainersCount}
           icon={<Ship className="w-4 h-4" />}
           variant="info"
-          size="sm"
+          subtitle="Port, customs & vessel"
+          size="md"
         />
         <StatsCard
           title="Pending Revenue"
           value={pendingRevenue}
           icon={<DollarSign className="w-4 h-4" />}
           variant="warning"
-          size="sm"
+          subtitle="Invoices awaiting settlement"
+          size="md"
         />
         {canManageDispatches && (
           <StatsCard
@@ -51,8 +53,8 @@ export default function DashboardKpiGrid({
             value={activeDispatchesCount}
             icon={<Truck className="w-4 h-4" />}
             variant="success"
-            subtitle="Pending / port"
-            size="sm"
+            subtitle="Pending & port transits"
+            size="md"
           />
         )}
       </DashboardGrid>

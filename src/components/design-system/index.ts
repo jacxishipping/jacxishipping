@@ -83,3 +83,7 @@ export { ThemeToggle } from './ThemeToggle';
 
 // Keyboard Shortcuts (Phase 4)
 export { default as KeyboardShortcutHelp } from './KeyboardShortcutHelp';
+
+// Operational Productivity Primitives
+export { default as CopyButton } from '@/components/ui/CopyButton';
+export { default as StatusFilterPills } from '@/components/ui/StatusFilterPills';

@@ -7,6 +7,7 @@ import {
     DashboardHeader 
 } from '@/components/dashboard/DashboardSurface';
 import DashboardKpiGrid from '@/components/dashboard/DashboardKpiGrid';
+import DashboardOperationsChart from '@/components/dashboard/DashboardOperationsChart';
 import DashboardTodayWork from '@/components/dashboard/DashboardTodayWork';
 import DashboardMore from '@/components/dashboard/DashboardMore';
 import QuickCalculatorButton from '@/components/dashboard/QuickCalculatorButton';
@@ -585,6 +586,13 @@ export default async function DashboardPage() {
                 shipmentTrend={data.shipmentTrend}
                 canManageDispatches={data.canManageDispatches}
                 activeDispatchesCount={data.activeDispatchesCount}
+            />
+
+            {/* Interactive Operations Pipeline & Movement Analytics */}
+            <DashboardOperationsChart
+                trends={data.shipmentTrends}
+                containerUtilization={data.containerUtilization}
+                shipmentStats={data.shipmentStats}
             />
 
             {/* Light Priority Work */}
