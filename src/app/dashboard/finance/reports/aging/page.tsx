@@ -7,11 +7,10 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Clock, AlertCircle, TrendingUp } from 'lucide-react';
-import { Button, Breadcrumbs } from '@/components/design-system';
+import { Button, PageHeader, LoadingState } from '@/components/design-system';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { ResponsiveDataView, CardField } from '@/components/ui/MobileCardView';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import Section from '@/components/layout/Section';
+import { DashboardSurface, DashboardPanel } from '@/components/dashboard/DashboardSurface';
 import AdminRoute from '@/components/auth/AdminRoute';
 
 interface ShipmentDetail {
@@ -180,12 +179,12 @@ export default function AgingReportPage() {
   if (status === 'loading' || loading) {
     return (
       <AdminRoute>
-        <div className="min-h-screen bg-[var(--background)] flex items-center justify-center">
-          <div className="text-center space-y-4 text-[var(--text-secondary)]">
-            <div className="animate-spin rounded-full h-12 w-12 border-4 border-[var(--border)] border-t-[var(--accent-gold)] mx-auto" />
-            <p>Loading aging report...</p>
-          </div>
-        </div>
+        <DashboardSurface>
+          <Box sx={{ px: 2, pt: 2 }}>
+            <Breadcrumbs />
+          </Box>
+          <LoadingState message="Loading aging report..." />
+        </DashboardSurface>
       </AdminRoute>
     );
   }
@@ -193,13 +192,16 @@ export default function AgingReportPage() {
   if (!report) {
     return (
       <AdminRoute>
-        <div className="min-h-screen bg-[var(--background)] flex items-center justify-center">
-          <div className="text-center space-y-4">
+        <DashboardSurface>
+          <Box sx={{ px: 2, pt: 2 }}>
+            <Breadcrumbs />
+          </Box>
+          <div className="text-center py-12 space-y-4">
             <AlertCircle className="w-16 h-16 mx-auto text-[var(--text-secondary)] opacity-50" />
             <p className="text-[var(--text-secondary)]">Failed to load aging report</p>
-            <Button onClick={fetchReport}>Retry</Button>
+            <Button onClick={fetchReport} variant="outline">Retry</Button>
           </div>
-        </div>
+        </DashboardSurface>
       </AdminRoute>
     );
   }
@@ -208,228 +210,191 @@ export default function AgingReportPage() {
 
   return (
     <AdminRoute>
-      <div className="min-h-screen bg-[var(--background)]">
-			{/* Breadcrumbs */}
-			<Box sx={{ px: 2, pt: 2, position: "relative", zIndex: 10 }}>
-				<Breadcrumbs />
-			</Box>
-
-        <Section className="pt-6 pb-6">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-start gap-3 min-w-0 flex-1">
-              <Link href="/dashboard/finance/reports">
-                <Button variant="outline" size="sm" className="border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--accent-gold)]">
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Back
-                </Button>
-              </Link>
-              <div className="min-w-0 flex-1">
-                <h1 className="text-3xl font-semibold text-[var(--text-primary)]">Due Aging Report</h1>
-                <p className="text-sm text-[var(--text-secondary)]">
-                  Track overdue payments by age
-                </p>
-              </div>
-            </div>
-          </div>
-        </Section>
+      <DashboardSurface>
+        <PageHeader
+          showBreadcrumbs
+          title="Due Aging Report"
+          description="Track overdue payments and accounts receivable by age bucket"
+          actions={
+            <Link href="/dashboard/finance/reports">
+              <Button variant="outline" size="sm" icon={<ArrowLeft className="w-4 h-4" />}>
+                Back
+              </Button>
+            </Link>
+          }
+        />
 
         {/* Summary Cards */}
-			{/* Breadcrumbs */}
-			<Box sx={{ px: 2, pt: 2, position: "relative", zIndex: 10 }}>
-				<Breadcrumbs />
-			</Box>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Current (0-30 days) */}
+          <button
+            onClick={() => setSelectedBucket('current')}
+            className={`text-left p-4 rounded-xl border-2 transition-all ${
+              selectedBucket === 'current' ? 'border-[var(--success)] bg-[rgba(var(--success-rgb),0.08)]' : 'border-[var(--border)] bg-[var(--panel)] hover:border-[rgba(var(--success-rgb),0.5)]'
+            }`}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <Clock className="w-5 h-5 text-[var(--success)]" />
+              <span className="text-xs font-semibold text-[var(--success)]">
+                {report.summary.buckets.current.percentage.toFixed(1)}%
+              </span>
+            </div>
+            <p className="text-xs text-[var(--text-secondary)] uppercase tracking-wide mb-1">
+              {report.summary.buckets.current.label}
+            </p>
+            <p className="text-2xl font-bold text-[var(--success)]">
+              {formatCurrency(report.summary.buckets.current.total)}
+            </p>
+            <p className="text-xs text-[var(--text-secondary)] mt-1">
+              {report.summary.buckets.current.count} shipments
+            </p>
+          </button>
 
-        <Section className="pb-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Current (0-30 days) */}
-            <button
-              onClick={() => setSelectedBucket('current')}
-              className={`text-left p-4 rounded-lg border-2 transition-all ${
-                selectedBucket === 'current' ? 'border-[var(--success)] bg-[rgba(var(--success-rgb),0.08)]' : 'border-[var(--border)] hover:border-[rgba(var(--success-rgb),0.5)]'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <Clock className="w-5 h-5 text-[var(--success)]" />
-                <span className="text-xs font-semibold text-[var(--success)]">
-                  {report.summary.buckets.current.percentage.toFixed(1)}%
-                </span>
-              </div>
-              <p className="text-xs text-[var(--text-secondary)] uppercase tracking-wide mb-1">
-                {report.summary.buckets.current.label}
-              </p>
-              <p className="text-2xl font-bold text-[var(--success)]">
-                {formatCurrency(report.summary.buckets.current.total)}
-              </p>
-              <p className="text-xs text-[var(--text-secondary)] mt-1">
-                {report.summary.buckets.current.count} shipments
-              </p>
-            </button>
+          {/* Aging 31-60 days */}
+          <button
+            onClick={() => setSelectedBucket('aging30')}
+            className={`text-left p-4 rounded-xl border-2 transition-all ${
+              selectedBucket === 'aging30' ? 'border-[var(--warning)] bg-[rgba(var(--warning-rgb),0.08)]' : 'border-[var(--border)] bg-[var(--panel)] hover:border-[rgba(var(--warning-rgb),0.5)]'
+            }`}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <Clock className="w-5 h-5 text-[var(--warning)]" />
+              <span className="text-xs font-semibold text-[var(--warning)]">
+                {report.summary.buckets.aging30.percentage.toFixed(1)}%
+              </span>
+            </div>
+            <p className="text-xs text-[var(--text-secondary)] uppercase tracking-wide mb-1">
+              {report.summary.buckets.aging30.label}
+            </p>
+            <p className="text-2xl font-bold text-[var(--warning)]">
+              {formatCurrency(report.summary.buckets.aging30.total)}
+            </p>
+            <p className="text-xs text-[var(--text-secondary)] mt-1">
+              {report.summary.buckets.aging30.count} shipments
+            </p>
+          </button>
 
-            {/* 31-60 days */}
-            <button
-              onClick={() => setSelectedBucket('aging30')}
-              className={`text-left p-4 rounded-lg border-2 transition-all ${
-                selectedBucket === 'aging30' ? 'border-[var(--warning)] bg-[rgba(var(--warning-rgb),0.08)]' : 'border-[var(--border)] hover:border-[rgba(var(--warning-rgb),0.5)]'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <Clock className="w-5 h-5 text-[var(--warning)]" />
-                <span className="text-xs font-semibold text-[var(--warning)]">
-                  {report.summary.buckets.aging30.percentage.toFixed(1)}%
-                </span>
-              </div>
-              <p className="text-xs text-[var(--text-secondary)] uppercase tracking-wide mb-1">
-                {report.summary.buckets.aging30.label}
-              </p>
-              <p className="text-2xl font-bold text-[var(--warning)]">
-                {formatCurrency(report.summary.buckets.aging30.total)}
-              </p>
-              <p className="text-xs text-[var(--text-secondary)] mt-1">
-                {report.summary.buckets.aging30.count} shipments
-              </p>
-            </button>
+          {/* Aging 61-90 days */}
+          <button
+            onClick={() => setSelectedBucket('aging60')}
+            className={`text-left p-4 rounded-xl border-2 transition-all ${
+              selectedBucket === 'aging60' ? 'border-[var(--warning)] bg-[rgba(var(--warning-rgb),0.08)]' : 'border-[var(--border)] bg-[var(--panel)] hover:border-[rgba(var(--warning-rgb),0.5)]'
+            }`}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <Clock className="w-5 h-5 text-[var(--warning)]" />
+              <span className="text-xs font-semibold text-[var(--warning)]">
+                {report.summary.buckets.aging60.percentage.toFixed(1)}%
+              </span>
+            </div>
+            <p className="text-xs text-[var(--text-secondary)] uppercase tracking-wide mb-1">
+              {report.summary.buckets.aging60.label}
+            </p>
+            <p className="text-2xl font-bold text-[var(--warning)]">
+              {formatCurrency(report.summary.buckets.aging60.total)}
+            </p>
+            <p className="text-xs text-[var(--text-secondary)] mt-1">
+              {report.summary.buckets.aging60.count} shipments
+            </p>
+          </button>
 
-            {/* 61-90 days */}
-            <button
-              onClick={() => setSelectedBucket('aging60')}
-              className={`text-left p-4 rounded-lg border-2 transition-all ${
-                selectedBucket === 'aging60' ? 'border-[rgba(245,158,11,0.6)] bg-[rgba(245,158,11,0.08)]' : 'border-[var(--border)] hover:border-[rgba(245,158,11,0.5)]'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <Clock className="w-5 h-5 text-[#B45309]" />
-                <span className="text-xs font-semibold text-[#B45309]">
-                  {report.summary.buckets.aging60.percentage.toFixed(1)}%
-                </span>
-              </div>
-              <p className="text-xs text-[var(--text-secondary)] uppercase tracking-wide mb-1">
-                {report.summary.buckets.aging60.label}
-              </p>
-              <p className="text-2xl font-bold text-[#B45309]">
-                {formatCurrency(report.summary.buckets.aging60.total)}
-              </p>
-              <p className="text-xs text-[var(--text-secondary)] mt-1">
-                {report.summary.buckets.aging60.count} shipments
-              </p>
-            </button>
+          {/* Aging 90+ days */}
+          <button
+            onClick={() => setSelectedBucket('aging90')}
+            className={`text-left p-4 rounded-xl border-2 transition-all ${
+              selectedBucket === 'aging90' ? 'border-[var(--error)] bg-[rgba(var(--error-rgb),0.08)]' : 'border-[var(--border)] bg-[var(--panel)] hover:border-[rgba(var(--error-rgb),0.5)]'
+            }`}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <AlertCircle className="w-5 h-5 text-[var(--error)]" />
+              <span className="text-xs font-semibold text-[var(--error)]">
+                {report.summary.buckets.aging90.percentage.toFixed(1)}%
+              </span>
+            </div>
+            <p className="text-xs text-[var(--text-secondary)] uppercase tracking-wide mb-1">
+              {report.summary.buckets.aging90.label}
+            </p>
+            <p className="text-2xl font-bold text-[var(--error)]">
+              {formatCurrency(report.summary.buckets.aging90.total)}
+            </p>
+            <p className="text-xs text-[var(--text-secondary)] mt-1">
+              {report.summary.buckets.aging90.count} shipments
+            </p>
+          </button>
+        </div>
 
-            {/* 90+ days */}
-            <button
-              onClick={() => setSelectedBucket('aging90')}
-              className={`text-left p-4 rounded-lg border-2 transition-all ${
-                selectedBucket === 'aging90' ? 'border-[var(--error)] bg-[rgba(var(--error-rgb),0.08)]' : 'border-[var(--border)] hover:border-[rgba(var(--error-rgb),0.5)]'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <AlertCircle className="w-5 h-5 text-[var(--error)]" />
-                <span className="text-xs font-semibold text-[var(--error)]">
-                  {report.summary.buckets.aging90.percentage.toFixed(1)}%
-                </span>
-              </div>
-              <p className="text-xs text-[var(--text-secondary)] uppercase tracking-wide mb-1">
-                {report.summary.buckets.aging90.label}
+        {/* Total Summary Panel */}
+        <DashboardPanel>
+          <div className="flex items-center justify-between p-2">
+            <div>
+              <p className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Total Outstanding</p>
+              <p className="text-3xl font-bold text-[var(--text-primary)] mt-1">
+                {formatCurrency(report.summary.totalAmountDue)}
               </p>
-              <p className="text-2xl font-bold text-[var(--error)]">
-                {formatCurrency(report.summary.buckets.aging90.total)}
+              <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+                Across {report.summary.totalShipments} shipments
               </p>
-              <p className="text-xs text-[var(--text-secondary)] mt-1">
-                {report.summary.buckets.aging90.count} shipments
-              </p>
-            </button>
+            </div>
+            <TrendingUp className="w-10 h-10 text-[var(--accent-gold)] opacity-70" />
           </div>
-        </Section>
+        </DashboardPanel>
 
-        {/* Total Summary */}
-			{/* Breadcrumbs */}
-			<Box sx={{ px: 2, pt: 2, position: "relative", zIndex: 10 }}>
-				<Breadcrumbs />
-			</Box>
-
-        <Section className="pb-6">
-          <Card className="border-0 bg-[var(--panel)] backdrop-blur-md shadow-lg">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-[var(--text-secondary)] uppercase tracking-wide">Total Outstanding</p>
-                  <p className="text-3xl font-bold text-[var(--text-primary)] mt-2">
-                    {formatCurrency(report.summary.totalAmountDue)}
-                  </p>
-                  <p className="text-sm text-[var(--text-secondary)] mt-1">
-                    Across {report.summary.totalShipments} shipments
-                  </p>
-                </div>
-                <TrendingUp className="w-12 h-12 text-[var(--accent-gold)] opacity-50" />
-              </div>
-            </CardContent>
-          </Card>
-        </Section>
-
-        {/* Details Table */}
-			{/* Breadcrumbs */}
-			<Box sx={{ px: 2, pt: 2, position: "relative", zIndex: 10 }}>
-				<Breadcrumbs />
-			</Box>
-
-        <Section className="pb-16">
-          <Card className="border-0 bg-[var(--panel)] backdrop-blur-md shadow-lg">
-            <CardHeader className="p-4 border-b border-[var(--border)]">
-              <CardTitle className="text-lg font-bold text-[var(--text-primary)]">
-                {report.summary.buckets[selectedBucket].label} - Detailed View
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              {selectedDetails.length === 0 ? (
-                <div className="p-8 text-center text-[var(--text-secondary)]">
-                  <Clock className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>No shipments in this category</p>
-                </div>
-              ) : (
-                <ResponsiveDataView
-                  data={selectedDetails}
-                  TableComponent={DataTable}
-                  tableProps={{
-                    data: selectedDetails,
-                    columns: detailColumns,
-                    keyField: 'id',
-                  }}
-                  keyField="id"
-                  renderMobileCard={(shipment: ShipmentDetail): CardField[] => [
-                    {
-                      label: 'Tracking',
-                      value: shipment.trackingNumber || '—',
-                      primary: true,
-                    },
-                    {
-                      label: 'Vehicle',
-                      value: `${shipment.vehicleMake ?? ''} ${shipment.vehicleModel ?? ''}`.trim() || '—',
-                    },
-                    {
-                      label: 'User',
-                      value: shipment.user.name || shipment.user.email,
-                    },
-                    {
-                      label: 'Amount Due',
-                      value: <span className="font-semibold text-[var(--text-primary)]">{formatCurrency(shipment.amountDue)}</span>,
-                    },
-                    {
-                      label: 'Age',
-                      value: (
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded ${getBucketColor(selectedBucket)}`}>
-                          {shipment.ageInDays} days
-                        </span>
-                      ),
-                    },
-                    {
-                      label: 'Created',
-                      value: formatDate(shipment.createdAt),
-                    },
-                  ]}
-                />
-              )}
-            </CardContent>
-          </Card>
-        </Section>
-      </div>
+        {/* Details Table Panel */}
+        <DashboardPanel
+          title={`${report.summary.buckets[selectedBucket].label} - Detailed View`}
+          description={`Showing ${selectedDetails.length} shipment(s) in this aging category`}
+          noBodyPadding
+        >
+          {selectedDetails.length === 0 ? (
+            <div className="p-8 text-center text-[var(--text-secondary)]">
+              <Clock className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p>No shipments in this category</p>
+            </div>
+          ) : (
+            <ResponsiveDataView
+              data={selectedDetails}
+              TableComponent={DataTable}
+              tableProps={{
+                data: selectedDetails,
+                columns: detailColumns,
+                keyField: 'id',
+              }}
+              keyField="id"
+              renderMobileCard={(shipment: ShipmentDetail): CardField[] => [
+                {
+                  label: 'Tracking',
+                  value: shipment.trackingNumber || '—',
+                  primary: true,
+                },
+                {
+                  label: 'Vehicle',
+                  value: `${shipment.vehicleMake ?? ''} ${shipment.vehicleModel ?? ''}`.trim() || '—',
+                },
+                {
+                  label: 'User',
+                  value: shipment.user.name || shipment.user.email,
+                },
+                {
+                  label: 'Amount Due',
+                  value: <span className="font-semibold text-[var(--text-primary)]">{formatCurrency(shipment.amountDue)}</span>,
+                },
+                {
+                  label: 'Age',
+                  value: (
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded ${getBucketColor(selectedBucket)}`}>
+                      {shipment.ageInDays} days
+                    </span>
+                  ),
+                },
+                {
+                  label: 'Created',
+                  value: formatDate(shipment.createdAt),
+                },
+              ]}
+            />
+          )}
+        </DashboardPanel>
+      </DashboardSurface>
     </AdminRoute>
   );
 }
