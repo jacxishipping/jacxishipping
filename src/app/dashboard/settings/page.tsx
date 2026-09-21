@@ -35,7 +35,6 @@ import {
 } from '@/components/dashboard/DashboardSurface';
 import { 
   Button, 
-  Breadcrumbs, 
   toast, 
   PageHeader, 
   StatsCard, 
@@ -898,11 +897,8 @@ export default function SettingsPage() {
 
   return (
     <DashboardSurface>
-      <Box sx={{ px: 2, pt: 2 }}>
-        <Breadcrumbs />
-      </Box>
-
       <PageHeader 
+        showBreadcrumbs
         title={isAdmin ? 'Admin Settings' : 'Settings'} 
         description={isAdmin ? 'Manage your profile, preferences, and system configuration' : 'Manage your profile, preferences, and account settings'}
       />
@@ -973,264 +969,271 @@ export default function SettingsPage() {
         </Tabs>
       </Box>
 
-      <TabPanel value={activeTab} index={6}>
-      {isAdmin ? (
-        <DashboardPanel
-          title="Live Call Agent"
-          description="Configure Twilio voice routing, Gemini Live audio, and webhook readiness from one place."
-          actions={
-            <Link href="/dashboard/settings/call-agent" style={{ textDecoration: 'none' }}>
-              <Button variant="outline" size="sm" icon={<ArrowRight className="w-4 h-4" />}>
-                Advanced View
-              </Button>
-            </Link>
-          }
-        >
-          <Box component="form" onSubmit={handleSaveCallAgentSettings} sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            <DashboardGrid className="grid-cols-1 md:grid-cols-4">
-              <StatsCard
-                icon={callAgentConfig?.status.geminiLiveConfigured ? <CheckCircle2 style={{ fontSize: 18 }} /> : <XCircle style={{ fontSize: 18 }} />}
-                title="Gemini Live"
-                value={callAgentConfig?.status.geminiLiveConfigured ? 'Ready' : 'Needs Setup'}
-                subtitle={callAgentConfig?.status.geminiLiveModel || callAgentSettings.geminiLiveModel}
-                variant={callAgentConfig?.status.geminiLiveConfigured ? 'success' : 'warning'}
-                size="md"
-              />
-              <StatsCard
-                icon={callAgentConfig?.status.geminiStandardConfigured ? <CheckCircle2 style={{ fontSize: 18 }} /> : <XCircle style={{ fontSize: 18 }} />}
-                title="Fallback AI"
-                value={callAgentConfig?.status.geminiStandardConfigured ? 'Ready' : 'Needs Setup'}
-                subtitle={callAgentConfig?.status.geminiVoiceModel || callAgentSettings.geminiVoiceModel}
-                variant={callAgentConfig?.status.geminiStandardConfigured ? 'success' : 'warning'}
-                size="md"
-              />
-              <StatsCard
-                icon={callAgentConfig?.status.twilioConfigured ? <CheckCircle2 style={{ fontSize: 18 }} /> : <XCircle style={{ fontSize: 18 }} />}
-                title="Twilio API"
-                value={callAgentConfig?.status.twilioConfigured ? 'Configured' : 'Manual Only'}
-                subtitle={callAgentConfig?.status.twilioAuthMode === 'auth-token' ? 'Auth token mode' : callAgentConfig?.status.twilioAuthMode === 'api-key' ? 'API key mode' : 'No API credentials'}
-                variant={callAgentConfig?.status.twilioConfigured ? 'success' : 'warning'}
-                size="md"
-              />
-              <StatsCard
-                icon={callAgentConfig?.status.voiceWebhookTokenConfigured ? <CheckCircle2 style={{ fontSize: 18 }} /> : <XCircle style={{ fontSize: 18 }} />}
-                title="Webhook Token"
-                value={callAgentConfig?.status.voiceWebhookTokenConfigured ? 'Protected' : 'Missing'}
-                subtitle={callAgentConfig?.urls.source === 'NEXT_PUBLIC_APP_URL' ? 'Fixed app URL' : 'Request host'}
-                variant={callAgentConfig?.status.voiceWebhookTokenConfigured ? 'success' : 'warning'}
-                size="md"
-              />
-            </DashboardGrid>
+      {/* Tab 0: Profile */}
+      <TabPanel value={activeTab} index={0}>
+        <div className="space-y-6">
+          <DashboardGrid className="grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
+            <StatsCard
+              icon={<Shield style={{ fontSize: 18 }} />}
+              title="Security Score"
+              value={settingsForm.twoFactorEnabled ? '92%' : '68%'}
+              variant={settingsForm.twoFactorEnabled ? 'success' : 'warning'}
+              size="md"
+            />
+            <StatsCard
+              icon={<Bell style={{ fontSize: 18 }} />}
+              title="Notifications"
+              value={settingsForm.notifyShipmentEmail ? 'Active' : 'Paused'}
+              subtitle={notificationSummary}
+              variant="info"
+              size="md"
+            />
+            <StatsCard
+              icon={isAdmin ? <Activity style={{ fontSize: 18 }} /> : <Palette style={{ fontSize: 18 }} />}
+              title={isAdmin ? 'Last Backup' : 'Theme'}
+              value={isAdmin ? (backupState.info?.lastBackupAt ? new Date(backupState.info.lastBackupAt).toLocaleDateString() : 'None') : settingsForm.theme}
+              variant={isAdmin ? (backupState.info?.lastBackupAt ? 'success' : 'error') : 'default'}
+              size="md"
+            />
+            <StatsCard
+              icon={<User style={{ fontSize: 18 }} />}
+              title="Profile Status"
+              value={profile?.name ? 'Complete' : 'Incomplete'}
+              variant="default"
+              size="md"
+            />
+          </DashboardGrid>
 
-            <DashboardGrid className="grid-cols-1 lg:grid-cols-2">
-              <Box sx={{ p: 2, border: '1px solid var(--border)', borderRadius: '8px', bgcolor: 'var(--background)' }}>
-                <Typography sx={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                  <PhoneCall className="w-4 h-4" />
-                  Twilio Voice
-                </Typography>
-                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
-                  <TextField size="small" label="Account SID" value={callAgentSettings.twilioAccountSid} onChange={(event) => handleCallAgentFieldChange('twilioAccountSid', event.target.value)} disabled={savingCallAgentSettings} />
-                  <TextField size="small" label="Auth Token" type="password" value={callAgentSettings.twilioAuthToken} onChange={(event) => handleCallAgentFieldChange('twilioAuthToken', event.target.value)} disabled={savingCallAgentSettings} />
-                  <TextField size="small" label="API Key" value={callAgentSettings.twilioApiKey} onChange={(event) => handleCallAgentFieldChange('twilioApiKey', event.target.value)} disabled={savingCallAgentSettings} />
-                  <TextField size="small" label="API Secret" type="password" value={callAgentSettings.twilioApiSecret} onChange={(event) => handleCallAgentFieldChange('twilioApiSecret', event.target.value)} disabled={savingCallAgentSettings} />
-                  <TextField size="small" label="Phone Number" value={callAgentSettings.twilioPhoneNumber} onChange={(event) => handleCallAgentFieldChange('twilioPhoneNumber', event.target.value)} disabled={savingCallAgentSettings} />
-                  <TextField size="small" label="Phone Number SID" value={callAgentSettings.twilioPhoneNumberSid} onChange={(event) => handleCallAgentFieldChange('twilioPhoneNumberSid', event.target.value)} disabled={savingCallAgentSettings} />
-                </Box>
-                <Typography sx={{ fontSize: '0.78rem', color: 'var(--text-secondary)', mt: 2, lineHeight: 1.6 }}>
-                  Use either Account SID + Auth Token or Account SID + API Key + API Secret. The phone number fields help the app inspect the live Twilio webhook target.
-                </Typography>
-              </Box>
-
-              <Box sx={{ p: 2, border: '1px solid var(--border)', borderRadius: '8px', bgcolor: 'var(--background)' }}>
-                <Typography sx={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                  <Bot className="w-4 h-4" />
-                  Gemini Live
-                </Typography>
-                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
-                  <TextField size="small" label="Gemini API Key" type="password" value={callAgentSettings.geminiApiKey} onChange={(event) => handleCallAgentFieldChange('geminiApiKey', event.target.value)} disabled={savingCallAgentSettings} />
-                  <TextField size="small" label="Gemini Live API Key" type="password" value={callAgentSettings.geminiLiveApiKey} onChange={(event) => handleCallAgentFieldChange('geminiLiveApiKey', event.target.value)} disabled={savingCallAgentSettings} />
-                  <TextField size="small" label="Fallback Voice Model" value={callAgentSettings.geminiVoiceModel} onChange={(event) => handleCallAgentFieldChange('geminiVoiceModel', event.target.value)} disabled={savingCallAgentSettings} />
-                  <TextField size="small" label="Live Audio Model" value={callAgentSettings.geminiLiveModel} onChange={(event) => handleCallAgentFieldChange('geminiLiveModel', event.target.value)} disabled={savingCallAgentSettings} />
-                </Box>
-                <Typography sx={{ fontSize: '0.78rem', color: 'var(--text-secondary)', mt: 2, lineHeight: 1.6 }}>
-                  The live key and model power the caller audio bridge. The fallback key/model handle the IVR assistant when live audio is unavailable.
-                </Typography>
-              </Box>
-            </DashboardGrid>
-
-            <Box sx={{ p: 2, border: '1px solid var(--border)', borderRadius: '8px', bgcolor: 'var(--background)', display: 'grid', gap: 2 }}>
-              <Box>
-                <Typography sx={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase' }}>Inbound Voice Webhook</Typography>
-                <Typography sx={{ fontSize: '0.86rem', color: 'var(--text-primary)', wordBreak: 'break-all', mt: 0.5 }}>
-                  {callAgentConfig?.urls.webhookUrl || 'Load settings to see the webhook URL'}
-                </Typography>
-                <Typography sx={{ fontSize: '0.78rem', color: 'var(--text-secondary)', mt: 0.5 }}>Method: {callAgentConfig?.urls.webhookMethod || 'POST'}</Typography>
-              </Box>
-              <Box>
-                <Typography sx={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase' }}>Live Media WebSocket</Typography>
-                <Typography sx={{ fontSize: '0.86rem', color: 'var(--text-primary)', wordBreak: 'break-all', mt: 0.5 }}>
-                  {callAgentConfig?.urls.websocketUrl || 'Load settings to see the WebSocket URL'}
-                </Typography>
-              </Box>
-              {callAgentConfig?.twilioInspection.error ? (
-                <Typography sx={{ fontSize: '0.82rem', color: 'var(--warning)', lineHeight: 1.6 }}>
-                  Twilio inspection: {callAgentConfig.twilioInspection.error}
-                </Typography>
-              ) : (
-                <Typography sx={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                  Twilio inspection: {callAgentConfig?.twilioInspection.inspected ? `${callAgentConfig.twilioInspection.phoneNumber || callAgentConfig.twilioInspection.target || 'Configured number'} is ${callAgentConfig.twilioInspection.matchesExpectedWebhook ? 'pointing to this webhook' : 'not pointing to this webhook yet'}.` : 'Add Twilio credentials and a phone target to inspect webhook routing.'}
-                </Typography>
-              )}
-            </Box>
-
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <Button type="submit" variant="primary" loading={savingCallAgentSettings}>
-                Save Live Call Agent
-              </Button>
-            </Box>
-          </Box>
-        </DashboardPanel>
-      ) : null}
+          <DashboardPanel 
+            title="Profile & Identity" 
+            description="Update your personal information"
+          >
+            <form onSubmit={handleSaveProfile} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  label="Full Name"
+                  value={profileForm.name}
+                  onChange={(e) => handleProfileFieldChange('name', e.target.value)}
+                  placeholder="John Doe"
+                />
+                <FormField
+                  label="Phone Number"
+                  value={profileForm.phone}
+                  onChange={(e) => handleProfileFieldChange('phone', e.target.value)}
+                  placeholder="+1 234 567 8900"
+                />
+                <FormField
+                  label="Address"
+                  value={profileForm.address}
+                  onChange={(e) => handleProfileFieldChange('address', e.target.value)}
+                  placeholder="123 Main St"
+                />
+                <FormField
+                  label="City"
+                  value={profileForm.city}
+                  onChange={(e) => handleProfileFieldChange('city', e.target.value)}
+                  placeholder="New York"
+                />
+                <FormField
+                  label="Country"
+                  value={profileForm.country}
+                  onChange={(e) => handleProfileFieldChange('country', e.target.value)}
+                  placeholder="USA"
+                />
+                <FormField
+                  label="Email"
+                  value={session?.user?.email ?? ''}
+                  disabled
+                  helperText="Contact admin to change email"
+                />
+              </div>
+              <div className="flex justify-end pt-2">
+                <Button type="submit" disabled={savingProfile} variant="primary">
+                  {savingProfile ? 'Saving...' : 'Save Profile'}
+                </Button>
+              </div>
+            </form>
+          </DashboardPanel>
+        </div>
       </TabPanel>
 
-      <TabPanel value={activeTab} index={5}>
-      {isAdmin ? (
-        <DashboardPanel
-          title="Communications"
-          description="Configure email and SMS/message providers for invoices, reminders, and customer notifications."
-          actions={
-            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-              <Button
-                variant="outline"
-                size="sm"
-                icon={<Mail className="w-4 h-4" />}
-                onClick={() => void handleTestCommunication('email')}
-                loading={testingCommunicationChannel === 'email'}
-                disabled={!communicationSettings.emailConfigured}
-              >
-                Test Email
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                icon={<MessageSquare className="w-4 h-4" />}
-                onClick={() => void handleTestCommunication('sms')}
-                loading={testingCommunicationChannel === 'sms'}
-                disabled={!communicationSettings.smsConfigured}
-              >
-                Test SMS
-              </Button>
-            </Box>
-          }
-        >
-          <Box component="form" onSubmit={handleSaveCommunicationSettings} sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            <DashboardGrid className="grid-cols-1 md:grid-cols-2">
-              <StatsCard
-                icon={communicationSettings.emailConfigured ? <CheckCircle2 style={{ fontSize: 18 }} /> : <XCircle style={{ fontSize: 18 }} />}
-                title="Email Provider"
-                value={communicationSettings.emailConfigured ? 'Configured' : 'Needs Setup'}
-                subtitle={communicationSettings.emailProvider}
-                variant={communicationSettings.emailConfigured ? 'success' : 'warning'}
-                size="md"
+      {/* Tab 1: Preferences */}
+      <TabPanel value={activeTab} index={1}>
+        <div className="max-w-3xl">
+          <DashboardPanel 
+            title="Interface Preferences" 
+            description="Customize your dashboard experience"
+          >
+            <form onSubmit={handleSavePreferences} className="space-y-4">
+              <Select
+                label="Theme"
+                value={settingsForm.theme}
+                onChange={(value) => setSettingsForm(prev => ({ ...prev, theme: String(value) }))}
+                options={[
+                  { value: 'light', label: 'Adaptive Light' },
+                  { value: 'dark', label: 'Classic Dark' },
+                  { value: 'futuristic', label: 'Futuristic Dark' },
+                ]}
               />
-              <StatsCard
-                icon={communicationSettings.smsConfigured ? <CheckCircle2 style={{ fontSize: 18 }} /> : <XCircle style={{ fontSize: 18 }} />}
-                title="SMS Provider"
-                value={communicationSettings.smsConfigured ? 'Configured' : 'Needs Setup'}
-                subtitle={communicationSettings.smsProvider}
-                variant={communicationSettings.smsConfigured ? 'success' : 'warning'}
-                size="md"
-              />
-            </DashboardGrid>
-
-            <Box sx={{ p: 2, border: '1px solid var(--border)', borderRadius: 2, bgcolor: 'var(--background)' }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, alignItems: { xs: 'flex-start', md: 'center' }, flexDirection: { xs: 'column', md: 'row' }, mb: 2 }}>
-                <Box>
-                  <Typography sx={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Mail className="w-4 h-4" />
-                    Email API
-                  </Typography>
-                  <Typography sx={{ fontSize: '0.82rem', color: 'var(--text-secondary)', mt: 0.5 }}>
-                    Used by invoice generation, payment reminders, shipment emails, and invoice templates.
-                  </Typography>
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Typography sx={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{communicationSettings.emailEnabled ? 'Enabled' : 'Disabled'}</Typography>
-                  <Switch checked={communicationSettings.emailEnabled} onChange={(event) => handleCommunicationFieldChange('emailEnabled', event.target.checked)} disabled={savingCommunicationSettings} />
-                </Box>
-              </Box>
-
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' }, gap: 2 }}>
-                <TextField size="small" label="Email Provider" value={communicationSettings.emailProvider} onChange={(event) => handleCommunicationFieldChange('emailProvider', event.target.value)} disabled={savingCommunicationSettings} />
-                <TextField
-                  size="small"
-                  label="Resend API Key"
-                  type="password"
-                  value={communicationSettings.emailApiKey}
-                  onChange={(event) => handleCommunicationFieldChange('emailApiKey', event.target.value)}
-                  placeholder={communicationSettings.emailApiKeyConfigured ? `Saved: ${communicationSettings.emailApiKeyMasked}` : 'Paste API key'}
-                  helperText={communicationSettings.emailApiKeyConfigured ? 'Leave blank to keep the saved encrypted key.' : 'Saved encrypted using the app secret.'}
-                  disabled={savingCommunicationSettings}
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Select
+                  label="Sidebar Density"
+                  value={settingsForm.sidebarDensity}
+                  onChange={(value) => setSettingsForm(prev => ({ ...prev, sidebarDensity: String(value) }))}
+                  options={[
+                    { value: 'comfortable', label: 'Comfortable' },
+                    { value: 'compact', label: 'Compact' },
+                  ]}
                 />
-                <TextField size="small" label="From Email" value={communicationSettings.emailFromAddress} onChange={(event) => handleCommunicationFieldChange('emailFromAddress', event.target.value)} disabled={savingCommunicationSettings} />
-                <TextField size="small" label="Reply-To Email" value={communicationSettings.emailReplyToAddress} onChange={(event) => handleCommunicationFieldChange('emailReplyToAddress', event.target.value)} disabled={savingCommunicationSettings} />
-                <TextField
-                  size="small"
-                  label="Test Email Recipient"
-                  value={communicationTestTarget.email}
-                  onChange={(event) => setCommunicationTestTarget((prev) => ({ ...prev, email: event.target.value }))}
-                  placeholder="admin@example.com"
-                  sx={{ gridColumn: { xs: '1', md: '1 / -1' } }}
+                <Select
+                  label="Language"
+                  value={settingsForm.language}
+                  onChange={(value) => setSettingsForm(prev => ({ ...prev, language: String(value) }))}
+                  options={[
+                    { value: 'en', label: 'English' },
+                    { value: 'ar', label: 'Arabic' },
+                    { value: 'fr', label: 'French' },
+                  ]}
                 />
-              </Box>
-            </Box>
+              </div>
 
-            <Box sx={{ p: 2, border: '1px solid var(--border)', borderRadius: 2, bgcolor: 'var(--background)' }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, alignItems: { xs: 'flex-start', md: 'center' }, flexDirection: { xs: 'column', md: 'row' }, mb: 2 }}>
-                <Box>
-                  <Typography sx={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <MessageSquare className="w-4 h-4" />
-                    SMS / Number Messages
-                  </Typography>
-                  <Typography sx={{ fontSize: '0.82rem', color: 'var(--text-secondary)', mt: 0.5 }}>
-                    Used for critical alerts and future customer number-message workflows.
-                  </Typography>
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Typography sx={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{communicationSettings.smsEnabled ? 'Enabled' : 'Disabled'}</Typography>
-                  <Switch checked={communicationSettings.smsEnabled} onChange={(event) => handleCommunicationFieldChange('smsEnabled', event.target.checked)} disabled={savingCommunicationSettings} />
-                </Box>
-              </Box>
-
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' }, gap: 2 }}>
-                <TextField size="small" label="SMS Provider" value={communicationSettings.smsProvider} onChange={(event) => handleCommunicationFieldChange('smsProvider', event.target.value)} disabled={savingCommunicationSettings} />
-                <TextField size="small" label="Twilio Account SID" value={communicationSettings.smsAccountSid} onChange={(event) => handleCommunicationFieldChange('smsAccountSid', event.target.value)} disabled={savingCommunicationSettings} />
-                <TextField
-                  size="small"
-                  label="Twilio Auth Token"
-                  type="password"
-                  value={communicationSettings.smsAuthToken}
-                  onChange={(event) => handleCommunicationFieldChange('smsAuthToken', event.target.value)}
-                  placeholder={communicationSettings.smsAuthTokenConfigured ? `Saved: ${communicationSettings.smsAuthTokenMasked}` : 'Paste auth token'}
-                  helperText={communicationSettings.smsAuthTokenConfigured ? 'Leave blank to keep the saved encrypted token.' : 'Saved encrypted using the app secret.'}
-                  disabled={savingCommunicationSettings}
-                />
-                <TextField size="small" label="From Number" value={communicationSettings.smsFromNumber} onChange={(event) => handleCommunicationFieldChange('smsFromNumber', event.target.value)} disabled={savingCommunicationSettings} />
-                <TextField size="small" label="Messaging Service SID" value={communicationSettings.smsMessagingServiceSid} onChange={(event) => handleCommunicationFieldChange('smsMessagingServiceSid', event.target.value)} disabled={savingCommunicationSettings} />
-                <TextField size="small" label="Test Phone Number" value={communicationTestTarget.sms} onChange={(event) => setCommunicationTestTarget((prev) => ({ ...prev, sms: event.target.value }))} placeholder="+15555555555" />
-              </Box>
-            </Box>
-
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <Button type="submit" variant="primary" loading={savingCommunicationSettings} icon={<CheckCircle2 className="w-4 h-4" />}>
-                Save Communications
-              </Button>
-            </Box>
-          </Box>
-        </DashboardPanel>
-      ) : null}
+              <div className="flex justify-end pt-2">
+                <Button type="submit" disabled={savingPreferences} variant="primary">
+                  {savingPreferences ? 'Saving...' : 'Save Preferences'}
+                </Button>
+              </div>
+            </form>
+          </DashboardPanel>
+        </div>
       </TabPanel>
 
+      {/* Tab 2: Notifications */}
+      <TabPanel value={activeTab} index={2}>
+        <div className="max-w-3xl">
+          <DashboardPanel 
+            title="Notification Rules" 
+            description="Manage your alert preferences"
+          >
+            <form onSubmit={handleSaveNotifications} className="space-y-4">
+              {[
+                { key: 'notifyShipmentEmail', label: 'Email: Shipment Updates' },
+                { key: 'notifyShipmentPush', label: 'Push: Shipment Updates' },
+                { key: 'notifyPaymentEmail', label: 'Email: Payment Reminders' },
+                { key: 'notifyCriticalSms', label: 'SMS: Critical Alerts' },
+              ].map((item) => (
+                <div key={item.key} className="flex items-center justify-between p-3 border border-[var(--border)] rounded-lg">
+                  <Typography variant="body2" color="text.primary">
+                    {item.label}
+                  </Typography>
+                  <Button
+                    type="button"
+                    variant={settingsForm[item.key as keyof typeof settingsForm] ? 'primary' : 'outline'}
+                    size="sm"
+                    onClick={() => setSettingsForm(prev => ({ 
+                      ...prev, 
+                      [item.key]: !prev[item.key as keyof typeof settingsForm] 
+                    }))}
+                  >
+                    {settingsForm[item.key as keyof typeof settingsForm] ? 'Enabled' : 'Disabled'}
+                  </Button>
+                </div>
+              ))}
+              <div className="flex justify-end pt-2">
+                <Button type="submit" disabled={savingNotifications} variant="primary">
+                  {savingNotifications ? 'Saving...' : 'Save Rules'}
+                </Button>
+              </div>
+            </form>
+          </DashboardPanel>
+        </div>
+      </TabPanel>
+
+      {/* Tab 3: Security & Backup */}
+      <TabPanel value={activeTab} index={3}>
+        <div className="max-w-3xl">
+          <DashboardPanel 
+            title={isAdmin ? 'System & Backup' : 'Security'} 
+            description={isAdmin ? 'Database management and security' : 'Account security controls'}
+          >
+            <div className="space-y-6">
+              <div className="p-4 border border-[var(--border)] rounded-lg bg-[var(--background)]">
+                <div className="flex items-center justify-between mb-2">
+                  <Typography variant="subtitle2" fontWeight="600">Two-Factor Authentication</Typography>
+                  <Button 
+                    variant={settingsForm.twoFactorEnabled ? 'primary' : 'outline'} 
+                    size="sm"
+                    onClick={handleToggleTwoFactor}
+                    disabled={savingSecurity}
+                  >
+                    {settingsForm.twoFactorEnabled ? 'Enabled' : 'Disabled'}
+                  </Button>
+                </div>
+                <Typography variant="caption" color="text.secondary">
+                  {isAdmin ? 'Require authenticator verification for admin dashboard sign-in.' : 'Require extra verification for your account sign-in.'}
+                </Typography>
+              </div>
+
+              {isAdmin ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Typography variant="subtitle2" fontWeight="600">Create Backup</Typography>
+                    <Typography variant="caption" color="text.secondary" display="block">
+                      Generate a JSON snapshot of current data.
+                    </Typography>
+                    <Button 
+                      onClick={handleCreateBackup} 
+                      disabled={backupState.running}
+                      variant="primary"
+                      fullWidth
+                      icon={backupState.running ? <RefreshCw className="animate-spin" /> : <Database />}
+                    >
+                      {backupState.running ? 'Backing up...' : 'Create Backup'}
+                    </Button>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Typography variant="subtitle2" fontWeight="600">Restore Data</Typography>
+                    <Typography variant="caption" color="text.secondary" display="block">
+                      Upload a JSON backup file to restore.
+                    </Typography>
+                    <input
+                      type="file"
+                      accept="application/json"
+                      onChange={(e) => setBackupFile(e.target.files?.[0] || null)}
+                      className="hidden"
+                      id="backup-upload"
+                    />
+                    <label htmlFor="backup-upload">
+                      <Button 
+                        component="span" 
+                        variant="outline" 
+                        fullWidth
+                        icon={<UploadCloud />}
+                      >
+                        {backupFile ? 'File Selected' : 'Select File'}
+                      </Button>
+                    </label>
+                    {backupFile && (
+                      <Button 
+                        onClick={handleRestoreBackup} 
+                        disabled={backupState.running}
+                        variant="danger"
+                        fullWidth
+                        size="sm"
+                      >
+                        Confirm Restore
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </DashboardPanel>
+        </div>
+      </TabPanel>
+
+      {/* Tab 4: AI Connectivity */}
       <TabPanel value={activeTab} index={4}>
       {isAdmin ? (
         <DashboardPanel
@@ -1485,266 +1488,267 @@ export default function SettingsPage() {
       ) : null}
       </TabPanel>
 
-      <TabPanel value={activeTab} index={0}>
-      <DashboardGrid className="grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
-        <StatsCard
-          icon={<Shield style={{ fontSize: 18 }} />}
-          title="Security Score"
-          value={settingsForm.twoFactorEnabled ? '92%' : '68%'}
-          variant={settingsForm.twoFactorEnabled ? 'success' : 'warning'}
-          size="md"
-        />
-        <StatsCard
-          icon={<Bell style={{ fontSize: 18 }} />}
-          title="Notifications"
-          value={settingsForm.notifyShipmentEmail ? 'Active' : 'Paused'}
-          subtitle={notificationSummary}
-          variant="info"
-          size="md"
-        />
-        <StatsCard
-          icon={isAdmin ? <Activity style={{ fontSize: 18 }} /> : <Palette style={{ fontSize: 18 }} />}
-          title={isAdmin ? 'Last Backup' : 'Theme'}
-          value={isAdmin ? (backupState.info?.lastBackupAt ? new Date(backupState.info.lastBackupAt).toLocaleDateString() : 'None') : settingsForm.theme}
-          variant={isAdmin ? (backupState.info?.lastBackupAt ? 'success' : 'error') : 'default'}
-          size="md"
-        />
-        <StatsCard
-          icon={<User style={{ fontSize: 18 }} />}
-          title="Profile Status"
-          value={profile?.name ? 'Complete' : 'Incomplete'}
-          variant="default"
-          size="md"
-        />
-      </DashboardGrid>
+      {/* Tab 5: Communications */}
+      <TabPanel value={activeTab} index={5}>
+      {isAdmin ? (
+        <DashboardPanel
+          title="Communications"
+          description="Configure email and SMS/message providers for invoices, reminders, and customer notifications."
+          actions={
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              <Button
+                variant="outline"
+                size="sm"
+                icon={<Mail className="w-4 h-4" />}
+                onClick={() => void handleTestCommunication('email')}
+                loading={testingCommunicationChannel === 'email'}
+                disabled={!communicationSettings.emailConfigured}
+              >
+                Test Email
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                icon={<MessageSquare className="w-4 h-4" />}
+                onClick={() => void handleTestCommunication('sms')}
+                loading={testingCommunicationChannel === 'sms'}
+                disabled={!communicationSettings.smsConfigured}
+              >
+                Test SMS
+              </Button>
+            </Box>
+          }
+        >
+          <Box component="form" onSubmit={handleSaveCommunicationSettings} sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <DashboardGrid className="grid-cols-1 md:grid-cols-2">
+              <StatsCard
+                icon={communicationSettings.emailConfigured ? <CheckCircle2 style={{ fontSize: 18 }} /> : <XCircle style={{ fontSize: 18 }} />}
+                title="Email Provider"
+                value={communicationSettings.emailConfigured ? 'Configured' : 'Needs Setup'}
+                subtitle={communicationSettings.emailProvider}
+                variant={communicationSettings.emailConfigured ? 'success' : 'warning'}
+                size="md"
+              />
+              <StatsCard
+                icon={communicationSettings.smsConfigured ? <CheckCircle2 style={{ fontSize: 18 }} /> : <XCircle style={{ fontSize: 18 }} />}
+                title="SMS Provider"
+                value={communicationSettings.smsConfigured ? 'Configured' : 'Needs Setup'}
+                subtitle={communicationSettings.smsProvider}
+                variant={communicationSettings.smsConfigured ? 'success' : 'warning'}
+                size="md"
+              />
+            </DashboardGrid>
+
+            <Box sx={{ p: 2, border: '1px solid var(--border)', borderRadius: 2, bgcolor: 'var(--background)' }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, alignItems: { xs: 'flex-start', md: 'center' }, flexDirection: { xs: 'column', md: 'row' }, mb: 2 }}>
+                <Box>
+                  <Typography sx={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Mail className="w-4 h-4" />
+                    Email API
+                  </Typography>
+                  <Typography sx={{ fontSize: '0.82rem', color: 'var(--text-secondary)', mt: 0.5 }}>
+                    Used by invoice generation, payment reminders, shipment emails, and invoice templates.
+                  </Typography>
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography sx={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{communicationSettings.emailEnabled ? 'Enabled' : 'Disabled'}</Typography>
+                  <Switch checked={communicationSettings.emailEnabled} onChange={(event) => handleCommunicationFieldChange('emailEnabled', event.target.checked)} disabled={savingCommunicationSettings} />
+                </Box>
+              </Box>
+
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' }, gap: 2 }}>
+                <TextField size="small" label="Email Provider" value={communicationSettings.emailProvider} onChange={(event) => handleCommunicationFieldChange('emailProvider', event.target.value)} disabled={savingCommunicationSettings} />
+                <TextField
+                  size="small"
+                  label="Resend API Key"
+                  type="password"
+                  value={communicationSettings.emailApiKey}
+                  onChange={(event) => handleCommunicationFieldChange('emailApiKey', event.target.value)}
+                  placeholder={communicationSettings.emailApiKeyConfigured ? `Saved: ${communicationSettings.emailApiKeyMasked}` : 'Paste API key'}
+                  helperText={communicationSettings.emailApiKeyConfigured ? 'Leave blank to keep the saved encrypted key.' : 'Saved encrypted using the app secret.'}
+                  disabled={savingCommunicationSettings}
+                />
+                <TextField size="small" label="From Email" value={communicationSettings.emailFromAddress} onChange={(event) => handleCommunicationFieldChange('emailFromAddress', event.target.value)} disabled={savingCommunicationSettings} />
+                <TextField size="small" label="Reply-To Email" value={communicationSettings.emailReplyToAddress} onChange={(event) => handleCommunicationFieldChange('emailReplyToAddress', event.target.value)} disabled={savingCommunicationSettings} />
+                <TextField
+                  size="small"
+                  label="Test Email Recipient"
+                  value={communicationTestTarget.email}
+                  onChange={(event) => setCommunicationTestTarget((prev) => ({ ...prev, email: event.target.value }))}
+                  placeholder="admin@example.com"
+                  sx={{ gridColumn: { xs: '1', md: '1 / -1' } }}
+                />
+              </Box>
+            </Box>
+
+            <Box sx={{ p: 2, border: '1px solid var(--border)', borderRadius: 2, bgcolor: 'var(--background)' }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, alignItems: { xs: 'flex-start', md: 'center' }, flexDirection: { xs: 'column', md: 'row' }, mb: 2 }}>
+                <Box>
+                  <Typography sx={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <MessageSquare className="w-4 h-4" />
+                    SMS / Number Messages
+                  </Typography>
+                  <Typography sx={{ fontSize: '0.82rem', color: 'var(--text-secondary)', mt: 0.5 }}>
+                    Used for critical alerts and future customer number-message workflows.
+                  </Typography>
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography sx={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{communicationSettings.smsEnabled ? 'Enabled' : 'Disabled'}</Typography>
+                  <Switch checked={communicationSettings.smsEnabled} onChange={(event) => handleCommunicationFieldChange('smsEnabled', event.target.checked)} disabled={savingCommunicationSettings} />
+                </Box>
+              </Box>
+
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' }, gap: 2 }}>
+                <TextField size="small" label="SMS Provider" value={communicationSettings.smsProvider} onChange={(event) => handleCommunicationFieldChange('smsProvider', event.target.value)} disabled={savingCommunicationSettings} />
+                <TextField size="small" label="Twilio Account SID" value={communicationSettings.smsAccountSid} onChange={(event) => handleCommunicationFieldChange('smsAccountSid', event.target.value)} disabled={savingCommunicationSettings} />
+                <TextField
+                  size="small"
+                  label="Twilio Auth Token"
+                  type="password"
+                  value={communicationSettings.smsAuthToken}
+                  onChange={(event) => handleCommunicationFieldChange('smsAuthToken', event.target.value)}
+                  placeholder={communicationSettings.smsAuthTokenConfigured ? `Saved: ${communicationSettings.smsAuthTokenMasked}` : 'Paste auth token'}
+                  helperText={communicationSettings.smsAuthTokenConfigured ? 'Leave blank to keep the saved encrypted token.' : 'Saved encrypted using the app secret.'}
+                  disabled={savingCommunicationSettings}
+                />
+                <TextField size="small" label="From Number" value={communicationSettings.smsFromNumber} onChange={(event) => handleCommunicationFieldChange('smsFromNumber', event.target.value)} disabled={savingCommunicationSettings} />
+                <TextField size="small" label="Messaging Service SID" value={communicationSettings.smsMessagingServiceSid} onChange={(event) => handleCommunicationFieldChange('smsMessagingServiceSid', event.target.value)} disabled={savingCommunicationSettings} />
+                <TextField size="small" label="Test Phone Number" value={communicationTestTarget.sms} onChange={(event) => setCommunicationTestTarget((prev) => ({ ...prev, sms: event.target.value }))} placeholder="+15555555555" />
+              </Box>
+            </Box>
+
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <Button type="submit" variant="primary" loading={savingCommunicationSettings} icon={<CheckCircle2 className="w-4 h-4" />}>
+                Save Communications
+              </Button>
+            </Box>
+          </Box>
+        </DashboardPanel>
+      ) : null}
       </TabPanel>
 
-      <DashboardGrid className="grid-cols-1 lg:grid-cols-2">
-        {/* Profile Section */}
-        {activeTab === 0 ? (
-        <DashboardPanel 
-          title="Profile & Identity" 
-          description="Update your personal information"
-        >
-          <form onSubmit={handleSaveProfile} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                label="Full Name"
-                value={profileForm.name}
-                onChange={(e) => handleProfileFieldChange('name', e.target.value)}
-                placeholder="John Doe"
-              />
-              <FormField
-                label="Phone Number"
-                value={profileForm.phone}
-                onChange={(e) => handleProfileFieldChange('phone', e.target.value)}
-                placeholder="+1 234 567 8900"
-              />
-              <FormField
-                label="Address"
-                value={profileForm.address}
-                onChange={(e) => handleProfileFieldChange('address', e.target.value)}
-                placeholder="123 Main St"
-              />
-              <FormField
-                label="City"
-                value={profileForm.city}
-                onChange={(e) => handleProfileFieldChange('city', e.target.value)}
-                placeholder="New York"
-              />
-              <FormField
-                label="Country"
-                value={profileForm.country}
-                onChange={(e) => handleProfileFieldChange('country', e.target.value)}
-                placeholder="USA"
-              />
-              <FormField
-                label="Email"
-                value={session?.user?.email ?? ''}
-                disabled
-                helperText="Contact admin to change email"
-              />
-            </div>
-            <div className="flex justify-end pt-2">
-              <Button type="submit" disabled={savingProfile} variant="primary">
-                {savingProfile ? 'Saving...' : 'Save Profile'}
+      {/* Tab 6: Live Call Agent */}
+      <TabPanel value={activeTab} index={6}>
+      {isAdmin ? (
+        <DashboardPanel
+          title="Live Call Agent"
+          description="Configure Twilio voice routing, Gemini Live audio, and webhook readiness from one place."
+          actions={
+            <Link href="/dashboard/settings/call-agent" style={{ textDecoration: 'none' }}>
+              <Button variant="outline" size="sm" icon={<ArrowRight className="w-4 h-4" />}>
+                Advanced View
               </Button>
-            </div>
-          </form>
-        </DashboardPanel>
-        ) : null}
-
-        {/* Preferences Section */}
-        {activeTab === 1 ? (
-        <DashboardPanel 
-          title="Interface Preferences" 
-          description="Customize your dashboard experience"
+            </Link>
+          }
         >
-          <form onSubmit={handleSavePreferences} className="space-y-4">
-            <Select
-              label="Theme"
-              value={settingsForm.theme}
-              onChange={(value) => setSettingsForm(prev => ({ ...prev, theme: String(value) }))}
-              options={[
-                { value: 'futuristic', label: 'Futuristic Dark' },
-                { value: 'dark', label: 'Classic Dark' },
-                { value: 'light', label: 'Adaptive Light' },
-              ]}
-            />
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Select
-                label="Sidebar Density"
-                value={settingsForm.sidebarDensity}
-                onChange={(value) => setSettingsForm(prev => ({ ...prev, sidebarDensity: String(value) }))}
-                options={[
-                  { value: 'comfortable', label: 'Comfortable' },
-                  { value: 'compact', label: 'Compact' },
-                ]}
+          <Box component="form" onSubmit={handleSaveCallAgentSettings} sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <DashboardGrid className="grid-cols-1 md:grid-cols-4">
+              <StatsCard
+                icon={callAgentConfig?.status.geminiLiveConfigured ? <CheckCircle2 style={{ fontSize: 18 }} /> : <XCircle style={{ fontSize: 18 }} />}
+                title="Gemini Live"
+                value={callAgentConfig?.status.geminiLiveConfigured ? 'Ready' : 'Needs Setup'}
+                subtitle={callAgentConfig?.status.geminiLiveModel || callAgentSettings.geminiLiveModel}
+                variant={callAgentConfig?.status.geminiLiveConfigured ? 'success' : 'warning'}
+                size="md"
               />
-              <Select
-                label="Language"
-                value={settingsForm.language}
-                onChange={(value) => setSettingsForm(prev => ({ ...prev, language: String(value) }))}
-                options={[
-                  { value: 'en', label: 'English' },
-                  { value: 'ar', label: 'Arabic' },
-                  { value: 'fr', label: 'French' },
-                ]}
+              <StatsCard
+                icon={callAgentConfig?.status.geminiStandardConfigured ? <CheckCircle2 style={{ fontSize: 18 }} /> : <XCircle style={{ fontSize: 18 }} />}
+                title="Fallback AI"
+                value={callAgentConfig?.status.geminiStandardConfigured ? 'Ready' : 'Needs Setup'}
+                subtitle={callAgentConfig?.status.geminiVoiceModel || callAgentSettings.geminiVoiceModel}
+                variant={callAgentConfig?.status.geminiStandardConfigured ? 'success' : 'warning'}
+                size="md"
               />
-            </div>
+              <StatsCard
+                icon={callAgentConfig?.status.twilioConfigured ? <CheckCircle2 style={{ fontSize: 18 }} /> : <XCircle style={{ fontSize: 18 }} />}
+                title="Twilio API"
+                value={callAgentConfig?.status.twilioConfigured ? 'Configured' : 'Manual Only'}
+                subtitle={callAgentConfig?.status.twilioAuthMode === 'auth-token' ? 'Auth token mode' : callAgentConfig?.status.twilioAuthMode === 'api-key' ? 'API key mode' : 'No API credentials'}
+                variant={callAgentConfig?.status.twilioConfigured ? 'success' : 'warning'}
+                size="md"
+              />
+              <StatsCard
+                icon={callAgentConfig?.status.voiceWebhookTokenConfigured ? <CheckCircle2 style={{ fontSize: 18 }} /> : <XCircle style={{ fontSize: 18 }} />}
+                title="Webhook Token"
+                value={callAgentConfig?.status.voiceWebhookTokenConfigured ? 'Protected' : 'Missing'}
+                subtitle={callAgentConfig?.urls.source === 'NEXT_PUBLIC_APP_URL' ? 'Fixed app URL' : 'Request host'}
+                variant={callAgentConfig?.status.voiceWebhookTokenConfigured ? 'success' : 'warning'}
+                size="md"
+              />
+            </DashboardGrid>
 
-            <div className="flex justify-end pt-2">
-              <Button type="submit" disabled={savingPreferences} variant="primary">
-                {savingPreferences ? 'Saving...' : 'Save Preferences'}
-              </Button>
-            </div>
-          </form>
-        </DashboardPanel>
-        ) : null}
-
-        {/* Notifications Section */}
-        {activeTab === 2 ? (
-        <DashboardPanel 
-          title="Notification Rules" 
-          description="Manage your alert preferences"
-        >
-          <form onSubmit={handleSaveNotifications} className="space-y-4">
-            {[
-              { key: 'notifyShipmentEmail', label: 'Email: Shipment Updates' },
-              { key: 'notifyShipmentPush', label: 'Push: Shipment Updates' },
-              { key: 'notifyPaymentEmail', label: 'Email: Payment Reminders' },
-              { key: 'notifyCriticalSms', label: 'SMS: Critical Alerts' },
-            ].map((item) => (
-              <div key={item.key} className="flex items-center justify-between p-3 border border-[var(--border)] rounded-lg">
-                <Typography variant="body2" color="text.primary">
-                  {item.label}
+            <DashboardGrid className="grid-cols-1 lg:grid-cols-2">
+              <Box sx={{ p: 2, border: '1px solid var(--border)', borderRadius: '8px', bgcolor: 'var(--background)' }}>
+                <Typography sx={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                  <PhoneCall className="w-4 h-4" />
+                  Twilio Voice
                 </Typography>
-                <Button
-                  type="button"
-                  variant={settingsForm[item.key as keyof typeof settingsForm] ? 'primary' : 'outline'}
-                  size="sm"
-                  onClick={() => setSettingsForm(prev => ({ 
-                    ...prev, 
-                    [item.key]: !prev[item.key as keyof typeof settingsForm] 
-                  }))}
-                >
-                  {settingsForm[item.key as keyof typeof settingsForm] ? 'Enabled' : 'Disabled'}
-                </Button>
-              </div>
-            ))}
-            <div className="flex justify-end pt-2">
-              <Button type="submit" disabled={savingNotifications} variant="primary">
-                {savingNotifications ? 'Saving...' : 'Save Rules'}
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
+                  <TextField size="small" label="Account SID" value={callAgentSettings.twilioAccountSid} onChange={(event) => handleCallAgentFieldChange('twilioAccountSid', event.target.value)} disabled={savingCallAgentSettings} />
+                  <TextField size="small" label="Auth Token" type="password" value={callAgentSettings.twilioAuthToken} onChange={(event) => handleCallAgentFieldChange('twilioAuthToken', event.target.value)} disabled={savingCallAgentSettings} />
+                  <TextField size="small" label="API Key" value={callAgentSettings.twilioApiKey} onChange={(event) => handleCallAgentFieldChange('twilioApiKey', event.target.value)} disabled={savingCallAgentSettings} />
+                  <TextField size="small" label="API Secret" type="password" value={callAgentSettings.twilioApiSecret} onChange={(event) => handleCallAgentFieldChange('twilioApiSecret', event.target.value)} disabled={savingCallAgentSettings} />
+                  <TextField size="small" label="Phone Number" value={callAgentSettings.twilioPhoneNumber} onChange={(event) => handleCallAgentFieldChange('twilioPhoneNumber', event.target.value)} disabled={savingCallAgentSettings} />
+                  <TextField size="small" label="Phone Number SID" value={callAgentSettings.twilioPhoneNumberSid} onChange={(event) => handleCallAgentFieldChange('twilioPhoneNumberSid', event.target.value)} disabled={savingCallAgentSettings} />
+                </Box>
+                <Typography sx={{ fontSize: '0.78rem', color: 'var(--text-secondary)', mt: 2, lineHeight: 1.6 }}>
+                  Use either Account SID + Auth Token or Account SID + API Key + API Secret. The phone number fields help the app inspect the live Twilio webhook target.
+                </Typography>
+              </Box>
+
+              <Box sx={{ p: 2, border: '1px solid var(--border)', borderRadius: '8px', bgcolor: 'var(--background)' }}>
+                <Typography sx={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                  <Bot className="w-4 h-4" />
+                  Gemini Live
+                </Typography>
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
+                  <TextField size="small" label="Gemini API Key" type="password" value={callAgentSettings.geminiApiKey} onChange={(event) => handleCallAgentFieldChange('geminiApiKey', event.target.value)} disabled={savingCallAgentSettings} />
+                  <TextField size="small" label="Gemini Live API Key" type="password" value={callAgentSettings.geminiLiveApiKey} onChange={(event) => handleCallAgentFieldChange('geminiLiveApiKey', event.target.value)} disabled={savingCallAgentSettings} />
+                  <TextField size="small" label="Fallback Voice Model" value={callAgentSettings.geminiVoiceModel} onChange={(event) => handleCallAgentFieldChange('geminiVoiceModel', event.target.value)} disabled={savingCallAgentSettings} />
+                  <TextField size="small" label="Live Audio Model" value={callAgentSettings.geminiLiveModel} onChange={(event) => handleCallAgentFieldChange('geminiLiveModel', event.target.value)} disabled={savingCallAgentSettings} />
+                </Box>
+                <Typography sx={{ fontSize: '0.78rem', color: 'var(--text-secondary)', mt: 2, lineHeight: 1.6 }}>
+                  The live key and model power the caller audio bridge. The fallback key/model handle the IVR assistant when live audio is unavailable.
+                </Typography>
+              </Box>
+            </DashboardGrid>
+
+            <Box sx={{ p: 2, border: '1px solid var(--border)', borderRadius: '8px', bgcolor: 'var(--background)', display: 'grid', gap: 2 }}>
+              <Box>
+                <Typography sx={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase' }}>Inbound Voice Webhook</Typography>
+                <Typography sx={{ fontSize: '0.86rem', color: 'var(--text-primary)', wordBreak: 'break-all', mt: 0.5 }}>
+                  {callAgentConfig?.urls.webhookUrl || 'Load settings to see the webhook URL'}
+                </Typography>
+                <Typography sx={{ fontSize: '0.78rem', color: 'var(--text-secondary)', mt: 0.5 }}>Method: {callAgentConfig?.urls.webhookMethod || 'POST'}</Typography>
+              </Box>
+              <Box>
+                <Typography sx={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase' }}>Live Media WebSocket</Typography>
+                <Typography sx={{ fontSize: '0.86rem', color: 'var(--text-primary)', wordBreak: 'break-all', mt: 0.5 }}>
+                  {callAgentConfig?.urls.websocketUrl || 'Load settings to see the WebSocket URL'}
+                </Typography>
+              </Box>
+              {callAgentConfig?.twilioInspection.error ? (
+                <Typography sx={{ fontSize: '0.82rem', color: 'var(--warning)', lineHeight: 1.6 }}>
+                  Twilio inspection: {callAgentConfig.twilioInspection.error}
+                </Typography>
+              ) : (
+                <Typography sx={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                  Twilio inspection: {callAgentConfig?.twilioInspection.inspected ? `${callAgentConfig.twilioInspection.phoneNumber || callAgentConfig.twilioInspection.target || 'Configured number'} is ${callAgentConfig.twilioInspection.matchesExpectedWebhook ? 'pointing to this webhook' : 'not pointing to this webhook yet'}.` : 'Add Twilio credentials and a phone target to inspect webhook routing.'}
+                </Typography>
+              )}
+            </Box>
+
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <Button type="submit" variant="primary" loading={savingCallAgentSettings}>
+                Save Live Call Agent
               </Button>
-            </div>
-          </form>
+            </Box>
+          </Box>
         </DashboardPanel>
-        ) : null}
+      ) : null}
+      </TabPanel>
 
-        {/* System & Backup */}
-        {activeTab === 3 ? (
-        <DashboardPanel 
-          title={isAdmin ? 'System & Backup' : 'Security'} 
-          description={isAdmin ? 'Database management and security' : 'Account security controls'}
-        >
-          <div className="space-y-6">
-            <div className="p-4 border border-[var(--border)] rounded-lg bg-[var(--background)]">
-              <div className="flex items-center justify-between mb-2">
-                <Typography variant="subtitle2" fontWeight="600">Two-Factor Authentication</Typography>
-                <Button 
-                  variant={settingsForm.twoFactorEnabled ? 'primary' : 'outline'} 
-                  size="sm"
-                  onClick={handleToggleTwoFactor}
-                  disabled={savingSecurity}
-                >
-                  {settingsForm.twoFactorEnabled ? 'Enabled' : 'Disabled'}
-                </Button>
-              </div>
-              <Typography variant="caption" color="text.secondary">
-                {isAdmin ? 'Require authenticator verification for admin dashboard sign-in.' : 'Require extra verification for your account sign-in.'}
-              </Typography>
-            </div>
-
-            {isAdmin ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Typography variant="subtitle2" fontWeight="600">Create Backup</Typography>
-                  <Typography variant="caption" color="text.secondary" display="block">
-                    Generate a JSON snapshot of current data.
-                  </Typography>
-                  <Button 
-                    onClick={handleCreateBackup} 
-                    disabled={backupState.running}
-                    variant="primary"
-                    fullWidth
-                    icon={backupState.running ? <RefreshCw className="animate-spin" /> : <Database />}
-                  >
-                    {backupState.running ? 'Backing up...' : 'Create Backup'}
-                  </Button>
-                </div>
-
-                <div className="space-y-2">
-                  <Typography variant="subtitle2" fontWeight="600">Restore Data</Typography>
-                  <Typography variant="caption" color="text.secondary" display="block">
-                    Upload a JSON backup file to restore.
-                  </Typography>
-                  <input
-                    type="file"
-                    accept="application/json"
-                    onChange={(e) => setBackupFile(e.target.files?.[0] || null)}
-                    className="hidden"
-                    id="backup-upload"
-                  />
-                  <label htmlFor="backup-upload">
-                    <Button 
-                      component="span" 
-                      variant="outline" 
-                      fullWidth
-                      icon={<UploadCloud />}
-                    >
-                      {backupFile ? 'File Selected' : 'Select File'}
-                    </Button>
-                  </label>
-                  {backupFile && (
-                    <Button 
-                      onClick={handleRestoreBackup}
-                      disabled={backupState.running}
-                       variant="danger"
-                      fullWidth
-                      size="sm"
-                    >
-                      Confirm Restore
-                    </Button>
-                  )}
-                </div>
-              </div>
-            ) : null}
-          </div>
-        </DashboardPanel>
-        ) : null}
-      </DashboardGrid>
-
+      {/* Tab 7: Price Calculator */}
       <TabPanel value={activeTab} index={7}>
       {isAdmin ? (
         <DashboardPanel

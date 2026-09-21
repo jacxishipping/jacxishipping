@@ -10,7 +10,7 @@ import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { Autocomplete, Box, Step, StepLabel, Stepper, TextField, Typography } from '@mui/material';
 import { DashboardSurface, DashboardPanel } from '@/components/dashboard/DashboardSurface';
-import { Breadcrumbs, Button, toast } from '@/components/design-system';
+import { PageHeader, Breadcrumbs, Button, toast } from '@/components/design-system';
 import { hasPermission } from '@/lib/rbac';
 
 type UserOption = {
@@ -37,7 +37,7 @@ const initialForm: PortalForm = {
   code: '',
   companyLabel: '',
   customDomain: '',
-  accentColor: '#0ea5e9',
+  accentColor: '#D4AF37',
   logoUrl: '',
   notes: '',
 };
@@ -236,7 +236,7 @@ export default function NewPartnerPortalPage() {
           />
           <Box sx={{ border: '1px solid var(--border)', borderRadius: 2, p: 2, display: 'grid', gap: 1 }}>
             <Typography sx={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Preview</Typography>
-            <Box sx={{ height: 48, borderRadius: 1, bgcolor: form.accentColor || '#0ea5e9' }} />
+            <Box sx={{ height: 48, borderRadius: 1, bgcolor: form.accentColor || '#D4AF37' }} />
             <Typography sx={{ fontWeight: 700 }}>{form.companyLabel || form.name || 'Partner Portal'}</Typography>
           </Box>
         </Box>
@@ -283,19 +283,18 @@ export default function NewPartnerPortalPage() {
 
   return (
     <DashboardSurface>
-      <Box sx={{ px: 2, pt: 2 }}>
-        <Breadcrumbs />
-      </Box>
-
-      <DashboardPanel
+      <PageHeader
         title="Create Partner Portal"
         description="Set up the workspace details, branding, owner, and review before creation"
+        showBreadcrumbs
         actions={
           <Link href="/dashboard/partner-portals" style={{ textDecoration: 'none' }}>
             <Button variant="outline" icon={<ArrowBackIcon />}>Back</Button>
           </Link>
         }
-      >
+      />
+
+      <DashboardPanel>
         <Box sx={{ display: 'grid', gap: 4 }}>
           <Stepper activeStep={activeStep} alternativeLabel>
             {steps.map((label) => (
