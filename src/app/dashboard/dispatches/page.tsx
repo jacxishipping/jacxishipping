@@ -14,7 +14,7 @@ import {
 import { Eye, Pencil, Plus, Search, Trash2, Truck } from 'lucide-react';
 import PermissionRoute from '@/components/auth/PermissionRoute';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
-import { Breadcrumbs, Button, EmptyState, SkeletonTable, StatsCard, toast } from '@/components/design-system';
+import { Breadcrumbs, Button, EmptyState, SkeletonTable, StatsCard, toast, CopyButton, StatusFilterPills } from '@/components/design-system';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { DISPATCH_STATUS_COLORS, DISPATCH_STATUS_OPTIONS, getDispatchStatusLabel } from '@/lib/dispatch-workflow';
 
@@ -246,7 +246,10 @@ export default function DispatchesPage() {
       sortable: true,
       render: (_, row) => (
         <Box>
-          <Box sx={{ fontWeight: 600 }}>{row.referenceNumber}</Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <span style={{ fontWeight: 600, fontFamily: 'monospace' }}>{row.referenceNumber}</span>
+            <CopyButton value={row.referenceNumber} label="Dispatch #" />
+          </Box>
           <Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{row.company.name}</Box>
         </Box>
       ),
@@ -334,6 +337,21 @@ export default function DispatchesPage() {
               ))}
             </TextField>
           </Box>
+
+          <div className="pt-1 pb-3">
+            <StatusFilterPills
+              options={[
+                { value: '', label: 'All Statuses' },
+                ...DISPATCH_STATUS_OPTIONS.map((status) => ({
+                  value: status,
+                  label: getDispatchStatusLabel(status),
+                  color: DISPATCH_STATUS_COLORS[status as keyof typeof DISPATCH_STATUS_COLORS]?.border || '#3B82F6',
+                })),
+              ]}
+              selectedValue={statusFilter}
+              onSelect={(val) => setStatusFilter(val)}
+            />
+          </div>
 
           {loading ? (
             <Box sx={{ py: 1 }}>
