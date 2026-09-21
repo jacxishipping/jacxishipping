@@ -10,7 +10,7 @@ import { ArrowLeft, DollarSign, AlertCircle, CheckCircle, Package } from 'lucide
 import { Box } from '@mui/material';
 import AdminRoute from '@/components/auth/AdminRoute';
 import { DashboardSurface, DashboardPanel } from '@/components/dashboard/DashboardSurface';
-import { Button, PageHeader, LoadingState, toast } from '@/components/design-system';
+import { Button, Breadcrumbs, PageHeader, LoadingState, toast } from '@/components/design-system';
 
 interface Shipment {
   id: string;
