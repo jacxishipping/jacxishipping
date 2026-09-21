@@ -150,30 +150,49 @@ export default function DashboardTodayWork({
           Top exceptions
         </div>
         {workItems.length === 0 ? (
-          <div className="rounded border border-dashed border-[var(--border)] bg-[var(--background)] p-3 text-xs text-[var(--text-secondary)]">
-            No urgent items. All clear.
+          <div className="rounded-xl border border-dashed border-[var(--border)] bg-[var(--background)] p-4 text-xs text-[var(--text-secondary)] text-center">
+            No urgent operational exceptions. All systems running smoothly.
           </div>
         ) : (
-          <div className="divide-y divide-[var(--border)] rounded border border-[var(--border)] bg-[var(--background)] text-sm">
-            {workItems.slice(0, 4).map((item) => (
-              <Link
-                key={item.id}
-                href={item.href}
-                className="flex items-start justify-between gap-3 px-3 py-2.5 hover:bg-[var(--panel)] transition-colors"
-              >
-                <div className="flex min-w-0 gap-2">
-                  <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--warning)]" />
-                  <div className="min-w-0">
-                    <div className="truncate font-medium text-[var(--text-primary)]">{item.title}</div>
-                    <div className="truncate text-xs text-[var(--text-secondary)]">{item.subtitle}</div>
+          <div className="divide-y divide-[var(--border)] rounded-xl border border-[var(--border)] bg-[var(--panel)] text-sm shadow-sm overflow-hidden">
+            {workItems.slice(0, 4).map((item) => {
+              const isHigh = item.severityLabel.toLowerCase().includes('high') || item.severityLabel.toLowerCase().includes('critical') || item.ageDays > 7;
+              return (
+                <Link
+                  key={item.id}
+                  href={item.href}
+                  className="group flex items-center justify-between gap-3 px-4 py-3 hover:bg-[var(--background)] transition-all"
+                >
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className={`rounded-lg p-2 ${isHigh ? 'bg-red-500/10 text-red-500' : 'bg-amber-500/10 text-amber-500'}`}>
+                      <AlertTriangle className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="truncate font-semibold text-[var(--text-primary)] group-hover:text-[var(--accent-gold)] transition-colors">
+                          {item.title}
+                        </span>
+                        <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                          isHigh ? 'bg-red-500/10 text-red-600 border border-red-500/20' : 'bg-amber-500/10 text-amber-600 border border-amber-500/20'
+                        }`}>
+                          {item.severityLabel}
+                        </span>
+                      </div>
+                      <div className="truncate text-xs text-[var(--text-secondary)] mt-0.5">{item.subtitle} • {item.detail}</div>
+                    </div>
                   </div>
-                </div>
-                <div className="shrink-0 text-right text-xs">
-                  <div className="font-semibold text-[var(--text-primary)]">{item.ageDays}d</div>
-                  <div className="text-[10px] text-[var(--warning)]">{item.severityLabel}</div>
-                </div>
-              </Link>
-            ))}
+                  <div className="flex items-center gap-3 shrink-0">
+                    <div className="text-right text-xs hidden sm:block">
+                      <div className="font-semibold text-[var(--text-primary)]">{item.ageDays}d old</div>
+                      <div className="text-[10px] text-[var(--text-secondary)]">Pending review</div>
+                    </div>
+                    <span className="rounded-lg border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-primary)] group-hover:border-[var(--accent-gold)] group-hover:text-[var(--accent-gold)] transition-colors flex items-center gap-1">
+                      Action →
+                    </span>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         )}
       </div>

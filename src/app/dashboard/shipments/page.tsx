@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Box } from '@mui/material';
 import { SearchFilters } from '@/components/dashboard/SmartSearch';
 import { DashboardSurface } from '@/components/dashboard/DashboardSurface';
-import { toast, StatusBadge, ConfirmDialog } from '@/components/design-system';
+import { toast, StatusBadge, ConfirmDialog, StatusFilterPills } from '@/components/design-system';
 import ShipmentsResultsPanel from '@/components/shipments/ShipmentsResultsPanel';
 import ShipmentsSearchPanel from '@/components/shipments/ShipmentsSearchPanel';
 import type { Shipment, ShipmentTableRow } from '@/components/shipments/shipment-list-types';
@@ -286,6 +286,24 @@ const confirmAction = useConfirmAction();
 				isAdmin={isAdmin}
 				showDeliveryFilter
 			/>
+
+			<div className="pt-1 pb-1">
+				<StatusFilterPills
+					options={[
+						{ value: '', label: 'All Statuses' },
+						{ value: 'ON_HAND', label: 'On Hand', color: '#D4AF37' },
+						{ value: 'DISPATCHING', label: 'Dispatching', color: '#F59E0B' },
+						{ value: 'IN_TRANSIT', label: 'In Transit', color: '#3B82F6' },
+						{ value: 'ARRIVED_AT_PORT', label: 'Port Arrival', color: '#8B5CF6' },
+						{ value: 'DELIVERED', label: 'Delivered', color: '#10B981' },
+					]}
+					selectedValue={searchFilters.status || ''}
+					onSelect={(status) => {
+						setSearchFilters((prev) => ({ ...prev, status }));
+						setCurrentPage(1);
+					}}
+				/>
+			</div>
 
 			<ShipmentsResultsPanel
 				loading={loading}
