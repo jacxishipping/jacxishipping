@@ -27,7 +27,7 @@ import {
 	Step,
 	StepLabel,
 } from '@mui/material';
-import { PageHeader, Button, toast, FormPageSkeleton } from '@/components/design-system';
+import { Breadcrumbs, PageHeader, Button, toast, FormPageSkeleton } from '@/components/design-system';
 import { DashboardSurface, DashboardPanel } from '@/components/dashboard/DashboardSurface';
 import { hasPermission } from '@/lib/rbac';
 

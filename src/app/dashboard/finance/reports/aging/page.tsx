@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Clock, AlertCircle, TrendingUp } from 'lucide-react';
-import { Button, PageHeader, LoadingState } from '@/components/design-system';
+import { Button, Breadcrumbs, PageHeader, LoadingState } from '@/components/design-system';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { ResponsiveDataView, CardField } from '@/components/ui/MobileCardView';
 import { DashboardSurface, DashboardPanel } from '@/components/dashboard/DashboardSurface';

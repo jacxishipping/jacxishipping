@@ -7,7 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
-import { Button, PageHeader, toast, LoadingState } from '@/components/design-system';
+import { Button, Breadcrumbs, PageHeader, toast, LoadingState } from '@/components/design-system';
 import { DashboardSurface, DashboardPanel } from '@/components/dashboard/DashboardSurface';
 
 type ContainerItem = {
