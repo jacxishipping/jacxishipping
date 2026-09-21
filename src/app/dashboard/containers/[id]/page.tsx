@@ -59,7 +59,8 @@ import {
 	StatsCard,
 	DashboardPageSkeleton, 
 	DetailPageSkeleton, 
-	FormPageSkeleton
+	FormPageSkeleton,
+	CopyButton
 } from '@/components/design-system';
 import PermissionRoute from '@/components/auth/PermissionRoute';
 import AddExpenseModal from '@/components/containers/AddExpenseModal';
@@ -858,13 +859,17 @@ export default function ContainerDetailPage() {
 					title={container.containerNumber}
 					description={container.trackingNumber ? `Tracking: ${container.trackingNumber}` : 'Container details and management'}
 					actions={
-						<Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+						<Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
 							<Chip 
 								label={statusConfig[container.status]?.label || container.status}
 								color={statusConfig[container.status]?.color || 'default'}
 								sx={{ fontWeight: 600 }}
 								className="no-print"
 							/>
+							<CopyButton value={container.containerNumber} label="Container #" />
+							{container.trackingNumber && (
+								<CopyButton value={container.trackingNumber} label="Tracking #" />
+							)}
                             {isAdmin && (
                                 <Button 
                                     variant="outline" 
@@ -2299,7 +2304,7 @@ export default function ContainerDetailPage() {
 									<li>Notes and preferences</li>
 								</Box>
 								<Box sx={{ mt: 1.5, fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-									<strong style={{ color: 'var(--text-primary)' }}>What won't be copied:</strong>
+									<strong style={{ color: 'var(--text-primary)' }}>What won&apos;t be copied:</strong>
 								</Box>
 								<Box component="ul" sx={{ mt: 0.5, pl: 2.5, fontSize: '0.875rem', color: 'var(--text-secondary)', '& li': { mb: 0.5 } }}>
 									<li>Assigned shipments</li>

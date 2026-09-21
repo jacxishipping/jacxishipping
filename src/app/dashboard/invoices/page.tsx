@@ -44,6 +44,8 @@ import {
 	StatsCard,
 	DashboardPageSkeleton,
 	StatusBadge,
+	CopyButton,
+	StatusFilterPills,
 } from '@/components/design-system';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { exportToCSVWithHeaders } from '@/lib/export';
@@ -282,7 +284,17 @@ export default function InvoicesPage() {
 	});
 
 	const invoiceColumns: Column<InvoiceTableRow>[] = [
-		{ key: 'invoiceNumber', header: 'Invoice #', sortable: true },
+		{
+			key: 'invoiceNumber',
+			header: 'Invoice #',
+			sortable: true,
+			render: (value) => (
+				<span className="inline-flex items-center gap-1.5 font-mono font-semibold">
+					<span>{String(value)}</span>
+					<CopyButton value={String(value)} label="Invoice #" />
+				</span>
+			),
+		},
 		...(isAdmin ? [{ key: 'customer', header: 'Customer', sortable: true }] : []),
 		{
 			key: 'reference',
@@ -552,20 +564,19 @@ const confirmAction = useConfirmAction();
 
 			<DashboardPanel title="Invoice Health" description="Jump straight to the invoice queue that needs attention.">
 				<Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1.25fr 1fr' }, gap: 2 }}>
-					<Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
-						{quickStatusFilters.map((filter) => {
-							const active = statusFilter === filter.value;
-							return (
-								<Button
-									key={filter.value}
-									variant={active ? 'primary' : 'outline'}
-									size="sm"
-									onClick={() => setStatusFilter(filter.value)}
-								>
-									{filter.label} ({filter.count})
-								</Button>
-							);
-						})}
+					<Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0, overflow: 'hidden' }}>
+						<StatusFilterPills
+							options={[
+								{ value: 'all', label: `All (${pagination.totalAll})` },
+								{ value: 'overdue', label: `Overdue (${stats.overdue})`, color: '#EF4444' },
+								{ value: 'pending', label: `Pending (${stats.pending})`, color: '#F59E0B' },
+								{ value: 'paid', label: `Paid (${stats.paid})`, color: '#10B981' },
+								{ value: 'draft', label: `Draft (${invoices.filter((i) => i.status === 'DRAFT').length})`, color: '#6B7280' },
+								{ value: 'cancelled', label: `Reversed (${invoices.filter((i) => i.status === 'CANCELLED').length})`, color: '#9CA3AF' },
+							]}
+							selectedValue={statusFilter}
+							onSelect={(val) => setStatusFilter(val)}
+						/>
 					</Box>
 					<Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 1 }}>
 						{[

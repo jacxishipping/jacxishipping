@@ -8,7 +8,7 @@ import { Box, Typography, Menu, MenuItem, IconButton, Divider } from '@mui/mater
 import { Package, Ship, MapPin, TrendingUp, Calendar, FileText, DollarSign, Receipt, MoreVertical, Eye, Copy, Trash2, Download } from 'lucide-react';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
-import { PageHeader, StatsCard, Button, EmptyState, FormField, Select, toast, SkeletonCard, DashboardPageSkeleton, CompactSkeleton, StatusBadge } from '@/components/design-system';
+import { PageHeader, StatsCard, Button, EmptyState, FormField, Select, toast, SkeletonCard, DashboardPageSkeleton, CompactSkeleton, StatusBadge, CopyButton, StatusFilterPills } from '@/components/design-system';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { exportToCSVWithHeaders } from '@/lib/export';
 import { useConfirmAction } from '@/components/ui/ConfirmActionProvider';
@@ -286,13 +286,36 @@ export default function ContainersPage() {
   ];
 
   const containerColumns: Column<Container>[] = [
-    { key: 'containerNumber', header: 'Container', sortable: true },
+    {
+      key: 'containerNumber',
+      header: 'Container',
+      sortable: true,
+      render: (value) => (
+        <span className="inline-flex items-center gap-1.5 font-mono font-semibold">
+          <span>{String(value)}</span>
+          <CopyButton value={String(value)} label="Container #" />
+        </span>
+      ),
+    },
     {
       key: 'status',
       header: 'Status',
       render: (value) => <StatusBadge status={String(value)} size="sm" />,
     },
-    { key: 'trackingNumber', header: 'Tracking', sortable: true },
+    {
+      key: 'trackingNumber',
+      header: 'Tracking',
+      sortable: true,
+      render: (value) =>
+        value ? (
+          <span className="inline-flex items-center gap-1.5 font-mono text-xs">
+            <span>{String(value)}</span>
+            <CopyButton value={String(value)} label="Tracking #" />
+          </span>
+        ) : (
+          <span className="text-[var(--text-secondary)]">-</span>
+        ),
+    },
     { key: 'vesselName', header: 'Vessel', sortable: true },
     { key: 'destinationPort', header: 'Destination', sortable: true },
     {
@@ -441,6 +464,28 @@ export default function ContainersPage() {
           </Box>
         </DashboardPanel>
 
+        {/* Status Filter Carousel */}
+        <div className="pt-1 pb-1">
+          <StatusFilterPills
+            options={[
+              { value: 'all', label: 'All Statuses' },
+              { value: 'CREATED', label: 'Created', color: '#6B7280' },
+              { value: 'WAITING_FOR_LOADING', label: 'Waiting for Loading', color: '#F59E0B' },
+              { value: 'LOADED', label: 'Loaded', color: '#3B82F6' },
+              { value: 'IN_TRANSIT', label: 'In Transit', color: '#6366F1' },
+              { value: 'ARRIVED_PORT', label: 'Arrived Port', color: '#10B981' },
+              { value: 'CUSTOMS_CLEARANCE', label: 'Customs', color: '#F97316' },
+              { value: 'RELEASED', label: 'Released', color: '#14B8A6' },
+              { value: 'CLOSED', label: 'Closed', color: '#4B5563' },
+            ]}
+            selectedValue={statusFilter}
+            onSelect={(val) => {
+              setStatusFilter(val);
+              setPage(1);
+            }}
+          />
+        </div>
+
         {/* Container Grid */}
         <DashboardPanel title={`All Containers (${containers.length})`} fullHeight>
           {loading ? (
@@ -495,14 +540,24 @@ export default function ContainersPage() {
                   >
                     {/* Header */}
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 2 }}>
-                      <Box sx={{ flex: 1 }}>
-                        <Typography sx={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                          {container.containerNumber}
-                        </Typography>
-                        {container.trackingNumber && (
-                          <Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)', mt: 0.5 }}>
-                            {container.trackingNumber}
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Typography sx={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'monospace' }}>
+                            {container.containerNumber}
                           </Typography>
+                          <span onClick={(e) => e.stopPropagation()}>
+                            <CopyButton value={container.containerNumber} label="Container #" />
+                          </span>
+                        </Box>
+                        {container.trackingNumber && (
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+                            <Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
+                              {container.trackingNumber}
+                            </Typography>
+                            <span onClick={(e) => e.stopPropagation()}>
+                              <CopyButton value={container.trackingNumber} label="Tracking #" />
+                            </span>
+                          </Box>
                         )}
                       </Box>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
