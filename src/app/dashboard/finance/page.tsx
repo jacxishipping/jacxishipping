@@ -14,6 +14,7 @@ import UserBalancesTable from './UserBalancesTable';
 import {
   StatsCard,
   Button,
+  PageHeader,
 } from '@/components/design-system';
 import {
   DollarSign,
@@ -148,12 +149,13 @@ export default async function FinancePage() {
 
     return (
         <DashboardSurface>
-            <DashboardHeader 
+            <PageHeader 
+                showBreadcrumbs
                 title="Accounting & Finance"
-                description="Manage ledgers, payments, and financial reports"
+                description="Manage client ledgers, payment records, and financial accounting reports"
                 actions={
                     isAdmin && (
-                        <Link href="/dashboard/finance/record-payment">
+                        <Link href="/dashboard/finance/record-payment" style={{ textDecoration: 'none' }}>
                             <Button variant="primary" icon={<PlusCircle className="w-4 h-4" />}>
                                 Record Payment
                             </Button>

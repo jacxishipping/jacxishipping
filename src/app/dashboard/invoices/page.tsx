@@ -32,8 +32,10 @@ import {
 	DollarSign,
 	User,
 	Package,
+	PanelRightOpen,
 } from 'lucide-react';
 import { DashboardSurface, DashboardPanel } from '@/components/dashboard/DashboardSurface';
+import InvoiceQuickPeek from '@/components/dashboard/InvoiceQuickPeek';
 import { 
 	PageHeader, 
 	Button, 
@@ -119,6 +121,7 @@ export default function InvoicesPage() {
 	const [itemsPerPage, setItemsPerPage] = useState(25);
 	const [currentPage, setCurrentPage] = useState(1);
 	const [pagination, setPagination] = useState({ total: 0, totalAll: 0, limit: 25, offset: 0, hasMore: false });
+	const [quickPeekInvoiceId, setQuickPeekInvoiceId] = useState<string | null>(null);
 
 	const isAdmin = hasPermission(session?.user?.role, 'invoices:manage');
 	const customerFilterUserId = searchParams.get('userId');
@@ -712,6 +715,15 @@ const confirmAction = useConfirmAction();
 													<Button
 														variant="outline"
 														size="sm"
+														icon={<PanelRightOpen className="w-3 h-3" />}
+														onClick={() => setQuickPeekInvoiceId(invoice.id)}
+														title="Quick peek invoice details"
+													>
+														Peek
+													</Button>
+													<Button
+														variant="outline"
+														size="sm"
 														icon={<Eye className="w-3 h-3" />}
 														onClick={() => router.push(`/dashboard/invoices/${invoice.id}`)}
 													>
@@ -823,6 +835,13 @@ const confirmAction = useConfirmAction();
 						</Box>
 					</Box>
 				</Box>
+
+				{/* Slide-over Quick Peek Drawer */}
+				<InvoiceQuickPeek
+					invoiceId={quickPeekInvoiceId}
+					open={Boolean(quickPeekInvoiceId)}
+					onClose={() => setQuickPeekInvoiceId(null)}
+				/>
 		</DashboardSurface>
 	);
 }
