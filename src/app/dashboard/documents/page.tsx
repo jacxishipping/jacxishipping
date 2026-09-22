@@ -217,8 +217,8 @@ export default function DocumentsPage() {
 					title: 'Company Documents',
 					description: 'Invoices, Bills of Lading, and other operational documents.',
 					icon: FileText,
-					iconColor: 'rgb(34, 211, 238)',
-					iconBg: 'rgba(34, 211, 238, 0.15)',
+					iconColor: 'var(--accent-gold)',
+					iconBg: 'rgba(var(--accent-gold-rgb), 0.12)',
 					documents: documents.filter(doc => templateTypes.includes(doc.category)),
 				},
 				{
@@ -226,8 +226,8 @@ export default function DocumentsPage() {
 					title: 'General Uploads',
 					description: 'Miscellaneous files and photos uploaded to the system.',
 					icon: Upload,
-					iconColor: 'rgb(59, 130, 246)',
-					iconBg: 'rgba(59, 130, 246, 0.15)',
+					iconColor: 'var(--info)',
+					iconBg: 'rgba(var(--info-rgb), 0.12)',
 					documents: documents.filter(doc => doc.category === 'OTHER' || doc.category === 'PHOTO'),
 				},
 				{
@@ -235,8 +235,8 @@ export default function DocumentsPage() {
 					title: 'Compliance & Security',
 					description: 'Customs declarations, insurance policies, and titles.',
 					icon: ShieldCheck,
-					iconColor: 'rgb(168, 85, 247)',
-					iconBg: 'rgba(168, 85, 247, 0.15)',
+					iconColor: 'var(--success)',
+					iconBg: 'rgba(var(--success-rgb), 0.12)',
 					documents: documents.filter(doc => complianceTypes.includes(doc.category)),
 				},
 			];
@@ -268,6 +268,7 @@ export default function DocumentsPage() {
 	return (
 		<DashboardSurface>
 			<PageHeader
+				showBreadcrumbs
 				title="Documents"
 				description="Manage templates, uploads, and compliance documents"
 				actions={

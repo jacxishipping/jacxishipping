@@ -498,17 +498,10 @@ const confirmAction = useConfirmAction();
 	}
 
 	return (
-		<Box sx={{ maxWidth: '1400px', mx: 'auto', p: { xs: 2, md: 3 } }}>
-			{/* Breadcrumbs */}
-			<Breadcrumbs
-				items={[
-					{ label: 'Dashboard', href: '/dashboard' },
-					{ label: isAdmin ? 'All Invoices' : 'My Invoices', href: '#' },
-				]}
-			/>
-
+		<DashboardSurface>
 			{/* Page Header */}
 			<PageHeader
+				showBreadcrumbs
 				title={isAdmin ? 'All Invoices' : 'My Invoices'}
 				description={isAdmin ? 'Manage customer invoices' : 'View and download your invoices'}
 				actions={
@@ -593,178 +586,155 @@ const confirmAction = useConfirmAction();
 				</Box>
 			</DashboardPanel>
 
-			{/* Main Content */}
-			<DashboardSurface>
-				<DashboardPanel 
-					title="Invoices"
-					description={customerFilterUserId ? `${pagination.total} invoice(s) for ${customerFilterLabel}` : `${pagination.total} invoice(s)`}
-				>
-					{customerFilterUserId ? (
-						<Box sx={{ display: 'flex', gap: 2, alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', mb: 3, p: 2, border: '1px solid var(--border)', borderRadius: 2, background: 'var(--panel)' }}>
-							<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-								<User className="w-4 h-4" />
-								<Box>
-									<Box sx={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Customer Filter</Box>
-									<Box sx={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)' }}>{customerFilterLabel}</Box>
-								</Box>
+			{/* Main Invoices Panel */}
+			<DashboardPanel 
+				title="Invoices"
+				description={customerFilterUserId ? `${pagination.total} invoice(s) for ${customerFilterLabel}` : `${pagination.total} invoice(s)`}
+			>
+				{customerFilterUserId ? (
+					<Box sx={{ display: 'flex', gap: 2, alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', mb: 3, p: 2, border: '1px solid var(--border)', borderRadius: 2, background: 'var(--panel)' }}>
+						<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+							<User className="w-4 h-4" />
+							<Box>
+								<Box sx={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Customer Filter</Box>
+								<Box sx={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)' }}>{customerFilterLabel}</Box>
 							</Box>
-							<Button variant="outline" size="sm" onClick={() => router.push('/dashboard/invoices')}>
-								Clear Filter
-							</Button>
 						</Box>
-					) : null}
-
-					{/* Filters */}
-					<Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
-						<TextField
-							placeholder="Search by invoice #, customer, VIN, vehicle, or container..."
-							value={searchTerm}
-							onChange={(e) => setSearchTerm(e.target.value)}
-							size="small"
-							sx={{ flex: 1, minWidth: '250px' }}
-							InputProps={{
-								startAdornment: (
-									<InputAdornment position="start">
-										<Search className="w-4 h-4" />
-									</InputAdornment>
-								),
-							}}
-						/>
-						<FormControl size="small" sx={{ minWidth: 150 }}>
-							<InputLabel>Status</InputLabel>
-							<Select
-								value={statusFilter}
-								label="Status"
-								onChange={(e) => setStatusFilter(e.target.value)}
-							>
-								<MenuItem value="all">All Status</MenuItem>
-								<MenuItem value="draft">Draft</MenuItem>
-								<MenuItem value="pending">Pending</MenuItem>
-								<MenuItem value="sent">Sent</MenuItem>
-								<MenuItem value="paid">Paid</MenuItem>
-								<MenuItem value="overdue">Overdue</MenuItem>
-								<MenuItem value="cancelled">Cancelled / Reversed</MenuItem>
-							</Select>
-						</FormControl>
+						<Button variant="outline" size="sm" onClick={() => router.push('/dashboard/invoices')}>
+							Clear Filter
+						</Button>
 					</Box>
+				) : null}
 
-					{/* Invoices Table */}
-					{filteredInvoices.length === 0 ? (
-						<EmptyState
-							icon={<FileText className="w-12 h-12" />}
-							title="No Invoices"
-							description={searchTerm ? 'No invoices match your search' : 'No invoices have been created yet'}
-						/>
-					) : showBulkTable ? (
-						<DataTable
-							data={invoiceRows}
-							columns={invoiceColumns}
-							keyField="id"
-							selectable={isAdmin}
-							onRowClick={(row) => router.push(`/dashboard/invoices/${row.id}`)}
-							onDelete={isAdmin ? handleBulkDelete : undefined}
-							onExport={isAdmin ? handleBulkExport : undefined}
-							bulkStatusOptions={invoiceStatusOptions}
-							onBulkStatusChange={isAdmin ? handleBulkStatusUpdate : undefined}
-						/>
-					) : (
-						<TableContainer>
-							<Table size="small">
-								<TableHead>
-									<TableRow>
-										<TableCell sx={{ fontWeight: 600 }}>Invoice #</TableCell>
-										{isAdmin && <TableCell sx={{ fontWeight: 600 }}>Customer</TableCell>}
-										<TableCell sx={{ fontWeight: 600 }}>Shipment / Container</TableCell>
-										<TableCell sx={{ fontWeight: 600 }}>Issue Date</TableCell>
-										<TableCell sx={{ fontWeight: 600 }}>Due Date</TableCell>
-										<TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-										<TableCell sx={{ fontWeight: 600 }} align="right">Total</TableCell>
-										<TableCell sx={{ fontWeight: 600 }} align="right">Actions</TableCell>
-									</TableRow>
-								</TableHead>
-								<TableBody>
-									{filteredInvoices.map((invoice) => {
-										const statusInfo = statusConfig[invoice.status] || { label: invoice.status, color: 'default' };
-										return (
-											<TableRow key={invoice.id} hover>
-												<TableCell sx={{ fontFamily: 'monospace', fontWeight: 600 }}>
-													{invoice.invoiceNumber}
-												</TableCell>
-												{isAdmin && (
-													<TableCell>
-														<Box>
-															<Box sx={{ fontWeight: 600, fontSize: '0.875rem' }}>
-																{invoice.user.name || 'N/A'}
-															</Box>
-															<Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-																{invoice.user.email}
-															</Box>
+				{/* Filters */}
+				<Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
+					<TextField
+						placeholder="Search by invoice #, customer, VIN, vehicle, or container..."
+						value={searchTerm}
+						onChange={(e) => setSearchTerm(e.target.value)}
+						size="small"
+						sx={{ flex: 1, minWidth: '250px' }}
+						InputProps={{
+							startAdornment: (
+								<InputAdornment position="start">
+									<Search className="w-4 h-4" />
+								</InputAdornment>
+							),
+						}}
+					/>
+				</Box>
+
+				{/* Invoices Table */}
+				{filteredInvoices.length === 0 ? (
+					<EmptyState
+						icon={<FileText className="w-12 h-12" />}
+						title="No Invoices"
+						description={searchTerm ? 'No invoices match your search' : 'No invoices have been created yet'}
+					/>
+				) : showBulkTable ? (
+					<DataTable
+						data={invoiceRows}
+						columns={invoiceColumns}
+						keyField="id"
+						selectable={isAdmin}
+						onRowClick={(row) => router.push(`/dashboard/invoices/${row.id}`)}
+						onDelete={isAdmin ? handleBulkDelete : undefined}
+						onExport={isAdmin ? handleBulkExport : undefined}
+						bulkStatusOptions={invoiceStatusOptions}
+						onBulkStatusChange={isAdmin ? handleBulkStatusUpdate : undefined}
+					/>
+				) : (
+					<TableContainer>
+						<Table size="small">
+							<TableHead>
+								<TableRow>
+									<TableCell sx={{ fontWeight: 600 }}>Invoice #</TableCell>
+									{isAdmin && <TableCell sx={{ fontWeight: 600 }}>Customer</TableCell>}
+									<TableCell sx={{ fontWeight: 600 }}>Shipment / Container</TableCell>
+									<TableCell sx={{ fontWeight: 600 }}>Issue Date</TableCell>
+									<TableCell sx={{ fontWeight: 600 }}>Due Date</TableCell>
+									<TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+									<TableCell sx={{ fontWeight: 600 }} align="right">Total</TableCell>
+									<TableCell sx={{ fontWeight: 600 }} align="right">Actions</TableCell>
+								</TableRow>
+							</TableHead>
+							<TableBody>
+								{filteredInvoices.map((invoice) => {
+									return (
+										<TableRow key={invoice.id} hover>
+											<TableCell sx={{ fontFamily: 'monospace', fontWeight: 600 }}>
+												{invoice.invoiceNumber}
+											</TableCell>
+											{isAdmin && (
+												<TableCell>
+													<Box>
+														<Box sx={{ fontWeight: 600, fontSize: '0.875rem' }}>
+															{invoice.user.name || 'N/A'}
 														</Box>
-													</TableCell>
-												)}
-												<TableCell>
-													{invoice.container ? (
-														<Link 
-															href={`/dashboard/containers/${invoice.containerId}`}
-															style={{ 
-																color: 'var(--accent-gold)', 
-																textDecoration: 'none',
-																fontFamily: 'monospace',
-																fontWeight: 600,
-															}}
-														>
-															{invoice.container.containerNumber}
-														</Link>
-													) : invoice.shipment ? (
-														<Link
-															href={`/dashboard/shipments/${invoice.shipment.id}`}
-															style={{ color: 'var(--accent-gold)', textDecoration: 'none', fontWeight: 600 }}
-														>
-															{[invoice.shipment.vehicleYear, invoice.shipment.vehicleMake, invoice.shipment.vehicleModel].filter(Boolean).join(' ') || invoice.shipment.vehicleType}
-														</Link>
-													) : 'N/A'}
-												</TableCell>
-												<TableCell>{formatDate(invoice.issueDate)}</TableCell>
-												<TableCell>{formatDate(invoice.dueDate)}</TableCell>
-												<TableCell>
-													<Chip 
-														label={statusInfo.label} 
-														size="small"
-														color={statusInfo.color}
-														sx={{ fontSize: '0.75rem' }}
-													/>
-												</TableCell>
-												<TableCell align="right" sx={{ fontWeight: 600, color: 'var(--accent-gold)' }}>
-													{formatCurrency(invoice.total)}
-												</TableCell>
-												<TableCell align="right">
-													<Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
-														<Button
-															variant="outline"
-															size="sm"
-															icon={<Eye className="w-3 h-3" />}
-															onClick={() => router.push(`/dashboard/invoices/${invoice.id}`)}
-														>
-															View
-														</Button>
-														<Button
-															variant="outline"
-															size="sm"
-															icon={<Download className="w-3 h-3" />}
-															onClick={() => handleDownloadPDF(invoice)}
-														>
-															PDF
-														</Button>
+														<Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+															{invoice.user.email}
+														</Box>
 													</Box>
 												</TableCell>
-											</TableRow>
-										);
-									})}
-								</TableBody>
-							</Table>
-						</TableContainer>
-					)}
-				</DashboardPanel>
+											)}
+											<TableCell>
+												{invoice.container ? (
+													<Link 
+														href={`/dashboard/containers/${invoice.containerId}`}
+														style={{ 
+															color: 'var(--accent-gold)', 
+															textDecoration: 'none',
+															fontFamily: 'monospace',
+															fontWeight: 600,
+														}}
+													>
+														{invoice.container.containerNumber}
+													</Link>
+												) : invoice.shipment ? (
+													<Link
+														href={`/dashboard/shipments/${invoice.shipment.id}`}
+														style={{ color: 'var(--accent-gold)', textDecoration: 'none', fontWeight: 600 }}
+													>
+														{[invoice.shipment.vehicleYear, invoice.shipment.vehicleMake, invoice.shipment.vehicleModel].filter(Boolean).join(' ') || invoice.shipment.vehicleType}
+													</Link>
+												) : 'N/A'}
+											</TableCell>
+											<TableCell>{formatDate(invoice.issueDate)}</TableCell>
+											<TableCell>{formatDate(invoice.dueDate)}</TableCell>
+											<TableCell>
+												<StatusBadge status={invoice.status} size="sm" />
+											</TableCell>
+											<TableCell align="right" sx={{ fontWeight: 600, color: 'var(--accent-gold)' }}>
+												{formatCurrency(invoice.total)}
+											</TableCell>
+											<TableCell align="right">
+												<Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+													<Button
+														variant="outline"
+														size="sm"
+														icon={<Eye className="w-3 h-3" />}
+														onClick={() => router.push(`/dashboard/invoices/${invoice.id}`)}
+													>
+														View
+													</Button>
+													<Button
+														variant="outline"
+														size="sm"
+														icon={<Download className="w-3 h-3" />}
+														onClick={() => handleDownloadPDF(invoice)}
+													>
+														PDF
+													</Button>
+												</Box>
+											</TableCell>
+										</TableRow>
+									);
+								})}
+							</TableBody>
+						</Table>
+					</TableContainer>
+				)}
+			</DashboardPanel>
 
 				{/* Pagination Controls */}
 				<Box sx={{ mt: 4, pt: 3, borderTop: '1px solid var(--border-color)' }}>
@@ -853,7 +823,6 @@ const confirmAction = useConfirmAction();
 						</Box>
 					</Box>
 				</Box>
-			</DashboardSurface>
-		</Box>
+		</DashboardSurface>
 	);
 }

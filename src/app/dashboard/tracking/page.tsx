@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation';
 import { Box, Typography } from '@mui/material';
 import { AlertCircle, Calendar, CheckCircle2, Clock, Copy, MapPin, Package, Search, Ship, XCircle } from 'lucide-react';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
-import { PageHeader, Button, EmptyState, FormField, Breadcrumbs, toast, DashboardPageSkeleton } from '@/components/design-system';
+import { PageHeader, Button, EmptyState, FormField, Breadcrumbs, toast, DashboardPageSkeleton, StatusBadge } from '@/components/design-system';
+import TrackingRouteMap from '@/components/tracking/TrackingRouteMap';
 
 interface TrackingEventEntry {
 	id: string;
@@ -169,12 +170,8 @@ export default function DashboardTrackingPage() {
 
 	return (
 		<DashboardSurface>
-			{/* Breadcrumbs */}
-			<Box sx={{ px: 2, pt: 2 }}>
-				<Breadcrumbs />
-			</Box>
-			
 			<PageHeader
+				showBreadcrumbs
 				title="Shipment Tracking"
 				description="Monitor containers and track shipment milestones in real-time"
 			/>
@@ -287,6 +284,15 @@ export default function DashboardTrackingPage() {
 			{/* Tracking Results */}
 			{trackingDetails ? (
 				<>
+					{/* Interactive Route Map */}
+					<DashboardPanel title="Interactive Route Map" description="Live vessel and overland transit visualization">
+						<TrackingRouteMap
+							progressPercent={progressValue ?? 35}
+							origin={trackingDetails.origin || 'USA / Canada'}
+							destination={trackingDetails.destination || 'Afghanistan'}
+						/>
+					</DashboardPanel>
+
 					{/* Container Details */}
 					<DashboardPanel title="Container Details" description="Current status and information">
 						<DashboardGrid className="grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
@@ -317,20 +323,8 @@ export default function DashboardTrackingPage() {
 								<Typography sx={{ fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-secondary)', mb: 0.5 }}>
 									Status
 								</Typography>
-								<Box
-									sx={{
-										display: 'inline-flex',
-										px: 1.5,
-										py: 0.5,
-										borderRadius: 1,
-										bgcolor: 'rgba(34, 211, 238, 0.15)',
-										border: '1px solid rgba(34, 211, 238, 0.3)',
-										color: 'rgb(34, 211, 238)',
-										fontSize: '0.8rem',
-										fontWeight: 600,
-									}}
-								>
-									{trackingDetails.shipmentStatus || 'Unknown'}
+								<Box sx={{ mt: 0.5 }}>
+									<StatusBadge status={trackingDetails.shipmentStatus || 'IN_TRANSIT'} size="md" />
 								</Box>
 							</Box>
 

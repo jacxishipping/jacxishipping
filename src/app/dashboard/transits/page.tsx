@@ -3,20 +3,13 @@ import { formatMoney as formatCurrency } from '@/lib/format';
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  Box,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  MenuItem,
-  TextField,
-} from '@mui/material';
+import { Box } from '@mui/material';
 import { Eye, Package, Pencil, Plus, Search, Trash2, Truck } from 'lucide-react';
 import AdminRoute from '@/components/auth/AdminRoute';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
-import { Breadcrumbs, Button, StatsCard, toast, CopyButton, StatusFilterPills } from '@/components/design-system';
+import { PageHeader, Button, StatsCard, toast, CopyButton, StatusFilterPills, StatusBadge, Modal, FormField, Select } from '@/components/design-system';
 import { DataTable, Column } from '@/components/ui/DataTable';
+import { useConfirmAction } from '@/components/ui/ConfirmActionProvider';
 
 interface Company {
   id: string;
@@ -54,28 +47,17 @@ interface Transit {
   };
 }
 
-const statusColors: Record<string, { bg: string; text: string; border: string }> = {
-  PENDING: { bg: 'rgba(156, 163, 175, 0.15)', text: 'rgb(156, 163, 175)', border: 'rgba(156, 163, 175, 0.3)' },
-  DISPATCHED: { bg: 'rgba(251, 191, 36, 0.15)', text: 'rgb(251, 191, 36)', border: 'rgba(251, 191, 36, 0.3)' },
-  IN_TRANSIT: { bg: 'rgba(99, 102, 241, 0.15)', text: 'rgb(99, 102, 241)', border: 'rgba(99, 102, 241, 0.3)' },
-  ARRIVED: { bg: 'rgba(34, 197, 94, 0.15)', text: 'rgb(34, 197, 94)', border: 'rgba(34, 197, 94, 0.3)' },
-  DELIVERED: { bg: 'rgba(20, 184, 166, 0.15)', text: 'rgb(20, 184, 166)', border: 'rgba(20, 184, 166, 0.3)' },
-  CANCELLED: { bg: 'rgba(239, 68, 68, 0.15)', text: 'rgb(239, 68, 68)', border: 'rgba(239, 68, 68, 0.3)' },
-};
-
-const statusLabels: Record<string, string> = {
-  PENDING: 'Pending',
-  DISPATCHED: 'Dispatched',
-  IN_TRANSIT: 'In Transit',
-  ARRIVED: 'Arrived',
-  DELIVERED: 'Delivered',
-  CANCELLED: 'Cancelled',
-};
-
-const editableStatusOptions = ['PENDING', 'DISPATCHED', 'IN_TRANSIT', 'ARRIVED', 'CANCELLED'];
+const editableStatusOptions = [
+  { value: 'PENDING', label: 'Pending' },
+  { value: 'DISPATCHED', label: 'Dispatched' },
+  { value: 'IN_TRANSIT', label: 'In Transit' },
+  { value: 'ARRIVED', label: 'Arrived' },
+  { value: 'CANCELLED', label: 'Cancelled' },
+];
 
 export default function TransitsPage() {
   const router = useRouter();
+  const confirmAction = useConfirmAction();
   const [transits, setTransits] = useState<Transit[]>([]);
   const [loading, setLoading] = useState(true);
   const [isShiftPressed, setIsShiftPressed] = useState(false);
@@ -177,21 +159,19 @@ export default function TransitsPage() {
   };
 
   const handleDeleteTransit = async (transit: Transit) => {
-    const shouldDelete = confirm(
-      `Delete transit ${transit.referenceNumber}? This will remove linked transit events and transit expenses.`
-    );
-    if (!shouldDelete) return;
+    const confirmed = await confirmAction({
+      title: 'Delete Transit',
+      message: `Delete transit ${transit.referenceNumber}? This action cannot be undone.`,
+      confirmText: 'Delete transit',
+      severity: 'error',
+    });
+    if (!confirmed) return;
 
     try {
       setDeletingTransitId(transit.id);
-      const response = await fetch(`/api/transits/${transit.id}`, {
-        method: 'DELETE',
-      });
-
+      const response = await fetch(`/api/transits/${transit.id}`, { method: 'DELETE' });
       const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to delete transit');
-      }
+      if (!response.ok) throw new Error(data.error || 'Failed to delete transit');
 
       toast.success(`Transit ${transit.referenceNumber} deleted`);
       await fetchTransits();
@@ -293,28 +273,9 @@ export default function TransitsPage() {
       key: 'status',
       header: 'Status',
       align: 'center',
-      render: (_, row) => {
-        const color = statusColors[row.status] || statusColors.PENDING;
-        return (
-          <span
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              padding: '2px 10px',
-              borderRadius: 9999,
-              fontSize: '0.75rem',
-              fontWeight: 600,
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-              background: color.bg,
-              color: color.text,
-              border: `1px solid ${color.border}`,
-            }}
-          >
-            {statusLabels[row.status] || row.status}
-          </span>
-        );
-      },
+      render: (_, row) => (
+        <StatusBadge status={row.status} size="sm" />
+      ),
     },
     {
       key: 'estimatedDelivery',
@@ -389,66 +350,57 @@ export default function TransitsPage() {
   return (
     <AdminRoute>
       <DashboardSurface>
-        <Box sx={{ px: 2, pt: 2 }}>
-          <Breadcrumbs />
-        </Box>
-
-        <DashboardPanel
-          title="Transit Management"
-          description="Manage land transits from UAE to Afghanistan"
+        <PageHeader
+          showBreadcrumbs
+          title="Transits"
+          description="Manage overland transits from UAE to Afghanistan"
           actions={
             <Button variant="primary" icon={<Plus className="w-4 h-4" />} onClick={() => setOpenCreate(true)}>
               New Transit
             </Button>
           }
-        >
-          <DashboardGrid className="grid-cols-2 md:grid-cols-4 mb-4">
-            <StatsCard icon={<Truck className="w-5 h-5" />} title="Total" value={stats.total} variant="default" />
-            <StatsCard icon={<Truck className="w-5 h-5" />} title="Active" value={stats.active} variant="info" />
-            <StatsCard icon={<Truck className="w-5 h-5" />} title="Delivered" value={stats.delivered} variant="success" />
-            <StatsCard icon={<Package className="w-5 h-5" />} title="Pending" value={stats.pending} variant="default" />
-          </DashboardGrid>
+        />
 
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 180px' }, gap: 1.5, mb: 2 }}>
-            <TextField
-              size="small"
-              fullWidth
-              placeholder="Search by reference or notes"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              InputProps={{ startAdornment: <Search className="w-4 h-4 mr-2 text-[var(--text-secondary)]" /> }}
-            />
-            <TextField
-              select
-              size="small"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-            >
-              <MenuItem value="">All Statuses</MenuItem>
-              {Object.entries(statusLabels).map(([value, label]) => (
-                <MenuItem key={value} value={value}>{label}</MenuItem>
-              ))}
-            </TextField>
-          </Box>
+        {/* Stats */}
+        <DashboardGrid className="grid-cols-2 md:grid-cols-4">
+          <StatsCard icon={<Truck className="w-5 h-5" />} title="Total Transits" value={stats.total} variant="default" />
+          <StatsCard icon={<Truck className="w-5 h-5" />} title="Active Transits" value={stats.active} variant="info" />
+          <StatsCard icon={<Truck className="w-5 h-5" />} title="Delivered" value={stats.delivered} variant="success" />
+          <StatsCard icon={<Package className="w-5 h-5" />} title="Pending" value={stats.pending} variant="warning" />
+        </DashboardGrid>
 
-          <div className="pt-1 pb-3">
-            <StatusFilterPills
-              options={[
-                { value: '', label: 'All Statuses' },
-                { value: 'PENDING', label: 'Pending', color: '#9CA3AF' },
-                { value: 'DISPATCHED', label: 'Dispatched', color: '#F59E0B' },
-                { value: 'IN_TRANSIT', label: 'In Transit', color: '#6366F1' },
-                { value: 'ARRIVED', label: 'Arrived', color: '#8B5CF6' },
-                { value: 'CUSTOMS_CLEARANCE', label: 'Customs', color: '#F97316' },
-                { value: 'DELIVERED', label: 'Delivered', color: '#10B981' },
-              ]}
-              selectedValue={statusFilter}
-              onSelect={(val) => setStatusFilter(val)}
-            />
-          </div>
+        {/* Search & Filter */}
+        <DashboardPanel title="Search & Filter" description="Find transits quickly">
+          <FormField
+            label=""
+            placeholder="Search by reference #, destination, notes..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            leftIcon={<Search className="w-4 h-4 text-[var(--text-secondary)]" />}
+          />
+        </DashboardPanel>
 
+        {/* Status Filter Carousel */}
+        <div className="pt-1 pb-1">
+          <StatusFilterPills
+            options={[
+              { value: '', label: 'All Statuses' },
+              { value: 'PENDING', label: 'Pending', color: '#9CA3AF' },
+              { value: 'DISPATCHED', label: 'Dispatched', color: '#F59E0B' },
+              { value: 'IN_TRANSIT', label: 'In Transit', color: '#6366F1' },
+              { value: 'ARRIVED', label: 'Arrived', color: '#8B5CF6' },
+              { value: 'DELIVERED', label: 'Delivered', color: '#10B981' },
+              { value: 'CANCELLED', label: 'Cancelled', color: '#EF4444' },
+            ]}
+            selectedValue={statusFilter}
+            onSelect={(val) => setStatusFilter(val)}
+          />
+        </div>
+
+        {/* Data Table Panel */}
+        <DashboardPanel title={`Transits List (${transits.length})`} fullHeight>
           {loading ? (
-            <Box sx={{ py: 3, textAlign: 'center', color: 'var(--text-secondary)' }}>Loading transits...</Box>
+            <Box sx={{ py: 4, textAlign: 'center', color: 'var(--text-secondary)' }}>Loading transits...</Box>
           ) : (
             <DataTable
               data={transits}
@@ -465,128 +417,129 @@ export default function TransitsPage() {
           )}
         </DashboardPanel>
 
-        <Dialog open={openCreate} onClose={() => !creating && setOpenCreate(false)} maxWidth="sm" fullWidth>
-          <DialogTitle>Create New Transit</DialogTitle>
-          <DialogContent sx={{ display: 'grid', gap: 2, pt: 1.5 }}>
-            <Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)', p: 1.5, borderRadius: 1.5, background: 'var(--surface)', border: '1px solid var(--border)' }}>
-              Transit companies are now assigned per event. Create the transit first, then add one or more route events with their own company and from/to leg.
-            </Box>
-            <TextField
-              label="Origin"
-              value={formData.origin}
-              onChange={(e) => setFormData(prev => ({ ...prev, origin: e.target.value }))}
-            />
-            <TextField
-              label="Destination"
-              value={formData.destination}
-              onChange={(e) => setFormData(prev => ({ ...prev, destination: e.target.value }))}
-            />
-            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
-              <TextField
+        {/* Create Modal */}
+        <Modal
+          open={openCreate}
+          onClose={() => !creating && setOpenCreate(false)}
+          title="Create New Transit"
+          description="Transit companies are assigned per event. Create the transit first, then add route legs."
+          size="md"
+          actions={
+            <>
+              <Button variant="outline" onClick={() => setOpenCreate(false)} disabled={creating}>Cancel</Button>
+              <Button variant="primary" onClick={handleCreate} disabled={creating}>
+                {creating ? 'Creating...' : 'Create Transit'}
+              </Button>
+            </>
+          }
+        >
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                label="Origin"
+                value={formData.origin}
+                onChange={(e) => setFormData(prev => ({ ...prev, origin: e.target.value }))}
+                placeholder="Dubai, UAE"
+              />
+              <FormField
+                label="Destination"
+                value={formData.destination}
+                onChange={(e) => setFormData(prev => ({ ...prev, destination: e.target.value }))}
+                placeholder="Kabul, Afghanistan"
+              />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
                 label="Dispatch Date"
                 type="date"
-                InputLabelProps={{ shrink: true }}
                 value={formData.dispatchDate}
                 onChange={(e) => setFormData(prev => ({ ...prev, dispatchDate: e.target.value }))}
               />
-              <TextField
-                label="Est. Delivery"
+              <FormField
+                label="Est. Delivery Date"
                 type="date"
-                InputLabelProps={{ shrink: true }}
                 value={formData.estimatedDelivery}
                 onChange={(e) => setFormData(prev => ({ ...prev, estimatedDelivery: e.target.value }))}
               />
-            </Box>
-            <TextField
+            </div>
+            <FormField
               label="Agreed Cost (USD)"
               type="number"
-              inputProps={{ min: 0, step: 0.01 }}
               value={formData.cost}
               onChange={(e) => setFormData(prev => ({ ...prev, cost: e.target.value }))}
+              placeholder="0.00"
             />
-            <TextField
+            <FormField
               label="Notes"
-              multiline
-              rows={3}
               value={formData.notes}
               onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+              placeholder="Optional notes..."
             />
-          </DialogContent>
-          <DialogActions>
-            <Button variant="outline" onClick={() => setOpenCreate(false)} disabled={creating}>Cancel</Button>
-            <Button variant="primary" onClick={handleCreate} disabled={creating}>
-              {creating ? 'Creating...' : 'Create Transit'}
-            </Button>
-          </DialogActions>
-        </Dialog>
+          </div>
+        </Modal>
 
-        <Dialog open={openEdit} onClose={() => !editing && setOpenEdit(false)} maxWidth="sm" fullWidth>
-          <DialogTitle>Edit Transit</DialogTitle>
-          <DialogContent sx={{ display: 'grid', gap: 2, pt: 1.5 }}>
-            <Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)', p: 1.5, borderRadius: 1.5, background: 'var(--surface)', border: '1px solid var(--border)' }}>
-              Company assignment is managed on transit events. Update the current leg from the transit detail page by adding a new event.
-            </Box>
-            <TextField
-              label="Origin"
-              value={editFormData.origin}
-              onChange={(e) => setEditFormData(prev => ({ ...prev, origin: e.target.value }))}
-            />
-            <TextField
-              label="Destination"
-              value={editFormData.destination}
-              onChange={(e) => setEditFormData(prev => ({ ...prev, destination: e.target.value }))}
-            />
-            <TextField
-              select
+        {/* Edit Modal */}
+        <Modal
+          open={openEdit}
+          onClose={() => !editing && setOpenEdit(false)}
+          title="Edit Transit"
+          description="Update transit parameters and status."
+          size="md"
+          actions={
+            <>
+              <Button variant="outline" onClick={() => setOpenEdit(false)} disabled={editing}>Cancel</Button>
+              <Button variant="primary" onClick={handleUpdateTransit} disabled={editing}>
+                {editing ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </>
+          }
+        >
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                label="Origin"
+                value={editFormData.origin}
+                onChange={(e) => setEditFormData(prev => ({ ...prev, origin: e.target.value }))}
+              />
+              <FormField
+                label="Destination"
+                value={editFormData.destination}
+                onChange={(e) => setEditFormData(prev => ({ ...prev, destination: e.target.value }))}
+              />
+            </div>
+            <Select
               label="Status"
               value={editFormData.status}
-              onChange={(e) => setEditFormData(prev => ({ ...prev, status: e.target.value }))}
-            >
-              {editableStatusOptions.map((value) => (
-                <MenuItem key={value} value={value}>{statusLabels[value] || value}</MenuItem>
-              ))}
-            </TextField>
-            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
-              <TextField
+              onChange={(val) => setEditFormData(prev => ({ ...prev, status: String(val) }))}
+              options={editableStatusOptions}
+            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
                 label="Dispatch Date"
                 type="date"
-                InputLabelProps={{ shrink: true }}
                 value={editFormData.dispatchDate}
                 onChange={(e) => setEditFormData(prev => ({ ...prev, dispatchDate: e.target.value }))}
               />
-              <TextField
-                label="Est. Delivery"
+              <FormField
+                label="Est. Delivery Date"
                 type="date"
-                InputLabelProps={{ shrink: true }}
                 value={editFormData.estimatedDelivery}
                 onChange={(e) => setEditFormData(prev => ({ ...prev, estimatedDelivery: e.target.value }))}
               />
-            </Box>
-            <Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)', p: 1.5, borderRadius: 1.5, background: 'var(--surface)', border: '1px solid var(--border)' }}>
-              Final delivery must be confirmed from the transit detail page so receiver name, delivered date, and proof of delivery are all captured together.
-            </Box>
-            <TextField
+            </div>
+            <FormField
               label="Agreed Cost (USD)"
               type="number"
-              inputProps={{ min: 0, step: 0.01 }}
               value={editFormData.cost}
               onChange={(e) => setEditFormData(prev => ({ ...prev, cost: e.target.value }))}
             />
-            <TextField
+            <FormField
               label="Notes"
-              multiline
-              rows={3}
               value={editFormData.notes}
               onChange={(e) => setEditFormData(prev => ({ ...prev, notes: e.target.value }))}
             />
-          </DialogContent>
-          <DialogActions>
-            <Button variant="outline" onClick={() => setOpenEdit(false)} disabled={editing}>Cancel</Button>
-            <Button variant="primary" onClick={handleUpdateTransit} disabled={editing}>
-              {editing ? 'Saving...' : 'Save Changes'}
-            </Button>
-          </DialogActions>
-        </Dialog>
+          </div>
+        </Modal>
       </DashboardSurface>
     </AdminRoute>
   );

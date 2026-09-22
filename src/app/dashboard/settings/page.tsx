@@ -50,7 +50,7 @@ import {
 } from '@/lib/shipping-rate-calculator';
 
 const DEFAULT_SETTINGS = {
-  theme: 'futuristic',
+  theme: 'light',
   accentColor: 'var(--accent-gold)',
   sidebarDensity: 'comfortable',
   animationsEnabled: true,
@@ -1070,9 +1070,8 @@ export default function SettingsPage() {
                 value={settingsForm.theme}
                 onChange={(value) => setSettingsForm(prev => ({ ...prev, theme: String(value) }))}
                 options={[
-                  { value: 'light', label: 'Adaptive Light' },
-                  { value: 'dark', label: 'Classic Dark' },
-                  { value: 'futuristic', label: 'Futuristic Dark' },
+                  { value: 'light', label: 'Adaptive Light (Enterprise)' },
+                  { value: 'system', label: 'System Default' },
                 ]}
               />
               
