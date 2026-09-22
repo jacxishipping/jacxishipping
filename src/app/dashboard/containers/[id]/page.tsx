@@ -60,7 +60,9 @@ import {
 	DashboardPageSkeleton, 
 	DetailPageSkeleton, 
 	FormPageSkeleton,
-	CopyButton
+	CopyButton,
+	MilestoneStepper,
+	type MilestoneStep
 } from '@/components/design-system';
 import PermissionRoute from '@/components/auth/PermissionRoute';
 import AddExpenseModal from '@/components/containers/AddExpenseModal';
@@ -948,6 +950,46 @@ export default function ContainerDetailPage() {
 						</Box>
 					}
 				/>
+
+				{/* Container Milestone Progression Stepper */}
+				<Box sx={{ px: 2, mb: 3 }}>
+					<Box
+						sx={{
+							p: 2.5,
+							borderRadius: 2,
+							bgcolor: 'var(--panel)',
+							border: '1px solid var(--border)',
+							boxShadow: '0 4px 16px rgba(0, 0, 0, 0.04)',
+						}}
+					>
+						<Typography
+							variant="caption"
+							sx={{
+								fontWeight: 700,
+								color: 'var(--text-secondary)',
+								mb: 1.5,
+								display: 'block',
+								textTransform: 'uppercase',
+								letterSpacing: '0.05em',
+							}}
+						>
+							Container Lifecycle Progression
+						</Typography>
+						<MilestoneStepper
+							steps={[
+								{ id: 'CREATED', label: 'Created' },
+								{ id: 'WAITING_FOR_LOADING', label: 'Waiting' },
+								{ id: 'LOADED', label: 'Loaded' },
+								{ id: 'IN_TRANSIT', label: 'In Transit' },
+								{ id: 'ARRIVED_PORT', label: 'Arrived Port' },
+								{ id: 'CUSTOMS_CLEARANCE', label: 'Customs' },
+								{ id: 'RELEASED', label: 'Released' },
+							]}
+							currentStepId={container.status}
+							orientation="horizontal"
+						/>
+					</Box>
+				</Box>
 
 				{/* Stats Overview */}
 				<Box sx={{ px: 2, mb: 3 }}>
