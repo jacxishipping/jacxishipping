@@ -27,10 +27,10 @@ export interface DrawerProps {
 }
 
 const sizeConfig = {
-  sm: '380px',
-  md: '480px',
-  lg: '620px',
-  xl: '800px',
+  sm: '420px',
+  md: '580px',
+  lg: '760px',
+  xl: '920px',
   full: '95vw',
 };
 

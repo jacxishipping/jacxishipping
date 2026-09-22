@@ -119,7 +119,7 @@ export default function ContainerQuickPeek({
     <Drawer
       open={open}
       onClose={onClose}
-      size="md"
+      size="lg"
       title={
         container ? (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>

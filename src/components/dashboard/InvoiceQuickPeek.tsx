@@ -110,7 +110,7 @@ export default function InvoiceQuickPeek({
     <Drawer
       open={open}
       onClose={onClose}
-      size="md"
+      size="lg"
       title={
         invoice ? (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>

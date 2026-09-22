@@ -35,6 +35,8 @@ type ShipmentsResultsPanelProps = {
 	totalPages: number;
 	onPreviousPage: () => void;
 	onNextPage: () => void;
+	onQuickPeek?: (id: string) => void;
+	onOpenQR?: (shipment: any) => void;
 };
 
 export default function ShipmentsResultsPanel({
@@ -58,6 +60,8 @@ export default function ShipmentsResultsPanel({
 	totalPages,
 	onPreviousPage,
 	onNextPage,
+	onQuickPeek,
+	onOpenQR,
 }: ShipmentsResultsPanelProps) {
 	return (
 		<DashboardPanel
@@ -156,6 +160,8 @@ export default function ShipmentsResultsPanel({
 								purchasePricePaid={canViewFinance ? (shipment.purchasePricePaid ?? null) : null}
 								showCustomer={isAdmin}
 								delay={index * 0.05}
+								onQuickPeek={onQuickPeek}
+								onOpenQR={onOpenQR}
 							/>
 						))}
 					</Box>
