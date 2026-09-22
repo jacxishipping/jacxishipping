@@ -15,6 +15,9 @@ import { exportToCSVWithHeaders } from '@/lib/export';
 import { hasPermission } from '@/lib/rbac';
 import { useConfirmAction } from '@/components/ui/ConfirmActionProvider';
 import ShipmentQuickPeek from '@/components/dashboard/ShipmentQuickPeek';
+import { QRCodeModal, type QRCodeData } from '@/components/dashboard/QRCodeModal';
+import { SavedFilterPresets } from '@/components/dashboard/SavedFilterPresets';
+import { QrCode } from 'lucide-react';
 
 export default function ShipmentsListPage() {
 	const router = useRouter();
@@ -23,6 +26,7 @@ export default function ShipmentsListPage() {
 	const [loading, setLoading] = useState(true);
 	const [showBulkTable, setShowBulkTable] = useState(false);
 	const [quickPeekShipmentId, setQuickPeekShipmentId] = useState<string | null>(null);
+	const [qrModalData, setQrModalData] = useState<QRCodeData | null>(null);
 	const [searchFilters, setSearchFilters] = useState<SearchFilters>({
 		query: '',
 		type: 'shipments',
@@ -110,6 +114,21 @@ export default function ShipmentsListPage() {
 
 	const canViewFinance = hasPermission(session?.user?.role, 'finance:manage');
 
+	const handleOpenQR = (row: ShipmentTableRow, e?: React.MouseEvent) => {
+		if (e) e.stopPropagation();
+		setQrModalData({
+			type: 'SHIPMENT',
+			id: row.id,
+			title: row.vehicle,
+			code: row.vin && row.vin !== '-' ? row.vin : row.id,
+			trackingUrl: `${typeof window !== 'undefined' ? window.location.origin : ''}/tracking?vin=${row.vin && row.vin !== '-' ? row.vin : row.id}`,
+			metadata: {
+				customerName: row.customer !== '-' ? row.customer : undefined,
+				status: row.status,
+			},
+		});
+	};
+
 	const shipmentColumns: Column<ShipmentTableRow>[] = [
 		{ key: 'vehicle', header: 'Vehicle', sortable: true },
 		...(canViewFinance ? [{
@@ -188,6 +207,20 @@ export default function ShipmentsListPage() {
 			render: (value) => formatDate(String(value)),
 		},
 		...(isAdmin ? [{ key: 'customer', header: 'Customer', sortable: true }] : []),
+		{
+			key: 'id' as const,
+			header: 'QR',
+			render: (_: unknown, row: ShipmentTableRow) => (
+				<button
+					type="button"
+					onClick={(e) => handleOpenQR(row, e)}
+					className="p-1 rounded hover:bg-[var(--panel)] text-[var(--text-secondary)] hover:text-[var(--accent-gold)] transition-colors"
+					title="Print Yard QR Sticker"
+				>
+					<QrCode className="w-4 h-4" />
+				</button>
+			),
+		},
 	];
 
 	const shipmentStatusOptions = [
@@ -305,6 +338,21 @@ const confirmAction = useConfirmAction();
 						setCurrentPage(1);
 					}}
 				/>
+				<Box sx={{ mt: 1, px: 0.5 }}>
+					<SavedFilterPresets
+						storageKey="shipments"
+						currentFilters={searchFilters}
+						onApplyPreset={(filters) => {
+							setSearchFilters(filters);
+							setCurrentPage(1);
+						}}
+						defaultPresets={[
+							{ id: 'preset_onhand', name: 'On Hand in Yard', filters: { query: '', type: 'shipments', status: 'ON_HAND' }, isDefault: true },
+							{ id: 'preset_intransit', name: 'In Transit Cargo', filters: { query: '', type: 'shipments', status: 'IN_TRANSIT' }, isDefault: true },
+							{ id: 'preset_delivered', name: 'Delivered to Port', filters: { query: '', type: 'shipments', status: 'DELIVERED' }, isDefault: true },
+						]}
+					/>
+				</Box>
 			</div>
 
 			<ShipmentsResultsPanel
@@ -335,6 +383,13 @@ const confirmAction = useConfirmAction();
 				shipmentId={quickPeekShipmentId}
 				open={Boolean(quickPeekShipmentId)}
 				onClose={() => setQuickPeekShipmentId(null)}
+			/>
+
+			{/* Yard QR Code & Thermal Label Modal */}
+			<QRCodeModal
+				open={Boolean(qrModalData)}
+				onClose={() => setQrModalData(null)}
+				data={qrModalData}
 			/>
 		</DashboardSurface>
 	);
