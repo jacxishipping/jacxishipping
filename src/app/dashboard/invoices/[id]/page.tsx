@@ -1,7 +1,7 @@
 'use client';
 import { formatMoney as formatCurrency } from '@/lib/format';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { hasPermission } from '@/lib/rbac';
@@ -24,6 +24,12 @@ import {
 	DialogTitle,
 	DialogContent,
 	DialogActions,
+	Tabs,
+	Tab,
+	InputAdornment,
+	Tooltip,
+	Typography,
+	IconButton,
 } from '@mui/material';
 import {
 	ArrowLeft,
@@ -32,6 +38,16 @@ import {
 	User,
 	Download,
 	Check,
+	Pencil,
+	Plus,
+	Trash2,
+	RotateCcw,
+	DollarSign,
+	Calendar,
+	CreditCard,
+	Tag,
+	AlertCircle,
+	X,
 } from 'lucide-react';
 import { DashboardSurface, DashboardPanel } from '@/components/dashboard/DashboardSurface';
 import { ActivityLog } from '@/components/dashboard/ActivityLog';
@@ -155,6 +171,7 @@ export default function InvoiceDetailPage() {
 	const [updating, setUpdating] = useState(false);
 	const [disputedLineIds, setDisputedLineIds] = useState<Set<string>>(() => new Set());
 	const [isEditOpen, setIsEditOpen] = useState(false);
+	const [editModalTab, setEditModalTab] = useState<'details' | 'items'>('details');
 	const [editForm, setEditForm] = useState({
 		dueDate: '',
 		discount: '0',
@@ -258,7 +275,74 @@ export default function InvoiceDetailPage() {
 		}
 	};
 
-	const openInvoiceEditor = () => {
+	const resetLineItemEdit = (lineItemId: string) => {
+		if (!invoice) return;
+		const item = invoice.lineItems.find((entry) => entry.id === lineItemId);
+		if (!item) return;
+
+		setLineItemEdits((current) => ({
+			...current,
+			[lineItemId]: {
+				description: item.description,
+				type: item.type,
+				quantity: String(item.quantity ?? 1),
+				amount: String(item.amount ?? 0),
+				companyAmount: String((item as any).linkedCompanyLedgerEntry?.amount ?? 0),
+			},
+		}));
+	};
+
+	const resetAllLineItemEdits = () => {
+		if (!invoice) return;
+		setLineItemEdits(
+			Object.fromEntries(
+				invoice.lineItems.map((item) => [
+					item.id,
+					{
+						description: item.description,
+						type: item.type,
+						quantity: String(item.quantity ?? 1),
+						amount: String(item.amount ?? 0),
+						companyAmount: String((item as any).linkedCompanyLedgerEntry?.amount ?? 0),
+					},
+				])
+			)
+		);
+	};
+
+	const isLineItemDirty = (item: LineItem) => {
+		const edit = lineItemEdits[item.id];
+		if (!edit) return false;
+		const origCompanyAmount = String((item as any).linkedCompanyLedgerEntry?.amount ?? 0);
+		return (
+			edit.description !== item.description ||
+			edit.type !== item.type ||
+			edit.quantity !== String(item.quantity ?? 1) ||
+			edit.amount !== String(item.amount ?? 0) ||
+			edit.companyAmount !== origCompanyAmount
+		);
+	};
+
+	const hasAnyDirtyLineItems = useMemo(() => {
+		if (!invoice?.lineItems) return false;
+		return invoice.lineItems.some((item) => isLineItemDirty(item));
+	}, [invoice?.lineItems, lineItemEdits]);
+
+	const liveLineItemsSubtotal = useMemo(() => {
+		if (!invoice?.lineItems) return 0;
+		return invoice.lineItems.reduce((sum, item) => {
+			const itemEdit = lineItemEdits[item.id];
+			const amount = itemEdit ? parseFloat(itemEdit.amount) || 0 : item.amount;
+			const qty = itemEdit ? parseFloat(itemEdit.quantity) || 1 : item.quantity;
+			return sum + amount * qty;
+		}, 0);
+	}, [invoice?.lineItems, lineItemEdits]);
+
+	const liveDiscount = Math.max(0, parseFloat(editForm.discount) || 0);
+	const liveTax = Math.max(0, parseFloat(editForm.tax) || 0);
+	const liveGrandTotal = Math.max(0, liveLineItemsSubtotal - liveDiscount + liveTax);
+
+	const openInvoiceEditor = (initialTab: 'details' | 'items' = 'details') => {
 		if (!invoice) return;
 		setEditForm({
 			dueDate: invoice.dueDate ? new Date(invoice.dueDate).toISOString().slice(0, 10) : '',
@@ -270,6 +354,8 @@ export default function InvoiceDetailPage() {
 			internalNotes: invoice.internalNotes ?? '',
 		});
 		setManualLineItem({ description: '', type: 'OTHER_FEE', quantity: '1', amount: '0', companyAmount: '0' });
+		resetAllLineItemEdits();
+		setEditModalTab(initialTab);
 		setIsEditOpen(true);
 	};
 
@@ -355,41 +441,6 @@ export default function InvoiceDetailPage() {
 		} finally {
 			setUpdating(false);
 		}
-	};
-
-	const resetLineItemEdit = (lineItemId: string) => {
-		if (!invoice) return;
-		const item = invoice.lineItems.find((entry) => entry.id === lineItemId);
-		if (!item) return;
-
-		setLineItemEdits((current) => ({
-			...current,
-			[lineItemId]: {
-				description: item.description,
-				type: item.type,
-				quantity: String(item.quantity ?? 1),
-				amount: String(item.amount ?? 0),
-				companyAmount: String((item as any).linkedCompanyLedgerEntry?.amount ?? 0),
-			},
-		}));
-	};
-
-	const resetAllLineItemEdits = () => {
-		if (!invoice) return;
-		setLineItemEdits(
-			Object.fromEntries(
-				invoice.lineItems.map((item) => [
-					item.id,
-					{
-						description: item.description,
-						type: item.type,
-						quantity: String(item.quantity ?? 1),
-						amount: String(item.amount ?? 0),
-						companyAmount: String((item as any).linkedCompanyLedgerEntry?.amount ?? 0),
-					},
-				])
-			)
-		);
 	};
 
 	const handleUpdateLineItem = async (lineItemId: string) => {
@@ -652,184 +703,514 @@ export default function InvoiceDetailPage() {
 
 	return (
 		<>
-			<Dialog open={isEditOpen} onClose={() => setIsEditOpen(false)} maxWidth="sm" fullWidth>
-				<DialogTitle>Edit Invoice</DialogTitle>
-				<DialogContent>
-					<Box sx={{ display: 'grid', gap: 2, mt: 1 }}>
-						<TextField
-							label="Due Date"
-							type="date"
-							value={editForm.dueDate}
-							onChange={(event) => setEditForm((current) => ({ ...current, dueDate: event.target.value }))}
-							InputLabelProps={{ shrink: true }}
-							fullWidth
-						/>
-						<TextField
-							label="Discount"
-							type="number"
-							value={editForm.discount}
-							onChange={(event) => setEditForm((current) => ({ ...current, discount: event.target.value }))}
-							inputProps={{ min: 0, step: '0.01' }}
-							fullWidth
-						/>
-						<TextField
-							label="Tax"
-							type="number"
-							value={editForm.tax}
-							onChange={(event) => setEditForm((current) => ({ ...current, tax: event.target.value }))}
-							inputProps={{ min: 0, step: '0.01' }}
-							fullWidth
-						/>
-						<TextField
-							label="Payment Method"
-							value={editForm.paymentMethod}
-							onChange={(event) => setEditForm((current) => ({ ...current, paymentMethod: event.target.value }))}
-							fullWidth
-						/>
-						<TextField
-							label="Payment Reference"
-							value={editForm.paymentReference}
-							onChange={(event) => setEditForm((current) => ({ ...current, paymentReference: event.target.value }))}
-							fullWidth
-						/>
-						<TextField
-							label="Customer Notes"
-							value={editForm.notes}
-							onChange={(event) => setEditForm((current) => ({ ...current, notes: event.target.value }))}
-							multiline
-							rows={3}
-							fullWidth
-						/>
-						<TextField
-							label="Internal Notes"
-							value={editForm.internalNotes}
-							onChange={(event) => setEditForm((current) => ({ ...current, internalNotes: event.target.value }))}
-							multiline
-							rows={3}
-							fullWidth
-						/>
-						<Box sx={{ border: '1px solid var(--border)', borderRadius: 1, p: 2, display: 'grid', gap: 2 }}>
+			<Dialog 
+				open={isEditOpen} 
+				onClose={() => setIsEditOpen(false)} 
+				maxWidth="md" 
+				fullWidth
+				PaperProps={{
+					sx: {
+						borderRadius: 3,
+						bgcolor: 'var(--panel)',
+						border: '1px solid var(--border)',
+						boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+						overflow: 'hidden',
+					}
+				}}
+			>
+				<DialogTitle sx={{ p: 2.5, pb: 1.5, bgcolor: 'var(--panel)', borderBottom: '1px solid var(--border)' }}>
+					<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+						<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+							<Box sx={{ 
+								p: 1, 
+								borderRadius: 2, 
+								bgcolor: 'rgba(var(--accent-gold-rgb), 0.12)', 
+								color: 'var(--accent-gold)',
+								display: 'flex', 
+								alignItems: 'center', 
+								justifyContent: 'center' 
+							}}>
+								<Pencil className="w-5 h-5" />
+							</Box>
+							<div>
+								<Typography sx={{ fontWeight: 700, fontSize: '1.15rem', color: 'var(--text-primary)', lineHeight: 1.2 }}>
+									Edit Invoice & Charges
+								</Typography>
+								<Typography sx={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+									Invoice #{invoice.invoiceNumber} &bull; {invoice.user.name || invoice.user.email}
+								</Typography>
+							</div>
+						</Box>
+						<IconButton 
+							size="small" 
+							onClick={() => setIsEditOpen(false)}
+							sx={{ color: 'var(--text-secondary)', '&:hover': { color: 'var(--text-primary)' } }}
+						>
+							<X className="w-5 h-5" />
+						</IconButton>
+					</Box>
+
+					{/* Navigation Tabs */}
+					<Box sx={{ mt: 2 }}>
+						<Tabs 
+							value={editModalTab} 
+							onChange={(_, val) => setEditModalTab(val)}
+							sx={{
+								minHeight: 40,
+								'& .MuiTabs-indicator': {
+									bgcolor: 'var(--accent-gold)',
+									height: 3,
+									borderRadius: '3px 3px 0 0',
+								},
+								'& .MuiTab-root': {
+									textTransform: 'none',
+									fontWeight: 600,
+									fontSize: '0.875rem',
+									color: 'var(--text-secondary)',
+									minHeight: 40,
+									py: 1,
+									px: 2,
+									'&.Mui-selected': {
+										color: 'var(--accent-gold)',
+									},
+								},
+							}}
+						>
+							<Tab 
+								value="details" 
+								label={
+									<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+										<FileText className="w-4 h-4" />
+										<span>Terms & Payment Details</span>
+									</Box>
+								} 
+							/>
+							<Tab 
+								value="items" 
+								label={
+									<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+										<DollarSign className="w-4 h-4" />
+										<span>Line Items & Charges ({invoice.lineItems.length})</span>
+										{hasAnyDirtyLineItems && (
+											<span className="w-2 h-2 rounded-full bg-[var(--accent-gold)] animate-pulse" />
+										)}
+									</Box>
+								} 
+							/>
+						</Tabs>
+					</Box>
+				</DialogTitle>
+
+				<DialogContent sx={{ p: { xs: 2, sm: 3 }, bgcolor: 'var(--panel)', maxHeight: 'calc(80vh - 180px)', overflowY: 'auto' }}>
+					{editModalTab === 'details' ? (
+						<Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 1 }}>
+							{/* Section 1: Schedule & Payment */}
+							<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+								<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+									<Calendar className="w-4 h-4 text-[var(--accent-gold)]" />
+									<Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+										Schedule & Payment Terms
+									</Typography>
+								</Box>
+								<Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr 1fr' }, gap: 2 }}>
+									<TextField
+										label="Due Date"
+										type="date"
+										size="small"
+										value={editForm.dueDate}
+										onChange={(event) => setEditForm((current) => ({ ...current, dueDate: event.target.value }))}
+										InputLabelProps={{ shrink: true }}
+										fullWidth
+									/>
+									<TextField
+										label="Payment Method"
+										placeholder="e.g. Bank Wire, Card, Cash"
+										size="small"
+										value={editForm.paymentMethod}
+										onChange={(event) => setEditForm((current) => ({ ...current, paymentMethod: event.target.value }))}
+										fullWidth
+									/>
+									<TextField
+										label="Payment Reference"
+										placeholder="e.g. Wire ID / Cheque #"
+										size="small"
+										value={editForm.paymentReference}
+										onChange={(event) => setEditForm((current) => ({ ...current, paymentReference: event.target.value }))}
+										fullWidth
+									/>
+								</Box>
+							</Box>
+
+							<Divider sx={{ borderColor: 'var(--border)' }} />
+
+							{/* Section 2: Adjustments */}
+							<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+								<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+									<DollarSign className="w-4 h-4 text-[var(--accent-gold)]" />
+									<Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+										Discounts & Taxes
+									</Typography>
+								</Box>
+								<Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+									<TextField
+										label="Overall Discount"
+										type="number"
+										size="small"
+										value={editForm.discount}
+										onChange={(event) => setEditForm((current) => ({ ...current, discount: event.target.value }))}
+										inputProps={{ min: 0, step: '0.01' }}
+										InputProps={{
+											startAdornment: <InputAdornment position="start">$</InputAdornment>,
+										}}
+										helperText="Deducted directly from line items subtotal"
+										fullWidth
+									/>
+									<TextField
+										label="Tax Amount"
+										type="number"
+										size="small"
+										value={editForm.tax}
+										onChange={(event) => setEditForm((current) => ({ ...current, tax: event.target.value }))}
+										inputProps={{ min: 0, step: '0.01' }}
+										InputProps={{
+											startAdornment: <InputAdornment position="start">$</InputAdornment>,
+										}}
+										helperText="Sales tax or VAT applied to total"
+										fullWidth
+									/>
+								</Box>
+							</Box>
+
+							<Divider sx={{ borderColor: 'var(--border)' }} />
+
+							{/* Section 3: Notes & Disclosures */}
+							<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+								<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+									<FileText className="w-4 h-4 text-[var(--accent-gold)]" />
+									<Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+										Notes & Disclosures
+									</Typography>
+								</Box>
+								<Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
+									<TextField
+										label="Customer Notes"
+										placeholder="Public notes visible on printed PDF and customer portal"
+										value={editForm.notes}
+										onChange={(event) => setEditForm((current) => ({ ...current, notes: event.target.value }))}
+										multiline
+										rows={3}
+										fullWidth
+										helperText="Visible to customer"
+									/>
+									<TextField
+										label="Internal Notes"
+										placeholder="Private administrative notes (accounting, exceptions, audit log)"
+										value={editForm.internalNotes}
+										onChange={(event) => setEditForm((current) => ({ ...current, internalNotes: event.target.value }))}
+										multiline
+										rows={3}
+										fullWidth
+										helperText="Visible to staff only"
+									/>
+								</Box>
+							</Box>
+						</Box>
+					) : (
+						<Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 1 }}>
+							{/* Line Items Top Bar */}
 							<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
-																													<Box sx={{ fontSize: '0.875rem', fontWeight: 600 }}>Existing Expense Lines</Box>
-																													<Button variant="outline" size="sm" onClick={resetAllLineItemEdits} disabled={updating || invoice.lineItems.length === 0}>Reset all</Button>
-																												</Box>
+								<Box>
+									<Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+										Active Charge Lines ({invoice.lineItems.length})
+									</Typography>
+									<Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+										Click 'Save' on any modified row to immediately update that line item.
+									</Typography>
+								</Box>
+								<Button 
+									variant="outline" 
+									size="sm" 
+									icon={<RotateCcw className="w-3.5 h-3.5" />}
+									onClick={resetAllLineItemEdits} 
+									disabled={updating || invoice.lineItems.length === 0}
+								>
+									Reset all
+								</Button>
+							</Box>
+
+							{/* Line Items List */}
 							{invoice.lineItems.length === 0 ? (
-								<Box sx={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>No expense lines yet.</Box>
+								<Box sx={{ 
+									p: 4, 
+									textAlign: 'center', 
+									borderRadius: 2, 
+									border: '1px dashed var(--border)',
+									bgcolor: 'var(--background)' 
+								}}>
+									<Typography sx={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+										No expense lines on this invoice yet. Use the form below to add one.
+									</Typography>
+								</Box>
 							) : (
-								<Box sx={{ display: 'grid', gap: 2 }}>
-									{invoice.lineItems.map((item) => (
-										<Box key={item.id} sx={{ border: '1px solid var(--border)', borderRadius: 1, p: 1.5, display: 'grid', gap: 1.5 }}>
-											<TextField
-												label="Description"
-												value={lineItemEdits[item.id]?.description ?? item.description}
-												onChange={(event) => setLineItemEdits((current) => ({
-													...current,
-													[item.id]: {
-														type: current[item.id]?.type ?? item.type,
-														quantity: current[item.id]?.quantity ?? String(item.quantity ?? 1),
-														amount: current[item.id]?.amount ?? String(item.amount ?? 0),
-														companyAmount: current[item.id]?.companyAmount ?? String((item as any).linkedCompanyLedgerEntry?.amount ?? 0),
-														description: event.target.value,
-													},
-												}))}
-												fullWidth
-											/>
-											<Box sx={{ display: 'grid', gridTemplateColumns: '1fr 120px', gap: 2 }}>
-												<FormControl fullWidth size="small">
-													<InputLabel>Type</InputLabel>
-													<Select
-														value={lineItemEdits[item.id]?.type ?? item.type}
+								<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+									{invoice.lineItems.map((item) => {
+										const isDirty = isLineItemDirty(item);
+										const edit = lineItemEdits[item.id];
+										const qty = edit ? parseFloat(edit.quantity) || 1 : item.quantity;
+										const unitPrice = edit ? parseFloat(edit.amount) || 0 : item.amount;
+										const lineTotal = qty * unitPrice;
+
+										return (
+											<Box 
+												key={item.id} 
+												sx={{ 
+													border: isDirty ? '1px solid rgba(var(--accent-gold-rgb), 0.6)' : '1px solid var(--border)', 
+													borderRadius: 2, 
+													p: 2, 
+													display: 'flex', 
+													flexDirection: 'column', 
+													gap: 1.5,
+													bgcolor: isDirty ? 'rgba(var(--accent-gold-rgb), 0.03)' : 'var(--background)',
+													boxShadow: isDirty ? '0 0 14px rgba(var(--accent-gold-rgb), 0.08)' : 'none',
+													transition: 'all 0.2s ease',
+												}}
+											>
+												{/* Item Header */}
+												<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
+													<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+														<Box sx={{ 
+															p: 0.75, 
+															borderRadius: 1.5, 
+															bgcolor: 'var(--panel)', 
+															border: '1px solid var(--border)',
+															display: 'flex', 
+															alignItems: 'center', 
+															justifyContent: 'center' 
+														}}>
+															<Tag className="w-3.5 h-3.5 text-[var(--accent-gold)]" />
+														</Box>
+														<Typography sx={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-primary)' }}>
+															{item.description || 'Expense Line'}
+														</Typography>
+														{isDirty && (
+															<Chip 
+																label="Unsaved Changes" 
+																size="small" 
+																sx={{ 
+																	height: 20, 
+																	fontSize: '0.65rem', 
+																	bgcolor: 'rgba(var(--accent-gold-rgb), 0.15)', 
+																	color: 'var(--accent-gold)', 
+																	fontWeight: 600,
+																	border: '1px solid rgba(var(--accent-gold-rgb), 0.3)'
+																}} 
+															/>
+														)}
+													</Box>
+													<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+														<Box sx={{ textAlign: 'right', mr: 0.5 }}>
+															<Typography sx={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+																Line Total
+															</Typography>
+															<Typography sx={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+																{formatCurrency(lineTotal)}
+															</Typography>
+														</Box>
+														{isDirty && (
+															<Button 
+																variant="outline" 
+																size="sm" 
+																icon={<RotateCcw className="w-3.5 h-3.5" />}
+																onClick={() => resetLineItemEdit(item.id)} 
+																disabled={updating}
+															>
+																Reset
+															</Button>
+														)}
+														<Button 
+															variant={isDirty ? 'primary' : 'outline'} 
+															size="sm" 
+															icon={<Check className="w-3.5 h-3.5" />}
+															onClick={() => void handleUpdateLineItem(item.id)} 
+															disabled={updating || !isDirty}
+															sx={isDirty ? { bgcolor: 'var(--accent-gold)', color: 'white' } : {}}
+														>
+															Save
+														</Button>
+														<Button 
+															variant="outline" 
+															size="sm" 
+															color="error" 
+															icon={<Trash2 className="w-3.5 h-3.5 text-[var(--error)]" />}
+															onClick={() => void handleRemoveLineItem(item.id)} 
+															disabled={updating}
+															title="Remove Line"
+														/>
+													</Box>
+												</Box>
+
+												{/* Row 1: Description & Type */}
+												<Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '2fr 1.2fr' }, gap: 1.5 }}>
+													<TextField
+														label="Description"
+														size="small"
+														value={lineItemEdits[item.id]?.description ?? item.description}
 														onChange={(event) => setLineItemEdits((current) => ({
-														...current,
-														[item.id]: {
-															description: current[item.id]?.description ?? item.description,
-															type: event.target.value,
-															quantity: current[item.id]?.quantity ?? String(item.quantity ?? 1),
-															amount: current[item.id]?.amount ?? String(item.amount ?? 0),
-															companyAmount: current[item.id]?.companyAmount ?? String((item as any).linkedCompanyLedgerEntry?.amount ?? 0),
-														},
-													}))}
-													>
-														<MenuItem value="OTHER_FEE">Other Fee</MenuItem>
-														<MenuItem value="SHIPPING_FEE">Shipping</MenuItem>
-														<MenuItem value="INSURANCE">Insurance</MenuItem>
-														<MenuItem value="CUSTOMS_FEE">Customs</MenuItem>
-														<MenuItem value="STORAGE_FEE">Storage</MenuItem>
-														<MenuItem value="HANDLING_FEE">Handling</MenuItem>
-													</Select>
-												</FormControl>
-												<TextField
-													label="Qty"
-													type="number"
-													value={lineItemEdits[item.id]?.quantity ?? String(item.quantity ?? 1)}
-													onChange={(event) => setLineItemEdits((current) => ({
-													...current,
-													[item.id]: {
-														description: current[item.id]?.description ?? item.description,
-														type: current[item.id]?.type ?? item.type,
-														quantity: event.target.value,
-														amount: current[item.id]?.amount ?? String(item.amount ?? 0),
-														companyAmount: current[item.id]?.companyAmount ?? String((item as any).linkedCompanyLedgerEntry?.amount ?? 0),
-													},
-												}))}
-													inputProps={{ min: 0, step: '1' }}
-												/>
+															...current,
+															[item.id]: {
+																type: current[item.id]?.type ?? item.type,
+																quantity: current[item.id]?.quantity ?? String(item.quantity ?? 1),
+																amount: current[item.id]?.amount ?? String(item.amount ?? 0),
+																companyAmount: current[item.id]?.companyAmount ?? String((item as any).linkedCompanyLedgerEntry?.amount ?? 0),
+																description: event.target.value,
+															},
+														}))}
+														fullWidth
+													/>
+													<FormControl fullWidth size="small">
+														<InputLabel>Category / Type</InputLabel>
+														<Select
+															label="Category / Type"
+															value={lineItemEdits[item.id]?.type ?? item.type}
+															onChange={(event) => setLineItemEdits((current) => ({
+																...current,
+																[item.id]: {
+																	description: current[item.id]?.description ?? item.description,
+																	type: event.target.value,
+																	quantity: current[item.id]?.quantity ?? String(item.quantity ?? 1),
+																	amount: current[item.id]?.amount ?? String(item.amount ?? 0),
+																	companyAmount: current[item.id]?.companyAmount ?? String((item as any).linkedCompanyLedgerEntry?.amount ?? 0),
+																},
+															}))}
+														>
+															<MenuItem value="OTHER_FEE">Other Fee</MenuItem>
+															<MenuItem value="SHIPPING_FEE">Shipping Fee</MenuItem>
+															<MenuItem value="INSURANCE">Insurance</MenuItem>
+															<MenuItem value="CUSTOMS_FEE">Customs Fee</MenuItem>
+															<MenuItem value="STORAGE_FEE">Storage Fee</MenuItem>
+															<MenuItem value="HANDLING_FEE">Handling Fee</MenuItem>
+														</Select>
+													</FormControl>
+												</Box>
+
+												{/* Row 2: Quantity, Amount, Company Cost */}
+												<Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: isAdmin ? '1fr 1.5fr 1.5fr' : '1fr 2fr' }, gap: 1.5 }}>
+													<TextField
+														label="Quantity"
+														size="small"
+														type="number"
+														value={lineItemEdits[item.id]?.quantity ?? String(item.quantity ?? 1)}
+														onChange={(event) => setLineItemEdits((current) => ({
+															...current,
+															[item.id]: {
+																description: current[item.id]?.description ?? item.description,
+																type: current[item.id]?.type ?? item.type,
+																quantity: event.target.value,
+																amount: current[item.id]?.amount ?? String(item.amount ?? 0),
+																companyAmount: current[item.id]?.companyAmount ?? String((item as any).linkedCompanyLedgerEntry?.amount ?? 0),
+															},
+														}))}
+														inputProps={{ min: 0, step: '1' }}
+													/>
+													<TextField
+														label="Unit Price"
+														size="small"
+														type="number"
+														value={lineItemEdits[item.id]?.amount ?? String(item.amount ?? 0)}
+														onChange={(event) => setLineItemEdits((current) => ({
+															...current,
+															[item.id]: {
+																description: current[item.id]?.description ?? item.description,
+																type: current[item.id]?.type ?? item.type,
+																quantity: current[item.id]?.quantity ?? String(item.quantity ?? 1),
+																amount: event.target.value,
+																companyAmount: current[item.id]?.companyAmount ?? String((item as any).linkedCompanyLedgerEntry?.amount ?? 0),
+															},
+														}))}
+														inputProps={{ min: 0, step: '0.01' }}
+														InputProps={{
+															startAdornment: <InputAdornment position="start">$</InputAdornment>,
+														}}
+														fullWidth
+													/>
+													{isAdmin && (
+														<TextField
+															label="Company Cost"
+															size="small"
+															type="number"
+															value={lineItemEdits[item.id]?.companyAmount ?? String((item as any).linkedCompanyLedgerEntry?.amount ?? 0)}
+															onChange={(event) => setLineItemEdits((current) => ({
+																...current,
+																[item.id]: {
+																	description: current[item.id]?.description ?? item.description,
+																	type: current[item.id]?.type ?? item.type,
+																	quantity: current[item.id]?.quantity ?? String(item.quantity ?? 1),
+																	amount: current[item.id]?.amount ?? String(item.amount ?? 0),
+																	companyAmount: event.target.value,
+																},
+															}))}
+															inputProps={{ min: 0, step: '0.01' }}
+															InputProps={{
+																startAdornment: <InputAdornment position="start">$</InputAdornment>,
+															}}
+															helperText="Internal ledger cost"
+															fullWidth
+														/>
+													)}
+												</Box>
 											</Box>
-											<TextField
-												label="Amount"
-												type="number"
-												value={lineItemEdits[item.id]?.amount ?? String(item.amount ?? 0)}
-												onChange={(event) => setLineItemEdits((current) => ({
-												...current,
-												[item.id]: {
-													description: current[item.id]?.description ?? item.description,
-													type: current[item.id]?.type ?? item.type,
-													quantity: current[item.id]?.quantity ?? String(item.quantity ?? 1),
-													amount: event.target.value,
-													companyAmount: current[item.id]?.companyAmount ?? String((item as any).linkedCompanyLedgerEntry?.amount ?? 0),
-												},
-											}))}
-												inputProps={{ min: 0, step: '0.01' }}
-												fullWidth
-											/>
-											<TextField
-												label="Company Amount"
-												type="number"
-												value={lineItemEdits[item.id]?.companyAmount ?? String((item as any).linkedCompanyLedgerEntry?.amount ?? 0)}
-												onChange={(event) => setLineItemEdits((current) => ({
-													...current,
-													[item.id]: {
-														description: current[item.id]?.description ?? item.description,
-														type: current[item.id]?.type ?? item.type,
-														quantity: current[item.id]?.quantity ?? String(item.quantity ?? 1),
-														amount: current[item.id]?.amount ?? String(item.amount ?? 0),
-														companyAmount: event.target.value,
-													},
-												}))}
-												inputProps={{ min: 0, step: '0.01' }}
-												fullWidth
-												/>
-											<Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-												<Button variant="outline" size="sm" onClick={() => resetLineItemEdit(item.id)} disabled={updating}>Reset</Button>
-																																																																<Button variant="outline" size="sm" onClick={() => void handleUpdateLineItem(item.id)} disabled={updating}>Save</Button>
-												<Button variant="outline" size="sm" color="error" onClick={() => void handleRemoveLineItem(item.id)} disabled={updating}>Remove</Button>
-											</Box>
-										</Box>
-									))}
+										);
+									})}
 								</Box>
 							)}
-							<Box sx={{ borderTop: '1px solid var(--border)', pt: 2, display: 'grid', gap: 2 }}>
-								<Box sx={{ fontSize: '0.875rem', fontWeight: 600 }}>Add Expense Line</Box>
-								<TextField
-									label="Description"
-									value={manualLineItem.description}
-									onChange={(event) => setManualLineItem((current) => ({ ...current, description: event.target.value }))}
-									fullWidth
-								/>
-								<Box sx={{ display: 'grid', gridTemplateColumns: '1fr 120px', gap: 2 }}>
+
+							{/* Add Expense Line Form */}
+							<Box 
+								sx={{ 
+									border: '1px dashed rgba(var(--accent-gold-rgb), 0.6)', 
+									borderRadius: 2, 
+									p: 2.5, 
+									bgcolor: 'rgba(var(--accent-gold-rgb), 0.03)',
+									display: 'flex', 
+									flexDirection: 'column', 
+									gap: 2 
+								}}
+							>
+								<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+									<Box sx={{ 
+										p: 0.75, 
+										borderRadius: 1.5, 
+										bgcolor: 'rgba(var(--accent-gold-rgb), 0.15)', 
+										color: 'var(--accent-gold)',
+										display: 'flex', 
+										alignItems: 'center', 
+										justifyContent: 'center' 
+									}}>
+										<Plus className="w-4 h-4" />
+									</Box>
+									<div>
+										<Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+											Add Expense Line
+										</Typography>
+										<Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+											Insert additional freight charges, customs duties, storage, or miscellaneous fees
+										</Typography>
+									</div>
+								</Box>
+
+								<Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '2fr 1.2fr' }, gap: 1.5 }}>
+									<TextField
+										label="Description"
+										placeholder="e.g. Additional warehouse storage fee"
+										size="small"
+										value={manualLineItem.description}
+										onChange={(event) => setManualLineItem((current) => ({ ...current, description: event.target.value }))}
+										fullWidth
+									/>
 									<FormControl fullWidth size="small">
 										<InputLabel>Type</InputLabel>
 										<Select
+											label="Type"
 											value={manualLineItem.type}
 											onChange={(event) => setManualLineItem((current) => ({ ...current, type: event.target.value }))}
 										>
@@ -841,40 +1222,120 @@ export default function InvoiceDetailPage() {
 											<MenuItem value="HANDLING_FEE">Handling</MenuItem>
 										</Select>
 									</FormControl>
+								</Box>
+
+								<Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: isAdmin ? '1fr 1.5fr 1.5fr' : '1fr 2fr' }, gap: 1.5 }}>
 									<TextField
-										label="Qty"
+										label="Quantity"
+										size="small"
 										type="number"
 										value={manualLineItem.quantity}
 										onChange={(event) => setManualLineItem((current) => ({ ...current, quantity: event.target.value }))}
 										inputProps={{ min: 1, step: '1' }}
 									/>
-								</Box>
-								<TextField
-									label="Amount"
-									type="number"
-									value={manualLineItem.amount}
-									onChange={(event) => setManualLineItem((current) => ({ ...current, amount: event.target.value }))}
-									inputProps={{ min: 0, step: '0.01' }}
-									fullWidth
-								/>
+									<TextField
+										label="Amount"
+										size="small"
+										type="number"
+										value={manualLineItem.amount}
+										onChange={(event) => setManualLineItem((current) => ({ ...current, amount: event.target.value }))}
+										inputProps={{ min: 0, step: '0.01' }}
+										InputProps={{
+											startAdornment: <InputAdornment position="start">$</InputAdornment>,
+										}}
+										fullWidth
+									/>
+									{isAdmin && (
 										<TextField
 											label="Company Amount"
+											size="small"
 											type="number"
 											value={manualLineItem.companyAmount}
 											onChange={(event) => setManualLineItem((current) => ({ ...current, companyAmount: event.target.value }))}
 											inputProps={{ min: 0, step: '0.01' }}
+											InputProps={{
+												startAdornment: <InputAdornment position="start">$</InputAdornment>,
+											}}
+											helperText="Internal ledger cost"
 											fullWidth
 										/>
-								<Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-									<Button variant="outline" onClick={() => void handleAddManualLineItem()} disabled={updating}>Add Line</Button>
+									)}
+								</Box>
+
+								<Box sx={{ display: 'flex', justifyContent: 'flex-end', pt: 0.5 }}>
+									<Button 
+										variant="primary" 
+										size="sm"
+										icon={<Plus className="w-4 h-4" />}
+										onClick={() => void handleAddManualLineItem()} 
+										disabled={updating || !manualLineItem.description.trim()}
+										sx={{ bgcolor: 'var(--accent-gold)', color: 'white' }}
+									>
+										Add Line Item
+									</Button>
 								</Box>
 							</Box>
 						</Box>
-					</Box>
+					)}
 				</DialogContent>
-				<DialogActions>
-					<Button variant="outline" onClick={() => setIsEditOpen(false)} disabled={updating}>Cancel</Button>
-					<Button variant="primary" onClick={handleInvoiceEdit} disabled={updating}>{updating ? 'Saving...' : 'Save Changes'}</Button>
+
+				<DialogActions sx={{ 
+					p: 2.5, 
+					bgcolor: 'var(--panel)', 
+					borderTop: '1px solid var(--border)', 
+					display: 'flex', 
+					alignItems: 'center', 
+					justifyContent: 'space-between',
+					flexWrap: 'wrap',
+					gap: 2 
+				}}>
+					{/* Live Totals Bar */}
+					<Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+						<Box sx={{ display: 'flex', alignItems: 'center', gap: 1, fontSize: '0.85rem' }}>
+							<span className="text-[var(--text-secondary)]">Subtotal:</span>
+							<span className="font-semibold text-[var(--text-primary)]">{formatCurrency(liveLineItemsSubtotal)}</span>
+						</Box>
+						{liveDiscount > 0 && (
+							<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '0.85rem' }}>
+								<span className="text-[var(--text-secondary)]">Discount:</span>
+								<span className="font-semibold text-emerald-500">-{formatCurrency(liveDiscount)}</span>
+							</Box>
+						)}
+						{liveTax > 0 && (
+							<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '0.85rem' }}>
+								<span className="text-[var(--text-secondary)]">Tax:</span>
+								<span className="font-semibold text-[var(--text-primary)]">+{formatCurrency(liveTax)}</span>
+							</Box>
+						)}
+						<Box sx={{ 
+							display: 'flex', 
+							alignItems: 'center', 
+							gap: 1, 
+							bgcolor: 'rgba(var(--accent-gold-rgb), 0.12)', 
+							border: '1px solid rgba(var(--accent-gold-rgb), 0.3)',
+							borderRadius: 1.5, 
+							px: 1.75, 
+							py: 0.5 
+						}}>
+							<span className="text-[0.7rem] font-bold uppercase tracking-wider text-[var(--accent-gold)]">Grand Total:</span>
+							<span className="text-[0.95rem] font-bold text-[var(--accent-gold)]">{formatCurrency(liveGrandTotal)}</span>
+						</Box>
+					</Box>
+
+					{/* Action Buttons */}
+					<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+						<Button variant="outline" onClick={() => setIsEditOpen(false)} disabled={updating}>
+							Cancel
+						</Button>
+						<Button 
+							variant="primary" 
+							onClick={handleInvoiceEdit} 
+							disabled={updating}
+							sx={{ bgcolor: 'var(--accent-gold)', color: 'white' }}
+						>
+							{updating ? 'Saving...' : 'Save Invoice Details'}
+						</Button>
+					</Box>
 				</DialogActions>
 			</Dialog>
 
@@ -920,7 +1381,8 @@ export default function InvoiceDetailPage() {
 								<Button
 									variant="outline"
 									size="sm"
-									onClick={openInvoiceEditor}
+									icon={<Pencil className="w-4 h-4" />}
+									onClick={() => openInvoiceEditor('details')}
 									disabled={updating}
 								>
 									Edit Invoice
@@ -1186,6 +1648,19 @@ export default function InvoiceDetailPage() {
 						<DashboardPanel 
 							title="Line Items"
 							description="Detailed breakdown of charges"
+							actions={
+								isAdmin && invoice.status !== 'PAID' && invoice.status !== 'CANCELLED' ? (
+									<Button
+										variant="outline"
+										size="sm"
+										icon={<Pencil className="w-3.5 h-3.5" />}
+										onClick={() => openInvoiceEditor('items')}
+										disabled={updating}
+									>
+										Edit Charges
+									</Button>
+								) : undefined
+							}
 						>
 						<TableContainer sx={{ border: '1px solid var(--border)', borderRadius: 2 }}>
 							<Table
