@@ -6,16 +6,12 @@ import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import {
   Box,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   TextField,
 } from '@mui/material';
 import { ArrowRightLeft, ExternalLink, Landmark, Link2, ReceiptText, RefreshCcw, Upload } from 'lucide-react';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
-import { Breadcrumbs, Button, StatsCard, TableSkeleton, toast } from '@/components/design-system';
+import { PageHeader, Button, StatsCard, TableSkeleton, Modal, toast } from '@/components/design-system';
 import { DataTable, type Column } from '@/components/ui/DataTable';
 
 interface BankingSummary {
@@ -413,22 +409,20 @@ export default function BankingFinancePage() {
   return (
     <ProtectedRoute>
       <DashboardSurface>
-        <Box sx={{ px: 2, pt: 2 }}>
-          <Breadcrumbs />
-        </Box>
-
-        <DashboardPanel
-          title="Banking"
-          description="Import your bank CSV into your own ledger from one dedicated finance page"
+        <PageHeader
+          showBreadcrumbs
+          title="Banking & Statement Reconciliation"
+          description="Import your bank CSV into your ledger or sync connected accounts"
           actions={
             <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
               <Link href="/dashboard/finance/ledger" style={{ textDecoration: 'none' }}>
-                <Button variant="outline" icon={<ExternalLink className="w-4 h-4" />}>
+                <Button variant="outline" size="sm" icon={<ExternalLink className="w-4 h-4" />}>
                   My Ledger
                 </Button>
               </Link>
               <Button
                 variant="outline"
+                size="sm"
                 icon={<Link2 className="w-4 h-4" />}
                 onClick={handlePrepareBankConnection}
                 disabled={!bankProviderConfigured || preparingBankConnection || syncingBankItems}
@@ -437,17 +431,23 @@ export default function BankingFinancePage() {
               </Button>
               <Button
                 variant="outline"
+                size="sm"
                 icon={<RefreshCcw className="w-4 h-4" />}
                 onClick={handleSyncBankItems}
                 disabled={!bankProviderConfigured || syncingBankItems || bankItems.length === 0}
               >
                 {syncingBankItems ? 'Syncing...' : 'Sync Now'}
               </Button>
-              <Button variant="primary" icon={<Upload className="w-4 h-4" />} onClick={() => setOpenImportDialog(true)}>
+              <Button variant="primary" size="sm" icon={<Upload className="w-4 h-4" />} onClick={() => setOpenImportDialog(true)}>
                 Import Bank CSV
               </Button>
             </Box>
           }
+        />
+
+        <DashboardPanel
+          title="Account Overview"
+          description="Bank imports and active integrations"
         >
           <Box sx={{ mb: 2, color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
             Bank imports now post into <strong>{session?.user?.name || session?.user?.email || 'your account'}</strong> instead of a company ledger. Use Finicity to auto-sync a Bank of America account or keep using CSV uploads when needed.
@@ -544,13 +544,56 @@ export default function BankingFinancePage() {
           </DashboardPanel>
         </DashboardPanel>
 
-        <Dialog open={openImportDialog} onClose={() => { if (!importing && !previewingImport) { setOpenImportDialog(false); resetImportForm(); } }} maxWidth="md" fullWidth>
-          <DialogTitle>Import Bank of America CSV</DialogTitle>
-          <DialogContent sx={{ display: 'grid', gap: 2, pt: 1.5 }}>
-            <Box sx={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-              This import will post into your ledger. Money in is imported as <strong>DEBIT</strong>. Money out is imported as <strong>CREDIT</strong>.
+        {/* Modal for Bank CSV Import */}
+        <Modal
+          open={openImportDialog}
+          onClose={() => {
+            if (!importing && !previewingImport) {
+              setOpenImportDialog(false);
+              resetImportForm();
+            }
+          }}
+          size="lg"
+          title="Import Bank of America CSV"
+          description="Upload statements to post debit and credit transactions into your ledger"
+          actions={
+            <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end', width: '100%' }}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setOpenImportDialog(false);
+                  resetImportForm();
+                }}
+                disabled={importing || previewingImport}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePreviewBankCsv}
+                disabled={!importFile || previewingImport || importing}
+              >
+                {previewingImport ? 'Generating preview...' : 'Preview Import'}
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleImportBankCsv}
+                disabled={!importPreview || importing || previewingImport}
+              >
+                {importing ? 'Importing...' : 'Confirm & Post'}
+              </Button>
+            </Box>
+          }
+        >
+          <Box sx={{ display: 'grid', gap: 2 }}>
+            <Box sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+              This import will post directly into your ledger. Money in is imported as <strong>DEBIT</strong>. Money out is imported as <strong>CREDIT</strong>.
             </Box>
             <TextField
+              size="small"
               label="Ledger Category"
               value={importForm.category}
               onChange={(event) => {
@@ -561,6 +604,7 @@ export default function BankingFinancePage() {
               fullWidth
             />
             <TextField
+              size="small"
               label="Statement Ending Balance"
               value={importForm.statementEndingBalance}
               onChange={(event) => {
@@ -572,40 +616,34 @@ export default function BankingFinancePage() {
               fullWidth
             />
             <Box>
-              <Box sx={{ fontSize: '0.8rem', color: 'var(--text-secondary)', mb: 1 }}>CSV file</Box>
-              <input type="file" accept=".csv,text/csv" onChange={handleImportFileChange} />
+              <Box sx={{ fontSize: '0.8rem', color: 'var(--text-secondary)', mb: 1, fontWeight: 600 }}>CSV File</Box>
+              <input type="file" accept=".csv,text/csv" onChange={handleImportFileChange} className="text-sm" />
               {importFile && (
                 <Box sx={{ mt: 1, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                  Selected: {importFile.name}
+                  Selected: <strong>{importFile.name}</strong>
                 </Box>
               )}
             </Box>
 
             {importPreview && (
               <Box sx={{ display: 'grid', gap: 2 }}>
-                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(4, 1fr)' }, gap: 1.5 }}>
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }, gap: 1.5 }}>
                   <Box sx={{ p: 1.5, borderRadius: 2, border: '1px solid var(--border)', background: 'var(--panel)' }}>
                     <Box sx={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Rows</Box>
-                    <Box sx={{ mt: 0.5, fontWeight: 700 }}>{importPreview.totalCount}</Box>
+                    <Box sx={{ mt: 0.5, fontWeight: 700, fontSize: '1rem' }}>{importPreview.totalCount}</Box>
                     <Box sx={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>{importPreview.importableCount} ready to import</Box>
                   </Box>
                   <Box sx={{ p: 1.5, borderRadius: 2, border: '1px solid var(--border)', background: 'var(--panel)' }}>
                     <Box sx={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Duplicates</Box>
-                    <Box sx={{ mt: 0.5, fontWeight: 700 }}>{importPreview.duplicateCount}</Box>
-                    <Box sx={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Already imported or repeated in file</Box>
+                    <Box sx={{ mt: 0.5, fontWeight: 700, fontSize: '1rem' }}>{importPreview.duplicateCount}</Box>
+                    <Box sx={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Already in ledger</Box>
                   </Box>
                   <Box sx={{ p: 1.5, borderRadius: 2, border: '1px solid var(--border)', background: 'var(--panel)' }}>
                     <Box sx={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Net Change</Box>
-                    <Box sx={{ mt: 0.5, fontWeight: 700 }}>{formatCurrency(importPreview.importableNetChange)}</Box>
-                    <Box sx={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Current {formatCurrency(importPreview.currentBalance)}</Box>
-                  </Box>
-                  <Box sx={{ p: 1.5, borderRadius: 2, border: '1px solid var(--border)', background: 'var(--panel)' }}>
-                    <Box sx={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Projected Ending</Box>
-                    <Box sx={{ mt: 0.5, fontWeight: 700 }}>{formatCurrency(importPreview.projectedEndingBalance)}</Box>
-                    <Box sx={{ fontSize: '0.78rem', color: importPreview.reconciliationStatus === 'MATCH' ? '#16a34a' : importPreview.reconciliationStatus === 'VARIANCE' ? '#dc2626' : 'var(--text-secondary)' }}>
-                      {importPreview.reconciliationStatus === 'NOT_PROVIDED'
-                        ? 'Add statement ending balance to reconcile'
-                        : `${importPreview.reconciliationStatus === 'MATCH' ? 'Matches statement' : 'Difference'} ${formatCurrency(Math.abs(importPreview.reconciliationDifference || 0))}`}
+                    <Box sx={{ mt: 0.5, fontWeight: 700, fontSize: '1rem' }}>{formatCurrency(importPreview.importableNetChange)}</Box>
+                    <Box sx={{ mt: 0.5, fontWeight: 700, fontSize: '1rem' }}>{formatCurrency(importPreview.projectedEndingBalance)}</Box>
+                    <Box sx={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                      {importPreview.reconciliationStatus === 'MATCH' ? 'Reconciles with statement' : 'Variance detected'}
                     </Box>
                   </Box>
                 </Box>
@@ -685,13 +723,8 @@ export default function BankingFinancePage() {
                 </Box>
               </Box>
             )}
-          </DialogContent>
-          <DialogActions>
-            <Button variant="outline" onClick={() => { setOpenImportDialog(false); resetImportForm(); }} disabled={importing || previewingImport}>Cancel</Button>
-            <Button variant="outline" onClick={handlePreviewBankCsv} disabled={importing || previewingImport}>{previewingImport ? 'Previewing...' : 'Preview CSV'}</Button>
-            <Button variant="primary" onClick={handleImportBankCsv} disabled={importing || previewingImport || !importPreview}>{importing ? 'Importing...' : 'Import CSV'}</Button>
-          </DialogActions>
-        </Dialog>
+          </Box>
+        </Modal>
       </DashboardSurface>
     </ProtectedRoute>
   );

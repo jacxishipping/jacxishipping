@@ -19,6 +19,11 @@ import {
   FileText,
   Download,
   Save,
+  CreditCard,
+  Send,
+  Building2,
+  Receipt,
+  FileDown
 } from 'lucide-react';
 import { Box, Typography, Chip } from '@mui/material';
 import {
@@ -32,6 +37,8 @@ import {
   Breadcrumbs,
   LoadingState,
   EmptyState,
+  StatsCard,
+  StatusBadge,
   toast,
 } from '@/components/design-system';
 import ShipmentCard from '@/components/dashboard/ShipmentCard';
@@ -184,7 +191,7 @@ export default function UserViewPage({ params }: { params: Promise<{ id: string 
     );
   }
 
-  const isCustomer = user.role === 'user';
+  const isCustomer = user.role === 'user' || user.role === 'customer';
   const backHref = isCustomer ? '/dashboard/customers' : '/dashboard/users';
   const canNotifyCustomer = isCustomer && hasPermission(session?.user?.role, 'customers:view');
   const canManageCollections = isCustomer && (hasPermission(session?.user?.role, 'customers:manage') || hasPermission(session?.user?.role, 'finance:manage'));
@@ -309,23 +316,41 @@ export default function UserViewPage({ params }: { params: Promise<{ id: string 
 
   return (
     <DashboardSurface>
-      <Box sx={{ px: 2, pt: 2 }}>
-        <Breadcrumbs />
-      </Box>
-
+      {/* Standardized Header */}
       <PageHeader
+        showBreadcrumbs
         title={user.name || 'User Profile'}
-        description={`Member since ${new Date(user.createdAt).toLocaleDateString()}`}
+        description={`Account: ${user.email} • Member since ${new Date(user.createdAt).toLocaleDateString()}`}
         actions={
-          <Box sx={{ display: 'flex', gap: 2 }}>
+          <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', alignItems: 'center' }}>
             <Link href={backHref} style={{ textDecoration: 'none' }}>
-              <Button variant="outline" icon={<ArrowLeft className="w-4 h-4" />}>
+              <Button variant="outline" size="sm" icon={<ArrowLeft className="w-4 h-4" />}>
                 Back
               </Button>
             </Link>
+            {isCustomer && statement && (
+              <>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  icon={<Download className="w-4 h-4" />} 
+                  onClick={handleExportStatementCsv}
+                >
+                  Export CSV
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  icon={<FileDown className="w-4 h-4" />} 
+                  onClick={handleExportStatementPdf}
+                >
+                  Download Statement
+                </Button>
+              </>
+            )}
             {session?.user?.role === 'admin' && (
               <Link href={`/dashboard/users/${id}/edit`} style={{ textDecoration: 'none' }}>
-                <Button variant="primary" icon={<Edit className="w-4 h-4" />}>
+                <Button variant="primary" size="sm" icon={<Edit className="w-4 h-4" />}>
                   Edit Profile
                 </Button>
               </Link>
@@ -334,15 +359,55 @@ export default function UserViewPage({ params }: { params: Promise<{ id: string 
         }
       />
 
+      {/* KPI Financial Overview for Customers */}
+      {isCustomer && statement && (
+        <DashboardGrid className="grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+          <StatsCard
+            icon={<Wallet className="w-5 h-5 text-blue-600" />}
+            title="Outstanding AR"
+            value={formatMoney(statement.summary.outstandingAmount)}
+            subtitle={`${statement.summary.openInvoiceCount} open invoices`}
+            variant="default"
+            size="md"
+          />
+          <StatsCard
+            icon={<AlertTriangle className="w-5 h-5 text-rose-600" />}
+            title="Overdue Balance"
+            value={formatMoney(statement.summary.overdueAmount)}
+            subtitle={`${statement.summary.overdueInvoiceCount} overdue invoices`}
+            variant="warning"
+            size="md"
+          />
+          <StatsCard
+            icon={<Receipt className="w-5 h-5 text-emerald-600" />}
+            title="Paid Total"
+            value={formatMoney(statement.summary.paidAmount)}
+            subtitle={`${statement.summary.paidInvoiceCount} settled invoices`}
+            variant="success"
+            size="md"
+          />
+          <StatsCard
+            icon={<CreditCard className="w-5 h-5 text-amber-600" />}
+            title="Available Credit"
+            value={formatMoney(statement.summary.availableCredit)}
+            subtitle={`Ledger ${formatMoney(statement.summary.accountBalance)}`}
+            variant="info"
+            size="md"
+          />
+        </DashboardGrid>
+      )}
+
+      {/* Main Profile Layout Grid */}
       <DashboardGrid className="grid-cols-1 lg:grid-cols-3">
+        {/* Left Column: User Profile Card */}
         <DashboardPanel title="Profile Details" className="lg:col-span-1">
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, pb: 2, borderBottom: '1px solid var(--border)' }}>
-              <div className="w-16 h-16 rounded-full bg-[var(--panel)] border border-[var(--border)] flex items-center justify-center">
-                <User className="w-8 h-8 text-[var(--accent-gold)]" />
+              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-amber-500/20 to-amber-600/10 border border-[var(--accent-gold)]/30 flex items-center justify-center font-bold text-lg text-[var(--accent-gold)]">
+                {(user.name || user.email).slice(0, 2).toUpperCase()}
               </div>
-              <Box>
-                <Typography variant="h6" fontWeight="bold">
+              <Box sx={{ minWidth: 0 }}>
+                <Typography variant="h6" fontWeight="bold" noWrap>
                   {user.name || 'No Name'}
                 </Typography>
                 <Chip
@@ -350,10 +415,11 @@ export default function UserViewPage({ params }: { params: Promise<{ id: string 
                   size="small"
                   sx={{
                     mt: 0.5,
-                    bgcolor: user.role === 'admin' ? 'rgba(var(--accent-gold-rgb), 0.1)' : 'var(--panel)',
+                    bgcolor: user.role === 'admin' ? 'rgba(var(--accent-gold-rgb), 0.15)' : 'var(--background)',
                     color: user.role === 'admin' ? 'var(--accent-gold)' : 'var(--text-secondary)',
-                    fontWeight: 600,
-                    fontSize: '0.7rem'
+                    fontWeight: 700,
+                    fontSize: '0.7rem',
+                    border: '1px solid var(--border)',
                   }}
                 />
               </Box>
@@ -361,33 +427,33 @@ export default function UserViewPage({ params }: { params: Promise<{ id: string 
 
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Mail className="w-5 h-5 text-[var(--text-secondary)]" />
-                <Box>
-                  <Typography variant="caption" color="text.secondary">Email</Typography>
-                  <Typography variant="body2">{user.email}</Typography>
+                <Mail className="w-4 h-4 text-[var(--text-secondary)] shrink-0" />
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography variant="caption" color="text.secondary">Email Address</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>{user.email}</Typography>
                 </Box>
               </Box>
 
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Phone className="w-5 h-5 text-[var(--text-secondary)]" />
-                <Box>
+                <Phone className="w-4 h-4 text-[var(--text-secondary)] shrink-0" />
+                <Box sx={{ minWidth: 0 }}>
                   <Typography variant="caption" color="text.secondary">Phone</Typography>
-                  <Typography variant="body2">{user.phone || 'Not provided'}</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{user.phone || 'Not provided'}</Typography>
                 </Box>
               </Box>
 
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Calendar className="w-5 h-5 text-[var(--text-secondary)]" />
-                <Box>
-                  <Typography variant="caption" color="text.secondary">Joined</Typography>
+                <Calendar className="w-4 h-4 text-[var(--text-secondary)] shrink-0" />
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography variant="caption" color="text.secondary">Registration Date</Typography>
                   <Typography variant="body2">{new Date(user.createdAt).toLocaleDateString()}</Typography>
                 </Box>
               </Box>
 
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Clock className="w-5 h-5 text-[var(--text-secondary)]" />
-                <Box>
-                  <Typography variant="caption" color="text.secondary">Last Updated</Typography>
+                <Clock className="w-4 h-4 text-[var(--text-secondary)] shrink-0" />
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography variant="caption" color="text.secondary">Last Profile Update</Typography>
                   <Typography variant="body2">{new Date(user.updatedAt).toLocaleDateString()}</Typography>
                 </Box>
               </Box>
@@ -395,12 +461,13 @@ export default function UserViewPage({ params }: { params: Promise<{ id: string 
           </Box>
         </DashboardPanel>
 
+        {/* Right Column: Statement, Direct Messaging & Shipments */}
         <Box className="lg:col-span-2">
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             {canNotifyCustomer && (
               <DashboardPanel
-                title="Direct Notification"
-                description="Send an in-app message directly to this customer"
+                title="Direct Client Notification"
+                description="Send instant in-app alerts and notifications directly to this customer"
               >
                 <NotificationComposer
                   mode="internal-to-customer"
@@ -410,92 +477,56 @@ export default function UserViewPage({ params }: { params: Promise<{ id: string 
               </DashboardPanel>
             )}
 
-            {isCustomer && statement ? (
+            {isCustomer && statement && (
               <DashboardPanel
-                title="Customer Statement"
-                description="Open receivables, aging snapshot, and invoice history for this customer"
+                title="Customer Financial Statement & Aging"
+                description="Receivables aging schedule and invoice history breakdown"
                 actions={
-                  <div className="flex flex-wrap items-center justify-end gap-2">
-                    <Link href={`/dashboard/invoices?userId=${user.id}&customer=${encodeURIComponent(user.name || user.email)}`}>
-                      <Button variant="outline" size="sm" icon={<FileText className="h-4 w-4" />}>
-                        View Invoices
-                      </Button>
-                    </Link>
-                    <Button variant="outline" size="sm" icon={<Download className="h-4 w-4" />} onClick={handleExportStatementCsv}>
-                      Export CSV
+                  <Link href={`/dashboard/invoices?userId=${user.id}&customer=${encodeURIComponent(user.name || user.email)}`}>
+                    <Button variant="outline" size="sm" icon={<FileText className="h-4 w-4" />}>
+                      View All Invoices
                     </Button>
-                    <Button variant="outline" size="sm" icon={<Download className="h-4 w-4" />} onClick={handleExportStatementPdf}>
-                      Export PDF
-                    </Button>
-                  </div>
+                  </Link>
                 }
               >
                 <div className="space-y-4">
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
-                    {[
-                      {
-                        label: 'Outstanding AR',
-                        value: formatMoney(statement.summary.outstandingAmount),
-                        detail: `${statement.summary.openInvoiceCount} open invoice${statement.summary.openInvoiceCount === 1 ? '' : 's'}`,
-                        tone: 'text-[rgb(29,78,216)]',
-                      },
-                      {
-                        label: 'Overdue',
-                        value: formatMoney(statement.summary.overdueAmount),
-                        detail: `${statement.summary.overdueInvoiceCount} overdue invoice${statement.summary.overdueInvoiceCount === 1 ? '' : 's'}`,
-                        tone: 'text-[rgb(185,28,28)]',
-                      },
-                      {
-                        label: 'Paid',
-                        value: formatMoney(statement.summary.paidAmount),
-                        detail: `${statement.summary.paidInvoiceCount} paid invoice${statement.summary.paidInvoiceCount === 1 ? '' : 's'}`,
-                        tone: 'text-[rgb(21,128,61)]',
-                      },
-                      {
-                        label: 'Available Credit',
-                        value: formatMoney(statement.summary.availableCredit),
-                        detail: `Ledger balance ${formatMoney(statement.summary.accountBalance)}`,
-                        tone: 'text-[var(--accent-gold)]',
-                      },
-                    ].map((card) => (
-                      <div key={card.label} className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-4">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">{card.label}</p>
-                        <p className={`mt-2 text-lg font-semibold ${card.tone}`}>{card.value}</p>
-                        <p className="mt-1 text-xs text-[var(--text-secondary)]">{card.detail}</p>
-                      </div>
-                    ))}
+                  {/* Aging Schedule */}
+                  <div>
+                    <Typography variant="caption" sx={{ fontWeight: 700, color: 'var(--text-secondary)', mb: 1.5, display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Receivables Aging Schedule
+                    </Typography>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
+                      {agingCards.map((bucket) => (
+                        <div key={bucket.label} className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-3">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">{bucket.label}</p>
+                          <p className="mt-1.5 text-base font-bold text-[var(--text-primary)]">{formatMoney(bucket.value.amount)}</p>
+                          <p className="mt-0.5 text-xs text-[var(--text-secondary)]">{bucket.value.count} invoice{bucket.value.count === 1 ? '' : 's'}</p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-5">
-                    {agingCards.map((bucket) => (
-                      <div key={bucket.label} className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-3">
-                        <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-secondary)]">{bucket.label}</p>
-                        <p className="mt-2 text-base font-semibold text-[var(--text-primary)]">{formatMoney(bucket.value.amount)}</p>
-                        <p className="mt-1 text-xs text-[var(--text-secondary)]">{bucket.value.count} invoice{bucket.value.count === 1 ? '' : 's'}</p>
-                      </div>
-                    ))}
-                  </div>
-
+                  {/* Collections Workflow Controls */}
                   <div className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-4">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                       <div>
-                        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Collections Workflow</p>
-                        <p className="mt-1 text-sm text-[var(--text-secondary)]">
-                          Track promise-to-pay commitments and the next follow-up for receivables collection.
+                        <p className="text-xs font-bold uppercase tracking-wide text-[var(--text-secondary)]">Collections Workflow</p>
+                        <p className="mt-0.5 text-xs text-[var(--text-secondary)]">
+                          Track promise-to-pay commitments and next follow-up dates for overdue receivables.
                         </p>
                       </div>
-                      {canManageCollections ? (
+                      {canManageCollections && (
                         <Button size="sm" icon={<Save className="h-4 w-4" />} onClick={handleSaveCollections} disabled={savingCollections}>
                           {savingCollections ? 'Saving...' : 'Save Collections'}
                         </Button>
-                      ) : null}
+                      )}
                     </div>
 
-                    <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+                    <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
                       <label className="block text-sm text-[var(--text-primary)]">
-                        <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Collection Status</span>
+                        <span className="mb-1 block text-xs font-semibold text-[var(--text-secondary)]">Collection Status</span>
                         <select
-                          className="w-full rounded-lg border border-[var(--border)] bg-[var(--panel)] px-3 py-2 text-sm text-[var(--text-primary)]"
+                          className="w-full rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--text-primary)] outline-none"
                           value={collectionForm.status}
                           disabled={!canManageCollections || savingCollections}
                           onChange={(event) => setCollectionForm((current) => ({ ...current, status: event.target.value }))}
@@ -507,10 +538,10 @@ export default function UserViewPage({ params }: { params: Promise<{ id: string 
                       </label>
 
                       <label className="block text-sm text-[var(--text-primary)]">
-                        <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Promise To Pay</span>
+                        <span className="mb-1 block text-xs font-semibold text-[var(--text-secondary)]">Promise To Pay Date</span>
                         <input
                           type="date"
-                          className="w-full rounded-lg border border-[var(--border)] bg-[var(--panel)] px-3 py-2 text-sm text-[var(--text-primary)]"
+                          className="w-full rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--text-primary)] outline-none"
                           value={collectionForm.promiseToPayDate}
                           disabled={!canManageCollections || savingCollections}
                           onChange={(event) => setCollectionForm((current) => ({ ...current, promiseToPayDate: event.target.value }))}
@@ -518,10 +549,10 @@ export default function UserViewPage({ params }: { params: Promise<{ id: string 
                       </label>
 
                       <label className="block text-sm text-[var(--text-primary)]">
-                        <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Follow-Up Date</span>
+                        <span className="mb-1 block text-xs font-semibold text-[var(--text-secondary)]">Next Follow-Up Date</span>
                         <input
                           type="date"
-                          className="w-full rounded-lg border border-[var(--border)] bg-[var(--panel)] px-3 py-2 text-sm text-[var(--text-primary)]"
+                          className="w-full rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--text-primary)] outline-none"
                           value={collectionForm.followUpDate}
                           disabled={!canManageCollections || savingCollections}
                           onChange={(event) => setCollectionForm((current) => ({ ...current, followUpDate: event.target.value }))}
@@ -530,28 +561,23 @@ export default function UserViewPage({ params }: { params: Promise<{ id: string 
                     </div>
 
                     <label className="mt-3 block text-sm text-[var(--text-primary)]">
-                      <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Collections Notes</span>
+                      <span className="mb-1 block text-xs font-semibold text-[var(--text-secondary)]">Collections Notes</span>
                       <textarea
-                        className="min-h-[96px] w-full rounded-lg border border-[var(--border)] bg-[var(--panel)] px-3 py-2 text-sm text-[var(--text-primary)]"
+                        className="min-h-[80px] w-full rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--text-primary)] outline-none"
                         value={collectionForm.notes}
                         disabled={!canManageCollections || savingCollections}
                         onChange={(event) => setCollectionForm((current) => ({ ...current, notes: event.target.value }))}
-                        placeholder="Promise-to-pay details, callback outcomes, dispute context, or collection instructions."
+                        placeholder="Promise-to-pay details, callback outcomes, or collection instructions..."
                       />
                     </label>
-
-                    {!canManageCollections ? (
-                      <p className="mt-2 text-xs text-[var(--text-secondary)]">Finance or customer managers can update collections workflow fields.</p>
-                    ) : null}
                   </div>
 
+                  {/* Invoice Timeline Table */}
                   <div className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-4">
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between mb-3">
                       <div>
-                        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Invoice Timeline</p>
-                        <p className="mt-1 text-sm text-[var(--text-secondary)]">
-                          Includes invoices, supplemental invoices, and credit notes. Aging is based on unpaid invoices only.
-                        </p>
+                        <p className="text-xs font-bold uppercase tracking-wide text-[var(--text-secondary)]">Statement Timeline</p>
+                        <p className="text-xs text-[var(--text-secondary)]">Invoices, supplementals, and credit notes history</p>
                       </div>
                       <p className="text-xs text-[var(--text-secondary)]">
                         Updated {new Date(statement.generatedAt).toLocaleString()}
@@ -559,48 +585,37 @@ export default function UserViewPage({ params }: { params: Promise<{ id: string 
                     </div>
 
                     {statement.timeline.length > 0 ? (
-                      <div className="mt-4 overflow-hidden rounded-lg border border-[var(--border)]">
-                        <div className="grid grid-cols-12 border-b border-[var(--border)] bg-[var(--panel)] px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
+                      <div className="overflow-hidden rounded-lg border border-[var(--border)] bg-white">
+                        <div className="grid grid-cols-12 border-b border-[var(--border)] bg-[var(--background)] px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">
                           <div className="col-span-4">Invoice</div>
                           <div className="col-span-2">Status</div>
                           <div className="col-span-3">Dates</div>
                           <div className="col-span-2">Reference</div>
                           <div className="col-span-1 text-right">Amount</div>
                         </div>
-                        <div className="max-h-[28rem] overflow-y-auto divide-y divide-[var(--border)]">
+                        <div className="max-h-[24rem] overflow-y-auto divide-y divide-[var(--border)]">
                           {statement.timeline.map((invoice) => (
-                            <div key={invoice.id} className="grid grid-cols-12 items-start gap-3 px-3 py-3 text-sm">
+                            <div key={invoice.id} className="grid grid-cols-12 items-center gap-2 px-3 py-2.5 text-sm hover:bg-[var(--background)] transition-colors">
                               <div className="col-span-4 min-w-0">
-                                <Link href={`/dashboard/invoices/${invoice.id}`} className="inline-flex items-center gap-2 font-semibold text-[var(--accent-gold)] hover:underline">
-                                  <FileText className="h-4 w-4" />
+                                <Link href={`/dashboard/invoices/${invoice.id}`} className="inline-flex items-center gap-1.5 font-bold font-mono text-[var(--accent-gold)] hover:underline">
+                                  <FileText className="h-3.5 w-3.5" />
                                   {invoice.invoiceNumber}
                                 </Link>
-                                <p className="mt-1 text-xs text-[var(--text-secondary)]">{formatLabel(invoice.kind)}</p>
-                                {invoice.paymentReference ? (
-                                  <p className="mt-1 text-xs text-[var(--text-secondary)]">Payment ref: {invoice.paymentReference}</p>
-                                ) : null}
+                                <p className="text-xs text-[var(--text-secondary)]">{formatLabel(invoice.kind)}</p>
                               </div>
                               <div className="col-span-2">
-                                <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ${invoiceStatusStyles[invoice.status] || invoiceStatusStyles.DRAFT}`}>
+                                <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${invoiceStatusStyles[invoice.status] || invoiceStatusStyles.DRAFT}`}>
                                   {formatLabel(invoice.status)}
                                 </span>
-                                {invoice.daysOverdue && invoice.daysOverdue > 0 ? (
-                                  <p className="mt-1 inline-flex items-center gap-1 text-[11px] text-[rgb(185,28,28)]">
-                                    <AlertTriangle className="h-3 w-3" />
-                                    {invoice.daysOverdue} day{invoice.daysOverdue === 1 ? '' : 's'} overdue
-                                  </p>
-                                ) : null}
                               </div>
                               <div className="col-span-3 text-xs text-[var(--text-secondary)]">
                                 <p>Issued {new Date(invoice.issueDate).toLocaleDateString()}</p>
-                                <p>{invoice.dueDate ? `Due ${new Date(invoice.dueDate).toLocaleDateString()}` : 'No due date'}</p>
-                                {invoice.paidDate ? <p>Paid {new Date(invoice.paidDate).toLocaleDateString()}</p> : null}
+                                {invoice.dueDate && <p className="text-gray-500">Due {new Date(invoice.dueDate).toLocaleDateString()}</p>}
                               </div>
-                              <div className="col-span-2 min-w-0 text-xs text-[var(--text-secondary)]">
-                                <p className="truncate" title={invoice.reference || undefined}>{invoice.reference || 'General billing'}</p>
-                                {invoice.paymentMethod ? <p className="mt-1">Method: {invoice.paymentMethod}</p> : null}
+                              <div className="col-span-2 min-w-0 text-xs text-[var(--text-secondary)] truncate">
+                                {invoice.reference || 'General'}
                               </div>
-                              <div className={`col-span-1 text-right font-semibold ${invoice.total < 0 ? 'text-[rgb(185,28,28)]' : 'text-[var(--text-primary)]'}`}>
+                              <div className={`col-span-1 text-right font-bold text-sm ${invoice.total < 0 ? 'text-rose-600' : 'text-[var(--text-primary)]'}`}>
                                 {formatMoney(invoice.total)}
                               </div>
                             </div>
@@ -608,28 +623,24 @@ export default function UserViewPage({ params }: { params: Promise<{ id: string 
                         </div>
                       </div>
                     ) : (
-                      <div className="mt-4 flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-[var(--border)] bg-[var(--background)] px-6 py-10 text-center">
-                        <Wallet className="h-8 w-8 text-[var(--text-secondary)]" />
-                        <div>
-                          <p className="text-sm font-semibold text-[var(--text-primary)]">No invoice activity yet</p>
-                          <p className="mt-1 text-sm text-[var(--text-secondary)]">
-                            This customer statement will populate once invoice generation starts for their shipments.
-                          </p>
-                        </div>
+                      <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-[var(--border)] bg-white px-6 py-8 text-center">
+                        <Wallet className="h-7 w-7 text-[var(--text-secondary)]" />
+                        <p className="text-sm font-semibold text-[var(--text-primary)]">No invoice history recorded</p>
                       </div>
                     )}
                   </div>
                 </div>
               </DashboardPanel>
-            ) : null}
+            )}
 
+            {/* Shipment Portfolios */}
             <DashboardPanel
-              title={`Shipments (${user.shipments.length})`}
-              description="History of all vehicle shipments"
+              title={`Shipments Portfolio (${user.shipments.length})`}
+              description="History of all vehicle consignments and active bookings"
               fullHeight
             >
               {user.shipments.length > 0 ? (
-                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 2 }}>
                   {user.shipments.map((shipment) => (
                     <ShipmentCard key={shipment.id} {...shipment} />
                   ))}
@@ -638,7 +649,7 @@ export default function UserViewPage({ params }: { params: Promise<{ id: string 
                 <EmptyState
                   icon={<Package className="w-10 h-10" />}
                   title="No Shipments"
-                  description="This user hasn't created any shipments yet."
+                  description="This customer does not have any active or past shipments."
                 />
               )}
             </DashboardPanel>

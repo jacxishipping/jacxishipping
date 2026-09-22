@@ -5,10 +5,11 @@ import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { Box, Typography, Menu, MenuItem, IconButton, Divider } from '@mui/material';
-import { Package, Ship, MapPin, TrendingUp, Calendar, FileText, DollarSign, Receipt, MoreVertical, Eye, Copy, Trash2, Download } from 'lucide-react';
+import { Package, Ship, MapPin, TrendingUp, Calendar, FileText, DollarSign, Receipt, MoreVertical, Eye, Copy, Trash2, Download, PanelRightOpen } from 'lucide-react';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
 import { PageHeader, StatsCard, Button, EmptyState, FormField, Select, toast, SkeletonCard, DashboardPageSkeleton, CompactSkeleton, StatusBadge, CopyButton, StatusFilterPills } from '@/components/design-system';
+import ContainerQuickPeek from '@/components/dashboard/ContainerQuickPeek';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { exportToCSVWithHeaders } from '@/lib/export';
 import { useConfirmAction } from '@/components/ui/ConfirmActionProvider';
@@ -55,6 +56,7 @@ export default function ContainersPage() {
   const [showBulkTable, setShowBulkTable] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedContainer, setSelectedContainer] = useState<Container | null>(null);
+  const [quickPeekContainerId, setQuickPeekContainerId] = useState<string | null>(null);
   const router = useRouter();
   const { data: session } = useSession();
   const isAdmin = session?.user?.role === 'admin';
@@ -494,7 +496,7 @@ export default function ContainersPage() {
               columns={containerColumns}
               keyField="id"
               selectable={isAdmin}
-              onRowClick={(row) => router.push(`/dashboard/containers/${row.id}`)}
+              onRowClick={(row) => setQuickPeekContainerId(row.id)}
               onDelete={isAdmin ? handleBulkDelete : undefined}
               onExport={isAdmin ? handleBulkExport : undefined}
               bulkStatusOptions={containerStatusOptions}
@@ -545,8 +547,25 @@ export default function ContainersPage() {
                           </Box>
                         )}
                       </Box>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                         <StatusBadge status={container.status} size="sm" />
+                        <IconButton
+                          size="small"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setQuickPeekContainerId(container.id);
+                          }}
+                          title="Quick peek container manifest"
+                          sx={{
+                            color: 'var(--text-secondary)',
+                            '&:hover': {
+                              bgcolor: 'rgba(var(--accent-gold-rgb), 0.12)',
+                              color: 'var(--accent-gold)',
+                            },
+                          }}
+                        >
+                          <PanelRightOpen style={{ width: 16, height: 16 }} />
+                        </IconButton>
                         <IconButton
                           size="small"
                           onClick={(e) => handleMenuOpen(e, container)}
@@ -701,6 +720,26 @@ export default function ContainersPage() {
           anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
         >
           <MenuItem
+            onClick={() => {
+              if (selectedContainer) {
+                setQuickPeekContainerId(selectedContainer.id);
+              }
+              handleMenuClose();
+            }}
+            sx={{
+              fontSize: '0.875rem',
+              py: 1.5,
+              px: 2,
+              color: 'var(--text-primary)',
+              '&:hover': {
+                bgcolor: 'rgba(var(--accent-gold-rgb), 0.1)',
+              },
+            }}
+          >
+            <PanelRightOpen style={{ width: 16, height: 16, marginRight: 12 }} />
+            Quick Peek
+          </MenuItem>
+          <MenuItem
             onClick={handleViewContainer}
             sx={{
               fontSize: '0.875rem',
@@ -713,7 +752,7 @@ export default function ContainersPage() {
             }}
           >
             <Eye style={{ fontSize: 16, marginRight: 12 }} />
-            View Details
+            Full Details
           </MenuItem>
           {session?.user?.role === 'admin' && (
             <MenuItem
@@ -751,6 +790,13 @@ export default function ContainersPage() {
             </MenuItem>
           )}
         </Menu>
+
+        {/* Slide-over Quick Peek Drawer */}
+        <ContainerQuickPeek
+          containerId={quickPeekContainerId}
+          open={Boolean(quickPeekContainerId)}
+          onClose={() => setQuickPeekContainerId(null)}
+        />
       </DashboardSurface>
     </ProtectedRoute>
   );

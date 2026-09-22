@@ -4,24 +4,45 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
 import {
-  Add,
+  Plus,
   Check,
-  Close,
+  X,
   Download,
-  Print,
-  FilterList,
+  Printer,
+  Filter,
   Search,
   ChevronLeft,
   ChevronRight,
-  TrendingUp as TrendingUpIcon,
-  TrendingDown as TrendingDownIcon,
-  AttachMoney,
-  LocalShipping,
-  Delete,
-  Edit,
-} from '@mui/icons-material';
-import { Alert, Box, Dialog, DialogActions, DialogContent, DialogTitle, FormControl, IconButton, InputLabel, MenuItem, Select, TextField, Typography } from '@mui/material';
-import { Breadcrumbs, Button, toast, EmptyState, SkeletonCard, SkeletonTable, Tooltip, StatusBadge, TableSkeleton, StatsCard } from '@/components/design-system';
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  Truck,
+  Trash2,
+  Edit2,
+  FileText,
+  FileSpreadsheet,
+  BookOpen,
+} from 'lucide-react';
+import {
+  Alert,
+  Box,
+  FormControl,
+  IconButton,
+  InputLabel,
+  MenuItem,
+  Select,
+  TextField,
+  Typography,
+} from '@mui/material';
+import {
+  Button,
+  toast,
+  Tooltip,
+  TableSkeleton,
+  StatsCard,
+  PageHeader,
+  Modal,
+} from '@/components/design-system';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
@@ -196,6 +217,7 @@ export default function LedgerPage() {
       }
     } catch (error) {
       console.error('Error exporting ledger:', error);
+      toast.error('Failed to export ledger');
     }
   };
 
@@ -478,7 +500,7 @@ export default function LedgerPage() {
             color: row.type === 'DEBIT' ? '#ef4444' : '#22c55e',
           }}
         >
-          {row.type === 'DEBIT' ? <TrendingUpIcon sx={{ fontSize: 14 }} /> : <TrendingDownIcon sx={{ fontSize: 14 }} />}
+          {row.type === 'DEBIT' ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
           {row.type}
         </Box>
       )
@@ -521,7 +543,7 @@ export default function LedgerPage() {
               onClick={() => openEditEntry(row)}
               sx={{ color: 'var(--accent-gold)' }}
             >
-              <Edit fontSize="small" />
+              <Edit2 size={16} />
             </IconButton>
           </Tooltip>
           <Tooltip title="Delete transaction">
@@ -531,22 +553,23 @@ export default function LedgerPage() {
               aria-label={`Delete ${row.description}`}
               onClick={() => void handleDeleteEntry(row.id)}
             >
-              <Delete fontSize="small" />
+              <Trash2 size={16} />
             </IconButton>
           </Tooltip>
         </Box>
       ),
     }] : [])
-  ], [canManageLedger]);
+  ], [canManageLedger, ledgerScope]);
 
   if (status === 'loading' || loading) {
     return (
       <ProtectedRoute>
         <DashboardSurface>
-				{/* Breadcrumbs */}
-				<Box sx={{ px: 2, pt: 2 }}>
-					<Breadcrumbs />
-				</Box>
+          <PageHeader
+            title="General Ledger"
+            description="Detailed double-entry records and transaction reconciliation"
+            showBreadcrumbs
+          />
           <Box sx={{ px: 2 }}>
             <TableSkeleton rows={5} />
           </Box>
@@ -558,36 +581,76 @@ export default function LedgerPage() {
   return (
     <ProtectedRoute>
       <DashboardSurface>
-				{/* Breadcrumbs */}
-				<Box sx={{ px: 2, pt: 2 }}>
-					<Breadcrumbs />
-				</Box>
+        <PageHeader
+          title="General Ledger"
+          description="Detailed double-entry records and transaction reconciliation"
+          showBreadcrumbs
+          actions={
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              {isAdmin && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => setShowAddModal(true)}
+                  icon={<Plus size={16} />}
+                >
+                  Add Transaction
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePrint}
+                icon={<Printer size={16} />}
+              >
+                Print
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleExport('pdf')}
+                icon={<FileText size={16} />}
+              >
+                PDF
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleExport('excel')}
+                icon={<FileSpreadsheet size={16} />}
+              >
+                Excel
+              </Button>
+            </Box>
+          }
+        />
+
         {/* Stats Cards */}
         <DashboardGrid className="grid-cols-1 md:grid-cols-2 xl:grid-cols-4">
           <StatsCard
-            icon={<TrendingDownIcon />}
+            icon={<TrendingDown size={22} />}
             title="Total Credits"
             value={formatCurrency(summary.totalCredit)}
-            subtitle="Amount paid"
+            subtitle="Amount paid into accounts"
             variant="success"
           />
           <StatsCard
-            icon={<TrendingUpIcon />}
+            icon={<TrendingUp size={22} />}
             title="Total Debits"
             value={formatCurrency(summary.totalDebit)}
-            subtitle="Amount charged"
+            subtitle="Total amount charged"
             variant="warning"
           />
           <StatsCard
-            icon={<LocalShipping />}
-            title="Total Shipment Purchase Amount"
+            icon={<Truck size={22} />}
+            title="Shipment Purchases"
             value={formatCurrency(summary.totalShipmentPurchaseAmount)}
-            subtitle="Total car purchase amount in your account"
+            subtitle="Total car purchase amount in ledger"
             variant="default"
           />
           <StatsCard
-            icon={<AttachMoney />}
-            title="Total Shipment Expenses"
+            icon={<DollarSign size={22} />}
+            title="Shipment Expenses"
             value={formatCurrency(summary.totalShipmentExpenses)}
             subtitle="All shipment expense debits"
             variant="info"
@@ -596,17 +659,16 @@ export default function LedgerPage() {
 
         {/* Filters Panel */}
         <DashboardPanel
-          title="Filters"
-          description="Filter and search transactions"
+          title="Filters & Search"
+          description="Filter ledger transactions by type, category, date range, or origin"
           actions={
             <Button
               variant="outline"
               size="sm"
               onClick={() => setShowFilters(!showFilters)}
-              icon={<FilterList />}
-              sx={{ textTransform: 'none', fontSize: '0.78rem' }}
+              icon={<Filter size={15} />}
             >
-              {showFilters ? 'Hide' : 'Show'} Filters
+              {showFilters ? 'Hide Filters' : 'Show Filters'}
             </Button>
           }
         >
@@ -618,7 +680,7 @@ export default function LedgerPage() {
                 value={filters.search}
                 onChange={(e) => setFilters({ ...filters, search: e.target.value })}
                 InputProps={{
-                  startAdornment: <Search sx={{ mr: 1, color: 'var(--text-secondary)', fontSize: 20 }} />,
+                  startAdornment: <Search size={18} style={{ marginRight: 8, color: 'var(--text-secondary)' }} />,
                 }}
                 fullWidth
               />
@@ -690,48 +752,6 @@ export default function LedgerPage() {
           title="Transaction History"
           description={`Showing ${entries.length} transaction${entries.length !== 1 ? 's' : ''}${filters.source === 'BANK_IMPORT' ? ' from bank imports' : filters.source === 'MANUAL' ? ' from manual entries' : ''}`}
           fullHeight
-          actions={
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              {isAdmin && (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => setShowAddModal(true)}
-                  icon={<Add />}
-                  sx={{ textTransform: 'none', fontSize: '0.75rem' }}
-                >
-                  Add Transaction
-                </Button>
-              )}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handlePrint}
-                icon={<Print />}
-                sx={{ textTransform: 'none', fontSize: '0.75rem' }}
-              >
-                Print
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleExport('pdf')}
-                icon={<Download />}
-                sx={{ textTransform: 'none', fontSize: '0.75rem' }}
-              >
-                PDF
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleExport('excel')}
-                icon={<Download />}
-                sx={{ textTransform: 'none', fontSize: '0.75rem' }}
-              >
-                Excel
-              </Button>
-            </Box>
-          }
         >
           <DataTable 
             data={entries}
@@ -741,7 +761,7 @@ export default function LedgerPage() {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 3 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 3, pt: 2, borderTop: '1px solid var(--border)' }}>
               <Typography sx={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
                 Page {page} of {totalPages}
               </Typography>
@@ -751,8 +771,7 @@ export default function LedgerPage() {
                   size="sm"
                   onClick={() => setPage(p => Math.max(1, p - 1))}
                   disabled={page === 1}
-                  icon={<ChevronLeft />}
-                  sx={{ textTransform: 'none', fontSize: '0.75rem' }}
+                  icon={<ChevronLeft size={16} />}
                 >
                   Previous
                 </Button>
@@ -761,8 +780,7 @@ export default function LedgerPage() {
                   size="sm"
                   onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                   disabled={page === totalPages}
-                  icon={<ChevronRight />}
-                  sx={{ textTransform: 'none', fontSize: '0.75rem' }}
+                  icon={<ChevronRight size={16} />}
                 >
                   Next
                 </Button>
@@ -770,20 +788,17 @@ export default function LedgerPage() {
             </Box>
           )}
         </DashboardPanel>
-      </DashboardSurface>
 
-      <Dialog open={showAddModal} onClose={() => setShowAddModal(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Typography variant="h6">Add Transaction</Typography>
-            <IconButton onClick={() => setShowAddModal(false)} size="small">
-              <Close />
-            </IconButton>
-          </Box>
-        </DialogTitle>
-        <form onSubmit={handleAddEntry}>
-          <DialogContent>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        {/* Add Transaction Modal */}
+        <Modal
+          open={showAddModal}
+          onClose={() => setShowAddModal(false)}
+          title="Add Transaction"
+          description="Post a manual debit or credit entry to the customer ledger"
+          size="md"
+        >
+          <form onSubmit={handleAddEntry}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 1 }}>
               {(() => {
                 const enteredAmount = parseFloat(formData.amount) || 0;
                 const projectedBalance = formData.type === 'DEBIT'
@@ -800,13 +815,13 @@ export default function LedgerPage() {
                     ? `you will have ${formatCurrency(Math.abs(projectedBalance))} credit`
                     : 'account will be settled';
                 return (
-                  <Alert severity={formData.type === 'DEBIT' ? 'info' : 'success'} sx={{ fontSize: '0.9rem', fontWeight: 500 }}>
-                    Current Balance: {currentBalanceLabel}. {enteredAmount > 0 ? `After this transaction, ${projectedBalanceLabel}.` : 'Enter an amount to preview the new balance.'}
+                  <Alert severity={formData.type === 'DEBIT' ? 'info' : 'success'} sx={{ fontSize: '0.85rem', borderRadius: 2 }}>
+                    Current Balance: <strong>{currentBalanceLabel}</strong>. {enteredAmount > 0 ? `After this transaction, ${projectedBalanceLabel}.` : 'Enter an amount to preview the new balance.'}
                   </Alert>
                 );
               })()}
 
-              <FormControl fullWidth>
+              <FormControl fullWidth size="small">
                 <InputLabel>Type *</InputLabel>
                 <Select
                   value={formData.type}
@@ -819,7 +834,7 @@ export default function LedgerPage() {
                 </Select>
               </FormControl>
 
-              <FormControl fullWidth>
+              <FormControl fullWidth size="small">
                 <InputLabel>Category *</InputLabel>
                 <Select
                   value={formData.transactionInfoType}
@@ -835,6 +850,7 @@ export default function LedgerPage() {
 
               <TextField
                 label="Description *"
+                size="small"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 placeholder="e.g. Shipping charge, Payment"
@@ -844,6 +860,7 @@ export default function LedgerPage() {
 
               <TextField
                 label="Amount * (USD)"
+                size="small"
                 type="number"
                 value={formData.amount}
                 onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
@@ -855,6 +872,7 @@ export default function LedgerPage() {
 
               <TextField
                 label="Notes (Optional)"
+                size="small"
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 placeholder="Add any additional notes"
@@ -862,38 +880,36 @@ export default function LedgerPage() {
                 rows={3}
                 fullWidth
               />
-            </Box>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setShowAddModal(false)} sx={{ textTransform: 'none' }}>
-              Cancel
-            </Button>
-            <Button type="submit" variant="primary" icon={<Check />} sx={{ textTransform: 'none' }}>
-              Add Transaction
-            </Button>
-          </DialogActions>
-        </form>
-      </Dialog>
 
-      {/* Edit Transaction Modal */}
-      <Dialog open={showEditModal} onClose={() => setShowEditModal(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Typography variant="h6">Edit Transaction</Typography>
-            <IconButton onClick={() => setShowEditModal(false)} size="small">
-              <Close />
-            </IconButton>
-          </Box>
-        </DialogTitle>
-        <form onSubmit={handleEditEntry}>
-          <DialogContent>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <Alert severity="warning" sx={{ fontSize: '0.85rem' }}>
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 1 }}>
+                <Button type="button" variant="outline" size="sm" onClick={() => setShowAddModal(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" variant="primary" size="sm" icon={<Check size={16} />}>
+                  Add Transaction
+                </Button>
+              </Box>
+            </Box>
+          </form>
+        </Modal>
+
+        {/* Edit Transaction Modal */}
+        <Modal
+          open={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          title="Edit Transaction"
+          description="Update transaction description and audit notes"
+          size="md"
+        >
+          <form onSubmit={handleEditEntry}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 1 }}>
+              <Alert severity="warning" sx={{ fontSize: '0.85rem', borderRadius: 2 }}>
                 Note: Type and amount cannot be edited to maintain ledger integrity. Only description and notes can be updated.
               </Alert>
 
               <TextField
                 label="Type (Read-only)"
+                size="small"
                 value={editEntry?.type || ''}
                 disabled
                 fullWidth
@@ -901,6 +917,7 @@ export default function LedgerPage() {
 
               <TextField
                 label="Amount (Read-only)"
+                size="small"
                 value={editEntry ? formatCurrency(editEntry.amount) : ''}
                 disabled
                 fullWidth
@@ -908,6 +925,7 @@ export default function LedgerPage() {
 
               <TextField
                 label="Description *"
+                size="small"
                 value={editForm.description}
                 onChange={(e) => setEditForm((prev) => ({ ...prev, description: e.target.value }))}
                 required
@@ -916,24 +934,26 @@ export default function LedgerPage() {
 
               <TextField
                 label="Notes"
+                size="small"
                 value={editForm.notes}
                 onChange={(e) => setEditForm((prev) => ({ ...prev, notes: e.target.value }))}
                 multiline
                 rows={3}
                 fullWidth
               />
+
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 1 }}>
+                <Button type="button" variant="outline" size="sm" onClick={() => setShowEditModal(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" variant="primary" size="sm" icon={<Check size={16} />}>
+                  Update Transaction
+                </Button>
+              </Box>
             </Box>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setShowEditModal(false)} sx={{ textTransform: 'none' }}>
-              Cancel
-            </Button>
-            <Button type="submit" variant="primary" icon={<Check />} sx={{ textTransform: 'none' }}>
-              Update Transaction
-            </Button>
-          </DialogActions>
-        </form>
-      </Dialog>
+          </form>
+        </Modal>
+      </DashboardSurface>
     </ProtectedRoute>
   );
 }

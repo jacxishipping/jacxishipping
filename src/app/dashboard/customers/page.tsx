@@ -4,18 +4,24 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
-import { User, UserPlus, Eye, EyeOff, Copy, Check, Download } from 'lucide-react';
-import { Box, Typography, IconButton, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@mui/material';
-import { Breadcrumbs, toast, SkeletonCard, Button, CompactSkeleton } from '@/components/design-system';
+import { User, UserPlus, Eye, EyeOff, Copy, Check, Download, Users, Package, Mail } from 'lucide-react';
+import { Box, Typography, IconButton } from '@mui/material';
+import { 
+  PageHeader, 
+  StatsCard, 
+  Button, 
+  SkeletonCard, 
+  CompactSkeleton, 
+  toast, 
+  CopyButton 
+} from '@/components/design-system';
 import { exportToCSVWithHeaders } from '@/lib/export';
 import { DataTable, Column } from '@/components/ui/DataTable';
-import VisibilityIcon from '@mui/icons-material/Visibility';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
 import SmartSearch, { SearchFilters } from '@/components/dashboard/SmartSearch';
-import { DashboardSurface, DashboardPanel } from '@/components/dashboard/DashboardSurface';
+import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
 import UserCard from '@/components/dashboard/UserCard';
 import { hasPermission } from '@/lib/rbac';
+import { useConfirmAction } from '@/components/ui/ConfirmActionProvider';
 
 interface UserData {
   id: string;
@@ -31,19 +37,22 @@ interface UserData {
 export default function CustomersPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const confirmAction = useConfirmAction();
   const [customers, setCustomers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalCustomers, setTotalCustomers] = useState<number>(0);
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const PAGE_SIZE = 9;
+  const totalPages = Math.ceil(totalCustomers / PAGE_SIZE) || 1;
 
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [searchFilters, setSearchFilters] = useState<SearchFilters>({
     query: '',
     type: 'users',
   });
   const [showEmailsFor, setShowEmailsFor] = useState<Set<string>>(new Set());
   const [copiedEmail, setCopiedEmail] = useState<string | null>(null);
+
+  const canManageCustomers = hasPermission(session?.user?.role, 'customers:manage');
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -53,8 +62,6 @@ export default function CustomersPage() {
       router.replace('/dashboard');
     }
   }, [session, status, router]);
-
-  const PAGE_SIZE = 9;
 
   const fetchCustomers = useCallback(async (page: number = 1, query: string = searchFilters.query) => {
     try {
@@ -117,6 +124,32 @@ export default function CustomersPage() {
     return `${username.substring(0, 3)}***@${domain}`;
   };
 
+  const handleDeleteCustomer = async (userId: string) => {
+    if (!canManageCustomers) return;
+
+    if (!(await confirmAction({
+      message: 'Are you sure you want to delete this customer account? This action cannot be undone.',
+      confirmText: 'Delete Customer',
+      severity: 'error',
+    }))) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/users/${userId}`, { method: 'DELETE' });
+      if (response.ok) {
+        toast.success('Customer deleted successfully');
+        fetchCustomers(currentPage);
+      } else {
+        const errorData = await response.json();
+        toast.error(errorData.error || 'Failed to delete customer');
+      }
+    } catch (error) {
+      console.error('Error deleting customer:', error);
+      toast.error('Error deleting customer');
+    }
+  };
+
   const customerColumns = useMemo<Column<UserData>[]>(() => [
     {
       key: 'name',
@@ -124,7 +157,7 @@ export default function CustomersPage() {
       sortable: true,
       render: (_, row) => (
         <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-          <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-primary)' }} noWrap>
+          <Typography sx={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--text-primary)' }} noWrap>
             {row.name || 'Unnamed Customer'}
           </Typography>
           <Typography variant="caption" color="text.secondary" noWrap>
@@ -142,13 +175,13 @@ export default function CustomersPage() {
           <Typography sx={{ fontFamily: 'ui-monospace,SFMono-Regular,Menlo,monospace', fontSize: '0.8rem' }} noWrap>
             {showEmailsFor.has(row.id) ? row.email : maskEmail(row.email)}
           </Typography>
-          <IconButton size="small" onClick={() => toggleEmailVisibility(row.id)} title="Toggle email visibility">
-            {showEmailsFor.has(row.id) ? <EyeOff style={{ width: 16, height: 16 }} /> : <Eye style={{ width: 16, height: 16 }} />}
+          <IconButton size="small" onClick={(e) => { e.stopPropagation(); toggleEmailVisibility(row.id); }} title="Toggle email visibility">
+            {showEmailsFor.has(row.id) ? <EyeOff style={{ width: 15, height: 15 }} /> : <Eye style={{ width: 15, height: 15 }} />}
           </IconButton>
           {showEmailsFor.has(row.id) && (
-            <IconButton size="small" onClick={() => copyToClipboard(row.email, row.id)} title="Copy email">
-              {copiedEmail === row.id ? <Check style={{ color: 'green', width: 16, height: 16 }} /> : <Copy style={{ color: 'var(--accent-gold)', width: 16, height: 16 }} />}
-            </IconButton>
+            <span onClick={(e) => e.stopPropagation()}>
+              <CopyButton value={row.email} label="Email" />
+            </span>
           )}
         </Box>
       ),
@@ -158,18 +191,19 @@ export default function CustomersPage() {
       header: 'Shipments',
       sortable: true,
       render: (_, row) => (
-        <Typography sx={{ fontWeight: 600, color: 'var(--text-primary)' }}>
-          {row._count?.shipments ?? 0}
-        </Typography>
+        <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, px: 1.5, py: 0.5, borderRadius: '999px', bgcolor: 'rgba(var(--accent-gold-rgb), 0.1)', color: 'var(--accent-gold)', fontWeight: 700, fontSize: '0.75rem' }}>
+          <Package className="w-3.5 h-3.5" />
+          <span>{row._count?.shipments ?? 0}</span>
+        </Box>
       ),
     },
     {
       key: 'createdAt',
-      header: 'Joined',
+      header: 'Created',
       sortable: true,
       render: (_, row) => (
-        <Typography sx={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-          {row.createdAt ? new Date(row.createdAt).toLocaleDateString() : '—'}
+        <Typography variant="caption" color="text.secondary">
+          {row.createdAt ? new Date(row.createdAt).toLocaleDateString() : '-'}
         </Typography>
       ),
     },
@@ -177,76 +211,42 @@ export default function CustomersPage() {
       key: 'actions',
       header: 'Actions',
       render: (_, row) => (
-        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }} onClick={(e) => e.stopPropagation()}>
           <Link href={`/dashboard/users/${row.id}`} style={{ textDecoration: 'none' }}>
-            <Button variant="outline" size="sm" icon={<VisibilityIcon />} sx={{ textTransform: 'none', fontSize: '0.7rem' }}>
-              View
+            <Button variant="outline" size="sm">
+              View Profile
             </Button>
           </Link>
-          <Link href={`/dashboard/users/${row.id}/edit`} style={{ textDecoration: 'none' }}>
-            <Button variant="ghost" size="sm" icon={<EditIcon />} sx={{ textTransform: 'none', fontSize: '0.7rem' }}>
-              Edit
+          {canManageCustomers && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => handleDeleteCustomer(row.id)}
+              className="text-red-600 hover:bg-red-50 hover:text-red-700"
+            >
+              Delete
             </Button>
-          </Link>
-          <Button variant="ghost" size="sm" icon={<DeleteIcon />} onClick={() => handleDeleteClick(row.id)} sx={{ color: 'var(--error)' }}>
-            Delete
-          </Button>
+          )}
         </Box>
       ),
     },
-  ], [showEmailsFor, copiedEmail]);
-
-  const totalPages = Math.max(1, Math.ceil(totalCustomers / PAGE_SIZE));
-
-  const handleDeleteClick = (id: string) => {
-    setDeletingUserId(id);
-    setConfirmOpen(true);
-  };
-
-  const handleConfirmDelete = async () => {
-    if (!deletingUserId) return;
-    try {
-      setLoading(true);
-      const resp = await fetch(`/api/users/${deletingUserId}`, { method: 'DELETE' });
-      if (resp.ok) {
-        toast.success('Customer deleted successfully');
-        setConfirmOpen(false);
-        setDeletingUserId(null);
-        const nextPage = currentPage > 1 && customers.length === 1 ? currentPage - 1 : currentPage;
-        setCurrentPage(nextPage);
-        await fetchCustomers(nextPage, searchFilters.query);
-      } else {
-        toast.error('Failed to delete customer');
-      }
-    } catch (err) {
-      console.error('Error deleting customer:', err);
-      toast.error('Error deleting customer');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCancelDelete = () => {
-    setConfirmOpen(false);
-    setDeletingUserId(null);
-  };
+  ], [showEmailsFor, canManageCustomers]);
 
   const handleExportCustomerVinCsv = useCallback(async () => {
     try {
-      const firstPageResponse = await fetch('/api/users?page=1&pageSize=200&roleType=customers');
+      toast.info('Exporting customer VIN data...');
+      const firstPageResponse = await fetch('/api/users?page=1&pageSize=100&roleType=customers');
       if (!firstPageResponse.ok) {
-        throw new Error('Failed to load customers for export');
+        throw new Error('Failed to fetch initial customer export data');
       }
 
       const firstPageData = await firstPageResponse.json();
-      const totalCustomersForExport = Number(firstPageData.total ?? 0);
-      const pageSize = 200;
-      const pageCount = Math.max(1, Math.ceil(totalCustomersForExport / pageSize));
+      const totalPages = firstPageData.totalPages ?? 1;
 
       const customerPageResponses = await Promise.all(
-        Array.from({ length: pageCount }, (_, index) =>
-          fetch(`/api/users?page=${index + 1}&pageSize=${pageSize}&roleType=customers`),
-        ),
+        Array.from({ length: totalPages }, (_, index) =>
+          fetch(`/api/users?page=${index + 1}&pageSize=100&roleType=customers`)
+        )
       );
 
       const customerPages = await Promise.all(
@@ -255,7 +255,7 @@ export default function CustomersPage() {
             throw new Error('Failed to fetch customer export data');
           }
           return response.json();
-        }),
+        })
       );
 
       const customerList = customerPages.flatMap((page) => page.users ?? []);
@@ -288,7 +288,7 @@ export default function CustomersPage() {
               shipmentVins: 'N/A',
             };
           }
-        }),
+        })
       );
 
       exportToCSVWithHeaders(
@@ -297,7 +297,7 @@ export default function CustomersPage() {
           { key: 'customerName', label: 'Customer Name' },
           { key: 'shipmentVins', label: 'Shipment VINs' },
         ],
-        'customers-shipment-vins',
+        'customers-shipment-vins'
       );
 
       toast.success(`Exported ${rows.length} customers with VINs`);
@@ -310,12 +310,7 @@ export default function CustomersPage() {
   if (status === 'loading') {
     return (
       <DashboardSurface>
-        <Box sx={{ px: 2, pt: 2 }}>
-          <Breadcrumbs />
-        </Box>
-        <DashboardPanel>
-          <CompactSkeleton />
-        </DashboardPanel>
+        <CompactSkeleton />
       </DashboardSurface>
     );
   }
@@ -327,73 +322,100 @@ export default function CustomersPage() {
 
   return (
     <DashboardSurface>
-      <Box sx={{ px: 2, pt: 2 }}>
-        <Breadcrumbs />
-      </Box>
-
-      <DashboardPanel
+      {/* Standardized Header */}
+      <PageHeader
+        showBreadcrumbs
         title="Customers"
-        description="All customer accounts"
-        noBodyPadding
+        description="All registered client accounts and shipping portfolios"
         actions={
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
-            <Button variant="outline" size="sm" onClick={() => void handleExportCustomerVinCsv()} sx={{ textTransform: 'none', fontWeight: 600 }}>
-              <Download style={{ width: 16, height: 16, marginRight: 8 }} />
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => void handleExportCustomerVinCsv()}
+              icon={<Download className="w-4 h-4" />}
+            >
               Export VINs
             </Button>
-            <Link href="/dashboard/customers/new" style={{ textDecoration: 'none' }}>
-              <Button variant="primary" size="sm" sx={{ textTransform: 'none', fontWeight: 600 }}>
-                <UserPlus style={{ width: 16, height: 16, marginRight: 8 }} />
-                Create Customer
-              </Button>
-            </Link>
+            {canManageCustomers && (
+              <Link href="/dashboard/customers/new" style={{ textDecoration: 'none' }}>
+                <Button variant="primary" size="sm" icon={<UserPlus className="w-4 h-4" />}>
+                  Create Customer
+                </Button>
+              </Link>
+            )}
           </Box>
         }
-      >
-        <Box sx={{ px: 1.5, py: 1.5 }}>
-          <SmartSearch
-            onSearch={handleSearch}
-            placeholder="Search customers by name or email..."
-            showTypeFilter={false}
-            showStatusFilter={false}
-            showDateFilter
-            showPriceFilter={false}
-            showUserFilter={false}
-            defaultType="users"
-          />
-        </Box>
+      />
+
+      {/* Summary Stats */}
+      <DashboardGrid className="grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+        <StatsCard
+          icon={<Users className="w-5 h-5" />}
+          title="Total Customers"
+          value={totalCustomers}
+          variant="default"
+          size="md"
+        />
+        <StatsCard
+          icon={<Package className="w-5 h-5" />}
+          title="Active Results"
+          value={customers.length}
+          subtitle={`Page ${currentPage} of ${totalPages || 1}`}
+          variant="info"
+          size="md"
+        />
+        <StatsCard
+          icon={<Mail className="w-5 h-5" />}
+          title="Communication"
+          value="Enabled"
+          subtitle="Direct customer statement notifications"
+          variant="success"
+          size="md"
+        />
+      </DashboardGrid>
+
+      {/* Search Bar */}
+      <DashboardPanel title="Search & Filter" description="Find customer accounts instantly">
+        <SmartSearch
+          onSearch={handleSearch}
+          placeholder="Search customers by name or email..."
+          showTypeFilter={false}
+          showStatusFilter={false}
+          showDateFilter
+          showPriceFilter={false}
+          showUserFilter={false}
+          defaultType="users"
+        />
       </DashboardPanel>
 
-      <DashboardPanel title={`All Customers (${totalCustomers})`} fullHeight>
-        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16, mb: 2 }}>
-          <Box sx={{ p: 2, bgcolor: 'var(--text-primary)/0.04', borderRadius: 1, border: '1px solid rgba(6,182,212,0.12)' }}>
-            <Typography variant="caption" color="text.secondary">Total Customers</Typography>
-            <Typography variant="h5" sx={{ fontWeight: 700 }}>{totalCustomers}</Typography>
-          </Box>
-          <Box sx={{ p: 2, bgcolor: 'var(--text-primary)/0.04', borderRadius: 1, border: '1px solid rgba(16,185,129,0.08)' }}>
-            <Typography variant="caption" color="text.secondary">Filtered Results</Typography>
-            <Typography variant="h5" sx={{ fontWeight: 700 }}>{totalCustomers}</Typography>
-          </Box>
-        </Box>
-
+      {/* Customers Data Panel */}
+      <DashboardPanel title={`Customer Directory (${totalCustomers})`} fullHeight>
         {loading ? (
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' }, gap: 2 }}>
             {[...Array(6)].map((_, i) => <SkeletonCard key={i} />)}
           </Box>
         ) : customers.length === 0 ? (
           <Box sx={{ minHeight: 240, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
-            <User style={{ width: 48, height: 48, color: 'rgba(255,255,255,0.25)' }} />
+            <User style={{ width: 48, height: 48, color: 'var(--text-secondary)' }} />
             <Typography sx={{ color: 'var(--text-secondary)' }}>No customers found</Typography>
-            <Link href="/dashboard/customers/new" style={{ textDecoration: 'none' }}>
-              <Button variant="primary" size="sm" sx={{ mt: 1, textTransform: 'none' }}>
-                <UserPlus style={{ width: 16, height: 16, marginRight: 8 }} /> Create Customer
-              </Button>
-            </Link>
+            {canManageCustomers && (
+              <Link href="/dashboard/customers/new" style={{ textDecoration: 'none' }}>
+                <Button variant="primary" size="sm" icon={<UserPlus className="w-4 h-4" />}>
+                  Create Customer
+                </Button>
+              </Link>
+            )}
           </Box>
         ) : (
           <>
             <div className="hidden lg:block">
-              <DataTable data={customers} columns={customerColumns} keyField="id" />
+              <DataTable 
+                data={customers} 
+                columns={customerColumns} 
+                keyField="id" 
+                onRowClick={(row) => router.push(`/dashboard/users/${row.id}`)}
+              />
             </div>
             <Box sx={{ display: { xs: 'grid', lg: 'none' }, gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 2 }}>
               {customers.map((user, index) => (
@@ -406,36 +428,37 @@ export default function CustomersPage() {
                   copiedEmail={copiedEmail}
                   onToggleEmail={toggleEmailVisibility}
                   onCopyEmail={copyToClipboard}
-                  onDelete={handleDeleteClick}
+                  onDelete={handleDeleteCustomer}
                 />
               ))}
             </Box>
 
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 2 }}>
-              <Button variant="outline" size="sm" onClick={() => { setCurrentPage((p) => Math.max(1, p - 1)); fetchCustomers(currentPage - 1, searchFilters.query); }} disabled={currentPage === 1} sx={{ textTransform: 'none' }}>
-                Previous
-              </Button>
-              <Typography sx={{ color: 'var(--text-secondary)' }}>Page {currentPage} of {totalPages}</Typography>
-              <Button variant="outline" size="sm" onClick={() => { setCurrentPage((p) => Math.min(totalPages, p + 1)); fetchCustomers(currentPage + 1, searchFilters.query); }} disabled={currentPage === totalPages} sx={{ textTransform: 'none' }}>
-                Next
-              </Button>
-            </Box>
+            {totalPages > 1 && (
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 3, pt: 2, borderTop: '1px solid var(--border)' }}>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => { setCurrentPage((p) => Math.max(1, p - 1)); fetchCustomers(currentPage - 1, searchFilters.query); }} 
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </Button>
+                <Typography sx={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                  Page {currentPage} of {totalPages}
+                </Typography>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => { setCurrentPage((p) => Math.min(totalPages, p + 1)); fetchCustomers(currentPage + 1, searchFilters.query); }} 
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                </Button>
+              </Box>
+            )}
           </>
         )}
       </DashboardPanel>
-
-      <Dialog open={confirmOpen} onClose={handleCancelDelete} aria-labelledby="confirm-delete-title">
-        <DialogTitle id="confirm-delete-title">Confirm delete</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            Are you sure you want to delete this customer? This action cannot be undone.
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCancelDelete} variant="ghost">Cancel</Button>
-          <Button onClick={handleConfirmDelete} variant="primary" color="error">Delete</Button>
-        </DialogActions>
-      </Dialog>
     </DashboardSurface>
   );
 }

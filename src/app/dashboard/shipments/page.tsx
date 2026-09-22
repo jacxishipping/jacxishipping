@@ -14,6 +14,7 @@ import { Column } from '@/components/ui/DataTable';
 import { exportToCSVWithHeaders } from '@/lib/export';
 import { hasPermission } from '@/lib/rbac';
 import { useConfirmAction } from '@/components/ui/ConfirmActionProvider';
+import ShipmentQuickPeek from '@/components/dashboard/ShipmentQuickPeek';
 
 export default function ShipmentsListPage() {
 	const router = useRouter();
@@ -21,6 +22,7 @@ export default function ShipmentsListPage() {
 	const [shipments, setShipments] = useState<Shipment[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [showBulkTable, setShowBulkTable] = useState(false);
+	const [quickPeekShipmentId, setQuickPeekShipmentId] = useState<string | null>(null);
 	const [searchFilters, setSearchFilters] = useState<SearchFilters>({
 		query: '',
 		type: 'shipments',
@@ -315,7 +317,7 @@ const confirmAction = useConfirmAction();
 				onToggleBulkMode={() => setShowBulkTable((prev) => !prev)}
 				shipmentTableRows={shipmentTableRows}
 				shipmentColumns={shipmentColumns}
-				onRowClick={(row) => router.push(`/dashboard/shipments/${row.id}`)}
+				onRowClick={(row) => setQuickPeekShipmentId(row.id)}
 				onBulkDelete={canManageShipments ? handleBulkDelete : undefined}
 				onBulkExport={canUseBulkMode ? handleBulkExport : undefined}
 				bulkStatusOptions={shipmentStatusOptions}
@@ -326,6 +328,13 @@ const confirmAction = useConfirmAction();
 				totalPages={totalPages}
 				onPreviousPage={() => setCurrentPage((page) => Math.max(1, page - 1))}
 				onNextPage={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+			/>
+
+			{/* Slide-over Quick Peek Drawer */}
+			<ShipmentQuickPeek
+				shipmentId={quickPeekShipmentId}
+				open={Boolean(quickPeekShipmentId)}
+				onClose={() => setQuickPeekShipmentId(null)}
 			/>
 		</DashboardSurface>
 	);
