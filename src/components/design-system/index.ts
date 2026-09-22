@@ -41,6 +41,10 @@ export { Table } from './Table';
 // Overlay Components
 export { default as Modal, ConfirmDialog } from './Modal';
 export type { ModalProps, ConfirmDialogProps } from './Modal';
+export { default as Drawer } from './Drawer';
+export type { DrawerProps } from './Drawer';
+export { default as MilestoneStepper } from './MilestoneStepper';
+export type { MilestoneStep, MilestoneStepperProps } from './MilestoneStepper';
 
 // Toast Notifications (Phase 4)
 export { Toaster, toast } from './Toast';
