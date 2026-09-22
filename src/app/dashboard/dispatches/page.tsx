@@ -2,21 +2,14 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  Box,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  MenuItem,
-  TextField,
-} from '@mui/material';
+import { Box } from '@mui/material';
 import { Eye, Pencil, Plus, Search, Trash2, Truck } from 'lucide-react';
 import PermissionRoute from '@/components/auth/PermissionRoute';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
-import { Breadcrumbs, Button, EmptyState, SkeletonTable, StatsCard, toast, CopyButton, StatusFilterPills } from '@/components/design-system';
+import { PageHeader, Button, StatsCard, toast, CopyButton, StatusFilterPills, StatusBadge, Modal, FormField, Select } from '@/components/design-system';
 import { DataTable, Column } from '@/components/ui/DataTable';
-import { DISPATCH_STATUS_COLORS, DISPATCH_STATUS_OPTIONS, getDispatchStatusLabel } from '@/lib/dispatch-workflow';
+import { useConfirmAction } from '@/components/ui/ConfirmActionProvider';
+import { DISPATCH_STATUS_OPTIONS, DISPATCH_STATUS_LABELS } from '@/lib/dispatch-workflow';
 
 interface Company {
   id: string;
@@ -46,15 +39,14 @@ interface Dispatch {
 
 function formatDateTime(value: string | null) {
   if (!value) return '-';
-
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '-';
-
   return date.toLocaleString();
 }
 
 export default function DispatchesPage() {
   const router = useRouter();
+  const confirmAction = useConfirmAction();
   const [dispatches, setDispatches] = useState<Dispatch[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
@@ -214,15 +206,20 @@ export default function DispatchesPage() {
   };
 
   const handleDeleteDispatch = async (dispatch: Dispatch) => {
-    if (!confirm(`Delete dispatch ${dispatch.referenceNumber}? This will remove linked dispatch events and dispatch expenses.`)) {
-      return;
-    }
+    const confirmed = await confirmAction({
+      title: 'Delete Dispatch',
+      message: `Delete dispatch ${dispatch.referenceNumber}? This action cannot be undone.`,
+      confirmText: 'Delete dispatch',
+      severity: 'error',
+    });
+    if (!confirmed) return;
 
     try {
       setDeletingDispatchId(dispatch.id);
       const response = await fetch(`/api/dispatches/${dispatch.id}`, { method: 'DELETE' });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Failed to delete dispatch');
+
       toast.success(`Dispatch ${dispatch.referenceNumber} deleted`);
       await fetchDispatches();
     } catch (error) {
@@ -234,10 +231,24 @@ export default function DispatchesPage() {
 
   const stats = useMemo(() => ({
     total: dispatches.length,
-    active: dispatches.filter((item) => ['DISPATCHED', 'ARRIVED_AT_PORT'].includes(item.status)).length,
-    completed: dispatches.filter((item) => item.status === 'COMPLETED').length,
-    pending: dispatches.filter((item) => item.status === 'PENDING').length,
+    active: dispatches.filter(d => ['PENDING', 'DISPATCHED', 'ARRIVED_AT_PORT'].includes(d.status)).length,
+    completed: dispatches.filter(d => d.status === 'COMPLETED').length,
+    shipments: dispatches.reduce((acc, d) => acc + d._count.shipments, 0),
   }), [dispatches]);
+
+  const companyOptions = useMemo(() => {
+    return companies.map(c => ({
+      value: c.id,
+      label: `${c.name}${c.code ? ` (${c.code})` : ''}`,
+    }));
+  }, [companies]);
+
+  const dispatchStatusSelectOptions = useMemo(() => {
+    return DISPATCH_STATUS_OPTIONS.map(opt => ({
+      value: opt,
+      label: DISPATCH_STATUS_LABELS[opt] || opt,
+    }));
+  }, []);
 
   const columns = useMemo<Column<Dispatch>[]>(() => [
     {
@@ -268,19 +279,14 @@ export default function DispatchesPage() {
       key: 'status',
       header: 'Status',
       align: 'center',
-      render: (_, row) => {
-        const color = DISPATCH_STATUS_COLORS[row.status as keyof typeof DISPATCH_STATUS_COLORS] || DISPATCH_STATUS_COLORS.PENDING;
-        return (
-          <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 10px', borderRadius: 9999, fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', background: color.bg, color: color.text, border: `1px solid ${color.border}` }}>
-            {getDispatchStatusLabel(row.status)}
-          </span>
-        );
-      },
+      render: (_, row) => (
+        <StatusBadge status={row.status} size="sm" />
+      ),
     },
     {
-      key: 'dispatchDate',
-      header: 'Dispatch Date & Time',
-      render: (_, row) => formatDateTime(row.dispatchDate),
+      key: 'estimatedArrival',
+      header: 'Est. Arrival',
+      render: (_, row) => formatDateTime(row.estimatedArrival),
     },
     {
       key: '_count',
@@ -289,14 +295,51 @@ export default function DispatchesPage() {
       render: (_, row) => row._count.shipments,
     },
     {
-      key: 'id',
+      key: 'actions',
       header: 'Actions',
-      align: 'center',
       render: (_, row) => (
-        <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
-          <Button variant="ghost" size="sm" icon={<Eye className="w-4 h-4" />} onClick={() => router.push(`/dashboard/dispatches/${row.id}`)} />
-          <Button variant="ghost" size="sm" icon={<Pencil className="w-4 h-4" />} onClick={() => handleOpenEdit(row)} />
-          <Button variant="ghost" size="sm" icon={<Trash2 className="w-4 h-4" />} onClick={() => void handleDeleteDispatch(row)} disabled={deletingDispatchId === row.id} />
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.75 }}>
+          <Button
+            variant="outline"
+            size="sm"
+            icon={<Eye className="w-3.5 h-3.5" />}
+            onClick={(event) => {
+              event.stopPropagation();
+              router.push(`/dashboard/dispatches/${row.id}`);
+            }}
+          >
+            View
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            icon={<Pencil className="w-3.5 h-3.5" />}
+            onClick={(event) => {
+              event.stopPropagation();
+              handleOpenEdit(row);
+            }}
+          >
+            Edit
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            icon={<Trash2 className="w-3.5 h-3.5" />}
+            onClick={(event) => {
+              event.stopPropagation();
+              void handleDeleteDispatch(row);
+            }}
+            disabled={deletingDispatchId === row.id}
+            sx={{
+              color: 'var(--error)',
+              borderColor: 'var(--error)',
+              '&:hover': {
+                bgcolor: 'rgba(var(--error-rgb), 0.1)',
+              },
+            }}
+          >
+            {deletingDispatchId === row.id ? 'Deleting...' : 'Delete'}
+          </Button>
         </Box>
       ),
     },
@@ -305,117 +348,199 @@ export default function DispatchesPage() {
   return (
     <PermissionRoute permission="dispatches:manage">
       <DashboardSurface>
-        <Box sx={{ px: 2, pt: 2 }}>
-          <Breadcrumbs />
-        </Box>
-
-        <DashboardPanel
+        <PageHeader
+          showBreadcrumbs
           title="Dispatches"
-          description="Manage the first leg from yard to port before container shipping"
-          actions={<Button variant="primary" icon={<Plus className="w-4 h-4" />} onClick={() => setOpenCreate(true)}>New dispatch</Button>}
-        >
-          <DashboardGrid className="grid-cols-1 md:grid-cols-4 mb-4">
-            <StatsCard icon={<Truck className="w-5 h-5" />} title="Dispatches" value={stats.total} variant="default" />
-            <StatsCard icon={<Truck className="w-5 h-5" />} title="Active" value={stats.active} variant="warning" />
-            <StatsCard icon={<Truck className="w-5 h-5" />} title="Completed" value={stats.completed} variant="success" />
-            <StatsCard icon={<Truck className="w-5 h-5" />} title="Pending" value={stats.pending} variant="secondary" />
-          </DashboardGrid>
+          description="Manage haulage and transport dispatches to port"
+          actions={
+            <Button variant="primary" icon={<Plus className="w-4 h-4" />} onClick={() => setOpenCreate(true)}>
+              New Dispatch
+            </Button>
+          }
+        />
 
-          <Box sx={{ mb: 2, display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 220px' }, gap: 1.5 }}>
-            <TextField
-              fullWidth
-              size="small"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search by reference, notes, or VIN"
-              InputProps={{ startAdornment: <Search className="w-4 h-4 mr-2 text-[var(--text-secondary)]" /> }}
-            />
-            <TextField select size="small" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
-              <MenuItem value="">All Statuses</MenuItem>
-              {DISPATCH_STATUS_OPTIONS.map((status) => (
-                <MenuItem key={status} value={status}>{getDispatchStatusLabel(status)}</MenuItem>
-              ))}
-            </TextField>
-          </Box>
+        {/* Stats */}
+        <DashboardGrid className="grid-cols-2 md:grid-cols-4">
+          <StatsCard icon={<Truck className="w-5 h-5" />} title="Total Dispatches" value={stats.total} variant="default" />
+          <StatsCard icon={<Truck className="w-5 h-5" />} title="Active Dispatches" value={stats.active} variant="info" />
+          <StatsCard icon={<Truck className="w-5 h-5" />} title="Completed" value={stats.completed} variant="success" />
+          <StatsCard icon={<Truck className="w-5 h-5" />} title="Assigned Units" value={stats.shipments} variant="warning" />
+        </DashboardGrid>
 
-          <div className="pt-1 pb-3">
-            <StatusFilterPills
-              options={[
-                { value: '', label: 'All Statuses' },
-                ...DISPATCH_STATUS_OPTIONS.map((status) => ({
-                  value: status,
-                  label: getDispatchStatusLabel(status),
-                  color: DISPATCH_STATUS_COLORS[status as keyof typeof DISPATCH_STATUS_COLORS]?.border || '#3B82F6',
-                })),
-              ]}
-              selectedValue={statusFilter}
-              onSelect={(val) => setStatusFilter(val)}
-            />
-          </div>
+        {/* Search */}
+        <DashboardPanel title="Search & Filter" description="Find dispatches quickly">
+          <FormField
+            label=""
+            placeholder="Search by reference #, company, route..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            leftIcon={<Search className="w-4 h-4 text-[var(--text-secondary)]" />}
+          />
+        </DashboardPanel>
 
+        {/* Status Filter Carousel */}
+        <div className="pt-1 pb-1">
+          <StatusFilterPills
+            options={[
+              { value: '', label: 'All Statuses' },
+              { value: 'PENDING', label: 'Pending', color: '#9CA3AF' },
+              { value: 'DISPATCHED', label: 'Dispatched', color: '#F59E0B' },
+              { value: 'ARRIVED_AT_PORT', label: 'Port Arrival', color: '#6366F1' },
+              { value: 'COMPLETED', label: 'Completed', color: '#10B981' },
+              { value: 'CANCELLED', label: 'Cancelled', color: '#EF4444' },
+            ]}
+            selectedValue={statusFilter}
+            onSelect={(val) => setStatusFilter(val)}
+          />
+        </div>
+
+        {/* Data Table Panel */}
+        <DashboardPanel title={`Dispatches List (${dispatches.length})`} fullHeight>
           {loading ? (
-            <Box sx={{ py: 1 }}>
-              <SkeletonTable rows={6} columns={5} />
-            </Box>
-          ) : dispatches.length === 0 ? (
-            <EmptyState
-              icon={<Truck className="w-8 h-8" />}
-              title={search || statusFilter ? 'No dispatches match these filters' : 'No dispatches yet'}
-              description={search || statusFilter ? 'Try clearing the current filters or searching for a different reference or VIN.' : 'Create the first dispatch to start tracking the yard-to-port leg.'}
-              action={<Button variant="primary" icon={<Plus className="w-4 h-4" />} onClick={() => setOpenCreate(true)}>New dispatch</Button>}
-            />
+            <Box sx={{ py: 4, textAlign: 'center', color: 'var(--text-secondary)' }}>Loading dispatches...</Box>
           ) : (
-            <DataTable data={dispatches} columns={columns} keyField="id" onRowClick={(row) => router.push(`/dashboard/dispatches/${row.id}`)} />
+            <DataTable
+              data={dispatches}
+              columns={columns}
+              keyField="id"
+              onRowClick={(row) => router.push(`/dashboard/dispatches/${row.id}`)}
+            />
           )}
         </DashboardPanel>
 
-        <Dialog open={openCreate} onClose={() => !creating && setOpenCreate(false)} maxWidth="sm" fullWidth>
-          <DialogTitle>Create Dispatch</DialogTitle>
-          <DialogContent sx={{ display: 'grid', gap: 2, pt: 1.5 }}>
-            <TextField select label="Dispatch Company" value={formData.companyId} onChange={(event) => setFormData((prev) => ({ ...prev, companyId: event.target.value }))}>
-              {companies.map((company) => <MenuItem key={company.id} value={company.id}>{company.name}</MenuItem>)}
-            </TextField>
-            <Box sx={{ mt: -1, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-              This dispatch is linked to the selected company ledger. Dispatch expenses will post to that ledger and allocate customer charges across the assigned shipments.
-            </Box>
-            <TextField label="Origin" value={formData.origin} onChange={(event) => setFormData((prev) => ({ ...prev, origin: event.target.value }))} />
-            <TextField label="Destination" value={formData.destination} onChange={(event) => setFormData((prev) => ({ ...prev, destination: event.target.value }))} />
-            <TextField label="Dispatch Date" type="date" InputLabelProps={{ shrink: true }} value={formData.dispatchDate} onChange={(event) => setFormData((prev) => ({ ...prev, dispatchDate: event.target.value }))} />
-            <TextField label="Estimated Arrival" type="date" InputLabelProps={{ shrink: true }} value={formData.estimatedArrival} onChange={(event) => setFormData((prev) => ({ ...prev, estimatedArrival: event.target.value }))} />
-            <TextField label="Cost" type="number" value={formData.cost} onChange={(event) => setFormData((prev) => ({ ...prev, cost: event.target.value }))} />
-            <TextField label="Notes" multiline rows={3} value={formData.notes} onChange={(event) => setFormData((prev) => ({ ...prev, notes: event.target.value }))} />
-          </DialogContent>
-          <DialogActions>
-            <Button variant="outline" onClick={() => setOpenCreate(false)} disabled={creating}>Cancel</Button>
-            <Button variant="primary" onClick={handleCreate} disabled={creating}>{creating ? 'Creating...' : 'Create'}</Button>
-          </DialogActions>
-        </Dialog>
+        {/* Create Modal */}
+        <Modal
+          open={openCreate}
+          onClose={() => !creating && setOpenCreate(false)}
+          title="Create New Dispatch"
+          description="Create a dispatch reference to coordinate vehicle movement to port."
+          size="md"
+          actions={
+            <>
+              <Button variant="outline" onClick={() => setOpenCreate(false)} disabled={creating}>Cancel</Button>
+              <Button variant="primary" onClick={handleCreate} disabled={creating}>
+                {creating ? 'Creating...' : 'Create Dispatch'}
+              </Button>
+            </>
+          }
+        >
+          <div className="space-y-4">
+            <Select
+              label="Dispatch Company"
+              value={formData.companyId}
+              onChange={(val) => setFormData(prev => ({ ...prev, companyId: String(val) }))}
+              options={[{ value: '', label: 'Select Company' }, ...companyOptions]}
+            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                label="Origin"
+                value={formData.origin}
+                onChange={(e) => setFormData(prev => ({ ...prev, origin: e.target.value }))}
+              />
+              <FormField
+                label="Destination"
+                value={formData.destination}
+                onChange={(e) => setFormData(prev => ({ ...prev, destination: e.target.value }))}
+              />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                label="Dispatch Date"
+                type="date"
+                value={formData.dispatchDate}
+                onChange={(e) => setFormData(prev => ({ ...prev, dispatchDate: e.target.value }))}
+              />
+              <FormField
+                label="Est. Arrival"
+                type="date"
+                value={formData.estimatedArrival}
+                onChange={(e) => setFormData(prev => ({ ...prev, estimatedArrival: e.target.value }))}
+              />
+            </div>
+            <FormField
+              label="Agreed Cost (USD)"
+              type="number"
+              value={formData.cost}
+              onChange={(e) => setFormData(prev => ({ ...prev, cost: e.target.value }))}
+              placeholder="0.00"
+            />
+            <FormField
+              label="Notes"
+              value={formData.notes}
+              onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+              placeholder="Optional notes..."
+            />
+          </div>
+        </Modal>
 
-        <Dialog open={openEdit} onClose={() => !editing && setOpenEdit(false)} maxWidth="sm" fullWidth>
-          <DialogTitle>Edit Dispatch</DialogTitle>
-          <DialogContent sx={{ display: 'grid', gap: 2, pt: 1.5 }}>
-            <TextField select label="Dispatch Company" value={editFormData.companyId} onChange={(event) => setEditFormData((prev) => ({ ...prev, companyId: event.target.value }))}>
-              {companies.map((company) => <MenuItem key={company.id} value={company.id}>{company.name}</MenuItem>)}
-            </TextField>
-            <Box sx={{ mt: -1, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-              Changing the company changes the ledger used for future dispatch expense recovery and allocation.
-            </Box>
-            <TextField label="Origin" value={editFormData.origin} onChange={(event) => setEditFormData((prev) => ({ ...prev, origin: event.target.value }))} />
-            <TextField label="Destination" value={editFormData.destination} onChange={(event) => setEditFormData((prev) => ({ ...prev, destination: event.target.value }))} />
-            <TextField select label="Status" value={editFormData.status} onChange={(event) => setEditFormData((prev) => ({ ...prev, status: event.target.value }))}>
-              {DISPATCH_STATUS_OPTIONS.map((status) => <MenuItem key={status} value={status}>{getDispatchStatusLabel(status)}</MenuItem>)}
-            </TextField>
-            <TextField label="Dispatch Date" type="date" InputLabelProps={{ shrink: true }} value={editFormData.dispatchDate} onChange={(event) => setEditFormData((prev) => ({ ...prev, dispatchDate: event.target.value }))} />
-            <TextField label="Estimated Arrival" type="date" InputLabelProps={{ shrink: true }} value={editFormData.estimatedArrival} onChange={(event) => setEditFormData((prev) => ({ ...prev, estimatedArrival: event.target.value }))} />
-            <TextField label="Actual Arrival" type="date" InputLabelProps={{ shrink: true }} value={editFormData.actualArrival} onChange={(event) => setEditFormData((prev) => ({ ...prev, actualArrival: event.target.value }))} />
-            <TextField label="Cost" type="number" value={editFormData.cost} onChange={(event) => setEditFormData((prev) => ({ ...prev, cost: event.target.value }))} />
-            <TextField label="Notes" multiline rows={3} value={editFormData.notes} onChange={(event) => setEditFormData((prev) => ({ ...prev, notes: event.target.value }))} />
-          </DialogContent>
-          <DialogActions>
-            <Button variant="outline" onClick={() => setOpenEdit(false)} disabled={editing}>Cancel</Button>
-            <Button variant="primary" onClick={handleUpdateDispatch} disabled={editing}>{editing ? 'Saving...' : 'Save Changes'}</Button>
-          </DialogActions>
-        </Dialog>
+        {/* Edit Modal */}
+        <Modal
+          open={openEdit}
+          onClose={() => !editing && setOpenEdit(false)}
+          title="Edit Dispatch"
+          description="Update dispatch details and progress."
+          size="md"
+          actions={
+            <>
+              <Button variant="outline" onClick={() => setOpenEdit(false)} disabled={editing}>Cancel</Button>
+              <Button variant="primary" onClick={handleUpdateDispatch} disabled={editing}>
+                {editing ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </>
+          }
+        >
+          <div className="space-y-4">
+            <Select
+              label="Dispatch Company"
+              value={editFormData.companyId}
+              onChange={(val) => setEditFormData(prev => ({ ...prev, companyId: String(val) }))}
+              options={[{ value: '', label: 'Select Company' }, ...companyOptions]}
+            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                label="Origin"
+                value={editFormData.origin}
+                onChange={(e) => setEditFormData(prev => ({ ...prev, origin: e.target.value }))}
+              />
+              <FormField
+                label="Destination"
+                value={editFormData.destination}
+                onChange={(e) => setEditFormData(prev => ({ ...prev, destination: e.target.value }))}
+              />
+            </div>
+            <Select
+              label="Status"
+              value={editFormData.status}
+              onChange={(val) => setEditFormData(prev => ({ ...prev, status: String(val) }))}
+              options={dispatchStatusSelectOptions}
+            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                label="Dispatch Date"
+                type="date"
+                value={editFormData.dispatchDate}
+                onChange={(e) => setEditFormData(prev => ({ ...prev, dispatchDate: e.target.value }))}
+              />
+              <FormField
+                label="Est. Arrival"
+                type="date"
+                value={editFormData.estimatedArrival}
+                onChange={(e) => setEditFormData(prev => ({ ...prev, estimatedArrival: e.target.value }))}
+              />
+            </div>
+            <FormField
+              label="Agreed Cost (USD)"
+              type="number"
+              value={editFormData.cost}
+              onChange={(e) => setEditFormData(prev => ({ ...prev, cost: e.target.value }))}
+            />
+            <FormField
+              label="Notes"
+              value={editFormData.notes}
+              onChange={(e) => setEditFormData(prev => ({ ...prev, notes: e.target.value }))}
+            />
+          </div>
+        </Modal>
       </DashboardSurface>
     </PermissionRoute>
   );

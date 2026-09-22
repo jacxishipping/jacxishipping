@@ -28,7 +28,8 @@ import {
 } from 'recharts';
 import { Box, Typography } from '@mui/material';
 import { 
-  Breadcrumbs, 
+  PageHeader,
+  Breadcrumbs,
   Button, 
   StatsCard, 
   LoadingState 
@@ -298,62 +299,24 @@ export default function AnalyticsPage() {
 
   return (
     <ProtectedRoute>
-      <DashboardSurface className="light-surface">
-        <Box sx={{ px: 2, pt: 2 }}>
-          <Breadcrumbs />
-        </Box>
-
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: { xs: 'column', md: 'row' },
-          justifyContent: 'space-between',
-          alignItems: { xs: 'flex-start', md: 'center' },
-          gap: 2.5,
-          px: { xs: 2, md: 3 },
-          pt: 2,
-          pb: 1,
-        }}
-      >
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-          <Typography component="h1" sx={{ fontSize: '1.25rem', fontWeight: 600 }}>
-            Analytics
-          </Typography>
-          <Typography sx={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-            Financial and operational intelligence updated in real time.
-          </Typography>
-        </Box>
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center' }}>
-          {headerMeta.map((item) => (
-            <Box
-              key={item.label}
-              sx={{
-                minWidth: 110,
-                border: '1px solid var(--border)',
-                borderRadius: 2,
-                padding: '6px 12px',
-                backgroundColor: 'var(--panel)',
-                boxShadow: '0 8px 20px rgba(var(--text-primary-rgb), 0.04)',
-              }}
+      <DashboardSurface>
+        <PageHeader
+          showBreadcrumbs
+          title="Analytics"
+          description="Financial and operational intelligence updated in real time"
+          meta={headerMeta}
+          actions={
+            <Button
+              variant="outline"
+              size="sm"
+              icon={<RefreshCcw size={14} />}
+              onClick={handleRefresh}
+              disabled={refreshing}
             >
-              <Typography sx={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.2em', color: 'var(--text-secondary)' }}>
-                {item.label}
-              </Typography>
-              <Typography sx={{ fontSize: '1rem', fontWeight: 600 }}>{item.value}</Typography>
-            </Box>
-          ))}
-          <Button
-            variant="outline"
-            size="sm"
-            icon={<RefreshCcw size={14} />}
-            onClick={handleRefresh}
-            disabled={refreshing}
-            sx={{ textTransform: 'none', fontSize: '0.75rem' }}
-          >
-            Refresh
-          </Button>
-        </Box>
-      </Box>
+              Refresh
+            </Button>
+          }
+        />
 
       {error && (
         <Box

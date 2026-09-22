@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { Building2, CheckCircle2, Clock3, ExternalLink, Search, Undo2 } from 'lucide-react';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { DashboardSurface, DashboardPanel } from '@/components/dashboard/DashboardSurface';
-import { Breadcrumbs, Button, EmptyState, toast } from '@/components/design-system';
+import { PageHeader, Button, EmptyState, toast } from '@/components/design-system';
 
 type GetpassShipment = {
   id: string;
@@ -147,9 +147,13 @@ export default function CompanyGetpassesPage() {
   return (
     <ProtectedRoute>
       <DashboardSurface>
+        <PageHeader
+          showBreadcrumbs
+          title="Company Getpasses"
+          description="Track active and completed shipment getpasses by company"
+        />
         <div className="flex flex-col gap-4">
-          <Breadcrumbs items={[{ label: 'Company Getpasses', href: '' }]} />
-          <DashboardPanel title="Company Getpasses" description="Track active and completed shipment getpasses by company">
+          <DashboardPanel title="Search & Filter" description="Filter getpasses by vehicle, container, company, or status">
             <form
               className="mb-4 flex flex-col gap-3 md:flex-row"
               onSubmit={(event) => {

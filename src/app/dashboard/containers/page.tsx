@@ -435,33 +435,18 @@ export default function ContainersPage() {
 
         {/* Filters */}
         <DashboardPanel title="Search & Filter" description="Find containers quickly">
-          <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 2 }}>
-            <Box sx={{ flex: 1 }}>
-              <form onSubmit={handleSearch}>
-                <FormField
-                  label=""
-                  placeholder="Search by container #, tracking #, vessel..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  leftIcon={<Package style={{ fontSize: 20, color: 'var(--text-secondary)' }} />}
-                />
-                <button type="submit" className="sr-only">
-                  Search containers
-                </button>
-              </form>
-            </Box>
-            <Box sx={{ minWidth: { xs: '100%', md: 200 } }}>
-              <Select
-                label="Status Filter"
-                value={statusFilter}
-                onChange={(value) => {
-                  setStatusFilter(String(value));
-                  setPage(1);
-                }}
-                options={statusFilterOptions}
-              />
-            </Box>
-          </Box>
+          <form onSubmit={handleSearch}>
+            <FormField
+              label=""
+              placeholder="Search by container #, tracking #, vessel, destination..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              leftIcon={<Package style={{ fontSize: 20, color: 'var(--text-secondary)' }} />}
+            />
+            <button type="submit" className="sr-only">
+              Search containers
+            </button>
+          </form>
         </DashboardPanel>
 
         {/* Status Filter Carousel */}

@@ -4,17 +4,15 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
-import { User, UserPlus, Eye, EyeOff, Copy, Check } from 'lucide-react';
-import { Box, Typography, IconButton, Slide, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Alert } from '@mui/material';
-import { Breadcrumbs, toast, EmptyState, SkeletonCard, SkeletonTable, Tooltip, StatusBadge, Button, CompactSkeleton } from '@/components/design-system';
+import { User, UserPlus, Eye, EyeOff, Copy, Check, Pencil, Trash2, Shield, Users as UsersIcon } from 'lucide-react';
+import { Box, Typography, IconButton } from '@mui/material';
+import { PageHeader, StatsCard, toast, SkeletonCard, StatusBadge, Button, CompactSkeleton } from '@/components/design-system';
 import { DataTable, Column } from '@/components/ui/DataTable';
-import VisibilityIcon from '@mui/icons-material/Visibility';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
 import SmartSearch, { SearchFilters } from '@/components/dashboard/SmartSearch';
-import { DashboardSurface, DashboardPanel } from '@/components/dashboard/DashboardSurface';
+import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
 import UserCard from '@/components/dashboard/UserCard';
 import { hasPermission } from '@/lib/rbac';
+import { useConfirmAction } from '@/components/ui/ConfirmActionProvider';
 
 interface UserData {
 	id: string;
@@ -30,6 +28,7 @@ interface UserData {
 export default function UsersPage() {
 	const { data: session, status } = useSession();
 	const router = useRouter();
+	const confirmAction = useConfirmAction();
 	const [users, setUsers] = useState<UserData[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [totalUsers, setTotalUsers] = useState<number>(0);
@@ -37,9 +36,6 @@ export default function UsersPage() {
 	const [regularUsersCount, setRegularUsersCount] = useState<number>(0);
 	const [currentPage, setCurrentPage] = useState<number>(1);
 
-	// Confirmation modal state
-	const [confirmOpen, setConfirmOpen] = useState(false);
-	const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
 	const [searchFilters, setSearchFilters] = useState<SearchFilters>({
 		query: '',
 		type: 'users',
@@ -68,7 +64,6 @@ export default function UsersPage() {
 			if (response.ok) {
 				const data = await response.json();
 
-				// Merge any optimistically created user stored in sessionStorage
 				let serverUsers = data.users || [];
 				let createdJson: string | null = null;
 				let createdUser: UserData | null = null;
@@ -76,17 +71,14 @@ export default function UsersPage() {
 					createdJson = sessionStorage.getItem('jacxi.createdUser');
 					if (createdJson) {
 						createdUser = JSON.parse(createdJson) as UserData;
-						// If not already present in server results, prepend it
 						if (createdUser && !serverUsers.some((u: UserData) => u.id === createdUser!.id)) {
 							serverUsers = [createdUser, ...serverUsers];
-							// adjust counts
 							if (createdUser.role === 'admin') {
 								data.admins = (data.admins ?? 0) + 1;
 							} else {
 								data.regularUsers = (data.regularUsers ?? 0) + 1;
 							}
 							data.total = (data.total ?? 0) + 1;
-							// clear the saved created user so we don't reuse it again
 							sessionStorage.removeItem('jacxi.createdUser');
 						}
 					}
@@ -111,7 +103,6 @@ export default function UsersPage() {
 		}
 	}, [searchFilters.query]);
 
-	// Listen for created users from BroadcastChannel and insert them optimistically
 	useEffect(() => {
 		if (typeof BroadcastChannel === 'undefined') return;
 		const bc = new BroadcastChannel('jacxi-users');
@@ -153,16 +144,9 @@ export default function UsersPage() {
 		fetchUsers(1, filters.query);
 	};
 
-	// paginatedUsers is just users; server already paginates and filters
-
-	// stats come from server-side counts
-	const statsTotal = totalUsers;
-	const statsAdmins = adminsCount;
-	const statsRegularUsers = regularUsersCount;
-
-  const formatRole = (role: string) => {
-	return role.charAt(0).toUpperCase() + role.slice(1);
-  };
+	const formatRole = (role: string) => {
+		return role.charAt(0).toUpperCase() + role.slice(1);
+	};
 
 	const toggleEmailVisibility = (userId: string) => {
 		setShowEmailsFor((prev) => {
@@ -180,34 +164,91 @@ export default function UsersPage() {
 		try {
 			await navigator.clipboard.writeText(text);
 			setCopiedEmail(userId);
+			toast.success('Email copied to clipboard');
 			setTimeout(() => setCopiedEmail(null), 2000);
-		} catch (err) {
-			console.error('Failed to copy:', err);
+		} catch {
+			toast.error('Failed to copy email');
 		}
 	};
 
 	const maskEmail = (email: string) => {
-		const [username, domain] = email.split('@');
-		if (username.length <= 3) {
-			return `${username[0]}***@${domain}`;
+		const [name, domain] = email.split('@');
+		if (!domain) return email;
+		const maskedName = name.length > 2 ? `${name[0]}***${name[name.length - 1]}` : `${name[0]}***`;
+		return `${maskedName}@${domain}`;
+	};
+
+	const handleDeleteUser = async (user: UserData) => {
+		const confirmed = await confirmAction({
+			title: 'Delete User Account',
+			message: `Delete internal user "${user.name || user.email}"? This action cannot be undone.`,
+			confirmText: 'Delete User',
+			severity: 'error',
+		});
+		if (!confirmed) return;
+
+		try {
+			setLoading(true);
+			const resp = await fetch(`/api/users/${user.id}`, { method: 'DELETE' });
+			if (resp.ok) {
+				toast.success('User deleted successfully');
+				const nextPage = currentPage > 1 && users.length === 1 ? currentPage - 1 : currentPage;
+				setCurrentPage(nextPage);
+				await fetchUsers(nextPage, searchFilters.query);
+			} else {
+				toast.error('Failed to delete user');
+			}
+		} catch (err) {
+			console.error('Error deleting user:', err);
+			toast.error('Error deleting user');
+		} finally {
+			setLoading(false);
 		}
-		return `${username.substring(0, 3)}***@${domain}`;
 	};
 
 	const userColumns = useMemo<Column<UserData>[]>(() => [
 		{
 			key: 'name',
-			header: 'User',
+			header: 'Name',
 			sortable: true,
 			render: (_, row) => (
-				<Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-					<Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-primary)' }} noWrap>
-						{row.name || 'Unnamed User'}
-					</Typography>
-					<Typography variant="caption" color="text.secondary" noWrap>
-						{formatRole(row.role)}
-					</Typography>
+				<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+					<Box
+						sx={{
+							width: 32,
+							height: 32,
+							borderRadius: '50%',
+							bgcolor: 'rgba(var(--accent-gold-rgb), 0.15)',
+							color: 'var(--accent-gold)',
+							display: 'flex',
+							alignItems: 'center',
+							justifyContent: 'center',
+							fontWeight: 600,
+							fontSize: '0.8rem',
+						}}
+					>
+						{(row.name || row.email || 'U')[0].toUpperCase()}
+					</Box>
+					<Box>
+						<Typography sx={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-primary)' }}>
+							{row.name || 'Unnamed User'}
+						</Typography>
+						<Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+							{formatRole(row.role)}
+						</Typography>
+					</Box>
 				</Box>
+			),
+		},
+		{
+			key: 'role',
+			header: 'Role',
+			sortable: true,
+			render: (_, row) => (
+				<StatusBadge
+					status={row.role === 'admin' ? 'SUCCESS' : 'INFO'}
+					size="sm"
+				/>
 			),
 		},
 		{
@@ -216,7 +257,7 @@ export default function UsersPage() {
 			sortable: true,
 			render: (_, row) => (
 				<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-					<Typography sx={{ fontFamily: 'ui-monospace,SFMono-Regular,Menlo,monospace', fontSize: '0.8rem' }} noWrap>
+					<Typography sx={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>
 						{showEmailsFor.has(row.id) ? row.email : maskEmail(row.email)}
 					</Typography>
 					<IconButton
@@ -225,9 +266,9 @@ export default function UsersPage() {
 						title="Toggle email visibility"
 					>
 						{showEmailsFor.has(row.id) ? (
-							<EyeOff style={{ width: 16, height: 16 }} />
+							<EyeOff style={{ width: 15, height: 15 }} />
 						) : (
-							<Eye style={{ width: 16, height: 16 }} />
+							<Eye style={{ width: 15, height: 15 }} />
 						)}
 					</IconButton>
 					{showEmailsFor.has(row.id) && (
@@ -237,9 +278,9 @@ export default function UsersPage() {
 							title="Copy email"
 						>
 							{copiedEmail === row.id ? (
-								<Check style={{ color: 'green', width: 16, height: 16 }} />
+								<Check style={{ color: 'green', width: 15, height: 15 }} />
 							) : (
-								<Copy style={{ color: 'var(--accent-gold)', width: 16, height: 16 }} />
+								<Copy style={{ color: 'var(--accent-gold)', width: 15, height: 15 }} />
 							)}
 						</IconButton>
 					)}
@@ -270,33 +311,37 @@ export default function UsersPage() {
 			key: 'actions',
 			header: 'Actions',
 			render: (_, row) => (
-				<Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+				<Box sx={{ display: 'flex', gap: 0.75, justifyContent: 'flex-end' }}>
 					<Link href={`/dashboard/users/${row.id}`} style={{ textDecoration: 'none' }}>
 						<Button
 							variant="outline"
 							size="sm"
-							icon={<VisibilityIcon />}
-							sx={{ textTransform: 'none', fontSize: '0.7rem' }}
+							icon={<Eye className="w-3.5 h-3.5" />}
 						>
 							View
 						</Button>
 					</Link>
 					<Link href={`/dashboard/users/${row.id}/edit`} style={{ textDecoration: 'none' }}>
 						<Button
-							variant="ghost"
+							variant="outline"
 							size="sm"
-							icon={<EditIcon />}
-							sx={{ textTransform: 'none', fontSize: '0.7rem' }}
+							icon={<Pencil className="w-3.5 h-3.5" />}
 						>
 							Edit
 						</Button>
 					</Link>
 					<Button
-						variant="ghost"
+						variant="outline"
 						size="sm"
-						icon={<DeleteIcon />}
-						onClick={() => handleDeleteClick(row.id)}
-						sx={{ color: 'var(--error)' }}
+						icon={<Trash2 className="w-3.5 h-3.5" />}
+						onClick={() => void handleDeleteUser(row)}
+						sx={{
+							color: 'var(--error)',
+							borderColor: 'var(--error)',
+							'&:hover': {
+								bgcolor: 'rgba(var(--error-rgb), 0.1)',
+							},
+						}}
 					>
 						Delete
 					</Button>
@@ -305,51 +350,12 @@ export default function UsersPage() {
 		},
 	], [showEmailsFor, copiedEmail]);
 
-
-		// Pagination helpers
-		const totalPages = Math.max(1, Math.ceil(totalUsers / PAGE_SIZE));
-		const paginatedUsers = users; // server already paginates
-
-		const handleDeleteClick = (id: string) => {
-			setDeletingUserId(id);
-			setConfirmOpen(true);
-		};
-
-		const handleConfirmDelete = async () => {
-			if (!deletingUserId) return;
-			try {
-				setLoading(true);
-				const resp = await fetch(`/api/users/${deletingUserId}`, { method: 'DELETE' });
-				if (resp.ok) {
-					toast.success('User deleted successfully');
-					setConfirmOpen(false);
-					setDeletingUserId(null);
-					// refresh current page (ensure we don't end up on an empty page)
-					const nextPage = currentPage > 1 && users.length === 1 ? currentPage - 1 : currentPage;
-					setCurrentPage(nextPage);
-					await fetchUsers(nextPage, searchFilters.query);
-				} else {
-					toast.error('Failed to delete user');
-				}
-			} catch (err) {
-				console.error('Error deleting user:', err);
-				toast.error('Error deleting user');
-			} finally {
-				setLoading(false);
-			}
-		};
-
-	const handleCancelDelete = () => {
-		setConfirmOpen(false);
-		setDeletingUserId(null);
-	};
+	const totalPages = Math.max(1, Math.ceil(totalUsers / PAGE_SIZE));
+	const paginatedUsers = users;
 
 	if (status === 'loading') {
 		return (
 			<DashboardSurface>
-				<Box sx={{ px: 2, pt: 2 }}>
-					<Breadcrumbs />
-				</Box>
 				<DashboardPanel>
 					<CompactSkeleton />
 				</DashboardPanel>
@@ -364,80 +370,66 @@ export default function UsersPage() {
 
 	return (
 		<DashboardSurface>
-				{/* Breadcrumbs */}
-				<Box sx={{ px: 2, pt: 2 }}>
-					<Breadcrumbs />
-				</Box>
-			{/* Search Panel */}
-			<DashboardPanel
-				title="Users Directory"
-				description="Internal users (admin, finance, manager, operations, customer service)"
-				noBodyPadding
+			<PageHeader
+				showBreadcrumbs
+				title="Internal Users"
+				description="Manage staff accounts, administrative roles, and system permissions"
 				actions={
 					<Link href="/dashboard/users/new?accountType=user" style={{ textDecoration: 'none' }}>
-						<Button variant="primary" size="sm" sx={{ textTransform: 'none', fontWeight: 600 }}>
-							<UserPlus style={{ width: 16, height: 16, marginRight: 8 }} />
+						<Button variant="primary" icon={<UserPlus className="w-4 h-4" />}>
 							Create Internal User
 						</Button>
 					</Link>
 				}
+			/>
+
+			{/* Stats Grid */}
+			<DashboardGrid className="grid-cols-2 md:grid-cols-4">
+				<StatsCard
+					icon={<UsersIcon className="w-5 h-5" />}
+					title="Total Internal Users"
+					value={totalUsers}
+					variant="default"
+				/>
+				<StatsCard
+					icon={<Shield className="w-5 h-5" />}
+					title="Admin Accounts"
+					value={adminsCount}
+					variant="info"
+				/>
+				<StatsCard
+					icon={<User className="w-5 h-5" />}
+					title="Staff Accounts"
+					value={regularUsersCount}
+					variant="success"
+				/>
+				<StatsCard
+					icon={<UsersIcon className="w-5 h-5" />}
+					title="Active Page Count"
+					value={users.length}
+					variant="warning"
+				/>
+			</DashboardGrid>
+
+			{/* Search Panel */}
+			<DashboardPanel
+				title="Directory Search"
+				description="Find internal users by name or email address"
 			>
-				<Box sx={{ px: 1.5, py: 1.5 }}>
-					<SmartSearch
-						onSearch={handleSearch}
-						placeholder="Search internal users by name or email..."
-						showTypeFilter={false}
-						showStatusFilter={false}
-						showDateFilter
-						showPriceFilter={false}
-						showUserFilter={false}
-						defaultType="users"
-					/>
-				</Box>
+				<SmartSearch
+					onSearch={handleSearch}
+					placeholder="Search internal users by name or email..."
+					showTypeFilter={false}
+					showStatusFilter={false}
+					showDateFilter
+					showPriceFilter={false}
+					showUserFilter={false}
+					defaultType="users"
+				/>
 			</DashboardPanel>
 
 			{/* Results Panel */}
 			<DashboardPanel title={`All Internal Users (${totalUsers})`} fullHeight>
-				{/* Stats */}
-				<Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, mb: 2 }}>
-					<Box sx={{ p: 2, bgcolor: 'var(--text-primary)/0.04', borderRadius: 1, border: '1px solid rgba(6,182,212,0.12)' }}>
-						<Typography variant="caption" color="text.secondary">
-							Total Internal Users
-						</Typography>
-						<Typography variant="h5" sx={{ fontWeight: 700 }}>
-							{statsTotal}
-						</Typography>
-					</Box>
-
-					<Box sx={{ p: 2, bgcolor: 'var(--text-primary)/0.04', borderRadius: 1, border: '1px solid rgba(124,58,237,0.08)' }}>
-						<Typography variant="caption" color="text.secondary">
-							Admin Accounts
-						</Typography>
-						<Typography variant="h5" sx={{ fontWeight: 700 }}>
-							{statsAdmins}
-						</Typography>
-					</Box>
-
-					<Box sx={{ p: 2, bgcolor: 'var(--text-primary)/0.04', borderRadius: 1, border: '1px solid rgba(16,185,129,0.08)' }}>
-						<Typography variant="caption" color="text.secondary">
-							Customer Accounts
-						</Typography>
-						<Typography variant="h5" sx={{ fontWeight: 700 }}>
-							{statsRegularUsers}
-						</Typography>
-					</Box>
-
-					<Box sx={{ p: 2, bgcolor: 'var(--text-primary)/0.04', borderRadius: 1, border: '1px solid rgba(6,182,212,0.12)' }}>
-						<Typography variant="caption" color="text.secondary">
-							Filtered Results
-						</Typography>
-						<Typography variant="h5" sx={{ fontWeight: 700 }}>
-							{totalUsers}
-						</Typography>
-					</Box>
-				</Box>
-
-				{/* Content */}
 				{loading ? (
 					<Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' }, gap: 2 }}>
 						{[...Array(6)].map((_, i) => (
@@ -446,73 +438,58 @@ export default function UsersPage() {
 					</Box>
 				) : paginatedUsers.length === 0 ? (
 					<Box sx={{ minHeight: 240, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
-						<User style={{ width: 48, height: 48, color: 'rgba(255,255,255,0.25)' }} />
+						<User style={{ width: 48, height: 48, color: 'var(--text-secondary)', opacity: 0.5 }} />
 						<Typography sx={{ color: 'var(--text-secondary)' }}>No internal users found</Typography>
 						<Link href="/dashboard/users/new?accountType=user" style={{ textDecoration: 'none' }}>
-							<Button variant="primary" size="sm" sx={{ mt: 1, textTransform: 'none' }}>
-								<UserPlus style={{ width: 16, height: 16, marginRight: 8 }} /> Create Internal User
+							<Button variant="primary" size="sm" icon={<UserPlus className="w-4 h-4" />}>
+								Create Internal User
 							</Button>
 						</Link>
 					</Box>
 				) : (
 					<>
-							<div className="hidden lg:block">
-								<DataTable
-									data={paginatedUsers}
-									columns={userColumns}
-									keyField="id"
+						<div className="hidden lg:block">
+							<DataTable
+								data={paginatedUsers}
+								columns={userColumns}
+								keyField="id"
+							/>
+						</div>
+						<Box
+							sx={{
+								display: { xs: 'grid', lg: 'none' },
+								gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' },
+								gap: 2,
+							}}
+						>
+							{paginatedUsers.map((user, index) => (
+								<UserCard
+									key={user.id}
+									user={user}
+									index={index}
+									highlighted={highlightedUserId === user.id}
+									showEmail={showEmailsFor.has(user.id)}
+									copiedEmail={copiedEmail}
+									onToggleEmail={toggleEmailVisibility}
+									onCopyEmail={copyToClipboard}
+									onDelete={() => void handleDeleteUser(user)}
 								/>
-							</div>
-							<Box
-								sx={{
-									display: { xs: 'grid', lg: 'none' },
-									gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' },
-									gap: 2,
-								}}
-							>
-								{paginatedUsers.map((user, index) => (
-									<UserCard
-										key={user.id}
-										user={user}
-										index={index}
-										highlighted={highlightedUserId === user.id}
-										showEmail={showEmailsFor.has(user.id)}
-										copiedEmail={copiedEmail}
-										onToggleEmail={toggleEmailVisibility}
-										onCopyEmail={copyToClipboard}
-										onDelete={handleDeleteClick}
-									/>
-								))}
-							</Box>
+							))}
+						</Box>
 
 						{/* Pagination Controls */}
-						<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 2 }}>
-							<Button variant="outline" size="sm" onClick={() => { setCurrentPage((p) => Math.max(1, p - 1)); fetchUsers(currentPage - 1, searchFilters.query); }} disabled={currentPage === 1} sx={{ textTransform: 'none' }}>
+						<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 3, pt: 2, borderTop: '1px solid var(--border)' }}>
+							<Button variant="outline" size="sm" onClick={() => { setCurrentPage((p) => Math.max(1, p - 1)); fetchUsers(currentPage - 1, searchFilters.query); }} disabled={currentPage === 1}>
 								Previous
 							</Button>
-							<Typography sx={{ color: 'var(--text-secondary)' }}>Page {currentPage} of {totalPages}</Typography>
-							<Button variant="outline" size="sm" onClick={() => { setCurrentPage((p) => Math.min(totalPages, p + 1)); fetchUsers(currentPage + 1, searchFilters.query); }} disabled={currentPage === totalPages} sx={{ textTransform: 'none' }}>
+							<Typography sx={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Page {currentPage} of {totalPages}</Typography>
+							<Button variant="outline" size="sm" onClick={() => { setCurrentPage((p) => Math.min(totalPages, p + 1)); fetchUsers(currentPage + 1, searchFilters.query); }} disabled={currentPage === totalPages}>
 								Next
 							</Button>
 						</Box>
 					</>
 				)}
 			</DashboardPanel>
-
-			{/* Delete confirmation dialog */}
-			<Dialog open={confirmOpen} onClose={handleCancelDelete} aria-labelledby="confirm-delete-title">
-				<DialogTitle id="confirm-delete-title">Confirm delete</DialogTitle>
-				<DialogContent>
-					<DialogContentText>
-						Are you sure you want to delete this internal user? This action cannot be undone.
-					</DialogContentText>
-				</DialogContent>
-				<DialogActions>
-					<Button onClick={handleCancelDelete} variant="ghost">Cancel</Button>
-					<Button onClick={handleConfirmDelete} variant="primary" color="error">Delete</Button>
-				</DialogActions>
-			</Dialog>
-
 		</DashboardSurface>
 	);
 }
