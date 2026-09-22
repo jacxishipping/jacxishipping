@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Edit, LocalShipping, CreditCard, LocationOn, CalendarToday } from '@mui/icons-material';
+import { PanelRightOpen, QrCode } from 'lucide-react';
 import { Box, Typography, LinearProgress, Chip } from '@mui/material';
 import { StatusBadge, Button } from '@/components/design-system';
 
@@ -54,6 +55,8 @@ interface ShipmentRowProps {
 	isAdmin?: boolean;
 	onStatusUpdated?: () => void;
 	delay?: number;
+	onQuickPeek?: (id: string) => void;
+	onOpenQR?: (shipment: any) => void;
 }
 
 const formatStatus = (status: string) => {
@@ -82,6 +85,8 @@ export default function ShipmentRow({
 	user,
 	showCustomer = false,
 	delay = 0,
+	onQuickPeek,
+	onOpenQR,
 }: ShipmentRowProps) {
 	const router = useRouter();
 	const vehicleInfo = [vehicleMake, vehicleModel, vehicleYear].filter(Boolean).join(' ') || vehicleType;
@@ -440,9 +445,53 @@ export default function ShipmentRow({
 						display: { xs: 'none', md: 'flex' },
 						justifyContent: 'flex-end',
 						alignItems: 'center',
+						gap: 0.75,
 						flexShrink: 0,
 					}}
 				>
+					{onQuickPeek && (
+						<Button
+							variant="outline"
+							size="sm"
+							icon={<PanelRightOpen className="w-3.5 h-3.5" />}
+							iconPosition="start"
+							onClick={(event) => {
+								event.stopPropagation();
+								onQuickPeek(id);
+							}}
+							sx={{
+								borderRadius: '999px',
+								minWidth: 'auto',
+								px: 1.25,
+								fontSize: '0.75rem',
+							}}
+						>
+							Quick Peek
+						</Button>
+					)}
+					{onOpenQR && (
+						<Button
+							variant="outline"
+							size="sm"
+							icon={<QrCode className="w-3.5 h-3.5" />}
+							onClick={(event) => {
+								event.stopPropagation();
+								onOpenQR({
+									id,
+									vehicle: vehicleInfo,
+									vin: vehicleVIN || '-',
+									customer: user?.name || user?.email || '-',
+									status,
+								});
+							}}
+							title="Print Yard QR Sticker"
+							sx={{
+								borderRadius: '999px',
+								minWidth: 'auto',
+								px: 1,
+							}}
+						/>
+					)}
 					<Button
 						component={Link}
 						href={editHref}
@@ -482,6 +531,44 @@ export default function ShipmentRow({
 				>
 					<Box sx={{ minWidth: 0, overflow: 'hidden' }}>{statusRow}</Box>
 					<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexShrink: 0 }}>
+						{onQuickPeek && (
+							<Button
+								variant="outline"
+								size="sm"
+								icon={<PanelRightOpen className="w-3.5 h-3.5" />}
+								onClick={(event) => {
+									event.stopPropagation();
+									onQuickPeek(id);
+								}}
+								sx={{
+									minHeight: { xs: '44px', md: 'auto' },
+									borderRadius: '999px',
+									px: 1.25,
+								}}
+							/>
+						)}
+						{onOpenQR && (
+							<Button
+								variant="outline"
+								size="sm"
+								icon={<QrCode className="w-3.5 h-3.5" />}
+								onClick={(event) => {
+									event.stopPropagation();
+									onOpenQR({
+										id,
+										vehicle: vehicleInfo,
+										vin: vehicleVIN || '-',
+										customer: user?.name || user?.email || '-',
+										status,
+									});
+								}}
+								sx={{
+									minHeight: { xs: '44px', md: 'auto' },
+									borderRadius: '999px',
+									px: 1,
+								}}
+							/>
+						)}
 						<Button
 							component={Link}
 							href={shipmentHref}

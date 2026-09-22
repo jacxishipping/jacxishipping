@@ -376,6 +376,8 @@ const confirmAction = useConfirmAction();
 				totalPages={totalPages}
 				onPreviousPage={() => setCurrentPage((page) => Math.max(1, page - 1))}
 				onNextPage={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+				onQuickPeek={(id) => setQuickPeekShipmentId(id)}
+				onOpenQR={(shipment) => handleOpenQR(shipment)}
 			/>
 
 			{/* Slide-over Quick Peek Drawer */}

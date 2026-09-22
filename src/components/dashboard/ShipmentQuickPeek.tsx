@@ -125,7 +125,7 @@ export default function ShipmentQuickPeek({
     <Drawer
       open={open}
       onClose={onClose}
-      size="md"
+      size="lg"
       title={
         shipment ? (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
