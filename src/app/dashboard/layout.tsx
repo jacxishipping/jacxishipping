@@ -29,7 +29,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
 
   return (
     <Box
-      className="dashboard-theme-light"
+      className="dashboard-surface-root transition-colors duration-200"
       sx={{
         height: '100vh',
         overflow: 'hidden',
