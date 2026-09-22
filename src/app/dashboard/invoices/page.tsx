@@ -51,6 +51,7 @@ import {
 } from '@/components/design-system';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { exportToCSVWithHeaders } from '@/lib/export';
+import { SavedFilterPresets } from '@/components/dashboard/SavedFilterPresets';
 
 interface Invoice {
 	id: string;
@@ -610,13 +611,13 @@ const confirmAction = useConfirmAction();
 				) : null}
 
 				{/* Filters */}
-				<Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
+				<Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mb: 3 }}>
 					<TextField
 						placeholder="Search by invoice #, customer, VIN, vehicle, or container..."
 						value={searchTerm}
 						onChange={(e) => setSearchTerm(e.target.value)}
 						size="small"
-						sx={{ flex: 1, minWidth: '250px' }}
+						fullWidth
 						InputProps={{
 							startAdornment: (
 								<InputAdornment position="start">
@@ -624,6 +625,19 @@ const confirmAction = useConfirmAction();
 								</InputAdornment>
 							),
 						}}
+					/>
+					<SavedFilterPresets
+						storageKey="invoices"
+						currentFilters={{ status: statusFilter, search: searchTerm }}
+						onApplyPreset={(filters) => {
+							if (filters.status) setStatusFilter(filters.status);
+							if (typeof filters.search === 'string') setSearchTerm(filters.search);
+						}}
+						defaultPresets={[
+							{ id: 'preset_overdue', name: 'Overdue Invoices', filters: { status: 'overdue', search: '' }, isDefault: true },
+							{ id: 'preset_pending', name: 'Pending Payment', filters: { status: 'pending', search: '' }, isDefault: true },
+							{ id: 'preset_paid', name: 'Settled & Paid', filters: { status: 'paid', search: '' }, isDefault: true },
+						]}
 					/>
 				</Box>
 

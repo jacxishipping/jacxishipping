@@ -5,11 +5,13 @@ import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { Box, Typography, Menu, MenuItem, IconButton, Divider } from '@mui/material';
-import { Package, Ship, MapPin, TrendingUp, Calendar, FileText, DollarSign, Receipt, MoreVertical, Eye, Copy, Trash2, Download, PanelRightOpen } from 'lucide-react';
+import { Package, Ship, MapPin, TrendingUp, Calendar, FileText, DollarSign, Receipt, MoreVertical, Eye, Copy, Trash2, Download, PanelRightOpen, QrCode } from 'lucide-react';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
 import { PageHeader, StatsCard, Button, EmptyState, FormField, Select, toast, SkeletonCard, DashboardPageSkeleton, CompactSkeleton, StatusBadge, CopyButton, StatusFilterPills } from '@/components/design-system';
 import ContainerQuickPeek from '@/components/dashboard/ContainerQuickPeek';
+import { QRCodeModal, type QRCodeData } from '@/components/dashboard/QRCodeModal';
+import { SavedFilterPresets } from '@/components/dashboard/SavedFilterPresets';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { exportToCSVWithHeaders } from '@/lib/export';
 import { useConfirmAction } from '@/components/ui/ConfirmActionProvider';
@@ -57,9 +59,26 @@ export default function ContainersPage() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedContainer, setSelectedContainer] = useState<Container | null>(null);
   const [quickPeekContainerId, setQuickPeekContainerId] = useState<string | null>(null);
+  const [qrModalData, setQrModalData] = useState<QRCodeData | null>(null);
   const router = useRouter();
   const { data: session } = useSession();
   const isAdmin = session?.user?.role === 'admin';
+
+  const handleOpenQR = (container: Container, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setQrModalData({
+      type: 'CONTAINER',
+      id: container.id,
+      title: `Container ${container.containerNumber}`,
+      code: container.containerNumber,
+      trackingUrl: `${typeof window !== 'undefined' ? window.location.origin : ''}/tracking?container=${container.containerNumber}`,
+      metadata: {
+        vesselName: container.vesselName || undefined,
+        destination: container.destinationPort || undefined,
+        status: container.status,
+      },
+    });
+  };
 
   useEffect(() => {
     fetchContainers();
@@ -449,6 +468,22 @@ export default function ContainersPage() {
               Search containers
             </button>
           </form>
+          <Box sx={{ mt: 1.5 }}>
+            <SavedFilterPresets
+              storageKey="containers"
+              currentFilters={{ status: statusFilter, search: searchQuery }}
+              onApplyPreset={(filters) => {
+                if (filters.status) setStatusFilter(filters.status);
+                if (typeof filters.search === 'string') setSearchQuery(filters.search);
+                setPage(1);
+              }}
+              defaultPresets={[
+                { id: 'preset_loading', name: 'Waiting for Loading', filters: { status: 'WAITING_FOR_LOADING', search: '' }, isDefault: true },
+                { id: 'preset_transit', name: 'On Ocean / In Transit', filters: { status: 'IN_TRANSIT', search: '' }, isDefault: true },
+                { id: 'preset_customs', name: 'Customs Clearance', filters: { status: 'CUSTOMS_CLEARANCE', search: '' }, isDefault: true },
+              ]}
+            />
+          </Box>
         </DashboardPanel>
 
         {/* Status Filter Carousel */}
@@ -754,6 +789,24 @@ export default function ContainersPage() {
             <Eye style={{ fontSize: 16, marginRight: 12 }} />
             Full Details
           </MenuItem>
+          <MenuItem
+            onClick={() => {
+              if (selectedContainer) handleOpenQR(selectedContainer);
+              handleMenuClose();
+            }}
+            sx={{
+              fontSize: '0.875rem',
+              py: 1.5,
+              px: 2,
+              color: 'var(--text-primary)',
+              '&:hover': {
+                bgcolor: 'rgba(var(--accent-gold-rgb), 0.1)',
+              },
+            }}
+          >
+            <QrCode style={{ width: 16, height: 16, marginRight: 12 }} />
+            Yard QR Label
+          </MenuItem>
           {session?.user?.role === 'admin' && (
             <MenuItem
               onClick={handleDuplicateContainer}
@@ -796,6 +849,13 @@ export default function ContainersPage() {
           containerId={quickPeekContainerId}
           open={Boolean(quickPeekContainerId)}
           onClose={() => setQuickPeekContainerId(null)}
+        />
+
+        {/* Yard QR Code & Thermal Label Modal */}
+        <QRCodeModal
+          open={Boolean(qrModalData)}
+          onClose={() => setQrModalData(null)}
+          data={qrModalData}
         />
       </DashboardSurface>
     </ProtectedRoute>

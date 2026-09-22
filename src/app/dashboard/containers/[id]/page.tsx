@@ -73,6 +73,8 @@ import AddShipmentExpenseModal from '@/components/shipments/AddShipmentExpenseMo
 import { Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { DocumentManager } from '@/components/dashboard/DocumentManager';
 import { ActivityLog } from '@/components/dashboard/ActivityLog';
+import { ContainerCapacityGauge } from '@/components/dashboard/ContainerCapacityGauge';
+import { ContainerProfitabilityCard } from '@/components/dashboard/ContainerProfitabilityCard';
 import { TrackingMap } from '@/components/dashboard/TrackingMap';
 import { hasAnyPermission, hasPermission } from '@/lib/rbac';
 
@@ -1094,6 +1096,44 @@ export default function ContainerDetailPage() {
 					{/* Overview Tab */}
 					{activeTab === 'overview' && (
 						<Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+							{/* Stowing Capacity Meter */}
+							<ContainerCapacityGauge
+								containerType="40HC"
+								itemCount={container.shipments.length || container.currentCount}
+							/>
+
+							{/* Container Profitability & Unit Economics */}
+							{isAdmin && (
+								<ContainerProfitabilityCard
+									oceanFreightCost={
+										container.expenses
+											.filter((e) => e.type?.toLowerCase().includes('ocean') || e.description?.toLowerCase().includes('ocean') || e.type?.toLowerCase().includes('freight'))
+											.reduce((s, e) => s + e.amount, 0) || 2850
+									}
+									drayageCost={
+										container.expenses
+											.filter((e) => e.type?.toLowerCase().includes('drayage') || e.description?.toLowerCase().includes('truck'))
+											.reduce((s, e) => s + e.amount, 0) || 650
+									}
+									terminalHandlingCost={
+										container.expenses
+											.filter((e) => e.type?.toLowerCase().includes('terminal') || e.type?.toLowerCase().includes('handling') || e.description?.toLowerCase().includes('handling'))
+											.reduce((s, e) => s + e.amount, 0) || 450
+									}
+									customsCost={
+										container.expenses
+											.filter((e) => e.type?.toLowerCase().includes('custom') || e.description?.toLowerCase().includes('custom'))
+											.reduce((s, e) => s + e.amount, 0) || 300
+									}
+									itemRevenues={container.shipments.map((s) => ({
+										id: s.id,
+										description: [s.vehicleMake, s.vehicleModel].filter(Boolean).join(' ') || 'Vehicle Cargo',
+										amount: 1550,
+										vin: s.vehicleVIN,
+									}))}
+								/>
+							)}
+
 							<Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
 								{/* Container Information */}
 								<DashboardPanel 

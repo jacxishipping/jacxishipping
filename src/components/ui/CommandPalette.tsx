@@ -12,12 +12,18 @@ import {
   Settings, 
   Home, 
   TrendingUp, 
-  Car,
-  Compass,
-  CreditCard,
-  Truck,
-  PlusCircle,
-  Clock
+  Car, 
+  Compass, 
+  CreditCard, 
+  Truck, 
+  PlusCircle, 
+  Clock,
+  Landmark,
+  BookOpen,
+  QrCode,
+  Calendar,
+  Layers,
+  Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { StatusBadge } from '@/components/design-system';
@@ -55,7 +61,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   // Live multi-entity lookup (Shipments & Containers)
   useEffect(() => {
     if (!open) return;
-    const term = search.trim();
+    const term = search.trim().replace(/^>\s*/, '');
     if (term.length < 2) {
       setShipmentHits([]);
       setContainerHits([]);
@@ -127,6 +133,8 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     [onOpenChange]
   );
 
+  const isActionFilter = search.startsWith('>');
+
   return (
     <>
       {open && (
@@ -151,7 +159,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
           <Command.Input
             value={search}
             onValueChange={setSearch}
-            placeholder="Search VIN, container #, vehicle, or jump to page..."
+            placeholder="Search VIN, container #, or type '>' for actions..."
             className="w-full bg-transparent py-3.5 text-sm sm:text-base text-[var(--text-primary,#111827)] placeholder:text-[var(--text-secondary,#6B7280)] outline-none"
           />
           <kbd className="hidden sm:inline-block px-2 py-0.5 text-xs text-[var(--text-secondary,#6B7280)] bg-white border border-[var(--border,#E5E7EB)] rounded shadow-xs">
@@ -171,8 +179,61 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
             )}
           </Command.Empty>
 
+          {/* Quick Actions (Always visible or when > typed) */}
+          <Command.Group heading="Quick Actions" className="px-2 py-1.5 text-xs font-bold text-[var(--text-secondary,#6B7280)] uppercase tracking-wider">
+            <Command.Item
+              onSelect={() => runCommand(() => router.push('/dashboard/shipments/new'))}
+              className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer hover:bg-[var(--background,#F9FAFB)] data-[selected=true]:bg-[var(--background,#F9FAFB)]"
+            >
+              <PlusCircle className="w-4 h-4 text-[var(--accent-gold,#D4AF37)]" />
+              <span className="font-medium text-sm">Create New Shipment</span>
+            </Command.Item>
+
+            <Command.Item
+              onSelect={() => runCommand(() => router.push('/dashboard/containers/new'))}
+              className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer hover:bg-[var(--background,#F9FAFB)] data-[selected=true]:bg-[var(--background,#F9FAFB)]"
+            >
+              <Package className="w-4 h-4 text-amber-600" />
+              <span className="font-medium text-sm">New Container Booking</span>
+            </Command.Item>
+
+            <Command.Item
+              onSelect={() => runCommand(() => router.push('/dashboard/invoices/new'))}
+              className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer hover:bg-[var(--background,#F9FAFB)] data-[selected=true]:bg-[var(--background,#F9FAFB)]"
+            >
+              <FileText className="w-4 h-4 text-blue-600" />
+              <span className="font-medium text-sm">Create Customer Invoice</span>
+            </Command.Item>
+
+            <Command.Item
+              onSelect={() => runCommand(() => router.push('/dashboard/finance/record-payment'))}
+              className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer hover:bg-[var(--background,#F9FAFB)] data-[selected=true]:bg-[var(--background,#F9FAFB)]"
+            >
+              <CreditCard className="w-4 h-4 text-emerald-600" />
+              <span className="font-medium text-sm">Record Payment / Transaction</span>
+            </Command.Item>
+
+            <Command.Item
+              onSelect={() => runCommand(() => router.push('/dashboard/finance/banking'))}
+              className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer hover:bg-[var(--background,#F9FAFB)] data-[selected=true]:bg-[var(--background,#F9FAFB)]"
+            >
+              <Landmark className="w-4 h-4 text-indigo-600" />
+              <span className="font-medium text-sm">Import Bank CSV Statement</span>
+            </Command.Item>
+
+            <Command.Item
+              onSelect={() => runCommand(() => router.push('/dashboard/finance/ledger'))}
+              className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer hover:bg-[var(--background,#F9FAFB)] data-[selected=true]:bg-[var(--background,#F9FAFB)]"
+            >
+              <BookOpen className="w-4 h-4 text-violet-600" />
+              <span className="font-medium text-sm">Open General Ledger</span>
+            </Command.Item>
+          </Command.Group>
+
+          <Command.Separator className="h-px bg-[var(--border,#E5E7EB)] my-2" />
+
           {/* Container Search Hits */}
-          {containerHits.length > 0 && (
+          {containerHits.length > 0 && !isActionFilter && (
             <>
               <Command.Group heading="Containers" className="px-2 py-1.5 text-xs font-bold text-[var(--text-secondary,#6B7280)] uppercase tracking-wider">
                 {containerHits.map((container) => (
@@ -201,7 +262,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
           )}
 
           {/* Shipment Search Hits */}
-          {shipmentHits.length > 0 && (
+          {shipmentHits.length > 0 && !isActionFilter && (
             <>
               <Command.Group heading="Shipments & Cargo" className="px-2 py-1.5 text-xs font-bold text-[var(--text-secondary,#6B7280)] uppercase tracking-wider">
                 {shipmentHits.map((hit) => (
@@ -228,105 +289,94 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
             </>
           )}
 
-          {/* Quick Actions */}
-          <Command.Group heading="Quick Actions" className="px-2 py-1.5 text-xs font-bold text-[var(--text-secondary,#6B7280)] uppercase tracking-wider">
-            <Command.Item
-              onSelect={() => runCommand(() => router.push('/dashboard/shipments/new'))}
-              className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer hover:bg-[var(--background,#F9FAFB)] data-[selected=true]:bg-[var(--background,#F9FAFB)]"
-            >
-              <PlusCircle className="w-4 h-4 text-[var(--accent-gold,#D4AF37)]" />
-              <span className="font-medium text-sm">Create New Shipment</span>
-            </Command.Item>
-
-            <Command.Item
-              onSelect={() => runCommand(() => router.push('/dashboard/containers/new'))}
-              className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer hover:bg-[var(--background,#F9FAFB)] data-[selected=true]:bg-[var(--background,#F9FAFB)]"
-            >
-              <Package className="w-4 h-4 text-amber-600" />
-              <span className="font-medium text-sm">New Container Booking</span>
-            </Command.Item>
-
-            <Command.Item
-              onSelect={() => runCommand(() => router.push('/dashboard/finance/record-payment'))}
-              className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer hover:bg-[var(--background,#F9FAFB)] data-[selected=true]:bg-[var(--background,#F9FAFB)]"
-            >
-              <CreditCard className="w-4 h-4 text-emerald-600" />
-              <span className="font-medium text-sm">Record Payment / Transaction</span>
-            </Command.Item>
-          </Command.Group>
-
-          <Command.Separator className="h-px bg-[var(--border,#E5E7EB)] my-2" />
-
           {/* Core Navigation */}
-          <Command.Group heading="Navigation" className="px-2 py-1.5 text-xs font-bold text-[var(--text-secondary,#6B7280)] uppercase tracking-wider">
-            <Command.Item
-              onSelect={() => runCommand(() => router.push('/dashboard'))}
-              className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer hover:bg-[var(--background,#F9FAFB)] data-[selected=true]:bg-[var(--background,#F9FAFB)]"
-            >
-              <Home className="w-4 h-4" />
-              <span className="font-medium text-sm">Dashboard Overview</span>
-            </Command.Item>
+          {!isActionFilter && (
+            <Command.Group heading="Navigation" className="px-2 py-1.5 text-xs font-bold text-[var(--text-secondary,#6B7280)] uppercase tracking-wider">
+              <Command.Item
+                onSelect={() => runCommand(() => router.push('/dashboard'))}
+                className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer hover:bg-[var(--background,#F9FAFB)] data-[selected=true]:bg-[var(--background,#F9FAFB)]"
+              >
+                <Home className="w-4 h-4" />
+                <span className="font-medium text-sm">Dashboard Overview</span>
+              </Command.Item>
 
-            <Command.Item
-              onSelect={() => runCommand(() => router.push('/dashboard/shipments'))}
-              className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer hover:bg-[var(--background,#F9FAFB)] data-[selected=true]:bg-[var(--background,#F9FAFB)]"
-            >
-              <Ship className="w-4 h-4" />
-              <span className="font-medium text-sm">Shipments</span>
-            </Command.Item>
+              <Command.Item
+                onSelect={() => runCommand(() => router.push('/dashboard/shipments'))}
+                className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer hover:bg-[var(--background,#F9FAFB)] data-[selected=true]:bg-[var(--background,#F9FAFB)]"
+              >
+                <Ship className="w-4 h-4" />
+                <span className="font-medium text-sm">Shipments</span>
+              </Command.Item>
 
-            <Command.Item
-              onSelect={() => runCommand(() => router.push('/dashboard/containers'))}
-              className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer hover:bg-[var(--background,#F9FAFB)] data-[selected=true]:bg-[var(--background,#F9FAFB)]"
-            >
-              <Package className="w-4 h-4" />
-              <span className="font-medium text-sm">Containers</span>
-            </Command.Item>
+              <Command.Item
+                onSelect={() => runCommand(() => router.push('/dashboard/containers'))}
+                className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer hover:bg-[var(--background,#F9FAFB)] data-[selected=true]:bg-[var(--background,#F9FAFB)]"
+              >
+                <Package className="w-4 h-4" />
+                <span className="font-medium text-sm">Containers</span>
+              </Command.Item>
 
-            <Command.Item
-              onSelect={() => runCommand(() => router.push('/dashboard/transits'))}
-              className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer hover:bg-[var(--background,#F9FAFB)] data-[selected=true]:bg-[var(--background,#F9FAFB)]"
-            >
-              <Compass className="w-4 h-4" />
-              <span className="font-medium text-sm">Transits & Locations</span>
-            </Command.Item>
+              <Command.Item
+                onSelect={() => runCommand(() => router.push('/dashboard/customers'))}
+                className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer hover:bg-[var(--background,#F9FAFB)] data-[selected=true]:bg-[var(--background,#F9FAFB)]"
+              >
+                <Users className="w-4 h-4" />
+                <span className="font-medium text-sm">Customers & Accounts</span>
+              </Command.Item>
 
-            <Command.Item
-              onSelect={() => runCommand(() => router.push('/dashboard/dispatches'))}
-              className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer hover:bg-[var(--background,#F9FAFB)] data-[selected=true]:bg-[var(--background,#F9FAFB)]"
-            >
-              <Truck className="w-4 h-4" />
-              <span className="font-medium text-sm">Dispatches</span>
-            </Command.Item>
+              <Command.Item
+                onSelect={() => runCommand(() => router.push('/dashboard/transits'))}
+                className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer hover:bg-[var(--background,#F9FAFB)] data-[selected=true]:bg-[var(--background,#F9FAFB)]"
+              >
+                <Compass className="w-4 h-4" />
+                <span className="font-medium text-sm">Transits & Locations</span>
+              </Command.Item>
 
-            <Command.Item
-              onSelect={() => runCommand(() => router.push('/dashboard/invoices'))}
-              className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer hover:bg-[var(--background,#F9FAFB)] data-[selected=true]:bg-[var(--background,#F9FAFB)]"
-            >
-              <FileText className="w-4 h-4" />
-              <span className="font-medium text-sm">Invoices & Billing</span>
-            </Command.Item>
+              <Command.Item
+                onSelect={() => runCommand(() => router.push('/dashboard/dispatches'))}
+                className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer hover:bg-[var(--background,#F9FAFB)] data-[selected=true]:bg-[var(--background,#F9FAFB)]"
+              >
+                <Truck className="w-4 h-4" />
+                <span className="font-medium text-sm">Dispatches</span>
+              </Command.Item>
 
-            <Command.Item
-              onSelect={() => runCommand(() => router.push('/dashboard/analytics'))}
-              className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer hover:bg-[var(--background,#F9FAFB)] data-[selected=true]:bg-[var(--background,#F9FAFB)]"
-            >
-              <TrendingUp className="w-4 h-4" />
-              <span className="font-medium text-sm">Analytics</span>
-            </Command.Item>
+              <Command.Item
+                onSelect={() => runCommand(() => router.push('/dashboard/invoices'))}
+                className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer hover:bg-[var(--background,#F9FAFB)] data-[selected=true]:bg-[var(--background,#F9FAFB)]"
+              >
+                <FileText className="w-4 h-4" />
+                <span className="font-medium text-sm">Invoices & Billing</span>
+              </Command.Item>
 
-            <Command.Item
-              onSelect={() => runCommand(() => router.push('/dashboard/settings'))}
-              className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer hover:bg-[var(--background,#F9FAFB)] data-[selected=true]:bg-[var(--background,#F9FAFB)]"
-            >
-              <Settings className="w-4 h-4" />
-              <span className="font-medium text-sm">Settings</span>
-            </Command.Item>
-          </Command.Group>
+              <Command.Item
+                onSelect={() => runCommand(() => router.push('/dashboard/finance/reports/aging'))}
+                className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer hover:bg-[var(--background,#F9FAFB)] data-[selected=true]:bg-[var(--background,#F9FAFB)]"
+              >
+                <Calendar className="w-4 h-4" />
+                <span className="font-medium text-sm">Aging Schedule Report</span>
+              </Command.Item>
+
+              <Command.Item
+                onSelect={() => runCommand(() => router.push('/dashboard/analytics'))}
+                className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer hover:bg-[var(--background,#F9FAFB)] data-[selected=true]:bg-[var(--background,#F9FAFB)]"
+              >
+                <TrendingUp className="w-4 h-4" />
+                <span className="font-medium text-sm">Analytics</span>
+              </Command.Item>
+
+              <Command.Item
+                onSelect={() => runCommand(() => router.push('/dashboard/settings'))}
+                className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer hover:bg-[var(--background,#F9FAFB)] data-[selected=true]:bg-[var(--background,#F9FAFB)]"
+              >
+                <Settings className="w-4 h-4" />
+                <span className="font-medium text-sm">Settings</span>
+              </Command.Item>
+            </Command.Group>
+          )}
         </Command.List>
 
         <div className="border-t border-[var(--border,#E5E7EB)] px-4 py-2.5 text-xs text-[var(--text-secondary,#6B7280)] bg-[var(--background,#F9FAFB)] flex items-center justify-between">
-          <span>Press <kbd className="px-1.5 py-0.5 bg-white border border-[var(--border,#E5E7EB)] rounded shadow-2xs font-mono">⌘K</kbd> or <kbd className="px-1.5 py-0.5 bg-white border border-[var(--border,#E5E7EB)] rounded shadow-2xs font-mono">Ctrl+K</kbd> to open</span>
+          <span>Type <kbd className="px-1.5 py-0.5 bg-white border border-[var(--border,#E5E7EB)] rounded shadow-2xs font-mono">&gt;</kbd> for actions</span>
           <span>↑↓ Navigate · ↵ Select · ESC Close</span>
         </div>
       </Command.Dialog>
