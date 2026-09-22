@@ -5,10 +5,6 @@ import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import {
   Box,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   MenuItem,
   Table,
   TableBody,
@@ -20,7 +16,7 @@ import {
   Typography,
 } from '@mui/material';
 import { AlertTriangle, Bot, Clock, Filter, RefreshCcw, Search as SearchIcon, ShieldCheck, XCircle } from 'lucide-react';
-import { Breadcrumbs, Button, EmptyState, LoadingState, StatsCard, StatusBadge, toast } from '@/components/design-system';
+import { PageHeader, Button, EmptyState, LoadingState, StatsCard, StatusBadge, Modal, toast } from '@/components/design-system';
 import { DashboardGrid, DashboardPanel, DashboardSurface } from '@/components/dashboard/DashboardSurface';
 import { hasPermission } from '@/lib/rbac';
 
@@ -181,21 +177,25 @@ export default function AiLogsPage() {
 
   return (
     <DashboardSurface>
-      <Breadcrumbs items={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'AI Logs' }]} />
-
-      <DashboardPanel
+      <PageHeader
+        showBreadcrumbs
         title="AI Interaction Logs"
         description="Browse prompt and response traces for dashboard briefs, shipment drafts, and extraction workflows."
         actions={
           <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
             <Button variant="outline" size="sm" onClick={clearFilters} icon={<XCircle className="w-4 h-4" />}>
-              Clear
+              Clear Filters
             </Button>
             <Button variant="secondary" size="sm" onClick={handleRefresh} icon={<RefreshCcw className="w-4 h-4" />} loading={refreshing}>
-              Refresh
+              Refresh Logs
             </Button>
           </Box>
         }
+      />
+
+      <DashboardPanel
+        title="Filter AI Activity"
+        description="Filter by feature domain, entity type, or review reason"
       >
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
           {quickFilters.map((filter) => (
@@ -377,86 +377,86 @@ export default function AiLogsPage() {
         )}
       </DashboardPanel>
 
-      <Dialog open={Boolean(selectedLog)} onClose={() => setSelectedLog(null)} maxWidth="md" fullWidth>
-        <DialogTitle>AI Log Details</DialogTitle>
-        <DialogContent dividers>
-          {selectedLog && (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' }, gap: 1.5 }}>
-                <Box sx={{ p: 1.5, border: '1px solid var(--border)', borderRadius: 2, bgcolor: 'var(--background)' }}>
-                  <Typography sx={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', mb: 0.5 }}>Status</Typography>
-                  <StatusBadge status={selectedLog.status === 'SUCCESS' ? 'success' : selectedLog.status === 'FALLBACK' ? 'warning' : 'error'} />
-                </Box>
-                <Box sx={{ p: 1.5, border: '1px solid var(--border)', borderRadius: 2, bgcolor: 'var(--background)' }}>
-                  <Typography sx={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', mb: 0.5 }}>Provider</Typography>
-                  <Typography sx={{ fontSize: '0.88rem', fontWeight: 700 }}>{selectedLog.provider}</Typography>
-                  <Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{selectedLog.model || 'No model recorded'}</Typography>
-                </Box>
-                <Box sx={{ p: 1.5, border: '1px solid var(--border)', borderRadius: 2, bgcolor: 'var(--background)' }}>
-                  <Typography sx={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', mb: 0.5 }}>Created</Typography>
-                  <Typography sx={{ fontSize: '0.88rem', fontWeight: 700 }}>{new Date(selectedLog.createdAt).toLocaleString()}</Typography>
-                </Box>
-              </Box>
-              {getLogFailureReason(selectedLog) && (
-                <Box
-                  sx={{
-                    p: 1.5,
-                    borderRadius: 2,
-                    border: '1px solid rgba(245, 158, 11, 0.35)',
-                    bgcolor: 'rgba(245, 158, 11, 0.08)',
-                    display: 'flex',
-                    gap: 1,
-                    alignItems: 'flex-start',
-                  }}
-                >
-                  <AlertTriangle className="w-4 h-4" style={{ color: 'rgb(180, 83, 9)', marginTop: 2 }} />
-                  <Box>
-                    <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', color: 'rgb(146, 64, 14)', mb: 0.5 }}>
-                      Review reason
-                    </Typography>
-                    <Typography sx={{ fontSize: '0.85rem', color: 'rgb(146, 64, 14)' }}>
-                      {getLogFailureReason(selectedLog)}
-                    </Typography>
-                  </Box>
-                </Box>
-              )}
-              <Box>
-                <Typography sx={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Feature</Typography>
-                <Typography>{formatFeatureLabel(selectedLog.feature)}</Typography>
-              </Box>
-              <Box>
-                <Typography sx={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Prompt</Typography>
-                <Box component="pre" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: '0.8rem', p: 2, bgcolor: 'var(--background)', borderRadius: 2, border: '1px solid var(--border)' }}>
-                  {selectedLog.prompt}
-                </Box>
-              </Box>
-              <Box>
-                <Typography sx={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Response</Typography>
-                <Box component="pre" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: '0.8rem', p: 2, bgcolor: 'var(--background)', borderRadius: 2, border: '1px solid var(--border)' }}>
-                  {selectedLog.response || 'N/A'}
-                </Box>
-              </Box>
-              <Box>
-                <Typography sx={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Request Payload</Typography>
-                <Box component="pre" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: '0.8rem', p: 2, bgcolor: 'var(--background)', borderRadius: 2, border: '1px solid var(--border)' }}>
-                  {JSON.stringify(selectedLog.requestPayload, null, 2)}
-                </Box>
-              </Box>
-              <Box>
-                <Typography sx={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Response Payload</Typography>
-                <Box component="pre" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: '0.8rem', p: 2, bgcolor: 'var(--background)', borderRadius: 2, border: '1px solid var(--border)' }}>
-                  {JSON.stringify(selectedLog.responsePayload, null, 2)}
-                </Box>
-              </Box>
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button variant="outline" onClick={() => setSelectedLog(null)}>
+      {/* Modal Inspector */}
+      <Modal
+        open={Boolean(selectedLog)}
+        onClose={() => setSelectedLog(null)}
+        size="lg"
+        title="AI Interaction Log Trace"
+        description={selectedLog ? `${formatFeatureLabel(selectedLog.feature)} • ${selectedLog.provider}` : undefined}
+        actions={
+          <Button variant="outline" size="sm" onClick={() => setSelectedLog(null)}>
             Close
           </Button>
-        </DialogActions>
-      </Dialog>
+        }
+      >
+        {selectedLog && (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' }, gap: 1.5 }}>
+              <Box sx={{ p: 1.5, border: '1px solid var(--border)', borderRadius: 2, bgcolor: 'var(--background)' }}>
+                <Typography sx={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', mb: 0.5 }}>Status</Typography>
+                <StatusBadge status={selectedLog.status === 'SUCCESS' ? 'success' : selectedLog.status === 'FALLBACK' ? 'warning' : 'error'} />
+              </Box>
+              <Box sx={{ p: 1.5, border: '1px solid var(--border)', borderRadius: 2, bgcolor: 'var(--background)' }}>
+                <Typography sx={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', mb: 0.5 }}>Provider</Typography>
+                <Typography sx={{ fontSize: '0.88rem', fontWeight: 700 }}>{selectedLog.provider}</Typography>
+                <Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{selectedLog.model || 'No model recorded'}</Typography>
+              </Box>
+              <Box sx={{ p: 1.5, border: '1px solid var(--border)', borderRadius: 2, bgcolor: 'var(--background)' }}>
+                <Typography sx={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', mb: 0.5 }}>Created</Typography>
+                <Typography sx={{ fontSize: '0.88rem', fontWeight: 700 }}>{new Date(selectedLog.createdAt).toLocaleString()}</Typography>
+              </Box>
+            </Box>
+            {getLogFailureReason(selectedLog) && (
+              <Box
+                sx={{
+                  p: 1.5,
+                  borderRadius: 2,
+                  border: '1px solid rgba(245, 158, 11, 0.35)',
+                  bgcolor: 'rgba(245, 158, 11, 0.08)',
+                  display: 'flex',
+                  gap: 1,
+                  alignItems: 'flex-start',
+                }}
+              >
+                <AlertTriangle className="w-4 h-4" style={{ color: 'rgb(180, 83, 9)', marginTop: 2 }} />
+                <Box>
+                  <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', color: 'rgb(146, 64, 14)', mb: 0.5 }}>
+                    Review reason
+                  </Typography>
+                  <Typography sx={{ fontSize: '0.85rem', color: 'rgb(146, 64, 14)' }}>
+                    {getLogFailureReason(selectedLog)}
+                  </Typography>
+                </Box>
+              </Box>
+            )}
+            <Box>
+              <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)', mb: 0.5 }}>Prompt</Typography>
+              <Box component="pre" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: '0.8rem', p: 2, bgcolor: 'var(--background)', borderRadius: 2, border: '1px solid var(--border)', maxHeight: 200, overflowY: 'auto' }}>
+                {selectedLog.prompt}
+              </Box>
+            </Box>
+            <Box>
+              <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)', mb: 0.5 }}>Response</Typography>
+              <Box component="pre" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: '0.8rem', p: 2, bgcolor: 'var(--background)', borderRadius: 2, border: '1px solid var(--border)', maxHeight: 200, overflowY: 'auto' }}>
+                {selectedLog.response || 'N/A'}
+              </Box>
+            </Box>
+            <Box>
+              <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)', mb: 0.5 }}>Request Payload</Typography>
+              <Box component="pre" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: '0.8rem', p: 2, bgcolor: 'var(--background)', borderRadius: 2, border: '1px solid var(--border)', maxHeight: 160, overflowY: 'auto' }}>
+                {JSON.stringify(selectedLog.requestPayload, null, 2)}
+              </Box>
+            </Box>
+            <Box>
+              <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)', mb: 0.5 }}>Response Payload</Typography>
+              <Box component="pre" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: '0.8rem', p: 2, bgcolor: 'var(--background)', borderRadius: 2, border: '1px solid var(--border)', maxHeight: 160, overflowY: 'auto' }}>
+                {JSON.stringify(selectedLog.responsePayload, null, 2)}
+              </Box>
+            </Box>
+          </Box>
+        )}
+      </Modal>
     </DashboardSurface>
   );
 }
