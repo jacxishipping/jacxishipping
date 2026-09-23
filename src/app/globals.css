@@ -209,6 +209,23 @@ html {
 	
 	/* Other */
 	--radius: 0.75rem;
+
+	/* Density Tokens - Default / Comfortable */
+	--density-table-py: 0.75rem;
+	--density-table-px: 1rem;
+	--density-card-padding: 1.25rem;
+	--density-card-gap: 1rem;
+	--density-btn-py: 0.5rem;
+	--density-btn-px: 1rem;
+	--density-input-h: 2.5rem;
+	--density-input-py: 0.5rem;
+	--density-input-px: 0.75rem;
+	--density-badge-py: 0.25rem;
+	--density-badge-px: 0.625rem;
+	--density-font-size-base: 0.875rem;
+	--density-font-size-sm: 0.75rem;
+	--density-font-size-xs: 0.7rem;
+	--density-stat-py: 1.25rem;
 }
 
 [data-theme="dark"],
@@ -256,6 +273,57 @@ html {
 	--info-rgb: 59, 130, 246;
 	--info-light: #1E3A8A;
 	--info-dark: #DBEAFE;
+}
+
+/* ==========================================================================
+   UI Density System (Comfortable vs Compact)
+   ========================================================================== */
+[data-density="compact"],
+.density-compact {
+	--density-table-py: 0.375rem;
+	--density-table-px: 0.75rem;
+	--density-card-padding: 0.875rem;
+	--density-card-gap: 0.625rem;
+	--density-btn-py: 0.25rem;
+	--density-btn-px: 0.625rem;
+	--density-input-h: 2rem;
+	--density-input-py: 0.25rem;
+	--density-input-px: 0.5rem;
+	--density-badge-py: 0.125rem;
+	--density-badge-px: 0.375rem;
+	--density-font-size-base: 0.8125rem;
+	--density-font-size-sm: 0.7rem;
+	--density-font-size-xs: 0.65rem;
+	--density-stat-py: 0.75rem;
+}
+
+/* Compact global typography scaling and table row tightening */
+[data-density="compact"] table th {
+	padding-top: 0.4rem !important;
+	padding-bottom: 0.4rem !important;
+	padding-left: 0.75rem !important;
+	padding-right: 0.75rem !important;
+	font-size: 0.725rem !important;
+}
+
+[data-density="compact"] table td {
+	padding-top: 0.375rem !important;
+	padding-bottom: 0.375rem !important;
+	padding-left: 0.75rem !important;
+	padding-right: 0.75rem !important;
+	font-size: 0.8125rem !important;
+}
+
+[data-density="compact"] .dashboard-card-compact-target {
+	padding: 0.875rem !important;
+}
+
+[data-density="compact"] .density-compact-p {
+	padding: 0.75rem !important;
+}
+
+[data-density="compact"] .density-compact-gap {
+	gap: 0.5rem !important;
 }
 
 body {

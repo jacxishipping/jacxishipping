@@ -28,8 +28,12 @@ const darkPalette = {
   info: '#3B82F6',
 };
 
-export function getMuiTheme(mode: 'light' | 'dark' = 'light'): Theme {
+export function getMuiTheme(
+  mode: 'light' | 'dark' = 'light',
+  density: 'comfortable' | 'compact' = 'comfortable'
+): Theme {
   const p = mode === 'dark' ? darkPalette : lightPalette;
+  const isCompact = density === 'compact';
 
   return createTheme({
     palette: {
@@ -106,25 +110,27 @@ export function getMuiTheme(mode: 'light' | 'dark' = 'light'): Theme {
     },
     typography: {
       fontFamily: 'var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      h1: { fontSize: '2.25rem', fontWeight: 700, lineHeight: 1.2 },
-      h2: { fontSize: '1.875rem', fontWeight: 600, lineHeight: 1.3 },
-      h3: { fontSize: '1.5rem', fontWeight: 600, lineHeight: 1.4 },
-      h4: { fontSize: '1.25rem', fontWeight: 600, lineHeight: 1.4 },
-      h5: { fontSize: '1.125rem', fontWeight: 600, lineHeight: 1.5 },
-      h6: { fontSize: '1rem', fontWeight: 600, lineHeight: 1.5 },
-      body1: { fontSize: '1rem', lineHeight: 1.5 },
-      body2: { fontSize: '0.875rem', lineHeight: 1.5 },
-      button: { textTransform: 'none', fontWeight: 500 },
+      h1: { fontSize: isCompact ? '2rem' : '2.25rem', fontWeight: 700, lineHeight: 1.2 },
+      h2: { fontSize: isCompact ? '1.625rem' : '1.875rem', fontWeight: 600, lineHeight: 1.3 },
+      h3: { fontSize: isCompact ? '1.375rem' : '1.5rem', fontWeight: 600, lineHeight: 1.4 },
+      h4: { fontSize: isCompact ? '1.125rem' : '1.25rem', fontWeight: 600, lineHeight: 1.4 },
+      h5: { fontSize: isCompact ? '1rem' : '1.125rem', fontWeight: 600, lineHeight: 1.5 },
+      h6: { fontSize: isCompact ? '0.875rem' : '1rem', fontWeight: 600, lineHeight: 1.5 },
+      body1: { fontSize: isCompact ? '0.875rem' : '1rem', lineHeight: 1.5 },
+      body2: { fontSize: isCompact ? '0.8125rem' : '0.875rem', lineHeight: 1.5 },
+      button: { textTransform: 'none', fontWeight: 500, fontSize: isCompact ? '0.8125rem' : '0.875rem' },
     },
     shape: {
-      borderRadius: 8,
+      borderRadius: isCompact ? 6 : 8,
     },
+    spacing: isCompact ? 6 : 8,
     components: {
       MuiButton: {
         styleOverrides: {
           root: {
-            borderRadius: 8,
-            padding: '8px 16px',
+            borderRadius: isCompact ? 6 : 8,
+            padding: isCompact ? '4px 12px' : '8px 16px',
+            minHeight: isCompact ? '32px' : '40px',
             fontWeight: 500,
           },
           contained: {
@@ -135,13 +141,37 @@ export function getMuiTheme(mode: 'light' | 'dark' = 'light'): Theme {
           },
         },
       },
+      MuiTableCell: {
+        styleOverrides: {
+          root: {
+            padding: isCompact ? '6px 10px' : '12px 16px',
+            fontSize: isCompact ? '0.8125rem' : '0.875rem',
+            borderColor: p.border,
+          },
+          head: {
+            padding: isCompact ? '8px 10px' : '14px 16px',
+            fontWeight: 600,
+            fontSize: isCompact ? '0.75rem' : '0.8125rem',
+          },
+        },
+      },
       MuiCard: {
         styleOverrides: {
           root: {
-            borderRadius: 12,
+            borderRadius: isCompact ? 10 : 12,
             backgroundImage: 'none',
             backgroundColor: p.panel,
             borderColor: p.border,
+          },
+        },
+      },
+      MuiCardContent: {
+        styleOverrides: {
+          root: {
+            padding: isCompact ? '12px' : '20px',
+            '&:last-child': {
+              paddingBottom: isCompact ? '12px' : '20px',
+            },
           },
         },
       },
@@ -156,8 +186,9 @@ export function getMuiTheme(mode: 'light' | 'dark' = 'light'): Theme {
       MuiOutlinedInput: {
         styleOverrides: {
           root: {
-            borderRadius: 8,
+            borderRadius: isCompact ? 6 : 8,
             backgroundColor: mode === 'dark' ? '#18181B' : '#FFFFFF',
+            fontSize: isCompact ? '0.8125rem' : '0.875rem',
             '& .MuiOutlinedInput-notchedOutline': {
               borderColor: p.border,
             },
@@ -168,13 +199,16 @@ export function getMuiTheme(mode: 'light' | 'dark' = 'light'): Theme {
               borderColor: p.accentGold,
             },
           },
+          input: {
+            padding: isCompact ? '6px 10px' : '10px 14px',
+          },
         },
       },
       MuiTextField: {
         styleOverrides: {
           root: {
             '& .MuiOutlinedInput-root': {
-              borderRadius: 8,
+              borderRadius: isCompact ? 6 : 8,
             },
           },
         },
@@ -182,7 +216,9 @@ export function getMuiTheme(mode: 'light' | 'dark' = 'light'): Theme {
       MuiChip: {
         styleOverrides: {
           root: {
-            borderRadius: 6,
+            borderRadius: isCompact ? 4 : 6,
+            height: isCompact ? '24px' : '32px',
+            fontSize: isCompact ? '0.75rem' : '0.8125rem',
             fontWeight: 500,
           },
         },
@@ -191,6 +227,6 @@ export function getMuiTheme(mode: 'light' | 'dark' = 'light'): Theme {
   });
 }
 
-export const lightTheme = getMuiTheme('light');
-export const darkTheme = getMuiTheme('dark');
+export const lightTheme = getMuiTheme('light', 'comfortable');
+export const darkTheme = getMuiTheme('dark', 'comfortable');
 export const theme = lightTheme;

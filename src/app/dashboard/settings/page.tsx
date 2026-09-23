@@ -27,9 +27,11 @@ import {
   MessageSquare,
   Monitor,
   Check,
+  Maximize2,
+  Minimize2,
 } from 'lucide-react';
 import { Box, Switch, Tab, Tabs, TextField, Typography } from '@mui/material';
-import { useTheme, type ThemeMode } from '@/hooks/useTheme';
+import { useTheme, type ThemeMode, type DensityMode } from '@/hooks/useTheme';
 
 import { 
   DashboardSurface, 
@@ -324,7 +326,12 @@ export default function SettingsPage() {
   const searchParams = useSearchParams();
   const isAdmin = session?.user?.role === 'admin';
   const [activeTab, setActiveTab] = useState(0);
-  const { theme: currentTheme, setTheme: setGlobalTheme } = useTheme();
+  const { 
+    theme: currentTheme, 
+    setTheme: setGlobalTheme,
+    density: currentDensity,
+    setDensity: setGlobalDensity
+  } = useTheme();
 
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [profileForm, setProfileForm] = useState({ name: '', phone: '', address: '', city: '', country: '' });
@@ -1095,7 +1102,7 @@ export default function SettingsPage() {
                       icon: Monitor,
                     },
                   ].map((item) => {
-                    const isSelected = settingsForm.theme === item.id;
+                    const isSelected = (settingsForm.theme || currentTheme) === item.id;
                     const Icon = item.icon;
                     return (
                       <div
@@ -1137,17 +1144,78 @@ export default function SettingsPage() {
                   })}
                 </div>
               </div>
+
+              {/* Visual UI Density & Layout Selector */}
+              <div>
+                <label className="block text-sm font-semibold text-[var(--text-primary)] mb-2.5">
+                  Layout Density & Theme Scale
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {[
+                    {
+                      id: 'comfortable',
+                      name: 'Comfort Theme (Relaxed)',
+                      desc: 'Spacious padding, standard row heights, and optimal readability',
+                      icon: Maximize2,
+                      tag: 'Default',
+                    },
+                    {
+                      id: 'compact',
+                      name: 'Compact Theme (High Density)',
+                      desc: 'Condensed table rows, tighter card paddings, and higher data density for power operations',
+                      icon: Minimize2,
+                      tag: 'Power Users',
+                    },
+                  ].map((item) => {
+                    const isSelected = (settingsForm.sidebarDensity || currentDensity) === item.id;
+                    const Icon = item.icon;
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => {
+                          setSettingsForm((prev) => ({ ...prev, sidebarDensity: item.id }));
+                          setGlobalDensity(item.id as DensityMode);
+                        }}
+                        className={`relative flex flex-col p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
+                          isSelected
+                            ? 'border-[var(--accent-gold)] bg-[var(--panel)] shadow-md'
+                            : 'border-[var(--border)] bg-[var(--panel)] hover:border-[var(--accent-gold)]/50'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <div
+                              className={`p-2 rounded-lg ${
+                                isSelected
+                                  ? 'bg-[var(--accent-gold)] text-white'
+                                  : 'bg-[var(--background)] text-[var(--text-secondary)]'
+                              }`}
+                            >
+                              <Icon className="w-5 h-5" />
+                            </div>
+                            <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-[var(--background)] text-[var(--text-secondary)] border border-[var(--border)]">
+                              {item.tag}
+                            </span>
+                          </div>
+                          {isSelected && (
+                            <div className="w-5 h-5 rounded-full bg-[var(--accent-gold)] text-white flex items-center justify-center">
+                              <Check className="w-3.5 h-3.5" />
+                            </div>
+                          )}
+                        </div>
+                        <span className="text-sm font-bold text-[var(--text-primary)]">
+                          {item.name}
+                        </span>
+                        <span className="text-xs text-[var(--text-secondary)] mt-1">
+                          {item.desc}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Select
-                  label="Sidebar Density"
-                  value={settingsForm.sidebarDensity}
-                  onChange={(value) => setSettingsForm(prev => ({ ...prev, sidebarDensity: String(value) }))}
-                  options={[
-                    { value: 'comfortable', label: 'Comfortable' },
-                    { value: 'compact', label: 'Compact' },
-                  ]}
-                />
                 <Select
                   label="Language"
                   value={settingsForm.language}

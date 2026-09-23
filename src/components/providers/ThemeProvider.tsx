@@ -7,11 +7,11 @@ import { getMuiTheme } from '@/theme/theme';
 import { useMemo } from 'react';
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const { resolvedTheme, mounted } = useTheme();
+  const { resolvedTheme, density, mounted } = useTheme();
 
   const muiTheme = useMemo(() => {
-    return getMuiTheme(resolvedTheme);
-  }, [resolvedTheme]);
+    return getMuiTheme(resolvedTheme, density);
+  }, [resolvedTheme, density]);
 
   if (!mounted) {
     return null;
