@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Box } from '@mui/material';
-import { Eye, Pencil, Plus, Search, Trash2, Truck } from 'lucide-react';
+import { Eye, Pencil, Plus, Search, Trash2, Truck, Layers } from 'lucide-react';
 import PermissionRoute from '@/components/auth/PermissionRoute';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
 import { PageHeader, Button, StatsCard, toast, CopyButton, StatusFilterPills, StatusBadge, Modal, FormField, Select } from '@/components/design-system';
@@ -353,9 +354,16 @@ export default function DispatchesPage() {
           title="Dispatches"
           description="Manage haulage and transport dispatches to port"
           actions={
-            <Button variant="primary" icon={<Plus className="w-4 h-4" />} onClick={() => setOpenCreate(true)}>
-              New Dispatch
-            </Button>
+            <div className="flex items-center gap-2">
+              <Link href="/dashboard/operations" style={{ textDecoration: 'none' }}>
+                <Button variant="outline" icon={<Layers className="w-4 h-4 text-[var(--accent-gold)]" />}>
+                  Operations Board
+                </Button>
+              </Link>
+              <Button variant="primary" icon={<Plus className="w-4 h-4" />} onClick={() => setOpenCreate(true)}>
+                New Dispatch
+              </Button>
+            </div>
           }
         />
 

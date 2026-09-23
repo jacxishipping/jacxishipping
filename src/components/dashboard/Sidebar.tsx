@@ -61,6 +61,12 @@ const shipmentNavigation: NavigationItem[] = [
 		requiredPermission: 'dispatches:manage',
 	},
 	{
+		name: 'Operations Board',
+		href: '/dashboard/operations',
+		icon: CompareArrows,
+		requiredPermission: 'shipments:manage',
+	},
+	{
 		name: 'Transits',
 		href: '/dashboard/transits',
 		icon: Route,
