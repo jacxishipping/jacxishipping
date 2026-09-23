@@ -227,6 +227,17 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
             </Command.Item>
 
             <Command.Item
+              onSelect={() => runCommand(() => router.push('/dashboard/operations'))}
+              className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer hover:bg-[var(--background,#F9FAFB)] data-[selected=true]:bg-[var(--background,#F9FAFB)]"
+            >
+              <Layers className="w-4 h-4 text-amber-500" />
+              <div className="flex items-center justify-between w-full">
+                <span className="font-medium text-sm">Drag & Drop Operations Board</span>
+                <span className="text-[10px] uppercase font-bold text-[var(--accent-gold)]">Dispatch</span>
+              </div>
+            </Command.Item>
+
+            <Command.Item
               onSelect={() => runCommand(() => router.push('/dashboard/finance/ledger'))}
               className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer hover:bg-[var(--background,#F9FAFB)] data-[selected=true]:bg-[var(--background,#F9FAFB)]"
             >
@@ -389,6 +400,14 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
               >
                 <Truck className="w-4 h-4" />
                 <span className="font-medium text-sm">Dispatches</span>
+              </Command.Item>
+
+              <Command.Item
+                onSelect={() => runCommand(() => router.push('/dashboard/operations'))}
+                className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer hover:bg-[var(--background,#F9FAFB)] data-[selected=true]:bg-[var(--background,#F9FAFB)]"
+              >
+                <Layers className="w-4 h-4 text-amber-500" />
+                <span className="font-medium text-sm">Operations Command Board</span>
               </Command.Item>
 
               <Command.Item

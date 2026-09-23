@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
@@ -33,7 +33,7 @@ import {
 } from 'lucide-react';
 import PermissionRoute from '@/components/auth/PermissionRoute';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
-import { Breadcrumbs, Button, StatsCard, TableSkeleton, toast, CopyButton } from '@/components/design-system';
+import { Breadcrumbs, Button, StatsCard, TableSkeleton, toast, CopyButton, PageHeader, MilestoneStepper } from '@/components/design-system';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import AddShipmentExpenseModal from '@/components/shipments/AddShipmentExpenseModal';
 import AddTransitExpenseModal from '@/components/transits/AddTransitExpenseModal';
@@ -188,6 +188,14 @@ export default function TransitDetailPage() {
   const [selectedShipmentIds, setSelectedShipmentIds] = useState<string[]>([]);
   const isClosedTransitState = transit ? transit.status === 'DELIVERED' || transit.status === 'CANCELLED' : false;
   const isTransitWorkflowLocked = isClosedTransitState && !canOverrideClosedStages;
+
+  const transitMilestones = useMemo(() => [
+    { id: 'PENDING', label: 'Transit Booked', description: 'Assigned to forwarder' },
+    { id: 'DISPATCHED', label: 'Dispatched', description: 'Carrier in motion' },
+    { id: 'IN_TRANSIT', label: 'In Transit', description: `${transit?.origin || 'Origin'} → ${transit?.destination || 'Destination'}` },
+    { id: 'ARRIVED', label: 'Arrived', description: 'Border / Port inspection' },
+    { id: 'DELIVERED', label: 'Delivered', description: 'Destination handover' },
+  ], [transit?.origin, transit?.destination]);
 
   const fetchAvailableShipments = async (searchTerm = '') => {
     try {
@@ -713,28 +721,42 @@ export default function TransitDetailPage() {
           <Breadcrumbs />
         </Box>
 
-        <DashboardPanel
+        <PageHeader
           title={transit.referenceNumber}
           description={`${currentLegLabel} • ${currentCompanyLabel}`}
           actions={
-            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
               <CopyButton value={transit.referenceNumber} label="Transit #" />
               <Link href="/dashboard/transits" style={{ textDecoration: 'none' }}>
-                <Button variant="outline" icon={<ArrowLeft className="w-4 h-4" />}>Back</Button>
+                <Button variant="outline" size="sm" icon={<ArrowLeft className="w-4 h-4" />}>Back</Button>
               </Link>
               {canConfirmDelivery && (
                 <Button
                   variant="primary"
+                  size="sm"
                   icon={<Truck className="w-4 h-4" />}
                   onClick={() => setOpenConfirmDelivery(true)}
                 >
                   Confirm Delivery
                 </Button>
               )}
-              {canManageWorkflow && (!isClosedTransitState || canOverrideClosedStages) ? <Button variant="outline" icon={<Pencil className="w-4 h-4" />} onClick={openEditDialog} disabled={isTransitWorkflowLocked}>Edit</Button> : null}
+              {canManageWorkflow && (!isClosedTransitState || canOverrideClosedStages) ? <Button variant="outline" size="sm" icon={<Pencil className="w-4 h-4" />} onClick={openEditDialog} disabled={isTransitWorkflowLocked}>Edit</Button> : null}
             </Box>
           }
-        >
+        />
+
+        {/* Milestone Progression Stepper */}
+        <Box sx={{ px: 2, mb: 3 }}>
+          <Box sx={{ p: 2.5, borderRadius: 2, border: '1px solid var(--border)', background: 'var(--panel)', boxShadow: '0 4px 20px rgba(0,0,0,0.04)' }}>
+            <MilestoneStepper
+              steps={transitMilestones}
+              currentStepId={transit.status}
+              status={transit.status === 'DELIVERED' || transit.status === 'ARRIVED' ? 'completed' : transit.status === 'CANCELLED' ? 'cancelled' : 'default'}
+            />
+          </Box>
+        </Box>
+
+        <DashboardPanel>
           <DashboardGrid className="grid-cols-2 md:grid-cols-4 mb-4">
             <StatsCard icon={<Truck className="w-5 h-5" />} title="Status" value={statusLabels[transit.status] || transit.status} variant="default" />
             <StatsCard icon={<Package className="w-5 h-5" />} title="Shipments" value={transit._count.shipments} variant="info" />

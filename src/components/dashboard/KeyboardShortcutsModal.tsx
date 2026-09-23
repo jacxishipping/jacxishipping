@@ -71,6 +71,7 @@ export function KeyboardShortcutsModal() {
         { keys: ['Q'], description: 'Open Thermal 4x6" Yard QR Label generator', icon: QrCode },
         { keys: ['J', '/', 'K'], description: 'Navigate next / previous record in tables', icon: ArrowUpDown },
         { keys: ['M'], description: 'Open Live Ocean Route & Vessel Map', icon: Layers },
+        { keys: ['O'], description: 'Open Drag & Drop Operations Board', icon: Layers },
       ],
     },
   ];
