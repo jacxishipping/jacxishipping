@@ -3,7 +3,7 @@ import { formatMoney } from '@/lib/format';
 
 import { useCallback, useEffect, useState, use } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import {
   ArrowLeft,
@@ -23,9 +23,12 @@ import {
   Send,
   Building2,
   Receipt,
-  FileDown
+  FileDown,
+  MessageSquare,
+  Sparkles,
+  Shield
 } from 'lucide-react';
-import { Box, Typography, Chip } from '@mui/material';
+import { Box, Typography, Chip, Tab, Tabs } from '@mui/material';
 import {
   DashboardSurface,
   DashboardPanel,
@@ -46,6 +49,7 @@ import NotificationComposer from '@/components/notifications/NotificationCompose
 import { exportToCSVWithHeaders } from '@/lib/export';
 import { hasPermission } from '@/lib/rbac';
 import { downloadCustomerStatementPDF } from '@/lib/utils/generateCustomerStatementPDF';
+import { addWorkspaceItem } from '@/components/dashboard/WorkspaceTray';
 
 interface UserDetail {
   id: string;
@@ -118,6 +122,10 @@ function toDateInputValue(value: string | null) {
 export default function UserViewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState(0);
+
   const { data: session, status } = useSession();
   const [user, setUser] = useState<UserDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -129,12 +137,28 @@ export default function UserViewPage({ params }: { params: Promise<{ id: string 
     notes: '',
   });
 
+  useEffect(() => {
+    if (tabParam === 'shipments') setActiveTab(1);
+    else if (tabParam === 'statement') setActiveTab(2);
+    else if (tabParam === 'notifications') setActiveTab(3);
+    else if (tabParam === 'overview') setActiveTab(0);
+  }, [tabParam]);
+
   const fetchUser = useCallback(async () => {
     try {
       const response = await fetch(`/api/users/${id}`);
       if (response.ok) {
         const data = await response.json();
         setUser(data.user);
+        if (data.user) {
+          addWorkspaceItem({
+            id: data.user.id,
+            type: data.user.role === 'customer' ? 'customer' : 'customer',
+            title: data.user.name || data.user.email,
+            subtitle: `${data.user.role.toUpperCase()} • ${data.user.email}`,
+            url: `/dashboard/users/${data.user.id}`,
+          });
+        }
       } else {
         console.error('Failed to fetch user');
       }
@@ -359,303 +383,425 @@ export default function UserViewPage({ params }: { params: Promise<{ id: string 
         }
       />
 
-      {/* KPI Financial Overview for Customers */}
-      {isCustomer && statement && (
-        <DashboardGrid className="grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-          <StatsCard
-            icon={<Wallet className="w-5 h-5 text-blue-600" />}
-            title="Outstanding AR"
-            value={formatMoney(statement.summary.outstandingAmount)}
-            subtitle={`${statement.summary.openInvoiceCount} open invoices`}
-            variant="default"
-            size="md"
-          />
-          <StatsCard
-            icon={<AlertTriangle className="w-5 h-5 text-rose-600" />}
-            title="Overdue Balance"
-            value={formatMoney(statement.summary.overdueAmount)}
-            subtitle={`${statement.summary.overdueInvoiceCount} overdue invoices`}
-            variant="warning"
-            size="md"
-          />
-          <StatsCard
-            icon={<Receipt className="w-5 h-5 text-emerald-600" />}
-            title="Paid Total"
-            value={formatMoney(statement.summary.paidAmount)}
-            subtitle={`${statement.summary.paidInvoiceCount} settled invoices`}
-            variant="success"
-            size="md"
-          />
-          <StatsCard
-            icon={<CreditCard className="w-5 h-5 text-amber-600" />}
-            title="Available Credit"
-            value={formatMoney(statement.summary.availableCredit)}
-            subtitle={`Ledger ${formatMoney(statement.summary.accountBalance)}`}
-            variant="info"
-            size="md"
-          />
-        </DashboardGrid>
-      )}
+      {/* Standardized Tab Navigation Bar */}
+      <Box
+        sx={{
+          border: '1px solid var(--border)',
+          borderRadius: '14px',
+          backgroundColor: 'var(--panel)',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.04)',
+          overflow: 'hidden',
+          mb: 3,
+        }}
+      >
+        <Tabs
+          value={activeTab}
+          onChange={(_, newValue) => {
+            setActiveTab(newValue);
+            const slugs = ['overview', 'shipments', 'statement', 'notifications'];
+            const nextParams = new URLSearchParams(searchParams.toString());
+            nextParams.set('tab', slugs[newValue] || slugs[0]);
+            router.replace(`?${nextParams.toString()}`, { scroll: false });
+          }}
+          variant="scrollable"
+          scrollButtons="auto"
+          sx={{
+            minHeight: 52,
+            '& .MuiTabs-flexContainer': {
+              gap: 0.5,
+              px: 1,
+            },
+            '& .MuiTab-root': {
+              textTransform: 'none',
+              fontSize: '0.875rem',
+              fontWeight: 650,
+              color: 'var(--text-secondary)',
+              minHeight: 52,
+              borderRadius: '10px',
+              my: 0.5,
+              px: 2,
+              '&:hover': {
+                color: 'var(--accent-gold)',
+                backgroundColor: 'rgba(var(--accent-gold-rgb), 0.08)',
+              },
+            },
+            '& .Mui-selected': {
+              color: 'var(--accent-gold) !important',
+              fontWeight: 700,
+              backgroundColor: 'rgba(var(--accent-gold-rgb), 0.12)',
+            },
+            '& .MuiTabs-indicator': {
+              backgroundColor: 'var(--accent-gold)',
+              height: 3,
+              borderRadius: '3px 3px 0 0',
+            },
+          }}
+        >
+          <Tab icon={<User className="w-4 h-4" />} iconPosition="start" label="Overview & Profile" />
+          <Tab icon={<Package className="w-4 h-4" />} iconPosition="start" label={`Shipments (${user.shipments.length})`} />
+          {isCustomer && statement && (
+            <Tab icon={<Receipt className="w-4 h-4" />} iconPosition="start" label="Statement & Aging" />
+          )}
+          {canNotifyCustomer && (
+            <Tab icon={<Send className="w-4 h-4" />} iconPosition="start" label="Direct Notifications" />
+          )}
+        </Tabs>
+      </Box>
 
-      {/* Main Profile Layout Grid */}
-      <DashboardGrid className="grid-cols-1 lg:grid-cols-3">
-        {/* Left Column: User Profile Card */}
-        <DashboardPanel title="Profile Details" className="lg:col-span-1">
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, pb: 2, borderBottom: '1px solid var(--border)' }}>
-              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-amber-500/20 to-amber-600/10 border border-[var(--accent-gold)]/30 flex items-center justify-center font-bold text-lg text-[var(--accent-gold)]">
-                {(user.name || user.email).slice(0, 2).toUpperCase()}
-              </div>
-              <Box sx={{ minWidth: 0 }}>
-                <Typography variant="h6" fontWeight="bold" noWrap>
-                  {user.name || 'No Name'}
-                </Typography>
-                <Chip
-                  label={user.role.toUpperCase()}
-                  size="small"
-                  sx={{
-                    mt: 0.5,
-                    bgcolor: user.role === 'admin' ? 'rgba(var(--accent-gold-rgb), 0.15)' : 'var(--background)',
-                    color: user.role === 'admin' ? 'var(--accent-gold)' : 'var(--text-secondary)',
-                    fontWeight: 700,
-                    fontSize: '0.7rem',
-                    border: '1px solid var(--border)',
-                  }}
-                />
-              </Box>
-            </Box>
+      {/* TAB 0: Overview & Profile */}
+      {activeTab === 0 && (
+        <div className="space-y-6">
+          {/* KPI Financial Overview for Customers */}
+          {isCustomer && statement && (
+            <DashboardGrid className="grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+              <StatsCard
+                icon={<Wallet className="w-5 h-5 text-blue-600" />}
+                title="Outstanding AR"
+                value={formatMoney(statement.summary.outstandingAmount)}
+                subtitle={`${statement.summary.openInvoiceCount} open invoices`}
+                variant="default"
+                size="md"
+              />
+              <StatsCard
+                icon={<AlertTriangle className="w-5 h-5 text-rose-600" />}
+                title="Overdue Balance"
+                value={formatMoney(statement.summary.overdueAmount)}
+                subtitle={`${statement.summary.overdueInvoiceCount} overdue invoices`}
+                variant="warning"
+                size="md"
+              />
+              <StatsCard
+                icon={<Receipt className="w-5 h-5 text-emerald-600" />}
+                title="Paid Total"
+                value={formatMoney(statement.summary.paidAmount)}
+                subtitle={`${statement.summary.paidInvoiceCount} settled invoices`}
+                variant="success"
+                size="md"
+              />
+              <StatsCard
+                icon={<CreditCard className="w-5 h-5 text-amber-600" />}
+                title="Available Credit"
+                value={formatMoney(statement.summary.availableCredit)}
+                subtitle={`Ledger ${formatMoney(statement.summary.accountBalance)}`}
+                variant="info"
+                size="md"
+              />
+            </DashboardGrid>
+          )}
 
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Mail className="w-4 h-4 text-[var(--text-secondary)] shrink-0" />
-                <Box sx={{ minWidth: 0 }}>
-                  <Typography variant="caption" color="text.secondary">Email Address</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>{user.email}</Typography>
-                </Box>
-              </Box>
-
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Phone className="w-4 h-4 text-[var(--text-secondary)] shrink-0" />
-                <Box sx={{ minWidth: 0 }}>
-                  <Typography variant="caption" color="text.secondary">Phone</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{user.phone || 'Not provided'}</Typography>
-                </Box>
-              </Box>
-
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Calendar className="w-4 h-4 text-[var(--text-secondary)] shrink-0" />
-                <Box sx={{ minWidth: 0 }}>
-                  <Typography variant="caption" color="text.secondary">Registration Date</Typography>
-                  <Typography variant="body2">{new Date(user.createdAt).toLocaleDateString()}</Typography>
-                </Box>
-              </Box>
-
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Clock className="w-4 h-4 text-[var(--text-secondary)] shrink-0" />
-                <Box sx={{ minWidth: 0 }}>
-                  <Typography variant="caption" color="text.secondary">Last Profile Update</Typography>
-                  <Typography variant="body2">{new Date(user.updatedAt).toLocaleDateString()}</Typography>
-                </Box>
-              </Box>
-            </Box>
-          </Box>
-        </DashboardPanel>
-
-        {/* Right Column: Statement, Direct Messaging & Shipments */}
-        <Box className="lg:col-span-2">
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            {canNotifyCustomer && (
-              <DashboardPanel
-                title="Direct Client Notification"
-                description="Send instant in-app alerts and notifications directly to this customer"
-              >
-                <NotificationComposer
-                  mode="internal-to-customer"
-                  recipientUserId={user.id}
-                  recipientName={user.name || user.email}
-                />
-              </DashboardPanel>
-            )}
-
-            {isCustomer && statement && (
-              <DashboardPanel
-                title="Customer Financial Statement & Aging"
-                description="Receivables aging schedule and invoice history breakdown"
-                actions={
-                  <Link href={`/dashboard/invoices?userId=${user.id}&customer=${encodeURIComponent(user.name || user.email)}`}>
-                    <Button variant="outline" size="sm" icon={<FileText className="h-4 w-4" />}>
-                      View All Invoices
-                    </Button>
-                  </Link>
-                }
-              >
-                <div className="space-y-4">
-                  {/* Aging Schedule */}
-                  <div>
-                    <Typography variant="caption" sx={{ fontWeight: 700, color: 'var(--text-secondary)', mb: 1.5, display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                      Receivables Aging Schedule
+          {/* Profile Details & Account Highlights */}
+          <DashboardGrid className="grid-cols-1 lg:grid-cols-3">
+            {/* User Profile Card */}
+            <DashboardPanel title="Profile Details" className="lg:col-span-1">
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, pb: 2, borderBottom: '1px solid var(--border)' }}>
+                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-amber-500/20 to-amber-600/10 border border-[var(--accent-gold)]/30 flex items-center justify-center font-bold text-lg text-[var(--accent-gold)]">
+                    {(user.name || user.email).slice(0, 2).toUpperCase()}
+                  </div>
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography variant="h6" fontWeight="bold" noWrap>
+                      {user.name || 'No Name'}
                     </Typography>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
-                      {agingCards.map((bucket) => (
-                        <div key={bucket.label} className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-3">
-                          <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">{bucket.label}</p>
-                          <p className="mt-1.5 text-base font-bold text-[var(--text-primary)]">{formatMoney(bucket.value.amount)}</p>
-                          <p className="mt-0.5 text-xs text-[var(--text-secondary)]">{bucket.value.count} invoice{bucket.value.count === 1 ? '' : 's'}</p>
-                        </div>
-                      ))}
-                    </div>
+                    <Chip
+                      label={user.role.toUpperCase()}
+                      size="small"
+                      sx={{
+                        mt: 0.5,
+                        bgcolor: user.role === 'admin' ? 'rgba(var(--accent-gold-rgb), 0.15)' : 'var(--background)',
+                        color: user.role === 'admin' ? 'var(--accent-gold)' : 'var(--text-secondary)',
+                        fontWeight: 700,
+                        fontSize: '0.7rem',
+                        border: '1px solid var(--border)',
+                      }}
+                    />
+                  </Box>
+                </Box>
+
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Mail className="w-4 h-4 text-[var(--text-secondary)] shrink-0" />
+                    <Box sx={{ minWidth: 0 }}>
+                      <Typography variant="caption" color="text.secondary">Email Address</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>{user.email}</Typography>
+                    </Box>
+                  </Box>
+
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Phone className="w-4 h-4 text-[var(--text-secondary)] shrink-0" />
+                    <Box sx={{ minWidth: 0 }}>
+                      <Typography variant="caption" color="text.secondary">Phone</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{user.phone || 'Not provided'}</Typography>
+                    </Box>
+                  </Box>
+
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Calendar className="w-4 h-4 text-[var(--text-secondary)] shrink-0" />
+                    <Box sx={{ minWidth: 0 }}>
+                      <Typography variant="caption" color="text.secondary">Registration Date</Typography>
+                      <Typography variant="body2">{new Date(user.createdAt).toLocaleDateString()}</Typography>
+                    </Box>
+                  </Box>
+
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Clock className="w-4 h-4 text-[var(--text-secondary)] shrink-0" />
+                    <Box sx={{ minWidth: 0 }}>
+                      <Typography variant="caption" color="text.secondary">Last Profile Update</Typography>
+                      <Typography variant="body2">{new Date(user.updatedAt).toLocaleDateString()}</Typography>
+                    </Box>
+                  </Box>
+                </Box>
+              </Box>
+            </DashboardPanel>
+
+            {/* Account Highlights & Summary */}
+            <DashboardPanel title="Account Highlights & Activity" className="lg:col-span-2">
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="p-4 rounded-xl border border-[var(--border)] bg-[var(--background)]">
+                    <span className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">Total Shipments</span>
+                    <p className="text-xl font-bold text-[var(--text-primary)] mt-1">{user.shipments.length}</p>
+                    <span className="text-[10px] text-[var(--text-secondary)]">Active & delivered consignments</span>
                   </div>
-
-                  {/* Collections Workflow Controls */}
-                  <div className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-4">
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                      <div>
-                        <p className="text-xs font-bold uppercase tracking-wide text-[var(--text-secondary)]">Collections Workflow</p>
-                        <p className="mt-0.5 text-xs text-[var(--text-secondary)]">
-                          Track promise-to-pay commitments and next follow-up dates for overdue receivables.
-                        </p>
-                      </div>
-                      {canManageCollections && (
-                        <Button size="sm" icon={<Save className="h-4 w-4" />} onClick={handleSaveCollections} disabled={savingCollections}>
-                          {savingCollections ? 'Saving...' : 'Save Collections'}
-                        </Button>
-                      )}
+                  <div className="p-4 rounded-xl border border-[var(--border)] bg-[var(--background)]">
+                    <span className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">Account Status</span>
+                    <div className="mt-1 flex items-center gap-1.5">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                      <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">Verified Active</span>
                     </div>
-
-                    <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
-                      <label className="block text-sm text-[var(--text-primary)]">
-                        <span className="mb-1 block text-xs font-semibold text-[var(--text-secondary)]">Collection Status</span>
-                        <select
-                          className="w-full rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--text-primary)] outline-none"
-                          value={collectionForm.status}
-                          disabled={!canManageCollections || savingCollections}
-                          onChange={(event) => setCollectionForm((current) => ({ ...current, status: event.target.value }))}
-                        >
-                          {['CURRENT', 'FOLLOW_UP', 'PROMISED_TO_PAY', 'IN_COLLECTIONS', 'ESCALATED', 'ON_HOLD'].map((value) => (
-                            <option key={value} value={value}>{formatLabel(value)}</option>
-                          ))}
-                        </select>
-                      </label>
-
-                      <label className="block text-sm text-[var(--text-primary)]">
-                        <span className="mb-1 block text-xs font-semibold text-[var(--text-secondary)]">Promise To Pay Date</span>
-                        <input
-                          type="date"
-                          className="w-full rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--text-primary)] outline-none"
-                          value={collectionForm.promiseToPayDate}
-                          disabled={!canManageCollections || savingCollections}
-                          onChange={(event) => setCollectionForm((current) => ({ ...current, promiseToPayDate: event.target.value }))}
-                        />
-                      </label>
-
-                      <label className="block text-sm text-[var(--text-primary)]">
-                        <span className="mb-1 block text-xs font-semibold text-[var(--text-secondary)]">Next Follow-Up Date</span>
-                        <input
-                          type="date"
-                          className="w-full rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--text-primary)] outline-none"
-                          value={collectionForm.followUpDate}
-                          disabled={!canManageCollections || savingCollections}
-                          onChange={(event) => setCollectionForm((current) => ({ ...current, followUpDate: event.target.value }))}
-                        />
-                      </label>
-                    </div>
-
-                    <label className="mt-3 block text-sm text-[var(--text-primary)]">
-                      <span className="mb-1 block text-xs font-semibold text-[var(--text-secondary)]">Collections Notes</span>
-                      <textarea
-                        className="min-h-[80px] w-full rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--text-primary)] outline-none"
-                        value={collectionForm.notes}
-                        disabled={!canManageCollections || savingCollections}
-                        onChange={(event) => setCollectionForm((current) => ({ ...current, notes: event.target.value }))}
-                        placeholder="Promise-to-pay details, callback outcomes, or collection instructions..."
-                      />
-                    </label>
+                    <span className="text-[10px] text-[var(--text-secondary)]">Full operational access</span>
                   </div>
+                  <div className="p-4 rounded-xl border border-[var(--border)] bg-[var(--background)]">
+                    <span className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">Collections Status</span>
+                    <p className="text-sm font-bold text-[var(--accent-gold)] mt-1">
+                      {statement?.collections?.status ? formatLabel(statement.collections.status) : 'Current'}
+                    </p>
+                    <span className="text-[10px] text-[var(--text-secondary)]">Receivables management</span>
+                  </div>
+                </div>
 
-                  {/* Invoice Timeline Table */}
-                  <div className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-4">
-                    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between mb-3">
-                      <div>
-                        <p className="text-xs font-bold uppercase tracking-wide text-[var(--text-secondary)]">Statement Timeline</p>
-                        <p className="text-xs text-[var(--text-secondary)]">Invoices, supplementals, and credit notes history</p>
-                      </div>
-                      <p className="text-xs text-[var(--text-secondary)]">
-                        Updated {new Date(statement.generatedAt).toLocaleString()}
-                      </p>
-                    </div>
-
-                    {statement.timeline.length > 0 ? (
-                      <div className="overflow-hidden rounded-lg border border-[var(--border)] bg-white">
-                        <div className="grid grid-cols-12 border-b border-[var(--border)] bg-[var(--background)] px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">
-                          <div className="col-span-4">Invoice</div>
-                          <div className="col-span-2">Status</div>
-                          <div className="col-span-3">Dates</div>
-                          <div className="col-span-2">Reference</div>
-                          <div className="col-span-1 text-right">Amount</div>
-                        </div>
-                        <div className="max-h-[24rem] overflow-y-auto divide-y divide-[var(--border)]">
-                          {statement.timeline.map((invoice) => (
-                            <div key={invoice.id} className="grid grid-cols-12 items-center gap-2 px-3 py-2.5 text-sm hover:bg-[var(--background)] transition-colors">
-                              <div className="col-span-4 min-w-0">
-                                <Link href={`/dashboard/invoices/${invoice.id}`} className="inline-flex items-center gap-1.5 font-bold font-mono text-[var(--accent-gold)] hover:underline">
-                                  <FileText className="h-3.5 w-3.5" />
-                                  {invoice.invoiceNumber}
-                                </Link>
-                                <p className="text-xs text-[var(--text-secondary)]">{formatLabel(invoice.kind)}</p>
-                              </div>
-                              <div className="col-span-2">
-                                <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${invoiceStatusStyles[invoice.status] || invoiceStatusStyles.DRAFT}`}>
-                                  {formatLabel(invoice.status)}
-                                </span>
-                              </div>
-                              <div className="col-span-3 text-xs text-[var(--text-secondary)]">
-                                <p>Issued {new Date(invoice.issueDate).toLocaleDateString()}</p>
-                                {invoice.dueDate && <p className="text-gray-500">Due {new Date(invoice.dueDate).toLocaleDateString()}</p>}
-                              </div>
-                              <div className="col-span-2 min-w-0 text-xs text-[var(--text-secondary)] truncate">
-                                {invoice.reference || 'General'}
-                              </div>
-                              <div className={`col-span-1 text-right font-bold text-sm ${invoice.total < 0 ? 'text-rose-600' : 'text-[var(--text-primary)]'}`}>
-                                {formatMoney(invoice.total)}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-[var(--border)] bg-white px-6 py-8 text-center">
-                        <Wallet className="h-7 w-7 text-[var(--text-secondary)]" />
-                        <p className="text-sm font-semibold text-[var(--text-primary)]">No invoice history recorded</p>
-                      </div>
+                <div className="p-4 rounded-xl border border-[var(--border)] bg-[var(--background)] flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-bold text-[var(--text-primary)]">Quick Actions</h4>
+                    <p className="text-xs text-[var(--text-secondary)]">Jump to specific workflow tools for this customer</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={() => setActiveTab(1)} icon={<Package className="w-4 h-4" />}>
+                      View Shipments
+                    </Button>
+                    {isCustomer && (
+                      <Button variant="outline" size="sm" onClick={() => setActiveTab(2)} icon={<Receipt className="w-4 h-4" />}>
+                        View Statement
+                      </Button>
                     )}
                   </div>
                 </div>
-              </DashboardPanel>
-            )}
-
-            {/* Shipment Portfolios */}
-            <DashboardPanel
-              title={`Shipments Portfolio (${user.shipments.length})`}
-              description="History of all vehicle consignments and active bookings"
-              fullHeight
-            >
-              {user.shipments.length > 0 ? (
-                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 2 }}>
-                  {user.shipments.map((shipment) => (
-                    <ShipmentCard key={shipment.id} {...shipment} />
-                  ))}
-                </Box>
-              ) : (
-                <EmptyState
-                  icon={<Package className="w-10 h-10" />}
-                  title="No Shipments"
-                  description="This customer does not have any active or past shipments."
-                />
-              )}
+              </div>
             </DashboardPanel>
-          </Box>
-        </Box>
-      </DashboardGrid>
+          </DashboardGrid>
+        </div>
+      )}
+
+      {/* TAB 1: Shipments Portfolio */}
+      {activeTab === 1 && (
+        <DashboardPanel
+          title={`Shipments Portfolio (${user.shipments.length})`}
+          description="History of all vehicle consignments and active bookings"
+          fullHeight
+        >
+          {user.shipments.length > 0 ? (
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' }, gap: 2 }}>
+              {user.shipments.map((shipment) => (
+                <ShipmentCard key={shipment.id} {...shipment} />
+              ))}
+            </Box>
+          ) : (
+            <EmptyState
+              icon={<Package className="w-10 h-10" />}
+              title="No Shipments Found"
+              description="This customer does not have any active or past shipments in the system."
+            />
+          )}
+        </DashboardPanel>
+      )}
+
+      {/* TAB 2: Financial Statement & Aging */}
+      {activeTab === 2 && isCustomer && statement && (
+        <DashboardPanel
+          title="Customer Financial Statement & Aging"
+          description="Receivables aging schedule, collections tracking, and itemized invoice history"
+          actions={
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button variant="outline" size="sm" icon={<Download className="h-4 w-4" />} onClick={handleExportStatementCsv}>
+                Export CSV
+              </Button>
+              <Button variant="outline" size="sm" icon={<FileDown className="h-4 w-4" />} onClick={handleExportStatementPdf}>
+                Download PDF
+              </Button>
+              <Link href={`/dashboard/invoices?userId=${user.id}&customer=${encodeURIComponent(user.name || user.email)}`}>
+                <Button variant="outline" size="sm" icon={<FileText className="h-4 w-4" />}>
+                  View All Invoices
+                </Button>
+              </Link>
+            </Box>
+          }
+        >
+          <div className="space-y-6">
+            {/* Aging Schedule */}
+            <div>
+              <Typography variant="caption" sx={{ fontWeight: 700, color: 'var(--text-secondary)', mb: 1.5, display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Receivables Aging Schedule
+              </Typography>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
+                {agingCards.map((bucket) => (
+                  <div key={bucket.label} className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-3">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">{bucket.label}</p>
+                    <p className="mt-1.5 text-base font-bold text-[var(--text-primary)]">{formatMoney(bucket.value.amount)}</p>
+                    <p className="mt-0.5 text-xs text-[var(--text-secondary)]">{bucket.value.count} invoice{bucket.value.count === 1 ? '' : 's'}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Collections Workflow Controls */}
+            <div className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-4">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wide text-[var(--text-secondary)]">Collections Workflow</p>
+                  <p className="mt-0.5 text-xs text-[var(--text-secondary)]">
+                    Track promise-to-pay commitments and next follow-up dates for overdue receivables.
+                  </p>
+                </div>
+                {canManageCollections && (
+                  <Button size="sm" icon={<Save className="h-4 w-4" />} onClick={handleSaveCollections} disabled={savingCollections}>
+                    {savingCollections ? 'Saving...' : 'Save Collections'}
+                  </Button>
+                )}
+              </div>
+
+              <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
+                <label className="block text-sm text-[var(--text-primary)]">
+                  <span className="mb-1 block text-xs font-semibold text-[var(--text-secondary)]">Collection Status</span>
+                  <select
+                    className="w-full rounded-lg border border-[var(--border)] bg-[var(--panel)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none"
+                    value={collectionForm.status}
+                    disabled={!canManageCollections || savingCollections}
+                    onChange={(event) => setCollectionForm((current) => ({ ...current, status: event.target.value }))}
+                  >
+                    {['CURRENT', 'FOLLOW_UP', 'PROMISED_TO_PAY', 'IN_COLLECTIONS', 'ESCALATED', 'ON_HOLD'].map((value) => (
+                      <option key={value} value={value}>{formatLabel(value)}</option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="block text-sm text-[var(--text-primary)]">
+                  <span className="mb-1 block text-xs font-semibold text-[var(--text-secondary)]">Promise To Pay Date</span>
+                  <input
+                    type="date"
+                    className="w-full rounded-lg border border-[var(--border)] bg-[var(--panel)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none"
+                    value={collectionForm.promiseToPayDate}
+                    disabled={!canManageCollections || savingCollections}
+                    onChange={(event) => setCollectionForm((current) => ({ ...current, promiseToPayDate: event.target.value }))}
+                  />
+                </label>
+
+                <label className="block text-sm text-[var(--text-primary)]">
+                  <span className="mb-1 block text-xs font-semibold text-[var(--text-secondary)]">Next Follow-Up Date</span>
+                  <input
+                    type="date"
+                    className="w-full rounded-lg border border-[var(--border)] bg-[var(--panel)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none"
+                    value={collectionForm.followUpDate}
+                    disabled={!canManageCollections || savingCollections}
+                    onChange={(event) => setCollectionForm((current) => ({ ...current, followUpDate: event.target.value }))}
+                  />
+                </label>
+              </div>
+
+              <label className="mt-3 block text-sm text-[var(--text-primary)]">
+                <span className="mb-1 block text-xs font-semibold text-[var(--text-secondary)]">Collections Notes</span>
+                <textarea
+                  className="min-h-[80px] w-full rounded-lg border border-[var(--border)] bg-[var(--panel)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none"
+                  value={collectionForm.notes}
+                  disabled={!canManageCollections || savingCollections}
+                  onChange={(event) => setCollectionForm((current) => ({ ...current, notes: event.target.value }))}
+                  placeholder="Promise-to-pay details, callback outcomes, or collection instructions..."
+                />
+              </label>
+            </div>
+
+            {/* Invoice Timeline Table */}
+            <div className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-4">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between mb-3">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wide text-[var(--text-secondary)]">Statement Timeline</p>
+                  <p className="text-xs text-[var(--text-secondary)]">Invoices, supplementals, and credit notes history</p>
+                </div>
+                <p className="text-xs text-[var(--text-secondary)]">
+                  Updated {new Date(statement.generatedAt).toLocaleString()}
+                </p>
+              </div>
+
+              {statement.timeline.length > 0 ? (
+                <div className="overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--panel)]">
+                  <div className="grid grid-cols-12 border-b border-[var(--border)] bg-[var(--background)] px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">
+                    <div className="col-span-4">Invoice</div>
+                    <div className="col-span-2">Status</div>
+                    <div className="col-span-3">Dates</div>
+                    <div className="col-span-2">Reference</div>
+                    <div className="col-span-1 text-right">Amount</div>
+                  </div>
+                  <div className="max-h-[24rem] overflow-y-auto divide-y divide-[var(--border)]">
+                    {statement.timeline.map((invoice) => (
+                      <div key={invoice.id} className="grid grid-cols-12 items-center gap-2 px-3 py-2.5 text-sm hover:bg-[var(--background)] transition-colors">
+                        <div className="col-span-4 min-w-0">
+                          <Link href={`/dashboard/invoices/${invoice.id}`} className="inline-flex items-center gap-1.5 font-bold font-mono text-[var(--accent-gold)] hover:underline">
+                            <FileText className="h-3.5 w-3.5" />
+                            {invoice.invoiceNumber}
+                          </Link>
+                          <p className="text-xs text-[var(--text-secondary)]">{formatLabel(invoice.kind)}</p>
+                        </div>
+                        <div className="col-span-2">
+                          <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${invoiceStatusStyles[invoice.status] || invoiceStatusStyles.DRAFT}`}>
+                            {formatLabel(invoice.status)}
+                          </span>
+                        </div>
+                        <div className="col-span-3 text-xs text-[var(--text-secondary)]">
+                          <p>Issued {new Date(invoice.issueDate).toLocaleDateString()}</p>
+                          {invoice.dueDate && <p className="text-gray-500">Due {new Date(invoice.dueDate).toLocaleDateString()}</p>}
+                        </div>
+                        <div className="col-span-2 min-w-0 text-xs text-[var(--text-secondary)] truncate">
+                          {invoice.reference || 'General'}
+                        </div>
+                        <div className={`col-span-1 text-right font-bold text-sm ${invoice.total < 0 ? 'text-rose-600' : 'text-[var(--text-primary)]'}`}>
+                          {formatMoney(invoice.total)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-[var(--border)] bg-[var(--panel)] px-6 py-8 text-center">
+                  <Wallet className="h-7 w-7 text-[var(--text-secondary)]" />
+                  <p className="text-sm font-semibold text-[var(--text-primary)]">No invoice history recorded</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </DashboardPanel>
+      )}
+
+      {/* TAB 3: Direct Client Notification */}
+      {activeTab === 3 && canNotifyCustomer && (
+        <DashboardPanel
+          title="Direct Client Notification Studio"
+          description="Send instant in-app alerts and notifications directly to this customer"
+        >
+          <NotificationComposer
+            mode="internal-to-customer"
+            recipientUserId={user.id}
+            recipientName={user.name || user.email}
+          />
+        </DashboardPanel>
+      )}
     </DashboardSurface>
   );
 }
