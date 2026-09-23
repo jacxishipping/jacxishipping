@@ -231,18 +231,19 @@ export function ContainerLoadPlanner({
         <div className="flex items-center gap-2 flex-wrap">
           {/* Container Selector Dropdown */}
           {containersList && containersList.length > 0 && onSelectContainer && (
-            <div className="flex items-center gap-2 bg-[var(--panel)] px-3 py-1.5 rounded-xl border border-[var(--border)] shadow-sm">
+            <div className="flex items-center gap-2 bg-[var(--panel)] px-3 py-1.5 rounded-xl border border-[var(--border)] shadow-sm hover:border-[var(--accent-gold)] transition-colors">
               <Package className="w-3.5 h-3.5 text-[var(--accent-gold)] shrink-0" />
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">
+              <label htmlFor="planner-container-select" className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">
                 Container:
-              </span>
+              </label>
               <select
+                id="planner-container-select"
                 value={selectedContainerId || containersList.find(c => c.containerNumber === containerNumber)?.id || ''}
                 onChange={(e) => onSelectContainer(e.target.value)}
-                className="bg-transparent text-xs font-mono font-bold text-[var(--accent-gold)] outline-none cursor-pointer pr-1"
+                className="bg-transparent text-xs font-mono font-bold text-[var(--text-primary)] outline-none cursor-pointer pr-1 py-0.5"
               >
                 {containersList.map((c) => (
-                  <option key={c.id} value={c.id} className="bg-[var(--panel)] text-[var(--text-primary)] font-mono">
+                  <option key={c.id} value={c.id} className="bg-[var(--panel)] text-[var(--text-primary)] font-mono py-1">
                     {c.containerNumber} {c.capacity ? `(${c.capacity})` : ''}
                   </option>
                 ))}
@@ -267,43 +268,6 @@ export function ContainerLoadPlanner({
           )}
         </div>
       </div>
-
-      {/* Multi-Container Quick Switcher Pills Bar */}
-      {containersList && containersList.length > 0 && onSelectContainer && (
-        <div className="flex items-center gap-2 px-4 py-2 border-b border-[var(--border)] bg-[var(--panel)] overflow-x-auto no-scrollbar">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)] shrink-0 flex items-center gap-1">
-            <Layers className="w-3 h-3 text-[var(--accent-gold)]" />
-            Select Container ({containersList.length}):
-          </span>
-          <div className="flex items-center gap-1.5 flex-wrap">
-            {containersList.map((c) => {
-              const isSelected = selectedContainerId ? c.id === selectedContainerId : c.containerNumber === containerNumber;
-              return (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() => onSelectContainer(c.id)}
-                  className={`flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-medium border transition-all whitespace-nowrap cursor-pointer ${
-                    isSelected
-                      ? 'bg-[var(--accent-gold)] text-white border-[var(--accent-gold)] shadow-md font-bold ring-2 ring-[var(--accent-gold)]/30'
-                      : 'bg-[var(--background)] text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--accent-gold)] hover:text-[var(--text-primary)]'
-                  }`}
-                >
-                  <Package className="w-3 h-3 shrink-0" />
-                  <span className="font-mono">{c.containerNumber}</span>
-                  {c.capacity && (
-                    <span className={`text-[10px] px-1.5 py-0.2 rounded font-bold ${
-                      isSelected ? 'bg-black/20 text-white' : 'bg-[var(--panel)] text-[var(--text-primary)]'
-                    }`}>
-                      {c.capacity}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       {/* Main Container Cutaway Bay & Telemetry */}
       <div className="p-6 space-y-6">
