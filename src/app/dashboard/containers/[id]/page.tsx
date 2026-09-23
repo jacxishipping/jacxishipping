@@ -3136,6 +3136,12 @@ export default function ContainerDetailPage() {
 							<ContainerLoadPlanner
 								containerNumber={container.containerNumber}
 								containerType="40ft_hc"
+								containersList={[{
+									id: container.id,
+									containerNumber: container.containerNumber,
+									capacity: `${container.currentCount}/${container.maxCapacity}`,
+								}]}
+								selectedContainerId={container.id}
 								onClose={() => setLoadPlannerOpen(false)}
 								onSave={() => setLoadPlannerOpen(false)}
 							/>

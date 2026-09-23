@@ -1031,6 +1031,19 @@ export default function ContainersPage() {
               <ContainerLoadPlanner
                 containerNumber={plannerContainer.containerNumber}
                 containerType="40ft_hc"
+                containersList={containers.map((c) => ({
+                  id: c.id,
+                  containerNumber: c.containerNumber,
+                  capacity: `${c.currentCount}/${c.maxCapacity}`,
+                }))}
+                selectedContainerId={plannerContainer.id}
+                onSelectContainer={(id) => {
+                  const target = containers.find((c) => c.id === id);
+                  if (target) {
+                    setPlannerContainer(target);
+                    toast.info(`Switched to container ${target.containerNumber}`);
+                  }
+                }}
                 onClose={() => setPlannerContainer(null)}
                 onSave={() => setPlannerContainer(null)}
               />
