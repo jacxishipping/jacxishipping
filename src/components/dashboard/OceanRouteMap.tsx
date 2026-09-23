@@ -26,6 +26,15 @@ export interface RouteStop {
   date?: string;
 }
 
+export interface ContainerTrackSummary {
+  id: string;
+  containerNumber: string;
+  progress: number;
+  vesselName?: string | null;
+  destinationPort?: string | null;
+  status?: string;
+}
+
 interface OceanRouteMapProps {
   originPort?: string;
   destinationPort?: string;
@@ -35,6 +44,9 @@ interface OceanRouteMapProps {
   currentProgressPct?: number; // 0 to 100
   etaDays?: number;
   status?: string;
+  containersList?: ContainerTrackSummary[];
+  selectedContainerId?: string;
+  onSelectContainer?: (id: string) => void;
 }
 
 export function OceanRouteMap({
@@ -46,6 +58,9 @@ export function OceanRouteMap({
   currentProgressPct = 68,
   etaDays = 9,
   status = 'In Transatlantic Transit',
+  containersList = [],
+  selectedContainerId,
+  onSelectContainer,
 }: OceanRouteMapProps) {
   const [selectedWaypoint, setSelectedWaypoint] = useState<number | null>(1);
 
@@ -99,7 +114,7 @@ export function OceanRouteMap({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3 flex-wrap">
           <div className="text-right">
             <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)] block">
               Estimated Arrival
@@ -114,6 +129,37 @@ export function OceanRouteMap({
           </div>
         </div>
       </div>
+
+      {/* Multi-Container Quick Switcher Bar */}
+      {containersList.length > 1 && (
+        <div className="flex items-center gap-2 px-4 py-2 border-b border-[var(--border)] bg-[var(--panel)] overflow-x-auto no-scrollbar">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)] shrink-0 flex items-center gap-1">
+            <Navigation className="w-3 h-3 text-[var(--accent-gold)]" />
+            Switch Active Vessel:
+          </span>
+          <div className="flex items-center gap-1.5">
+            {containersList.map((c) => {
+              const isSelected = selectedContainerId ? c.id === selectedContainerId : c.containerNumber === containerNumber;
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => onSelectContainer && onSelectContainer(c.id)}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border transition-all whitespace-nowrap ${
+                    isSelected
+                      ? 'bg-[var(--accent-gold)] text-white border-[var(--accent-gold)] shadow-sm font-bold'
+                      : 'bg-[var(--background)] text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--accent-gold)]/50'
+                  }`}
+                >
+                  <Ship className="w-3 h-3 shrink-0" />
+                  <span className="font-mono">{c.containerNumber}</span>
+                  <span className="text-[10px] opacity-80 font-bold">({c.progress}%)</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Interactive Oceanic Map Canvas */}
       <div className="relative w-full h-72 bg-gradient-to-b from-[#0e1e2d] to-[#0a1622] p-4 overflow-hidden select-none">
