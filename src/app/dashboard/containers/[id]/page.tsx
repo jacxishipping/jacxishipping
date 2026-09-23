@@ -44,7 +44,9 @@ import {
     QrCode,
     RefreshCw,
     Search,
-    Pencil
+    Pencil,
+    Layers,
+    Compass
 } from 'lucide-react';
 import QRCode from 'react-qr-code';
 import { formatMoney as formatCurrency } from '@/lib/format';
@@ -76,6 +78,8 @@ import { ActivityLog } from '@/components/dashboard/ActivityLog';
 import { ContainerCapacityGauge } from '@/components/dashboard/ContainerCapacityGauge';
 import { ContainerProfitabilityCard } from '@/components/dashboard/ContainerProfitabilityCard';
 import { TrackingMap } from '@/components/dashboard/TrackingMap';
+import { OceanRouteMap } from '@/components/dashboard/OceanRouteMap';
+import { ContainerLoadPlanner } from '@/components/dashboard/ContainerLoadPlanner';
 import { hasAnyPermission, hasPermission } from '@/lib/rbac';
 
 interface Shipment {
@@ -286,6 +290,7 @@ export default function ContainerDetailPage() {
     const [refreshingTracking, setRefreshingTracking] = useState(false);
 	const [invoiceGenerationModalOpen, setInvoiceGenerationModalOpen] = useState(false);
     const [qrModalOpen, setQrModalOpen] = useState(false);
+	const [loadPlannerOpen, setLoadPlannerOpen] = useState(false);
 	const [shipmentExpenseModalOpen, setShipmentExpenseModalOpen] = useState(false);
 	const [selectedShipmentForExpense, setSelectedShipmentForExpense] = useState<string | undefined>(undefined);
 	const [damageModalOpen, setDamageModalOpen] = useState(false);
@@ -874,6 +879,15 @@ export default function ContainerDetailPage() {
 							{container.trackingNumber && (
 								<CopyButton value={container.trackingNumber} label="Tracking #" />
 							)}
+							<Button 
+								variant="outline" 
+								size="sm" 
+								icon={<Layers className="w-4 h-4 text-[var(--accent-gold)]" />}
+								onClick={() => setLoadPlannerOpen(true)}
+								className="no-print"
+							>
+								2D Load Planner
+							</Button>
                             {isAdmin && (
                                 <Button 
                                     variant="outline" 
@@ -2063,10 +2077,24 @@ export default function ContainerDetailPage() {
 
 					{/* Tracking Tab */}
 					{activeTab === 'tracking' && (
-						<DashboardPanel
-							title="Tracking History"
-							description="Location updates and status changes"
-						>
+						<Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+							<OceanRouteMap 
+								originPort={container.shippingLine || container.loadingPort || 'Port of Newark (USNWK)'}
+								destinationPort={container.destinationPort || 'Port of Jebel Ali (AEJEA)'}
+								vesselName={container.vesselName || 'MAERSK VOYAGER'}
+								voyageNumber={container.trackingNumber || 'V-2409W'}
+								containerNumber={container.containerNumber}
+								currentProgressPct={container.progress ?? 68}
+								etaDays={container.estimatedArrival 
+									? Math.max(1, Math.ceil((new Date(container.estimatedArrival).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+									: 9}
+								status={statusConfig[container.status]?.label || container.status || 'In Transit'}
+							/>
+
+							<DashboardPanel
+								title="Tracking History"
+								description="Location updates and status changes"
+							>
                             <Box sx={{ mb: 4 }}>
                                 {(() => {
                                     // Find latest event with coordinates
@@ -2195,6 +2223,7 @@ export default function ContainerDetailPage() {
 								</Box>
 							)}
 						</DashboardPanel>
+						</Box>
 					)}
 
                     {/* Activity Log Tab */}
@@ -3100,6 +3129,25 @@ export default function ContainerDetailPage() {
 						</Button>
 					</DialogActions>
 				</Dialog>
+				{/* 2D Visual Container Load Planner Modal */}
+				{loadPlannerOpen && (
+					<div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+						<div className="relative w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl bg-[var(--panel)] shadow-2xl border border-[var(--border)]">
+							<ContainerLoadPlanner
+								containerNumber={container.containerNumber}
+								containerType="40ft_hc"
+								containersList={[{
+									id: container.id,
+									containerNumber: container.containerNumber,
+									capacity: `${container.currentCount}/${container.maxCapacity}`,
+								}]}
+								selectedContainerId={container.id}
+								onClose={() => setLoadPlannerOpen(false)}
+								onSave={() => setLoadPlannerOpen(false)}
+							/>
+						</div>
+					</div>
+				)}
 			</DashboardSurface>
 		</PermissionRoute>
 	);

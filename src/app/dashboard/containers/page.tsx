@@ -65,6 +65,7 @@ export default function ContainersPage() {
   const [qrModalData, setQrModalData] = useState<QRCodeData | null>(null);
   const [plannerContainer, setPlannerContainer] = useState<Container | null>(null);
   const [showOceanTracker, setShowOceanTracker] = useState(true);
+  const [activeOceanContainerId, setActiveOceanContainerId] = useState<string | null>(null);
   const router = useRouter();
   const { data: session } = useSession();
   const isAdmin = session?.user?.role === 'admin';
@@ -355,6 +356,43 @@ export default function ContainersPage() {
       header: 'Capacity',
       render: (_value, row) => `${row.currentCount}/${row.maxCapacity}`,
     },
+    {
+      key: 'id',
+      header: 'Actions',
+      render: (_value, row) => (
+        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveOceanContainerId(row.id);
+              setShowOceanTracker(true);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+              toast.info(`Tracking route for container ${row.containerNumber}`);
+            }}
+            title="Track route on Ocean Map"
+            className="p-1.5 rounded-lg text-blue-500 hover:bg-blue-500/10 transition-colors"
+          >
+            <Compass className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setPlannerContainer(row)}
+            title="2D Visual Load Planner"
+            className="p-1.5 rounded-lg text-[var(--accent-gold)] hover:bg-[rgba(var(--accent-gold-rgb),0.12)] transition-colors"
+          >
+            <Layers className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setQuickPeekContainerId(row.id)}
+            title="Quick peek container manifest"
+            className="p-1.5 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[rgba(var(--text-primary-rgb),0.06)] transition-colors"
+          >
+            <PanelRightOpen className="w-4 h-4" />
+          </button>
+        </div>
+      ),
+    },
   ];
 
   const handleBulkStatusUpdate = async (containerIds: string[], status: string) => {
@@ -410,21 +448,10 @@ export default function ContainersPage() {
               </Button>
               <Button
                 variant="outline"
-                onClick={() => setPlannerContainer(containers[0] || {
-                  id: 'temp',
-                  containerNumber: 'MSKU-40HC-01',
-                  trackingNumber: 'MSKU9021824',
-                  vesselName: 'MAERSK MC-KINNEY MOLLER',
-                  shippingLine: 'Maersk Line',
-                  destinationPort: 'Jebel Ali Port',
-                  estimatedArrival: null,
-                  status: 'LOADED',
-                  progress: 68,
-                  currentCount: 3,
-                  maxCapacity: 4,
-                  createdAt: new Date().toISOString(),
-                  _count: { shipments: 3, expenses: 0, invoices: 0, documents: 0 },
-                })}
+                onClick={() => {
+                  const target = containers.find(c => c.id === activeOceanContainerId) || containers[0] || null;
+                  if (target) setPlannerContainer(target);
+                }}
                 icon={<Layers className="w-4 h-4 text-[var(--accent-gold)]" />}
               >
                 2D Load Planner
@@ -456,18 +483,37 @@ export default function ContainersPage() {
         />
 
         {/* Live Ocean Freight & Vessel Route Tracker */}
-        {showOceanTracker && (
-          <OceanRouteMap 
-            originPort="Port of Newark (USNWK)"
-            destinationPort="Port of Jebel Ali (AEJEA)"
-            vesselName={containers[0]?.vesselName || 'MAERSK MC-KINNEY MOLLER'}
-            voyageNumber="V-2409W"
-            containerNumber={containers[0]?.containerNumber || 'MSKU9048123'}
-            currentProgressPct={68}
-            etaDays={9}
-            status="Deep Ocean Passage (Mediterranean Corridor)"
-          />
-        )}
+        {showOceanTracker && containers.length > 0 && (() => {
+          const activeContainer = containers.find(c => c.id === activeOceanContainerId) || containers[0];
+          if (!activeContainer) return null;
+
+          const etaDays = activeContainer.estimatedArrival 
+            ? Math.max(1, Math.ceil((new Date(activeContainer.estimatedArrival).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+            : 9;
+
+          return (
+            <OceanRouteMap 
+              originPort={activeContainer.shippingLine || 'Port of Newark (USNWK)'}
+              destinationPort={activeContainer.destinationPort || 'Port of Jebel Ali (AEJEA)'}
+              vesselName={activeContainer.vesselName || 'MAERSK VOYAGER'}
+              voyageNumber={activeContainer.trackingNumber || 'V-2409W'}
+              containerNumber={activeContainer.containerNumber}
+              currentProgressPct={activeContainer.progress ?? 68}
+              etaDays={etaDays}
+              status={statusLabels[activeContainer.status] || activeContainer.status || 'In Transit'}
+              containersList={containers.map((c) => ({
+                id: c.id,
+                containerNumber: c.containerNumber,
+                progress: c.progress,
+                vesselName: c.vesselName,
+                destinationPort: c.destinationPort,
+                status: c.status,
+              }))}
+              selectedContainerId={activeContainer.id}
+              onSelectContainer={(id) => setActiveOceanContainerId(id)}
+            />
+          );
+        })()}
 
         {/* Stats */}
         <DashboardGrid className="grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
@@ -631,6 +677,43 @@ export default function ContainersPage() {
                       </Box>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                         <StatusBadge status={container.status} size="sm" />
+                        <IconButton
+                          size="small"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveOceanContainerId(container.id);
+                            setShowOceanTracker(true);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                            toast.info(`Tracking route for container ${container.containerNumber}`);
+                          }}
+                          title="Track route on Ocean Map"
+                          sx={{
+                            color: 'var(--text-secondary)',
+                            '&:hover': {
+                              bgcolor: 'rgba(59, 130, 246, 0.12)',
+                              color: '#3B82F6',
+                            },
+                          }}
+                        >
+                          <Compass style={{ width: 16, height: 16 }} />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPlannerContainer(container);
+                          }}
+                          title="2D Visual Load Planner"
+                          sx={{
+                            color: 'var(--text-secondary)',
+                            '&:hover': {
+                              bgcolor: 'rgba(var(--accent-gold-rgb), 0.12)',
+                              color: 'var(--accent-gold)',
+                            },
+                          }}
+                        >
+                          <Layers style={{ width: 16, height: 16 }} />
+                        </IconButton>
                         <IconButton
                           size="small"
                           onClick={(e) => {
@@ -804,6 +887,49 @@ export default function ContainersPage() {
           <MenuItem
             onClick={() => {
               if (selectedContainer) {
+                setActiveOceanContainerId(selectedContainer.id);
+                setShowOceanTracker(true);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                toast.info(`Tracking route for container ${selectedContainer.containerNumber}`);
+              }
+              handleMenuClose();
+            }}
+            sx={{
+              fontSize: '0.875rem',
+              py: 1.5,
+              px: 2,
+              color: 'var(--text-primary)',
+              '&:hover': {
+                bgcolor: 'rgba(var(--accent-gold-rgb), 0.1)',
+              },
+            }}
+          >
+            <Compass style={{ width: 16, height: 16, marginRight: 12, color: '#3B82F6' }} />
+            Track Ocean Route
+          </MenuItem>
+          <MenuItem
+            onClick={() => {
+              if (selectedContainer) {
+                setPlannerContainer(selectedContainer);
+              }
+              handleMenuClose();
+            }}
+            sx={{
+              fontSize: '0.875rem',
+              py: 1.5,
+              px: 2,
+              color: 'var(--text-primary)',
+              '&:hover': {
+                bgcolor: 'rgba(var(--accent-gold-rgb), 0.1)',
+              },
+            }}
+          >
+            <Layers style={{ width: 16, height: 16, marginRight: 12, color: 'var(--accent-gold)' }} />
+            2D Load Planner
+          </MenuItem>
+          <MenuItem
+            onClick={() => {
+              if (selectedContainer) {
                 setQuickPeekContainerId(selectedContainer.id);
               }
               handleMenuClose();
@@ -905,6 +1031,19 @@ export default function ContainersPage() {
               <ContainerLoadPlanner
                 containerNumber={plannerContainer.containerNumber}
                 containerType="40ft_hc"
+                containersList={containers.map((c) => ({
+                  id: c.id,
+                  containerNumber: c.containerNumber,
+                  capacity: `${c.currentCount}/${c.maxCapacity}`,
+                }))}
+                selectedContainerId={plannerContainer.id}
+                onSelectContainer={(id) => {
+                  const target = containers.find((c) => c.id === id);
+                  if (target) {
+                    setPlannerContainer(target);
+                    toast.info(`Switched to container ${target.containerNumber}`);
+                  }
+                }}
                 onClose={() => setPlannerContainer(null)}
                 onSave={() => setPlannerContainer(null)}
               />
