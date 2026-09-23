@@ -1,5 +1,6 @@
 import { Box, Typography } from '@mui/material';
 import { ReactNode } from 'react';
+import { useTheme } from '@/hooks/useTheme';
 
 interface TableColumn<T> {
   header: string;
@@ -26,8 +27,10 @@ export function Table<T extends Record<string, any>>({
   emptyMessage = 'No data available',
   emptyTitle = 'Nothing to show yet',
   stickyHeader = true,
-  density = 'comfortable',
+  density: propDensity,
 }: TableProps<T>) {
+  const { density: globalDensity } = useTheme();
+  const density = propDensity ?? globalDensity;
   if (!data || data.length === 0) {
     return (
       <Box

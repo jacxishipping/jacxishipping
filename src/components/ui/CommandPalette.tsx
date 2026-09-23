@@ -24,9 +24,14 @@ import {
   Calendar,
   Layers,
   Sparkles,
+  Sun,
+  Moon,
+  Maximize2,
+  Minimize2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { StatusBadge } from '@/components/design-system';
+import { setGlobalTheme, setGlobalDensity } from '@/hooks/useTheme';
 
 interface ShipmentSearchHit {
   id: string;
@@ -227,6 +232,52 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
             >
               <BookOpen className="w-4 h-4 text-violet-600" />
               <span className="font-medium text-sm">Open General Ledger</span>
+            </Command.Item>
+
+            {/* Layout Density Commands */}
+            <Command.Item
+              onSelect={() => runCommand(() => setGlobalDensity('compact'))}
+              className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer hover:bg-[var(--background,#F9FAFB)] data-[selected=true]:bg-[var(--background,#F9FAFB)]"
+            >
+              <Minimize2 className="w-4 h-4 text-amber-500" />
+              <div className="flex items-center justify-between w-full">
+                <span className="font-medium text-sm">Switch to Compact Theme (High Density)</span>
+                <span className="text-[10px] uppercase font-bold text-[var(--text-secondary)]">Layout</span>
+              </div>
+            </Command.Item>
+
+            <Command.Item
+              onSelect={() => runCommand(() => setGlobalDensity('comfortable'))}
+              className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer hover:bg-[var(--background,#F9FAFB)] data-[selected=true]:bg-[var(--background,#F9FAFB)]"
+            >
+              <Maximize2 className="w-4 h-4 text-emerald-500" />
+              <div className="flex items-center justify-between w-full">
+                <span className="font-medium text-sm">Switch to Comfort Theme (Relaxed)</span>
+                <span className="text-[10px] uppercase font-bold text-[var(--text-secondary)]">Layout</span>
+              </div>
+            </Command.Item>
+
+            {/* Theme Mode Commands */}
+            <Command.Item
+              onSelect={() => runCommand(() => setGlobalTheme('dark'))}
+              className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer hover:bg-[var(--background,#F9FAFB)] data-[selected=true]:bg-[var(--background,#F9FAFB)]"
+            >
+              <Moon className="w-4 h-4 text-purple-500" />
+              <div className="flex items-center justify-between w-full">
+                <span className="font-medium text-sm">Switch to Dark Theme</span>
+                <span className="text-[10px] uppercase font-bold text-[var(--text-secondary)]">Theme</span>
+              </div>
+            </Command.Item>
+
+            <Command.Item
+              onSelect={() => runCommand(() => setGlobalTheme('light'))}
+              className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer hover:bg-[var(--background,#F9FAFB)] data-[selected=true]:bg-[var(--background,#F9FAFB)]"
+            >
+              <Sun className="w-4 h-4 text-amber-500" />
+              <div className="flex items-center justify-between w-full">
+                <span className="font-medium text-sm">Switch to Light Theme</span>
+                <span className="text-[10px] uppercase font-bold text-[var(--text-secondary)]">Theme</span>
+              </div>
             </Command.Item>
           </Command.Group>
 

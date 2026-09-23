@@ -25,8 +25,13 @@ import {
   XCircle,
   Mail,
   MessageSquare,
+  Monitor,
+  Check,
+  Maximize2,
+  Minimize2,
 } from 'lucide-react';
 import { Box, Switch, Tab, Tabs, TextField, Typography } from '@mui/material';
+import { useTheme, type ThemeMode, type DensityMode } from '@/hooks/useTheme';
 
 import { 
   DashboardSurface, 
@@ -321,6 +326,12 @@ export default function SettingsPage() {
   const searchParams = useSearchParams();
   const isAdmin = session?.user?.role === 'admin';
   const [activeTab, setActiveTab] = useState(0);
+  const { 
+    theme: currentTheme, 
+    setTheme: setGlobalTheme,
+    density: currentDensity,
+    setDensity: setGlobalDensity
+  } = useTheme();
 
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [profileForm, setProfileForm] = useState({ name: '', phone: '', address: '', city: '', country: '' });
@@ -1062,29 +1073,149 @@ export default function SettingsPage() {
         <div className="max-w-3xl">
           <DashboardPanel 
             title="Interface Preferences" 
-            description="Customize your dashboard experience"
+            description="Customize your dashboard experience and visual appearance"
           >
-            <form onSubmit={handleSavePreferences} className="space-y-4">
-              <Select
-                label="Theme"
-                value={settingsForm.theme}
-                onChange={(value) => setSettingsForm(prev => ({ ...prev, theme: String(value) }))}
-                options={[
-                  { value: 'light', label: 'Adaptive Light (Enterprise)' },
-                  { value: 'system', label: 'System Default' },
-                ]}
-              />
+            <form onSubmit={handleSavePreferences} className="space-y-6">
+              {/* Visual Theme Selector */}
+              <div>
+                <label className="block text-sm font-semibold text-[var(--text-primary)] mb-2.5">
+                  Theme Appearance
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {[
+                    {
+                      id: 'light',
+                      name: 'Light Mode',
+                      desc: 'Clean daylight enterprise view',
+                      icon: Sun,
+                    },
+                    {
+                      id: 'dark',
+                      name: 'Dark Mode',
+                      desc: 'Deep contrast for low-light work',
+                      icon: Moon,
+                    },
+                    {
+                      id: 'system',
+                      name: 'System Default',
+                      desc: 'Syncs automatically with OS settings',
+                      icon: Monitor,
+                    },
+                  ].map((item) => {
+                    const isSelected = (settingsForm.theme || currentTheme) === item.id;
+                    const Icon = item.icon;
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => {
+                          setSettingsForm((prev) => ({ ...prev, theme: item.id }));
+                          setGlobalTheme(item.id as ThemeMode);
+                        }}
+                        className={`relative flex flex-col p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
+                          isSelected
+                            ? 'border-[var(--accent-gold)] bg-[var(--panel)] shadow-md'
+                            : 'border-[var(--border)] bg-[var(--panel)] hover:border-[var(--accent-gold)]/50'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-3">
+                          <div
+                            className={`p-2 rounded-lg ${
+                              isSelected
+                                ? 'bg-[var(--accent-gold)] text-white'
+                                : 'bg-[var(--background)] text-[var(--text-secondary)]'
+                            }`}
+                          >
+                            <Icon className="w-5 h-5" />
+                          </div>
+                          {isSelected && (
+                            <div className="w-5 h-5 rounded-full bg-[var(--accent-gold)] text-white flex items-center justify-center">
+                              <Check className="w-3.5 h-3.5" />
+                            </div>
+                          )}
+                        </div>
+                        <span className="text-sm font-bold text-[var(--text-primary)]">
+                          {item.name}
+                        </span>
+                        <span className="text-xs text-[var(--text-secondary)] mt-1">
+                          {item.desc}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Visual UI Density & Layout Selector */}
+              <div>
+                <label className="block text-sm font-semibold text-[var(--text-primary)] mb-2.5">
+                  Layout Density & Theme Scale
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {[
+                    {
+                      id: 'comfortable',
+                      name: 'Comfort Theme (Relaxed)',
+                      desc: 'Spacious padding, standard row heights, and optimal readability',
+                      icon: Maximize2,
+                      tag: 'Default',
+                    },
+                    {
+                      id: 'compact',
+                      name: 'Compact Theme (High Density)',
+                      desc: 'Condensed table rows, tighter card paddings, and higher data density for power operations',
+                      icon: Minimize2,
+                      tag: 'Power Users',
+                    },
+                  ].map((item) => {
+                    const isSelected = (settingsForm.sidebarDensity || currentDensity) === item.id;
+                    const Icon = item.icon;
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => {
+                          setSettingsForm((prev) => ({ ...prev, sidebarDensity: item.id }));
+                          setGlobalDensity(item.id as DensityMode);
+                        }}
+                        className={`relative flex flex-col p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
+                          isSelected
+                            ? 'border-[var(--accent-gold)] bg-[var(--panel)] shadow-md'
+                            : 'border-[var(--border)] bg-[var(--panel)] hover:border-[var(--accent-gold)]/50'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <div
+                              className={`p-2 rounded-lg ${
+                                isSelected
+                                  ? 'bg-[var(--accent-gold)] text-white'
+                                  : 'bg-[var(--background)] text-[var(--text-secondary)]'
+                              }`}
+                            >
+                              <Icon className="w-5 h-5" />
+                            </div>
+                            <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-[var(--background)] text-[var(--text-secondary)] border border-[var(--border)]">
+                              {item.tag}
+                            </span>
+                          </div>
+                          {isSelected && (
+                            <div className="w-5 h-5 rounded-full bg-[var(--accent-gold)] text-white flex items-center justify-center">
+                              <Check className="w-3.5 h-3.5" />
+                            </div>
+                          )}
+                        </div>
+                        <span className="text-sm font-bold text-[var(--text-primary)]">
+                          {item.name}
+                        </span>
+                        <span className="text-xs text-[var(--text-secondary)] mt-1">
+                          {item.desc}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Select
-                  label="Sidebar Density"
-                  value={settingsForm.sidebarDensity}
-                  onChange={(value) => setSettingsForm(prev => ({ ...prev, sidebarDensity: String(value) }))}
-                  options={[
-                    { value: 'comfortable', label: 'Comfortable' },
-                    { value: 'compact', label: 'Compact' },
-                  ]}
-                />
                 <Select
                   label="Language"
                   value={settingsForm.language}

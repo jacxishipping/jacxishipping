@@ -5,6 +5,7 @@ import { ArrowUpDown, ArrowUp, ArrowDown, Trash2, Download, Edit, Columns, Eye, 
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@mui/material';
 import { EmptyState } from '@/components/design-system';
+import { useTheme } from '@/hooks/useTheme';
 
 export interface Column<T> {
   key: string;
@@ -71,7 +72,10 @@ export function DataTable<T extends Record<string, any>>({
   const columnMenuRef = useRef<HTMLDivElement | null>(null);
   const columnButtonRef = useRef<HTMLButtonElement | null>(null);
   const [bulkStatus, setBulkStatus] = useState('');
-  const [density, setDensity] = useState<'compact' | 'comfortable'>('comfortable');
+  const { density: globalDensity } = useTheme();
+  const [localDensity, setLocalDensity] = useState<'compact' | 'comfortable' | null>(null);
+  const density = localDensity ?? globalDensity;
+  const setDensity = (d: 'compact' | 'comfortable') => setLocalDensity(d);
   const hasActionsColumn = Boolean(onRowClick || onEdit || onDelete);
 
   // Handle sorting
