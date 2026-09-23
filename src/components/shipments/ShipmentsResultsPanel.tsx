@@ -1,12 +1,16 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { Add, ChevronLeft, ChevronRight, Inventory2 } from '@mui/icons-material';
 import { Box, Typography } from '@mui/material';
 import ShipmentRow from '@/components/dashboard/ShipmentRow';
 import { DashboardPanel } from '@/components/dashboard/DashboardSurface';
-import { Button, EmptyState, SkeletonTable } from '@/components/design-system';
+import { Button, EmptyState, SkeletonTable, toast } from '@/components/design-system';
 import { DataTable, Column } from '@/components/ui/DataTable';
+import { BatchActionsHUD, type BatchItem } from '@/components/dashboard/BatchActionsHUD';
+import { CustomerNotificationModal, type CustomerNotificationPayload } from '@/components/dashboard/CustomerNotificationModal';
+import { addWorkspaceItem } from '@/components/dashboard/WorkspaceTray';
 import type { Shipment, ShipmentTableRow } from '@/components/shipments/shipment-list-types';
 
 type BulkStatusOption = {
@@ -63,6 +67,48 @@ export default function ShipmentsResultsPanel({
 	onQuickPeek,
 	onOpenQR,
 }: ShipmentsResultsPanelProps) {
+	const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+	const [notificationPayload, setNotificationPayload] = useState<CustomerNotificationPayload | null>(null);
+
+	const selectedBatchItems: BatchItem[] = shipments
+		.filter((s) => selectedIds.has(s.id))
+		.map((s) => ({
+			id: s.id,
+			title: `${s.vehicleYear || ''} ${s.vehicleMake || ''} ${s.vehicleModel || 'Vehicle'}`.trim(),
+			subtitle: `VIN: ${s.vehicleVIN || 'N/A'}`,
+			status: s.status,
+			consignee: s.user?.name || s.user?.email,
+			vin: s.vehicleVIN || undefined,
+		}));
+
+	const handleRowQuickPeek = (id: string) => {
+		const target = shipments.find((s) => s.id === id);
+		if (target) {
+			addWorkspaceItem({
+				id: target.id,
+				type: 'shipment',
+				title: `${target.vehicleYear || ''} ${target.vehicleMake || ''} ${target.vehicleModel || 'Shipment'}`.trim(),
+				subtitle: target.vehicleVIN ? `VIN: ${target.vehicleVIN}` : target.status,
+				url: `/dashboard/shipments/${target.id}`,
+			});
+		}
+		if (onQuickPeek) onQuickPeek(id);
+	};
+
+	const handleOpenNotification = (shipment: Shipment) => {
+		setNotificationPayload({
+			customerName: shipment.user?.name || 'Customer',
+			customerEmail: shipment.user?.email || '',
+			vehicleDetails: `${shipment.vehicleYear || ''} ${shipment.vehicleMake || ''} ${shipment.vehicleModel || ''}`.trim() || 'Vehicle',
+			vin: shipment.vehicleVIN || 'N/A',
+			containerNumber: shipment.container?.containerNumber || 'PENDING',
+			portOfOrigin: shipment.dispatch?.origin || 'US Export Yard',
+			destinationPort: shipment.container?.currentLocation || 'Middle East Port',
+			trackingLink: `${typeof window !== 'undefined' ? window.location.origin : ''}/tracking?vin=${shipment.vehicleVIN || shipment.id}`,
+			eta: shipment.estimatedDelivery ? new Date(shipment.estimatedDelivery).toLocaleDateString() : '3-4 Weeks',
+		});
+	};
+
 	return (
 		<DashboardPanel
 			title={
@@ -98,11 +144,13 @@ export default function ShipmentsResultsPanel({
 			className="overflow-hidden"
 			bodyClassName="overflow-hidden"
 			actions={
-				canUseBulkMode ? (
-					<Button variant="outline" size="sm" onClick={onToggleBulkMode}>
-						{showBulkTable ? 'Card view' : 'Bulk mode'}
-					</Button>
-				) : null
+				<Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+					{canUseBulkMode ? (
+						<Button variant="outline" size="sm" onClick={onToggleBulkMode}>
+							{showBulkTable ? 'Card view' : 'Bulk mode'}
+						</Button>
+					) : null}
+				</Box>
 			}
 		>
 			{loading ? (
@@ -131,7 +179,16 @@ export default function ShipmentsResultsPanel({
 								columns={shipmentColumns}
 								keyField="id"
 								selectable={canUseBulkMode}
-								onRowClick={onRowClick}
+								onRowClick={(row) => {
+									addWorkspaceItem({
+										id: row.id,
+										type: 'shipment',
+										title: row.vehicle || 'Shipment',
+										subtitle: row.vin ? `VIN: ${row.vin}` : row.status,
+										url: `/dashboard/shipments/${row.id}`,
+									});
+									onRowClick(row);
+								}}
 								onDelete={onBulkDelete}
 								onExport={onBulkExport}
 								bulkStatusOptions={bulkStatusOptions}
@@ -160,11 +217,37 @@ export default function ShipmentsResultsPanel({
 								purchasePricePaid={canViewFinance ? (shipment.purchasePricePaid ?? null) : null}
 								showCustomer={isAdmin}
 								delay={index * 0.05}
-								onQuickPeek={onQuickPeek}
+								onQuickPeek={handleRowQuickPeek}
 								onOpenQR={onOpenQR}
 							/>
 						))}
 					</Box>
+
+					{/* Floating Batch Actions HUD */}
+					<BatchActionsHUD
+						selectedItems={selectedBatchItems}
+						entityName="Shipments"
+						onClearSelection={() => setSelectedIds(new Set())}
+						onBulkThermalPrint={() => {
+							window.print();
+							toast.success(`Printing batch thermal QR labels for ${selectedBatchItems.length} vehicles`);
+						}}
+						onBulkMessage={() => {
+							if (selectedBatchItems.length > 0) {
+								const first = shipments.find((s) => s.id === selectedBatchItems[0].id);
+								if (first) handleOpenNotification(first);
+							}
+						}}
+					/>
+
+					{/* Customer Notification Studio Modal */}
+					{notificationPayload && (
+						<CustomerNotificationModal
+							open={Boolean(notificationPayload)}
+							onClose={() => setNotificationPayload(null)}
+							payload={notificationPayload}
+						/>
+					)}
 
 					{totalPages > 1 && (
 						<Box

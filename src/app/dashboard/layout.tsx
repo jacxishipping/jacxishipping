@@ -12,6 +12,8 @@ import { Box } from '@mui/material';
 import { CommandPaletteProvider } from '@/components/providers/CommandPaletteProvider';
 import { LenisWrapperProvider, useLenisWrapper } from '@/components/providers/LenisWrapperProvider';
 import { ConfirmActionProvider } from '@/components/ui/ConfirmActionProvider';
+import { KeyboardShortcutsModal } from '@/components/dashboard/KeyboardShortcutsModal';
+import { WorkspaceTray } from '@/components/dashboard/WorkspaceTray';
 
 // Inner component that uses the Lenis wrapper
 function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
@@ -86,8 +88,11 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
       {/* Mobile Bottom Navigation */}
       <BottomNavigation />
 
-      {/* Keyboard Shortcuts Help - Press ? key */}
-      <KeyboardShortcutHelp />
+      {/* Multitasking Workspace Tray */}
+      <WorkspaceTray />
+
+      {/* Global Keyboard Shortcuts Cheat Sheet - Press ? key */}
+      <KeyboardShortcutsModal />
     </Box>
   );
 }

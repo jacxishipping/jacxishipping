@@ -5,13 +5,16 @@ import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { Box, Typography, Menu, MenuItem, IconButton, Divider } from '@mui/material';
-import { Package, Ship, MapPin, TrendingUp, Calendar, FileText, DollarSign, Receipt, MoreVertical, Eye, Copy, Trash2, Download, PanelRightOpen, QrCode } from 'lucide-react';
+import { Package, Ship, MapPin, TrendingUp, Calendar, FileText, DollarSign, Receipt, MoreVertical, Eye, Copy, Trash2, Download, PanelRightOpen, QrCode, Layers, Compass } from 'lucide-react';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
 import { PageHeader, StatsCard, Button, EmptyState, FormField, Select, toast, SkeletonCard, DashboardPageSkeleton, CompactSkeleton, StatusBadge, CopyButton, StatusFilterPills } from '@/components/design-system';
 import ContainerQuickPeek from '@/components/dashboard/ContainerQuickPeek';
 import { QRCodeModal, type QRCodeData } from '@/components/dashboard/QRCodeModal';
 import { SavedFilterPresets } from '@/components/dashboard/SavedFilterPresets';
+import { OceanRouteMap } from '@/components/dashboard/OceanRouteMap';
+import { ContainerLoadPlanner } from '@/components/dashboard/ContainerLoadPlanner';
+import { addWorkspaceItem } from '@/components/dashboard/WorkspaceTray';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { exportToCSVWithHeaders } from '@/lib/export';
 import { useConfirmAction } from '@/components/ui/ConfirmActionProvider';
@@ -60,6 +63,8 @@ export default function ContainersPage() {
   const [selectedContainer, setSelectedContainer] = useState<Container | null>(null);
   const [quickPeekContainerId, setQuickPeekContainerId] = useState<string | null>(null);
   const [qrModalData, setQrModalData] = useState<QRCodeData | null>(null);
+  const [plannerContainer, setPlannerContainer] = useState<Container | null>(null);
+  const [showOceanTracker, setShowOceanTracker] = useState(true);
   const router = useRouter();
   const { data: session } = useSession();
   const isAdmin = session?.user?.role === 'admin';
@@ -395,7 +400,35 @@ export default function ContainersPage() {
           title="Containers"
           description="Manage shipping containers and tracking"
           actions={
-            <Box sx={{ display: 'flex', gap: 1 }}>
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              <Button
+                variant={showOceanTracker ? 'primary' : 'outline'}
+                onClick={() => setShowOceanTracker((prev) => !prev)}
+                icon={<Compass className="w-4 h-4" />}
+              >
+                {showOceanTracker ? 'Hide Ocean Map' : 'Live Ocean Map'}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setPlannerContainer(containers[0] || {
+                  id: 'temp',
+                  containerNumber: 'MSKU-40HC-01',
+                  trackingNumber: 'MSKU9021824',
+                  vesselName: 'MAERSK MC-KINNEY MOLLER',
+                  shippingLine: 'Maersk Line',
+                  destinationPort: 'Jebel Ali Port',
+                  estimatedArrival: null,
+                  status: 'LOADED',
+                  progress: 68,
+                  currentCount: 3,
+                  maxCapacity: 4,
+                  createdAt: new Date().toISOString(),
+                  _count: { shipments: 3, expenses: 0, invoices: 0, documents: 0 },
+                })}
+                icon={<Layers className="w-4 h-4 text-[var(--accent-gold)]" />}
+              >
+                2D Load Planner
+              </Button>
               {isAdmin && (
                 <Button 
                   variant="outline"
@@ -421,6 +454,20 @@ export default function ContainersPage() {
             </Box>
           }
         />
+
+        {/* Live Ocean Freight & Vessel Route Tracker */}
+        {showOceanTracker && (
+          <OceanRouteMap 
+            originPort="Port of Newark (USNWK)"
+            destinationPort="Port of Jebel Ali (AEJEA)"
+            vesselName={containers[0]?.vesselName || 'MAERSK MC-KINNEY MOLLER'}
+            voyageNumber="V-2409W"
+            containerNumber={containers[0]?.containerNumber || 'MSKU9048123'}
+            currentProgressPct={68}
+            etaDays={9}
+            status="Deep Ocean Passage (Mediterranean Corridor)"
+          />
+        )}
 
         {/* Stats */}
         <DashboardGrid className="grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
@@ -850,6 +897,20 @@ export default function ContainersPage() {
           open={Boolean(quickPeekContainerId)}
           onClose={() => setQuickPeekContainerId(null)}
         />
+
+        {/* 2D Visual Container Load Planner Modal */}
+        {plannerContainer && (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+            <div className="relative w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl bg-[var(--panel)] shadow-2xl border border-[var(--border)]">
+              <ContainerLoadPlanner
+                containerNumber={plannerContainer.containerNumber}
+                containerType="40ft_hc"
+                onClose={() => setPlannerContainer(null)}
+                onSave={() => setPlannerContainer(null)}
+              />
+            </div>
+          </div>
+        )}
 
         {/* Yard QR Code & Thermal Label Modal */}
         <QRCodeModal
