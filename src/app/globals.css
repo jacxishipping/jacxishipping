@@ -95,8 +95,8 @@ html {
 /* Mobile Touch Optimization */
 @media (max-width: 768px) {
 	/* Minimum touch target size for mobile (44x44px recommended by Apple/Google) */
-	button, 
-	a, 
+	button:not(table button):not(.table-action-btn):not(.status-badge):not(.ds-compact-btn), 
+	a:not(table a), 
 	input[type="button"], 
 	input[type="submit"],
 	.touch-target {
@@ -282,52 +282,279 @@ html {
 /* ==========================================================================
    UI Density System (Comfortable vs Compact)
    ========================================================================== */
-[data-density="compact"],
+html[data-density="compact"],
 .density-compact {
-	--density-table-py: 0.375rem;
-	--density-table-px: 0.75rem;
-	--density-card-padding: 0.875rem;
-	--density-card-gap: 0.625rem;
-	--density-btn-py: 0.25rem;
-	--density-btn-px: 0.625rem;
-	--density-input-h: 2rem;
-	--density-input-py: 0.25rem;
-	--density-input-px: 0.5rem;
-	--density-badge-py: 0.125rem;
-	--density-badge-px: 0.375rem;
-	--density-font-size-base: 0.8125rem;
-	--density-font-size-sm: 0.7rem;
-	--density-font-size-xs: 0.65rem;
-	--density-stat-py: 0.75rem;
+	/* Base root font scaling (14px = ~12.5% proportional scaling for all rem units across Tailwind) */
+	font-size: 14px;
+
+	--density-table-py: 0.25rem;
+	--density-table-px: 0.5rem;
+	--density-card-padding: 0.625rem;
+	--density-card-gap: 0.5rem;
+	--density-btn-py: 0.2rem;
+	--density-btn-px: 0.5rem;
+	--density-input-h: 1.85rem;
+	--density-input-py: 0.2rem;
+	--density-input-px: 0.4rem;
+	--density-badge-py: 0.1rem;
+	--density-badge-px: 0.35rem;
+	--density-font-size-base: 0.775rem;
+	--density-font-size-sm: 0.6875rem;
+	--density-font-size-xs: 0.625rem;
+	--density-stat-py: 0.5rem;
 }
 
-/* Compact global typography scaling and table row tightening */
-[data-density="compact"] table th {
-	padding-top: 0.4rem !important;
-	padding-bottom: 0.4rem !important;
+/* --------------------------------------------------------------------------
+   Compact: Tables (DataTable & Standard HTML Tables)
+   -------------------------------------------------------------------------- */
+[data-density="compact"] table,
+.density-compact table {
+	font-size: 0.75rem !important;
+	line-height: 1.25 !important;
+}
+
+[data-density="compact"] table th,
+.density-compact table th {
+	padding-top: 0.25rem !important;
+	padding-bottom: 0.25rem !important;
+	padding-left: 0.5rem !important;
+	padding-right: 0.5rem !important;
+	font-size: 0.7rem !important;
+	font-weight: 600 !important;
+	height: 28px !important;
+	letter-spacing: 0.04em !important;
+}
+
+[data-density="compact"] table td,
+.density-compact table td {
+	padding-top: 0.25rem !important;
+	padding-bottom: 0.25rem !important;
+	padding-left: 0.5rem !important;
+	padding-right: 0.5rem !important;
+	font-size: 0.75rem !important;
+	line-height: 1.25 !important;
+	height: 32px !important;
+}
+
+[data-density="compact"] table tr,
+.density-compact table tr {
+	height: 32px !important;
+	min-height: 32px !important;
+}
+
+[data-density="compact"] table button,
+.density-compact table button {
+	min-height: 24px !important;
+	min-width: 24px !important;
+	height: 24px !important;
+	padding: 0.125rem 0.375rem !important;
+	font-size: 0.7rem !important;
+}
+
+[data-density="compact"] table svg,
+.density-compact table svg {
+	width: 13px !important;
+	height: 13px !important;
+}
+
+[data-density="compact"] table .status-badge,
+.density-compact table .status-badge,
+[data-density="compact"] table [class*="rounded-full"] {
+	height: 18px !important;
+	min-height: 18px !important;
+	font-size: 0.65rem !important;
+	padding: 0 5px !important;
+	line-height: 1 !important;
+}
+
+/* --------------------------------------------------------------------------
+   Compact: Dashboard Surfaces, Panels & Layout Containers
+   -------------------------------------------------------------------------- */
+[data-density="compact"] .dashboard-surface,
+.density-compact .dashboard-surface {
+	gap: 0.75rem !important;
 	padding-left: 0.75rem !important;
 	padding-right: 0.75rem !important;
-	font-size: 0.725rem !important;
+	padding-top: 0.5rem !important;
+	padding-bottom: 0.5rem !important;
 }
 
-[data-density="compact"] table td {
-	padding-top: 0.375rem !important;
-	padding-bottom: 0.375rem !important;
-	padding-left: 0.75rem !important;
-	padding-right: 0.75rem !important;
-	font-size: 0.8125rem !important;
+[data-density="compact"] .dashboard-header,
+.density-compact .dashboard-header {
+	padding: 0.5rem 0.75rem !important;
+	gap: 0.375rem !important;
+	border-radius: 0.625rem !important;
 }
 
-[data-density="compact"] .dashboard-card-compact-target {
-	padding: 0.875rem !important;
+[data-density="compact"] .dashboard-grid,
+.density-compact .dashboard-grid {
+	gap: 0.625rem !important;
 }
 
-[data-density="compact"] .density-compact-p {
-	padding: 0.75rem !important;
+[data-density="compact"] .dashboard-panel,
+.density-compact .dashboard-panel {
+	border-radius: 0.625rem !important;
+	box-shadow: 0 4px 16px rgba(var(--text-primary-rgb), 0.05) !important;
 }
 
-[data-density="compact"] .density-compact-gap {
+[data-density="compact"] .dashboard-panel > header,
+.density-compact .dashboard-panel > header {
+	padding: 0.375rem 0.75rem !important;
+	gap: 0.25rem !important;
+}
+
+[data-density="compact"] .dashboard-panel > div:not(header):not(footer),
+.density-compact .dashboard-panel > div:not(header):not(footer) {
+	padding: 0.5rem 0.75rem !important;
+}
+
+[data-density="compact"] .dashboard-panel > footer,
+.density-compact .dashboard-panel > footer {
+	padding: 0.35rem 0.75rem !important;
+}
+
+/* --------------------------------------------------------------------------
+   Compact: Page Headers
+   -------------------------------------------------------------------------- */
+[data-density="compact"] .page-header-root,
+.density-compact .page-header-root {
+	margin-bottom: 0.625rem !important;
+}
+
+[data-density="compact"] .page-header-root > div,
+.density-compact .page-header-root > div {
+	padding: 0.5rem 0.75rem !important;
+	gap: 0.375rem !important;
+	border-radius: 0.625rem !important;
+}
+
+[data-density="compact"] .page-header-root h1,
+.density-compact .page-header-root h1 {
+	font-size: 1.1rem !important;
+	line-height: 1.2 !important;
+}
+
+[data-density="compact"] .page-header-root p,
+.density-compact .page-header-root p {
+	font-size: 0.775rem !important;
+}
+
+/* --------------------------------------------------------------------------
+   Compact: Stats Cards & Metric Widgets
+   -------------------------------------------------------------------------- */
+[data-density="compact"] .stats-card,
+.density-compact .stats-card {
+	padding: 0.5rem 0.75rem !important;
 	gap: 0.5rem !important;
+	min-height: 50px !important;
+	border-radius: 0.5rem !important;
+}
+
+[data-density="compact"] .stats-card > div:first-child,
+.density-compact .stats-card > div:first-child {
+	width: 32px !important;
+	height: 32px !important;
+	min-width: 32px !important;
+	border-radius: 8px !important;
+}
+
+[data-density="compact"] .stats-card h2,
+[data-density="compact"] .stats-card span[title],
+.density-compact .stats-card h2,
+.density-compact .stats-card span[title] {
+	font-size: 1.15rem !important;
+	line-height: 1.15 !important;
+}
+
+/* --------------------------------------------------------------------------
+   Compact: Buttons, Inputs, Selects & Tabs
+   -------------------------------------------------------------------------- */
+[data-density="compact"] .ds-button,
+.density-compact .ds-button,
+[data-density="compact"] .MuiButton-root:not(.mobile-nav-btn),
+.density-compact .MuiButton-root:not(.mobile-nav-btn) {
+	min-height: 28px !important;
+	height: auto;
+	padding: 0.2rem 0.55rem !important;
+	font-size: 0.75rem !important;
+	border-radius: 6px !important;
+}
+
+[data-density="compact"] .ds-icon-button,
+.density-compact .ds-icon-button,
+[data-density="compact"] .MuiIconButton-root:not(.mobile-nav-btn),
+.density-compact .MuiIconButton-root:not(.mobile-nav-btn) {
+	padding: 4px !important;
+	min-height: 26px !important;
+	min-width: 26px !important;
+	height: 26px !important;
+	width: 26px !important;
+}
+
+[data-density="compact"] .MuiOutlinedInput-root,
+.density-compact .MuiOutlinedInput-root {
+	font-size: 0.775rem !important;
+	border-radius: 6px !important;
+}
+
+[data-density="compact"] .MuiOutlinedInput-input,
+.density-compact .MuiOutlinedInput-input {
+	padding: 4px 8px !important;
+	min-height: 0 !important;
+	font-size: 0.775rem !important;
+}
+
+[data-density="compact"] input:not([type="checkbox"]):not([type="radio"]),
+.density-compact input:not([type="checkbox"]):not([type="radio"]),
+[data-density="compact"] select,
+.density-compact select {
+	height: 28px !important;
+	min-height: 28px !important;
+	padding: 0.2rem 0.45rem !important;
+	font-size: 0.775rem !important;
+	border-radius: 6px !important;
+}
+
+[data-density="compact"] .status-badge,
+.density-compact .status-badge,
+[data-density="compact"] .MuiChip-root,
+.density-compact .MuiChip-root {
+	height: 20px !important;
+	min-height: 20px !important;
+	padding: 0 6px !important;
+	font-size: 0.6875rem !important;
+	border-radius: 6px !important;
+	gap: 4px !important;
+}
+
+[data-density="compact"] .MuiTabs-root,
+.density-compact .MuiTabs-root {
+	min-height: 32px !important;
+	height: 32px !important;
+}
+
+[data-density="compact"] .MuiTab-root,
+.density-compact .MuiTab-root {
+	min-height: 32px !important;
+	height: 32px !important;
+	padding: 2px 8px !important;
+	font-size: 0.75rem !important;
+}
+
+[data-density="compact"] .MuiDialogTitle-root,
+.density-compact .MuiDialogTitle-root {
+	padding: 8px 14px !important;
+	font-size: 1rem !important;
+}
+
+[data-density="compact"] .MuiDialogContent-root,
+.density-compact .MuiDialogContent-root {
+	padding: 10px 14px !important;
+}
+
+[data-density="compact"] .MuiDialogActions-root,
+.density-compact .MuiDialogActions-root {
+	padding: 6px 12px !important;
 }
 
 body {

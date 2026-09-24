@@ -3,6 +3,7 @@
 import { Box, Typography } from '@mui/material';
 import { ReactNode } from 'react';
 import Breadcrumbs from './Breadcrumbs';
+import { useTheme } from '@/hooks/useTheme';
 
 interface PageHeaderProps {
 	title: string;
@@ -17,10 +18,13 @@ interface PageHeaderProps {
 }
 
 export default function PageHeader({ title, description, actions, showBreadcrumbs = false, meta }: PageHeaderProps) {
+	const { density } = useTheme();
+	const isCompact = density === 'compact';
+
 	return (
-		<Box sx={{ mb: 3 }}>
+		<Box className="page-header-root" sx={{ mb: isCompact ? 1.5 : 3 }}>
 			{showBreadcrumbs && (
-				<Box sx={{ mb: 1.5 }}>
+				<Box sx={{ mb: isCompact ? 0.75 : 1.5 }}>
 					<Breadcrumbs />
 				</Box>
 			)}
@@ -30,13 +34,15 @@ export default function PageHeader({ title, description, actions, showBreadcrumb
 					flexDirection: { xs: 'column', md: 'row' },
 					justifyContent: 'space-between',
 					alignItems: { xs: 'flex-start', md: 'center' },
-					gap: 2,
+					gap: isCompact ? 1.25 : 2,
 					border: '1px solid var(--border)',
 					borderTop: '2px solid rgba(var(--accent-gold-rgb), 0.3)',
-					borderRadius: 2,
+					borderRadius: isCompact ? 1.5 : 2,
 					backgroundColor: 'var(--panel)',
-					boxShadow: '0 14px 34px rgba(var(--text-primary-rgb), 0.08)',
-					padding: { xs: '14px 16px', md: '16px 18px' },
+					boxShadow: isCompact ? '0 6px 18px rgba(var(--text-primary-rgb), 0.05)' : '0 14px 34px rgba(var(--text-primary-rgb), 0.08)',
+					padding: isCompact
+						? { xs: '8px 12px', md: '10px 14px' }
+						: { xs: '14px 16px', md: '16px 18px' },
 				}}
 			>
 				<Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, minWidth: 0 }}>
@@ -71,10 +77,10 @@ export default function PageHeader({ title, description, actions, showBreadcrumb
 								<Box
 									key={item.label}
 									sx={{
-										minWidth: 110,
+										minWidth: isCompact ? 90 : 110,
 										border: '1px solid var(--border)',
 										borderRadius: 1.25,
-										padding: '8px 12px',
+										padding: isCompact ? '4px 8px' : '8px 12px',
 										backgroundColor: 'var(--background)',
 									}}
 								>
@@ -88,7 +94,7 @@ export default function PageHeader({ title, description, actions, showBreadcrumb
 									>
 										{item.label}
 									</Typography>
-									<Typography sx={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+									<Typography sx={{ fontSize: isCompact ? '0.875rem' : '1rem', fontWeight: 600, color: 'var(--text-primary)' }}>
 										{item.value}
 									</Typography>
 									{item.helper && (

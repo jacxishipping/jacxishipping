@@ -1,8 +1,8 @@
 export function normalizeInvoiceExpenseDescription(value: string) {
   return value
     .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
     .replace(/\s+/g, ' ')
-    .replace(/[^a-z0-9\s]/g, '')
     .trim();
 }
 

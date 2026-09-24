@@ -78,12 +78,12 @@ export default function Modal({
         sx: {
           width: '100%',
           maxWidth: sizeConfig[size],
-          borderRadius: 3,
+          borderRadius: { xs: 2.5, sm: 3 },
           bgcolor: 'var(--panel)',
           backgroundImage: 'none',
           boxShadow: '0 24px 60px rgba(var(--text-primary-rgb), 0.15), 0 8px 16px rgba(var(--text-primary-rgb), 0.1)',
-          m: { xs: 1.5, sm: 2.5 },
-          maxHeight: { xs: 'calc(100% - 24px)', sm: 'calc(100% - 40px)' },
+          m: { xs: 1, sm: 2.5 },
+          maxHeight: { xs: 'calc(100% - 16px)', sm: 'calc(100% - 40px)' },
           overflow: 'hidden',
         },
       }}
@@ -104,8 +104,8 @@ export default function Modal({
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: 2,
-            px: 3,
-            py: 2.5,
+            px: { xs: 2, sm: 3 },
+            py: { xs: 1.75, sm: 2.5 },
             borderBottom: '1px solid var(--border)',
             bgcolor: 'var(--panel)',
           }}
@@ -114,7 +114,7 @@ export default function Modal({
             {typeof title === 'string' ? (
               <Typography
                 sx={{
-                  fontSize: '1.125rem',
+                  fontSize: { xs: '1rem', sm: '1.125rem' },
                   fontWeight: 600,
                   color: 'var(--text-primary)',
                 }}
@@ -127,9 +127,9 @@ export default function Modal({
             {description ? (
               <Typography
                 sx={{
-                  mt: 0.75,
-                  fontSize: '0.875rem',
-                  lineHeight: 1.6,
+                  mt: 0.5,
+                  fontSize: { xs: '0.8125rem', sm: '0.875rem' },
+                  lineHeight: 1.5,
                   color: 'var(--text-secondary)',
                 }}
               >
@@ -143,12 +143,13 @@ export default function Modal({
               sx={{
                 color: 'var(--text-secondary)',
                 border: '1px solid rgba(var(--border-rgb), 0.6)',
+                p: 0.75,
                 '&:hover': {
                   bgcolor: 'rgba(var(--border-rgb), 0.2)',
                 },
               }}
             >
-              <Close sx={{ fontSize: 20 }} />
+              <Close sx={{ fontSize: 18 }} />
             </IconButton>
           )}
         </DialogTitle>
@@ -157,8 +158,8 @@ export default function Modal({
       {/* Content */}
       <DialogContent
         sx={{
-          px: 3,
-          py: 3,
+          px: { xs: 2, sm: 3 },
+          py: { xs: 2, sm: 3 },
           color: 'var(--text-primary)',
           overflowY: 'auto',
           bgcolor: 'var(--panel)',
@@ -172,11 +173,16 @@ export default function Modal({
       {actions && (
         <DialogActions
           sx={{
-            px: 3,
-            py: 2.5,
+            px: { xs: 2, sm: 3 },
+            py: { xs: 1.75, sm: 2.5 },
             gap: 1.5,
             borderTop: '1px solid var(--border)',
             bgcolor: 'var(--panel)',
+            flexDirection: { xs: 'column-reverse', sm: 'row' },
+            '& > *': {
+              width: { xs: '100% !important', sm: 'auto !important' },
+              m: '0 !important',
+            },
             ...actionsSx,
           }}
         >

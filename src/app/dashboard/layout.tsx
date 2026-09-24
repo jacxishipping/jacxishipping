@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import Sidebar from '@/components/dashboard/Sidebar';
 import Header from '@/components/dashboard/Header';
@@ -18,8 +19,31 @@ import { WorkspaceTray } from '@/components/dashboard/WorkspaceTray';
 // Inner component that uses the Lenis wrapper
 function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const pathname = usePathname();
   const mainContentRef = useRef<HTMLElement>(null);
   const { registerWrapper, unregisterWrapper } = useLenisWrapper();
+
+  // Auto-close mobile drawer when route changes
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
+  // Support mobile menu drawer events (e.g. from mobile bottom navigation)
+  useEffect(() => {
+    const handleToggle = () => setMobileOpen((prev) => !prev);
+    const handleOpen = () => setMobileOpen(true);
+    const handleClose = () => setMobileOpen(false);
+
+    window.addEventListener('toggle-mobile-menu', handleToggle);
+    window.addEventListener('open-mobile-menu', handleOpen);
+    window.addEventListener('close-mobile-menu', handleClose);
+
+    return () => {
+      window.removeEventListener('toggle-mobile-menu', handleToggle);
+      window.removeEventListener('open-mobile-menu', handleOpen);
+      window.removeEventListener('close-mobile-menu', handleClose);
+    };
+  }, []);
 
   // Register the main content area as the scroll container for Lenis
   useEffect(() => {
@@ -78,7 +102,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
               borderRadius: 10,
             },
             scrollbarColor: 'rgba(var(--text-primary-rgb), 0.24) var(--background)',
-            pb: { xs: '68px', lg: 0 },
+            pb: { xs: 'calc(76px + env(safe-area-inset-bottom, 0px))', lg: 0 },
           }}
         >
           {children}

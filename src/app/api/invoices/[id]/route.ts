@@ -7,6 +7,7 @@ import { createInvoiceAuditLogs } from '@/lib/entity-audit-history';
 import { z } from 'zod';
 import { hasPermission } from '@/lib/rbac';
 import { buildLinkedCompanyLedgerEntryMap } from '@/lib/company-ledger-links';
+import { recalculateCompanyLedgerBalances } from '@/lib/company-ledger';
 import { recalculateUserLedgerBalances } from '@/lib/user-ledger';
 import {
   markInvoiceShipmentChargesPaid,
@@ -15,13 +16,21 @@ import {
 } from '@/lib/billing/shipment-charges';
 import { invoiceTransitionError } from '@/lib/billing/invoice-status';
 import { recalculateInvoiceTotal } from '@/lib/shipment-invoice';
-import { invoiceLineItemMatchesLedgerEntry } from '@/lib/invoice-ledger-sync';
+import { invoiceLineItemMatchesLedgerEntry, normalizeInvoiceExpenseDescription } from '@/lib/invoice-ledger-sync';
 import { roundToCents, withinOneCent } from '@/lib/financial/money';
 
 async function syncInvoiceLineItemLedgerEntries(
   tx: Prisma.TransactionClient,
   invoice: { id: string; userId: string; notes?: string | null },
-  lineItem: { shipmentId: string | null; description: string; amount: number; type: string; expenseSource?: string | null },
+  lineItem: {
+    id?: string;
+    chargeId?: string | null;
+    shipmentId: string | null;
+    description: string;
+    amount: number;
+    type: string;
+    expenseSource?: string | null;
+  },
   actorId: string,
 ) {
   if (!lineItem.shipmentId) {
@@ -66,20 +75,32 @@ async function syncInvoiceLineItemLedgerEntries(
     },
   });
 
-  const matchingEntry = pendingEntries.find((entry) =>
-    invoiceLineItemMatchesLedgerEntry(
-      {
-        shipmentId: lineItem.shipmentId,
-        description: lineItem.description,
-        amount: lineItem.amount,
-      },
-      {
-        shipmentId: entry.shipmentId,
-        description: entry.description,
-        amount: Number(entry.amount ?? 0),
-      },
-    )
-  );
+  const matchingEntry =
+    pendingEntries.find((entry) => {
+      const meta = (entry.metadata ?? {}) as Record<string, unknown>;
+      if (lineItem.id && meta.invoiceLineItemId === lineItem.id) return true;
+      if (lineItem.chargeId && meta.chargeId === lineItem.chargeId) return true;
+      return false;
+    }) ??
+    pendingEntries.find((entry) =>
+      invoiceLineItemMatchesLedgerEntry(
+        {
+          shipmentId: lineItem.shipmentId,
+          description: lineItem.description,
+          amount: lineItem.amount,
+        },
+        {
+          shipmentId: entry.shipmentId,
+          description: entry.description,
+          amount: Number(entry.amount ?? 0),
+        },
+      )
+    ) ??
+    pendingEntries.find((entry) => {
+      const lineDesc = normalizeInvoiceExpenseDescription(lineItem.description);
+      const entryDesc = normalizeInvoiceExpenseDescription(entry.description);
+      return Boolean(lineDesc && entryDesc && (lineDesc === entryDesc || entryDesc.includes(lineDesc) || lineDesc.includes(entryDesc)));
+    });
 
   if (matchingEntry) {
     await tx.ledgerEntry.update({
@@ -92,6 +113,8 @@ async function syncInvoiceLineItemLedgerEntries(
           ...(matchingEntry.metadata && typeof matchingEntry.metadata === 'object' && !Array.isArray(matchingEntry.metadata)
             ? (matchingEntry.metadata as Record<string, unknown>)
             : {}),
+          ...(lineItem.id ? { invoiceLineItemId: lineItem.id } : {}),
+          ...(lineItem.chargeId ? { chargeId: lineItem.chargeId } : {}),
           pendingInvoice: true,
           isExpense: true,
           expenseType: lineItem.type,
@@ -137,6 +160,9 @@ async function syncInvoiceLineItemLedgerEntries(
           },
         },
       });
+      if (shipment.container?.companyId) {
+        await recalculateCompanyLedgerBalances(tx, shipment.container.companyId);
+      }
     } else if (shipment.container?.companyId) {
       await tx.companyLedgerEntry.create({
         data: {
@@ -160,6 +186,7 @@ async function syncInvoiceLineItemLedgerEntries(
           },
         },
       });
+      await recalculateCompanyLedgerBalances(tx, shipment.container.companyId);
     }
 
     return;
@@ -183,6 +210,8 @@ async function syncInvoiceLineItemLedgerEntries(
         isExpense: true,
         paymentMode: 'DUE',
         pendingInvoice: true,
+        ...(lineItem.id ? { invoiceLineItemId: lineItem.id } : {}),
+        ...(lineItem.chargeId ? { chargeId: lineItem.chargeId } : {}),
         expenseType: lineItem.type,
         expenseSource: lineItem.expenseSource ?? 'SHIPMENT',
         ...(shipment.container?.companyId ? { linkedCompanyId: shipment.container.companyId } : {}),
@@ -213,6 +242,7 @@ async function syncInvoiceLineItemLedgerEntries(
         },
       },
     });
+    await recalculateCompanyLedgerBalances(tx, shipment.container.companyId);
   }
 }
 
@@ -280,15 +310,19 @@ async function removeInvoiceLineItemLedgerEntries(
         },
       ],
     },
-    select: { id: true },
+    select: { id: true, companyId: true },
   });
 
   if (companyEntries.length) {
+    const affectedCompanyIds = [...new Set(companyEntries.map((e) => e.companyId).filter(Boolean))];
     await tx.companyLedgerEntry.deleteMany({
       where: {
         id: { in: companyEntries.map((entry) => entry.id) },
       },
     });
+    for (const companyId of affectedCompanyIds) {
+      await recalculateCompanyLedgerBalances(tx, companyId);
+    }
   }
 
   await tx.ledgerEntry.deleteMany({
@@ -865,6 +899,7 @@ export async function PATCH(
               tx,
               { id: currentInvoice.id, userId: currentInvoice.userId, notes: invoiceUpdateData.notes ?? currentInvoice.notes },
               {
+                id: operation.id,
                 shipmentId: updatedLineItem.shipmentId,
                 description: updatedLineItem.description,
                 amount: updatedLineItem.amount,
@@ -908,6 +943,8 @@ export async function PATCH(
               tx,
               { id: currentInvoice.id, userId: currentInvoice.userId, notes: invoiceUpdateData.notes ?? currentInvoice.notes },
               {
+                id: createdLineItem.id,
+                chargeId: createdLineItem.chargeId,
                 shipmentId: createdLineItem.shipmentId,
                 description: createdLineItem.description,
                 amount: createdLineItem.amount,
@@ -1063,14 +1100,9 @@ export async function PATCH(
       // (insurance, shared container expenses, etc.) — car purchase price is excluded.
       const nonExpenseAmount = roundToCents(Math.max(0, ledgerRelevantTotal - pendingExpenseTotal));
 
-      if (nonExpenseAmount > availableCredit && !withinOneCent(nonExpenseAmount, availableCredit)) {
-        return NextResponse.json(
-          {
-            error: `Insufficient credit balance. Customer has $${availableCredit.toFixed(2)} available but invoice needs $${nonExpenseAmount.toFixed(2)} more for non-shipment charges. Please deposit credit first.`,
-          },
-          { status: 400 }
-        );
-      }
+      // Calculate how much available credit can be used, and how much is covered via direct payment
+      const creditToDraw = Math.min(availableCredit, nonExpenseAmount);
+      const directPaymentNeeded = roundToCents(Math.max(0, nonExpenseAmount - creditToDraw));
 
       await prisma.$transaction(async (tx) => {
         // Tag each pending expense entry with invoice details. The entry already affects the
@@ -1090,15 +1122,15 @@ export async function PATCH(
           });
         }
 
-        // Create a DEBIT for the non-expense portion (vehicle price, insurance, etc.)
+        // Create a DEBIT for the non-expense portion (vehicle price, insurance, shipping fare, etc.)
         let nonExpenseEntry: { id: string } | undefined;
         if (nonExpenseAmount > 0.001) {
           nonExpenseEntry = await tx.ledgerEntry.create({
             data: {
               userId: currentInvoice.userId,
-              description: `Invoice ${currentInvoice.invoiceNumber} payment — vehicle / other charges`,
+              description: `Invoice ${currentInvoice.invoiceNumber} charges — shipping / other charges`,
               type: 'DEBIT',
-              transactionInfoType: 'CAR_PAYMENT',
+              transactionInfoType: 'SHIPPING_PAYMENT',
               amount: nonExpenseAmount,
               balance: 0, // will be corrected by recalculate below
               createdBy: actorId,
@@ -1107,11 +1139,69 @@ export async function PATCH(
                 invoiceId: currentInvoice.id,
                 invoiceNumber: currentInvoice.invoiceNumber,
                 paymentMethod: validatedData.paymentMethod ?? null,
-                paymentType: 'invoice_payment',
+                paymentType: 'invoice_charge',
               },
             },
           });
         }
+
+        // If direct payment covers the portion not paid from pre-existing credit, record the payment receipt
+        let directPaymentEntry: { id: string } | undefined;
+        if (directPaymentNeeded > 0.001) {
+          const method = validatedData.paymentMethod || currentInvoice.paymentMethod || 'CASH';
+          directPaymentEntry = await tx.ledgerEntry.create({
+            data: {
+              userId: currentInvoice.userId,
+              description: `Payment received for Invoice ${currentInvoice.invoiceNumber}`,
+              type: 'CREDIT',
+              transactionInfoType: 'SHIPPING_PAYMENT',
+              amount: directPaymentNeeded,
+              balance: 0,
+              createdBy: actorId,
+              notes: validatedData.notes,
+              metadata: {
+                invoiceId: currentInvoice.id,
+                invoiceNumber: currentInvoice.invoiceNumber,
+                paymentMethod: method,
+                paymentType: 'payment_received',
+                directInvoicePayment: true,
+              },
+            },
+          });
+
+          const paymentRecord = await tx.payment.create({
+            data: {
+              userId: currentInvoice.userId,
+              shipmentId: invoiceShipmentIds[0] ?? null,
+              invoiceId: currentInvoice.id,
+              amount: directPaymentNeeded,
+              status: 'COMPLETED',
+              method: (['CREDIT_CARD', 'DEBIT_CARD', 'BANK_TRANSFER', 'WIRE_TRANSFER'].includes(method)
+                ? method
+                : 'BANK_TRANSFER') as any,
+            },
+          });
+
+          await tx.paymentAllocation.create({
+            data: {
+              paymentId: paymentRecord.id,
+              invoiceId: currentInvoice.id,
+              amount: directPaymentNeeded,
+            },
+          });
+        }
+
+        // Update the invoice amountPaid and amountRemaining to full settlement
+        await tx.userInvoice.update({
+          where: { id: currentInvoice.id },
+          data: {
+            amountPaid: invoiceTotal,
+            amountRemaining: 0,
+            paidDate: new Date(),
+            paymentMethod: validatedData.paymentMethod || currentInvoice.paymentMethod || 'CASH',
+            paymentReference: directPaymentEntry?.id ?? currentInvoice.paymentReference ?? null,
+          },
+        });
 
         // Recalculate all running balances (pending entries now activated)
         await recalculateUserLedgerBalances(tx, currentInvoice.userId);
@@ -1126,7 +1216,7 @@ export async function PATCH(
 
         await markInvoiceShipmentChargesPaid(tx, currentInvoice.id);
 
-        paymentLedgerEntryId = nonExpenseEntry?.id ?? pendingExpenseEntries[0]?.id;
+        paymentLedgerEntryId = directPaymentEntry?.id ?? nonExpenseEntry?.id ?? pendingExpenseEntries[0]?.id;
       });
     }
 

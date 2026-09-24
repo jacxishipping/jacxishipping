@@ -4,6 +4,8 @@ import { put } from '@vercel/blob';
 import { randomUUID } from 'crypto';
 import { logger } from '@/lib/logger';
 
+import { hasAnyPermission } from '@/lib/rbac';
+
 export async function POST(request: NextRequest) {
 	try {
 		const session = await auth();
@@ -12,10 +14,14 @@ export async function POST(request: NextRequest) {
 			return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
 		}
 
-		// Only admins can upload images
-		if (session.user?.role !== 'admin') {
+		// Only users with appropriate permissions can upload files
+		const canUpload =
+			session.user?.role === 'admin' ||
+			hasAnyPermission(session.user?.role, ['finance:manage', 'shipments:manage', 'documents:manage']);
+
+		if (!canUpload) {
 			return NextResponse.json(
-				{ message: 'Forbidden: Only admins can upload images' },
+				{ message: 'Forbidden: Insufficient permissions to upload files' },
 				{ status: 403 }
 			);
 		}

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { User, Eye, EyeOff, Copy, Check, Package } from 'lucide-react';
+import { User, Eye, EyeOff, Copy, Check, Package, Key } from 'lucide-react';
 import { Box, Typography, IconButton, Slide } from '@mui/material';
 import { Button } from '@/components/design-system';
 import VisibilityIcon from '@mui/icons-material/Visibility';
@@ -27,6 +27,7 @@ interface UserCardProps {
   onToggleEmail: (id: string) => void;
   onCopyEmail: (text: string, id: string) => void;
   onDelete: (id: string) => void;
+  onResetPassword?: (user: UserData) => void;
 }
 
 const formatRole = (role: string) => {
@@ -50,6 +51,7 @@ export default function UserCard({
   onToggleEmail,
   onCopyEmail,
   onDelete,
+  onResetPassword,
 }: UserCardProps) {
   const [visible, setVisible] = useState(false);
 
@@ -169,6 +171,17 @@ export default function UserCard({
               View
             </Button>
           </Link>
+          {onResetPassword && (
+            <Button
+              variant="outline"
+              size="sm"
+              icon={<Key style={{ width: 14, height: 14 }} />}
+              onClick={() => onResetPassword(user)}
+              sx={{ textTransform: 'none', fontSize: '0.7rem' }}
+            >
+              Password
+            </Button>
+          )}
           <Link href={`/dashboard/users/${user.id}/edit`} style={{ textDecoration: 'none' }}>
             <Button
               variant="ghost"

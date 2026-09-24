@@ -24,6 +24,7 @@ import {
 	Menu as MenuIcon,
   Add as AddIcon,
   Keyboard as KeyboardIcon,
+  Search as SearchIcon,
 } from '@mui/icons-material';
 import { Ship, Package, FileText } from 'lucide-react';
 import { signOut } from 'next-auth/react';
@@ -33,6 +34,7 @@ import SiteLogo from '@/components/brand/SiteLogo';
 import { NotificationCenter } from '@/components/ui/NotificationCenter';
 import GlobalSearch from '@/components/dashboard/GlobalSearch';
 import { hasPermission, type Permission } from '@/lib/rbac';
+import { useTheme } from '@/hooks/useTheme';
 
 interface HeaderProps {
 	onMenuClick?: () => void;
@@ -73,6 +75,8 @@ const quickActionDefinitions = [
 ] satisfies QuickAction[];
 
 export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
+	const { density } = useTheme();
+	const isCompact = density === 'compact';
 	const { data: session } = useSession();
   const router = useRouter();
 	const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -146,8 +150,8 @@ export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
 		>
 			<Toolbar
 				sx={{
-					minHeight: 56,
-					height: 56,
+					minHeight: isCompact ? 48 : 56,
+					height: isCompact ? 48 : 56,
 					px: { xs: 1.5, sm: 2.5 },
 					py: 0,
 					color: 'var(--text-primary)',
@@ -202,10 +206,27 @@ export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
 
 				{/* Right Actions */}
 				<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
-					{/* Global Search (⌘K) */}
+					{/* Global Search (⌘K on desktop, icon button on mobile) */}
 					<Box sx={{ display: { xs: 'none', sm: 'flex' }, mr: 0.5 }}>
 						<GlobalSearch />
 					</Box>
+					<Tooltip title="Search">
+						<IconButton
+							onClick={() => window.dispatchEvent(new CustomEvent('open-global-search'))}
+							sx={{
+								display: { xs: 'inline-flex', sm: 'none' },
+								color: 'var(--text-secondary)',
+								p: 0.75,
+								'&:hover': {
+									color: 'var(--text-primary)',
+									bgcolor: 'rgba(var(--accent-gold-rgb), 0.1)',
+								},
+							}}
+							aria-label="Search"
+						>
+							<SearchIcon sx={{ fontSize: 22 }} />
+						</IconButton>
+					</Tooltip>
 					{quickActions.length > 0 && (
 						<Tooltip title="Quick Actions">
 							<IconButton

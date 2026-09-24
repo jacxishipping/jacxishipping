@@ -16,6 +16,8 @@ const addExpenseSchema = z.object({
   notes: z.string().optional(),
   contextType: z.enum(['TRANSIT', 'CONTAINER', 'DISPATCH']).optional(),
   contextId: z.string().optional(),
+  receiptUrl: z.string().optional(),
+  receiptName: z.string().optional(),
 });
 
 // POST - Add an expense to a shipment
@@ -85,17 +87,34 @@ export async function POST(request: NextRequest) {
     let contextLabel = '';
     const currentTransitEvent = shipment.transit?.events[0];
 
-    if (validatedData.contextType === 'DISPATCH') {
+    const effectiveContextType =
+      validatedData.contextType ||
+      (validatedData.contextId
+        ? validatedData.contextId === shipment.dispatchId
+          ? 'DISPATCH'
+          : validatedData.contextId === shipment.containerId
+          ? 'CONTAINER'
+          : validatedData.contextId === shipment.transitId
+          ? 'TRANSIT'
+          : undefined
+        : undefined) ||
+      (['TOWING', 'FUEL'].includes(validatedData.expenseType) && shipment.dispatch?.companyId
+        ? 'DISPATCH'
+        : ['PORT_CHARGES', 'SHIPPING_FEE', 'STORAGE_FEE'].includes(validatedData.expenseType) && shipment.container?.companyId
+        ? 'CONTAINER'
+        : undefined);
+
+    if (effectiveContextType === 'DISPATCH') {
       resolvedCompanyId = shipment.dispatch?.companyId;
       expenseSource = 'DISPATCH';
       contextLabel = `(Dispatch ${shipment.dispatch?.referenceNumber || 'N/A'})`;
-    } else if (validatedData.contextType === 'TRANSIT') {
+    } else if (effectiveContextType === 'TRANSIT') {
       resolvedCompanyId = currentTransitEvent?.companyId;
       expenseSource = 'TRANSIT';
       contextLabel = currentTransitEvent
         ? `(Transit ${shipment.transit?.referenceNumber || 'N/A'}: ${currentTransitEvent.origin} -> ${currentTransitEvent.destination})`
         : `(Transit ${shipment.transit?.referenceNumber || 'N/A'})`;
-    } else if (validatedData.contextType === 'CONTAINER') {
+    } else if (effectiveContextType === 'CONTAINER') {
       resolvedCompanyId = shipment.container?.companyId;
       expenseSource = 'SHIPMENT';
       contextLabel = shipment.container?.containerNumber ? `(Container ${shipment.container.containerNumber})` : '';
@@ -159,9 +178,9 @@ export async function POST(request: NextRequest) {
             expenseType: validatedData.expenseType,
             paymentMode: 'DUE',
             isExpense: true,
-            // Shipment expenses are always staged for invoice payment — they must NOT
-            // affect the customer's credit balance until the invoice is actually paid.
+            // Tracked on customer ledger as a pending expense awaiting invoice settlement
             pendingInvoice: true,
+            ...(validatedData.receiptUrl ? { receiptUrl: validatedData.receiptUrl, receiptName: validatedData.receiptName } : {}),
             ...(resolvedCompanyId ? { linkedCompanyId: resolvedCompanyId } : {}),
             expenseSource,
             ...(expenseSource === 'DISPATCH' && { dispatchId: shipment.dispatchId }),
@@ -207,6 +226,7 @@ export async function POST(request: NextRequest) {
                 userId: shipment.userId,
                 expenseType: validatedData.expenseType,
                 paymentMode: 'DUE',
+                ...(validatedData.receiptUrl ? { receiptUrl: validatedData.receiptUrl, receiptName: validatedData.receiptName } : {}),
                 ...(expenseSource === 'DISPATCH' && { dispatchId: shipment.dispatchId }),
                 ...(expenseSource === 'TRANSIT' && { transitId: shipment.transitId }),
                 ...(expenseSource === 'SHIPMENT' && { containerId: shipment.containerId }),
@@ -216,16 +236,40 @@ export async function POST(request: NextRequest) {
         : null;
 
       // Add this expense as a line item on the shipment's pending invoice
-      await addExpenseLineItemToShipmentInvoice(
-        validatedData.shipmentId,
-        {
-          description: validatedData.description,
-          type: mapExpenseTypeToLineItemType(validatedData.expenseType),
-          amount: userAmount,
-          expenseSource,
-        },
-        tx
-      );
+      try {
+        const linkedInvoiceId = await addExpenseLineItemToShipmentInvoice(
+          validatedData.shipmentId,
+          {
+            description: validatedData.description,
+            type: mapExpenseTypeToLineItemType(validatedData.expenseType),
+            amount: userAmount,
+            expenseSource,
+          },
+          tx as any
+        );
+
+        if (linkedInvoiceId) {
+          const inv = await tx.userInvoice.findUnique({
+            where: { id: linkedInvoiceId },
+            select: { invoiceNumber: true, status: true },
+          });
+          if (inv) {
+            await tx.ledgerEntry.update({
+              where: { id: debitEntry.id },
+              data: {
+                metadata: {
+                  ...((debitEntry.metadata as Record<string, unknown>) || {}),
+                  invoiceId: linkedInvoiceId,
+                  invoiceNumber: inv.invoiceNumber,
+                  invoiceStatus: inv.status,
+                },
+              },
+            });
+          }
+        }
+      } catch (invoiceErr) {
+        routeDeps.logger.error('Failed to sync expense line item to shipment invoice', { error: invoiceErr });
+      }
 
       const createdEntries = [debitEntry];
 

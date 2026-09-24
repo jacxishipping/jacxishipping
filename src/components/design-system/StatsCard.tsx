@@ -2,6 +2,7 @@
 
 import { Box, Typography, Fade } from '@mui/material';
 import { ReactNode, useState, useEffect } from 'react';
+import { useTheme } from '@/hooks/useTheme';
 
 /**
  * StatsCard Component
@@ -36,6 +37,8 @@ export default function StatsCard({
 	size = 'md',
 	delay = 0,
 }: StatsCardProps) {
+	const { density } = useTheme();
+	const isCompact = density === 'compact';
 	const [isVisible, setIsVisible] = useState(false);
 
 	useEffect(() => {
@@ -73,11 +76,17 @@ export default function StatsCard({
 		},
 	};
 
-	const sizeConfig = {
-		sm: { iconSize: 36, padding: 1.5, fontSize: '1.125rem' },
-		md: { iconSize: 48, padding: 2, fontSize: '1.5rem' },
-		lg: { iconSize: 56, padding: 2.5, fontSize: '1.75rem' },
-	};
+	const sizeConfig = isCompact
+		? {
+				sm: { iconSize: 26, padding: 1, fontSize: '0.95rem' },
+				md: { iconSize: 32, padding: 1.25, fontSize: '1.15rem' },
+				lg: { iconSize: 38, padding: 1.5, fontSize: '1.3rem' },
+		  }
+		: {
+				sm: { iconSize: 36, padding: 1.5, fontSize: '1.125rem' },
+				md: { iconSize: 48, padding: 2, fontSize: '1.5rem' },
+				lg: { iconSize: 56, padding: 2.5, fontSize: '1.75rem' },
+		  };
 
 	const colors = variantConfig[variant];
 	const sizes = sizeConfig[size];
@@ -103,17 +112,17 @@ export default function StatsCard({
 		<Fade in={isVisible} timeout={600}>
 			<Box
 				component="article"
-				className="hover-lift"
+				className="stats-card hover-lift"
 				sx={{
 				height: '100%',
-				borderRadius: 2,
+				borderRadius: isCompact ? 1.5 : 2,
 				border: '1px solid var(--border)',
 				borderLeft: variant === 'default' ? '3px solid var(--accent-gold)' : undefined,
 				background: 'var(--panel)',
 				padding: sizes.padding,
 			display: 'flex',
 				alignItems: 'center',
-				gap: 1.5,
+				gap: isCompact ? 1 : 1.5,
 				position: 'relative',
 				zIndex: 1,
 				overflow: 'hidden',

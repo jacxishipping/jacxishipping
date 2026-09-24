@@ -7,8 +7,23 @@ import { useSession } from 'next-auth/react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { ArrowLeft, Save, Loader2, AlertCircle, Key, Copy, RefreshCw, Trash2, PhoneCall } from 'lucide-react';
-import { Box, Typography, Alert, Divider } from '@mui/material';
+import {
+  ArrowLeft,
+  Save,
+  Loader2,
+  AlertCircle,
+  Key,
+  Copy,
+  RefreshCw,
+  Trash2,
+  PhoneCall,
+  Eye,
+  EyeOff,
+  Sparkles,
+  Shield,
+  Check,
+} from 'lucide-react';
+import { Box, Typography, Alert, Divider, TextField, InputAdornment, IconButton } from '@mui/material';
 import { 
   DashboardSurface, 
   DashboardPanel 
@@ -22,18 +37,53 @@ import {
   toast,
 } from '@/components/design-system';
 import { formatLoginCode, loginCodeToVoiceDigits } from '@/lib/loginCode';
+import { hasPermission } from '@/lib/rbac';
 
-const userSchema = z.object({
-  name: z.string().min(2, 'Name is required'),
-  email: z.string().email('Invalid email address'),
-  phone: z.string().optional(),
-  address: z.string().optional(),
-  city: z.string().optional(),
-  country: z.string().optional(),
-  role: z.enum(['user', 'admin', 'manager', 'customer_service']),
-});
+const userSchema = z
+  .object({
+    name: z.string().min(2, 'Name is required'),
+    email: z.string().email('Invalid email address'),
+    phone: z.string().optional(),
+    address: z.string().optional(),
+    city: z.string().optional(),
+    country: z.string().optional(),
+    role: z.enum(['user', 'admin', 'manager', 'customer_service']),
+    password: z.string().optional(),
+    confirmPassword: z.string().optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.password && data.password.trim() !== '') {
+        return data.password.trim().length >= 6;
+      }
+      return true;
+    },
+    {
+      message: 'Password must be at least 6 characters long',
+      path: ['password'],
+    }
+  )
+  .refine(
+    (data) => {
+      if (data.password && data.password.trim() !== '') {
+        return data.password === data.confirmPassword;
+      }
+      return true;
+    },
+    {
+      message: 'Passwords do not match',
+      path: ['confirmPassword'],
+    }
+  );
 
 type UserFormData = z.infer<typeof userSchema>;
+
+function generateSecurePassword(length = 12): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%&*';
+  const array = new Uint32Array(length);
+  crypto.getRandomValues(array);
+  return Array.from(array, (x) => chars[x % chars.length]).join('');
+}
 
 export default function EditUserPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -43,22 +93,35 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
   const [error, setError] = useState<string | null>(null);
   const [loginCode, setLoginCode] = useState<string | null>(null);
   const [generatingCode, setGeneratingCode] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [copiedPassword, setCopiedPassword] = useState(false);
   const voiceAccessCode = loginCode ? loginCodeToVoiceDigits(loginCode) : null;
 
   const {
     register,
     handleSubmit,
+    setValue,
+    getValues,
+    watch,
     formState: { errors, isSubmitting },
     reset,
   } = useForm<UserFormData>({
     resolver: zodResolver(userSchema),
   });
 
+  const watchPassword = watch('password');
+
   useEffect(() => {
     if (status === 'loading') return;
     
-    // Auth check
-    if (!session || session.user.role !== 'admin') {
+    // Auth check: admin or users/customers manager
+    const canManage =
+      session?.user?.role === 'admin' ||
+      hasPermission(session?.user?.role, 'users:manage') ||
+      hasPermission(session?.user?.role, 'customers:manage');
+
+    if (!session || !canManage) {
       router.replace('/dashboard');
       return;
     }
@@ -76,6 +139,8 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
             city: data.user.city || '',
             country: data.user.country || '',
             role: data.user.role,
+            password: '',
+            confirmPassword: '',
           });
           setLoginCode(data.user.loginCode || null);
         } else {
@@ -91,15 +156,58 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
     fetchUser();
   }, [id, session, status, router, reset]);
 
+  const handleGeneratePassword = () => {
+    const pwd = generateSecurePassword();
+    setValue('password', pwd, { shouldValidate: true });
+    setValue('confirmPassword', pwd, { shouldValidate: true });
+    setShowPassword(true);
+    setShowConfirmPassword(true);
+    setCopiedPassword(false);
+    toast.info('Secure password generated');
+  };
+
+  const handleCopyGeneratedPassword = async () => {
+    const pwd = getValues('password');
+    if (!pwd) return;
+    try {
+      await navigator.clipboard.writeText(pwd);
+      setCopiedPassword(true);
+      toast.success('Password copied to clipboard');
+      setTimeout(() => setCopiedPassword(false), 2500);
+    } catch (err) {
+      console.error('Failed to copy password:', err);
+    }
+  };
+
   const onSubmit = async (data: UserFormData) => {
     try {
+      setError(null);
+      const payload: Record<string, unknown> = {
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        address: data.address,
+        city: data.city,
+        country: data.country,
+        role: data.role,
+      };
+
+      if (data.password && data.password.trim() !== '') {
+        payload.password = data.password.trim();
+      }
+
       const response = await fetch(`/api/users/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
 
       if (response.ok) {
+        toast.success(
+          data.password && data.password.trim() !== ''
+            ? 'User profile and password updated successfully'
+            : 'User profile updated successfully'
+        );
         router.push(`/dashboard/users/${id}`);
         router.refresh();
       } else {
@@ -187,7 +295,7 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
 
       <PageHeader
         title="Edit User"
-        description="Update user profile information"
+        description="Update user profile information and security credentials"
         actions={
           <Link href={`/dashboard/users/${id}`} style={{ textDecoration: 'none' }}>
             <Button variant="outline" icon={<ArrowLeft className="w-4 h-4" />}>
@@ -271,6 +379,106 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
               <Typography color="error" variant="caption" sx={{ mt: 0.5, display: 'block' }}>
                 {errors.role.message}
               </Typography>
+            )}
+          </Box>
+
+          <Divider sx={{ my: 3, borderColor: 'var(--border)' }} />
+
+          {/* Password Management Section */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Shield className="w-4 h-4 text-[var(--accent-gold)]" />
+                Password & Security
+              </Typography>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                icon={<Sparkles className="w-3.5 h-3.5" />}
+                onClick={handleGeneratePassword}
+              >
+                Generate Strong Password
+              </Button>
+            </Box>
+
+            <Typography variant="caption" sx={{ color: 'var(--text-secondary)', display: 'block' }}>
+              Leave blank to keep existing password. If entering a new password, it must be at least 6 characters.
+            </Typography>
+
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
+              <Box>
+                <Typography variant="caption" sx={{ color: 'var(--text-secondary)', mb: 0.5, display: 'block' }}>
+                  New Password
+                </Typography>
+                <TextField
+                  fullWidth
+                  size="small"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Enter new password"
+                  error={!!errors.password}
+                  helperText={errors.password?.message}
+                  {...register('password')}
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          size="small"
+                          onClick={() => setShowPassword((prev) => !prev)}
+                          title={showPassword ? 'Hide password' : 'Show password'}
+                        >
+                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Box>
+
+              <Box>
+                <Typography variant="caption" sx={{ color: 'var(--text-secondary)', mb: 0.5, display: 'block' }}>
+                  Confirm New Password
+                </Typography>
+                <TextField
+                  fullWidth
+                  size="small"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  placeholder="Confirm new password"
+                  error={!!errors.confirmPassword}
+                  helperText={errors.confirmPassword?.message}
+                  {...register('confirmPassword')}
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          size="small"
+                          onClick={() => setShowConfirmPassword((prev) => !prev)}
+                          title={showConfirmPassword ? 'Hide password' : 'Show password'}
+                        >
+                          {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Box>
+            </Box>
+
+            {watchPassword && (
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 1.5, bgcolor: 'var(--background)', borderRadius: 2, border: '1px solid var(--border)' }}>
+                <Typography variant="caption" sx={{ color: 'var(--text-secondary)' }}>
+                  A new password is ready to be set upon saving.
+                </Typography>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  icon={copiedPassword ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                  onClick={handleCopyGeneratedPassword}
+                >
+                  {copiedPassword ? 'Copied' : 'Copy Password'}
+                </Button>
+              </Box>
             )}
           </Box>
 

@@ -94,7 +94,7 @@ export function WorkspaceTray() {
   };
 
   return (
-    <div className="fixed bottom-3 right-4 z-40 max-w-xl w-full sm:w-auto">
+    <div className="fixed bottom-[calc(76px+env(safe-area-inset-bottom,0px))] lg:bottom-3 right-3 sm:right-4 z-40 max-w-xl w-[calc(100%-24px)] sm:w-auto">
       <div className="rounded-2xl bg-[var(--panel)] border border-[var(--border)] shadow-xl overflow-hidden backdrop-blur-md transition-all duration-300">
         {/* Collapsed Header Bar */}
         <div 

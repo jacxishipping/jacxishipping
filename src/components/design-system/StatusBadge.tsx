@@ -3,6 +3,7 @@
 import { Anchor, AlertTriangle, CheckCircle2, Clock, Truck, XCircle } from 'lucide-react';
 import { Box, Typography } from '@mui/material';
 import { ReactNode } from 'react';
+import { useTheme } from '@/hooks/useTheme';
 
 /**
  * StatusBadge Component
@@ -289,9 +290,22 @@ export default function StatusBadge({
   showIcon = false,
   className,
 }: StatusBadgeProps) {
+  const { density } = useTheme();
+  const isCompact = density === 'compact';
+  const badgeClassName = ["status-badge", className].filter(Boolean).join(" ");
   const normalizedStatus = status.toUpperCase().replace(/\s+/g, '_');
   const colors = statusColors[normalizedStatus] || statusColors.DEFAULT;
-  const config = sizeConfig[size];
+  const baseConfig = sizeConfig[size];
+  const config = isCompact
+    ? {
+        ...baseConfig,
+        fontSize: '0.6875rem',
+        padding: '2px 8px',
+        height: '20px',
+        gap: '4px',
+        dotSize: '6px',
+      }
+    : baseConfig;
   const resolvedIcon = showIcon ? getStatusIcon(normalizedStatus) : icon;
   const displayText = label || formatStatusText(status);
 
@@ -300,7 +314,7 @@ export default function StatusBadge({
     return (
       <Box
         component="span"
-        className={className}
+        className={badgeClassName}
         sx={{
           display: 'inline-flex',
           alignItems: 'center',
@@ -308,7 +322,7 @@ export default function StatusBadge({
           gap: config.gap,
           height: config.height,
           px: config.padding,
-          borderRadius: '12px',
+          borderRadius: isCompact ? '6px' : '12px',
           backgroundColor: colors.bg,
           border: '1px solid',
           borderColor: colors.border,
@@ -357,7 +371,7 @@ export default function StatusBadge({
     return (
       <Box
         component="span"
-        className={className}
+        className={badgeClassName}
         sx={{
           display: 'inline-flex',
           alignItems: 'center',
@@ -409,7 +423,7 @@ export default function StatusBadge({
     return (
       <Box
         component="span"
-        className={className}
+        className={badgeClassName}
         sx={{
           display: 'inline-flex',
           alignItems: 'center',
@@ -417,7 +431,7 @@ export default function StatusBadge({
           gap: config.gap,
           height: config.height,
           px: config.padding,
-          borderRadius: '12px',
+          borderRadius: isCompact ? '6px' : '12px',
           backgroundColor: 'transparent',
           border: '1.5px solid',
           borderColor: colors.border,
