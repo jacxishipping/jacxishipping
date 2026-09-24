@@ -110,27 +110,28 @@ export function getMuiTheme(
     },
     typography: {
       fontFamily: 'var(--font-inter), var(--font-urbanist), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      h1: { fontSize: isCompact ? '2rem' : '2.25rem', fontWeight: 700, lineHeight: 1.2 },
-      h2: { fontSize: isCompact ? '1.625rem' : '1.875rem', fontWeight: 600, lineHeight: 1.3 },
-      h3: { fontSize: isCompact ? '1.375rem' : '1.5rem', fontWeight: 600, lineHeight: 1.4 },
-      h4: { fontSize: isCompact ? '1.125rem' : '1.25rem', fontWeight: 600, lineHeight: 1.4 },
-      h5: { fontSize: isCompact ? '1rem' : '1.125rem', fontWeight: 600, lineHeight: 1.5 },
-      h6: { fontSize: isCompact ? '0.875rem' : '1rem', fontWeight: 600, lineHeight: 1.5 },
-      body1: { fontSize: isCompact ? '0.875rem' : '1rem', lineHeight: 1.5 },
-      body2: { fontSize: isCompact ? '0.8125rem' : '0.875rem', lineHeight: 1.5 },
-      button: { textTransform: 'none', fontWeight: 500, fontSize: isCompact ? '0.8125rem' : '0.875rem' },
+      h1: { fontSize: isCompact ? '1.75rem' : '2.25rem', fontWeight: 700, lineHeight: 1.2 },
+      h2: { fontSize: isCompact ? '1.4rem' : '1.875rem', fontWeight: 600, lineHeight: 1.3 },
+      h3: { fontSize: isCompact ? '1.2rem' : '1.5rem', fontWeight: 600, lineHeight: 1.4 },
+      h4: { fontSize: isCompact ? '1.05rem' : '1.25rem', fontWeight: 600, lineHeight: 1.4 },
+      h5: { fontSize: isCompact ? '0.925rem' : '1.125rem', fontWeight: 600, lineHeight: 1.5 },
+      h6: { fontSize: isCompact ? '0.8125rem' : '1rem', fontWeight: 600, lineHeight: 1.5 },
+      body1: { fontSize: isCompact ? '0.8125rem' : '1rem', lineHeight: 1.45 },
+      body2: { fontSize: isCompact ? '0.75rem' : '0.875rem', lineHeight: 1.4 },
+      button: { textTransform: 'none', fontWeight: 500, fontSize: isCompact ? '0.75rem' : '0.875rem' },
     },
     shape: {
       borderRadius: isCompact ? 6 : 8,
     },
-    spacing: isCompact ? 6 : 8,
+    spacing: isCompact ? 5 : 8,
     components: {
       MuiButton: {
         styleOverrides: {
           root: {
             borderRadius: isCompact ? 6 : 8,
-            padding: isCompact ? '4px 12px' : '8px 16px',
-            minHeight: isCompact ? '32px' : '40px',
+            padding: isCompact ? '3px 10px' : '8px 16px',
+            minHeight: isCompact ? '28px' : '40px',
+            fontSize: isCompact ? '0.75rem' : '0.875rem',
             fontWeight: 500,
           },
           contained: {
@@ -141,24 +142,40 @@ export function getMuiTheme(
           },
         },
       },
+      MuiIconButton: {
+        styleOverrides: {
+          root: {
+            padding: isCompact ? '4px' : '8px',
+          },
+        },
+      },
       MuiTableCell: {
         styleOverrides: {
           root: {
-            padding: isCompact ? '6px 10px' : '12px 16px',
-            fontSize: isCompact ? '0.8125rem' : '0.875rem',
+            padding: isCompact ? '4px 8px' : '12px 16px',
+            fontSize: isCompact ? '0.75rem' : '0.875rem',
             borderColor: p.border,
+            lineHeight: 1.3,
           },
           head: {
-            padding: isCompact ? '8px 10px' : '14px 16px',
+            padding: isCompact ? '5px 8px' : '14px 16px',
             fontWeight: 600,
-            fontSize: isCompact ? '0.75rem' : '0.8125rem',
+            fontSize: isCompact ? '0.7rem' : '0.8125rem',
+            letterSpacing: '0.03em',
+          },
+        },
+      },
+      MuiTableRow: {
+        styleOverrides: {
+          root: {
+            height: isCompact ? '32px' : 'auto',
           },
         },
       },
       MuiCard: {
         styleOverrides: {
           root: {
-            borderRadius: isCompact ? 10 : 12,
+            borderRadius: isCompact ? 8 : 12,
             backgroundImage: 'none',
             backgroundColor: p.panel,
             borderColor: p.border,
@@ -168,9 +185,9 @@ export function getMuiTheme(
       MuiCardContent: {
         styleOverrides: {
           root: {
-            padding: isCompact ? '12px' : '20px',
+            padding: isCompact ? '8px 12px' : '20px',
             '&:last-child': {
-              paddingBottom: isCompact ? '12px' : '20px',
+              paddingBottom: isCompact ? '8px 12px' : '20px',
             },
           },
         },
@@ -188,7 +205,7 @@ export function getMuiTheme(
           root: {
             borderRadius: isCompact ? 6 : 8,
             backgroundColor: mode === 'dark' ? '#18181B' : '#FFFFFF',
-            fontSize: isCompact ? '0.8125rem' : '0.875rem',
+            fontSize: isCompact ? '0.775rem' : '0.875rem',
             '& .MuiOutlinedInput-notchedOutline': {
               borderColor: p.border,
             },
@@ -200,7 +217,15 @@ export function getMuiTheme(
             },
           },
           input: {
-            padding: isCompact ? '6px 10px' : '10px 14px',
+            padding: isCompact ? '4px 8px' : '10px 14px',
+            minHeight: 0,
+          },
+        },
+      },
+      MuiInputLabel: {
+        styleOverrides: {
+          root: {
+            fontSize: isCompact ? '0.775rem' : '0.875rem',
           },
         },
       },
@@ -217,9 +242,70 @@ export function getMuiTheme(
         styleOverrides: {
           root: {
             borderRadius: isCompact ? 4 : 6,
-            height: isCompact ? '24px' : '32px',
-            fontSize: isCompact ? '0.75rem' : '0.8125rem',
+            height: isCompact ? '20px' : '32px',
+            fontSize: isCompact ? '0.6875rem' : '0.8125rem',
             fontWeight: 500,
+            padding: isCompact ? '0 4px' : '0 8px',
+          },
+        },
+      },
+      MuiTabs: {
+        styleOverrides: {
+          root: {
+            minHeight: isCompact ? '32px' : '48px',
+            height: isCompact ? '32px' : 'auto',
+          },
+          indicator: {
+            height: isCompact ? 2 : 3,
+            backgroundColor: p.accentGold,
+          },
+        },
+      },
+      MuiTab: {
+        styleOverrides: {
+          root: {
+            minHeight: isCompact ? '32px' : '48px',
+            height: isCompact ? '32px' : 'auto',
+            padding: isCompact ? '2px 8px' : '12px 16px',
+            fontSize: isCompact ? '0.75rem' : '0.875rem',
+            fontWeight: 600,
+          },
+        },
+      },
+      MuiDialogTitle: {
+        styleOverrides: {
+          root: {
+            padding: isCompact ? '8px 16px' : '16px 24px',
+            fontSize: isCompact ? '1.05rem' : '1.25rem',
+          },
+        },
+      },
+      MuiDialogContent: {
+        styleOverrides: {
+          root: {
+            padding: isCompact ? '10px 16px' : '20px 24px',
+          },
+        },
+      },
+      MuiDialogActions: {
+        styleOverrides: {
+          root: {
+            padding: isCompact ? '6px 14px' : '12px 24px',
+          },
+        },
+      },
+      MuiListItemButton: {
+        styleOverrides: {
+          root: {
+            padding: isCompact ? '3px 8px' : '8px 16px',
+            minHeight: isCompact ? '30px' : '44px',
+          },
+        },
+      },
+      MuiListItemIcon: {
+        styleOverrides: {
+          root: {
+            minWidth: isCompact ? '28px' : '40px',
           },
         },
       },

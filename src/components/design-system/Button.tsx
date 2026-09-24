@@ -2,6 +2,7 @@
 
 import { Button as MuiButton, ButtonProps as MuiButtonProps, CircularProgress } from '@mui/material';
 import { ReactNode } from 'react';
+import { useTheme } from '@/hooks/useTheme';
 
 /**
  * Button Component
@@ -120,12 +121,58 @@ export default function Button({
   disabled,
   ...buttonProps
 }: ButtonProps) {
+  const { density } = useTheme();
+  const isCompact = density === 'compact';
+
+  const sizeStyles = isCompact
+    ? {
+        sm: {
+          fontSize: '0.7rem',
+          px: 1.25,
+          py: 0.25,
+          height: '26px',
+        },
+        md: {
+          fontSize: '0.75rem',
+          px: 1.5,
+          py: 0.5,
+          height: '30px',
+        },
+        lg: {
+          fontSize: '0.85rem',
+          px: 2,
+          py: 0.75,
+          height: '36px',
+        },
+      }
+    : {
+        sm: {
+          fontSize: '0.75rem',
+          px: 2,
+          py: 0.75,
+          height: '32px',
+        },
+        md: {
+          fontSize: '0.875rem',
+          px: 2.5,
+          py: 1,
+          height: '40px',
+        },
+        lg: {
+          fontSize: '1rem',
+          px: 3,
+          py: 1.25,
+          height: '48px',
+        },
+      };
+
   const variantStyle = variantStyles[variant];
   const sizeStyle = sizeStyles[size];
 
   return (
     <MuiButton
       {...buttonProps}
+      className={["ds-button", buttonProps.className].filter(Boolean).join(" ")}
       disabled={disabled || loading}
       fullWidth={fullWidth}
       startIcon={!loading && icon && iconPosition === 'start' ? icon : undefined}
@@ -133,7 +180,7 @@ export default function Button({
       sx={{
         textTransform: 'none',
         fontWeight: 600,
-        borderRadius: 2,
+        borderRadius: isCompact ? 1.5 : 2,
         transition: 'all 200ms cubic-bezier(0.4, 0, 0.2, 1)',
         ...variantStyle,
         ...sizeStyle,
@@ -149,7 +196,7 @@ export default function Button({
     >
       {loading && (
         <CircularProgress
-          size={size === 'sm' ? 14 : size === 'md' ? 16 : 18}
+          size={size === 'sm' ? 12 : size === 'md' ? 14 : 16}
           sx={{
             color: 'inherit',
             mr: 1,
@@ -173,15 +220,25 @@ export function IconButton({
   size = 'md',
   ...props
 }: IconButtonProps) {
-  const sizeConfig = {
-    sm: { width: '32px', height: '32px', p: 0 },
-    md: { width: '40px', height: '40px', p: 0 },
-    lg: { width: '48px', height: '48px', p: 0 },
-  };
+  const { density } = useTheme();
+  const isCompact = density === 'compact';
+
+  const sizeConfig = isCompact
+    ? {
+        sm: { width: '24px', height: '24px', p: 0 },
+        md: { width: '28px', height: '28px', p: 0 },
+        lg: { width: '34px', height: '34px', p: 0 },
+      }
+    : {
+        sm: { width: '32px', height: '32px', p: 0 },
+        md: { width: '40px', height: '40px', p: 0 },
+        lg: { width: '48px', height: '48px', p: 0 },
+      };
 
   return (
     <Button
       {...props}
+      className={["ds-icon-button", props.className].filter(Boolean).join(" ")}
       size={size}
       aria-label={ariaLabel}
       sx={{

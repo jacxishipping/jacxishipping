@@ -5,10 +5,12 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { Session } from 'next-auth';
 import type { SvgIconComponent } from '@mui/icons-material';
-import { Dashboard, Inventory2, Description, Search, Analytics, Group, AllInbox, Receipt, AccountBalance, Payment, Business, LocalShipping, SmartToy, PhoneInTalk, Route, ExpandLess, ExpandMore, AdminPanelSettings, CompareArrows, Settings, Timer, ChevronLeft, ChevronRight, Logout } from '@mui/icons-material';
+import { Dashboard, Inventory2, Description, Search, Analytics, Group, AllInbox, Receipt, AccountBalance, Payment, Business, LocalShipping, SmartToy, PhoneInTalk, Route, ExpandLess, ExpandMore, AdminPanelSettings, CompareArrows, Settings, Timer, ChevronLeft, ChevronRight, Logout, Close } from '@mui/icons-material';
 import { signOut, useSession } from 'next-auth/react';
 import { Drawer, Box, List, ListItemButton, ListItemIcon, ListItemText, Typography, Collapse, IconButton, Avatar, Button, Tooltip, Divider } from '@mui/material';
 import { hasPermission, type Permission } from '@/lib/rbac';
+import { useTheme } from '@/hooks/useTheme';
+import SiteLogo from '@/components/brand/SiteLogo';
 
 type NavigationItem = {
 	name: string;
@@ -235,14 +237,13 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }: SidebarPr
 				sx={{
 					display: { xs: 'block', lg: 'none' },
 					'& .MuiDrawer-paper': {
-						width: 260,
+						width: 'min(300px, 85vw)',
+						height: '100%',
 						boxSizing: 'border-box',
 						background: 'linear-gradient(180deg, var(--panel) 0%, rgba(var(--panel-rgb), 0.97) 100%)',
 						color: 'var(--text-primary)',
 						borderRight: '1px solid var(--border)',
-						borderTop: '2px solid rgba(var(--accent-gold-rgb), 0.15)',
-						boxShadow: '0 10px 30px rgba(var(--text-primary-rgb),0.12)',
-						mt: '48px',
+						boxShadow: '0 10px 30px rgba(var(--text-primary-rgb),0.2)',
 					},
 				}}
 			>
@@ -252,6 +253,7 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }: SidebarPr
 					adminCollapsed={adminCollapsed}
 					onToggleAdminCollapsed={toggleAdminCollapsed}
 					onNavClick={onMobileClose}
+					isMobile
 				/>
 			</Drawer>
 
@@ -301,6 +303,8 @@ type NavItemProps = {
 };
 
 function NavItem({ item, isActive, badge, badgeColor, onNavClick, collapsed }: NavItemProps) {
+	const { density } = useTheme();
+	const isCompact = density === 'compact';
 	const Icon = item.icon;
 	const active = isActive(item.href);
 	const badgeStyles: Record<BadgeColor, { background: string; color: string; border: string }> = {
@@ -327,11 +331,11 @@ function NavItem({ item, isActive, badge, badgeColor, onNavClick, collapsed }: N
 			aria-current={active ? 'page' : undefined}
 			sx={{
 				position: 'relative',
-				borderRadius: 1.5,
-				mx: collapsed ? 0.5 : 1,
-				my: 0.25,
-				py: 0.75,
-				px: collapsed ? 1 : 1.5,
+				borderRadius: isCompact ? 1.25 : 1.5,
+				mx: collapsed ? 0.5 : (isCompact ? 0.75 : 1),
+				my: isCompact ? 0.125 : 0.25,
+				py: isCompact ? 0.45 : 0.75,
+				px: collapsed ? (isCompact ? 0.75 : 1) : (isCompact ? 1.25 : 1.5),
 				justifyContent: collapsed ? 'center' : 'initial',
 				minHeight: 0,
 				transition: 'all 150ms ease',
@@ -384,7 +388,7 @@ function NavItem({ item, isActive, badge, badgeColor, onNavClick, collapsed }: N
 				<ListItemText
 					primary={item.name}
 					primaryTypographyProps={{
-						fontSize: '0.9rem',
+						fontSize: isCompact ? '0.8125rem' : '0.9rem',
 						fontWeight: 500,
 						color: 'inherit',
 					}}
@@ -624,6 +628,7 @@ function SidebarContent({
 	onNavClick,
 	collapsed = false,
 	onToggleCollapse,
+	isMobile = false,
 }: {
 	pathname: string;
 	session: Session | null;
@@ -632,6 +637,7 @@ function SidebarContent({
 	onNavClick?: () => void;
 	collapsed?: boolean;
 	onToggleCollapse?: () => void;
+	isMobile?: boolean;
 }) {
 	type AppUser = Session['user'] & { role?: string };
 	const appUser = session?.user as AppUser | undefined;
@@ -689,6 +695,38 @@ function SidebarContent({
 				overflow: 'hidden',
 			}}
 		>
+			{/* Mobile Drawer Header */}
+			{isMobile && (
+				<Box
+					sx={{
+						display: 'flex',
+						alignItems: 'center',
+						justifyContent: 'space-between',
+						px: 2,
+						py: 1.5,
+						borderBottom: '1px solid var(--border)',
+						background: 'rgba(var(--panel-rgb), 0.95)',
+					}}
+				>
+					<SiteLogo variant="dashboard" className="w-[84px]" priority />
+					<IconButton
+						onClick={onNavClick}
+						size="small"
+						aria-label="Close menu"
+						sx={{
+							color: 'var(--text-secondary)',
+							p: 0.75,
+							'&:hover': {
+								color: 'var(--text-primary)',
+								bgcolor: 'rgba(var(--border-rgb), 0.3)',
+							},
+						}}
+					>
+						<Close sx={{ fontSize: 20 }} />
+					</IconButton>
+				</Box>
+			)}
+
 			{/* Navigation - scrollable */}
 			<Box
 				sx={{
@@ -785,6 +823,7 @@ function SidebarContent({
 						borderTop: '1px solid var(--border)',
 						px: 1.5,
 						py: 1.5,
+						pb: isMobile ? 'calc(16px + env(safe-area-inset-bottom, 0px))' : 1.5,
 						background: 'rgba(var(--panel-rgb), 0.92)',
 					}}
 				>

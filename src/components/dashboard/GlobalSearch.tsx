@@ -83,7 +83,7 @@ export default function GlobalSearch() {
     }
   };
 
-  // Keyboard shortcut (Cmd+K / Ctrl+K) to open
+  // Keyboard shortcut (Cmd+K / Ctrl+K) and custom event to open
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -92,8 +92,14 @@ export default function GlobalSearch() {
       }
     };
 
+    const handleOpenEvent = () => setIsOpen(true);
+
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('open-global-search', handleOpenEvent);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('open-global-search', handleOpenEvent);
+    };
   }, []);
 
   // Lock body scroll while the dialog is open
@@ -342,7 +348,7 @@ export default function GlobalSearch() {
             />
 
             {/* Search Box */}
-            <div className="fixed inset-0 z-50 flex items-start justify-center pt-[10vh] px-4">
+            <div className="fixed inset-0 z-50 flex items-start justify-center pt-4 sm:pt-[10vh] px-3 sm:px-4">
               <motion.div
                 ref={dialogRef}
                 role="dialog"

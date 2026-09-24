@@ -12,6 +12,7 @@ import {
 } from '@mui/material';
 import { ReactNode } from 'react';
 import { ExpandMore } from '@mui/icons-material';
+import { useTheme } from '@/hooks/useTheme';
 
 /**
  * Select Component
@@ -57,22 +58,24 @@ export default function Select({
   fullWidth = true,
   size = 'medium',
 }: SelectProps) {
+  const { density } = useTheme();
+  const isCompact = density === 'compact';
   const handleChange = (event: SelectChangeEvent<string | number>) => {
     onChange(event.target.value);
   };
 
   return (
-    <Box>
+    <Box className="ds-select">
       {/* Label */}
       <Typography
         component="label"
         htmlFor={id}
         sx={{
           display: 'block',
-          fontSize: '0.875rem',
+          fontSize: isCompact ? '0.775rem' : '0.875rem',
           fontWeight: 500,
           color: error ? 'var(--error)' : 'var(--text-primary)',
-          mb: 1,
+          mb: isCompact ? 0.35 : 1,
         }}
       >
         {label}
@@ -87,7 +90,7 @@ export default function Select({
       </Typography>
 
       {/* Select */}
-      <FormControl fullWidth={fullWidth} error={error} disabled={disabled} size={size}>
+      <FormControl fullWidth={fullWidth} error={error} disabled={disabled} size={size === 'medium' && isCompact ? 'small' : size}>
         <MuiSelect
           id={id}
           value={value}

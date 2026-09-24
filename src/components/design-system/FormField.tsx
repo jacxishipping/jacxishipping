@@ -2,6 +2,7 @@
 
 import { TextField, TextFieldProps, Typography, Box, InputAdornment } from '@mui/material';
 import { ReactNode } from 'react';
+import { useTheme } from '@/hooks/useTheme';
 
 interface FormFieldProps extends Omit<TextFieldProps, 'variant'> {
 	label: string;
@@ -17,22 +18,26 @@ export default function FormField({
 	rightIcon,
 	...textFieldProps
 }: FormFieldProps) {
+	const { density } = useTheme();
+	const isCompact = density === 'compact';
+
 	return (
-		<Box>
+		<Box className="ds-form-field">
 			<Typography
 				component="label"
 				htmlFor={textFieldProps.id}
 				sx={{
 					display: 'block',
-					fontSize: '0.875rem',
+					fontSize: isCompact ? '0.775rem' : '0.875rem',
 					fontWeight: 500,
 					color: 'var(--text-primary)',
-					mb: 1,
+					mb: isCompact ? 0.35 : 1,
 				}}
 			>
 				{label}
 			</Typography>
 			<TextField
+				size={textFieldProps.size || (isCompact ? 'small' : 'medium')}
 				{...textFieldProps}
 				fullWidth
 				InputProps={{

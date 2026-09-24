@@ -11,7 +11,7 @@ export function DashboardSurface({ children, className, noPadding = false }: Das
 	return (
 		<div
 			className={cn(
-				'relative mx-auto flex w-full max-w-[1380px] flex-col gap-6 px-4 pt-4 pb-4 sm:px-5 lg:px-8',
+				'dashboard-surface relative mx-auto flex w-full max-w-[1380px] flex-col gap-6 px-4 pt-4 pb-4 sm:px-5 lg:px-8',
 				'text-[var(--text-primary)]',
 				'min-w-0 overflow-hidden',
 				'animate-fade-in-up', // Added global animation
@@ -44,7 +44,7 @@ export function DashboardHeader({ title, description, meta, actions, className }
 	return (
 		<div
 			className={cn(
-				'flex flex-col gap-3 rounded-2xl border px-4 py-4 text-[var(--text-primary)]',
+				'dashboard-header flex flex-col gap-3 rounded-2xl border px-4 py-4 text-[var(--text-primary)]',
 				'sm:flex-row sm:items-center sm:justify-between',
 				'glass-gold',
 				className,
@@ -117,7 +117,7 @@ export function DashboardPanel({
 	return (
 		<section
 			className={cn(
-				'relative flex flex-col rounded-2xl border text-[var(--text-primary)]',
+				'dashboard-panel relative flex flex-col rounded-2xl border text-[var(--text-primary)]',
 				'min-w-0 overflow-hidden',
 				fullHeight && 'h-full',
 				className,
@@ -172,5 +172,5 @@ interface DashboardGridProps {
 }
 
 export function DashboardGrid({ children, className }: DashboardGridProps) {
-	return <div className={cn('grid gap-6 items-stretch', className)}>{children}</div>;
+	return <div className={cn('dashboard-grid grid gap-6 items-stretch', className)}>{children}</div>;
 }
