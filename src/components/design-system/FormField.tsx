@@ -35,10 +35,22 @@ export default function FormField({
 				}}
 			>
 				{label}
+				{textFieldProps.required && (
+					<Typography
+						component="span"
+						sx={{ color: 'var(--error)', ml: 0.5 }}
+					>
+						*
+					</Typography>
+				)}
 			</Typography>
 			<TextField
 				size={textFieldProps.size || (isCompact ? 'small' : 'medium')}
 				{...textFieldProps}
+				aria-describedby={[
+					helperText ? helperTextId : undefined,
+					textFieldProps['aria-describedby']
+				].filter(Boolean).join(' ') || undefined}
 				fullWidth
 				InputProps={{
 					...textFieldProps.InputProps,
@@ -88,6 +100,7 @@ export default function FormField({
 			/>
 			{helperText && (
 				<Typography
+					id={helperTextId}
 					sx={{
 						fontSize: '0.75rem',
 						color: textFieldProps.error ? 'var(--error)' : 'var(--text-secondary)',
