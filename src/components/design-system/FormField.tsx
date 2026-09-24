@@ -17,6 +17,8 @@ export default function FormField({
 	rightIcon,
 	...textFieldProps
 }: FormFieldProps) {
+	const helperTextId = textFieldProps.id ? `${textFieldProps.id}-helper-text` : undefined;
+
 	return (
 		<Box>
 			<Typography
@@ -26,14 +28,26 @@ export default function FormField({
 					display: 'block',
 					fontSize: '0.875rem',
 					fontWeight: 500,
-					color: 'var(--text-primary)',
+					color: textFieldProps.error ? 'var(--error)' : 'var(--text-primary)',
 					mb: 1,
 				}}
 			>
 				{label}
+				{textFieldProps.required && (
+					<Typography
+						component="span"
+						sx={{ color: 'var(--error)', ml: 0.5 }}
+					>
+						*
+					</Typography>
+				)}
 			</Typography>
 			<TextField
 				{...textFieldProps}
+				aria-describedby={[
+					helperText ? helperTextId : undefined,
+					textFieldProps['aria-describedby']
+				].filter(Boolean).join(' ') || undefined}
 				fullWidth
 				InputProps={{
 					...textFieldProps.InputProps,
@@ -83,6 +97,7 @@ export default function FormField({
 			/>
 			{helperText && (
 				<Typography
+					id={helperTextId}
 					sx={{
 						fontSize: '0.75rem',
 						color: textFieldProps.error ? 'var(--error)' : 'var(--text-secondary)',

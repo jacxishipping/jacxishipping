@@ -1,3 +1,3 @@
-## 2025-06-05 - Missing ARIA label in GlobalSearch close button
-**Learning:** Found an icon-only `<button>` in `src/components/dashboard/GlobalSearch.tsx` that triggers closing the modal but had no `aria-label` or accessible text. Screen readers would just announce "button", which provides no context on what action will be performed.
-**Action:** Added `aria-label="Close search"` to the `<button>` element to ensure it's fully accessible to screen reader users, while keeping its visual appearance consistent. Icon-only buttons should always be checked for accessible labels.
+## 2024-09-24 - FormField Component A11y and Validation State
+**Learning:** Reusable custom form field wrappers in this app were rendering helper text correctly visually but failing to programmatically associate that text with the underlying `TextField` input, hiding errors and guidance from screen reader users. Also, error states were not coloring labels consistently with native MUI inputs.
+**Action:** When creating custom wrappers around native or MUI inputs, always generate and assign unique IDs to external helper text and wire them up using `aria-describedby` (safely concatenating with consumer-provided ARIA attributes). Ensure label colors reflect error states matching the input.
