@@ -138,8 +138,9 @@ export default function PortalCustomersPage() {
     {
       key: 'actions',
       header: 'Actions',
+      align: 'right',
       render: (_, row) => (
-        <Box sx={{ display: 'flex', gap: 1 }}>
+        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end', flexWrap: 'nowrap', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
           {viewer.canManageCustomers ? (
             <>
               <Button

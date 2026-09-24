@@ -310,8 +310,9 @@ export default function UsersPage() {
 		{
 			key: 'actions',
 			header: 'Actions',
+			align: 'right',
 			render: (_, row) => (
-				<Box sx={{ display: 'flex', gap: 0.75, justifyContent: 'flex-end' }}>
+				<Box sx={{ display: 'flex', gap: 0.75, justifyContent: 'flex-end', flexWrap: 'nowrap', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
 					<Link href={`/dashboard/users/${row.id}`} style={{ textDecoration: 'none' }}>
 						<Button
 							variant="outline"

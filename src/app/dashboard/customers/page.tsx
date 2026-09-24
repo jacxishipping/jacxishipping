@@ -210,8 +210,9 @@ export default function CustomersPage() {
     {
       key: 'actions',
       header: 'Actions',
+      align: 'right',
       render: (_, row) => (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }} onClick={(e) => e.stopPropagation()}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 1, flexWrap: 'nowrap', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
           <Link href={`/dashboard/users/${row.id}`} style={{ textDecoration: 'none' }}>
             <Button variant="outline" size="sm">
               View Profile

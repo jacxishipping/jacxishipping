@@ -530,12 +530,12 @@ export default function LedgerPage() {
       )
     },
     ...(canManageLedger ? [{
-      key: 'id' as const,
+      key: 'actions' as const,
       header: 'Actions',
       align: 'center' as const,
       width: '12%',
       render: (_: unknown, row: LedgerEntry) => (
-        <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
+        <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
           <Tooltip title="Edit transaction">
             <IconButton
               size="small"

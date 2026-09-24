@@ -298,8 +298,9 @@ export default function DispatchesPage() {
     {
       key: 'actions',
       header: 'Actions',
+      align: 'right',
       render: (_, row) => (
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.75 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.75, flexWrap: 'nowrap', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
           <Button
             variant="outline"
             size="sm"

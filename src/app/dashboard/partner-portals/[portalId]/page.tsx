@@ -338,8 +338,9 @@ export default function PartnerPortalDetailPage() {
     {
       key: 'actions',
       header: 'Actions',
+      align: 'right',
       render: (_, row) => (
-        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end', flexWrap: 'nowrap', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
           <Button
             variant="outline"
             size="sm"
@@ -388,8 +389,9 @@ export default function PartnerPortalDetailPage() {
     {
       key: 'actions',
       header: 'Actions',
+      align: 'right',
       render: (_, row) => (
-        <Box sx={{ display: 'flex', gap: 1 }}>
+        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end', flexWrap: 'nowrap', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
           <Link href={`/portal/${portalId}/shipments/${row.shipment.id}`} style={{ textDecoration: 'none' }}>
             <Button variant="outline" size="sm">View</Button>
           </Link>

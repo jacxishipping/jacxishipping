@@ -1032,11 +1032,11 @@ export default function CompanyLedgerDetailPage() {
         render: (_, row) => <span style={{ fontWeight: 600 }}>{formatCurrency(row.balance)}</span>,
       },
       {
-        key: 'id',
+        key: 'actions',
         header: 'Actions',
         align: 'center',
         render: (_, row) => (
-          <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
+          <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
             {canEditEntry(row) && (
               <Tooltip title="Edit transaction">
                 <IconButton
@@ -1703,10 +1703,11 @@ export default function CompanyLedgerDetailPage() {
                     render: (_, row) => row._count.shipments,
                   },
                   {
-                    key: 'id',
+                    key: 'actions',
                     header: 'Actions',
+                    align: 'center',
                     render: (_, row) => (
-                      <Box sx={{ display: 'flex', gap: 0.75, justifyContent: 'center' }}>
+                      <Box sx={{ display: 'flex', gap: 0.75, justifyContent: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
                         <Button
                           variant="outline"
                           size="sm"
@@ -1739,10 +1740,11 @@ export default function CompanyLedgerDetailPage() {
                     render: (_, row) => new Date(row.createdAt).toLocaleDateString(),
                   },
                   {
-                    key: 'id',
+                    key: 'actions',
                     header: 'Actions',
+                    align: 'center',
                     render: (_, row) => (
-                      <Box sx={{ display: 'flex', gap: 0.75, justifyContent: 'center' }}>
+                      <Box sx={{ display: 'flex', gap: 0.75, justifyContent: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
                         <Button
                           variant="outline"
                           size="sm"
@@ -1819,10 +1821,11 @@ export default function CompanyLedgerDetailPage() {
                     render: (_, row) => new Date(row.createdAt).toLocaleDateString(),
                   },
                   {
-                    key: 'id',
+                    key: 'actions',
                     header: 'Actions',
+                    align: 'center',
                     render: (_, row) => (
-                      <Box sx={{ display: 'flex', gap: 0.75, justifyContent: 'center' }}>
+                      <Box sx={{ display: 'flex', gap: 0.75, justifyContent: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
                         <Button
                           variant="outline"
                           size="sm"

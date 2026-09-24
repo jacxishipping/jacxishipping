@@ -480,10 +480,14 @@ export default function DispatchDetailPage() {
       render: (_, row) => row.user.name || row.user.email,
     },
     {
-      key: 'id',
+      key: 'actions',
       header: 'Actions',
       align: 'center',
-      render: (_, row) => canManageWorkflow ? <Button variant="ghost" size="sm" icon={<Trash2 className="w-4 h-4" />} onClick={() => void handleRemoveShipment(row.id)} disabled={isDispatchWorkflowLocked} /> : null,
+      render: (_, row) => canManageWorkflow ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
+          <Button variant="ghost" size="sm" icon={<Trash2 className="w-4 h-4" />} onClick={() => void handleRemoveShipment(row.id)} disabled={isDispatchWorkflowLocked} />
+        </Box>
+      ) : null,
     },
   ], [canManageWorkflow, isDispatchWorkflowLocked]);
 
@@ -594,11 +598,11 @@ export default function DispatchDetailPage() {
     { key: 'shipment', header: 'Shipment', render: (_, row) => row.shipment ? [row.shipment.vehicleMake, row.shipment.vehicleModel].filter(Boolean).join(' ') || row.shipment.vehicleVIN || row.shipment.id : 'All shipments' },
     { key: 'date', header: 'Date', render: (value) => new Date(String(value)).toLocaleDateString() },
     {
-      key: 'id',
+      key: 'actions',
       header: 'Actions',
       align: 'center',
       render: (_, row) => (
-        <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
+        <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
           <Button variant="ghost" size="sm" icon={<History className="w-4 h-4" />} onClick={() => setExpenseHistoryExpense(row)} />
           {canManageExpenses ? (
             <>

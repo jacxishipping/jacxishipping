@@ -394,8 +394,9 @@ export default function PortalCustomerFinanceDetailPage() {
     {
       key: 'actions',
       header: 'Actions',
+      align: 'right',
       render: (_, row) => (
-        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end', flexWrap: 'nowrap', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
           <Link href={`/portal/${portalId}/shipments/${row.shipmentId}`} style={{ textDecoration: 'none' }}>
             <Button variant="outline" size="sm">
               <OpenInNewOutlinedIcon sx={{ fontSize: 16 }} />
@@ -447,13 +448,16 @@ export default function PortalCustomerFinanceDetailPage() {
     {
       key: 'actions',
       header: 'Actions',
+      align: 'right',
       render: (_, row) => (
-        <Link href={`/portal/${portalId}/shipments/${row.shipmentId}`} style={{ textDecoration: 'none' }}>
-          <Button variant="outline" size="sm">
-            <OpenInNewOutlinedIcon sx={{ fontSize: 16 }} />
-            Shipment
-          </Button>
-        </Link>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', flexWrap: 'nowrap', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
+          <Link href={`/portal/${portalId}/shipments/${row.shipmentId}`} style={{ textDecoration: 'none' }}>
+            <Button variant="outline" size="sm">
+              <OpenInNewOutlinedIcon sx={{ fontSize: 16 }} />
+              Shipment
+            </Button>
+          </Link>
+        </Box>
       ),
     },
   ], [portalId]);
@@ -487,10 +491,13 @@ export default function PortalCustomerFinanceDetailPage() {
     {
       key: 'actions',
       header: 'Actions',
+      align: 'right',
       render: (_, row) => (
-        <Link href={`/portal/${portalId}/shipments/${row.id}`} style={{ textDecoration: 'none' }}>
-          <Button variant="outline" size="sm">Open</Button>
-        </Link>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', flexWrap: 'nowrap', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
+          <Link href={`/portal/${portalId}/shipments/${row.id}`} style={{ textDecoration: 'none' }}>
+            <Button variant="outline" size="sm">Open</Button>
+          </Link>
+        </Box>
       ),
     },
   ], [portalId]);

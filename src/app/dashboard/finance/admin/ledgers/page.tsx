@@ -265,18 +265,20 @@ export default function AdminLedgersPage() {
     {
       key: 'actions',
       header: 'Actions',
-      align: 'center' as const,
+      align: 'right' as const,
       render: (_, row) => (
-        <Link href={`/dashboard/finance/admin/ledgers/${row.userId}`} style={{ textDecoration: 'none' }}>
-          <Button
-            variant="outline"
-            size="sm"
-            icon={<Visibility />}
-            sx={{ textTransform: 'none', fontSize: '0.75rem' }}
-          >
-            View Ledger
-          </Button>
-        </Link>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', flexWrap: 'nowrap', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
+          <Link href={`/dashboard/finance/admin/ledgers/${row.userId}`} style={{ textDecoration: 'none' }}>
+            <Button
+              variant="outline"
+              size="sm"
+              icon={<Visibility />}
+              sx={{ textTransform: 'none', fontSize: '0.75rem' }}
+            >
+              View Ledger
+            </Button>
+          </Link>
+        </Box>
       )
     }
   ], []);

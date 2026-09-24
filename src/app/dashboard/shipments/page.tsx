@@ -15,9 +15,10 @@ import { exportToCSVWithHeaders } from '@/lib/export';
 import { hasPermission } from '@/lib/rbac';
 import { useConfirmAction } from '@/components/ui/ConfirmActionProvider';
 import ShipmentQuickPeek from '@/components/dashboard/ShipmentQuickPeek';
+import Link from 'next/link';
 import { QRCodeModal, type QRCodeData } from '@/components/dashboard/QRCodeModal';
 import { SavedFilterPresets } from '@/components/dashboard/SavedFilterPresets';
-import { QrCode } from 'lucide-react';
+import { QrCode, Eye, Trash2, PanelRightOpen } from 'lucide-react';
 
 export default function ShipmentsListPage() {
 	const router = useRouter();
@@ -129,6 +130,41 @@ export default function ShipmentsListPage() {
 		});
 	};
 
+	const confirmAction = useConfirmAction();
+
+	const handleBulkDelete = async (shipmentIds: string[]) => {
+		if (!canManageShipments) return;
+		if (!(await confirmAction({
+			message: `Delete ${shipmentIds.length} shipment(s)? This cannot be undone.`,
+			confirmText: 'Delete shipments',
+			severity: 'error',
+		}))) {
+			return;
+		}
+
+		try {
+			const response = await fetch('/api/bulk/shipments', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ action: 'delete', shipmentIds }),
+			});
+
+			if (!response.ok) {
+				const data = await response.json();
+				throw new Error(data?.message || 'Bulk delete failed');
+			}
+
+			const data = await response.json();
+			toast.success('Shipments deleted', {
+				description: `${data.count || 0} shipment(s) removed`,
+			});
+			fetchShipments();
+		} catch (error) {
+			console.error('Error deleting shipments:', error);
+			toast.error('Failed to delete shipments');
+		}
+	};
+
 	const shipmentColumns: Column<ShipmentTableRow>[] = [
 		{ key: 'vehicle', header: 'Vehicle', sortable: true },
 		...(canViewFinance ? [{
@@ -208,17 +244,49 @@ export default function ShipmentsListPage() {
 		},
 		...(isAdmin ? [{ key: 'customer', header: 'Customer', sortable: true }] : []),
 		{
-			key: 'id' as const,
-			header: 'QR',
+			key: 'actions' as const,
+			header: 'Actions',
+			align: 'right' as const,
 			render: (_: unknown, row: ShipmentTableRow) => (
-				<button
-					type="button"
-					onClick={(e) => handleOpenQR(row, e)}
-					className="p-1 rounded hover:bg-[var(--panel)] text-[var(--text-secondary)] hover:text-[var(--accent-gold)] transition-colors"
-					title="Print Yard QR Sticker"
-				>
-					<QrCode className="w-4 h-4" />
-				</button>
+				<div className="inline-flex items-center gap-1 justify-end whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+					<button
+						type="button"
+						onClick={() => setQuickPeekShipmentId(row.id)}
+						className="p-1.5 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[rgba(var(--text-primary-rgb),0.06)] transition-colors"
+						title="Quick peek shipment"
+						aria-label="Quick peek shipment"
+					>
+						<PanelRightOpen className="w-4 h-4" />
+					</button>
+					<Link
+						href={`/dashboard/shipments/${row.id}`}
+						className="p-1.5 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[rgba(var(--text-primary-rgb),0.06)] transition-colors"
+						title="View shipment details"
+						aria-label="View shipment details"
+					>
+						<Eye className="w-4 h-4" />
+					</Link>
+					<button
+						type="button"
+						onClick={(e) => handleOpenQR(row, e)}
+						className="p-1.5 rounded-lg text-[var(--text-secondary)] hover:text-[var(--accent-gold)] hover:bg-[rgba(var(--accent-gold-rgb),0.12)] transition-colors"
+						title="Print Yard QR Sticker"
+						aria-label="Print Yard QR Sticker"
+					>
+						<QrCode className="w-4 h-4" />
+					</button>
+					{canManageShipments && (
+						<button
+							type="button"
+							onClick={() => void handleBulkDelete([row.id])}
+							className="p-1.5 rounded-lg text-[var(--error)] hover:bg-red-500/10 transition-colors"
+							title="Delete shipment"
+							aria-label="Delete shipment"
+						>
+							<Trash2 className="w-4 h-4" />
+						</button>
+					)}
+				</div>
 			),
 		},
 	];
@@ -228,41 +296,6 @@ export default function ShipmentsListPage() {
 		{ value: 'IN_TRANSIT', label: 'In Transit' },
 		{ value: 'RELEASED', label: 'Released' },
 	];
-
-const confirmAction = useConfirmAction();
-
-        const handleBulkDelete = async (shipmentIds: string[]) => {
-                if (!canManageShipments) return;
-                if (!(await confirmAction({
-                        message: `Delete ${shipmentIds.length} shipment(s)? This cannot be undone.`,
-                        confirmText: 'Delete shipments',
-                        severity: 'error',
-                }))) {
-			return;
-		}
-
-		try {
-			const response = await fetch('/api/bulk/shipments', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ action: 'delete', shipmentIds }),
-			});
-
-			if (!response.ok) {
-				const data = await response.json();
-				throw new Error(data?.message || 'Bulk delete failed');
-			}
-
-			const data = await response.json();
-			toast.success('Shipments deleted', {
-				description: `${data.count || 0} shipment(s) removed`,
-			});
-			fetchShipments();
-		} catch (error) {
-			console.error('Error deleting shipments:', error);
-			toast.error('Failed to delete shipments');
-		}
-	};
 
 	const handleBulkExport = (rows: ShipmentTableRow[]) => {
 		try {

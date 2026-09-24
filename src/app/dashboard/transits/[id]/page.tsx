@@ -551,10 +551,11 @@ export default function TransitDetailPage() {
       },
     },
     {
-      key: 'id',
+      key: 'actions',
       header: 'Actions',
+      align: 'center',
       render: (_, row) => (
-        <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
+        <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
           {canManageExpenses ? (
             <Tooltip title="Add expense">
               <IconButton
@@ -655,11 +656,12 @@ export default function TransitDetailPage() {
       ),
     },
     {
-      key: 'id',
+      key: 'actions',
       header: 'Actions',
+      align: 'center',
       render: (_, row) => (
         canManageExpenses ? (
-          <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
+          <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
             {row.source === 'TRANSIT_EXPENSE' && (
               <Tooltip title="Edit expense">
                 <IconButton
