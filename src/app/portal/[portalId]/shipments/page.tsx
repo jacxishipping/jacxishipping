@@ -334,15 +334,18 @@ export default function PortalShipmentsPage() {
       ),
     },
     {
-      key: 'view',
-      header: 'Details',
+      key: 'actions',
+      header: 'Actions',
+      align: 'right',
       render: (_, row) => (
-        <Link href={`/portal/${portalId}/shipments/${row.shipment.id}`} style={{ textDecoration: 'none' }}>
-          <Button variant="outline" size="sm">
-            <VisibilityOutlinedIcon sx={{ fontSize: 16 }} />
-            View
-          </Button>
-        </Link>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', flexWrap: 'nowrap', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
+          <Link href={`/portal/${portalId}/shipments/${row.shipment.id}`} style={{ textDecoration: 'none' }}>
+            <Button variant="outline" size="sm">
+              <VisibilityOutlinedIcon sx={{ fontSize: 16 }} />
+              View
+            </Button>
+          </Link>
+        </Box>
       ),
     },
   ], [customers, portal, portalId, savingId, selectedCustomers]);

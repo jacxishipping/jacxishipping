@@ -114,10 +114,13 @@ export default function PartnerPortalsPage() {
     {
       key: 'actions',
       header: 'Actions',
+      align: 'right',
       render: (_, row) => (
-        <Link href={`/dashboard/partner-portals/${row.id}`} style={{ textDecoration: 'none' }}>
-          <Button variant="outline" size="sm">Manage Workspace</Button>
-        </Link>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', flexWrap: 'nowrap', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
+          <Link href={`/dashboard/partner-portals/${row.id}`} style={{ textDecoration: 'none' }}>
+            <Button variant="outline" size="sm">Manage Workspace</Button>
+          </Link>
+        </Box>
       ),
     },
   ], []);

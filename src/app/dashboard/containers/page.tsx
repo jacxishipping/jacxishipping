@@ -357,10 +357,11 @@ export default function ContainersPage() {
       render: (_value, row) => `${row.currentCount}/${row.maxCapacity}`,
     },
     {
-      key: 'id',
+      key: 'actions',
       header: 'Actions',
+      align: 'right',
       render: (_value, row) => (
-        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+        <div className="inline-flex items-center gap-1 whitespace-nowrap justify-end" onClick={(e) => e.stopPropagation()}>
           <button
             type="button"
             onClick={() => {
@@ -370,6 +371,7 @@ export default function ContainersPage() {
               toast.info(`Tracking route for container ${row.containerNumber}`);
             }}
             title="Track route on Ocean Map"
+            aria-label="Track route on Ocean Map"
             className="p-1.5 rounded-lg text-blue-500 hover:bg-blue-500/10 transition-colors"
           >
             <Compass className="w-4 h-4" />
@@ -378,6 +380,7 @@ export default function ContainersPage() {
             type="button"
             onClick={() => setPlannerContainer(row)}
             title="2D Visual Load Planner"
+            aria-label="2D Visual Load Planner"
             className="p-1.5 rounded-lg text-[var(--accent-gold)] hover:bg-[rgba(var(--accent-gold-rgb),0.12)] transition-colors"
           >
             <Layers className="w-4 h-4" />
@@ -386,9 +389,19 @@ export default function ContainersPage() {
             type="button"
             onClick={() => setQuickPeekContainerId(row.id)}
             title="Quick peek container manifest"
+            aria-label="Quick peek container manifest"
             className="p-1.5 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[rgba(var(--text-primary-rgb),0.06)] transition-colors"
           >
             <PanelRightOpen className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => router.push(`/dashboard/containers/${row.id}`)}
+            title="View container details"
+            aria-label="View container details"
+            className="p-1.5 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[rgba(var(--text-primary-rgb),0.06)] transition-colors"
+          >
+            <Eye className="w-4 h-4" />
           </button>
         </div>
       ),

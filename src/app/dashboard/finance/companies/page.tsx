@@ -342,11 +342,11 @@ export default function CompanyFinancePage() {
         render: (_, row) => row._count.ledgerEntries,
       },
       {
-        key: 'id',
+        key: 'actions',
         header: 'Actions',
         align: 'center',
         render: (_, row) => (
-          <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
+          <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
             <Tooltip title="Edit company">
               <IconButton
                 size="small"

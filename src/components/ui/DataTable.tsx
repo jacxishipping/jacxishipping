@@ -13,6 +13,8 @@ export interface Column<T> {
   sortable?: boolean;
   render?: (value: any, row: T) => React.ReactNode;
   width?: string;
+  align?: 'left' | 'center' | 'right';
+  className?: string;
 }
 
 interface DataTableProps<T> {
@@ -27,6 +29,7 @@ interface DataTableProps<T> {
   onRowClick?: (row: T) => void;
   onDelete?: (selectedIds: string[]) => void;
   onEdit?: (row: T) => void;
+  renderRowActions?: (row: T) => React.ReactNode;
   onExport?: (selectedRows: T[]) => void;
   onSelectionChange?: (selectedIds: string[]) => void;
   bulkStatusOptions?: { value: string; label: string }[];
@@ -53,6 +56,7 @@ export function DataTable<T extends Record<string, any>>({
   onRowClick,
   onDelete,
   onEdit,
+  renderRowActions,
   onExport,
   onSelectionChange,
   bulkStatusOptions = [],
@@ -76,7 +80,20 @@ export function DataTable<T extends Record<string, any>>({
   const [localDensity, setLocalDensity] = useState<'compact' | 'comfortable' | null>(null);
   const density = localDensity ?? globalDensity;
   const setDensity = (d: 'compact' | 'comfortable') => setLocalDensity(d);
-  const hasActionsColumn = Boolean(onRowClick || onEdit || onDelete);
+
+  // Check if columns already declare an explicit actions column
+  const hasExplicitActionsColumn = useMemo(() => {
+    return columns.some(
+      (col) =>
+        col.key === 'actions' ||
+        col.header?.toLowerCase() === 'actions' ||
+        (col.key === 'id' && col.header?.toLowerCase() === 'actions')
+    );
+  }, [columns]);
+
+  // Only render an auto-generated Actions column if NO explicit actions column is defined in columns,
+  // AND the caller explicitly requested row actions via renderRowActions or onEdit
+  const hasActionsColumn = !hasExplicitActionsColumn && Boolean(renderRowActions || onEdit);
 
   // Handle sorting
   const handleSort = (columnKey: string) => {
@@ -413,8 +430,12 @@ export function DataTable<T extends Record<string, any>>({
                   scope="col"
                   aria-sort={column.sortable ? getAriaSort(column.key) : undefined}
                   className={cn(
-                    'text-left font-semibold text-[var(--text-primary)]',
-                    density === 'compact' ? 'px-3 py-1.5 text-xs' : 'px-4 py-3 text-sm'
+                    'font-semibold text-[var(--text-primary)]',
+                    column.align === 'center' && 'text-center',
+                    column.align === 'right' && 'text-right',
+                    (!column.align || column.align === 'left') && 'text-left',
+                    density === 'compact' ? 'px-3 py-1.5 text-xs' : 'px-4 py-3 text-sm',
+                    column.className
                   )}
                   style={{ width: column.width }}
                 >
@@ -422,14 +443,26 @@ export function DataTable<T extends Record<string, any>>({
                     <button
                       type="button"
                       onClick={() => handleSort(column.key)}
-                      className="flex w-full items-center gap-2 rounded-md px-1 py-1 text-left font-semibold text-[var(--text-primary)] transition-colors hover:bg-[var(--background)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--panel)]"
+                      className={cn(
+                        "flex w-full items-center gap-2 rounded-md px-1 py-1 font-semibold text-[var(--text-primary)] transition-colors hover:bg-[var(--background)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--panel)]",
+                        column.align === 'center' && 'justify-center',
+                        column.align === 'right' && 'justify-end',
+                        (!column.align || column.align === 'left') && 'justify-start'
+                      )}
                       aria-label={getSortButtonLabel(column.header, column.key)}
                     >
                       <span>{column.header}</span>
                       {getSortIcon(column.key)}
                     </button>
                   ) : (
-                    <div className="flex items-center gap-2 px-1 py-1">
+                    <div
+                      className={cn(
+                        "flex items-center gap-2 px-1 py-1",
+                        column.align === 'center' && 'justify-center',
+                        column.align === 'right' && 'justify-end',
+                        (!column.align || column.align === 'left') && 'justify-start'
+                      )}
+                    >
                       {column.header}
                     </div>
                   )}
@@ -439,7 +472,7 @@ export function DataTable<T extends Record<string, any>>({
                 <th
                   scope="col"
                   className={cn(
-                    'w-28 text-left font-semibold text-[var(--text-primary)]',
+                    'w-28 text-right font-semibold text-[var(--text-primary)]',
                     density === 'compact' ? 'px-3 py-1.5 text-xs' : 'px-4 py-3 text-sm'
                   )}
                 >
@@ -497,57 +530,54 @@ export function DataTable<T extends Record<string, any>>({
                         />
                       </td>
                     )}
-                    {visibleColumns.map((column) => (
-                      <td
-                        key={column.key}
-                        className={cn(
-                          'text-[var(--text-primary)]',
-                          density === 'compact' ? 'px-3 py-1.5 text-xs' : 'px-4 py-3 text-sm'
-                        )}
-                      >
-                        {column.render
-                          ? column.render(row[column.key], row)
-                          : row[column.key] || '-'}
-                      </td>
-                    ))}
+                    {visibleColumns.map((column) => {
+                      const isActionsCol =
+                        column.key === 'actions' ||
+                        column.header?.toLowerCase() === 'actions' ||
+                        (column.key === 'id' && column.header?.toLowerCase() === 'actions');
+
+                      return (
+                        <td
+                          key={column.key}
+                          className={cn(
+                            'text-[var(--text-primary)]',
+                            column.align === 'center' && 'text-center',
+                            column.align === 'right' && 'text-right',
+                            (!column.align || column.align === 'left') && 'text-left',
+                            density === 'compact' ? 'px-3 py-1.5 text-xs' : 'px-4 py-3 text-sm',
+                            column.className
+                          )}
+                          onClick={(e) => {
+                            if (isActionsCol) {
+                              e.stopPropagation();
+                            }
+                          }}
+                        >
+                          {column.render
+                            ? column.render(row[column.key], row)
+                            : row[column.key] || '-'}
+                        </td>
+                      );
+                    })}
                     {hasActionsColumn && (
                       <td className={cn(density === 'compact' ? 'px-3 py-1.5' : 'px-4 py-3')} onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center gap-1">
-                          {onRowClick && (
-                            <button
-                              type="button"
-                              onClick={() => onRowClick(row)}
-                              className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-sm font-medium text-[var(--text-primary)] hover:bg-[var(--panel)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)] transition-colors"
-                              aria-label={`Open details for row ${rowId}`}
-                              title="Open details"
-                            >
-                              <Eye className="w-4 h-4 text-[var(--text-secondary)]" />
-                              <span className="sr-only">Open details</span>
-                            </button>
-                          )}
-                          {onEdit && (
-                            <button
-                              type="button"
-                              onClick={() => onEdit(row)}
-                              className="p-1.5 rounded hover:bg-[var(--panel)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)] transition-colors"
-                              aria-label={`Edit row ${rowId}`}
-                              title="Edit"
-                            >
-                              <Edit className="w-4 h-4 text-[var(--text-secondary)]" />
-                            </button>
-                          )}
-                          {onDelete && (
-                            <button
-                              type="button"
-                              onClick={() => onDelete([rowId])}
-                              className="p-1.5 rounded hover:bg-[var(--panel)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)] transition-colors"
-                              aria-label={`Delete row ${rowId}`}
-                              title="Delete"
-                            >
-                              <Trash2 className="w-4 h-4 text-[var(--error)]" />
-                            </button>
-                          )}
-                        </div>
+                        {renderRowActions ? (
+                          renderRowActions(row)
+                        ) : (
+                          <div className="flex items-center justify-end gap-1">
+                            {onEdit && (
+                              <button
+                                type="button"
+                                onClick={() => onEdit(row)}
+                                className="p-1.5 rounded hover:bg-[var(--panel)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)] transition-colors"
+                                aria-label={`Edit row ${rowId}`}
+                                title="Edit"
+                              >
+                                <Edit className="w-4 h-4 text-[var(--text-secondary)]" />
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </td>
                     )}
                   </tr>

@@ -475,7 +475,7 @@ export default function UserLedgerManagementPage() {
       align: 'center' as const,
       width: '10%',
       render: (_, row) => (
-        <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
+        <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
           <IconButton
             size="small"
             onClick={() => openEditModal(row)}

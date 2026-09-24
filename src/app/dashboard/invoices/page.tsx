@@ -367,6 +367,43 @@ export default function InvoicesPage() {
 			header: 'Total',
 			render: (value) => formatCurrency(Number(value)),
 		},
+		{
+			key: 'actions',
+			header: 'Actions',
+			align: 'right',
+			render: (_, row) => (
+				<Box sx={{ display: 'flex', gap: 0.75, justifyContent: 'flex-end', flexWrap: 'nowrap', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
+					<Button
+						variant="outline"
+						size="sm"
+						icon={<PanelRightOpen className="w-3 h-3" />}
+						onClick={() => setQuickPeekInvoiceId(row.id)}
+						title="Quick peek invoice details"
+					>
+						Peek
+					</Button>
+					<Button
+						variant="outline"
+						size="sm"
+						icon={<Eye className="w-3 h-3" />}
+						onClick={() => router.push(`/dashboard/invoices/${row.id}`)}
+					>
+						View
+					</Button>
+					<Button
+						variant="outline"
+						size="sm"
+						icon={<Download className="w-3 h-3" />}
+						onClick={() => {
+							const inv = invoices.find((i) => i.id === row.id);
+							if (inv) handleDownloadPDF(inv);
+						}}
+					>
+						PDF
+					</Button>
+				</Box>
+			),
+		},
 	];
 
 	const invoiceStatusOptions = Object.entries(statusConfig).map(([value, config]) => ({

@@ -22,7 +22,7 @@ import {
 import { ArrowLeft, DollarSign, History, Package, Pencil, Plus, Trash2, Truck, User } from 'lucide-react';
 import PermissionRoute from '@/components/auth/PermissionRoute';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
-import { Breadcrumbs, Button, EmptyState, StatsCard, TableSkeleton, toast, CopyButton } from '@/components/design-system';
+import { Breadcrumbs, Button, EmptyState, StatsCard, TableSkeleton, toast, CopyButton, PageHeader, MilestoneStepper } from '@/components/design-system';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { DISPATCH_STATUS_COLORS, DISPATCH_STATUS_OPTIONS, getDispatchStatusLabel, isDispatchClosed } from '@/lib/dispatch-workflow';
 import DispatchExpenseModal, { type EditableDispatchExpense } from '@/components/dispatches/DispatchExpenseModal';
@@ -480,10 +480,14 @@ export default function DispatchDetailPage() {
       render: (_, row) => row.user.name || row.user.email,
     },
     {
-      key: 'id',
+      key: 'actions',
       header: 'Actions',
       align: 'center',
-      render: (_, row) => canManageWorkflow ? <Button variant="ghost" size="sm" icon={<Trash2 className="w-4 h-4" />} onClick={() => void handleRemoveShipment(row.id)} disabled={isDispatchWorkflowLocked} /> : null,
+      render: (_, row) => canManageWorkflow ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
+          <Button variant="ghost" size="sm" icon={<Trash2 className="w-4 h-4" />} onClick={() => void handleRemoveShipment(row.id)} disabled={isDispatchWorkflowLocked} />
+        </Box>
+      ) : null,
     },
   ], [canManageWorkflow, isDispatchWorkflowLocked]);
 
@@ -549,6 +553,13 @@ export default function DispatchDetailPage() {
     { key: 'createdAt', header: 'Logged At', render: (value) => new Date(String(value)).toLocaleString() },
   ], []);
 
+  const dispatchMilestones = useMemo(() => [
+    { id: 'PENDING', label: 'Dispatch Planned', description: 'Assigned to carrier' },
+    { id: 'DISPATCHED', label: 'Inland Transit', description: dispatch?.origin || 'En route' },
+    { id: 'ARRIVED_AT_PORT', label: 'Port / Terminal', description: dispatch?.destination || 'At destination' },
+    { id: 'COMPLETED', label: 'Handoff & Closed', description: 'Stowed to container' },
+  ], [dispatch?.origin, dispatch?.destination]);
+
   const expenseColumns = useMemo<Column<DispatchExpense>[]>(() => [
     {
       key: 'type',
@@ -587,11 +598,11 @@ export default function DispatchDetailPage() {
     { key: 'shipment', header: 'Shipment', render: (_, row) => row.shipment ? [row.shipment.vehicleMake, row.shipment.vehicleModel].filter(Boolean).join(' ') || row.shipment.vehicleVIN || row.shipment.id : 'All shipments' },
     { key: 'date', header: 'Date', render: (value) => new Date(String(value)).toLocaleDateString() },
     {
-      key: 'id',
+      key: 'actions',
       header: 'Actions',
       align: 'center',
       render: (_, row) => (
-        <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
+        <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
           <Button variant="ghost" size="sm" icon={<History className="w-4 h-4" />} onClick={() => setExpenseHistoryExpense(row)} />
           {canManageExpenses ? (
             <>
@@ -655,16 +666,17 @@ export default function DispatchDetailPage() {
           <Breadcrumbs />
         </Box>
 
-        <DashboardPanel
+        <PageHeader
           title={dispatch.referenceNumber}
-          description={`${dispatch.origin} → ${dispatch.destination}`}
+          description={`${dispatch.origin} → ${dispatch.destination} • Carrier: ${dispatch.company.name}`}
           actions={
-            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
               <CopyButton value={dispatch.referenceNumber} label="Dispatch #" />
-              <Button variant="outline" icon={<Truck className="w-4 h-4" />} onClick={() => void handleReceiveToYard()} disabled={!canReceiveToYard || receivingToYard}>{receivingToYard ? 'Receiving...' : 'Receive to Yard'}</Button>
+              <Button variant="outline" size="sm" icon={<Truck className="w-4 h-4" />} onClick={() => void handleReceiveToYard()} disabled={!canReceiveToYard || receivingToYard}>{receivingToYard ? 'Receiving...' : 'Receive to Yard'}</Button>
               {canManageWorkflow ? (
                 <Button
                   variant="primary"
+                  size="sm"
                   icon={<Package className="w-4 h-4" />}
                   onClick={() => {
                     setShipmentIdsToHandoff(dispatch.shipments.map((shipment) => shipment.id));
@@ -677,15 +689,28 @@ export default function DispatchDetailPage() {
                 </Button>
               ) : null}
               <Link href={`/dashboard/finance/companies/${dispatch.company.id}`} style={{ textDecoration: 'none' }}>
-                <Button variant="outline" icon={<DollarSign className="w-4 h-4" />}>Company Ledger</Button>
+                <Button variant="outline" size="sm" icon={<DollarSign className="w-4 h-4" />}>Company Ledger</Button>
               </Link>
               <Link href="/dashboard/dispatches" style={{ textDecoration: 'none' }}>
-                <Button variant="outline" icon={<ArrowLeft className="w-4 h-4" />}>Back</Button>
+                <Button variant="outline" size="sm" icon={<ArrowLeft className="w-4 h-4" />}>Back</Button>
               </Link>
-              {canManageWorkflow ? <Button variant="primary" icon={<Pencil className="w-4 h-4" />} onClick={openEditDialog} disabled={isDispatchWorkflowLocked}>Edit</Button> : null}
+              {canManageWorkflow ? <Button variant="primary" size="sm" icon={<Pencil className="w-4 h-4" />} onClick={openEditDialog} disabled={isDispatchWorkflowLocked}>Edit</Button> : null}
             </Box>
           }
-        >
+        />
+
+        {/* Milestone Progression Stepper */}
+        <Box sx={{ px: 2, mb: 3 }}>
+          <Box sx={{ p: 2.5, borderRadius: 2, border: '1px solid var(--border)', background: 'var(--panel)', boxShadow: '0 4px 20px rgba(0,0,0,0.04)' }}>
+            <MilestoneStepper
+              steps={dispatchMilestones}
+              currentStepId={dispatch.status}
+              status={dispatch.status === 'COMPLETED' ? 'completed' : dispatch.status === 'CANCELLED' ? 'cancelled' : 'default'}
+            />
+          </Box>
+        </Box>
+
+        <DashboardPanel>
           <DashboardGrid className="grid-cols-1 md:grid-cols-4 mb-4">
             <StatsCard icon={<Truck className="w-5 h-5" />} title="Status" value={getDispatchStatusLabel(dispatch.status)} variant="warning" />
             <StatsCard icon={<Package className="w-5 h-5" />} title="Shipments" value={dispatch._count.shipments} variant="default" />
