@@ -4,7 +4,8 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
-import { User, UserPlus, Eye, EyeOff, Copy, Check, Download, Users, Package, Mail } from 'lucide-react';
+import { User, UserPlus, Eye, EyeOff, Copy, Check, Download, Users, Package, Mail, Key } from 'lucide-react';
+import ResetPasswordModal from '@/components/users/ResetPasswordModal';
 import { Box, Typography, IconButton } from '@mui/material';
 import { 
   PageHeader, 
@@ -51,6 +52,7 @@ export default function CustomersPage() {
   });
   const [showEmailsFor, setShowEmailsFor] = useState<Set<string>>(new Set());
   const [copiedEmail, setCopiedEmail] = useState<string | null>(null);
+  const [resetPasswordTarget, setResetPasswordTarget] = useState<UserData | null>(null);
 
   const canManageCustomers = hasPermission(session?.user?.role, 'customers:manage');
 
@@ -219,14 +221,30 @@ export default function CustomersPage() {
             </Button>
           </Link>
           {canManageCustomers && (
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => handleDeleteCustomer(row.id)}
-              className="text-red-600 hover:bg-red-50 hover:text-red-700"
-            >
-              Delete
-            </Button>
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                icon={<Key className="w-3.5 h-3.5" />}
+                onClick={() => setResetPasswordTarget(row)}
+                title="Reset customer password"
+              >
+                Password
+              </Button>
+              <Link href={`/dashboard/users/${row.id}/edit`} style={{ textDecoration: 'none' }}>
+                <Button variant="ghost" size="sm">
+                  Edit
+                </Button>
+              </Link>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => handleDeleteCustomer(row.id)}
+                className="text-red-600 hover:bg-red-50 hover:text-red-700"
+              >
+                Delete
+              </Button>
+            </>
           )}
         </Box>
       ),
@@ -430,6 +448,7 @@ export default function CustomersPage() {
                   onToggleEmail={toggleEmailVisibility}
                   onCopyEmail={copyToClipboard}
                   onDelete={handleDeleteCustomer}
+                  onResetPassword={canManageCustomers ? (targetUser) => setResetPasswordTarget(targetUser) : undefined}
                 />
               ))}
             </Box>
@@ -460,6 +479,17 @@ export default function CustomersPage() {
           </>
         )}
       </DashboardPanel>
+
+      {resetPasswordTarget && (
+        <ResetPasswordModal
+          open={Boolean(resetPasswordTarget)}
+          onClose={() => setResetPasswordTarget(null)}
+          userId={resetPasswordTarget.id}
+          userName={resetPasswordTarget.name}
+          userEmail={resetPasswordTarget.email}
+          onSuccess={() => fetchCustomers(currentPage)}
+        />
+      )}
     </DashboardSurface>
   );
 }

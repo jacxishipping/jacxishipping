@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/db';
 import { auth } from '@/lib/auth';
 import { hasPermission } from '@/lib/rbac';
@@ -275,7 +276,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     const body = await request.json();
-    const { name, email, role, phone, address, city, country, collectionStatus, promiseToPayDate, followUpDate, collectionNotes } = body;
+    const { name, email, role, phone, address, city, country, collectionStatus, promiseToPayDate, followUpDate, collectionNotes, password } = body;
 
     // Validate email if changed (check uniqueness)
     if (email) {
@@ -287,6 +288,25 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     if (role && !hasPermission(session.user?.role, 'users:manage')) {
       return NextResponse.json({ message: 'Forbidden: Cannot change role' }, { status: 403 });
+    }
+
+    let passwordHash: string | undefined;
+    if (password !== undefined && password !== null && typeof password === 'string' && password.trim() !== '') {
+      const canManagePasswords =
+        session.user?.role === 'admin' ||
+        hasPermission(session.user?.role, 'users:manage') ||
+        hasPermission(session.user?.role, 'customers:manage');
+
+      if (!canManagePasswords) {
+        return NextResponse.json({ message: 'Forbidden: Cannot change user password' }, { status: 403 });
+      }
+
+      const trimmedPassword = password.trim();
+      if (trimmedPassword.length < 6) {
+        return NextResponse.json({ message: 'Password must be at least 6 characters long' }, { status: 400 });
+      }
+
+      passwordHash = await bcrypt.hash(trimmedPassword, 12);
     }
 
     const wantsCollectionUpdate =
@@ -344,6 +364,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         address,
         city,
         country,
+        ...(passwordHash ? { passwordHash } : {}),
         ...(collectionStatus !== undefined ? { collectionStatus } : {}),
         ...(promiseToPayDateValue !== undefined ? { promiseToPayDate: promiseToPayDateValue } : {}),
         ...(followUpDateValue !== undefined ? { collectionFollowUpDate: followUpDateValue } : {}),

@@ -26,8 +26,10 @@ import {
   FileDown,
   MessageSquare,
   Sparkles,
-  Shield
+  Shield,
+  Key,
 } from 'lucide-react';
+import ResetPasswordModal from '@/components/users/ResetPasswordModal';
 import { Box, Typography, Tab, Tabs } from '@mui/material';
 import {
   DashboardSurface,
@@ -129,6 +131,7 @@ export default function UserViewPage({ params }: { params: Promise<{ id: string 
   const { data: session, status } = useSession();
   const [user, setUser] = useState<UserDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [resetPasswordOpen, setResetPasswordOpen] = useState(false);
   const [savingCollections, setSavingCollections] = useState(false);
   const [collectionForm, setCollectionForm] = useState({
     status: 'CURRENT',
@@ -219,6 +222,10 @@ export default function UserViewPage({ params }: { params: Promise<{ id: string 
   const backHref = isCustomer ? '/dashboard/customers' : '/dashboard/users';
   const canNotifyCustomer = isCustomer && hasPermission(session?.user?.role, 'customers:view');
   const canManageCollections = isCustomer && (hasPermission(session?.user?.role, 'customers:manage') || hasPermission(session?.user?.role, 'finance:manage'));
+  const canManageUsers =
+    session?.user?.role === 'admin' ||
+    hasPermission(session?.user?.role, 'users:manage') ||
+    hasPermission(session?.user?.role, 'customers:manage');
   const statement = user.statement;
   const agingCards = statement
     ? [
@@ -372,12 +379,22 @@ export default function UserViewPage({ params }: { params: Promise<{ id: string 
                 </Button>
               </>
             )}
-            {session?.user?.role === 'admin' && (
-              <Link href={`/dashboard/users/${id}/edit`} style={{ textDecoration: 'none' }}>
-                <Button variant="primary" size="sm" icon={<Edit className="w-4 h-4" />}>
-                  Edit Profile
+            {canManageUsers && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  icon={<Key className="w-4 h-4" />}
+                  onClick={() => setResetPasswordOpen(true)}
+                >
+                  Reset Password
                 </Button>
-              </Link>
+                <Link href={`/dashboard/users/${id}/edit`} style={{ textDecoration: 'none' }}>
+                  <Button variant="primary" size="sm" icon={<Edit className="w-4 h-4" />}>
+                    Edit Profile
+                  </Button>
+                </Link>
+              </>
             )}
           </Box>
         }
@@ -796,6 +813,16 @@ export default function UserViewPage({ params }: { params: Promise<{ id: string 
             recipientName={user.name || user.email}
           />
         </DashboardPanel>
+      )}
+
+      {user && (
+        <ResetPasswordModal
+          open={resetPasswordOpen}
+          onClose={() => setResetPasswordOpen(false)}
+          userId={user.id}
+          userName={user.name}
+          userEmail={user.email}
+        />
       )}
     </DashboardSurface>
   );
