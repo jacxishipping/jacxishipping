@@ -109,7 +109,7 @@ export function getMuiTheme(
       },
     },
     typography: {
-      fontFamily: 'var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontFamily: 'var(--font-inter), var(--font-urbanist), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       h1: { fontSize: isCompact ? '2rem' : '2.25rem', fontWeight: 700, lineHeight: 1.2 },
       h2: { fontSize: isCompact ? '1.625rem' : '1.875rem', fontWeight: 600, lineHeight: 1.3 },
       h3: { fontSize: isCompact ? '1.375rem' : '1.5rem', fontWeight: 600, lineHeight: 1.4 },

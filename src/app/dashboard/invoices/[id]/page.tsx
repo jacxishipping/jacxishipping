@@ -14,7 +14,6 @@ import {
 	TableHead, 
 	TableRow,
 	Divider,
-	Chip,
 	MenuItem,
 	Select,
 	FormControl,
@@ -59,6 +58,7 @@ import {
 	EmptyState, 
 	DetailPageSkeleton,
 	CopyButton,
+	StatusBadge,
 } from '@/components/design-system';
 import { AdminRoute } from '@/components/auth/AdminRoute';
 
@@ -993,17 +993,10 @@ export default function InvoiceDetailPage() {
 															{item.description || 'Expense Line'}
 														</Typography>
 														{isDirty && (
-															<Chip 
+															<StatusBadge 
+																status="WARNING"
 																label="Unsaved Changes" 
-																size="small" 
-																sx={{ 
-																	height: 20, 
-																	fontSize: '0.65rem', 
-																	bgcolor: 'rgba(var(--accent-gold-rgb), 0.15)', 
-																	color: 'var(--accent-gold)', 
-																	fontWeight: 600,
-																	border: '1px solid rgba(var(--accent-gold-rgb), 0.3)'
-																}} 
+																size="sm" 
 															/>
 														)}
 													</Box>
@@ -1360,11 +1353,7 @@ export default function InvoiceDetailPage() {
 					description={`Invoice for ${invoice.user.name || invoice.user.email}`}
 					actions={
 						<Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
-							<Chip 
-								label={statusInfo.label} 
-								color={statusInfo.color}
-								sx={{ fontWeight: 600 }}
-							/>
+							<StatusBadge status={invoice.status} />
 							<CopyButton value={invoice.invoiceNumber} label="Invoice #" />
 							{isAdmin && invoice.status !== 'PAID' && invoice.status !== 'CANCELLED' && (
 								<Button
@@ -1461,14 +1450,9 @@ export default function InvoiceDetailPage() {
 									</Box>
 								)}
 								<Divider sx={{ borderColor: 'var(--border)' }} />
-								<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+								<Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
 									<Box sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Status</Box>
-									<Chip 
-										label={statusInfo.label} 
-										size="small"
-										color={statusInfo.color}
-										sx={{ fontSize: '0.75rem' }}
-									/>
+									<StatusBadge status={invoice.status} size="sm" />
 								</Box>
 								{isAdmin && invoice.status !== 'PAID' && invoice.status !== 'CANCELLED' && (
 									<FormControl fullWidth size="small">
@@ -1718,11 +1702,10 @@ export default function InvoiceDetailPage() {
 								)}
 															{(item.type === 'PURCHASE_PRICE' || item.type === 'VEHICLE_PRICE') &&
 																invoice.shipment?.paymentStatus === 'COMPLETED' && (
-																<Chip
+																<StatusBadge
+																	status="PAID"
 																	label="Purchase Paid"
-																	size="small"
-																	color="success"
-																	sx={{ fontSize: '0.65rem' }}
+																	size="sm"
 																/>
 															)}
 															{isAdmin && item.linkedCompanyLedgerEntry && (
@@ -1738,10 +1721,10 @@ export default function InvoiceDetailPage() {
 														</Box>
 													</TableCell>
 													<TableCell align="left">
-														<Chip 
+														<StatusBadge 
+															status="DEFAULT"
 															label={getLineItemTypeLabel(item)} 
-															size="small"
-															sx={{ fontSize: '0.7rem' }}
+															size="sm"
 														/>
 													</TableCell>
 													<TableCell align="center">{item.quantity}</TableCell>

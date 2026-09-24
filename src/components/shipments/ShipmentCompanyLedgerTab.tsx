@@ -3,9 +3,9 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Building2, DollarSign, Pencil, Plus, ReceiptText } from 'lucide-react';
-import { Box, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, TextField } from '@mui/material';
+import { Box, MenuItem, TextField } from '@mui/material';
 import { DashboardPanel } from '@/components/dashboard/DashboardSurface';
-import { Button, toast } from '@/components/design-system';
+import { Button, Modal, toast } from '@/components/design-system';
 import { formatMoney } from '@/lib/format';
 import type { Shipment } from '@/components/shipments/shipment-detail-types';
 
@@ -315,9 +315,19 @@ export default function ShipmentCompanyLedgerTab({
         )}
       </DashboardPanel>
 
-      <Dialog open={open} onClose={() => !posting && setOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>{isPayment ? `Record Payment to ${company.name}` : `Add Transaction for ${company.name}`}</DialogTitle>
-        <DialogContent sx={{ display: 'grid', gap: 2, pt: 1.5 }}>
+      <Modal
+        open={open}
+        onClose={() => !posting && setOpen(false)}
+        title={isPayment ? `Record Payment to ${company.name}` : `Add Transaction for ${company.name}`}
+        size="sm"
+        actions={
+          <>
+            <Button variant="outline" onClick={() => setOpen(false)} disabled={posting}>Cancel</Button>
+            <Button onClick={() => void handleSubmit()} disabled={posting}>{posting ? 'Saving...' : isPayment ? 'Record Payment' : 'Save Transaction'}</Button>
+          </>
+        }
+      >
+        <Box sx={{ display: 'grid', gap: 2, pt: 1.5 }}>
           <TextField label="Description" value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} required />
           <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
             <TextField label="Amount" type="number" inputProps={{ min: 0.01, step: 0.01 }} value={form.amount} onChange={(event) => setForm((current) => ({ ...current, amount: event.target.value }))} required />
@@ -328,13 +338,22 @@ export default function ShipmentCompanyLedgerTab({
             <TextField label="Reference" value={form.reference} onChange={(event) => setForm((current) => ({ ...current, reference: event.target.value }))} />
           </Box>
           <TextField label="Notes" rows={3} multiline value={form.notes} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} />
-        </DialogContent>
-        <DialogActions><Button variant="outline" onClick={() => setOpen(false)} disabled={posting}>Cancel</Button><Button onClick={() => void handleSubmit()} disabled={posting}>{posting ? 'Saving...' : isPayment ? 'Record Payment' : 'Save Transaction'}</Button></DialogActions>
-      </Dialog>
+        </Box>
+      </Modal>
 
-      <Dialog open={editOpen} onClose={() => !updating && setEditOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Edit Transaction for {company.name}</DialogTitle>
-        <DialogContent sx={{ display: 'grid', gap: 2, pt: 1.5 }}>
+      <Modal
+        open={editOpen}
+        onClose={() => !updating && setEditOpen(false)}
+        title={`Edit Transaction for ${company.name}`}
+        size="sm"
+        actions={
+          <>
+            <Button variant="outline" onClick={() => setEditOpen(false)} disabled={updating}>Cancel</Button>
+            <Button onClick={() => void handleUpdateEntry()} disabled={updating}>{updating ? 'Saving...' : 'Save Changes'}</Button>
+          </>
+        }
+      >
+        <Box sx={{ display: 'grid', gap: 2, pt: 1.5 }}>
           <TextField label="Description" value={editForm.description} onChange={(event) => setEditForm((current) => ({ ...current, description: event.target.value }))} required />
           <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
             <TextField
@@ -354,12 +373,8 @@ export default function ShipmentCompanyLedgerTab({
             <TextField label="Reference" value={editForm.reference} onChange={(event) => setEditForm((current) => ({ ...current, reference: event.target.value }))} />
           </Box>
           <TextField label="Notes" rows={3} multiline value={editForm.notes} onChange={(event) => setEditForm((current) => ({ ...current, notes: event.target.value }))} />
-        </DialogContent>
-        <DialogActions>
-          <Button variant="outline" onClick={() => setEditOpen(false)} disabled={updating}>Cancel</Button>
-          <Button onClick={() => void handleUpdateEntry()} disabled={updating}>{updating ? 'Saving...' : 'Save Changes'}</Button>
-        </DialogActions>
-      </Dialog>
+        </Box>
+      </Modal>
     </>
   );
 }

@@ -64,6 +64,7 @@ import {
 	FormPageSkeleton,
 	CopyButton,
 	MilestoneStepper,
+	StatusBadge,
 	type MilestoneStep
 } from '@/components/design-system';
 import PermissionRoute from '@/components/auth/PermissionRoute';
@@ -869,10 +870,8 @@ export default function ContainerDetailPage() {
 					description={container.trackingNumber ? `Tracking: ${container.trackingNumber}` : 'Container details and management'}
 					actions={
 						<Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
-							<Chip 
-								label={statusConfig[container.status]?.label || container.status}
-								color={statusConfig[container.status]?.color || 'default'}
-								sx={{ fontWeight: 600 }}
+							<StatusBadge 
+								status={container.status}
 								className="no-print"
 							/>
 							<CopyButton value={container.containerNumber} label="Container #" />
@@ -1483,11 +1482,9 @@ export default function ContainerDetailPage() {
 														{(shipment as any).insuranceValue ? formatCurrency((shipment as any).insuranceValue) : 'N/A'}
 													</TableCell>
 													<TableCell>
-														<Chip 
-															label={shipment.status} 
-															size="small"
-															color="primary"
-															sx={{ fontSize: '0.75rem' }}
+														<StatusBadge 
+															status={shipment.status} 
+															size="sm"
 														/>
 													</TableCell>
 													<TableCell align="right">
@@ -1873,11 +1870,9 @@ export default function ContainerDetailPage() {
 													<TableCell sx={{ fontFamily: 'monospace' }}>{invoice.invoiceNumber}</TableCell>
 													<TableCell>{formatDate(invoice.date)}</TableCell>
 													<TableCell>
-														<Chip 
-															label={invoice.status} 
-															size="small"
-															color={invoice.status === 'PAID' ? 'success' : 'default'}
-															sx={{ fontSize: '0.75rem' }}
+														<StatusBadge 
+															status={invoice.status} 
+															size="sm"
 														/>
 													</TableCell>
 													<TableCell align="right" sx={{ fontWeight: 600, color: 'var(--success)' }}>
@@ -2010,16 +2005,9 @@ export default function ContainerDetailPage() {
 													</TableCell>
 													<TableCell>{formatDate(invoice.issueDate)}</TableCell>
 													<TableCell>
-														<Chip 
-															label={invoice.status} 
-															size="small"
-															color={
-																invoice.status === 'PAID' ? 'success' : 
-																invoice.status === 'OVERDUE' ? 'error' :
-																invoice.status === 'SENT' ? 'info' : 
-																'default'
-															}
-															sx={{ fontSize: '0.75rem' }}
+														<StatusBadge 
+															status={invoice.status} 
+															size="sm"
 														/>
 													</TableCell>
 													<TableCell align="right" sx={{ fontWeight: 600, color: 'var(--success)' }}>
@@ -3039,15 +3027,9 @@ export default function ContainerDetailPage() {
 																{shipment.user?.name || shipment.user?.email || 'N/A'}
 															</TableCell>
 															<TableCell>
-																<Chip
-																	label={shipment.status}
-																	size="small"
-																	sx={{
-																		fontSize: '0.7rem',
-																		bgcolor: 'rgba(var(--accent-gold-rgb), 0.1)',
-																		color: 'var(--accent-gold)',
-																		fontWeight: 600,
-																	}}
+																<StatusBadge
+																	status={shipment.status}
+																	size="sm"
 																/>
 															</TableCell>
 														</TableRow>

@@ -8,10 +8,6 @@ import {
   Box,
   Checkbox,
   CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   IconButton,
   MenuItem,
   Tab,
@@ -33,7 +29,7 @@ import {
 } from 'lucide-react';
 import PermissionRoute from '@/components/auth/PermissionRoute';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
-import { Breadcrumbs, Button, StatsCard, TableSkeleton, toast, CopyButton, PageHeader, MilestoneStepper } from '@/components/design-system';
+import { Breadcrumbs, Button, StatsCard, TableSkeleton, toast, CopyButton, PageHeader, MilestoneStepper, Modal } from '@/components/design-system';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import AddShipmentExpenseModal from '@/components/shipments/AddShipmentExpenseModal';
 import AddTransitExpenseModal from '@/components/transits/AddTransitExpenseModal';
@@ -924,9 +920,19 @@ export default function TransitDetailPage() {
         </DashboardPanel>
 
         {/* Edit Transit Dialog */}
-        <Dialog open={openEdit} onClose={() => !saving && setOpenEdit(false)} maxWidth="sm" fullWidth>
-          <DialogTitle>Edit Transit</DialogTitle>
-          <DialogContent sx={{ display: 'grid', gap: 2, pt: 1.5 }}>
+        <Modal
+          open={openEdit}
+          onClose={() => !saving && setOpenEdit(false)}
+          title="Edit Transit"
+          size="sm"
+          actions={
+            <>
+              <Button variant="outline" onClick={() => setOpenEdit(false)} disabled={saving}>Cancel</Button>
+              <Button variant="primary" onClick={handleEdit} disabled={saving}>{saving ? 'Saving...' : 'Save Changes'}</Button>
+            </>
+          }
+        >
+          <Box sx={{ display: 'grid', gap: 2, pt: 1.5 }}>
             <TextField
               select
               label="Status"
@@ -943,17 +949,23 @@ export default function TransitDetailPage() {
             </Box>
             <TextField label="Agreed Cost (USD)" type="number" inputProps={{ min: 0, step: 0.01 }} value={editForm.cost} onChange={(e) => setEditForm(prev => ({ ...prev, cost: e.target.value }))} />
             <TextField label="Notes" multiline rows={3} value={editForm.notes} onChange={(e) => setEditForm(prev => ({ ...prev, notes: e.target.value }))} />
-          </DialogContent>
-          <DialogActions>
-            <Button variant="outline" onClick={() => setOpenEdit(false)} disabled={saving}>Cancel</Button>
-            <Button variant="primary" onClick={handleEdit} disabled={saving}>{saving ? 'Saving...' : 'Save Changes'}</Button>
-          </DialogActions>
-        </Dialog>
+          </Box>
+        </Modal>
 
         {/* Add Event Dialog */}
-        <Dialog open={openEvent} onClose={() => !postingEvent && setOpenEvent(false)} maxWidth="sm" fullWidth>
-          <DialogTitle>Add Transit Event</DialogTitle>
-          <DialogContent sx={{ display: 'grid', gap: 2, pt: 1.5 }}>
+        <Modal
+          open={openEvent}
+          onClose={() => !postingEvent && setOpenEvent(false)}
+          title="Add Transit Event"
+          size="sm"
+          actions={
+            <>
+              <Button variant="outline" onClick={() => setOpenEvent(false)} disabled={postingEvent}>Cancel</Button>
+              <Button variant="primary" onClick={handleAddEvent} disabled={postingEvent}>{postingEvent ? 'Adding...' : 'Add Event'}</Button>
+            </>
+          }
+        >
+          <Box sx={{ display: 'grid', gap: 2, pt: 1.5 }}>
             <TextField
               select
               label="Transit Company"
@@ -976,12 +988,8 @@ export default function TransitDetailPage() {
             <TextField label="Location" value={eventForm.location} onChange={(e) => setEventForm(prev => ({ ...prev, location: e.target.value }))} placeholder="e.g. Islam Qala Border" />
             <TextField label="Description" multiline rows={2} value={eventForm.description} onChange={(e) => setEventForm(prev => ({ ...prev, description: e.target.value }))} />
             <TextField label="Event Date" type="datetime-local" InputLabelProps={{ shrink: true }} value={eventForm.eventDate} onChange={(e) => setEventForm(prev => ({ ...prev, eventDate: e.target.value }))} />
-          </DialogContent>
-          <DialogActions>
-            <Button variant="outline" onClick={() => setOpenEvent(false)} disabled={postingEvent}>Cancel</Button>
-            <Button variant="primary" onClick={handleAddEvent} disabled={postingEvent}>{postingEvent ? 'Adding...' : 'Add Event'}</Button>
-          </DialogActions>
-        </Dialog>
+          </Box>
+        </Modal>
 
         {/* Add Shipment Expense Modal */}
         <AddShipmentExpenseModal
@@ -1015,10 +1023,22 @@ export default function TransitDetailPage() {
           onSuccess={() => void fetchTransit()}
         />
 
-        {/* Add Shipment Dialog */}
-        <Dialog open={openAddShipment} onClose={handleCloseAddShipment} maxWidth="sm" fullWidth>
-          <DialogTitle>Add Shipments to Transit</DialogTitle>
-          <DialogContent sx={{ pt: 1.5 }}>
+        {/* Add Shipment Modal */}
+        <Modal
+          open={openAddShipment}
+          onClose={handleCloseAddShipment}
+          title="Add Shipments to Transit"
+          size="sm"
+          actions={
+            <>
+              <Button variant="outline" onClick={handleCloseAddShipment} disabled={addingShipment}>Cancel</Button>
+              <Button variant="primary" onClick={handleAddShipment} disabled={addingShipment || selectedShipmentIds.length === 0}>
+                {addingShipment ? 'Adding...' : `Add${selectedShipmentIds.length ? ` (${selectedShipmentIds.length})` : ' Shipments'}`}
+              </Button>
+            </>
+          }
+        >
+          <Box sx={{ pt: 1.5 }}>
             <TextField
               fullWidth
               size="small"
@@ -1081,18 +1101,25 @@ export default function TransitDetailPage() {
                 ? `${selectedShipmentIds.length} shipment(s) selected - release tokens are verified automatically.`
                 : 'Select one or more released shipments to add. You can add another batch right after.'}
             </Box>
-          </DialogContent>
-          <DialogActions>
-            <Button variant="outline" onClick={handleCloseAddShipment} disabled={addingShipment}>Cancel</Button>
-            <Button variant="primary" onClick={handleAddShipment} disabled={addingShipment || selectedShipmentIds.length === 0}>
-              {addingShipment ? 'Adding...' : `Add${selectedShipmentIds.length ? ` (${selectedShipmentIds.length})` : ' Shipments'}`}
-            </Button>
-          </DialogActions>
-        </Dialog>
+          </Box>
+        </Modal>
 
-        <Dialog open={openConfirmDelivery} onClose={() => !confirmingDelivery && !uploadingProof && setOpenConfirmDelivery(false)} maxWidth="sm" fullWidth>
-          <DialogTitle>Confirm Final Delivery</DialogTitle>
-          <DialogContent sx={{ display: 'grid', gap: 2, pt: 1.5 }}>
+        {/* Confirm Final Delivery Modal */}
+        <Modal
+          open={openConfirmDelivery}
+          onClose={() => !confirmingDelivery && !uploadingProof && setOpenConfirmDelivery(false)}
+          title="Confirm Final Delivery"
+          size="sm"
+          actions={
+            <>
+              <Button variant="outline" onClick={() => setOpenConfirmDelivery(false)} disabled={confirmingDelivery || uploadingProof}>Cancel</Button>
+              <Button variant="primary" onClick={handleConfirmDelivery} disabled={confirmingDelivery || uploadingProof}>
+                {confirmingDelivery ? 'Confirming...' : 'Confirm Delivery'}
+              </Button>
+            </>
+          }
+        >
+          <Box sx={{ display: 'grid', gap: 2, pt: 1.5 }}>
             <TextField
               label="Delivered Date"
               type="datetime-local"
@@ -1148,14 +1175,8 @@ export default function TransitDetailPage() {
               onChange={(e) => setDeliveryForm((prev) => ({ ...prev, notes: e.target.value }))}
               helperText="Optional notes for support, disputes, or handover context"
             />
-          </DialogContent>
-          <DialogActions>
-            <Button variant="outline" onClick={() => setOpenConfirmDelivery(false)} disabled={confirmingDelivery || uploadingProof}>Cancel</Button>
-            <Button variant="primary" onClick={handleConfirmDelivery} disabled={confirmingDelivery || uploadingProof}>
-              {confirmingDelivery ? 'Confirming...' : 'Confirm Delivery'}
-            </Button>
-          </DialogActions>
-        </Dialog>
+          </Box>
+        </Modal>
 
 
       </DashboardSurface>

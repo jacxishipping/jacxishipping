@@ -8,7 +8,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { DashboardSurface, DashboardPanel } from '@/components/dashboard/DashboardSurface';
-import { Button, DetailPageSkeleton } from '@/components/design-system';
+import { Button, DetailPageSkeleton, StatusBadge } from '@/components/design-system';
 import {
   ArrowLeft,
   CalendarCheck,
@@ -1035,19 +1035,12 @@ export default function ShipmentDetailPage() {
                 <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                   <div className="min-w-0">
                     <div className="mb-2 flex flex-wrap items-center gap-2">
-                      <span
-                        className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold"
-                        style={{ backgroundColor: statusStyle.bg, color: statusStyle.text, borderColor: statusStyle.border }}
-                      >
-                        {formatStatus(shipment.status)}
-                      </span>
-                      <span className="inline-flex items-center rounded-full border border-[var(--border)] bg-[var(--background)] px-3 py-1 text-xs font-semibold text-[var(--text-secondary)]">
-                        {shipment.paymentStatus ? formatStatus(shipment.paymentStatus) : 'Payment Unknown'}
-                      </span>
+                      <StatusBadge status={shipment.status} size="sm" />
+                      {shipment.paymentStatus && (
+                        <StatusBadge status={shipment.paymentStatus} size="sm" />
+                      )}
                       {shipment.releaseToken && (
-                        <span className="inline-flex items-center rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-600">
-                          Release Token Ready
-                        </span>
+                        <StatusBadge status="SUCCESS" size="sm" />
                       )}
                     </div>
 

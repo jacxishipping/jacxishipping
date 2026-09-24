@@ -20,6 +20,26 @@ const config: Config = {
         accent: {
           gold: "var(--accent-gold)",
         },
+        success: {
+          DEFAULT: "var(--success)",
+          light: "var(--success-light)",
+          dark: "var(--success-dark)",
+        },
+        warning: {
+          DEFAULT: "var(--warning)",
+          light: "var(--warning-light)",
+          dark: "var(--warning-dark)",
+        },
+        error: {
+          DEFAULT: "var(--error)",
+          light: "var(--error-light)",
+          dark: "var(--error-dark)",
+        },
+        info: {
+          DEFAULT: "var(--info)",
+          light: "var(--info-light)",
+          dark: "var(--info-dark)",
+        },
       },
       fontFamily: {
         sans: ['var(--font-inter)', 'var(--font-urbanist)', 'system-ui', 'sans-serif'],

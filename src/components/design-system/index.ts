@@ -37,6 +37,7 @@ export { default as EmptyState } from './EmptyState';
 export { default as StatsCard } from './StatsCard';
 export { default as PageHeader } from './PageHeader';
 export { Table } from './Table';
+export { MobileCard } from './MobileCard';
 
 // Overlay Components
 export { default as Modal, ConfirmDialog } from './Modal';

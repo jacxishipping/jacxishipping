@@ -9,12 +9,6 @@ import { useConfirmAction } from '@/components/ui/ConfirmActionProvider';
 import Link from 'next/link';
 import { 
 	Box, 
-	Table, 
-	TableBody, 
-	TableCell, 
-	TableContainer, 
-	TableHead, 
-	TableRow,
 	Chip,
 	MenuItem,
 	Select,
@@ -117,7 +111,6 @@ export default function InvoicesPage() {
 	const [loading, setLoading] = useState(true);
 	const [searchTerm, setSearchTerm] = useState('');
 	const [statusFilter, setStatusFilter] = useState('all');
-	const [showBulkTable, setShowBulkTable] = useState(false);
 	const [backfillingCharges, setBackfillingCharges] = useState(false);
 	const [itemsPerPage, setItemsPerPage] = useState(25);
 	const [currentPage, setCurrentPage] = useState(1);
@@ -551,9 +544,6 @@ const confirmAction = useConfirmAction();
 							<Button variant="outline" onClick={handleBackfillShipmentCharges} disabled={backfillingCharges}>
 								{backfillingCharges ? 'Backfilling...' : 'Backfill Shipment Charges'}
 							</Button>
-							<Button variant="outline" onClick={() => setShowBulkTable((prev) => !prev)}>
-								{showBulkTable ? 'Table view' : 'Bulk mode'}
-							</Button>
 						</Box>
 					) : null
 				}
@@ -685,7 +675,7 @@ const confirmAction = useConfirmAction();
 						title="No Invoices"
 						description={searchTerm ? 'No invoices match your search' : 'No invoices have been created yet'}
 					/>
-				) : showBulkTable ? (
+				) : (
 					<DataTable
 						data={invoiceRows}
 						columns={invoiceColumns}
@@ -697,105 +687,6 @@ const confirmAction = useConfirmAction();
 						bulkStatusOptions={invoiceStatusOptions}
 						onBulkStatusChange={isAdmin ? handleBulkStatusUpdate : undefined}
 					/>
-				) : (
-					<TableContainer>
-						<Table size="small">
-							<TableHead>
-								<TableRow>
-									<TableCell sx={{ fontWeight: 600 }}>Invoice #</TableCell>
-									{isAdmin && <TableCell sx={{ fontWeight: 600 }}>Customer</TableCell>}
-									<TableCell sx={{ fontWeight: 600 }}>Shipment / Container</TableCell>
-									<TableCell sx={{ fontWeight: 600 }}>Issue Date</TableCell>
-									<TableCell sx={{ fontWeight: 600 }}>Due Date</TableCell>
-									<TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-									<TableCell sx={{ fontWeight: 600 }} align="right">Total</TableCell>
-									<TableCell sx={{ fontWeight: 600 }} align="right">Actions</TableCell>
-								</TableRow>
-							</TableHead>
-							<TableBody>
-								{filteredInvoices.map((invoice) => {
-									return (
-										<TableRow key={invoice.id} hover>
-											<TableCell sx={{ fontFamily: 'monospace', fontWeight: 600 }}>
-												{invoice.invoiceNumber}
-											</TableCell>
-											{isAdmin && (
-												<TableCell>
-													<Box>
-														<Box sx={{ fontWeight: 600, fontSize: '0.875rem' }}>
-															{invoice.user.name || 'N/A'}
-														</Box>
-														<Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-															{invoice.user.email}
-														</Box>
-													</Box>
-												</TableCell>
-											)}
-											<TableCell>
-												{invoice.container ? (
-													<Link 
-														href={`/dashboard/containers/${invoice.containerId}`}
-														style={{ 
-															color: 'var(--accent-gold)', 
-															textDecoration: 'none',
-															fontFamily: 'monospace',
-															fontWeight: 600,
-														}}
-													>
-														{invoice.container.containerNumber}
-													</Link>
-												) : invoice.shipment ? (
-													<Link
-														href={`/dashboard/shipments/${invoice.shipment.id}`}
-														style={{ color: 'var(--accent-gold)', textDecoration: 'none', fontWeight: 600 }}
-													>
-														{[invoice.shipment.vehicleYear, invoice.shipment.vehicleMake, invoice.shipment.vehicleModel].filter(Boolean).join(' ') || invoice.shipment.vehicleType}
-													</Link>
-												) : 'N/A'}
-											</TableCell>
-											<TableCell>{formatDate(invoice.issueDate)}</TableCell>
-											<TableCell>{formatDate(invoice.dueDate)}</TableCell>
-											<TableCell>
-												<StatusBadge status={invoice.status} size="sm" />
-											</TableCell>
-											<TableCell align="right" sx={{ fontWeight: 600, color: 'var(--accent-gold)' }}>
-												{formatCurrency(invoice.total)}
-											</TableCell>
-											<TableCell align="right">
-												<Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
-													<Button
-														variant="outline"
-														size="sm"
-														icon={<PanelRightOpen className="w-3 h-3" />}
-														onClick={() => setQuickPeekInvoiceId(invoice.id)}
-														title="Quick peek invoice details"
-													>
-														Peek
-													</Button>
-													<Button
-														variant="outline"
-														size="sm"
-														icon={<Eye className="w-3 h-3" />}
-														onClick={() => router.push(`/dashboard/invoices/${invoice.id}`)}
-													>
-														View
-													</Button>
-													<Button
-														variant="outline"
-														size="sm"
-														icon={<Download className="w-3 h-3" />}
-														onClick={() => handleDownloadPDF(invoice)}
-													>
-														PDF
-													</Button>
-												</Box>
-											</TableCell>
-										</TableRow>
-									);
-								})}
-							</TableBody>
-						</Table>
-					</TableContainer>
 				)}
 			</DashboardPanel>
 
