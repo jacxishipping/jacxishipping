@@ -533,7 +533,6 @@ export async function POST(request: NextRequest) {
       }
 
       const purchasePriceSyncInput =
-        paymentMode === 'DUE' &&
         serviceType === 'PURCHASE_AND_SHIPPING' &&
         parsedPurchasePrice &&
         parsedPurchasePrice > 0

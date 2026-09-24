@@ -51,9 +51,9 @@ export class AutoInvoiceService {
 				};
 			}
 
-			// Filter cash-paid shipments in code
-			const cashShipments = container.shipments.filter(
-				(s) => s.paymentMode === 'CASH' && s.paymentStatus === 'COMPLETED'
+			// Filter active shipments in container eligible for invoicing
+			const eligibleShipments = container.shipments.filter(
+				(s) => s.paymentStatus !== 'REFUNDED'
 			);
 
 			// Check if container is in completed status
@@ -64,17 +64,17 @@ export class AutoInvoiceService {
 				};
 			}
 
-			// Check if there are any CASH paid shipments
-			if (cashShipments.length === 0) {
+			// Check if there are any active shipments
+			if (eligibleShipments.length === 0) {
 				return {
 					success: false,
-					message: 'No cash-paid shipments found in this container',
+					message: 'No eligible shipments found in this container',
 				};
 			}
 
 			const allocationMethod = container.expenseAllocationMethod || 'EQUAL';
-			const expenseAllocations = allocateExpenses(cashShipments, container.expenses, allocationMethod);
-			const shipmentIds = cashShipments.map((shipment) => shipment.id);
+			const expenseAllocations = allocateExpenses(eligibleShipments, container.expenses, allocationMethod);
+			const shipmentIds = eligibleShipments.map((shipment) => shipment.id);
 
 			const [shipmentLedgerEntries, shipmentDamageRecords] = await Promise.all([
 				shipmentIds.length
@@ -132,7 +132,7 @@ export class AutoInvoiceService {
 						transactionInfoType: entry.transactionInfoType as 'CAR_PAYMENT' | 'SHIPPING_PAYMENT' | 'STORAGE_PAYMENT' | null,
 						metadata: (entry.metadata ?? {}) as Prisma.JsonValue,
 					})),
-					shipments: cashShipments.map((shipment) => ({
+					shipments: eligibleShipments.map((shipment) => ({
 						id: shipment.id,
 						userId: shipment.userId,
 						serviceType: shipment.serviceType,
@@ -148,7 +148,7 @@ export class AutoInvoiceService {
 					})),
 				});
 
-				const chargesByUser = cashShipments.reduce<Record<string, typeof cashShipments>>((accumulator, shipment) => {
+				const chargesByUser = eligibleShipments.reduce<Record<string, typeof eligibleShipments>>((accumulator, shipment) => {
 					const shipmentsForUser = accumulator[shipment.userId] || [];
 					shipmentsForUser.push(shipment);
 					accumulator[shipment.userId] = shipmentsForUser;
@@ -184,6 +184,7 @@ export class AutoInvoiceService {
 
 					const subtotal = charges.reduce((sum, charge) => sum + charge.totalAmount, 0);
 					const lineItems = charges.map((charge) => buildInvoiceLineItemFromCharge(charge));
+					const isCashCompleted = shipments.every((s) => s.paymentMode === 'CASH' && s.paymentStatus === 'COMPLETED');
 
 					const invoice = await createInvoiceWithUniqueNumber(
 						tx,
@@ -193,18 +194,20 @@ export class AutoInvoiceService {
 									invoiceNumber,
 									userId,
 									containerId: container.id,
-									status: 'PAID',
+									status: isCashCompleted ? 'PAID' : 'PENDING',
 									issueDate: new Date(),
-									dueDate: new Date(),
-									paidDate: new Date(),
+									dueDate: isCashCompleted ? new Date() : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+									paidDate: isCashCompleted ? new Date() : null,
 									subtotal,
 									discount: 0,
 									tax: 0,
 									total: subtotal,
-									amountPaid: subtotal,
-									amountRemaining: 0,
-									paymentMethod: 'CASH',
-									internalNotes: 'Auto-generated from completed cash shipment charges',
+									amountPaid: isCashCompleted ? subtotal : 0,
+									amountRemaining: isCashCompleted ? 0 : subtotal,
+									paymentMethod: isCashCompleted ? 'CASH' : null,
+									internalNotes: isCashCompleted
+										? 'Auto-generated from completed cash shipment charges'
+										: 'Auto-generated invoice for credit shipment charges upon container completion',
 									lineItems: {
 										create: lineItems,
 									},
@@ -219,12 +222,14 @@ export class AutoInvoiceService {
 					);
 
 					await markInvoiceShipmentChargesInvoiced(tx, invoice.id, charges.map((charge) => charge.id));
-					await markInvoiceShipmentChargesPaid(tx, invoice.id);
+					if (isCashCompleted) {
+						await markInvoiceShipmentChargesPaid(tx, invoice.id);
+					}
 
 					auditLogs.push({
 						invoiceId: invoice.id,
 						action: 'AUTO_INVOICE_CREATED',
-						description: `Auto-paid invoice ${invoice.invoiceNumber} created from shipment charges`,
+						description: `Auto-generated ${isCashCompleted ? 'paid' : 'due'} invoice ${invoice.invoiceNumber} created from container shipment charges`,
 						performedBy: 'system',
 						metadata: {
 							containerId: container.id,
@@ -246,7 +251,7 @@ export class AutoInvoiceService {
 			if (!invoices.length) {
 				return {
 					success: false,
-					message: 'No approved uninvoiced shipment charges found for completed cash shipments',
+					message: 'No approved uninvoiced shipment charges found for container shipments',
 				};
 			}
 
@@ -259,7 +264,7 @@ export class AutoInvoiceService {
 				invoiceId: invoices[0]?.id,
 				invoiceIds: invoices.map((invoice) => invoice.id),
 				amount: totalAmount,
-				message: `Generated ${invoices.length} auto-paid invoice(s) for $${totalAmount.toFixed(2)}`,
+				message: `Generated ${invoices.length} invoice(s) for $${totalAmount.toFixed(2)}`,
 			};
 		} catch (error) {
 			console.error('Error generating invoice:', error);

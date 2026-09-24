@@ -104,6 +104,7 @@ export async function POST(request: NextRequest) {
         vehicleModel: true,
         vehicleVIN: true,
         paymentStatus: true,
+        containerId: true,
       },
     });
 
@@ -394,58 +395,80 @@ export async function POST(request: NextRequest) {
             paidAt: new Date(),
           },
         });
-
-        // Phase 1: create PaymentAllocation rows for each completed invoice
-        // and update amountPaid / amountRemaining.
-        const completedInvoices = await tx.userInvoice.findMany({
-          where: {
-            shipmentId: { in: completedShipmentIds },
-            status: { in: ['DRAFT', 'PENDING', 'SENT', 'OVERDUE'] },
-          },
-          select: { id: true, total: true, amountPaid: true },
-        });
-
-        for (const inv of completedInvoices) {
-          const appliedToInvoice = roundToCents(Math.min(
-            validatedData.amount,
-            Math.max(0, inv.total - (inv.amountPaid ?? 0)),
-          ));
-          await tx.paymentAllocation.create({
-            data: {
-              paymentId: payment.id,
-              invoiceId: inv.id,
-              amount: appliedToInvoice,
-            },
-          });
-          await tx.userInvoice.update({
-            where: { id: inv.id },
-            data: {
-              amountPaid: roundToCents((inv.amountPaid ?? 0) + appliedToInvoice),
-            },
-          });
-        }
-
-        await tx.userInvoice.updateMany({
-          where: {
-            shipmentId: { in: completedShipmentIds },
-            status: {
-              in: ['DRAFT', 'PENDING', 'SENT', 'OVERDUE'],
-            },
-          },
-          data: {
-            status: 'PAID',
-            paidDate: new Date(),
-            amountRemaining: 0,
-            paymentMethod: validatedData.paymentMethod,
-            paymentReference: entry.id,
-          },
-        });
       }
 
       if (pendingShipmentIds.length > 0) {
         await tx.shipment.updateMany({
           where: { id: { in: pendingShipmentIds } },
           data: { paymentStatus: 'PENDING' },
+        });
+      }
+
+      // Phase 1: create PaymentAllocation rows for each applicable invoice
+      // and update amountPaid / amountRemaining without double-counting.
+      const shipmentContainerIds = shipments
+        .map((s) => s.containerId)
+        .filter((cid): cid is string => typeof cid === 'string' && Boolean(cid));
+
+      const candidateInvoices = await tx.userInvoice.findMany({
+        where: {
+          userId: validatedData.userId,
+          status: { in: ['DRAFT', 'PENDING', 'SENT', 'OVERDUE'] },
+          OR: [
+            ...(validatedData.invoiceId ? [{ id: validatedData.invoiceId }] : []),
+            { shipmentId: { in: validatedData.shipmentIds } },
+            ...(shipmentContainerIds.length > 0 ? [{ containerId: { in: shipmentContainerIds } }] : []),
+          ],
+        },
+        select: { id: true, total: true, amountPaid: true, shipmentId: true },
+        orderBy: { createdAt: 'asc' },
+      });
+
+      // If a specific invoice was requested, prioritize it first
+      if (validatedData.invoiceId) {
+        candidateInvoices.sort((a, b) =>
+          a.id === validatedData.invoiceId ? -1 : b.id === validatedData.invoiceId ? 1 : 0
+        );
+      }
+
+      let remainingPaymentForInvoices = roundToCents(validatedData.amount);
+
+      for (const inv of candidateInvoices) {
+        if (remainingPaymentForInvoices <= 0) break;
+
+        const currentPaid = inv.amountPaid ?? 0;
+        const unpaid = roundToCents(Math.max(0, inv.total - currentPaid));
+        if (unpaid <= 0) continue;
+
+        const appliedToInvoice = roundToCents(Math.min(remainingPaymentForInvoices, unpaid));
+        remainingPaymentForInvoices = roundToCents(remainingPaymentForInvoices - appliedToInvoice);
+
+        await tx.paymentAllocation.create({
+          data: {
+            paymentId: payment.id,
+            invoiceId: inv.id,
+            amount: appliedToInvoice,
+          },
+        });
+
+        const newAmountPaid = roundToCents(currentPaid + appliedToInvoice);
+        const newAmountRemaining = roundToCents(Math.max(0, inv.total - newAmountPaid));
+        const isFullyPaid = newAmountRemaining <= 0.005;
+
+        await tx.userInvoice.update({
+          where: { id: inv.id },
+          data: {
+            amountPaid: newAmountPaid,
+            amountRemaining: newAmountRemaining,
+            ...(isFullyPaid
+              ? {
+                  status: 'PAID',
+                  paidDate: new Date(),
+                  paymentMethod: validatedData.paymentMethod,
+                  paymentReference: entry.id,
+                }
+              : {}),
+          },
         });
       }
 

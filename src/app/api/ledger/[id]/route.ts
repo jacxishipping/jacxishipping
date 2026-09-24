@@ -101,7 +101,14 @@ export async function PATCH(
       data: {
         description: validatedData.description,
         notes: validatedData.notes,
-        metadata: validatedData.metadata as never,
+        metadata: validatedData.metadata
+          ? ({
+              ...(typeof entry.metadata === 'object' && entry.metadata !== null
+                ? (entry.metadata as Record<string, unknown>)
+                : {}),
+              ...validatedData.metadata,
+            } as never)
+          : undefined,
       },
       include: {
         user: {

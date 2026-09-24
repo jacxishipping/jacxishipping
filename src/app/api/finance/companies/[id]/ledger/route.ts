@@ -50,23 +50,11 @@ const createEntrySchema = z.object({
 });
 
 function shouldForceCompanyExpenseCredit(input: {
-  description?: string;
-  category?: string;
   reference?: string;
   metadata?: Record<string, unknown>;
 }) {
-  const description = (input.description || '').toLowerCase();
-  const category = (input.category || '').toLowerCase();
   const reference = (input.reference || '').toLowerCase();
   const metadata = input.metadata || {};
-
-  const hasExpenseKeyword =
-    description.includes('expense') ||
-    description.includes('shipping fare') ||
-    description.includes('damage') ||
-    category.includes('expense') ||
-    category.includes('shipping fare') ||
-    category.includes('damage');
 
   const hasExpenseReference =
     reference.startsWith('shipment-expense:') ||
@@ -84,7 +72,7 @@ function shouldForceCompanyExpenseCredit(input: {
     metadata.isShipmentShippingFare === true ||
     metadata.isShipmentDamage === true;
 
-  return hasExpenseKeyword || hasExpenseReference || hasExpenseMetadata;
+  return hasExpenseReference || hasExpenseMetadata;
 }
 
 export async function GET(
@@ -235,8 +223,6 @@ export async function POST(
         : metadataObject;
     const normalizedType =
       shouldForceCompanyExpenseCredit({
-        description: validatedData.description,
-        category: validatedData.category,
         reference: validatedData.reference,
         metadata: normalizedMetadata,
       })
