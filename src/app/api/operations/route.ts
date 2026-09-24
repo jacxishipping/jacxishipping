@@ -14,76 +14,79 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search') || '';
 
-    // Fetch active unassigned / ready shipments
-    const shipments = await prisma.shipment.findMany({
-      where: {
-        ...(search
-          ? {
-              OR: [
-                { vehicleVIN: { contains: search, mode: 'insensitive' } },
-                { vehicleMake: { contains: search, mode: 'insensitive' } },
-                { vehicleModel: { contains: search, mode: 'insensitive' } },
-                { lotNumber: { contains: search, mode: 'insensitive' } },
-                { user: { name: { contains: search, mode: 'insensitive' } } },
-              ],
-            }
-          : {}),
-      },
-      include: {
-        user: { select: { id: true, name: true, email: true } },
-        dispatch: { select: { id: true, referenceNumber: true, status: true } },
-        container: { select: { id: true, containerNumber: true, status: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 200,
-    });
-
-    // Fetch active dispatches
-    const dispatches = await prisma.dispatch.findMany({
-      include: {
-        company: { select: { id: true, name: true, code: true } },
-        shipments: {
-          select: {
-            id: true,
-            vehicleYear: true,
-            vehicleMake: true,
-            vehicleModel: true,
-            vehicleVIN: true,
-            status: true,
-            lotNumber: true,
-          },
+    // ⚡ Bolt: Parallelized independent DB queries to reduce latency
+    const [shipments, dispatches, containers, companies] = await Promise.all([
+      // Fetch active unassigned / ready shipments
+      prisma.shipment.findMany({
+        where: {
+          ...(search
+            ? {
+                OR: [
+                  { vehicleVIN: { contains: search, mode: 'insensitive' } },
+                  { vehicleMake: { contains: search, mode: 'insensitive' } },
+                  { vehicleModel: { contains: search, mode: 'insensitive' } },
+                  { lotNumber: { contains: search, mode: 'insensitive' } },
+                  { user: { name: { contains: search, mode: 'insensitive' } } },
+                ],
+              }
+            : {}),
         },
-        _count: { select: { shipments: true, events: true, expenses: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 60,
-    });
-
-    // Fetch active containers
-    const containers = await prisma.container.findMany({
-      include: {
-        shipments: {
-          select: {
-            id: true,
-            vehicleYear: true,
-            vehicleMake: true,
-            vehicleModel: true,
-            vehicleVIN: true,
-            status: true,
-            lotNumber: true,
-          },
+        include: {
+          user: { select: { id: true, name: true, email: true } },
+          dispatch: { select: { id: true, referenceNumber: true, status: true } },
+          container: { select: { id: true, containerNumber: true, status: true } },
         },
-        _count: { select: { shipments: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 60,
-    });
+        orderBy: { createdAt: 'desc' },
+        take: 200,
+      }),
 
-    // Fetch companies for quick dispatch creation
-    const companies = await prisma.company.findMany({
-      select: { id: true, name: true, code: true },
-      orderBy: { name: 'asc' },
-    });
+      // Fetch active dispatches
+      prisma.dispatch.findMany({
+        include: {
+          company: { select: { id: true, name: true, code: true } },
+          shipments: {
+            select: {
+              id: true,
+              vehicleYear: true,
+              vehicleMake: true,
+              vehicleModel: true,
+              vehicleVIN: true,
+              status: true,
+              lotNumber: true,
+            },
+          },
+          _count: { select: { shipments: true, events: true, expenses: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 60,
+      }),
+
+      // Fetch active containers
+      prisma.container.findMany({
+        include: {
+          shipments: {
+            select: {
+              id: true,
+              vehicleYear: true,
+              vehicleMake: true,
+              vehicleModel: true,
+              vehicleVIN: true,
+              status: true,
+              lotNumber: true,
+            },
+          },
+          _count: { select: { shipments: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 60,
+      }),
+
+      // Fetch companies for quick dispatch creation
+      prisma.company.findMany({
+        select: { id: true, name: true, code: true },
+        orderBy: { name: 'asc' },
+      }),
+    ]);
 
     return NextResponse.json({
       shipments,
