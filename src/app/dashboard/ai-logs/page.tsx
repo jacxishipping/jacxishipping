@@ -6,18 +6,13 @@ import { useSession } from 'next-auth/react';
 import {
   Box,
   MenuItem,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   TextField,
   Typography,
 } from '@mui/material';
 import { AlertTriangle, Bot, Clock, Filter, RefreshCcw, Search as SearchIcon, ShieldCheck, XCircle } from 'lucide-react';
 import { PageHeader, Button, EmptyState, LoadingState, StatsCard, StatusBadge, Modal, toast } from '@/components/design-system';
 import { DashboardGrid, DashboardPanel, DashboardSurface } from '@/components/dashboard/DashboardSurface';
+import { DataTable, Column } from '@/components/ui/DataTable';
 import { hasPermission } from '@/lib/rbac';
 
 type AiLog = {
@@ -164,6 +159,103 @@ export default function AiLogsPage() {
     }
   }, [logs, quickFilter]);
 
+  const aiLogColumns = useMemo<Column<AiLog>[]>(
+    () => [
+      {
+        key: 'feature',
+        header: 'Feature',
+        sortable: true,
+        render: (_, log) => (
+          <Box>
+            <Typography sx={{ fontSize: '0.85rem', fontWeight: 600 }}>{formatFeatureLabel(log.feature)}</Typography>
+            <Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{log.model || 'N/A'}</Typography>
+          </Box>
+        ),
+      },
+      {
+        key: 'status',
+        header: 'Status',
+        sortable: true,
+        render: (_, log) => (
+          <StatusBadge
+            status={log.status === 'SUCCESS' ? 'success' : log.status === 'FALLBACK' ? 'warning' : 'error'}
+          />
+        ),
+      },
+      {
+        key: 'provider',
+        header: 'Provider',
+        sortable: true,
+        render: (_, log) => (
+          <Box>
+            <Typography sx={{ fontSize: '0.8rem', fontWeight: 600 }}>{log.provider}</Typography>
+            <Typography sx={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+              {log.provider === 'rules' ? 'Fallback' : 'Live provider'}
+            </Typography>
+          </Box>
+        ),
+      },
+      {
+        key: 'entityType',
+        header: 'Entity',
+        render: (_, log) => (
+          <Box>
+            <Typography sx={{ fontSize: '0.8rem' }}>{log.entityType || 'N/A'}</Typography>
+            <Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{truncateText(log.entityId, 18)}</Typography>
+          </Box>
+        ),
+      },
+      {
+        key: 'createdAt',
+        header: 'Created',
+        sortable: true,
+        render: (_, log) => (
+          <Box>
+            <Typography sx={{ fontSize: '0.8rem' }}>{new Date(log.createdAt).toLocaleDateString()}</Typography>
+            <Typography sx={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>{new Date(log.createdAt).toLocaleTimeString()}</Typography>
+          </Box>
+        ),
+      },
+      {
+        key: 'reason' as unknown as keyof AiLog,
+        header: 'Reason',
+        render: (_, log) => {
+          const reason = getLogFailureReason(log);
+          return reason ? (
+            <Box sx={{ display: 'flex', gap: 0.75, alignItems: 'flex-start', maxWidth: 260 }}>
+              {log.provider === 'rules' ? <Clock className="w-4 h-4 text-[var(--warning)]" /> : <AlertTriangle className="w-4 h-4 text-[var(--error)]" />}
+              <Typography sx={{ fontSize: '0.78rem', color: log.provider === 'rules' ? 'var(--warning)' : 'var(--error)' }}>
+                {truncateText(reason, 120)}
+              </Typography>
+            </Box>
+          ) : (
+            <Typography sx={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>No issue reported</Typography>
+          );
+        },
+      },
+      {
+        key: 'prompt',
+        header: 'Prompt',
+        render: (_, log) => (
+          <Typography sx={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{truncateText(log.prompt, 90)}</Typography>
+        ),
+      },
+      {
+        key: 'actions' as unknown as keyof AiLog,
+        header: 'Action',
+        align: 'right',
+        render: (_, log) => (
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end' }} onClick={(e) => e.stopPropagation()}>
+            <Button variant="outline" size="sm" onClick={() => setSelectedLog(log)}>
+              View
+            </Button>
+          </Box>
+        ),
+      },
+    ],
+    [],
+  );
+
   const clearFilters = () => {
     setFeature('');
     setEntityType('');
@@ -299,82 +391,12 @@ export default function AiLogsPage() {
       </DashboardPanel>
 
       <DashboardPanel title="Recent AI Activity" description="Latest persisted interactions matching your filters">
-        {visibleLogs.length === 0 ? (
-          <EmptyState
-            icon={<Bot className="w-8 h-8" />}
-            title="No AI logs found"
-            description={logs.length === 0 ? 'Run an AI dashboard brief, shipment draft, or extraction flow to populate this page.' : 'Try clearing the quick filter or changing the feature/entity filters.'}
-          />
-        ) : (
-          <TableContainer>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>Feature</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Provider</TableCell>
-                  <TableCell>Entity</TableCell>
-                  <TableCell>Created</TableCell>
-                  <TableCell>Reason</TableCell>
-                  <TableCell>Prompt</TableCell>
-                  <TableCell align="right">Action</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {visibleLogs.map((log) => {
-                  const reason = getLogFailureReason(log);
-                  return (
-                    <TableRow key={log.id} hover>
-                      <TableCell>
-                        <Typography sx={{ fontSize: '0.85rem', fontWeight: 600 }}>{formatFeatureLabel(log.feature)}</Typography>
-                        <Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{log.model || 'N/A'}</Typography>
-                      </TableCell>
-                      <TableCell>
-                        <StatusBadge
-                          status={log.status === 'SUCCESS' ? 'success' : log.status === 'FALLBACK' ? 'warning' : 'error'}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Typography sx={{ fontSize: '0.8rem', fontWeight: 600 }}>{log.provider}</Typography>
-                        <Typography sx={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
-                          {log.provider === 'rules' ? 'Fallback' : 'Live provider'}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography sx={{ fontSize: '0.8rem' }}>{log.entityType || 'N/A'}</Typography>
-                        <Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{truncateText(log.entityId, 18)}</Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography sx={{ fontSize: '0.8rem' }}>{new Date(log.createdAt).toLocaleDateString()}</Typography>
-                        <Typography sx={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>{new Date(log.createdAt).toLocaleTimeString()}</Typography>
-                      </TableCell>
-                      <TableCell>
-                        {reason ? (
-                          <Box sx={{ display: 'flex', gap: 0.75, alignItems: 'flex-start', maxWidth: 260 }}>
-                            {log.provider === 'rules' ? <Clock className="w-4 h-4 text-amber-600" /> : <AlertTriangle className="w-4 h-4 text-red-600" />}
-                            <Typography sx={{ fontSize: '0.78rem', color: log.provider === 'rules' ? 'rgb(146, 64, 14)' : 'rgb(185, 28, 28)' }}>
-                              {truncateText(reason, 120)}
-                            </Typography>
-                          </Box>
-                        ) : (
-                          <Typography sx={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>No issue reported</Typography>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Typography sx={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{truncateText(log.prompt, 90)}</Typography>
-                      </TableCell>
-                      <TableCell align="right">
-                        <Button variant="outline" size="sm" onClick={() => setSelectedLog(log)}>
-                          View
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        )}
+        <DataTable
+          data={visibleLogs}
+          columns={aiLogColumns}
+          keyField="id"
+          onRowClick={(log) => setSelectedLog(log)}
+        />
       </DashboardPanel>
 
       {/* Modal Inspector */}

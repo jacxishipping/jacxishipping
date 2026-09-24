@@ -51,7 +51,7 @@ export function DashboardHeader({ title, description, meta, actions, className }
 			)}
 			style={{
 				borderColor: 'var(--border)',
-				// backgroundColor: 'var(--panel)', // Removed in favor of glass-premium which handles bg
+				borderTop: '2px solid rgba(var(--accent-gold-rgb), 0.3)',
 				boxShadow: '0 12px 30px rgba(var(--text-primary-rgb),0.08)',
 			}}
 		>

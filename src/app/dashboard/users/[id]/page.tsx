@@ -28,7 +28,7 @@ import {
   Sparkles,
   Shield
 } from 'lucide-react';
-import { Box, Typography, Chip, Tab, Tabs } from '@mui/material';
+import { Box, Typography, Tab, Tabs } from '@mui/material';
 import {
   DashboardSurface,
   DashboardPanel,
@@ -502,18 +502,13 @@ export default function UserViewPage({ params }: { params: Promise<{ id: string 
                     <Typography variant="h6" fontWeight="bold" noWrap>
                       {user.name || 'No Name'}
                     </Typography>
-                    <Chip
-                      label={user.role.toUpperCase()}
-                      size="small"
-                      sx={{
-                        mt: 0.5,
-                        bgcolor: user.role === 'admin' ? 'rgba(var(--accent-gold-rgb), 0.15)' : 'var(--background)',
-                        color: user.role === 'admin' ? 'var(--accent-gold)' : 'var(--text-secondary)',
-                        fontWeight: 700,
-                        fontSize: '0.7rem',
-                        border: '1px solid var(--border)',
-                      }}
-                    />
+                    <Box sx={{ mt: 0.5 }}>
+                      <StatusBadge
+                        status={user.role}
+                        label={user.role.toUpperCase()}
+                        size="sm"
+                      />
+                    </Box>
                   </Box>
                 </Box>
 

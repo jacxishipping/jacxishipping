@@ -21,7 +21,7 @@ import {
 import { Building2, GitCompareArrows, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import PermissionRoute from '@/components/auth/PermissionRoute';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
-import { Breadcrumbs, Button, StatsCard, toast } from '@/components/design-system';
+import { Breadcrumbs, Button, StatsCard, toast, PageHeader } from '@/components/design-system';
 import { DataTable, Column } from '@/components/ui/DataTable';
 
 interface Company {
@@ -375,11 +375,8 @@ export default function CompanyFinancePage() {
   return (
     <PermissionRoute permission="finance:manage">
       <DashboardSurface>
-        <Box sx={{ px: 2, pt: 2 }}>
-          <Breadcrumbs />
-        </Box>
-
-        <DashboardPanel
+        <PageHeader
+          showBreadcrumbs
           title="Company Finance Ledgers"
           description="Create and manage ledgers for partner companies"
           actions={
@@ -392,7 +389,9 @@ export default function CompanyFinancePage() {
               </Button>
             </Box>
           }
-        >
+        />
+
+        <DashboardPanel noHeaderBorder>
           <DashboardGrid className="grid-cols-1 md:grid-cols-4 mb-4">
             <StatsCard icon={<Building2 className="w-5 h-5" />} title="Companies" value={stats.companies} variant="default" />
             <StatsCard icon={<Building2 className="w-5 h-5" />} title="Total Debit" value={formatCurrency(stats.totalDebit)} variant="error" />

@@ -52,6 +52,7 @@ export type StatusType = ShipmentStatus | PaymentStatus | GenericStatus | string
 
 export interface StatusBadgeProps {
   status: StatusType;
+  label?: string;
   variant?: 'default' | 'dot' | 'outline';
   size?: 'sm' | 'md' | 'lg';
   icon?: ReactNode;
@@ -218,6 +219,27 @@ const statusColors: Record<string, { bg: string; text: string; border: string }>
     text: 'var(--info-dark)',
     border: 'var(--info)',
   },
+  // User Roles
+  ADMIN: {
+    bg: 'rgba(var(--accent-gold-rgb), 0.15)',
+    text: 'var(--accent-gold)',
+    border: 'rgba(var(--accent-gold-rgb), 0.3)',
+  },
+  MANAGER: {
+    bg: 'rgba(59, 130, 246, 0.12)',
+    text: 'var(--info-dark)',
+    border: 'var(--info)',
+  },
+  USER: {
+    bg: 'var(--panel)',
+    text: 'var(--text-secondary)',
+    border: 'var(--border)',
+  },
+  CUSTOMER: {
+    bg: 'var(--panel)',
+    text: 'var(--text-secondary)',
+    border: 'var(--border)',
+  },
   DEFAULT: {
     bg: 'var(--panel)',
     text: 'var(--text-primary)',
@@ -260,6 +282,7 @@ const sizeConfig = {
 
 export default function StatusBadge({
   status,
+  label,
   variant = 'default',
   size = 'md',
   icon,
@@ -270,6 +293,7 @@ export default function StatusBadge({
   const colors = statusColors[normalizedStatus] || statusColors.DEFAULT;
   const config = sizeConfig[size];
   const resolvedIcon = showIcon ? getStatusIcon(normalizedStatus) : icon;
+  const displayText = label || formatStatusText(status);
 
   // Default variant (filled background)
   if (variant === 'default') {
@@ -319,10 +343,10 @@ export default function StatusBadge({
             fontWeight: 'inherit',
             letterSpacing: '0.025em',
             lineHeight: 1,
-            textTransform: 'capitalize',
+            textTransform: label ? 'none' : 'capitalize',
           }}
         >
-          {formatStatusText(status)}
+          {displayText}
         </Typography>
       </Box>
     );
@@ -370,11 +394,11 @@ export default function StatusBadge({
           sx={{
             fontSize: 'inherit',
             fontWeight: 'inherit',
-            textTransform: 'capitalize',
+            textTransform: label ? 'none' : 'capitalize',
             lineHeight: 1,
           }}
         >
-          {formatStatusText(status)}
+          {displayText}
         </Typography>
       </Box>
     );
@@ -413,7 +437,7 @@ export default function StatusBadge({
           <Box 
             sx={{ 
               display: 'flex', 
-              alignItems: 'center',
+              alignItems: 'center', 
               fontSize: `${parseFloat(config.fontSize) * 0.9}rem`,
               lineHeight: 1,
             }}
@@ -427,11 +451,11 @@ export default function StatusBadge({
             fontSize: 'inherit',
             fontWeight: 'inherit',
             letterSpacing: '0.025em',
-            textTransform: 'capitalize',
+            textTransform: label ? 'none' : 'capitalize',
             lineHeight: 1,
           }}
         >
-          {formatStatusText(status)}
+          {displayText}
         </Typography>
       </Box>
     );

@@ -701,8 +701,8 @@ export default function BankingFinancePage() {
                                   borderRadius: 999,
                                   fontSize: '0.72rem',
                                   fontWeight: 700,
-                                  background: row.isDuplicate ? 'rgba(234, 179, 8, 0.14)' : 'rgba(34, 197, 94, 0.12)',
-                                  color: row.isDuplicate ? '#b45309' : '#15803d',
+                                  background: row.isDuplicate ? 'var(--warning-light)' : 'var(--success-light)',
+                                  color: row.isDuplicate ? 'var(--warning-dark)' : 'var(--success-dark)',
                                 }}
                               >
                                 {row.isDuplicate
@@ -712,7 +712,7 @@ export default function BankingFinancePage() {
                                   : 'Will Import'}
                               </span>
                             </td>
-                            <td style={{ padding: '10px 12px', verticalAlign: 'top', textAlign: 'right', color: row.type === 'DEBIT' ? 'var(--error)' : '#16a34a', fontWeight: 700 }}>
+                            <td style={{ padding: '10px 12px', verticalAlign: 'top', textAlign: 'right', color: row.type === 'DEBIT' ? 'var(--error)' : 'var(--success)', fontWeight: 700 }}>
                               {row.type === 'DEBIT' ? '+' : '-'}{formatCurrency(row.amount)}
                             </td>
                           </tr>

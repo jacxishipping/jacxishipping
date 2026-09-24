@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Box } from '@mui/material';
 import { SearchFilters } from '@/components/dashboard/SmartSearch';
 import { DashboardSurface } from '@/components/dashboard/DashboardSurface';
-import { toast, StatusBadge, ConfirmDialog, StatusFilterPills } from '@/components/design-system';
+import { toast, StatusBadge, ConfirmDialog, StatusFilterPills, PageHeader, Button } from '@/components/design-system';
 import ShipmentsResultsPanel from '@/components/shipments/ShipmentsResultsPanel';
 import ShipmentsSearchPanel from '@/components/shipments/ShipmentsSearchPanel';
 import type { Shipment, ShipmentTableRow } from '@/components/shipments/shipment-list-types';
@@ -18,7 +18,7 @@ import ShipmentQuickPeek from '@/components/dashboard/ShipmentQuickPeek';
 import Link from 'next/link';
 import { QRCodeModal, type QRCodeData } from '@/components/dashboard/QRCodeModal';
 import { SavedFilterPresets } from '@/components/dashboard/SavedFilterPresets';
-import { QrCode, Eye, Trash2, PanelRightOpen } from 'lucide-react';
+import { QrCode, Eye, Trash2, PanelRightOpen, Plus } from 'lucide-react';
 
 export default function ShipmentsListPage() {
 	const router = useRouter();
@@ -252,7 +252,7 @@ export default function ShipmentsListPage() {
 					<button
 						type="button"
 						onClick={() => setQuickPeekShipmentId(row.id)}
-						className="p-1.5 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[rgba(var(--text-primary-rgb),0.06)] transition-colors"
+						className="p-1.5 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[rgba(var(--text-primary-rgb),0.06)] transition-colors min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center"
 						title="Quick peek shipment"
 						aria-label="Quick peek shipment"
 					>
@@ -260,7 +260,7 @@ export default function ShipmentsListPage() {
 					</button>
 					<Link
 						href={`/dashboard/shipments/${row.id}`}
-						className="p-1.5 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[rgba(var(--text-primary-rgb),0.06)] transition-colors"
+						className="p-1.5 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[rgba(var(--text-primary-rgb),0.06)] transition-colors min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center"
 						title="View shipment details"
 						aria-label="View shipment details"
 					>
@@ -269,7 +269,7 @@ export default function ShipmentsListPage() {
 					<button
 						type="button"
 						onClick={(e) => handleOpenQR(row, e)}
-						className="p-1.5 rounded-lg text-[var(--text-secondary)] hover:text-[var(--accent-gold)] hover:bg-[rgba(var(--accent-gold-rgb),0.12)] transition-colors"
+						className="p-1.5 rounded-lg text-[var(--text-secondary)] hover:text-[var(--accent-gold)] hover:bg-[rgba(var(--accent-gold-rgb),0.12)] transition-colors min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center"
 						title="Print Yard QR Sticker"
 						aria-label="Print Yard QR Sticker"
 					>
@@ -279,7 +279,7 @@ export default function ShipmentsListPage() {
 						<button
 							type="button"
 							onClick={() => void handleBulkDelete([row.id])}
-							className="p-1.5 rounded-lg text-[var(--error)] hover:bg-red-500/10 transition-colors"
+							className="p-1.5 rounded-lg text-[var(--error)] hover:bg-red-500/10 transition-colors min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center"
 							title="Delete shipment"
 							aria-label="Delete shipment"
 						>
@@ -347,8 +347,28 @@ export default function ShipmentsListPage() {
 
 	return (
 		<DashboardSurface className="overflow-hidden">
-			<ShipmentsSearchPanel
+			<PageHeader
 				showBreadcrumbs
+				title="Shipments"
+				description="Search, filter, and manage your shipments"
+				actions={
+					canManageShipments ? (
+						<Link href="/dashboard/shipments/new" style={{ textDecoration: 'none' }}>
+							<Button
+								variant="primary"
+								size="sm"
+								icon={<Plus className="w-4 h-4" />}
+								iconPosition="start"
+							>
+								New shipment
+							</Button>
+						</Link>
+					) : null
+				}
+			/>
+
+			<ShipmentsSearchPanel
+				hideHeader
 				onSearch={handleSearch}
 				canManageShipments={canManageShipments}
 				isAdmin={isAdmin}
@@ -359,11 +379,11 @@ export default function ShipmentsListPage() {
 				<StatusFilterPills
 					options={[
 						{ value: '', label: 'All Statuses' },
-						{ value: 'ON_HAND', label: 'On Hand', color: '#D4AF37' },
-						{ value: 'DISPATCHING', label: 'Dispatching', color: '#F59E0B' },
-						{ value: 'IN_TRANSIT', label: 'In Transit', color: '#3B82F6' },
+						{ value: 'ON_HAND', label: 'On Hand', color: 'var(--accent-gold)' },
+						{ value: 'DISPATCHING', label: 'Dispatching', color: 'var(--warning)' },
+						{ value: 'IN_TRANSIT', label: 'In Transit', color: 'var(--info)' },
 						{ value: 'ARRIVED_AT_PORT', label: 'Port Arrival', color: '#8B5CF6' },
-						{ value: 'DELIVERED', label: 'Delivered', color: '#10B981' },
+						{ value: 'DELIVERED', label: 'Delivered', color: 'var(--success)' },
 					]}
 					selectedValue={searchFilters.status || ''}
 					onSelect={(status) => {

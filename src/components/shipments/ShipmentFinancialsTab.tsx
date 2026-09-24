@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import { CheckCircle2, CircleDashed, DollarSign, Pencil, ReceiptText, Ship, Trash2, Truck } from 'lucide-react';
-import { Alert, Box, Dialog, DialogActions, DialogContent, DialogTitle, TextField } from '@mui/material';
+import { Alert, Box, TextField } from '@mui/material';
 import { DashboardPanel } from '@/components/dashboard/DashboardSurface';
-import { Button, toast } from '@/components/design-system';
+import { Button, Modal, toast } from '@/components/design-system';
 import { cn } from '@/lib/utils';
 import { formatMoney as formatSnapshotMoney } from '@/lib/format';
 import type {
@@ -557,9 +557,19 @@ export default function ShipmentFinancialsTab({
       </div>
       </DashboardPanel>
 
-      <Dialog open={Boolean(editingExpense)} onClose={() => !updatingExpense && setEditingExpense(null)} maxWidth="sm" fullWidth>
-        <DialogTitle>Edit Expense</DialogTitle>
-        <DialogContent sx={{ display: 'grid', gap: 2, pt: 1.5 }}>
+      <Modal
+        open={Boolean(editingExpense)}
+        onClose={() => !updatingExpense && setEditingExpense(null)}
+        title="Edit Expense"
+        size="sm"
+        actions={
+          <>
+            <Button variant="outline" onClick={() => setEditingExpense(null)} disabled={updatingExpense}>Cancel</Button>
+            <Button onClick={() => void handleUpdateExpense()} disabled={updatingExpense}>{updatingExpense ? 'Saving...' : 'Save Changes'}</Button>
+          </>
+        }
+      >
+        <Box sx={{ display: 'grid', gap: 2, pt: 1.5 }}>
           <Alert severity="warning" sx={{ fontSize: '0.85rem' }}>
             Note: Type and amount cannot be edited to maintain ledger integrity. Only description and notes can be updated.
           </Alert>
@@ -588,12 +598,8 @@ export default function ShipmentFinancialsTab({
             value={editNotes}
             onChange={(event) => setEditNotes(event.target.value)}
           />
-        </DialogContent>
-        <DialogActions>
-          <Button variant="outline" onClick={() => setEditingExpense(null)} disabled={updatingExpense}>Cancel</Button>
-          <Button onClick={() => void handleUpdateExpense()} disabled={updatingExpense}>{updatingExpense ? 'Saving...' : 'Save Changes'}</Button>
-        </DialogActions>
-      </Dialog>
+        </Box>
+      </Modal>
     </>
   );
 }

@@ -372,7 +372,7 @@ export default function ContainersPage() {
             }}
             title="Track route on Ocean Map"
             aria-label="Track route on Ocean Map"
-            className="p-1.5 rounded-lg text-blue-500 hover:bg-blue-500/10 transition-colors"
+            className="p-1.5 rounded-lg text-blue-500 hover:bg-blue-500/10 transition-colors min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center"
           >
             <Compass className="w-4 h-4" />
           </button>
@@ -381,7 +381,7 @@ export default function ContainersPage() {
             onClick={() => setPlannerContainer(row)}
             title="2D Visual Load Planner"
             aria-label="2D Visual Load Planner"
-            className="p-1.5 rounded-lg text-[var(--accent-gold)] hover:bg-[rgba(var(--accent-gold-rgb),0.12)] transition-colors"
+            className="p-1.5 rounded-lg text-[var(--accent-gold)] hover:bg-[rgba(var(--accent-gold-rgb),0.12)] transition-colors min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center"
           >
             <Layers className="w-4 h-4" />
           </button>
@@ -390,7 +390,7 @@ export default function ContainersPage() {
             onClick={() => setQuickPeekContainerId(row.id)}
             title="Quick peek container manifest"
             aria-label="Quick peek container manifest"
-            className="p-1.5 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[rgba(var(--text-primary-rgb),0.06)] transition-colors"
+            className="p-1.5 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[rgba(var(--text-primary-rgb),0.06)] transition-colors min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center"
           >
             <PanelRightOpen className="w-4 h-4" />
           </button>
@@ -399,7 +399,7 @@ export default function ContainersPage() {
             onClick={() => router.push(`/dashboard/containers/${row.id}`)}
             title="View container details"
             aria-label="View container details"
-            className="p-1.5 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[rgba(var(--text-primary-rgb),0.06)] transition-colors"
+            className="p-1.5 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[rgba(var(--text-primary-rgb),0.06)] transition-colors min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center"
           >
             <Eye className="w-4 h-4" />
           </button>

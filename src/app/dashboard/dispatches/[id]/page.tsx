@@ -6,7 +6,6 @@ import { useParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import {
   Autocomplete,
-  Chip,
   Box,
   CircularProgress,
   Dialog,
@@ -22,7 +21,7 @@ import {
 import { ArrowLeft, DollarSign, History, Package, Pencil, Plus, Trash2, Truck, User } from 'lucide-react';
 import PermissionRoute from '@/components/auth/PermissionRoute';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
-import { Breadcrumbs, Button, EmptyState, StatsCard, TableSkeleton, toast, CopyButton, PageHeader, MilestoneStepper } from '@/components/design-system';
+import { Breadcrumbs, Button, EmptyState, StatsCard, TableSkeleton, toast, CopyButton, PageHeader, MilestoneStepper, StatusBadge } from '@/components/design-system';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { DISPATCH_STATUS_COLORS, DISPATCH_STATUS_OPTIONS, getDispatchStatusLabel, isDispatchClosed } from '@/lib/dispatch-workflow';
 import DispatchExpenseModal, { type EditableDispatchExpense } from '@/components/dispatches/DispatchExpenseModal';
@@ -500,14 +499,14 @@ export default function DispatchDetailPage() {
           const handoffSummary = parseHandoffEventDescription(row.description);
           return (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-              <Chip label="Handoff" size="small" sx={{ bgcolor: 'rgba(var(--accent-gold-rgb), 0.16)', color: 'var(--accent-gold)', fontWeight: 700 }} />
-              {handoffSummary?.containerLabel && <Chip label={handoffSummary.containerLabel} size="small" variant="outlined" />}
+              <StatusBadge status="WARNING" label="Handoff" size="sm" />
+              {handoffSummary?.containerLabel && <StatusBadge status="DEFAULT" variant="outline" label={handoffSummary.containerLabel} size="sm" />}
             </Box>
           );
         }
 
         if (row.status === 'RECEIVED_TO_YARD') {
-          return <Chip label="Yard Receipt" size="small" sx={{ bgcolor: 'rgba(34, 197, 94, 0.14)', color: 'rgb(21, 128, 61)', fontWeight: 700 }} />;
+          return <StatusBadge status="SUCCESS" label="Yard Receipt" size="sm" />;
         }
 
         return getDispatchEventStatusLabel(String(value));

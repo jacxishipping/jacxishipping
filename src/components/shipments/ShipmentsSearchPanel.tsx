@@ -9,10 +9,11 @@ import { Breadcrumbs, Button } from '@/components/design-system';
 
 type ShipmentsSearchPanelProps = {
 	onSearch: (filters: SearchFilters) => void;
-	canManageShipments: boolean;
+	canManageShipments?: boolean;
 	isAdmin: boolean;
 	showBreadcrumbs?: boolean;
 	showDeliveryFilter?: boolean;
+	hideHeader?: boolean;
 };
 
 export default function ShipmentsSearchPanel({
@@ -21,26 +22,29 @@ export default function ShipmentsSearchPanel({
 	isAdmin,
 	showBreadcrumbs = false,
 	showDeliveryFilter = false,
+	hideHeader = false,
 }: ShipmentsSearchPanelProps) {
 	return (
 		<>
-			{showBreadcrumbs && (
+			{showBreadcrumbs && !hideHeader && (
 				<Box sx={{ mb: 1.5 }}>
 					<Breadcrumbs />
 				</Box>
 			)}
 			<DashboardPanel
 				title={
-					<Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
-						<Inventory2 sx={{ fontSize: 18, color: 'var(--accent-gold)' }} />
-						<span>Shipments</span>
-					</Box>
+					!hideHeader ? (
+						<Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
+							<Inventory2 sx={{ fontSize: 18, color: 'var(--accent-gold)' }} />
+							<span>Shipments</span>
+						</Box>
+					) : undefined
 				}
-				description="Search, filter, and manage your shipments"
+				description={!hideHeader ? "Search, filter, and manage your shipments" : undefined}
 				noBodyPadding
 				className="overflow-hidden"
 				actions={
-					canManageShipments ? (
+					!hideHeader && canManageShipments ? (
 						<Link href="/dashboard/shipments/new" style={{ textDecoration: 'none' }}>
 							<Button
 								variant="primary"
@@ -64,7 +68,9 @@ export default function ShipmentsSearchPanel({
 						showYardFilter
 						showDateFilter
 						showPriceFilter
-						showUserFilter={isAdmin}					showDeliveryFilter={showDeliveryFilter}						defaultType="shipments"
+						showUserFilter={isAdmin}
+						showDeliveryFilter={showDeliveryFilter}
+						defaultType="shipments"
 					/>
 				</Box>
 			</DashboardPanel>

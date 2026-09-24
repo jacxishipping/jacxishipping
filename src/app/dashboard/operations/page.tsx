@@ -715,7 +715,7 @@ export default function OperationsBoardPage() {
                           <Link href={`/dashboard/dispatches/${dispatch.id}`} style={{ textDecoration: 'none' }}>
                             <button
                               type="button"
-                              className="p-1 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--background)] transition-colors"
+                              className="p-1 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--background)] transition-colors min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center"
                               title="View Dispatch Details"
                             >
                               <ArrowUpRight className="w-4 h-4" />
@@ -765,7 +765,7 @@ export default function OperationsBoardPage() {
                                 <button
                                   type="button"
                                   onClick={() => handleUnassignFromDispatch(item.id)}
-                                  className="p-1 text-[var(--text-secondary)] hover:text-[var(--error)] transition-colors"
+                                  className="p-1 text-[var(--text-secondary)] hover:text-[var(--error)] transition-colors min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center"
                                   title="Unassign vehicle from dispatch"
                                 >
                                   <X className="w-3.5 h-3.5" />
@@ -945,7 +945,7 @@ export default function OperationsBoardPage() {
                           <Link href={`/dashboard/containers/${c.id}`} style={{ textDecoration: 'none' }}>
                             <button
                               type="button"
-                              className="p-1 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--background)] transition-colors"
+                              className="p-1 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--background)] transition-colors min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center"
                               title="View Container Details"
                             >
                               <ArrowUpRight className="w-4 h-4" />
@@ -990,7 +990,7 @@ export default function OperationsBoardPage() {
                                 <button
                                   type="button"
                                   onClick={() => handleUnassignFromContainer(item.id)}
-                                  className="p-1 text-[var(--text-secondary)] hover:text-[var(--error)] transition-colors"
+                                  className="p-1 text-[var(--text-secondary)] hover:text-[var(--error)] transition-colors min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center"
                                   title="Remove from container"
                                 >
                                   <X className="w-3.5 h-3.5" />

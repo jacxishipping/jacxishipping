@@ -20,7 +20,7 @@ import {
 import { AlertTriangle, ArrowLeft, Building2, CheckCircle2, DollarSign, Eye, GitCompareArrows, Landmark, Pencil, Plus, ReceiptText, Trash2, Truck, Upload } from 'lucide-react';
 import PermissionRoute from "@/components/auth/PermissionRoute";
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
-import { Breadcrumbs, Button, StatsCard, toast, TableSkeleton } from '@/components/design-system';
+import { Breadcrumbs, Button, StatsCard, toast, TableSkeleton, PageHeader } from '@/components/design-system';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { normalizeShippingRateConfig, type AuctionRateEntry, type ShippingRateCalculatorConfig } from '@/lib/shipping-rate-calculator';
 
@@ -1091,15 +1091,12 @@ export default function CompanyLedgerDetailPage() {
   return (
     <PermissionRoute permission="finance:manage">
       <DashboardSurface>
-        <Box sx={{ px: 2, pt: 2 }}>
-          <Breadcrumbs />
-        </Box>
-
-        <DashboardPanel
+        <PageHeader
+          showBreadcrumbs
           title={company.name}
           description={`${companyTypeLabel} Company Ledger${company.code ? ` • ${company.code}` : ''}`}
           actions={
-            <Box sx={{ display: 'flex', gap: 1 }}>
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
               <Link href="/dashboard/finance/companies" style={{ textDecoration: 'none' }}>
                 <Button variant="outline" icon={<ArrowLeft className="w-4 h-4" />}>Back</Button>
               </Link>
@@ -1124,14 +1121,14 @@ export default function CompanyLedgerDetailPage() {
               </Button>
             </Box>
           }
-        >
-          <DashboardGrid className="grid-cols-1 md:grid-cols-4 mb-4">
-            <StatsCard icon={<DollarSign className="w-5 h-5" />} title="Total Expenses" value={formatCurrency(summary.totalExpenseCharges)} variant="error" />
-            <StatsCard icon={<DollarSign className="w-5 h-5" />} title="Total Paid" value={formatCurrency(summary.totalDebit)} variant="success" />
-            <StatsCard icon={<Building2 className="w-5 h-5" />} title="Total Owed" value={formatCurrency(Math.abs(summary.currentBalance))} variant="info" />
-            <StatsCard icon={<ReceiptText className="w-5 h-5" />} title="Total Transactions" value={report?.summary.transactionCount || entries.length} variant="default" />
-          </DashboardGrid>
-        </DashboardPanel>
+        />
+
+        <DashboardGrid className="grid-cols-1 md:grid-cols-4 mb-4">
+          <StatsCard icon={<DollarSign className="w-5 h-5" />} title="Total Expenses" value={formatCurrency(summary.totalExpenseCharges)} variant="error" />
+          <StatsCard icon={<DollarSign className="w-5 h-5" />} title="Total Paid" value={formatCurrency(summary.totalDebit)} variant="success" />
+          <StatsCard icon={<Building2 className="w-5 h-5" />} title="Total Owed" value={formatCurrency(Math.abs(summary.currentBalance))} variant="info" />
+          <StatsCard icon={<ReceiptText className="w-5 h-5" />} title="Total Transactions" value={report?.summary.transactionCount || entries.length} variant="default" />
+        </DashboardGrid>
 
         <Box
           sx={{
