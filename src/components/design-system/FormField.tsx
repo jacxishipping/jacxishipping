@@ -20,6 +20,7 @@ export default function FormField({
 }: FormFieldProps) {
 	const { density } = useTheme();
 	const isCompact = density === 'compact';
+	const helperTextId = textFieldProps.id ? `${textFieldProps.id}-helper-text` : undefined;
 
 	return (
 		<Box className="ds-form-field">
