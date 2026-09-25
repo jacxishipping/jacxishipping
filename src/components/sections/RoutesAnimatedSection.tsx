@@ -36,7 +36,8 @@ export default function RoutesAnimatedSection() {
   const pathLength = useTransform(scrollYProgress, [0, 1], [0, 1]);
 
   return (
-    <section ref={containerRef} id="route" className="relative overflow-hidden bg-[#F9FAFB] py-24 sm:py-32 selection:bg-[var(--accent-gold)] selection:text-gray-900">
+    <section ref={containerRef} id="route" className="relative overflow-hidden bg-[#F9FAFB] py-24 sm:py-32 selection:bg-[var(--accent-gold)] selection:text-gray-900 scroll-mt-20">
+      <div id="routes" className="absolute -top-20" aria-hidden="true" />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(var(--accent-gold-rgb),0.1)_0%,transparent_70%)]" />
       <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10" />
 

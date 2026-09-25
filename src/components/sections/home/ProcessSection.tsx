@@ -64,7 +64,7 @@ export default function ProcessSection() {
 
   return (
     // The height here determines how long the user has to scroll to see all cards
-    <section ref={targetRef} className="relative h-[300vh] bg-[#F9FAFB]">
+    <section ref={targetRef} id="process" className="relative h-[300vh] bg-[#F9FAFB]">
       
       {/* Sticky container holds the horizontal scrolling row */}
       <div className="sticky top-0 flex h-screen items-center overflow-hidden bg-[#F9FAFB]">

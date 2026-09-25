@@ -63,7 +63,8 @@ export default function ContactSection({ isAuthenticated = false }: ContactSecti
   };
 
   return (
-    <section id="contact" className="relative bg-[#F9FAFB] py-32 text-gray-900 overflow-hidden">
+    <section id="contact" className="relative bg-[#F9FAFB] py-32 text-gray-900 overflow-hidden scroll-mt-20">
+      <div id="contact-us" className="absolute -top-20" aria-hidden="true" />
       {/* Background Graphic */}
       <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-[radial-gradient(ellipse_at_center,rgba(212,175,55,0.06)_0%,transparent_70%)] pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.03)_0%,transparent_70%)] pointer-events-none" />

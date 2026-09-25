@@ -7,26 +7,26 @@ import Magnetic from '@/components/ui/Magnetic';
 
 const footerNavigation = {
   solutions: [
-    { name: 'Vehicle sourcing', href: '#' },
-    { name: 'Ocean freight', href: '#' },
-    { name: 'Customs clearance', href: '#' },
-    { name: 'Secure storage', href: '#' },
+    { name: 'Vehicle sourcing', href: '/services' },
+    { name: 'Ocean freight', href: '/services' },
+    { name: 'Customs clearance', href: '/services' },
+    { name: 'Secure storage', href: '/services' },
   ],
   support: [
     { name: 'FAQ', href: '/#faq' },
-    { name: 'Contact us', href: '/#contact-us' },
+    { name: 'Contact us', href: '/#contact' },
     { name: 'Get a quote', href: '/#quote' },
     { name: 'Customer portal', href: '/auth/signin' },
   ],
   company: [
-    { name: 'About JACXI', href: '/#about-us' },
+    { name: 'About JACXI', href: '/#about' },
     { name: 'Our process', href: '/#process' },
     { name: 'Corridor routes', href: '/#route' },
   ],
   legal: [
-    { name: 'Privacy policy', href: '#' },
-    { name: 'Terms of service', href: '#' },
-    { name: 'Cookie policy', href: '#' },
+    { name: 'Privacy policy', href: '/legal/app-privacy-policy' },
+    { name: 'Terms of service', href: '/legal/app-privacy-policy' },
+    { name: 'Cookie policy', href: '/legal/app-privacy-policy' },
   ],
 };
 

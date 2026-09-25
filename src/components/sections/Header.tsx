@@ -12,8 +12,8 @@ const navigation = [
   { name: 'Routes', href: '/#route' },
   { name: 'Process', href: '/#process' },
   { name: 'Tracking', href: '/tracking' },
-  { name: 'About', href: '/#about-us' },
-  { name: 'Contact', href: '/#contact-us' },
+  { name: 'About', href: '/#about' },
+  { name: 'Contact', href: '/#contact' },
 ];
 
 export default function Header({ isAuthenticated = false }: { isAuthenticated?: boolean }) {

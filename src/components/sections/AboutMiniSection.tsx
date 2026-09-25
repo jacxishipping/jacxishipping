@@ -27,7 +27,8 @@ const trustCards = [
 
 export default function AboutMiniSection() {
 	return (
-		<section id="about" className="relative overflow-hidden bg-[var(--background)] py-20 sm:py-24">
+		<section id="about" className="relative overflow-hidden bg-[var(--background)] py-20 sm:py-24 scroll-mt-20">
+			<div id="about-us" className="absolute -top-20" aria-hidden="true" />
 			<div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 				<div className="grid gap-10 lg:grid-cols-[0.82fr_1.18fr] lg:items-start">
 					<div>
