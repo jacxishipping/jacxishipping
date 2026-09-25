@@ -117,8 +117,8 @@ const originalRouteDepFns = {
   loggerInfo: routeDeps.logger.info,
   loggerError: routeDeps.logger.error,
   prismaTransaction: routeDeps.prisma.$transaction,
-  prismaQueryRawUnsafe: routeDeps.prisma.$queryRawUnsafe,
-  prismaExecuteRawUnsafe: routeDeps.prisma.$executeRawUnsafe,
+  prismaQueryRaw: routeDeps.prisma.$queryRaw,
+  prismaExecuteRaw: routeDeps.prisma.$executeRaw,
   dispatchFindUnique: routeDeps.prisma.dispatch.findUnique,
   dispatchUpdate: routeDeps.prisma.dispatch.update,
   companyFindUnique: routeDeps.prisma.company.findUnique,
@@ -378,7 +378,10 @@ function installRouteMocks(state: WorkflowState) {
   routeDeps.logger.info = (() => undefined) as unknown as typeof routeDeps.logger.info;
   routeDeps.logger.error = (() => undefined) as unknown as typeof routeDeps.logger.error;
   routeDeps.prisma.$transaction = (async (callback: (tx: typeof routeDeps.prisma) => Promise<unknown>) => callback(routeDeps.prisma)) as unknown as typeof routeDeps.prisma.$transaction;
-  routeDeps.prisma.$queryRawUnsafe = (async (query: string, ...args: unknown[]) => {
+  routeDeps.prisma.$queryRaw = (async (sqlObj: { text: string; values: unknown[] } | ReturnType<typeof import('@prisma/client').Prisma.sql>) => {
+    const query = sqlObj.text;
+    const args = sqlObj.values;
+
     if (query.includes('COUNT(*)::int AS count')) {
       const token = String(args[0]);
       const count = Object.values(state.shipments).filter((shipment) => shipment.releaseToken === token).length;
@@ -394,12 +397,17 @@ function installRouteMocks(state: WorkflowState) {
     }
 
     return [];
-  }) as unknown as typeof routeDeps.prisma.$queryRawUnsafe;
-  routeDeps.prisma.$executeRawUnsafe = (async (_query: string, token: string, createdAt: Date, _updatedAt: Date, shipmentId: string) => {
+  }) as unknown as typeof routeDeps.prisma.$queryRaw;
+  routeDeps.prisma.$executeRaw = (async (sqlObj: { text: string; values: unknown[] } | ReturnType<typeof import('@prisma/client').Prisma.sql>) => {
+    const args = sqlObj.values;
+    const token = String(args[0]);
+    const createdAt = args[1] as Date;
+    const _updatedAt = args[2] as Date;
+    const shipmentId = String(args[3]);
     state.shipments[shipmentId].releaseToken = token;
     state.shipments[shipmentId].releaseTokenCreatedAt = createdAt;
     return 1;
-  }) as unknown as typeof routeDeps.prisma.$executeRawUnsafe;
+  }) as unknown as typeof routeDeps.prisma.$executeRaw;
 
   routeDeps.prisma.dispatch.findUnique = (async ({ where, include }: any) => {
     const dispatch = state.dispatches[where.id];
@@ -644,8 +652,8 @@ describe('workflow route integration', () => {
     routeDeps.logger.info = originalRouteDepFns.loggerInfo;
     routeDeps.logger.error = originalRouteDepFns.loggerError;
     routeDeps.prisma.$transaction = originalRouteDepFns.prismaTransaction;
-    routeDeps.prisma.$queryRawUnsafe = originalRouteDepFns.prismaQueryRawUnsafe;
-    routeDeps.prisma.$executeRawUnsafe = originalRouteDepFns.prismaExecuteRawUnsafe;
+    routeDeps.prisma.$queryRaw = originalRouteDepFns.prismaQueryRaw;
+    routeDeps.prisma.$executeRaw = originalRouteDepFns.prismaExecuteRaw;
     routeDeps.prisma.dispatch.findUnique = originalRouteDepFns.dispatchFindUnique;
     routeDeps.prisma.dispatch.update = originalRouteDepFns.dispatchUpdate;
     routeDeps.prisma.company.findUnique = originalRouteDepFns.companyFindUnique;

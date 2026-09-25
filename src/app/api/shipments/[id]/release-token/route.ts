@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { routeDeps } from '@/lib/route-deps';
 
 function buildReleaseToken() {
@@ -52,9 +53,8 @@ export async function POST(
     let token = buildReleaseToken();
 
     for (let i = 0; i < 5; i++) {
-      const existingRows = await routeDeps.prisma.$queryRawUnsafe<Array<{ count: number }>>(
-        'SELECT COUNT(*)::int AS count FROM "Shipment" WHERE "releaseToken" = $1',
-        token
+      const existingRows = await routeDeps.prisma.$queryRaw<Array<{ count: number }>>(
+        Prisma.sql`SELECT COUNT(*)::int AS count FROM "Shipment" WHERE "releaseToken" = ${token}`
       );
 
       if ((existingRows?.[0]?.count ?? 0) === 0) {
@@ -64,19 +64,14 @@ export async function POST(
       token = buildReleaseToken();
     }
 
-    await routeDeps.prisma.$executeRawUnsafe(
-      'UPDATE "Shipment" SET "releaseToken" = $1, "releaseTokenCreatedAt" = $2, "updatedAt" = $3 WHERE "id" = $4',
-      token,
-      new Date(),
-      new Date(),
-      shipment.id
+    await routeDeps.prisma.$executeRaw(
+      Prisma.sql`UPDATE "Shipment" SET "releaseToken" = ${token}, "releaseTokenCreatedAt" = ${new Date()}, "updatedAt" = ${new Date()} WHERE "id" = ${shipment.id}`
     );
 
-    const rows = await routeDeps.prisma.$queryRawUnsafe<
+    const rows = await routeDeps.prisma.$queryRaw<
       Array<{ id: string; releaseToken: string | null; releaseTokenCreatedAt: Date | null }>
     >(
-      'SELECT "id", "releaseToken", "releaseTokenCreatedAt" FROM "Shipment" WHERE "id" = $1',
-      shipment.id
+      Prisma.sql`SELECT "id", "releaseToken", "releaseTokenCreatedAt" FROM "Shipment" WHERE "id" = ${shipment.id}`
     );
 
     const updatedShipment = rows[0];
