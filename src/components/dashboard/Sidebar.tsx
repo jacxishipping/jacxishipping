@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import type { Session } from 'next-auth';
 import type { SvgIconComponent } from '@mui/icons-material';
 import { Dashboard, Inventory2, Description, Search, Analytics, Group, AllInbox, Receipt, AccountBalance, Payment, Business, LocalShipping, SmartToy, PhoneInTalk, Route, ExpandLess, ExpandMore, AdminPanelSettings, CompareArrows, Settings, Timer, ChevronLeft, ChevronRight, Logout, Close } from '@mui/icons-material';
@@ -307,6 +307,14 @@ function NavItem({ item, isActive, badge, badgeColor, onNavClick, collapsed }: N
 	const isCompact = density === 'compact';
 	const Icon = item.icon;
 	const active = isActive(item.href);
+	const router = useRouter();
+
+	// Prefetch on hover/focus so the target route's chunk and data are ready
+	// before the click, making navigation feel instant after first visit.
+	const handlePrefetch = () => {
+		router.prefetch(item.href);
+	};
+
 	const badgeStyles: Record<BadgeColor, { background: string; color: string; border: string }> = {
 		warning: {
 			background: 'rgba(var(--warning-rgb), 0.15)',
@@ -327,6 +335,8 @@ function NavItem({ item, isActive, badge, badgeColor, onNavClick, collapsed }: N
 			component={Link}
 			href={item.href}
 			onClick={onNavClick}
+			onMouseEnter={handlePrefetch}
+			onFocus={handlePrefetch}
 			selected={active}
 			aria-current={active ? 'page' : undefined}
 			sx={{
