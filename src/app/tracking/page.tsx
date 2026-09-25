@@ -426,6 +426,8 @@ function TrackingPageInner() {
 									progressPercent={trackingDetails.customerTracking.progressPercent || progressValue || 0}
 									origin={trackingDetails.origin || 'USA'}
 									destination={trackingDetails.destination || 'Herat'}
+									containerNumber={trackingDetails.containerNumber}
+									estimatedArrival={trackingDetails.estimatedArrival}
 								/>
 							</motion.div>
 						)}

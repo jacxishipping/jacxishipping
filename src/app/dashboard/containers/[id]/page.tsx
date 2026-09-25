@@ -2088,9 +2088,11 @@ export default function ContainerDetailPage() {
 								originPort={container.shippingLine || container.loadingPort || 'Port of Newark (USNWK)'}
 								destinationPort={container.destinationPort || 'Port of Jebel Ali (AEJEA)'}
 								vesselName={container.vesselName || 'MAERSK VOYAGER'}
-								voyageNumber={container.trackingNumber || 'V-2409W'}
+								voyageNumber={container.voyageNumber || container.trackingNumber || 'V-2409W'}
 								containerNumber={container.containerNumber}
 								currentProgressPct={container.progress ?? 68}
+								departureDate={container.departureDate}
+								estimatedArrival={container.estimatedArrival}
 								etaDays={container.estimatedArrival 
 									? Math.max(1, Math.ceil((new Date(container.estimatedArrival).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
 									: 9}

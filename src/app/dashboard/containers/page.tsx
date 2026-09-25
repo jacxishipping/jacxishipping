@@ -24,8 +24,11 @@ interface Container {
   containerNumber: string;
   trackingNumber: string | null;
   vesselName: string | null;
+  voyageNumber?: string | null;
   shippingLine: string | null;
+  loadingPort?: string | null;
   destinationPort: string | null;
+  departureDate?: string | null;
   estimatedArrival: string | null;
   status: string;
   progress: number;
@@ -506,12 +509,14 @@ export default function ContainersPage() {
 
           return (
             <OceanRouteMap 
-              originPort={activeContainer.shippingLine || 'Port of Newark (USNWK)'}
+              originPort={activeContainer.loadingPort || activeContainer.shippingLine || 'Port of Newark (USNWK)'}
               destinationPort={activeContainer.destinationPort || 'Port of Jebel Ali (AEJEA)'}
               vesselName={activeContainer.vesselName || 'MAERSK VOYAGER'}
-              voyageNumber={activeContainer.trackingNumber || 'V-2409W'}
+              voyageNumber={activeContainer.voyageNumber || activeContainer.trackingNumber || 'V-2409W'}
               containerNumber={activeContainer.containerNumber}
               currentProgressPct={activeContainer.progress ?? 68}
+              departureDate={activeContainer.departureDate}
+              estimatedArrival={activeContainer.estimatedArrival}
               etaDays={etaDays}
               status={statusLabels[activeContainer.status] || activeContainer.status || 'In Transit'}
               containersList={containers.map((c) => ({

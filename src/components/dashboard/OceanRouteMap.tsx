@@ -13,8 +13,11 @@ import {
   AlertCircle,
   Maximize2,
   Calendar,
-  Sparkles
+  Sparkles,
+  Radio,
+  Map
 } from 'lucide-react';
+import { LiveSeaRouteMap, type ContainerTrackSummary } from './LiveSeaRouteMap';
 
 export interface RouteStop {
   portName: string;
@@ -26,42 +29,44 @@ export interface RouteStop {
   date?: string;
 }
 
-export interface ContainerTrackSummary {
-  id: string;
-  containerNumber: string;
-  progress: number;
-  vesselName?: string | null;
-  destinationPort?: string | null;
-  status?: string;
-}
+export type { ContainerTrackSummary };
 
-interface OceanRouteMapProps {
+export interface OceanRouteMapProps {
   originPort?: string;
   destinationPort?: string;
   vesselName?: string;
   voyageNumber?: string;
   containerNumber?: string;
   currentProgressPct?: number; // 0 to 100
+  departureDate?: string | Date | null;
+  estimatedArrival?: string | Date | null;
   etaDays?: number;
   status?: string;
   containersList?: ContainerTrackSummary[];
   selectedContainerId?: string;
   onSelectContainer?: (id: string) => void;
+  className?: string;
+  defaultView?: 'live-radar' | 'vector';
 }
 
 export function OceanRouteMap({
   originPort = 'Port of Newark (USNWK)',
   destinationPort = 'Port of Jebel Ali (AEJEA)',
-  vesselName = 'MAERSK MC-KINNEY MOLLER',
+  vesselName = 'MAERSK VOYAGER',
   voyageNumber = 'V-2409W',
   containerNumber = 'MSKU9048123',
   currentProgressPct = 68,
+  departureDate,
+  estimatedArrival,
   etaDays = 9,
-  status = 'In Transatlantic Transit',
+  status = 'In Transit',
   containersList = [],
   selectedContainerId,
   onSelectContainer,
+  className = '',
+  defaultView = 'live-radar',
 }: OceanRouteMapProps) {
+  const [viewMode, setViewMode] = useState<'live-radar' | 'vector'>(defaultView);
   const [selectedWaypoint, setSelectedWaypoint] = useState<number | null>(1);
 
   // SVG coordinate projection points for standard Transatlantic -> Mediterranean -> Suez -> Arabian Gulf corridor
@@ -90,211 +95,244 @@ export function OceanRouteMap({
   }, [waypoints, currentProgressPct]);
 
   return (
-    <div className="w-full rounded-2xl bg-[var(--panel)] border border-[var(--border)] overflow-hidden shadow-sm flex flex-col">
-      {/* Header Info Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 p-4 border-b border-[var(--border)] bg-[var(--background)]">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-[var(--accent-gold)] text-white shadow-md">
-            <Ship className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-sm font-bold text-[var(--text-primary)]">
-                {vesselName}
-              </h3>
-              <span className="px-2 py-0.5 text-[10px] font-mono font-bold rounded bg-[var(--panel)] border border-[var(--border)] text-[var(--text-secondary)]">
-                {voyageNumber}
-              </span>
-            </div>
-            <p className="text-xs text-[var(--text-secondary)] mt-0.5 flex items-center gap-1.5 flex-wrap">
-              <span>Container: <strong className="font-mono text-[var(--text-primary)]">{containerNumber}</strong></span>
-              <span>•</span>
-              <span className="text-emerald-500 font-semibold">{status}</span>
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3 flex-wrap">
-          {/* Container Selector Dropdown in Header */}
-          {containersList && containersList.length > 0 && onSelectContainer && (
-            <div className="flex items-center gap-2 bg-[var(--panel)] px-3 py-1.5 rounded-xl border border-[var(--border)] shadow-sm hover:border-[var(--accent-gold)] transition-colors">
-              <Navigation className="w-3.5 h-3.5 text-[var(--accent-gold)] shrink-0" />
-              <label htmlFor="ocean-container-select" className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">
-                Container:
-              </label>
-              <select
-                id="ocean-container-select"
-                value={selectedContainerId || containersList.find(c => c.containerNumber === containerNumber)?.id || ''}
-                onChange={(e) => onSelectContainer(e.target.value)}
-                className="bg-transparent text-xs font-mono font-bold text-[var(--text-primary)] outline-none cursor-pointer pr-1 py-0.5"
-              >
-                {containersList.map((c) => (
-                  <option key={c.id} value={c.id} className="bg-[var(--panel)] text-[var(--text-primary)] font-mono">
-                    {c.containerNumber} — {c.progress}% ({c.destinationPort || 'In Transit'})
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          <div className="text-right">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)] block">
-              Estimated Arrival
-            </span>
-            <span className="text-sm font-bold text-[var(--accent-gold)]">
-              {etaDays} Days Remaining
-            </span>
-          </div>
-          <div className="px-3 py-1.5 rounded-xl border border-[var(--border)] bg-[var(--panel)] text-xs font-bold text-[var(--text-primary)] flex items-center gap-1.5 shadow-sm">
-            <Clock className="w-3.5 h-3.5 text-[var(--accent-gold)]" />
-            <span>{currentProgressPct}% Completed</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Interactive Oceanic Map Canvas */}
-      <div className="relative w-full h-72 bg-gradient-to-b from-[#0e1e2d] to-[#0a1622] p-4 overflow-hidden select-none">
-        {/* Subtle Map Grid Lines */}
-        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px]" />
-
-        {/* Global Continents Abstract Shapes */}
-        <svg 
-          viewBox="0 0 720 280" 
-          className="w-full h-full"
-          preserveAspectRatio="xMidYMid meet"
-        >
-          <defs>
-            {/* Gradient for Maritime Route Line */}
-            <linearGradient id="routeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#10B981" />
-              <stop offset="60%" stopColor="#D4AF37" />
-              <stop offset="100%" stopColor="#3B82F6" />
-            </linearGradient>
-
-            {/* Glowing filter for active ship */}
-            <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur stdDeviation="3" result="blur" />
-              <feComposite in="SourceGraphic" in2="blur" operator="over" />
-            </filter>
-          </defs>
-
-          {/* Abstract stylized land masses */}
-          {/* North America East Coast */}
-          <path d="M 40 40 Q 90 90 70 170 Q 50 220 30 250 L 10 250 L 10 40 Z" fill="#1b2f44" opacity="0.4" />
-          {/* Europe & Mediterranean */}
-          <path d="M 230 40 Q 340 50 380 120 Q 320 150 250 140 Z" fill="#1b2f44" opacity="0.4" />
-          {/* Africa */}
-          <path d="M 240 160 Q 380 160 410 210 Q 380 260 280 260 Z" fill="#1b2f44" opacity="0.4" />
-          {/* Middle East & Arabian Peninsula */}
-          <path d="M 420 110 Q 520 100 620 140 Q 590 220 490 200 Z" fill="#1b2f44" opacity="0.4" />
-
-          {/* The Navigational Maritime Polyline Track */}
-          <path
-            d={`M ${waypoints.map((w) => `${w.x} ${w.y}`).join(' L ')}`}
-            fill="none"
-            stroke="rgba(255, 255, 255, 0.15)"
-            strokeWidth="3"
-            strokeDasharray="6 6"
-          />
-
-          {/* Active Completed Segment Path */}
-          <path
-            d={`M ${waypoints[0].x} ${waypoints[0].y} L ${shipPos.x} ${shipPos.y}`}
-            fill="none"
-            stroke="url(#routeGradient)"
-            strokeWidth="3.5"
-            strokeLinecap="round"
-          />
-
-          {/* Waypoint Markers */}
-          {waypoints.map((wp, idx) => {
-            const isOrigin = idx === 0;
-            const isDest = idx === waypoints.length - 1;
-            const isSelected = selectedWaypoint === idx;
-
-            return (
-              <g 
-                key={idx} 
-                onClick={() => setSelectedWaypoint(idx)}
-                className="cursor-pointer transition-transform hover:scale-110"
-              >
-                {/* Outer Ring */}
-                <circle
-                  cx={wp.x}
-                  cy={wp.y}
-                  r={isOrigin || isDest ? 8 : 6}
-                  fill={isOrigin ? '#10B981' : isDest ? '#3B82F6' : '#D4AF37'}
-                  stroke="#ffffff"
-                  strokeWidth="2"
-                  opacity={wp.status === 'completed' ? 1 : 0.8}
-                />
-
-                {/* Waypoint Label */}
-                <text
-                  x={wp.x}
-                  y={wp.y - 12}
-                  textAnchor="middle"
-                  fill="#ffffff"
-                  fontSize="9"
-                  fontWeight="bold"
-                  className="drop-shadow"
-                >
-                  {wp.code}
-                </text>
-              </g>
-            );
-          })}
-
-          {/* Real-time Animated Vessel Pin */}
-          <g transform={`translate(${shipPos.x}, ${shipPos.y})`} filter="url(#glow)">
-            {/* Radar Pulse Animation */}
-            <circle cx="0" cy="0" r="14" fill="none" stroke="#D4AF37" strokeWidth="1.5" className="animate-ping" opacity="0.6" />
-            <circle cx="0" cy="0" r="10" fill="#D4AF37" stroke="#ffffff" strokeWidth="2" />
-            <path
-              d="M -4 -3 L 4 -3 L 0 5 Z"
-              fill="#000000"
-              transform="rotate(90)"
-            />
-          </g>
-        </svg>
-
-        {/* Floating Active Vessel Live Telemetry HUD */}
-        <div className="absolute bottom-3 left-3 bg-black/75 backdrop-blur-md rounded-xl p-2.5 border border-white/10 text-white flex items-center gap-3 text-xs">
-          <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-          <div>
-            <p className="font-bold leading-none text-[11px]">{originPort.split('(')[0]} → {destinationPort.split('(')[0]}</p>
-            <p className="text-[9px] text-neutral-400 mt-0.5">Speed: 19.4 Knots • Course: 088° E • Deep Ocean Passage</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Bottom Waypoints Milestones Timeline */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 divide-y sm:divide-y-0 sm:divide-x divide-[var(--border)] border-t border-[var(--border)] bg-[var(--panel)]">
-        {waypoints.map((wp, idx) => (
-          <div 
-            key={idx} 
-            className={`p-3 text-left transition-colors cursor-pointer ${
-              selectedWaypoint === idx ? 'bg-[var(--accent-gold)]/10' : 'hover:bg-[var(--background)]'
+    <div className={`w-full flex flex-col gap-2 ${className}`}>
+      {/* Top Switcher Bar between Live AIS Radar and Vector Schematic */}
+      <div className="flex items-center justify-end px-1">
+        <div className="inline-flex items-center bg-slate-900/90 border border-slate-800 rounded-xl p-0.5 text-xs shadow-sm">
+          <button
+            type="button"
+            onClick={() => setViewMode('live-radar')}
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-lg font-medium transition-all ${
+              viewMode === 'live-radar'
+                ? 'bg-cyan-500 text-slate-950 font-bold shadow'
+                : 'text-slate-400 hover:text-slate-200'
             }`}
-            onClick={() => setSelectedWaypoint(idx)}
           >
-            <div className="flex items-center gap-1.5 mb-1">
-              <span className={`w-2 h-2 rounded-full ${
-                wp.status === 'completed' ? 'bg-emerald-500' : wp.status === 'active' ? 'bg-[var(--accent-gold)] animate-pulse' : 'bg-[var(--border)]'
-              }`} />
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)] truncate">
-                {wp.code}
-              </span>
-            </div>
-            <p className="text-xs font-bold text-[var(--text-primary)] truncate">
-              {wp.name}
-            </p>
-            <span className="text-[10px] text-[var(--text-secondary)] mt-0.5 block">
-              {wp.date}
-            </span>
-          </div>
-        ))}
+            <Radio className="w-3.5 h-3.5" />
+            <span>Live AIS Radar</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('vector')}
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-lg font-medium transition-all ${
+              viewMode === 'vector'
+                ? 'bg-slate-700 text-white font-bold shadow'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Map className="w-3.5 h-3.5" />
+            <span>Vector Chart</span>
+          </button>
+        </div>
       </div>
+
+      {viewMode === 'live-radar' ? (
+        <LiveSeaRouteMap
+          containerNumber={containerNumber}
+          originPort={originPort}
+          destinationPort={destinationPort}
+          vesselName={vesselName}
+          voyageNumber={voyageNumber}
+          currentProgressPct={currentProgressPct}
+          departureDate={departureDate}
+          estimatedArrival={estimatedArrival}
+          status={status}
+          containersList={containersList}
+          selectedContainerId={selectedContainerId}
+          onSelectContainer={onSelectContainer}
+        />
+      ) : (
+        /* Legacy Vector Schematic View */
+        <div className="w-full rounded-2xl bg-[var(--panel)] border border-[var(--border)] overflow-hidden shadow-sm flex flex-col">
+          {/* Header Info Bar */}
+          <div className="flex flex-wrap items-center justify-between gap-3 p-4 border-b border-[var(--border)] bg-[var(--background)]">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-[var(--accent-gold)] text-white shadow-md">
+                <Ship className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-[var(--text-primary)]">
+                    {vesselName}
+                  </h3>
+                  <span className="px-2 py-0.5 text-[10px] font-mono font-bold rounded bg-[var(--panel)] border border-[var(--border)] text-[var(--text-secondary)]">
+                    {voyageNumber}
+                  </span>
+                </div>
+                <p className="text-xs text-[var(--text-secondary)] mt-0.5 flex items-center gap-1.5 flex-wrap">
+                  <span>Container: <strong className="font-mono text-[var(--text-primary)]">{containerNumber}</strong></span>
+                  <span>•</span>
+                  <span className="text-emerald-500 font-semibold">{status}</span>
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 flex-wrap">
+              {containersList && containersList.length > 0 && onSelectContainer && (
+                <div className="flex items-center gap-2 bg-[var(--panel)] px-3 py-1.5 rounded-xl border border-[var(--border)] shadow-sm hover:border-[var(--accent-gold)] transition-colors">
+                  <Navigation className="w-3.5 h-3.5 text-[var(--accent-gold)] shrink-0" />
+                  <label htmlFor="ocean-container-select-legacy" className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">
+                    Container:
+                  </label>
+                  <select
+                    id="ocean-container-select-legacy"
+                    value={selectedContainerId || containersList.find(c => c.containerNumber === containerNumber)?.id || ''}
+                    onChange={(e) => onSelectContainer(e.target.value)}
+                    className="bg-transparent text-xs font-mono font-bold text-[var(--text-primary)] outline-none cursor-pointer pr-1 py-0.5"
+                  >
+                    {containersList.map((c) => (
+                      <option key={c.id} value={c.id} className="bg-[var(--panel)] text-[var(--text-primary)] font-mono">
+                        {c.containerNumber} — {c.progress}% ({c.destinationPort || 'In Transit'})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div className="text-right">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)] block">
+                  Estimated Arrival
+                </span>
+                <span className="text-sm font-bold text-[var(--accent-gold)]">
+                  {etaDays} Days Remaining
+                </span>
+              </div>
+              <div className="px-3 py-1.5 rounded-xl border border-[var(--border)] bg-[var(--panel)] text-xs font-bold text-[var(--text-primary)] flex items-center gap-1.5 shadow-sm">
+                <Clock className="w-3.5 h-3.5 text-[var(--accent-gold)]" />
+                <span>{currentProgressPct}% Completed</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Interactive Oceanic Map Canvas */}
+          <div className="relative w-full h-72 bg-gradient-to-b from-[#0e1e2d] to-[#0a1622] p-4 overflow-hidden select-none">
+            <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px]" />
+
+            <svg viewBox="0 0 720 280" className="w-full h-full">
+              <path
+                d="M 60 70 Q 110 50 140 100 T 110 200 Q 80 220 50 180 Z"
+                fill="#162c42"
+                opacity="0.35"
+              />
+              <path
+                d="M 240 60 Q 340 40 400 90 T 360 140 Q 280 160 250 120 Z"
+                fill="#162c42"
+                opacity="0.35"
+              />
+              <path
+                d="M 270 150 Q 380 140 420 220 T 310 260 Q 250 240 260 180 Z"
+                fill="#162c42"
+                opacity="0.35"
+              />
+              <path
+                d="M 430 70 Q 560 50 660 110 T 600 240 Q 480 200 450 140 Z"
+                fill="#162c42"
+                opacity="0.35"
+              />
+
+              <path
+                d="M 80 130 C 180 135, 220 140, 280 140 C 340 140, 390 155, 440 160 C 480 165, 500 200, 520 220 C 560 240, 600 200, 640 170"
+                fill="none"
+                stroke="#1e3a58"
+                strokeWidth="4"
+                strokeLinecap="round"
+              />
+
+              <path
+                d="M 80 130 C 180 135, 220 140, 280 140 C 340 140, 390 155, 440 160 C 480 165, 500 200, 520 220 C 560 240, 600 200, 640 170"
+                fill="none"
+                stroke="#D4AF37"
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeDasharray="6 6"
+                className="animate-pulse"
+              />
+
+              {waypoints.map((wp, idx) => (
+                <g 
+                  key={idx} 
+                  transform={`translate(${wp.x}, ${wp.y})`}
+                  className="cursor-pointer transition-transform duration-200 hover:scale-125"
+                  onClick={() => setSelectedWaypoint(idx)}
+                >
+                  <circle 
+                    cx="0" 
+                    cy="0" 
+                    r={wp.status === 'destination' ? '8' : '6'} 
+                    fill={
+                      wp.status === 'completed' ? '#10b981' : 
+                      wp.status === 'active' ? '#D4AF37' : 
+                      wp.status === 'destination' ? '#f59e0b' : '#334155'
+                    } 
+                    stroke="#ffffff" 
+                    strokeWidth="2"
+                    className={wp.status === 'active' ? 'animate-pulse' : ''}
+                  />
+                  <text 
+                    x="0" 
+                    y="18" 
+                    fill="#94a3b8" 
+                    fontSize="9" 
+                    fontWeight="bold" 
+                    textAnchor="middle" 
+                    className="select-none font-mono"
+                  >
+                    {wp.code}
+                  </text>
+                </g>
+              ))}
+
+              <g 
+                transform={`translate(${shipPos.x}, ${shipPos.y})`}
+                className="transition-all duration-700 ease-out"
+              >
+                <circle cx="0" cy="0" r="14" fill="none" stroke="#D4AF37" strokeWidth="1.5" className="animate-ping" opacity="0.6" />
+                <circle cx="0" cy="0" r="10" fill="#D4AF37" stroke="#ffffff" strokeWidth="2" />
+                <path
+                  d="M -4 -3 L 4 -3 L 0 5 Z"
+                  fill="#000000"
+                  transform="rotate(90)"
+                />
+              </g>
+            </svg>
+
+            <div className="absolute bottom-3 left-3 bg-black/75 backdrop-blur-md rounded-xl p-2.5 border border-white/10 text-white flex items-center gap-3 text-xs">
+              <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+              <div>
+                <p className="font-bold leading-none text-[11px]">{originPort.split('(')[0]} → {destinationPort.split('(')[0]}</p>
+                <p className="text-[9px] text-neutral-400 mt-0.5">Speed: 19.4 Knots • Course: 088° E • Deep Ocean Passage</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-5 divide-y sm:divide-y-0 sm:divide-x divide-[var(--border)] border-t border-[var(--border)] bg-[var(--panel)]">
+            {waypoints.map((wp, idx) => (
+              <div 
+                key={idx} 
+                className={`p-3 text-left transition-colors cursor-pointer ${
+                  selectedWaypoint === idx ? 'bg-[var(--accent-gold)]/10' : 'hover:bg-[var(--background)]'
+                }`}
+                onClick={() => setSelectedWaypoint(idx)}
+              >
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className={`w-2 h-2 rounded-full ${
+                    wp.status === 'completed' ? 'bg-emerald-500' : wp.status === 'active' ? 'bg-[var(--accent-gold)] animate-pulse' : 'bg-[var(--border)]'
+                  }`} />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)] truncate">
+                    {wp.code}
+                  </span>
+                </div>
+                <p className="text-xs font-bold text-[var(--text-primary)] truncate">
+                  {wp.name}
+                </p>
+                <span className="text-[10px] text-[var(--text-secondary)] mt-0.5 block">
+                  {wp.date}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

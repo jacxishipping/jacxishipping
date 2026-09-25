@@ -290,6 +290,8 @@ export default function DashboardTrackingPage() {
 							progressPercent={progressValue ?? 35}
 							origin={trackingDetails.origin || 'USA / Canada'}
 							destination={trackingDetails.destination || 'Afghanistan'}
+							containerNumber={trackingDetails.containerNumber}
+							estimatedArrival={trackingDetails.estimatedArrival}
 						/>
 					</DashboardPanel>
 
