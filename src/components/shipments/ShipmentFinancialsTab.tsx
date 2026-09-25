@@ -25,6 +25,7 @@ import { DashboardPanel } from '@/components/dashboard/DashboardSurface';
 import { Button, Modal, toast } from '@/components/design-system';
 import { cn } from '@/lib/utils';
 import { formatMoney as formatSnapshotMoney } from '@/lib/format';
+import { ShipmentProfitabilityCard } from '@/components/dashboard/ShipmentProfitabilityCard';
 import type {
   ClassifiedExpenseSource,
   ClassifiedShipmentExpenseData,
@@ -361,6 +362,35 @@ export default function ShipmentFinancialsTab({
     ? ((editingExpense?.metadata as Record<string, unknown>).invoiceNumber as string)
     : null;
 
+  const oceanFreightCost = useMemo(() => {
+    return (expenseEntriesWithCompanyLedger || [])
+      .filter((e) => e.source === 'TRANSIT' || e.type?.toLowerCase().includes('ocean') || e.description?.toLowerCase().includes('ocean') || e.description?.toLowerCase().includes('freight'))
+      .reduce((s, e) => s + (typeof e.amount === 'number' ? e.amount : 0), 0);
+  }, [expenseEntriesWithCompanyLedger]);
+
+  const dispatchCost = useMemo(() => {
+    return (expenseEntriesWithCompanyLedger || [])
+      .filter((e) => e.source === 'DISPATCH' || e.description?.toLowerCase().includes('dispatch') || e.description?.toLowerCase().includes('towing'))
+      .reduce((s, e) => s + (typeof e.amount === 'number' ? e.amount : 0), 0);
+  }, [expenseEntriesWithCompanyLedger]);
+
+  const terminalStorageCost = useMemo(() => {
+    return (expenseEntriesWithCompanyLedger || [])
+      .filter((e) => e.type?.toLowerCase().includes('storage') || e.description?.toLowerCase().includes('storage') || e.description?.toLowerCase().includes('terminal'))
+      .reduce((s, e) => s + (typeof e.amount === 'number' ? e.amount : 0), 0);
+  }, [expenseEntriesWithCompanyLedger]);
+
+  const otherExpensesCost = useMemo(() => {
+    return (expenseEntriesWithCompanyLedger || [])
+      .filter((e) => {
+        const isOcean = e.source === 'TRANSIT' || e.type?.toLowerCase().includes('ocean') || e.description?.toLowerCase().includes('ocean') || e.description?.toLowerCase().includes('freight');
+        const isDispatch = e.source === 'DISPATCH' || e.description?.toLowerCase().includes('dispatch') || e.description?.toLowerCase().includes('towing');
+        const isStorage = e.type?.toLowerCase().includes('storage') || e.description?.toLowerCase().includes('storage') || e.description?.toLowerCase().includes('terminal');
+        return !isOcean && !isDispatch && !isStorage;
+      })
+      .reduce((s, e) => s + (typeof e.amount === 'number' ? e.amount : 0), 0);
+  }, [expenseEntriesWithCompanyLedger]);
+
   return (
     <>
       <DashboardPanel
@@ -383,6 +413,15 @@ export default function ShipmentFinancialsTab({
         }
       >
         <div className="space-y-4">
+          {/* Shipment Unit Economics & Profitability (P&L) Card */}
+          <ShipmentProfitabilityCard
+            billedRevenue={kpiCustomerBilled}
+            dispatchCost={dispatchCost}
+            oceanFreightCost={oceanFreightCost}
+            terminalStorageCost={terminalStorageCost}
+            otherExpensesCost={otherExpensesCost}
+          />
+
           {/* Top KPI Metric Cards */}
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             {/* Total Carrier Cost */}

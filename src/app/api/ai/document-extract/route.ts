@@ -7,11 +7,14 @@ import {
   buildDocumentReviewPrompt,
   buildFallbackDocumentReview,
   buildFallbackInvoiceExtraction,
+  buildFallbackShipmentIntake,
   buildInvoiceExtractionPrompt,
+  buildShipmentIntakePrompt,
   documentExtractionRequestSchema,
   documentReviewResponseSchema,
   extractDocumentTextWithMetadata,
   invoiceDraftResponseSchema,
+  shipmentIntakeResponseSchema,
 } from '@/lib/ai/document-extraction';
 import { z } from 'zod';
 
@@ -50,16 +53,25 @@ export async function POST(request: NextRequest) {
 
     let result:
       | z.infer<typeof invoiceDraftResponseSchema>
-      | z.infer<typeof documentReviewResponseSchema>;
-    let model = parsed.mode === 'invoice-draft' ? 'deterministic-invoice-extraction' : 'deterministic-document-review';
+      | z.infer<typeof documentReviewResponseSchema>
+      | z.infer<typeof shipmentIntakeResponseSchema>;
+    let model = parsed.mode === 'invoice-draft'
+      ? 'deterministic-invoice-extraction'
+      : parsed.mode === 'shipment-intake'
+      ? 'deterministic-shipment-intake'
+      : 'deterministic-document-review';
     let source: 'tokenrouter-ai' | 'rules' = 'rules';
     let failureReason: string | null = extractedText ? null : extraction.failureReason || 'No text could be extracted from the document.';
     let prompt = parsed.mode === 'invoice-draft'
       ? buildInvoiceExtractionPrompt(parsed, extractedText)
+      : parsed.mode === 'shipment-intake'
+      ? buildShipmentIntakePrompt(parsed, extractedText)
       : buildDocumentReviewPrompt(parsed, extractedText);
 
     result = parsed.mode === 'invoice-draft'
       ? buildFallbackInvoiceExtraction(parsed, extractedText)
+      : parsed.mode === 'shipment-intake'
+      ? buildFallbackShipmentIntake(parsed, extractedText)
       : buildFallbackDocumentReview(parsed, extractedText);
 
     if ((await isTokenRouterConfigured()) && extractedText) {
@@ -70,6 +82,8 @@ export async function POST(request: NextRequest) {
               role: 'system',
               content: parsed.mode === 'invoice-draft'
                 ? 'You extract invoice fields from shipping documents. Return valid JSON only.'
+                : parsed.mode === 'shipment-intake'
+                ? 'You extract vehicle, auction, and intake fields from automotive bills of sale and titles. Return valid JSON only.'
                 : 'You extract document metadata for shipping operations. Return valid JSON only.',
             },
             { role: 'user', content: prompt },
@@ -79,6 +93,8 @@ export async function POST(request: NextRequest) {
 
         result = parsed.mode === 'invoice-draft'
           ? invoiceDraftResponseSchema.parse(extractJsonObject(completion.content))
+          : parsed.mode === 'shipment-intake'
+          ? shipmentIntakeResponseSchema.parse(extractJsonObject(completion.content))
           : documentReviewResponseSchema.parse(extractJsonObject(completion.content));
         model = completion.model;
         source = 'tokenrouter-ai';
@@ -88,7 +104,11 @@ export async function POST(request: NextRequest) {
     }
 
     const aiLog = await createAiInteractionLog({
-      feature: parsed.mode === 'invoice-draft' ? 'invoice-extraction-review' : 'document-extraction-review',
+      feature: parsed.mode === 'invoice-draft'
+        ? 'invoice-extraction-review'
+        : parsed.mode === 'shipment-intake'
+        ? 'shipment-intake-review'
+        : 'document-extraction-review',
       entityType: parsed.entityType ?? null,
       entityId: parsed.entityId ?? null,
       actorUserId: session.user.id,

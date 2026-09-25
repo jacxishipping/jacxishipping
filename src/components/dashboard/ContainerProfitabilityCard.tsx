@@ -20,17 +20,15 @@ export interface ContainerProfitabilityProps {
 }
 
 export function ContainerProfitabilityCard({
-  oceanFreightCost = 2850,
-  drayageCost = 650,
-  terminalHandlingCost = 450,
-  customsCost = 300,
+  oceanFreightCost = 0,
+  drayageCost = 0,
+  terminalHandlingCost = 0,
+  customsCost = 0,
   otherExpenses = 0,
   itemRevenues = [],
 }: ContainerProfitabilityProps) {
   // Total Revenue
-  const totalRevenue = itemRevenues.length > 0
-    ? itemRevenues.reduce((sum, item) => sum + (item.amount || 0), 0)
-    : 6200; // sensible fallback demo if items not priced yet
+  const totalRevenue = itemRevenues.reduce((sum, item) => sum + (item.amount || 0), 0);
 
   // Total Expenses
   const totalExpenses =

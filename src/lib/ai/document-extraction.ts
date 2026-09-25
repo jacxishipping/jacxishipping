@@ -4,7 +4,7 @@ import { createTokenRouterChatCompletion, isTokenRouterConfigured } from '@/lib/
 import { ensurePdfNodePolyfills } from '@/lib/pdf-node-polyfills';
 
 export const documentExtractionRequestSchema = z.object({
-  mode: z.enum(['document-review', 'invoice-draft']),
+  mode: z.enum(['document-review', 'invoice-draft', 'shipment-intake']),
   fileUrl: z.string().url(),
   fileName: z.string().min(1),
   fileType: z.string().min(1),
@@ -30,6 +30,26 @@ export const invoiceDraftResponseSchema = z.object({
   date: z.string().optional(),
   dueDate: z.string().optional(),
   notes: z.string().optional(),
+  confidenceNotes: z.string(),
+  extractedTextPreview: z.string(),
+});
+
+export const shipmentIntakeResponseSchema = z.object({
+  vin: z.string().optional(),
+  year: z.number().int().nullable().optional(),
+  make: z.string().optional(),
+  model: z.string().optional(),
+  lotNumber: z.string().optional(),
+  auctionName: z.enum(['Copart', 'IAAI', 'Impact', 'Manheim', 'Other']).optional(),
+  purchasePrice: z.number().nullable().optional(),
+  buyerName: z.string().optional(),
+  buyerNumber: z.string().optional(),
+  titleStatus: z.string().optional(),
+  hasTitle: z.boolean().optional(),
+  hasKeys: z.boolean().optional(),
+  odometer: z.number().nullable().optional(),
+  primaryDamage: z.string().optional(),
+  color: z.string().optional(),
   confidenceNotes: z.string(),
   extractedTextPreview: z.string(),
 });
@@ -392,6 +412,104 @@ export function buildFallbackInvoiceExtraction(input: z.infer<typeof documentExt
     dueDate: dueDateMatch?.[1] || '',
     notes: extractedText ? truncateText(extractedText, 180) : `Imported from ${input.fileName}`,
     confidenceNotes: extractedText ? 'Fallback extraction was used. Please verify all invoice fields before saving.' : 'No text could be extracted automatically from this file.',
+    extractedTextPreview: truncateText(extractedText || 'No extracted text available.', 500),
+  };
+}
+
+export function buildShipmentIntakePrompt(input: z.infer<typeof documentExtractionRequestSchema>, extractedText: string) {
+  return `You are an AI document parser for automotive shipping logistics.
+Extract vehicle, auction, and shipment intake fields from this Bill of Sale, Auction Receipt, Title, or Dock Receipt.
+Return valid JSON only matching these exact keys:
+- vin: 17-character VIN (uppercase, alphanumeric, no I, O, Q).
+- year: integer 4-digit vehicle model year (e.g. 2022) or null.
+- make: vehicle make name (e.g. "Toyota", "Honda", "Ford") or empty string.
+- model: vehicle model name (e.g. "Camry", "Civic", "F-150") or empty string.
+- lotNumber: auction lot / stock number string (e.g. "54829103") or empty string.
+- auctionName: One of "Copart", "IAAI", "Impact", "Manheim", "Other" or undefined.
+- purchasePrice: total purchase amount / sale price as number or null.
+- buyerName: buyer / member / company name string or empty string.
+- buyerNumber: buyer ID or bidder number string or empty string.
+- titleStatus: title document status (e.g. "SALVAGE CERTIFICATE", "CLEAN TITLE", "CERTIFICATE OF DESTRUCTION", "BILL OF SALE") or empty string.
+- hasTitle: boolean true if title was indicated as present/provided, false otherwise.
+- hasKeys: boolean true if keys were present / "YES", false if "NO" or missing.
+- odometer: integer odometer mileage if found, or null.
+- primaryDamage: damage description (e.g. "FRONT END", "REAR", "ALL OVER", "NORMAL WEAR") or empty string.
+- color: vehicle exterior color if listed or empty string.
+- confidenceNotes: brief explanation of extracted values and any uncertainties.
+- extractedTextPreview: first 500 characters of extracted text.
+
+Set unknown string values to empty string and unknown numbers to null. Do not include markdown code blocks.
+
+File name: ${input.fileName}
+File type: ${input.fileType}
+Extracted text:
+${extractedText || 'No text could be extracted from the file.'}`;
+}
+
+export function buildFallbackShipmentIntake(input: z.infer<typeof documentExtractionRequestSchema>, extractedText: string) {
+  const upperText = extractedText.toUpperCase();
+  const lowerText = extractedText.toLowerCase();
+
+  // VIN match (17 alphanumeric characters, excluding I, O, Q)
+  const vinMatch = extractedText.match(/\b([A-HJ-NPR-Z0-9]{17})\b/i);
+  const vin = vinMatch ? vinMatch[1].toUpperCase() : '';
+
+  // Lot Number match
+  const lotMatch = extractedText.match(/(?:lot|item|stock|claim)\s*(?:#|no\.?|number)?\s*[:#-]?\s*(\d{7,10})/i)
+    || input.fileName.match(/(\d{7,10})/);
+  const lotNumber = lotMatch ? lotMatch[1] : '';
+
+  // Auction Name
+  let auctionName: 'Copart' | 'IAAI' | 'Impact' | 'Manheim' | 'Other' | undefined = undefined;
+  if (lowerText.includes('copart')) {
+    auctionName = 'Copart';
+  } else if (lowerText.includes('iaai') || lowerText.includes('insurance auto auctions')) {
+    auctionName = 'IAAI';
+  } else if (lowerText.includes('impact')) {
+    auctionName = 'Impact';
+  } else if (lowerText.includes('manheim')) {
+    auctionName = 'Manheim';
+  }
+
+  // Year match
+  const yearMatch = extractedText.match(/\b(19\d{2}|20[0-3]\d)\b/);
+  const year = yearMatch ? parseInt(yearMatch[1], 10) : null;
+
+  // Keys match
+  const hasKeys = /keys?\s*[:\-]?\s*yes/i.test(extractedText) || /with keys?/i.test(extractedText);
+
+  // Title match
+  const hasTitle = /title\s*[:\-]?\s*yes/i.test(extractedText) || /with title/i.test(extractedText) || lowerText.includes('certificate of title');
+  const titleStatusMatch = extractedText.match(/(?:title status|title type|document type)\s*[:\-]?\s*([A-Za-z\s]+)/i);
+  const titleStatus = titleStatusMatch ? titleStatusMatch[1].trim() : '';
+
+  // Purchase Price match
+  const priceMatch = extractedText.match(/(?:total purchase|total paid|sale price|purchase price|total due|grand total|bid amount)\s*[:$]?\s*([0-9,]+(?:\.[0-9]{2})?)/i);
+  const purchasePrice = priceMatch ? Number(priceMatch[1].replace(/,/g, '')) : null;
+
+  // Buyer Name
+  const buyerMatch = extractedText.match(/(?:buyer|member|sold to|purchaser)\s*(?:name)?\s*[:\-]?\s*([A-Za-z0-9\s.,]+)/i);
+  const buyerName = buyerMatch ? buyerMatch[1].trim() : '';
+
+  return {
+    vin,
+    year,
+    make: '',
+    model: '',
+    lotNumber,
+    auctionName,
+    purchasePrice,
+    buyerName,
+    buyerNumber: '',
+    titleStatus,
+    hasTitle,
+    hasKeys,
+    odometer: null,
+    primaryDamage: '',
+    color: '',
+    confidenceNotes: extractedText
+      ? 'Fallback regex parser extracted available fields. Please verify against the original document.'
+      : 'No text could be extracted automatically from this file.',
     extractedTextPreview: truncateText(extractedText || 'No extracted text available.', 500),
   };
 }

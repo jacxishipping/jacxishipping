@@ -11,9 +11,11 @@ import {
   User,
   Loader2,
   ArrowRight,
-  Clock
+  Clock,
+  Camera,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { BarcodeScannerModal } from '@/components/ui/BarcodeScannerModal';
 
 interface SearchResult {
   id: string;
@@ -28,6 +30,7 @@ const MAX_RECENT = 5;
 
 export default function GlobalSearch() {
   const [isOpen, setIsOpen] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
@@ -386,6 +389,15 @@ export default function GlobalSearch() {
                   )}
                   <button
                     type="button"
+                    onClick={() => setScannerOpen(true)}
+                    aria-label="Scan barcode or VIN"
+                    title="Scan barcode or VIN"
+                    className="p-1.5 rounded-lg text-[var(--text-secondary)] hover:text-[var(--accent-gold)] hover:bg-[var(--background)] transition-colors"
+                  >
+                    <Camera className="h-5 w-5" />
+                  </button>
+                  <button
+                    type="button"
                     onClick={close}
                     aria-label="Close search"
                     className="p-1.5 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--background)] transition-colors"
@@ -521,6 +533,18 @@ export default function GlobalSearch() {
           </>
         )}
       </AnimatePresence>
+
+      <BarcodeScannerModal
+        open={scannerOpen}
+        onClose={() => setScannerOpen(false)}
+        onScan={(scannedText) => {
+          setScannerOpen(false);
+          setQuery(scannedText);
+          inputRef.current?.focus();
+        }}
+        title="Scan Barcode or VIN"
+        description="Align vehicle VIN, container number, or gate pass within the frame"
+      />
     </>
   );
 }

@@ -7,12 +7,14 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowLeft, Upload, X, Loader2, Package, User, FileText, CheckCircle, ArrowRight } from 'lucide-react';
+import { ArrowLeft, Upload, X, Loader2, Package, User, FileText, CheckCircle, ArrowRight, Camera } from 'lucide-react';
 import { Box, Stepper, Step, StepLabel, Typography, LinearProgress, Autocomplete, TextField } from '@mui/material';
 import { DashboardSurface, DashboardPanel } from '@/components/dashboard/DashboardSurface';
 import { PageHeader, Button, FormField, Breadcrumbs, toast } from '@/components/design-system';
 import { shipmentSchema, type ShipmentFormData } from '@/lib/validations/shipment';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
+import { BarcodeScannerModal } from '@/components/ui/BarcodeScannerModal';
+import { AiDocumentAutoFillDropzone, type ExtractedShipmentData } from '@/components/shipments/AiDocumentAutoFillDropzone';
 import { compressImage, isValidImageFile, formatFileSize } from '@/lib/utils/image-compression';
 import { decodeVIN as decodeVINService, getBestWeightEstimate } from '@/lib/services/vin-decoder';
 import { buildCopartLotSummary, fetchCopartLotDataForShipment } from '@/lib/copart/lot-client';
@@ -62,6 +64,35 @@ export default function NewShipmentPage() {
 	const [uploadingFiles, setUploadingFiles] = useState<Set<string>>(new Set());
 	const [decodingVin, setDecodingVin] = useState(false);
 	const [fetchingLotData, setFetchingLotData] = useState(false);
+	const [scannerOpen, setScannerOpen] = useState(false);
+
+	const handleBarcodeScan = (scannedVin: string) => {
+		setValue('vehicleVIN', scannedVin, { shouldValidate: true });
+		toast.success(`VIN captured: ${scannedVin}`);
+		if (scannedVin.length === 17) {
+			void decodeVIN(scannedVin);
+		}
+	};
+
+	const handleAiDocumentExtracted = (data: ExtractedShipmentData) => {
+		if (data.vin) {
+			setValue('vehicleVIN', data.vin, { shouldValidate: true });
+			if (data.vin.length === 17) {
+				void decodeVIN(data.vin);
+			}
+		}
+		if (data.year) setValue('vehicleYear', String(data.year), { shouldValidate: true });
+		if (data.make) setValue('vehicleMake', data.make, { shouldValidate: true });
+		if (data.model) setValue('vehicleModel', data.model, { shouldValidate: true });
+		if (data.color) setValue('vehicleColor', data.color, { shouldValidate: true });
+		if (data.lotNumber) setValue('lotNumber', data.lotNumber, { shouldValidate: true });
+		if (data.auctionName) setValue('auctionName', data.auctionName, { shouldValidate: true });
+		if (data.hasKeys !== undefined) setValue('hasKey', data.hasKeys, { shouldValidate: true });
+		if (data.hasTitle !== undefined) setValue('hasTitle', data.hasTitle, { shouldValidate: true });
+		if (data.purchasePrice && data.purchasePrice > 0) {
+			setValue('purchasePrice', String(data.purchasePrice), { shouldValidate: true });
+		}
+	};
 
 	// Calculate overall upload progress
 	const overallProgress = useMemo(() => {
@@ -559,6 +590,9 @@ export default function NewShipmentPage() {
 					{activeStep === 0 && (
 						<DashboardPanel title="Vehicle Information" description="Enter basic vehicle details">
 							<Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+								{/* Smart AI Document Ingest Dropzone */}
+								<AiDocumentAutoFillDropzone onExtracted={handleAiDocumentExtracted} />
+
 								{/* Service Type - NEW */}
 								<Box>
 									<Typography
@@ -604,8 +638,8 @@ export default function NewShipmentPage() {
 
 								{/* VIN */}
 								<Box>
-									<Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-end' }}>
-										<Box sx={{ flex: 1 }}>
+									<Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-end', flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
+										<Box sx={{ flex: 1, minWidth: { xs: '100%', sm: 0 } }}>
 											<FormField
 												id="vehicleVIN"
 												label="VIN (Vehicle Identification Number)"
@@ -615,16 +649,29 @@ export default function NewShipmentPage() {
 												{...register('vehicleVIN')}
 											/>
 										</Box>
-										<Button
-											type="button"
-											variant="outline"
-											size="sm"
-											onClick={() => vinValue && decodeVIN(vinValue)}
-											disabled={!vinValue || vinValue.length !== 17 || decodingVin}
-											loading={decodingVin}
-										>
-											{decodingVin ? 'Decoding...' : 'Decode'}
-										</Button>
+										<Box sx={{ display: 'flex', gap: 1 }}>
+											<Button
+												type="button"
+												variant="outline"
+												size="sm"
+												onClick={() => setScannerOpen(true)}
+												className="shrink-0 text-xs"
+											>
+												<Camera className="w-3.5 h-3.5 mr-1 text-[var(--accent-gold)]" />
+												Scan
+											</Button>
+											<Button
+												type="button"
+												variant="outline"
+												size="sm"
+												onClick={() => vinValue && decodeVIN(vinValue)}
+												disabled={!vinValue || vinValue.length !== 17 || decodingVin}
+												loading={decodingVin}
+												className="shrink-0 text-xs"
+											>
+												{decodingVin ? 'Decoding...' : 'Decode'}
+											</Button>
+										</Box>
 									</Box>
 								</Box>
 
@@ -1624,6 +1671,14 @@ export default function NewShipmentPage() {
 						</Box>
 					</Box>
 				</form>
+
+				<BarcodeScannerModal
+					open={scannerOpen}
+					onClose={() => setScannerOpen(false)}
+					onScan={handleBarcodeScan}
+					title="Scan Vehicle VIN Barcode"
+					description="Point your camera at the VIN barcode on the door jamb, title, or windshield"
+				/>
 			</DashboardSurface>
 		</ProtectedRoute>
 	);

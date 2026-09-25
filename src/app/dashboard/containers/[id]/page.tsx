@@ -1121,29 +1121,47 @@ export default function ContainerDetailPage() {
 									oceanFreightCost={
 										container.expenses
 											.filter((e) => e.type?.toLowerCase().includes('ocean') || e.description?.toLowerCase().includes('ocean') || e.type?.toLowerCase().includes('freight'))
-											.reduce((s, e) => s + e.amount, 0) || 2850
+											.reduce((s, e) => s + e.amount, 0)
 									}
 									drayageCost={
 										container.expenses
-											.filter((e) => e.type?.toLowerCase().includes('drayage') || e.description?.toLowerCase().includes('truck'))
-											.reduce((s, e) => s + e.amount, 0) || 650
+											.filter((e) => e.type?.toLowerCase().includes('drayage') || e.description?.toLowerCase().includes('truck') || e.description?.toLowerCase().includes('towing'))
+											.reduce((s, e) => s + e.amount, 0)
 									}
 									terminalHandlingCost={
 										container.expenses
 											.filter((e) => e.type?.toLowerCase().includes('terminal') || e.type?.toLowerCase().includes('handling') || e.description?.toLowerCase().includes('handling'))
-											.reduce((s, e) => s + e.amount, 0) || 450
+											.reduce((s, e) => s + e.amount, 0)
 									}
 									customsCost={
 										container.expenses
 											.filter((e) => e.type?.toLowerCase().includes('custom') || e.description?.toLowerCase().includes('custom'))
-											.reduce((s, e) => s + e.amount, 0) || 300
+											.reduce((s, e) => s + e.amount, 0)
 									}
-									itemRevenues={container.shipments.map((s) => ({
-										id: s.id,
-										description: [s.vehicleMake, s.vehicleModel].filter(Boolean).join(' ') || 'Vehicle Cargo',
-										amount: 1550,
-										vin: s.vehicleVIN,
-									}))}
+									otherExpenses={
+										container.expenses
+											.filter((e) => 
+												!e.type?.toLowerCase().includes('ocean') && !e.description?.toLowerCase().includes('ocean') && !e.type?.toLowerCase().includes('freight') &&
+												!e.type?.toLowerCase().includes('drayage') && !e.description?.toLowerCase().includes('truck') && !e.description?.toLowerCase().includes('towing') &&
+												!e.type?.toLowerCase().includes('terminal') && !e.type?.toLowerCase().includes('handling') && !e.description?.toLowerCase().includes('handling') &&
+												!e.type?.toLowerCase().includes('custom') && !e.description?.toLowerCase().includes('custom')
+											)
+											.reduce((s, e) => s + e.amount, 0)
+									}
+									itemRevenues={container.shipments.map((s) => {
+										const totalInvoiceAmt = (container.userInvoices && container.userInvoices.length > 0)
+											? container.userInvoices.reduce((sum, inv) => sum + inv.total, 0)
+											: (container.totals?.invoices || 0);
+										const perShipmentRevenue = container.shipments.length > 0
+											? Math.round(totalInvoiceAmt / container.shipments.length)
+											: 0;
+										return {
+											id: s.id,
+											description: [s.vehicleMake, s.vehicleModel].filter(Boolean).join(' ') || 'Vehicle Cargo',
+											amount: perShipmentRevenue,
+											vin: s.vehicleVIN,
+										};
+									})}
 								/>
 							)}
 
