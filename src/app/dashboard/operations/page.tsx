@@ -42,13 +42,15 @@ import {
   BarChart3,
   DollarSign,
   Maximize2,
-  Car
+  Car,
+  Camera,
 } from 'lucide-react';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
 import { PageHeader, StatsCard, Button, toast, CopyButton, Modal, FormField, Select, CompactSkeleton } from '@/components/design-system';
 import { DISPATCH_STATUS_LABELS } from '@/lib/dispatch-workflow';
 import VehicleDamageInspectionModal from '@/components/inspections/VehicleDamageInspectionModal';
+import { BarcodeScannerModal } from '@/components/ui/BarcodeScannerModal';
 
 interface ShipmentItem {
   id: string;
@@ -156,6 +158,7 @@ export default function OperationsBoardPage() {
 
   // Search & Filters
   const [searchQuery, setSearchQuery] = useState('');
+  const [scannerOpen, setScannerOpen] = useState(false);
   const [activeFilterTag, setActiveFilterTag] = useState<FilterTag>('all');
   const [portFilter, setPortFilter] = useState<string>('all');
   const [selectedShipmentIds, setSelectedShipmentIds] = useState<string[]>([]);
@@ -756,8 +759,17 @@ export default function OperationsBoardPage() {
                   placeholder="Search VIN, make/model, lot #, client, port..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-3 py-1.5 rounded-xl border border-[var(--border)] bg-[var(--background)] text-xs text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:outline-none focus:border-[var(--accent-gold)] transition-colors font-mono"
+                  className="w-full pl-9 pr-9 py-1.5 rounded-xl border border-[var(--border)] bg-[var(--background)] text-xs text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:outline-none focus:border-[var(--accent-gold)] transition-colors font-mono"
                 />
+                <button
+                  type="button"
+                  onClick={() => setScannerOpen(true)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-lg text-[var(--text-secondary)] hover:text-[var(--accent-gold)] hover:bg-[var(--panel)] transition-colors"
+                  title="Scan VIN or Yard QR Code"
+                  aria-label="Scan VIN or Yard QR Code"
+                >
+                  <Camera className="w-3.5 h-3.5" />
+                </button>
               </div>
             </div>
           </div>
@@ -1970,6 +1982,19 @@ export default function OperationsBoardPage() {
             }}
           />
         )}
+
+        {/* Yard Sticker & VIN Barcode Scanner */}
+        <BarcodeScannerModal
+          open={scannerOpen}
+          onClose={() => setScannerOpen(false)}
+          onScan={(scanned) => {
+            setScannerOpen(false);
+            setSearchQuery(scanned);
+            toast.success('Sticker scanned', { description: `Filtering board to: ${scanned}` });
+          }}
+          title="Scan Yard Sticker or VIN"
+          description="Align the QR code sticker or VIN barcode within the camera frame"
+        />
       </DashboardSurface>
     </ProtectedRoute>
   );

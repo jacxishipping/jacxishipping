@@ -32,6 +32,8 @@ import {
   SHIPMENT_WORKFLOW_STAGE_OPTIONS,
   type ShipmentWorkflowStage,
 } from '@/lib/shipment-workflow-stage';
+import { Camera } from 'lucide-react';
+import { BarcodeScannerModal } from '@/components/ui/BarcodeScannerModal';
 
 interface SmartSearchProps {
   onSearch: (filters: SearchFilters) => void;
@@ -45,6 +47,7 @@ interface SmartSearchProps {
   showUserFilter?: boolean;
   showDeliveryFilter?: boolean;
   defaultType?: 'all' | 'shipments' | 'items' | 'users';
+  showScanner?: boolean;
 }
 
 export interface SearchFilters {
@@ -87,9 +90,11 @@ export default function SmartSearch({
   showUserFilter = false,
   showDeliveryFilter = false,
   defaultType = 'all',
+  showScanner = true,
 }: SmartSearchProps) {
   const [query, setQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
   const [filters, setFilters] = useState<SearchFilters>({
     query: '',
     type: defaultType,
@@ -111,67 +116,6 @@ export default function SmartSearch({
 
   const handleSearch = useCallback((newFilters: SearchFilters) => {
     setIsSearching(true);
-
-        {showWorkflowStageFilter && filters.type === 'shipments' && (
-          <Fade in timeout={180}>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1, mt: 1.5 }}>
-              <Typography variant="body2" sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                Workflow stage:
-              </Typography>
-              <Button
-                size="small"
-                variant={filters.workflowStage ? 'outlined' : 'contained'}
-                onClick={() => updateFilter('workflowStage', undefined)}
-                sx={{
-                  fontSize: '0.875rem',
-                  fontWeight: 500,
-                  borderColor: filters.workflowStage ? 'var(--border)' : 'rgba(var(--accent-gold-rgb), 0.4)',
-                  bgcolor: filters.workflowStage ? 'rgba(var(--panel-rgb), 0.5)' : 'rgba(var(--accent-gold-rgb), 0.15)',
-                  color: filters.workflowStage ? 'var(--text-secondary)' : 'var(--accent-gold)',
-                  '&:hover': {
-                    bgcolor: filters.workflowStage ? 'rgba(var(--panel-rgb), 0.7)' : 'rgba(var(--accent-gold-rgb), 0.25)',
-                    color: 'var(--text-primary)',
-                  },
-                }}
-              >
-                All stages
-              </Button>
-              {SHIPMENT_WORKFLOW_STAGE_OPTIONS.map((stageOption) => (
-                <Button
-                  key={stageOption.value}
-                  size="small"
-                  variant={filters.workflowStage === stageOption.value ? 'contained' : 'outlined'}
-                  onClick={() => updateFilter('workflowStage', stageOption.value)}
-                  sx={{
-                    fontSize: '0.875rem',
-                    fontWeight: 500,
-                    borderColor:
-                      filters.workflowStage === stageOption.value
-                        ? 'rgba(var(--accent-gold-rgb), 0.4)'
-                        : 'var(--border)',
-                    bgcolor:
-                      filters.workflowStage === stageOption.value
-                        ? 'rgba(var(--accent-gold-rgb), 0.15)'
-                        : 'rgba(var(--panel-rgb), 0.5)',
-                    color:
-                      filters.workflowStage === stageOption.value
-                        ? 'var(--accent-gold)'
-                        : 'var(--text-secondary)',
-                    '&:hover': {
-                      bgcolor:
-                        filters.workflowStage === stageOption.value
-                          ? 'rgba(var(--accent-gold-rgb), 0.25)'
-                          : 'rgba(var(--panel-rgb), 0.7)',
-                      color: 'var(--text-primary)',
-                    },
-                  }}
-                >
-                  {stageOption.label}
-                </Button>
-              ))}
-            </Box>
-          </Fade>
-        )}
     setFilters(newFilters);
     onSearch(newFilters);
     setTimeout(() => setIsSearching(false), 300);
@@ -239,9 +183,10 @@ export default function SmartSearch({
                   borderWidth: 2,
                 },
                 '& input': {
-                    color: 'var(--text-primary)',
+                  color: 'var(--text-primary)',
+                  pr: { xs: '130px', sm: '190px' },
                   '&::placeholder': {
-                      color: 'rgba(var(--text-secondary-rgb), 0.6)',
+                    color: 'rgba(var(--text-secondary-rgb), 0.6)',
                     opacity: 1,
                   },
                 },
@@ -249,6 +194,35 @@ export default function SmartSearch({
             }}
           />
           <Box sx={{ position: 'absolute', right: 8, display: 'flex', alignItems: 'center', gap: 1 }}>
+            {showScanner && (
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={() => setScannerOpen(true)}
+                title="Scan QR Code or VIN Barcode"
+                aria-label="Scan QR Code or VIN Barcode"
+                sx={{
+                  minWidth: 32,
+                  px: 1.25,
+                  py: 0.5,
+                  fontSize: '0.8125rem',
+                  fontWeight: 600,
+                  borderColor: 'rgba(var(--accent-gold-rgb), 0.35)',
+                  bgcolor: 'rgba(var(--accent-gold-rgb), 0.08)',
+                  color: 'var(--accent-gold)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 0.5,
+                  '&:hover': {
+                    bgcolor: 'rgba(var(--accent-gold-rgb), 0.2)',
+                    borderColor: 'rgba(var(--accent-gold-rgb), 0.6)',
+                  },
+                }}
+              >
+                <Camera className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Scan</span>
+              </Button>
+            )}
             {hasActiveFilters && (
               <Button
                 size="small"
@@ -333,6 +307,67 @@ export default function SmartSearch({
               </Button>
             ))}
           </Box>
+        )}
+
+        {showWorkflowStageFilter && filters.type === 'shipments' && (
+          <Fade in timeout={180}>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1, mt: 1.5 }}>
+              <Typography variant="body2" sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                Workflow stage:
+              </Typography>
+              <Button
+                size="small"
+                variant={filters.workflowStage ? 'outlined' : 'contained'}
+                onClick={() => updateFilter('workflowStage', undefined)}
+                sx={{
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                  borderColor: filters.workflowStage ? 'var(--border)' : 'rgba(var(--accent-gold-rgb), 0.4)',
+                  bgcolor: filters.workflowStage ? 'rgba(var(--panel-rgb), 0.5)' : 'rgba(var(--accent-gold-rgb), 0.15)',
+                  color: filters.workflowStage ? 'var(--text-secondary)' : 'var(--accent-gold)',
+                  '&:hover': {
+                    bgcolor: filters.workflowStage ? 'rgba(var(--panel-rgb), 0.7)' : 'rgba(var(--accent-gold-rgb), 0.25)',
+                    color: 'var(--text-primary)',
+                  },
+                }}
+              >
+                All stages
+              </Button>
+              {SHIPMENT_WORKFLOW_STAGE_OPTIONS.map((stageOption) => (
+                <Button
+                  key={stageOption.value}
+                  size="small"
+                  variant={filters.workflowStage === stageOption.value ? 'contained' : 'outlined'}
+                  onClick={() => updateFilter('workflowStage', stageOption.value)}
+                  sx={{
+                    fontSize: '0.875rem',
+                    fontWeight: 500,
+                    borderColor:
+                      filters.workflowStage === stageOption.value
+                        ? 'rgba(var(--accent-gold-rgb), 0.4)'
+                        : 'var(--border)',
+                    bgcolor:
+                      filters.workflowStage === stageOption.value
+                        ? 'rgba(var(--accent-gold-rgb), 0.15)'
+                        : 'rgba(var(--panel-rgb), 0.5)',
+                    color:
+                      filters.workflowStage === stageOption.value
+                        ? 'var(--accent-gold)'
+                        : 'var(--text-secondary)',
+                    '&:hover': {
+                      bgcolor:
+                        filters.workflowStage === stageOption.value
+                          ? 'rgba(var(--accent-gold-rgb), 0.25)'
+                          : 'rgba(var(--panel-rgb), 0.7)',
+                      color: 'var(--text-primary)',
+                    },
+                  }}
+                >
+                  {stageOption.label}
+                </Button>
+              ))}
+            </Box>
+          </Fade>
         )}
       </Box>
 
@@ -762,6 +797,22 @@ export default function SmartSearch({
           </Fade>
         </Box>
       </Collapse>
+
+      {showScanner && (
+        <BarcodeScannerModal
+          open={scannerOpen}
+          onClose={() => setScannerOpen(false)}
+          onScan={(scanned) => {
+            setScannerOpen(false);
+            setQuery(scanned);
+            const updated = { ...filters, query: scanned };
+            setFilters(updated);
+            handleSearch(updated);
+          }}
+          title="Scan VIN or Yard QR Code"
+          description="Align the vehicle VIN barcode, tracking QR code, or gate pass within the camera frame"
+        />
+      )}
     </Box>
   );
 }

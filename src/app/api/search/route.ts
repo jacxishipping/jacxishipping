@@ -16,7 +16,27 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const query = searchParams.get('query') || searchParams.get('q') || '';
+    const rawQuery = (searchParams.get('query') || searchParams.get('q') || '').trim();
+    let query = rawQuery;
+
+    // Sanitize query if a full URL was passed or scanned
+    if (query.includes('http://') || query.includes('https://') || query.includes('?') || query.includes('/')) {
+      try {
+        const dummyBase = 'https://jacxishipping.com';
+        const parsedUrl = new URL(query, dummyBase);
+        const vin = parsedUrl.searchParams.get('vin');
+        const container = parsedUrl.searchParams.get('container');
+        const q = parsedUrl.searchParams.get('q') || parsedUrl.searchParams.get('trackNumber') || parsedUrl.searchParams.get('trackingNumber') || parsedUrl.searchParams.get('id');
+        if (vin) query = vin.trim();
+        else if (container) query = container.trim();
+        else if (q) query = q.trim();
+        else {
+          const parts = parsedUrl.pathname.split('/').filter(Boolean);
+          const last = parts[parts.length - 1];
+          if (last) query = last.trim();
+        }
+      } catch {}
+    }
     const type = searchParams.get('type') || 'all';
     const status = searchParams.get('status');
     const workflowStage = searchParams.get('workflowStage');
@@ -48,6 +68,7 @@ export async function GET(request: NextRequest) {
       
       if (query) {
         orConditions.push(
+          { id: { equals: query } },
           { vehicleType: { contains: query, mode: 'insensitive' } },
           { vehicleMake: { contains: query, mode: 'insensitive' } },
           { vehicleModel: { contains: query, mode: 'insensitive' } },

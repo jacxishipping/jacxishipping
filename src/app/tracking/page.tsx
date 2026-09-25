@@ -3,12 +3,13 @@
 import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, useScroll, useTransform, useSpring, type Variants } from 'framer-motion';
-import { AlertCircle, CheckCircle2, Clock, MapPin, Search, Ship, Package, ArrowRight } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Clock, MapPin, Search, Ship, Package, ArrowRight, Camera } from 'lucide-react';
 import Link from 'next/link';
 import Header from '@/components/sections/Header';
 import Footer from '@/components/sections/Footer';
 import TrackingRouteMap from '@/components/tracking/TrackingRouteMap';
 import LandingScrollAnimator from '@/components/sections/home/LandingScrollAnimator';
+import { BarcodeScannerModal } from '@/components/ui/BarcodeScannerModal';
 
 interface TrackingEventEntry {
 	id: string;
@@ -95,10 +96,19 @@ export default function TrackingPage() {
 function TrackingPageInner() {
 	const searchParams = useSearchParams();
 	const heroRef = useRef<HTMLElement>(null);
-	const [trackingNumber, setTrackingNumber] = useState(() => searchParams.get('container') ?? '');
+	const initialParam =
+		searchParams.get('vin') ||
+		searchParams.get('container') ||
+		searchParams.get('q') ||
+		searchParams.get('trackNumber') ||
+		searchParams.get('trackingNumber') ||
+		searchParams.get('id') ||
+		'';
+	const [trackingNumber, setTrackingNumber] = useState(() => initialParam.trim());
 	const [trackingDetails, setTrackingDetails] = useState<TrackingDetails | null>(null);
 	const [isLoading, setIsLoading] = useState(false);
 	const [errorMessage, setErrorMessage] = useState<string | null>(null);
+	const [scannerOpen, setScannerOpen] = useState(false);
 	const autoSearchDone = useRef(false);
 
 	const { scrollYProgress } = useScroll({ target: heroRef, offset: ['start start', 'end start'] });
@@ -107,11 +117,26 @@ function TrackingPageInner() {
 	const heroOpacity = useTransform(smoothY, [0, 0.6], [1, 0]);
 
 	const handleTrack = useCallback(async (overrideValue?: string) => {
-		const value = (overrideValue ?? trackingNumber).trim();
+		let value = (overrideValue ?? trackingNumber).trim();
 		if (!value) {
 			setErrorMessage('Enter a container or tracking number to continue.');
 			setTrackingDetails(null);
 			return;
+		}
+
+		// Sanitize if a URL was scanned or pasted
+		if (value.includes('http://') || value.includes('https://') || value.includes('?') || value.includes('/')) {
+			const vinMatch = value.match(/[?&]vin=([^&#\s]+)/i);
+			const containerMatch = value.match(/[?&]container=([^&#\s]+)/i);
+			const qMatch = value.match(/[?&](?:q|trackNumber|trackingNumber|id)=([^&#\s]+)/i);
+			if (vinMatch) value = decodeURIComponent(vinMatch[1]).trim();
+			else if (containerMatch) value = decodeURIComponent(containerMatch[1]).trim();
+			else if (qMatch) value = decodeURIComponent(qMatch[1]).trim();
+			else {
+				const parts = value.split('/').filter(Boolean);
+				const lastPart = parts[parts.length - 1];
+				if (lastPart) value = lastPart.split('?')[0].trim();
+			}
 		}
 
 		setIsLoading(true);
@@ -151,10 +176,19 @@ function TrackingPageInner() {
 	}, [trackingNumber]);
 
 	useEffect(() => {
-		const containerParam = searchParams.get('container');
-		if (containerParam && !autoSearchDone.current) {
+		const param =
+			searchParams.get('vin') ||
+			searchParams.get('container') ||
+			searchParams.get('q') ||
+			searchParams.get('trackNumber') ||
+			searchParams.get('trackingNumber') ||
+			searchParams.get('id');
+
+		if (param && !autoSearchDone.current) {
 			autoSearchDone.current = true;
-			handleTrack(containerParam);
+			const clean = param.trim();
+			setTrackingNumber(clean);
+			handleTrack(clean);
 		}
 	}, [handleTrack, searchParams]);
 
@@ -252,12 +286,20 @@ function TrackingPageInner() {
 										type="text"
 										value={trackingNumber}
 										onChange={(e) => setTrackingNumber(e.target.value)}
-										placeholder="Enter container number (e.g., UETU6059142)"
+										placeholder="Enter container number, VIN, or scan QR code"
 										autoComplete="off"
 										aria-required="true"
 										aria-describedby={errorMessage ? 'tracking-error' : undefined}
-										className="w-full pl-12 pr-4 py-4 text-base rounded-xl bg-[#F9FAFB] border border-black/[0.06] text-gray-900 placeholder:text-black/30 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/30 focus:border-[#D4AF37]/60 transition-all touch-manipulation"
+										className="w-full pl-12 pr-12 py-4 text-base rounded-xl bg-[#F9FAFB] border border-black/[0.06] text-gray-900 placeholder:text-black/30 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/30 focus:border-[#D4AF37]/60 transition-all touch-manipulation"
 									/>
+									<button
+										type="button"
+										onClick={() => setScannerOpen(true)}
+										className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-lg text-black/40 hover:text-[#D4AF37] hover:bg-black/5 transition-colors"
+										title="Scan Barcode or QR Code"
+									>
+										<Camera className="w-5 h-5" />
+									</button>
 								</div>
 								<motion.button
 									type="submit"
@@ -552,6 +594,18 @@ function TrackingPageInner() {
 			</div>
 
 			<Footer />
+
+			<BarcodeScannerModal
+				open={scannerOpen}
+				onClose={() => setScannerOpen(false)}
+				onScan={(scanned) => {
+					setScannerOpen(false);
+					setTrackingNumber(scanned);
+					handleTrack(scanned);
+				}}
+				title="Scan Shipment or Container QR Code"
+				description="Align vehicle VIN barcode, thermal yard sticker, or container QR code within the frame"
+			/>
 		</div>
 	);
 }

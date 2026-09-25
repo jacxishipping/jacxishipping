@@ -38,10 +38,73 @@ export type NormalizedTracking = {
   events: NormalizedTrackingEvent[];
 };
 
-async function getInternalTrackingSnapshot(trackNumber: string) {
+/**
+ * Clean incoming search/scan string by extracting VIN, container, or tracking ID
+ * from raw text, URLs, or query parameters.
+ */
+export function sanitizeTrackNumber(input: string): string {
+  let cleaned = (input || '').trim();
+  if (!cleaned) return '';
+
+  // If input is a URL or query string, extract parameters
+  if (
+    cleaned.startsWith('http://') ||
+    cleaned.startsWith('https://') ||
+    cleaned.includes('?') ||
+    cleaned.includes('/')
+  ) {
+    try {
+      const dummyBase = 'https://jacxishipping.com';
+      const parsedUrl = new URL(cleaned, dummyBase);
+
+      const vinParam = parsedUrl.searchParams.get('vin');
+      if (vinParam) return vinParam.trim().toUpperCase();
+
+      const containerParam = parsedUrl.searchParams.get('container');
+      if (containerParam) return containerParam.trim().toUpperCase();
+
+      const qParam =
+        parsedUrl.searchParams.get('q') ||
+        parsedUrl.searchParams.get('trackNumber') ||
+        parsedUrl.searchParams.get('trackingNumber') ||
+        parsedUrl.searchParams.get('id');
+      if (qParam) return qParam.trim().toUpperCase();
+
+      const pathParts = parsedUrl.pathname.split('/').filter(Boolean);
+      const lastPart = pathParts[pathParts.length - 1];
+      if (
+        lastPart &&
+        (pathParts.includes('shipments') ||
+          pathParts.includes('containers') ||
+          pathParts.includes('tracking'))
+      ) {
+        return lastPart.trim().toUpperCase();
+      }
+    } catch {}
+  }
+
+  // Regex fallback: check for ?vin=... or &vin=...
+  const vinMatch = cleaned.match(/[?&]vin=([^&#\s]+)/i);
+  if (vinMatch) return decodeURIComponent(vinMatch[1]).trim().toUpperCase();
+
+  const containerMatch = cleaned.match(/[?&]container=([^&#\s]+)/i);
+  if (containerMatch) return decodeURIComponent(containerMatch[1]).trim().toUpperCase();
+
+  // 17-character VIN pattern
+  const standardVin = cleaned.match(/\b([A-HJ-NPR-Z0-9]{17})\b/i);
+  if (standardVin) return standardVin[1].toUpperCase();
+
+  return cleaned.toUpperCase();
+}
+
+async function getInternalTrackingSnapshot(containerIdOrNumber: string) {
   const container = await prisma.container.findFirst({
     where: {
-      OR: [{ containerNumber: trackNumber }, { trackingNumber: trackNumber }],
+      OR: [
+        { containerNumber: containerIdOrNumber },
+        { trackingNumber: containerIdOrNumber },
+        { id: containerIdOrNumber },
+      ],
     },
     select: {
       status: true,
@@ -65,19 +128,19 @@ async function getInternalTrackingSnapshot(trackNumber: string) {
   }
 
   const dispatchDates = sortIsoStrings(
-    container.shipments.map((shipment) => (shipment.dispatch?.dispatchDate ? shipment.dispatch.dispatchDate.toISOString() : undefined)),
+    container.shipments.map((s) => (s.dispatch?.dispatchDate ? s.dispatch.dispatchDate.toISOString() : undefined))
   );
   const transitDispatchDates = sortIsoStrings(
-    container.shipments.map((shipment) => (shipment.transit?.dispatchDate ? shipment.transit.dispatchDate.toISOString() : undefined)),
+    container.shipments.map((s) => (s.transit?.dispatchDate ? s.transit.dispatchDate.toISOString() : undefined))
   );
   const deliveryDates = sortIsoStrings(
-    container.shipments.map((shipment) => (shipment.transit?.actualDelivery ? shipment.transit.actualDelivery.toISOString() : undefined)),
+    container.shipments.map((s) => (s.transit?.actualDelivery ? s.transit.actualDelivery.toISOString() : undefined))
   );
 
   return {
-    shipmentStatuses: container.shipments.map((shipment) => shipment.status),
-    hasDispatch: container.shipments.some((shipment) => Boolean(shipment.dispatchId)),
-    hasTransit: container.shipments.some((shipment) => Boolean(shipment.transitId)),
+    shipmentStatuses: container.shipments.map((s) => s.status),
+    hasDispatch: container.shipments.some((s) => Boolean(s.dispatchId)),
+    hasTransit: container.shipments.some((s) => Boolean(s.transitId)),
     containerStatus: container.status,
     dispatchDate: dispatchDates[0],
     loadingDate: container.loadingDate?.toISOString(),
@@ -89,10 +152,14 @@ async function getInternalTrackingSnapshot(trackNumber: string) {
 }
 
 function sortIsoStrings(values: Array<string | undefined>) {
-  return values.filter((value): value is string => Boolean(value)).sort((left, right) => left.localeCompare(right));
+  return values
+    .filter((value): value is string => Boolean(value))
+    .sort((left, right) => left.localeCompare(right));
 }
 
-function normalizeTrackingFromSnapshot(snapshot: ContainerTrackingSnapshot): Omit<NormalizedTracking, 'customerTracking' | 'requestedNumber'> {
+function normalizeTrackingFromSnapshot(
+  snapshot: ContainerTrackingSnapshot
+): Omit<NormalizedTracking, 'customerTracking' | 'requestedNumber'> {
   const events = snapshot.trackingEvents.map((event, index) => ({
     id: `${snapshot.containerNumber}-${index}`,
     status: event.status,
@@ -134,32 +201,321 @@ function normalizeTrackingFromSnapshot(snapshot: ContainerTrackingSnapshot): Omi
   };
 }
 
-export async function buildTrackingResponse(trackNumber: string): Promise<NormalizedTracking | null> {
-  const requestedNumber = trackNumber.trim();
+/**
+ * Universal tracking resolver:
+ * Handles VINs, Shipment IDs, Lot Numbers, and Container Numbers with seamless fallback.
+ */
+export async function buildTrackingResponse(
+  rawTrackNumber: string
+): Promise<NormalizedTracking | null> {
+  const requestedNumber = sanitizeTrackNumber(rawTrackNumber);
   if (!requestedNumber) {
     return null;
   }
 
-  const snapshot = await trackingAPI.fetchContainerTrackingData(requestedNumber);
-  if (!snapshot) {
-    return null;
-  }
-
-  const normalized = normalizeTrackingFromSnapshot(snapshot);
-  const internalSnapshot = await getInternalTrackingSnapshot(requestedNumber);
-  const customerTracking = buildCustomerTrackingView({
-    shipmentStatus: normalized.shipmentStatus,
-    originDate: normalized.originDate,
-    polDate: normalized.polDate,
-    podDate: normalized.podDate,
-    estimatedArrival: normalized.estimatedArrival,
-    events: normalized.events,
-    internal: internalSnapshot,
+  // 1. Try finding a shipment by VIN, ID, or Lot Number in our database
+  const shipment = await prisma.shipment.findFirst({
+    where: {
+      OR: [
+        { vehicleVIN: { equals: requestedNumber, mode: 'insensitive' } },
+        { id: requestedNumber },
+        { lotNumber: { equals: requestedNumber, mode: 'insensitive' } },
+      ],
+    },
+    include: {
+      container: {
+        include: {
+          company: true,
+          trackingEvents: { orderBy: { eventDate: 'desc' } },
+        },
+      },
+      dispatch: {
+        include: {
+          company: true,
+        },
+      },
+      transit: {
+        include: {
+          company: true,
+        },
+      },
+      user: {
+        select: { name: true },
+      },
+    },
   });
 
-  return {
-    ...normalized,
-    customerTracking,
-    requestedNumber,
-  };
+  if (shipment) {
+    const vehicleLabel =
+      [shipment.vehicleYear, shipment.vehicleMake, shipment.vehicleModel].filter(Boolean).join(' ') ||
+      shipment.vehicleType ||
+      'Vehicle';
+
+    // If shipment is loaded in a container
+    if (shipment.container) {
+      const containerNumber = shipment.container.containerNumber;
+
+      // Try fetching live PGL tracking for the container
+      const pglSnapshot = await trackingAPI.fetchContainerTrackingData(containerNumber);
+      if (pglSnapshot) {
+        const normalized = normalizeTrackingFromSnapshot(pglSnapshot);
+        const internalSnapshot = await getInternalTrackingSnapshot(containerNumber);
+        const customerTracking = buildCustomerTrackingView({
+          shipmentStatus: shipment.status,
+          originDate: normalized.originDate,
+          polDate: normalized.polDate,
+          podDate: normalized.podDate,
+          estimatedArrival: normalized.estimatedArrival,
+          events: normalized.events,
+          internal: internalSnapshot,
+        });
+
+        return {
+          ...normalized,
+          containerType: `${vehicleLabel} (VIN: ${shipment.vehicleVIN || 'N/A'})`,
+          shipmentStatus: shipment.status,
+          customerTracking,
+          requestedNumber,
+        };
+      }
+
+      // If PGL tracking unavailable, build from database container record
+      const containerEvents: NormalizedTrackingEvent[] = (
+        shipment.container.trackingEvents || []
+      ).map((e, idx) => ({
+        id: e.id || `event-${idx}`,
+        status: e.status,
+        location: e.location || shipment.container?.currentLocation || undefined,
+        timestamp: e.eventDate.toISOString(),
+        actual: e.completed,
+        vessel: shipment.container?.vesselName || undefined,
+        voyage: shipment.container?.voyageNumber || undefined,
+        description: e.description || undefined,
+      }));
+
+      const internalSnapshot = await getInternalTrackingSnapshot(shipment.container.id);
+      const customerTracking = buildCustomerTrackingView({
+        shipmentStatus: shipment.status,
+        originDate: shipment.container.loadingDate?.toISOString(),
+        polDate: shipment.container.departureDate?.toISOString(),
+        podDate: shipment.container.estimatedArrival?.toISOString(),
+        estimatedArrival: shipment.container.estimatedArrival?.toISOString(),
+        events: containerEvents,
+        internal: internalSnapshot,
+      });
+
+      return {
+        containerNumber: shipment.container.containerNumber,
+        containerType: `${vehicleLabel} (VIN: ${shipment.vehicleVIN || 'N/A'})`,
+        shipmentStatus: shipment.status,
+        origin: shipment.container.loadingPort || shipment.dispatch?.origin || 'Export Port',
+        originDate: shipment.container.loadingDate?.toISOString(),
+        pol: shipment.container.loadingPort || undefined,
+        polDate: shipment.container.departureDate?.toISOString(),
+        destination: shipment.container.destinationPort || 'Destination Port',
+        destinationDate: shipment.container.estimatedArrival?.toISOString(),
+        pod: shipment.container.destinationPort || undefined,
+        podDate: shipment.container.estimatedArrival?.toISOString(),
+        estimatedDeparture: shipment.container.departureDate?.toISOString(),
+        estimatedArrival: shipment.container.estimatedArrival?.toISOString(),
+        company: shipment.container.shippingLine
+          ? { name: shipment.container.shippingLine }
+          : shipment.container.company
+            ? { name: shipment.container.company.name }
+            : undefined,
+        currentLocation:
+          shipment.container.currentLocation ||
+          shipment.container.destinationPort ||
+          shipment.container.loadingPort ||
+          undefined,
+        progress: shipment.container.progress ?? (shipment.status === 'DELIVERED' ? 100 : 50),
+        customerTracking,
+        requestedNumber,
+        events: containerEvents,
+      };
+    }
+
+    // Shipment NOT yet in a container (Inland Dispatch / Received at Yard)
+    const synthesizedEvents: NormalizedTrackingEvent[] = [
+      {
+        id: `shipment-created-${shipment.id}`,
+        status: 'Shipment Booked',
+        location: shipment.purchaseLocation || 'USA Hub',
+        timestamp: shipment.createdAt.toISOString(),
+        actual: true,
+        description: `Booking confirmed for ${vehicleLabel}`,
+      },
+    ];
+
+    if (shipment.dispatch) {
+      synthesizedEvents.push({
+        id: `dispatch-${shipment.dispatch.id}`,
+        status: 'Inland Transport Dispatched',
+        location: shipment.dispatch.origin,
+        timestamp: shipment.dispatch.createdAt.toISOString(),
+        actual: true,
+        description: `Dispatched with carrier ${shipment.dispatch.company?.name || 'Inland Towing'}`,
+      });
+    }
+
+    if (shipment.status === 'ON_HAND') {
+      synthesizedEvents.push({
+        id: `yard-onhand-${shipment.id}`,
+        status: 'Received at Export Yard Terminal',
+        location: 'Savannah / NY Port Terminal',
+        timestamp: shipment.updatedAt.toISOString(),
+        actual: true,
+        description: 'Vehicle received, condition inspected, and queued for container loading',
+      });
+    }
+
+    synthesizedEvents.sort((a, b) => (b.timestamp || '').localeCompare(a.timestamp || ''));
+
+    const internalSnapshot = {
+      shipmentStatuses: [shipment.status],
+      hasDispatch: Boolean(shipment.dispatchId),
+      hasTransit: Boolean(shipment.transitId),
+      containerStatus: null,
+      loadingDate: undefined,
+      departureDate: undefined,
+      actualArrival: undefined,
+      actualDelivery: undefined,
+    };
+
+    const customerTracking = buildCustomerTrackingView({
+      shipmentStatus: shipment.status,
+      originDate: shipment.createdAt.toISOString(),
+      polDate: undefined,
+      podDate: undefined,
+      estimatedArrival: undefined,
+      events: synthesizedEvents,
+      internal: internalSnapshot,
+    });
+
+    return {
+      containerNumber: shipment.vehicleVIN || shipment.id,
+      containerType: `${vehicleLabel} (VIN: ${shipment.vehicleVIN || 'N/A'})`,
+      shipmentStatus: shipment.status,
+      origin: shipment.dispatch?.origin || shipment.purchaseLocation || 'Export Terminal',
+      originDate: shipment.createdAt.toISOString(),
+      destination: 'Destination Port (Pending Container Assignment)',
+      currentLocation:
+        shipment.status === 'ON_HAND'
+          ? 'Export Yard Terminal'
+          : shipment.dispatch?.origin || 'Inland Transit',
+      progress: shipment.status === 'ON_HAND' ? 30 : 15,
+      customerTracking,
+      requestedNumber,
+      events: synthesizedEvents,
+    };
+  }
+
+  // 2. Check Database Container
+  const dbContainer = await prisma.container.findFirst({
+    where: {
+      OR: [
+        { containerNumber: { equals: requestedNumber, mode: 'insensitive' } },
+        { trackingNumber: { equals: requestedNumber, mode: 'insensitive' } },
+        { bookingNumber: { equals: requestedNumber, mode: 'insensitive' } },
+        { id: requestedNumber },
+      ],
+    },
+    include: {
+      company: true,
+      trackingEvents: { orderBy: { eventDate: 'desc' } },
+      shipments: {
+        select: {
+          id: true,
+          vehicleYear: true,
+          vehicleMake: true,
+          vehicleModel: true,
+          vehicleVIN: true,
+          status: true,
+        },
+      },
+    },
+  });
+
+  // 3. Try PGL upstream API lookup
+  const pglContainerNumber = dbContainer?.containerNumber || requestedNumber;
+  const pglSnapshot = await trackingAPI.fetchContainerTrackingData(pglContainerNumber);
+
+  if (pglSnapshot) {
+    const normalized = normalizeTrackingFromSnapshot(pglSnapshot);
+    const internalSnapshot = await getInternalTrackingSnapshot(pglContainerNumber);
+    const customerTracking = buildCustomerTrackingView({
+      shipmentStatus: normalized.shipmentStatus,
+      originDate: normalized.originDate,
+      polDate: normalized.polDate,
+      podDate: normalized.podDate,
+      estimatedArrival: normalized.estimatedArrival,
+      events: normalized.events,
+      internal: internalSnapshot,
+    });
+
+    return {
+      ...normalized,
+      customerTracking,
+      requestedNumber,
+    };
+  }
+
+  // 4. Fallback to database container if PGL has no records
+  if (dbContainer) {
+    const containerEvents: NormalizedTrackingEvent[] = (dbContainer.trackingEvents || []).map(
+      (e, idx) => ({
+        id: e.id || `event-${idx}`,
+        status: e.status,
+        location: e.location || dbContainer.currentLocation || undefined,
+        timestamp: e.eventDate.toISOString(),
+        actual: e.completed,
+        vessel: dbContainer.vesselName || undefined,
+        voyage: dbContainer.voyageNumber || undefined,
+        description: e.description || undefined,
+      })
+    );
+
+    const internalSnapshot = await getInternalTrackingSnapshot(dbContainer.id);
+    const customerTracking = buildCustomerTrackingView({
+      shipmentStatus: dbContainer.status,
+      originDate: dbContainer.loadingDate?.toISOString(),
+      polDate: dbContainer.departureDate?.toISOString(),
+      podDate: dbContainer.estimatedArrival?.toISOString(),
+      estimatedArrival: dbContainer.estimatedArrival?.toISOString(),
+      events: containerEvents,
+      internal: internalSnapshot,
+    });
+
+    return {
+      containerNumber: dbContainer.containerNumber,
+      containerType: 'Ocean Freight Container',
+      shipmentStatus: dbContainer.status,
+      origin: dbContainer.loadingPort || 'Export Port',
+      originDate: dbContainer.loadingDate?.toISOString(),
+      pol: dbContainer.loadingPort || undefined,
+      polDate: dbContainer.departureDate?.toISOString(),
+      destination: dbContainer.destinationPort || 'Destination Port',
+      destinationDate: dbContainer.estimatedArrival?.toISOString(),
+      pod: dbContainer.destinationPort || undefined,
+      podDate: dbContainer.estimatedArrival?.toISOString(),
+      estimatedDeparture: dbContainer.departureDate?.toISOString(),
+      estimatedArrival: dbContainer.estimatedArrival?.toISOString(),
+      company: dbContainer.shippingLine
+        ? { name: dbContainer.shippingLine }
+        : dbContainer.company
+          ? { name: dbContainer.company.name }
+          : undefined,
+      currentLocation:
+        dbContainer.currentLocation ||
+        dbContainer.destinationPort ||
+        dbContainer.loadingPort ||
+        undefined,
+      progress: dbContainer.progress ?? 50,
+      customerTracking,
+      requestedNumber,
+      events: containerEvents,
+    };
+  }
+
+  return null;
 }

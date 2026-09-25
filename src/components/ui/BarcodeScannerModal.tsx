@@ -70,6 +70,54 @@ export function BarcodeScannerModal({
 
       // Clean decoded text
       let cleaned = decodedText.trim();
+
+      // If text is a URL, extract parameter (vin, container, trackNumber, id)
+      if (
+        cleaned.startsWith('http://') ||
+        cleaned.startsWith('https://') ||
+        cleaned.includes('?') ||
+        cleaned.includes('/')
+      ) {
+        try {
+          const parsed = new URL(cleaned, 'https://jacxishipping.com');
+          const vin = parsed.searchParams.get('vin');
+          const container = parsed.searchParams.get('container');
+          const q =
+            parsed.searchParams.get('q') ||
+            parsed.searchParams.get('trackNumber') ||
+            parsed.searchParams.get('trackingNumber') ||
+            parsed.searchParams.get('id');
+
+          if (vin) cleaned = vin.trim();
+          else if (container) cleaned = container.trim();
+          else if (q) cleaned = q.trim();
+          else {
+            const parts = parsed.pathname.split('/').filter(Boolean);
+            const lastPart = parts[parts.length - 1];
+            if (
+              lastPart &&
+              (parts.includes('shipments') ||
+                parts.includes('containers') ||
+                parts.includes('tracking'))
+            ) {
+              cleaned = lastPart.trim();
+            }
+          }
+        } catch {}
+      }
+
+      // If text contains ?vin=... or &vin=...
+      const vinParamMatch = cleaned.match(/[?&]vin=([^&#\s]+)/i);
+      if (vinParamMatch) {
+        cleaned = decodeURIComponent(vinParamMatch[1]).trim();
+      }
+
+      // If text contains ?container=... or &container=...
+      const containerParamMatch = cleaned.match(/[?&]container=([^&#\s]+)/i);
+      if (containerParamMatch) {
+        cleaned = decodeURIComponent(containerParamMatch[1]).trim();
+      }
+
       // If contains a 17-char VIN pattern, extract it cleanly
       const vinMatch = cleaned.match(/\b([A-HJ-NPR-Z0-9]{17})\b/i);
       if (vinMatch) {
