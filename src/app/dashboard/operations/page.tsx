@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
@@ -16,6 +16,7 @@ import {
   ArrowRight,
   CheckCircle2,
   AlertCircle,
+  AlertTriangle,
   MapPin,
   Calendar,
   Eye,
@@ -30,7 +31,17 @@ import {
   Info,
   Clock,
   Compass,
-  ArrowLeftRight
+  ArrowLeftRight,
+  Key,
+  FileCheck,
+  FileX,
+  Printer,
+  Share2,
+  Send,
+  Zap,
+  BarChart3,
+  DollarSign,
+  Maximize2
 } from 'lucide-react';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
@@ -46,9 +57,16 @@ interface ShipmentItem {
   lotNumber: string | null;
   status: string;
   destinationPort?: string | null;
-  user?: { id: string; name: string | null; email: string };
+  auctionName?: string | null;
+  purchaseLocation?: string | null;
+  purchasePrice?: number | null;
+  hasKey?: boolean | null;
+  hasTitle?: boolean | null;
+  titleStatus?: string | null;
+  createdAt?: string;
+  user?: { id: string; name: string | null; email: string; phone?: string | null };
   dispatch?: { id: string; referenceNumber: string; status: string } | null;
-  container?: { id: string; containerNumber: string; status: string } | null;
+  container?: { id: string; containerNumber: string; status: string; destinationPort?: string | null } | null;
   dispatchId?: string | null;
   containerId?: string | null;
 }
@@ -60,6 +78,7 @@ interface DispatchItem {
   destination: string;
   status: string;
   estimatedArrival: string | null;
+  notes?: string | null;
   company: { id: string; name: string; code: string | null };
   shipments: {
     id: string;
@@ -68,6 +87,9 @@ interface DispatchItem {
     vehicleModel: string | null;
     vehicleVIN: string | null;
     status: string;
+    lotNumber?: string | null;
+    hasKey?: boolean | null;
+    hasTitle?: boolean | null;
   }[];
   _count: { shipments: number; events: number; expenses: number };
 }
@@ -77,9 +99,15 @@ interface ContainerItem {
   containerNumber: string;
   status: string;
   vesselName: string | null;
+  voyageNumber?: string | null;
+  shippingLine?: string | null;
+  loadingPort?: string | null;
   destinationPort: string | null;
   maxCapacity: number;
   currentCount: number;
+  departureDate?: string | null;
+  estimatedArrival?: string | null;
+  company?: { id: string; name: string; code: string | null } | null;
   shipments: {
     id: string;
     vehicleYear: number | null;
@@ -87,6 +115,10 @@ interface ContainerItem {
     vehicleModel: string | null;
     vehicleVIN: string | null;
     status: string;
+    lotNumber?: string | null;
+    hasKey?: boolean | null;
+    hasTitle?: boolean | null;
+    destinationPort?: string | null;
   }[];
 }
 
@@ -94,9 +126,11 @@ interface CompanyItem {
   id: string;
   name: string;
   code: string | null;
+  type?: string | null;
 }
 
-type BoardMode = 'dispatch' | 'container' | 'pipeline';
+type BoardMode = 'dispatch' | 'container' | 'pipeline' | 'analytics';
+type FilterTag = 'all' | 'title_ok' | 'title_pending' | 'has_keys' | 'aging_alert';
 
 const PIPELINE_COLUMNS = [
   { key: 'ON_HAND', label: 'Yard / Warehouse', color: '#F59E0B', desc: 'Vehicles received and ready for dispatch' },
@@ -120,13 +154,15 @@ export default function OperationsBoardPage() {
 
   // Search & Filters
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeFilterTag, setActiveFilterTag] = useState<FilterTag>('all');
+  const [portFilter, setPortFilter] = useState<string>('all');
   const [selectedShipmentIds, setSelectedShipmentIds] = useState<string[]>([]);
   
   // Dragging State
   const [draggedShipmentIds, setDraggedShipmentIds] = useState<string[]>([]);
   const [activeDropTarget, setActiveDropTarget] = useState<string | null>(null);
 
-  // Quick Dispatch Modal State
+  // Quick Action Modals
   const [showCreateDispatchModal, setShowCreateDispatchModal] = useState(false);
   const [creatingDispatch, setCreatingDispatch] = useState(false);
   const [dispatchForm, setDispatchForm] = useState({
@@ -136,6 +172,31 @@ export default function OperationsBoardPage() {
     estimatedArrival: '',
     notes: '',
   });
+
+  const [showCreateContainerModal, setShowCreateContainerModal] = useState(false);
+  const [creatingContainer, setCreatingContainer] = useState(false);
+  const [containerForm, setContainerForm] = useState({
+    containerNumber: '',
+    destinationPort: 'Port of Jebel Ali (AEJEA)',
+    maxCapacity: 4,
+    companyId: '',
+    notes: '',
+  });
+
+  // Quick Assign Modal State (for click / touch-friendly workflow)
+  const [assignTargetType, setAssignTargetType] = useState<'dispatch' | 'container' | null>(null);
+  const [singleAssignShipment, setSingleAssignShipment] = useState<ShipmentItem | null>(null);
+
+  // Printable Load Sheet Modal
+  const [printManifestData, setPrintManifestData] = useState<{
+    type: 'dispatch' | 'container';
+    referenceNumber: string;
+    carrierName: string;
+    origin: string;
+    destination: string;
+    eta?: string | null;
+    shipments: ShipmentItem[];
+  } | null>(null);
 
   const fetchBoardData = useCallback(async () => {
     try {
@@ -164,36 +225,58 @@ export default function OperationsBoardPage() {
     fetchBoardData();
   }, [fetchBoardData]);
 
-  // Filtered pool of unassigned / ready shipments for Drag & Drop
+  // Unique Destination Ports list for filtering
+  const availablePorts = useMemo(() => {
+    const ports = new Set<string>();
+    shipments.forEach((s) => {
+      if (s.destinationPort) ports.add(s.destinationPort);
+    });
+    containers.forEach((c) => {
+      if (c.destinationPort) ports.add(c.destinationPort);
+    });
+    return Array.from(ports);
+  }, [shipments, containers]);
+
+  // Yard aging dwell time helper
+  const getDwellDays = (createdAt?: string) => {
+    if (!createdAt) return 0;
+    const diffMs = Date.now() - new Date(createdAt).getTime();
+    return Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+  };
+
+  // Filtered pool of ready shipments
   const readyShipmentsPool = useMemo(() => {
     return shipments.filter((s) => {
-      // In dispatch mode: show shipments that have no dispatch or are ON_HAND
+      // Mode suitability
+      let matchesMode = true;
       if (mode === 'dispatch') {
-        const matchesDispatchState = !s.dispatchId;
-        const matchesSearch = !searchQuery || 
-          `${s.vehicleYear || ''} ${s.vehicleMake || ''} ${s.vehicleModel || ''} ${s.vehicleVIN || ''} ${s.lotNumber || ''} ${s.user?.name || ''}`
-            .toLowerCase()
-            .includes(searchQuery.toLowerCase());
-        return matchesDispatchState && matchesSearch;
+        matchesMode = !s.dispatchId;
+      } else if (mode === 'container') {
+        matchesMode = !s.containerId;
       }
 
-      // In container mode: show shipments that are ON_HAND or DISPATCHING and have no container
-      if (mode === 'container') {
-        const matchesContainerState = !s.containerId;
-        const matchesSearch = !searchQuery || 
-          `${s.vehicleYear || ''} ${s.vehicleMake || ''} ${s.vehicleModel || ''} ${s.vehicleVIN || ''} ${s.lotNumber || ''} ${s.user?.name || ''}`
-            .toLowerCase()
-            .includes(searchQuery.toLowerCase());
-        return matchesContainerState && matchesSearch;
+      if (!matchesMode) return false;
+
+      // Port filter
+      if (portFilter !== 'all' && s.destinationPort !== portFilter) {
+        return false;
       }
 
-      // In pipeline mode: all shipments
-      return !searchQuery || 
-        `${s.vehicleYear || ''} ${s.vehicleMake || ''} ${s.vehicleModel || ''} ${s.vehicleVIN || ''} ${s.lotNumber || ''} ${s.user?.name || ''}`
-          .toLowerCase()
-          .includes(searchQuery.toLowerCase());
+      // Operational Filter Tag
+      if (activeFilterTag === 'title_ok' && !s.hasTitle) return false;
+      if (activeFilterTag === 'title_pending' && s.hasTitle) return false;
+      if (activeFilterTag === 'has_keys' && !s.hasKey) return false;
+      if (activeFilterTag === 'aging_alert' && getDwellDays(s.createdAt) < 14) return false;
+
+      // Text Search
+      if (searchQuery) {
+        const text = `${s.vehicleYear || ''} ${s.vehicleMake || ''} ${s.vehicleModel || ''} ${s.vehicleVIN || ''} ${s.lotNumber || ''} ${s.user?.name || ''} ${s.destinationPort || ''} ${s.auctionName || ''}`.toLowerCase();
+        if (!text.includes(searchQuery.toLowerCase())) return false;
+      }
+
+      return true;
     });
-  }, [shipments, mode, searchQuery]);
+  }, [shipments, mode, portFilter, activeFilterTag, searchQuery]);
 
   // Drag & Drop Handlers
   const handleDragStart = (e: React.DragEvent, shipmentId: string) => {
@@ -227,14 +310,15 @@ export default function OperationsBoardPage() {
   // Drop into a Dispatch Lane
   const handleDropToDispatch = async (dispatchId: string) => {
     setActiveDropTarget(null);
-    if (!draggedShipmentIds || draggedShipmentIds.length === 0) return;
+    const ids = draggedShipmentIds.length > 0 ? draggedShipmentIds : selectedShipmentIds;
+    if (!ids || ids.length === 0) return;
 
     const targetDispatch = dispatches.find((d) => d.id === dispatchId);
-    const count = draggedShipmentIds.length;
+    const count = ids.length;
 
     // Optimistic UI Update
     setShipments((prev) =>
-      prev.map((s) => (draggedShipmentIds.includes(s.id) ? { ...s, dispatchId, status: 'DISPATCHING' } : s))
+      prev.map((s) => (ids.includes(s.id) ? { ...s, dispatchId, status: 'DISPATCHING' } : s))
     );
 
     try {
@@ -244,16 +328,14 @@ export default function OperationsBoardPage() {
         body: JSON.stringify({
           action: 'assign_to_dispatch',
           targetId: dispatchId,
-          shipmentIds: draggedShipmentIds,
+          shipmentIds: ids,
         }),
       });
 
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || 'Failed to assign to dispatch');
 
-      toast.success(
-        `Assigned ${count} vehicle(s) to ${targetDispatch?.referenceNumber || 'Dispatch'}`
-      );
+      toast.success(`Assigned ${count} vehicle(s) to ${targetDispatch?.referenceNumber || 'Dispatch'}`);
       setSelectedShipmentIds([]);
       setDraggedShipmentIds([]);
       fetchBoardData();
@@ -264,16 +346,17 @@ export default function OperationsBoardPage() {
     }
   };
 
-  // Drop into a Container Stowing Slot
+  // Drop into a Container
   const handleDropToContainer = async (containerId: string) => {
     setActiveDropTarget(null);
-    if (!draggedShipmentIds || draggedShipmentIds.length === 0) return;
+    const ids = draggedShipmentIds.length > 0 ? draggedShipmentIds : selectedShipmentIds;
+    if (!ids || ids.length === 0) return;
 
     const targetContainer = containers.find((c) => c.id === containerId);
-    const count = draggedShipmentIds.length;
+    const count = ids.length;
 
     if (targetContainer && targetContainer.shipments.length + count > targetContainer.maxCapacity) {
-      toast.error(`Cannot add ${count} vehicle(s): Exceeds container capacity of ${targetContainer.maxCapacity}`);
+      toast.error(`Exceeds capacity: ${targetContainer.shipments.length + count}/${targetContainer.maxCapacity}`);
       return;
     }
 
@@ -284,16 +367,14 @@ export default function OperationsBoardPage() {
         body: JSON.stringify({
           action: 'assign_to_container',
           targetId: containerId,
-          shipmentIds: draggedShipmentIds,
+          shipmentIds: ids,
         }),
       });
 
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || 'Failed to assign to container');
 
-      toast.success(
-        `Stowed ${count} vehicle(s) into container ${targetContainer?.containerNumber || ''}`
-      );
+      toast.success(`Stowed ${count} vehicle(s) into container ${targetContainer?.containerNumber || ''}`);
       setSelectedShipmentIds([]);
       setDraggedShipmentIds([]);
       fetchBoardData();
@@ -304,12 +385,13 @@ export default function OperationsBoardPage() {
     }
   };
 
-  // Drop into a Pipeline Stage Column
+  // Drop into Pipeline Stage
   const handleDropToPipelineStage = async (newStatus: string) => {
     setActiveDropTarget(null);
-    if (!draggedShipmentIds || draggedShipmentIds.length === 0) return;
+    const ids = draggedShipmentIds.length > 0 ? draggedShipmentIds : selectedShipmentIds;
+    if (!ids || ids.length === 0) return;
 
-    const count = draggedShipmentIds.length;
+    const count = ids.length;
 
     try {
       const res = await fetch('/api/operations', {
@@ -318,7 +400,7 @@ export default function OperationsBoardPage() {
         body: JSON.stringify({
           action: 'move_shipment_status',
           status: newStatus,
-          shipmentIds: draggedShipmentIds,
+          shipmentIds: ids,
         }),
       });
 
@@ -336,45 +418,63 @@ export default function OperationsBoardPage() {
     }
   };
 
-  // Unassign from Dispatch
+  // Unassign actions
   const handleUnassignFromDispatch = async (shipmentId: string) => {
     try {
       const res = await fetch('/api/operations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'unassign_from_dispatch',
-          shipmentIds: [shipmentId],
-        }),
+        body: JSON.stringify({ action: 'unassign_from_dispatch', shipmentIds: [shipmentId] }),
       });
       if (!res.ok) throw new Error('Failed to unassign');
       toast.info('Vehicle returned to ready pool');
       fetchBoardData();
-    } catch (err) {
+    } catch {
       toast.error('Failed to unassign vehicle');
     }
   };
 
-  // Unassign from Container
   const handleUnassignFromContainer = async (shipmentId: string) => {
     try {
       const res = await fetch('/api/operations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'unassign_from_container',
-          shipmentIds: [shipmentId],
-        }),
+        body: JSON.stringify({ action: 'unassign_from_container', shipmentIds: [shipmentId] }),
       });
-      if (!res.ok) throw new Error('Failed to unassign from container');
+      if (!res.ok) throw new Error('Failed to unassign');
       toast.info('Vehicle removed from container');
       fetchBoardData();
-    } catch (err) {
+    } catch {
       toast.error('Failed to unassign vehicle');
     }
   };
 
-  // Update Dispatch status directly from board
+  // 1-Click Smart Auto-Stow by Destination Port
+  const handleAutoStowByPort = async () => {
+    try {
+      setRefreshing(true);
+      const res = await fetch('/api/operations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'auto_stow_by_port' }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Auto-stow failed');
+
+      if (data.count === 0) {
+        toast.info('No matching open containers or vehicles for auto-stow');
+      } else {
+        toast.success(`Smart Auto-Stow: Stowed ${data.count} vehicle(s) by destination port`);
+      }
+      fetchBoardData();
+    } catch (err: any) {
+      toast.error(err.message || 'Auto-stow failed');
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  // Update Dispatch status
   const handleUpdateDispatchStatus = async (dispatchId: string, nextStatus: string) => {
     try {
       const res = await fetch('/api/operations', {
@@ -389,16 +489,16 @@ export default function OperationsBoardPage() {
       if (!res.ok) throw new Error('Failed to update dispatch status');
       toast.success(`Dispatch marked as ${nextStatus}`);
       fetchBoardData();
-    } catch (err) {
+    } catch {
       toast.error('Failed to update dispatch status');
     }
   };
 
-  // Create Dispatch form submit
+  // Create Dispatch
   const handleCreateDispatch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!dispatchForm.companyId) {
-      toast.error('Please select a logistics company / carrier');
+      toast.error('Please select a carrier');
       return;
     }
 
@@ -426,7 +526,46 @@ export default function OperationsBoardPage() {
     }
   };
 
-  // Toggle selection for batch drag
+  // Create Container
+  const handleCreateContainer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!containerForm.containerNumber) {
+      toast.error('Container number is required');
+      return;
+    }
+
+    try {
+      setCreatingContainer(true);
+      const res = await fetch('/api/operations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'create_container',
+          data: containerForm,
+        }),
+      });
+
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || 'Failed to create container');
+
+      toast.success(`Created container ${result.container?.containerNumber || ''}`);
+      setShowCreateContainerModal(false);
+      setContainerForm({
+        containerNumber: '',
+        destinationPort: 'Port of Jebel Ali (AEJEA)',
+        maxCapacity: 4,
+        companyId: '',
+        notes: '',
+      });
+      fetchBoardData();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to create container');
+    } finally {
+      setCreatingContainer(false);
+    }
+  };
+
+  // Selection toggle
   const toggleSelectShipment = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setSelectedShipmentIds((prev) =>
@@ -442,13 +581,40 @@ export default function OperationsBoardPage() {
     }
   };
 
+  // Quick Open Print Manifest
+  const openDispatchManifest = (dispatch: DispatchItem) => {
+    const fullShipments = shipments.filter((s) => s.dispatchId === dispatch.id);
+    setPrintManifestData({
+      type: 'dispatch',
+      referenceNumber: dispatch.referenceNumber,
+      carrierName: dispatch.company?.name || 'Inland Towing Carrier',
+      origin: dispatch.origin,
+      destination: dispatch.destination,
+      eta: dispatch.estimatedArrival,
+      shipments: fullShipments,
+    });
+  };
+
+  const openContainerManifest = (container: ContainerItem) => {
+    const fullShipments = shipments.filter((s) => s.containerId === container.id);
+    setPrintManifestData({
+      type: 'container',
+      referenceNumber: container.containerNumber,
+      carrierName: container.shippingLine || container.company?.name || 'Ocean Freight Line',
+      origin: container.loadingPort || 'Port of Loading',
+      destination: container.destinationPort || 'Port of Destination',
+      eta: container.estimatedArrival,
+      shipments: fullShipments,
+    });
+  };
+
   return (
     <ProtectedRoute>
       <DashboardSurface>
         {/* Page Header */}
         <PageHeader
-          title="Logistics Operations & Dispatch Board"
-          description="Interactive drag-and-drop command center for inland dispatches, ocean container stowing, and fleet pipeline"
+          title="Logistics Operations & Command Board"
+          description="Drag-and-drop command center for inland carrier dispatches, ocean container stowing, and fleet pipeline"
           actions={
             <div className="flex items-center gap-2 flex-wrap">
               <Button
@@ -460,6 +626,17 @@ export default function OperationsBoardPage() {
               >
                 Sync Board
               </Button>
+              {mode === 'container' && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  icon={<Zap className="w-4 h-4 text-[var(--accent-gold)]" />}
+                  onClick={handleAutoStowByPort}
+                  disabled={refreshing}
+                >
+                  Auto-Stow by Port
+                </Button>
+              )}
               <Button
                 variant="outline"
                 size="sm"
@@ -468,16 +645,19 @@ export default function OperationsBoardPage() {
               >
                 New Dispatch
               </Button>
-              <Link href="/dashboard/containers/new" style={{ textDecoration: 'none' }}>
-                <Button variant="primary" size="sm" icon={<Ship className="w-4 h-4" />}>
-                  New Container
-                </Button>
-              </Link>
+              <Button
+                variant="primary"
+                size="sm"
+                icon={<Ship className="w-4 h-4" />}
+                onClick={() => setShowCreateContainerModal(true)}
+              >
+                New Container
+              </Button>
             </div>
           }
         />
 
-        {/* Top Key Metrics */}
+        {/* Top Key Operational Metrics */}
         <DashboardGrid className="grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           <StatsCard
             icon={<Package className="w-5 h-5 text-[var(--accent-gold)]" />}
@@ -501,77 +681,173 @@ export default function OperationsBoardPage() {
             size="sm"
           />
           <StatsCard
-            icon={<CheckCircle2 className="w-5 h-5 text-emerald-500" />}
-            title="Delivered / Completed"
-            value={shipments.filter((s) => s.status === 'DELIVERED' || s.status === 'RELEASED').length}
-            variant="success"
+            icon={<AlertTriangle className="w-5 h-5 text-amber-500" />}
+            title="Yard Aging Alert (>14d)"
+            value={shipments.filter((s) => !s.containerId && getDwellDays(s.createdAt) >= 14).length}
+            variant="warning"
             size="sm"
           />
         </DashboardGrid>
 
-        {/* Mode Selector & Search Filter Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl bg-[var(--panel)] border border-[var(--border)] shadow-sm">
-          {/* Mode Switcher Buttons */}
-          <div className="flex items-center gap-1.5 p-1 rounded-xl bg-[var(--background)] border border-[var(--border)]">
-            <button
-              type="button"
-              onClick={() => setMode('dispatch')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                mode === 'dispatch'
-                  ? 'bg-[var(--accent-gold)] text-white shadow-md'
-                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              }`}
-            >
-              <Truck className="w-4 h-4" />
-              <span>Inland Dispatch Lanes</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode('container')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                mode === 'container'
-                  ? 'bg-[var(--accent-gold)] text-white shadow-md'
-                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              }`}
-            >
-              <Ship className="w-4 h-4" />
-              <span>Container Stowing</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode('pipeline')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                mode === 'pipeline'
-                  ? 'bg-[var(--accent-gold)] text-white shadow-md'
-                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              }`}
-            >
-              <Layers className="w-4 h-4" />
-              <span>Pipeline Kanban</span>
-            </button>
+        {/* Mode Selector, Filters & Search Toolbar */}
+        <div className="flex flex-col gap-3 p-4 rounded-2xl bg-[var(--panel)] border border-[var(--border)] shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            {/* Mode Switcher Buttons */}
+            <div className="flex items-center gap-1.5 p-1 rounded-xl bg-[var(--background)] border border-[var(--border)]">
+              <button
+                type="button"
+                onClick={() => setMode('dispatch')}
+                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  mode === 'dispatch'
+                    ? 'bg-[var(--accent-gold)] text-white shadow-md'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                }`}
+              >
+                <Truck className="w-4 h-4" />
+                <span>Inland Dispatch</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode('container')}
+                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  mode === 'container'
+                    ? 'bg-[var(--accent-gold)] text-white shadow-md'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                }`}
+              >
+                <Ship className="w-4 h-4" />
+                <span>Container Stowing</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode('pipeline')}
+                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  mode === 'pipeline'
+                    ? 'bg-[var(--accent-gold)] text-white shadow-md'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                }`}
+              >
+                <Layers className="w-4 h-4" />
+                <span>Pipeline Kanban</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode('analytics')}
+                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  mode === 'analytics'
+                    ? 'bg-[var(--accent-gold)] text-white shadow-md'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                }`}
+              >
+                <BarChart3 className="w-4 h-4" />
+                <span>Yard Radar</span>
+              </button>
+            </div>
+
+            {/* Search Input */}
+            <div className="flex items-center gap-2 flex-1 max-w-md min-w-[240px]">
+              <div className="relative w-full">
+                <Search className="w-4 h-4 text-[var(--text-secondary)] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Search VIN, make/model, lot #, client, port..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-3 py-1.5 rounded-xl border border-[var(--border)] bg-[var(--background)] text-xs text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:outline-none focus:border-[var(--accent-gold)] transition-colors font-mono"
+                />
+              </div>
+            </div>
           </div>
 
-          {/* Search Input */}
-          <div className="flex items-center gap-2 flex-1 max-w-md min-w-[240px]">
-            <div className="relative w-full">
-              <Search className="w-4 h-4 text-[var(--text-secondary)] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <input
-                type="text"
-                placeholder="Search VIN, make/model, lot #, customer..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3 py-1.5 rounded-xl border border-[var(--border)] bg-[var(--background)] text-xs text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:outline-none focus:border-[var(--accent-gold)] transition-colors font-mono"
-              />
-            </div>
-            {selectedShipmentIds.length > 0 && (
-              <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-[var(--accent-gold)]/10 text-[var(--accent-gold)] border border-[var(--accent-gold)]/30 whitespace-nowrap">
-                {selectedShipmentIds.length} selected
+          {/* Operational Quick Filter Pills */}
+          <div className="flex items-center justify-between gap-2 flex-wrap pt-2 border-t border-[var(--border)] text-xs">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-[11px] font-bold text-[var(--text-secondary)] uppercase tracking-wider mr-1">
+                Filter:
               </span>
+              <button
+                type="button"
+                onClick={() => setActiveFilterTag('all')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                  activeFilterTag === 'all'
+                    ? 'bg-[var(--text-primary)] text-[var(--background)]'
+                    : 'bg-[var(--background)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border)]'
+                }`}
+              >
+                All Ready ({shipments.filter(s => mode === 'dispatch' ? !s.dispatchId : !s.containerId).length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveFilterTag('title_ok')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all ${
+                  activeFilterTag === 'title_ok'
+                    ? 'bg-emerald-600 text-white'
+                    : 'bg-[var(--background)] text-emerald-500 border border-emerald-500/30'
+                }`}
+              >
+                <FileCheck className="w-3.5 h-3.5" />
+                <span>Title Ready</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveFilterTag('title_pending')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all ${
+                  activeFilterTag === 'title_pending'
+                    ? 'bg-amber-600 text-white'
+                    : 'bg-[var(--background)] text-amber-500 border border-amber-500/30'
+                }`}
+              >
+                <FileX className="w-3.5 h-3.5" />
+                <span>Title Pending (Customs Hold)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveFilterTag('has_keys')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all ${
+                  activeFilterTag === 'has_keys'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-[var(--background)] text-blue-500 border border-blue-500/30'
+                }`}
+              >
+                <Key className="w-3.5 h-3.5" />
+                <span>Keys Present</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveFilterTag('aging_alert')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all ${
+                  activeFilterTag === 'aging_alert'
+                    ? 'bg-red-600 text-white'
+                    : 'bg-[var(--background)] text-red-500 border border-red-500/30'
+                }`}
+              >
+                <AlertTriangle className="w-3.5 h-3.5" />
+                <span>Yard Aging &gt; 14 Days</span>
+              </button>
+            </div>
+
+            {/* Port Filter Dropdown */}
+            {availablePorts.length > 0 && (
+              <div className="flex items-center gap-1.5">
+                <Compass className="w-3.5 h-3.5 text-[var(--accent-gold)]" />
+                <select
+                  value={portFilter}
+                  onChange={(e) => setPortFilter(e.target.value)}
+                  className="bg-[var(--background)] text-xs font-mono font-bold text-[var(--text-primary)] border border-[var(--border)] rounded-lg px-2.5 py-1 outline-none cursor-pointer"
+                >
+                  <option value="all">All Destination Ports</option>
+                  {availablePorts.map((p) => (
+                    <option key={p} value={p}>
+                      {p}
+                    </option>
+                  ))}
+                </select>
+              </div>
             )}
           </div>
         </div>
 
-        {/* MAIN INTERACTIVE DRAG-AND-DROP WORKSPACE */}
+        {/* WORKSPACE CONTENT */}
         {loading ? (
           <CompactSkeleton />
         ) : mode === 'dispatch' ? (
@@ -604,12 +880,14 @@ export default function OperationsBoardPage() {
                 {readyShipmentsPool.length === 0 ? (
                   <div className="p-8 rounded-2xl border-2 border-dashed border-[var(--border)] text-center text-[var(--text-secondary)]">
                     <Package className="w-8 h-8 mx-auto mb-2 opacity-50 text-[var(--accent-gold)]" />
-                    <p className="text-xs font-bold">No available vehicles in queue</p>
-                    <p className="text-[11px] mt-1 opacity-70">All vehicles are currently assigned to active routes.</p>
+                    <p className="text-xs font-bold">No vehicles match current filters</p>
+                    <p className="text-[11px] mt-1 opacity-70">Adjust search or tag filters above.</p>
                   </div>
                 ) : (
                   readyShipmentsPool.map((s) => {
                     const isSelected = selectedShipmentIds.includes(s.id);
+                    const dwellDays = getDwellDays(s.createdAt);
+
                     return (
                       <div
                         key={s.id}
@@ -640,9 +918,15 @@ export default function OperationsBoardPage() {
                               <h4 className="text-xs font-bold text-[var(--text-primary)] truncate">
                                 {s.vehicleYear || ''} {s.vehicleMake || 'Vehicle'} {s.vehicleModel || ''}
                               </h4>
-                              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[var(--background)] border border-[var(--border)] text-[var(--text-secondary)]">
-                                {s.status}
-                              </span>
+                              {dwellDays >= 14 ? (
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-red-500/10 text-red-500 border border-red-500/30">
+                                  {dwellDays}d Dwell
+                                </span>
+                              ) : (
+                                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[var(--background)] border border-[var(--border)] text-[var(--text-secondary)]">
+                                  {dwellDays}d
+                                </span>
+                              )}
                             </div>
 
                             <div className="mt-1 flex items-center gap-2 text-[11px] font-mono text-[var(--text-secondary)]">
@@ -650,11 +934,59 @@ export default function OperationsBoardPage() {
                               {s.lotNumber && <span>• Lot #{s.lotNumber}</span>}
                             </div>
 
+                            {/* Tags: Keys, Title, Destination Port */}
+                            <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
+                              {s.hasKey ? (
+                                <span className="text-[9px] font-semibold px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-500 flex items-center gap-0.5">
+                                  <Key className="w-2.5 h-2.5" /> Keys
+                                </span>
+                              ) : (
+                                <span className="text-[9px] font-semibold px-1.5 py-0.2 rounded bg-neutral-500/10 text-neutral-400">
+                                  No Keys
+                                </span>
+                              )}
+
+                              {s.hasTitle ? (
+                                <span className="text-[9px] font-semibold px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-500 flex items-center gap-0.5">
+                                  <FileCheck className="w-2.5 h-2.5" /> Title OK
+                                </span>
+                              ) : (
+                                <span className="text-[9px] font-semibold px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-500 font-bold flex items-center gap-0.5">
+                                  <AlertCircle className="w-2.5 h-2.5" /> Title Pending
+                                </span>
+                              )}
+
+                              {s.destinationPort && (
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-blue-500/10 text-blue-400">
+                                  {s.destinationPort.split('(')[0]}
+                                </span>
+                              )}
+                            </div>
+
                             {s.user?.name && (
-                              <p className="mt-0.5 text-[10px] text-[var(--text-secondary)] truncate">
+                              <p className="mt-1 text-[10px] text-[var(--text-secondary)] truncate">
                                 Client: <strong className="text-[var(--text-primary)]">{s.user.name}</strong>
                               </p>
                             )}
+
+                            {/* 1-Tap Quick Assign Button (Mobile / Non-Drag) */}
+                            <div className="mt-2 pt-2 border-t border-[var(--border)] flex items-center justify-between">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSingleAssignShipment(s);
+                                  setAssignTargetType('dispatch');
+                                }}
+                                className="text-[11px] font-bold text-blue-500 hover:text-blue-400 flex items-center gap-1"
+                              >
+                                <Truck className="w-3 h-3" />
+                                <span>Assign to Dispatch →</span>
+                              </button>
+
+                              <Link href={`/dashboard/shipments/${s.id}`} style={{ textDecoration: 'none' }}>
+                                <Eye className="w-3.5 h-3.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)]" />
+                              </Link>
+                            </div>
                           </div>
 
                           <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center self-center text-[var(--text-secondary)]">
@@ -672,11 +1004,11 @@ export default function OperationsBoardPage() {
             <div className="lg:col-span-8 flex flex-col gap-4">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">
-                  Active Dispatch Lanes ({dispatches.length}) • Drag vehicles onto a lane to assign
+                  Active Dispatch Lanes ({dispatches.length}) • Drag vehicles or use Quick Assign
                 </span>
                 <span className="text-xs text-[var(--accent-gold)] font-bold flex items-center gap-1">
                   <Sparkles className="w-3.5 h-3.5" />
-                  Live Dropzones Active
+                  Tactile Dropzones Active
                 </span>
               </div>
 
@@ -689,7 +1021,7 @@ export default function OperationsBoardPage() {
                       onDragOver={(e) => handleDragOver(e, dispatch.id)}
                       onDragLeave={(e) => handleDragLeave(e, dispatch.id)}
                       onDrop={() => handleDropToDispatch(dispatch.id)}
-                      className={`p-4 rounded-2xl border transition-all flex flex-col justify-between min-h-[260px] ${
+                      className={`p-4 rounded-2xl border transition-all flex flex-col justify-between min-h-[280px] ${
                         isDropActive
                           ? 'border-[var(--accent-gold)] bg-[var(--accent-gold)]/10 ring-4 ring-[var(--accent-gold)]/30 scale-[1.01] shadow-xl'
                           : 'border-[var(--border)] bg-[var(--panel)] shadow-sm'
@@ -712,15 +1044,25 @@ export default function OperationsBoardPage() {
                             </p>
                           </div>
 
-                          <Link href={`/dashboard/dispatches/${dispatch.id}`} style={{ textDecoration: 'none' }}>
+                          <div className="flex items-center gap-1">
                             <button
                               type="button"
-                              className="p-1 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--background)] transition-colors min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center"
-                              title="View Dispatch Details"
+                              onClick={() => openDispatchManifest(dispatch)}
+                              className="p-1 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--background)] transition-colors"
+                              title="Print Load Order & Gatepass"
                             >
-                              <ArrowUpRight className="w-4 h-4" />
+                              <Printer className="w-4 h-4" />
                             </button>
-                          </Link>
+                            <Link href={`/dashboard/dispatches/${dispatch.id}`} style={{ textDecoration: 'none' }}>
+                              <button
+                                type="button"
+                                className="p-1 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--background)] transition-colors"
+                                title="View Dispatch Details"
+                              >
+                                <ArrowUpRight className="w-4 h-4" />
+                              </button>
+                            </Link>
+                          </div>
                         </div>
 
                         {/* Route Info */}
@@ -765,7 +1107,7 @@ export default function OperationsBoardPage() {
                                 <button
                                   type="button"
                                   onClick={() => handleUnassignFromDispatch(item.id)}
-                                  className="p-1 text-[var(--text-secondary)] hover:text-[var(--error)] transition-colors min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center"
+                                  className="p-1 text-[var(--text-secondary)] hover:text-[var(--error)] transition-colors"
                                   title="Unassign vehicle from dispatch"
                                 >
                                   <X className="w-3.5 h-3.5" />
@@ -857,6 +1199,8 @@ export default function OperationsBoardPage() {
               <div className="space-y-2.5 max-h-[calc(100vh-280px)] overflow-y-auto pr-1">
                 {readyShipmentsPool.map((s) => {
                   const isSelected = selectedShipmentIds.includes(s.id);
+                  const dwellDays = getDwellDays(s.createdAt);
+
                   return (
                     <div
                       key={s.id}
@@ -881,17 +1225,50 @@ export default function OperationsBoardPage() {
                           )}
                         </button>
                         <div className="flex-1 min-w-0">
-                          <h4 className="text-xs font-bold text-[var(--text-primary)] truncate">
-                            {s.vehicleYear || ''} {s.vehicleMake || 'Vehicle'} {s.vehicleModel || ''}
-                          </h4>
+                          <div className="flex items-center justify-between gap-1">
+                            <h4 className="text-xs font-bold text-[var(--text-primary)] truncate">
+                              {s.vehicleYear || ''} {s.vehicleMake || 'Vehicle'} {s.vehicleModel || ''}
+                            </h4>
+                            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[var(--background)] border border-[var(--border)] text-[var(--text-secondary)]">
+                              {dwellDays}d dwell
+                            </span>
+                          </div>
+
                           <p className="mt-0.5 text-[11px] font-mono text-[var(--text-secondary)]">
                             VIN: {s.vehicleVIN || 'N/A'}
                           </p>
-                          {s.destinationPort && (
-                            <p className="text-[10px] text-[var(--accent-gold)] font-semibold mt-0.5">
-                              Port: {s.destinationPort}
-                            </p>
-                          )}
+
+                          <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                            {s.destinationPort && (
+                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[var(--accent-gold)]/10 text-[var(--accent-gold)]">
+                                Port: {s.destinationPort}
+                              </span>
+                            )}
+                            {s.hasTitle ? (
+                              <span className="text-[9px] font-semibold text-emerald-500">✓ Title OK</span>
+                            ) : (
+                              <span className="text-[9px] font-semibold text-amber-500">⚠️ Title Pending</span>
+                            )}
+                          </div>
+
+                          {/* 1-Tap Quick Stow Button */}
+                          <div className="mt-2 pt-2 border-t border-[var(--border)] flex items-center justify-between">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSingleAssignShipment(s);
+                                setAssignTargetType('container');
+                              }}
+                              className="text-[11px] font-bold text-indigo-500 hover:text-indigo-400 flex items-center gap-1"
+                            >
+                              <Ship className="w-3 h-3" />
+                              <span>Stow into Container →</span>
+                            </button>
+
+                            <Link href={`/dashboard/shipments/${s.id}`} style={{ textDecoration: 'none' }}>
+                              <Eye className="w-3.5 h-3.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)]" />
+                            </Link>
+                          </div>
                         </div>
                         <GripVertical className="w-4 h-4 text-[var(--text-secondary)] opacity-0 group-hover:opacity-100 transition-opacity self-center" />
                       </div>
@@ -901,11 +1278,17 @@ export default function OperationsBoardPage() {
               </div>
             </div>
 
-            {/* Right Column: Ocean Containers Columns */}
+            {/* Right Column: Ocean Containers Grid */}
             <div className="lg:col-span-8 flex flex-col gap-4">
-              <span className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">
-                Active Ocean Containers ({containers.length}) • Drag vehicles into a container to stow
-              </span>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">
+                  Active Ocean Containers ({containers.length}) • Drag vehicles into a container to stow
+                </span>
+                <span className="text-xs text-[var(--accent-gold)] font-bold flex items-center gap-1">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  Stowing Capacity Live
+                </span>
+              </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {containers.map((c) => {
@@ -919,7 +1302,7 @@ export default function OperationsBoardPage() {
                       onDragOver={(e) => handleDragOver(e, c.id)}
                       onDragLeave={(e) => handleDragLeave(e, c.id)}
                       onDrop={() => handleDropToContainer(c.id)}
-                      className={`p-4 rounded-2xl border transition-all flex flex-col justify-between min-h-[260px] ${
+                      className={`p-4 rounded-2xl border transition-all flex flex-col justify-between min-h-[300px] ${
                         isDropActive
                           ? 'border-[var(--accent-gold)] bg-[var(--accent-gold)]/10 ring-4 ring-[var(--accent-gold)]/30 scale-[1.01] shadow-xl'
                           : 'border-[var(--border)] bg-[var(--panel)] shadow-sm'
@@ -938,19 +1321,29 @@ export default function OperationsBoardPage() {
                               </span>
                             </div>
                             <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-                              {c.vesselName || 'Vessel Assigned'} • {c.destinationPort || 'Destination Port'}
+                              {c.vesselName || 'Vessel Assigned'} • <strong className="text-[var(--accent-gold)]">{c.destinationPort || 'Destination Port'}</strong>
                             </p>
                           </div>
 
-                          <Link href={`/dashboard/containers/${c.id}`} style={{ textDecoration: 'none' }}>
+                          <div className="flex items-center gap-1">
                             <button
                               type="button"
-                              className="p-1 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--background)] transition-colors min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center"
-                              title="View Container Details"
+                              onClick={() => openContainerManifest(c)}
+                              className="p-1 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--background)] transition-colors"
+                              title="Print Container Load Order"
                             >
-                              <ArrowUpRight className="w-4 h-4" />
+                              <Printer className="w-4 h-4" />
                             </button>
-                          </Link>
+                            <Link href={`/dashboard/containers/${c.id}`} style={{ textDecoration: 'none' }}>
+                              <button
+                                type="button"
+                                className="p-1 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--background)] transition-colors"
+                                title="View Container Details"
+                              >
+                                <ArrowUpRight className="w-4 h-4" />
+                              </button>
+                            </Link>
+                          </div>
                         </div>
 
                         {/* Capacity Progress Bar */}
@@ -970,11 +1363,40 @@ export default function OperationsBoardPage() {
                             />
                           </div>
                         </div>
+
+                        {/* 4-Slot Visual Container Stowing Bay Graphic */}
+                        <div className="mt-3 p-2 rounded-xl bg-[var(--background)] border border-[var(--border)]">
+                          <div className="grid grid-cols-4 gap-1.5">
+                            {Array.from({ length: c.maxCapacity }).map((_, slotIdx) => {
+                              const vehicleInSlot = c.shipments?.[slotIdx];
+                              return (
+                                <div
+                                  key={slotIdx}
+                                  className={`p-1.5 rounded-lg border text-center text-[10px] font-mono truncate transition-all ${
+                                    vehicleInSlot
+                                      ? 'bg-[var(--panel)] border-[var(--accent-gold)]/40 text-[var(--text-primary)] font-bold'
+                                      : 'border-dashed border-[var(--border)] text-[var(--text-secondary)] opacity-60'
+                                  }`}
+                                  title={vehicleInSlot ? `${vehicleInSlot.vehicleYear || ''} ${vehicleInSlot.vehicleMake || ''} ${vehicleInSlot.vehicleModel || ''}` : `Slot ${slotIdx + 1} Open`}
+                                >
+                                  {vehicleInSlot ? (
+                                    <div className="truncate">
+                                      <span>🚗 #{slotIdx + 1}</span>
+                                      <p className="truncate text-[9px] text-[var(--text-secondary)]">{vehicleInSlot.vehicleMake || 'Car'}</p>
+                                    </div>
+                                  ) : (
+                                    <span>Empty</span>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
                       </div>
 
                       {/* Stowed Vehicles List */}
                       <div className="mt-3 flex-1">
-                        <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                        <div className="space-y-1.5 max-h-32 overflow-y-auto pr-1">
                           {c.shipments && c.shipments.length > 0 ? (
                             c.shipments.map((item) => (
                               <div
@@ -990,7 +1412,7 @@ export default function OperationsBoardPage() {
                                 <button
                                   type="button"
                                   onClick={() => handleUnassignFromContainer(item.id)}
-                                  className="p-1 text-[var(--text-secondary)] hover:text-[var(--error)] transition-colors min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center"
+                                  className="p-1 text-[var(--text-secondary)] hover:text-[var(--error)] transition-colors"
                                   title="Remove from container"
                                 >
                                   <X className="w-3.5 h-3.5" />
@@ -999,7 +1421,7 @@ export default function OperationsBoardPage() {
                             ))
                           ) : (
                             <div
-                              className={`p-4 rounded-xl border-2 border-dashed text-center transition-colors ${
+                              className={`p-3 rounded-xl border-2 border-dashed text-center transition-colors ${
                                 isDropActive
                                   ? 'border-[var(--accent-gold)] bg-[var(--accent-gold)]/20 text-[var(--accent-gold)] font-bold'
                                   : 'border-[var(--border)] text-[var(--text-secondary)]'
@@ -1018,7 +1440,7 @@ export default function OperationsBoardPage() {
               </div>
             </div>
           </div>
-        ) : (
+        ) : mode === 'pipeline' ? (
           /* ============================================================
              MODE 3: END-TO-END PIPELINE KANBAN (DRAG ACROSS WORKFLOW STAGES)
              ============================================================ */
@@ -1047,7 +1469,6 @@ export default function OperationsBoardPage() {
                       : 'border-[var(--border)] shadow-sm'
                   }`}
                 >
-                  {/* Column Header */}
                   <div className="flex items-center justify-between pb-3 border-b border-[var(--border)] mb-3">
                     <div className="flex items-center gap-2">
                       <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: col.color }} />
@@ -1060,7 +1481,6 @@ export default function OperationsBoardPage() {
                     </span>
                   </div>
 
-                  {/* Cards Container */}
                   <div className="space-y-2.5 flex-1 overflow-y-auto max-h-[calc(100vh-320px)] pr-1">
                     {colShipments.length === 0 ? (
                       <div className="p-6 text-center text-[var(--text-secondary)] text-xs border-2 border-dashed border-[var(--border)] rounded-xl">
@@ -1085,11 +1505,10 @@ export default function OperationsBoardPage() {
                           <p className="mt-1 text-[11px] font-mono text-[var(--text-secondary)]">
                             VIN: {s.vehicleVIN ? `${s.vehicleVIN.slice(0, 8)}...` : 'N/A'}
                           </p>
-                          {s.user?.name && (
-                            <p className="mt-1 text-[10px] text-[var(--text-secondary)] truncate">
-                              Client: {s.user.name}
-                            </p>
-                          )}
+                          <div className="mt-1 flex items-center justify-between text-[10px] text-[var(--text-secondary)]">
+                            <span>{s.destinationPort || 'No Port'}</span>
+                            <span>{getDwellDays(s.createdAt)}d dwell</span>
+                          </div>
                         </div>
                       ))
                     )}
@@ -1098,7 +1517,277 @@ export default function OperationsBoardPage() {
               );
             })}
           </div>
+        ) : (
+          /* ============================================================
+             MODE 4: YARD RADAR & BOTTLENECK AUDIT (OPERATIONS ANALYTICS)
+             ============================================================ */
+          <div className="space-y-6">
+            <DashboardGrid className="grid-cols-1 md:grid-cols-3">
+              <DashboardPanel title="Title & Customs Hold Risk" description="Vehicles blocked from export due to missing original titles">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-500">
+                    <span className="text-xs font-bold">Titles Pending:</span>
+                    <span className="text-lg font-mono font-extrabold">
+                      {shipments.filter((s) => !s.hasTitle).length}
+                    </span>
+                  </div>
+                  <p className="text-xs text-[var(--text-secondary)]">
+                    US Customs requires original titles prior to container loading. Ensure titles are received before stowing.
+                  </p>
+                </div>
+              </DashboardPanel>
+
+              <DashboardPanel title="Yard Aging & Storage Accumulation" description="Vehicles dwelling in warehouse for over 14 days">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-500">
+                    <span className="text-xs font-bold">Aging Alerts (&gt;14d):</span>
+                    <span className="text-lg font-mono font-extrabold">
+                      {shipments.filter((s) => !s.containerId && getDwellDays(s.createdAt) >= 14).length}
+                    </span>
+                  </div>
+                  <p className="text-xs text-[var(--text-secondary)]">
+                    Vehicles exceeding 14 days may trigger yard demurrage and storage penalties. Prioritize for dispatch.
+                  </p>
+                </div>
+              </DashboardPanel>
+
+              <DashboardPanel title="Stowing Efficiency" description="Fleet-wide container capacity utilization">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-400">
+                    <span className="text-xs font-bold">Avg Container Load:</span>
+                    <span className="text-lg font-mono font-extrabold">
+                      {containers.length > 0
+                        ? Math.round(
+                            (containers.reduce((acc, c) => acc + (c.shipments?.length || 0), 0) /
+                              containers.reduce((acc, c) => acc + c.maxCapacity, 0)) *
+                              100
+                          )
+                        : 0}
+                      %
+                    </span>
+                  </div>
+                  <p className="text-xs text-[var(--text-secondary)]">
+                    Target is 90%+ utilization per 40ft High Cube container (4 vehicles per container).
+                  </p>
+                </div>
+              </DashboardPanel>
+            </DashboardGrid>
+          </div>
         )}
+
+        {/* FLOATING BATCH ACTION DOCK (Appears when 1+ vehicles selected) */}
+        {selectedShipmentIds.length > 0 && (
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-2xl border border-slate-700 flex items-center gap-3 flex-wrap max-w-[calc(100vw-32px)]">
+            <div className="flex items-center gap-2 pr-3 border-r border-slate-700">
+              <span className="w-2.5 h-2.5 rounded-full bg-[var(--accent-gold)] animate-pulse" />
+              <span className="text-xs font-mono font-bold text-slate-200">
+                {selectedShipmentIds.length} Vehicle{selectedShipmentIds.length > 1 ? 's' : ''} Selected
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setAssignTargetType('dispatch')}
+              className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-bold flex items-center gap-1.5 transition-colors"
+            >
+              <Truck className="w-3.5 h-3.5" />
+              <span>Assign to Dispatch</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setAssignTargetType('container')}
+              className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-bold flex items-center gap-1.5 transition-colors"
+            >
+              <Ship className="w-3.5 h-3.5" />
+              <span>Stow into Container</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSelectedShipmentIds([])}
+              className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              title="Clear selection"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
+        {/* Quick Assign Target Modal (For Touch / Click-to-Assign) */}
+        <Modal
+          open={Boolean(assignTargetType)}
+          onClose={() => {
+            setAssignTargetType(null);
+            setSingleAssignShipment(null);
+          }}
+          title={
+            assignTargetType === 'dispatch'
+              ? `Assign to Dispatch Lane (${singleAssignShipment ? 1 : selectedShipmentIds.length} vehicle(s))`
+              : `Stow into Ocean Container (${singleAssignShipment ? 1 : selectedShipmentIds.length} vehicle(s))`
+          }
+        >
+          <div className="space-y-4">
+            <p className="text-xs text-[var(--text-secondary)]">
+              Select the destination {assignTargetType === 'dispatch' ? 'dispatch lane' : 'container'} to allocate the selected vehicle(s):
+            </p>
+
+            <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+              {assignTargetType === 'dispatch' ? (
+                dispatches.map((d) => (
+                  <button
+                    key={d.id}
+                    type="button"
+                    onClick={() => {
+                      if (singleAssignShipment) {
+                        setDraggedShipmentIds([singleAssignShipment.id]);
+                      }
+                      handleDropToDispatch(d.id);
+                      setAssignTargetType(null);
+                      setSingleAssignShipment(null);
+                    }}
+                    className="w-full p-3 rounded-xl border border-[var(--border)] bg-[var(--background)] hover:border-[var(--accent-gold)] flex items-center justify-between text-left transition-all hover:bg-[var(--panel)]"
+                  >
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-bold text-xs text-[var(--text-primary)]">{d.referenceNumber}</span>
+                        <span className="text-[10px] text-blue-500 font-semibold">({d.company?.name || 'Carrier'})</span>
+                      </div>
+                      <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">{d.origin} → {d.destination}</p>
+                    </div>
+                    <span className="text-xs font-bold text-blue-500">Assign →</span>
+                  </button>
+                ))
+              ) : (
+                containers.map((c) => {
+                  const isFull = (c.shipments?.length || 0) >= c.maxCapacity;
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      disabled={isFull}
+                      onClick={() => {
+                        if (singleAssignShipment) {
+                          setDraggedShipmentIds([singleAssignShipment.id]);
+                        }
+                        handleDropToContainer(c.id);
+                        setAssignTargetType(null);
+                        setSingleAssignShipment(null);
+                      }}
+                      className={`w-full p-3 rounded-xl border flex items-center justify-between text-left transition-all ${
+                        isFull
+                          ? 'border-[var(--border)] bg-[var(--background)] opacity-50 cursor-not-allowed'
+                          : 'border-[var(--border)] bg-[var(--background)] hover:border-[var(--accent-gold)] hover:bg-[var(--panel)]'
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-bold text-xs text-[var(--text-primary)]">{c.containerNumber}</span>
+                          <span className="text-[10px] text-[var(--accent-gold)] font-semibold">({c.destinationPort || 'Port'})</span>
+                        </div>
+                        <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">
+                          Capacity: {c.shipments?.length || 0} / {c.maxCapacity} {isFull ? '(FULL)' : ''}
+                        </p>
+                      </div>
+                      <span className={`text-xs font-bold ${isFull ? 'text-neutral-500' : 'text-indigo-500'}`}>
+                        {isFull ? 'Full' : 'Stow →'}
+                      </span>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </Modal>
+
+        {/* Printable Load Order & Gatepass Manifest Modal */}
+        <Modal
+          open={Boolean(printManifestData)}
+          onClose={() => setPrintManifestData(null)}
+          title={`Load Order & Gatepass Manifest (${printManifestData?.referenceNumber || ''})`}
+        >
+          {printManifestData && (
+            <div className="space-y-4 font-sans text-xs">
+              {/* Header Box */}
+              <div className="p-3 rounded-xl bg-[var(--background)] border border-[var(--border)] space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-sm text-[var(--text-primary)]">JACXI LOGISTICS MANIFEST</span>
+                  <span className="font-mono font-bold text-xs px-2 py-0.5 rounded bg-[var(--panel)] border">
+                    {printManifestData.referenceNumber}
+                  </span>
+                </div>
+                <p className="text-[11px] text-[var(--text-secondary)]">
+                  Carrier / Shipping Line: <strong>{printManifestData.carrierName}</strong>
+                </p>
+                <div className="flex items-center justify-between pt-1 border-t border-[var(--border)] text-[11px]">
+                  <span>Origin: <strong>{printManifestData.origin}</strong></span>
+                  <span>Destination: <strong>{printManifestData.destination}</strong></span>
+                </div>
+              </div>
+
+              {/* Vehicles Manifest Table */}
+              <div>
+                <span className="font-bold uppercase tracking-wider text-[10px] text-[var(--text-secondary)] block mb-1">
+                  Loaded Vehicles List ({printManifestData.shipments.length})
+                </span>
+                <div className="border border-[var(--border)] rounded-xl overflow-hidden">
+                  <table className="w-full text-left border-collapse">
+                    <thead className="bg-[var(--panel)] text-[10px] uppercase font-bold text-[var(--text-secondary)] border-b">
+                      <tr>
+                        <th className="p-2">#</th>
+                        <th className="p-2">Vehicle</th>
+                        <th className="p-2 font-mono">VIN</th>
+                        <th className="p-2">Lot #</th>
+                        <th className="p-2">Keys</th>
+                        <th className="p-2">Title</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[var(--border)] text-[11px]">
+                      {printManifestData.shipments.map((s, idx) => (
+                        <tr key={s.id} className="hover:bg-[var(--background)]">
+                          <td className="p-2 font-mono">{idx + 1}</td>
+                          <td className="p-2 font-bold">{s.vehicleYear || ''} {s.vehicleMake || ''} {s.vehicleModel || ''}</td>
+                          <td className="p-2 font-mono text-[10px]">{s.vehicleVIN || 'N/A'}</td>
+                          <td className="p-2 font-mono">{s.lotNumber || '—'}</td>
+                          <td className="p-2">{s.hasKey ? '✓ Yes' : '— No'}</td>
+                          <td className="p-2">{s.hasTitle ? '✓ Yes' : '⚠️ Pending'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Driver & Yard Signature Block */}
+              <div className="pt-3 border-t border-[var(--border)] grid grid-cols-2 gap-4 text-[10px]">
+                <div className="p-2 rounded border border-dashed text-center">
+                  <p className="text-[var(--text-secondary)]">Driver Handoff Signature</p>
+                  <div className="h-8" />
+                  <p className="border-t pt-1 font-mono">Date: _______________</p>
+                </div>
+                <div className="p-2 rounded border border-dashed text-center">
+                  <p className="text-[var(--text-secondary)]">Yard Dispatcher Signature</p>
+                  <div className="h-8" />
+                  <p className="border-t pt-1 font-mono">Date: _______________</p>
+                </div>
+              </div>
+
+              {/* Modal Actions */}
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--border)]">
+                <Button variant="outline" onClick={() => setPrintManifestData(null)}>
+                  Close
+                </Button>
+                <Button
+                  variant="primary"
+                  icon={<Printer className="w-4 h-4" />}
+                  onClick={() => window.print()}
+                >
+                  Print Manifest
+                </Button>
+              </div>
+            </div>
+          )}
+        </Modal>
 
         {/* Quick Create Dispatch Modal */}
         <Modal
@@ -1153,6 +1842,60 @@ export default function OperationsBoardPage() {
               </Button>
               <Button variant="primary" type="submit" disabled={creatingDispatch}>
                 {creatingDispatch ? 'Creating...' : 'Create Dispatch Lane'}
+              </Button>
+            </div>
+          </form>
+        </Modal>
+
+        {/* Quick Create Container Modal */}
+        <Modal
+          open={showCreateContainerModal}
+          onClose={() => setShowCreateContainerModal(false)}
+          title="Create New Ocean Container"
+        >
+          <form onSubmit={handleCreateContainer} className="space-y-4">
+            <FormField
+              label="Container Number"
+              value={containerForm.containerNumber}
+              onChange={(e) => setContainerForm({ ...containerForm, containerNumber: e.target.value })}
+              placeholder="e.g., MSKU9048123"
+            />
+
+            <FormField
+              label="Destination Port"
+              value={containerForm.destinationPort}
+              onChange={(e) => setContainerForm({ ...containerForm, destinationPort: e.target.value })}
+              placeholder="e.g., Port of Jebel Ali (AEJEA)"
+            />
+
+            <Select
+              label="Ocean Shipping Line (Optional)"
+              value={containerForm.companyId}
+              onChange={(val) => setContainerForm({ ...containerForm, companyId: String(val) })}
+              options={[
+                { value: '', label: 'Select Carrier (Optional)' },
+                ...companies.map((c) => ({ value: c.id, label: c.name })),
+              ]}
+            />
+
+            <FormField
+              label="Max Capacity (Vehicles)"
+              type="number"
+              value={containerForm.maxCapacity}
+              onChange={(e) => setContainerForm({ ...containerForm, maxCapacity: Number(e.target.value) || 4 })}
+            />
+
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--border)]">
+              <Button
+                variant="outline"
+                type="button"
+                onClick={() => setShowCreateContainerModal(false)}
+                disabled={creatingContainer}
+              >
+                Cancel
+              </Button>
+              <Button variant="primary" type="submit" disabled={creatingContainer}>
+                {creatingContainer ? 'Creating...' : 'Create Container'}
               </Button>
             </div>
           </form>

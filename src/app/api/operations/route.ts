@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search') || '';
 
-    // ⚡ Bolt: Parallelized independent DB queries to reduce latency
+    // Parallelized DB queries for high performance
     const [shipments, dispatches, containers, companies] = await Promise.all([
       // Fetch active unassigned / ready shipments
       prisma.shipment.findMany({
@@ -27,17 +27,37 @@ export async function GET(request: NextRequest) {
                   { vehicleModel: { contains: search, mode: 'insensitive' } },
                   { lotNumber: { contains: search, mode: 'insensitive' } },
                   { user: { name: { contains: search, mode: 'insensitive' } } },
+                  { purchaseLocation: { contains: search, mode: 'insensitive' } },
+                  { auctionName: { contains: search, mode: 'insensitive' } },
                 ],
               }
             : {}),
         },
-        include: {
-          user: { select: { id: true, name: true, email: true } },
+        select: {
+          id: true,
+          vehicleYear: true,
+          vehicleMake: true,
+          vehicleModel: true,
+          vehicleVIN: true,
+          lotNumber: true,
+          status: true,
+          auctionName: true,
+          purchaseLocation: true,
+          purchasePrice: true,
+          priceListPricingSnapshot: true,
+          hasKey: true,
+          hasTitle: true,
+          titleStatus: true,
+          dispatchId: true,
+          containerId: true,
+          createdAt: true,
+          updatedAt: true,
+          user: { select: { id: true, name: true, email: true, phone: true } },
           dispatch: { select: { id: true, referenceNumber: true, status: true } },
-          container: { select: { id: true, containerNumber: true, status: true } },
+          container: { select: { id: true, containerNumber: true, status: true, destinationPort: true } },
         },
         orderBy: { createdAt: 'desc' },
-        take: 200,
+        take: 300,
       }),
 
       // Fetch active dispatches
@@ -53,6 +73,9 @@ export async function GET(request: NextRequest) {
               vehicleVIN: true,
               status: true,
               lotNumber: true,
+              hasKey: true,
+              hasTitle: true,
+              purchaseLocation: true,
             },
           },
           _count: { select: { shipments: true, events: true, expenses: true } },
@@ -64,6 +87,7 @@ export async function GET(request: NextRequest) {
       // Fetch active containers
       prisma.container.findMany({
         include: {
+          company: { select: { id: true, name: true, code: true } },
           shipments: {
             select: {
               id: true,
@@ -73,6 +97,9 @@ export async function GET(request: NextRequest) {
               vehicleVIN: true,
               status: true,
               lotNumber: true,
+              hasKey: true,
+              hasTitle: true,
+              purchaseLocation: true,
             },
           },
           _count: { select: { shipments: true } },
@@ -81,9 +108,9 @@ export async function GET(request: NextRequest) {
         take: 60,
       }),
 
-      // Fetch companies for quick dispatch creation
+      // Fetch companies for dispatch & container assignment
       prisma.company.findMany({
-        select: { id: true, name: true, code: true },
+        select: { id: true, name: true, code: true, companyType: true },
         orderBy: { name: 'asc' },
       }),
     ]);
@@ -149,7 +176,7 @@ export async function POST(request: NextRequest) {
           },
         });
 
-        // Add dispatch event
+        // Add dispatch event audit trail
         await prisma.dispatchEvent.create({
           data: {
             dispatchId: targetId,
@@ -324,6 +351,91 @@ export async function POST(request: NextRequest) {
         });
 
         return NextResponse.json({ success: true, dispatch: newDispatch });
+      }
+
+      // 8. Quick Create Container from Operations Board
+      case 'create_container': {
+        const { containerNumber, destinationPort, maxCapacity = 4, companyId, notes } = data || {};
+        if (!containerNumber) {
+          return NextResponse.json({ error: 'Container number is required' }, { status: 400 });
+        }
+
+        const cleanNumber = String(containerNumber).trim().toUpperCase();
+        const existing = await prisma.container.findUnique({
+          where: { containerNumber: cleanNumber },
+        });
+
+        if (existing) {
+          return NextResponse.json({ error: `Container ${cleanNumber} already exists` }, { status: 400 });
+        }
+
+        const newContainer = await prisma.container.create({
+          data: {
+            containerNumber: cleanNumber,
+            destinationPort: destinationPort || 'Port of Jebel Ali (AEJEA)',
+            maxCapacity: Number(maxCapacity) || 4,
+            companyId: companyId || null,
+            notes: notes || null,
+            status: 'CREATED',
+          },
+          include: {
+            company: { select: { id: true, name: true, code: true } },
+            shipments: true,
+            _count: { select: { shipments: true } },
+          },
+        });
+
+        return NextResponse.json({ success: true, container: newContainer });
+      }
+
+      // 9. Smart Auto-Stow by Destination Port
+      case 'auto_stow_by_port': {
+        // Find unassigned shipments
+        const unassigned = await prisma.shipment.findMany({
+          where: { containerId: null, status: { in: ['ON_HAND', 'DISPATCHING'] } },
+          select: { id: true, purchaseLocation: true, priceListPricingSnapshot: true },
+        });
+
+        // Find open containers with capacity
+        const openContainers = await prisma.container.findMany({
+          where: { status: { in: ['CREATED', 'WAITING_FOR_LOADING', 'LOADED'] } },
+          include: { shipments: { select: { id: true } } },
+        });
+
+        let totalStowed = 0;
+
+        for (const container of openContainers) {
+          const availableSlots = container.maxCapacity - container.shipments.length;
+          if (availableSlots <= 0) continue;
+
+          const toAssign = unassigned.slice(0, availableSlots);
+          if (toAssign.length === 0) continue;
+
+          const toAssignIds = toAssign.map((s) => s.id);
+
+          await prisma.shipment.updateMany({
+            where: { id: { in: toAssignIds } },
+            data: {
+              containerId: container.id,
+              status: 'IN_TRANSIT',
+            },
+          });
+
+          await prisma.container.update({
+            where: { id: container.id },
+            data: { currentCount: container.shipments.length + toAssign.length },
+          });
+
+          totalStowed += toAssign.length;
+
+          // Remove assigned from in-memory pool
+          for (const a of toAssign) {
+            const idx = unassigned.findIndex((u) => u.id === a.id);
+            if (idx !== -1) unassigned.splice(idx, 1);
+          }
+        }
+
+        return NextResponse.json({ success: true, count: totalStowed });
       }
 
       default:
