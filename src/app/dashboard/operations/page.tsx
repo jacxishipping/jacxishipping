@@ -41,12 +41,14 @@ import {
   Zap,
   BarChart3,
   DollarSign,
-  Maximize2
+  Maximize2,
+  Car
 } from 'lucide-react';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
 import { PageHeader, StatsCard, Button, toast, CopyButton, Modal, FormField, Select, CompactSkeleton } from '@/components/design-system';
 import { DISPATCH_STATUS_LABELS } from '@/lib/dispatch-workflow';
+import VehicleDamageInspectionModal from '@/components/inspections/VehicleDamageInspectionModal';
 
 interface ShipmentItem {
   id: string;
@@ -186,6 +188,7 @@ export default function OperationsBoardPage() {
   // Quick Assign Modal State (for click / touch-friendly workflow)
   const [assignTargetType, setAssignTargetType] = useState<'dispatch' | 'container' | null>(null);
   const [singleAssignShipment, setSingleAssignShipment] = useState<ShipmentItem | null>(null);
+  const [inspectingShipment, setInspectingShipment] = useState<ShipmentItem | null>(null);
 
   // Printable Load Sheet Modal
   const [printManifestData, setPrintManifestData] = useState<{
@@ -983,9 +986,24 @@ export default function OperationsBoardPage() {
                                 <span>Assign to Dispatch →</span>
                               </button>
 
-                              <Link href={`/dashboard/shipments/${s.id}`} style={{ textDecoration: 'none' }}>
-                                <Eye className="w-3.5 h-3.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)]" />
-                              </Link>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setInspectingShipment(s);
+                                  }}
+                                  className="text-[11px] font-semibold text-[var(--accent-gold)] hover:brightness-110 flex items-center gap-1"
+                                  title="Inspect 2D damage blueprint & yard intake"
+                                >
+                                  <Car className="w-3 h-3" />
+                                  <span>Inspect</span>
+                                </button>
+
+                                <Link href={`/dashboard/shipments/${s.id}`} style={{ textDecoration: 'none' }}>
+                                  <Eye className="w-3.5 h-3.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)]" />
+                                </Link>
+                              </div>
                             </div>
                           </div>
 
@@ -1265,9 +1283,24 @@ export default function OperationsBoardPage() {
                               <span>Stow into Container →</span>
                             </button>
 
-                            <Link href={`/dashboard/shipments/${s.id}`} style={{ textDecoration: 'none' }}>
-                              <Eye className="w-3.5 h-3.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)]" />
-                            </Link>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setInspectingShipment(s);
+                                }}
+                                className="text-[11px] font-semibold text-[var(--accent-gold)] hover:brightness-110 flex items-center gap-1"
+                                title="Inspect 2D damage blueprint & yard intake"
+                              >
+                                <Car className="w-3 h-3" />
+                                <span>Inspect</span>
+                              </button>
+
+                              <Link href={`/dashboard/shipments/${s.id}`} style={{ textDecoration: 'none' }}>
+                                <Eye className="w-3.5 h-3.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)]" />
+                              </Link>
+                            </div>
                           </div>
                         </div>
                         <GripVertical className="w-4 h-4 text-[var(--text-secondary)] opacity-0 group-hover:opacity-100 transition-opacity self-center" />
@@ -1603,6 +1636,20 @@ export default function OperationsBoardPage() {
               <span>Stow into Container</span>
             </button>
 
+            {selectedShipmentIds.length === 1 && (
+              <button
+                type="button"
+                onClick={() => {
+                  const s = shipments.find((u) => u.id === selectedShipmentIds[0]);
+                  if (s) setInspectingShipment(s);
+                }}
+                className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-xs font-bold flex items-center gap-1.5 transition-colors"
+              >
+                <Car className="w-3.5 h-3.5" />
+                <span>Damage Blueprint</span>
+              </button>
+            )}
+
             <button
               type="button"
               onClick={() => setSelectedShipmentIds([])}
@@ -1900,6 +1947,29 @@ export default function OperationsBoardPage() {
             </div>
           </form>
         </Modal>
+
+        {/* Vehicle Damage 2D Blueprint & Yard Intake Modal */}
+        {inspectingShipment && (
+          <VehicleDamageInspectionModal
+            isOpen={Boolean(inspectingShipment)}
+            onClose={() => setInspectingShipment(null)}
+            shipment={{
+              id: inspectingShipment.id,
+              vehicleYear: inspectingShipment.vehicleYear,
+              vehicleMake: inspectingShipment.vehicleMake,
+              vehicleModel: inspectingShipment.vehicleModel,
+              vehicleVIN: inspectingShipment.vehicleVIN,
+              lotNumber: inspectingShipment.lotNumber,
+              auctionName: inspectingShipment.auctionName,
+              purchaseLocation: inspectingShipment.purchaseLocation,
+              hasKey: inspectingShipment.hasKey,
+              user: inspectingShipment.user,
+            }}
+            onInspectionSaved={() => {
+              fetchBoardData();
+            }}
+          />
+        )}
       </DashboardSurface>
     </ProtectedRoute>
   );

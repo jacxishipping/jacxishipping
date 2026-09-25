@@ -1432,7 +1432,7 @@ export default function ShipmentDetailPage() {
 
         {/* Damages Tab */}
         <TabPanel value={activeTab} index={6}>
-          <ShipmentDamagesTab damages={shipment.containerDamages || []} />
+          <ShipmentDamagesTab damages={shipment.containerDamages || []} shipment={shipment} />
         </TabPanel>
 
         {/* Details Tab */}
