@@ -1,4 +1,4 @@
-const CACHE_NAME = 'jacxi-pwa-v3';
+const CACHE_NAME = 'jacxi-pwa-v4';
 const STATIC_ASSETS = ['/', '/offline'];
 const DISABLE_PWA = ['localhost', '127.0.0.1', '::1'].includes(self.location.hostname);
 
@@ -61,6 +61,19 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (request.method !== 'GET') {
+    return;
+  }
+
+  // Let the browser handle native preloads (Next.js emits <link rel="preload">
+  // for route CSS during prefetching). If the service worker answers these
+  // from its own cache, the preload association is orphaned and the browser
+  // logs "preloaded but not used" warnings. Stylesheets/scripts/fonts are
+  // content-hashed immutable assets, so native HTTP caching covers them.
+  if (
+    request.destination === 'style' ||
+    request.destination === 'script' ||
+    request.destination === 'font'
+  ) {
     return;
   }
 
