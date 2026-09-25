@@ -81,12 +81,19 @@ export async function GET(request: NextRequest) {
     // ledger balance on each page view.
     const recalcBalances = searchParams.get('recalc') === 'true';
 
-    // Users without finance:manage can only view their own ledger. Finance staff
-    // see one customer's ledger when a userId filter is provided, and every
-    // customer's ledger by default (so the Ledger page is not empty for admins).
+    // Users without finance:manage can only view their own ledger.
+    // For finance staff, view the requested userId if provided, all users if all=true/scope=all,
+    // or default to their own personal ledger when viewing "My Ledger".
     const canViewAllLedgers = hasPermission(session.user.role, 'finance:manage');
-    const targetUserId = !canViewAllLedgers ? session.user.id : userId || undefined;
-    const ledgerScope = !canViewAllLedgers ? 'own' : targetUserId ? 'single' : 'all';
+    const isAllScope = searchParams.get('all') === 'true' || searchParams.get('scope') === 'all' || source === 'BANK_IMPORT';
+    const targetUserId = !canViewAllLedgers
+      ? session.user.id
+      : userId
+      ? userId
+      : isAllScope
+      ? undefined
+      : session.user.id;
+    const ledgerScope = !targetUserId ? 'all' : targetUserId === session.user.id ? 'own' : 'single';
 
     if (recalcBalances && targetUserId) {
       await recalculateUserLedgerBalances(prisma, targetUserId);

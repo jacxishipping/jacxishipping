@@ -142,6 +142,7 @@ export default function LedgerPage() {
     try {
       setLoading(true);
       const params = new URLSearchParams({
+        ...(session?.user?.id && { userId: session.user.id }),
         page: page.toString(),
         limit: '20',
         ...(filters.search && { search: filters.search }),
@@ -173,6 +174,7 @@ export default function LedgerPage() {
   const handleExport = async (format: 'csv' | 'pdf' | 'excel') => {
     try {
       const params = new URLSearchParams({
+        ...(session?.user?.id && { userId: session.user.id }),
         ...(filters.search && { search: filters.search }),
         ...(filters.type && { type: filters.type }),
         ...(filters.source && { source: filters.source }),
