@@ -588,11 +588,6 @@ export default function ContainersPage() {
                 if (typeof filters.search === 'string') setSearchQuery(filters.search);
                 setPage(1);
               }}
-              defaultPresets={[
-                { id: 'preset_loading', name: 'Waiting for Loading', filters: { status: 'WAITING_FOR_LOADING', search: '' }, isDefault: true },
-                { id: 'preset_transit', name: 'On Ocean / In Transit', filters: { status: 'IN_TRANSIT', search: '' }, isDefault: true },
-                { id: 'preset_customs', name: 'Customs Clearance', filters: { status: 'CUSTOMS_CLEARANCE', search: '' }, isDefault: true },
-              ]}
             />
           </Box>
         </DashboardPanel>

@@ -39,9 +39,10 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
     const companyId = searchParams.get('companyId');
     const search = searchParams.get('search') || '';
+    const isAll = searchParams.get('all') === 'true' || searchParams.get('limit') === 'all';
     const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
-    const limit = Math.min(Math.max(1, parseInt(searchParams.get('limit') || '20', 10)), 100);
-    const skip = (page - 1) * limit;
+    const limit = isAll ? 1000 : Math.min(Math.max(1, parseInt(searchParams.get('limit') || '20', 10)), 100);
+    const skip = isAll ? 0 : (page - 1) * limit;
 
     const where: {
       status?: DispatchStatus;
@@ -69,7 +70,7 @@ export async function GET(request: NextRequest) {
       ];
     }
 
-    const [dispatches, total] = await Promise.all([
+    const [dispatches, total, allStatusCounts, totalShipmentsCount] = await Promise.all([
       prisma.dispatch.findMany({
         where,
         include: {
@@ -77,20 +78,39 @@ export async function GET(request: NextRequest) {
           _count: { select: { shipments: true, events: true, expenses: true } },
         },
         orderBy: { createdAt: 'desc' },
-        skip,
-        take: limit,
+        ...(isAll ? {} : { skip, take: limit }),
       }),
       prisma.dispatch.count({ where }),
+      prisma.dispatch.groupBy({
+        by: ['status'],
+        _count: { id: true },
+      }),
+      prisma.shipment.count({
+        where: { dispatchId: { not: null } },
+      }),
     ]);
+
+    const statusMap = allStatusCounts.reduce((acc, curr) => {
+      acc[curr.status] = curr._count.id;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const stats = {
+      total: allStatusCounts.reduce((sum, curr) => sum + curr._count.id, 0),
+      active: (statusMap['PENDING'] || 0) + (statusMap['DISPATCHED'] || 0) + (statusMap['ARRIVED_AT_PORT'] || 0),
+      completed: statusMap['COMPLETED'] || 0,
+      shipments: totalShipmentsCount,
+    };
 
     return NextResponse.json({
       dispatches,
       pagination: {
         total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
+        page: isAll ? 1 : page,
+        limit: isAll ? total : limit,
+        totalPages: isAll ? 1 : Math.ceil(total / limit),
       },
+      stats,
     });
   } catch (error) {
     console.error('Error fetching dispatches:', error);

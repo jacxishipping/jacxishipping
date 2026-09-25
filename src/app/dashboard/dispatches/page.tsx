@@ -53,6 +53,16 @@ export default function DispatchesPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [serverStats, setServerStats] = useState<{
+    total: number;
+    active: number;
+    completed: number;
+    shipments: number;
+  } | null>(null);
   const [openCreate, setOpenCreate] = useState(false);
   const [creating, setCreating] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
@@ -80,16 +90,25 @@ export default function DispatchesPage() {
     notes: '',
   });
 
-  const fetchDispatches = async () => {
+  const fetchDispatches = async (targetPage = page, targetPageSize = pageSize) => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
+      params.append('page', String(targetPage));
+      params.append('limit', String(targetPageSize));
       if (search) params.append('search', search);
       if (statusFilter) params.append('status', statusFilter);
       const response = await fetch(`/api/dispatches?${params}`);
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Failed to fetch dispatches');
       setDispatches(data.dispatches || []);
+      if (data.pagination) {
+        setTotalPages(data.pagination.totalPages || 1);
+        setTotalCount(data.pagination.total || 0);
+      }
+      if (data.stats) {
+        setServerStats(data.stats);
+      }
     } catch (error) {
       console.error(error);
       toast.error('Failed to load dispatches');
@@ -109,8 +128,8 @@ export default function DispatchesPage() {
   };
 
   useEffect(() => {
-    void fetchDispatches();
-  }, [search, statusFilter]);
+    void fetchDispatches(page, pageSize);
+  }, [page, pageSize, search, statusFilter]);
 
   useEffect(() => {
     void fetchCompanies();
@@ -230,12 +249,15 @@ export default function DispatchesPage() {
     }
   };
 
-  const stats = useMemo(() => ({
-    total: dispatches.length,
-    active: dispatches.filter(d => ['PENDING', 'DISPATCHED', 'ARRIVED_AT_PORT'].includes(d.status)).length,
-    completed: dispatches.filter(d => d.status === 'COMPLETED').length,
-    shipments: dispatches.reduce((acc, d) => acc + d._count.shipments, 0),
-  }), [dispatches]);
+  const stats = useMemo(() => {
+    if (serverStats) return serverStats;
+    return {
+      total: totalCount || dispatches.length,
+      active: dispatches.filter(d => ['PENDING', 'DISPATCHED', 'ARRIVED_AT_PORT'].includes(d.status)).length,
+      completed: dispatches.filter(d => d.status === 'COMPLETED').length,
+      shipments: dispatches.reduce((acc, d) => acc + d._count.shipments, 0),
+    };
+  }, [serverStats, totalCount, dispatches]);
 
   const companyOptions = useMemo(() => {
     return companies.map(c => ({
@@ -382,7 +404,10 @@ export default function DispatchesPage() {
             label=""
             placeholder="Search by reference #, company, route..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
             leftIcon={<Search className="w-4 h-4 text-[var(--text-secondary)]" />}
           />
         </DashboardPanel>
@@ -399,21 +424,89 @@ export default function DispatchesPage() {
               { value: 'CANCELLED', label: 'Cancelled', color: '#EF4444' },
             ]}
             selectedValue={statusFilter}
-            onSelect={(val) => setStatusFilter(val)}
+            onSelect={(val) => {
+              setStatusFilter(val);
+              setPage(1);
+            }}
           />
         </div>
 
         {/* Data Table Panel */}
-        <DashboardPanel title={`Dispatches List (${dispatches.length})`} fullHeight>
+        <DashboardPanel title={`Dispatches List (${totalCount || dispatches.length})`} fullHeight>
           {loading ? (
             <Box sx={{ py: 4, textAlign: 'center', color: 'var(--text-secondary)' }}>Loading dispatches...</Box>
           ) : (
-            <DataTable
-              data={dispatches}
-              columns={columns}
-              keyField="id"
-              onRowClick={(row) => router.push(`/dashboard/dispatches/${row.id}`)}
-            />
+            <>
+              <DataTable
+                data={dispatches}
+                columns={columns}
+                keyField="id"
+                currentPage={page}
+                totalPages={totalPages}
+                onRowClick={(row) => router.push(`/dashboard/dispatches/${row.id}`)}
+              />
+
+              {/* Pagination Controls */}
+              {totalCount > 0 && (
+                <Box
+                  sx={{
+                    display: 'flex',
+                    flexDirection: { xs: 'column', sm: 'row' },
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 2,
+                    mt: 3,
+                    pt: 2,
+                    borderTop: '1px solid var(--border)',
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                    <span>
+                      Showing {Math.min((page - 1) * pageSize + 1, totalCount)}–{Math.min(page * pageSize, totalCount)} of {totalCount}
+                    </span>
+                    <span>•</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs">Per page:</span>
+                      <select
+                        value={pageSize}
+                        onChange={(e) => {
+                          setPageSize(Number(e.target.value));
+                          setPage(1);
+                        }}
+                        className="rounded border border-[var(--border)] bg-[var(--background)] px-2 py-1 text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-gold)]"
+                      >
+                        <option value={10}>10</option>
+                        <option value={20}>20</option>
+                        <option value={50}>50</option>
+                        <option value={100}>100</option>
+                      </select>
+                    </div>
+                  </Box>
+
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      disabled={page <= 1 || loading}
+                    >
+                      Previous
+                    </Button>
+                    <Box sx={{ px: 1.5, fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
+                      Page {page} of {totalPages}
+                    </Box>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={page >= totalPages || loading}
+                    >
+                      Next
+                    </Button>
+                  </Box>
+                </Box>
+              )}
+            </>
           )}
         </DashboardPanel>
 

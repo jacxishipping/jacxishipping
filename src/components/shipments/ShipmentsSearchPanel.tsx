@@ -63,8 +63,8 @@ export default function ShipmentsSearchPanel({
 						onSearch={onSearch}
 						placeholder="Search shipments by tracking number, VIN, origin, destination..."
 						showTypeFilter={false}
-						showStatusFilter
-						showWorkflowStageFilter
+						showStatusFilter={false}
+						showWorkflowStageFilter={false}
 						showYardFilter
 						showDateFilter
 						showPriceFilter

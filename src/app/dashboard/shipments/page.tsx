@@ -399,11 +399,6 @@ export default function ShipmentsListPage() {
 							setSearchFilters(filters);
 							setCurrentPage(1);
 						}}
-						defaultPresets={[
-							{ id: 'preset_onhand', name: 'On Hand in Yard', filters: { query: '', type: 'shipments', status: 'ON_HAND' }, isDefault: true },
-							{ id: 'preset_intransit', name: 'In Transit Cargo', filters: { query: '', type: 'shipments', status: 'IN_TRANSIT' }, isDefault: true },
-							{ id: 'preset_delivered', name: 'Delivered to Port', filters: { query: '', type: 'shipments', status: 'DELIVERED' }, isDefault: true },
-						]}
 					/>
 				</Box>
 			</div>

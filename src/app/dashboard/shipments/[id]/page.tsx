@@ -253,7 +253,7 @@ export default function ShipmentDetailPage() {
     const fetchDispatches = async () => {
       try {
         setLoadingDispatches(true);
-        const response = await fetch('/api/dispatches');
+        const response = await fetch('/api/dispatches?all=true');
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || 'Failed to load dispatches');
         setAvailableDispatches((data.dispatches || []).filter((dispatch: { status?: string }) => dispatch.status !== 'COMPLETED' && dispatch.status !== 'CANCELLED'));

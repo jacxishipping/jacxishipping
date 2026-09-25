@@ -660,11 +660,6 @@ const confirmAction = useConfirmAction();
 							if (filters.status) setStatusFilter(filters.status);
 							if (typeof filters.search === 'string') setSearchTerm(filters.search);
 						}}
-						defaultPresets={[
-							{ id: 'preset_overdue', name: 'Overdue Invoices', filters: { status: 'overdue', search: '' }, isDefault: true },
-							{ id: 'preset_pending', name: 'Pending Payment', filters: { status: 'pending', search: '' }, isDefault: true },
-							{ id: 'preset_paid', name: 'Settled & Paid', filters: { status: 'paid', search: '' }, isDefault: true },
-						]}
 					/>
 				</Box>
 

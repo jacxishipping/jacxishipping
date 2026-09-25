@@ -36,7 +36,10 @@ export function SavedFilterPresets<T extends Record<string, any>>({
       const stored = localStorage.getItem(`jacxi_filter_presets_${storageKey}`);
       if (stored) {
         const parsed = JSON.parse(stored);
-        setPresets(parsed);
+        const userCustomPresets = Array.isArray(parsed)
+          ? parsed.filter((p: FilterPreset<T>) => !p.isDefault)
+          : [];
+        setPresets([...defaultPresets, ...userCustomPresets]);
       } else {
         setPresets(defaultPresets);
       }
