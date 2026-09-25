@@ -19,11 +19,13 @@ interface SavedFilterPresetsProps<T extends Record<string, any>> {
   defaultPresets?: FilterPreset<T>[];
 }
 
+const EMPTY_DEFAULT_PRESETS: FilterPreset<any>[] = [];
+
 export function SavedFilterPresets<T extends Record<string, any>>({
   storageKey,
   currentFilters,
   onApplyPreset,
-  defaultPresets = [],
+  defaultPresets = EMPTY_DEFAULT_PRESETS,
 }: SavedFilterPresetsProps<T>) {
   const [presets, setPresets] = useState<FilterPreset<T>[]>([]);
   const [activePresetId, setActivePresetId] = useState<string | null>(null);

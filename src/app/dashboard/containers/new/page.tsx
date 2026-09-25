@@ -199,12 +199,10 @@ export default function NewContainerPage() {
           title="Create New Container"
           description="Add a new container with tracking and shipping information"
           actions={
-            <Link href="/dashboard/containers">
-              <Button variant="outline" size="sm" className="border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--accent-gold)]">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back
-              </Button>
-            </Link>
+            <Button href="/dashboard/containers" variant="outline" size="sm" className="border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--accent-gold)]">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back
+            </Button>
           }
         />
 
@@ -566,16 +564,14 @@ export default function NewContainerPage() {
           {/* Navigation Buttons */}
           <div className="flex justify-between gap-3 pt-4">
             <div className="flex gap-3">
-              <Link href="/dashboard/containers">
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={loading}
-                  className="border-[rgba(var(--error-rgb),0.4)] text-[var(--error)] hover:bg-[rgba(var(--error-rgb),0.08)]"
-                >
-                  Cancel
-                </Button>
-              </Link>
+              <Button
+                href="/dashboard/containers"
+                variant="outline"
+                disabled={loading}
+                className="border-[rgba(var(--error-rgb),0.4)] text-[var(--error)] hover:bg-[rgba(var(--error-rgb),0.08)]"
+              >
+                Cancel
+              </Button>
               {activeStep > 0 && (
                 <Button
                   type="button"

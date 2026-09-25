@@ -353,16 +353,15 @@ export default function ShipmentsListPage() {
 				description="Search, filter, and manage your shipments"
 				actions={
 					canManageShipments ? (
-						<Link href="/dashboard/shipments/new" style={{ textDecoration: 'none' }}>
-							<Button
-								variant="primary"
-								size="sm"
-								icon={<Plus className="w-4 h-4" />}
-								iconPosition="start"
-							>
-								New shipment
-							</Button>
-						</Link>
+						<Button
+							href="/dashboard/shipments/new"
+							variant="primary"
+							size="sm"
+							icon={<Plus className="w-4 h-4" />}
+							iconPosition="start"
+						>
+							New shipment
+						</Button>
 					) : null
 				}
 			/>

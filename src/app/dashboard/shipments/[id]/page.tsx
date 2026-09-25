@@ -949,9 +949,7 @@ export default function ShipmentDetailPage() {
             <div className="flex flex-col items-center justify-center gap-4 py-12 text-center">
               <h2 className="text-xl font-semibold text-[var(--text-primary)]">Shipment Unavailable</h2>
               <p className="text-[var(--text-secondary)]">{error || 'We could not find this shipment.'}</p>
-              <Link href="/dashboard/shipments">
-                <Button>Back to Shipments</Button>
-              </Link>
+              <Button href="/dashboard/shipments">Back to Shipments</Button>
             </div>
           </DashboardPanel>
         </DashboardSurface>
@@ -1063,12 +1061,10 @@ export default function ShipmentDetailPage() {
                   </div>
 
                   <div className="flex flex-wrap gap-2">
-                    <Link href="/dashboard/shipments">
-                      <Button variant="outline" size="sm">
-                        <ArrowLeft className="mr-2 h-4 w-4" />
-                        Back
-                      </Button>
-                    </Link>
+                    <Button href="/dashboard/shipments" variant="outline" size="sm">
+                      <ArrowLeft className="mr-2 h-4 w-4" />
+                      Back
+                    </Button>
                     <Tooltip title="Download a PDF receipt for this shipment. For official invoices, use the Billing tab on this shipment.">
                       <Button variant="outline" size="sm" onClick={handleDownloadReceipt}>
                         <FileText className="mr-2 h-4 w-4" />
@@ -1084,12 +1080,10 @@ export default function ShipmentDetailPage() {
                       </Tooltip>
                     )}
                     {canManageShipmentRecord && (
-                      <Link href={`/dashboard/shipments/${shipment.id}/edit`}>
-                        <Button size="sm">
-                          <PenLine className="mr-2 h-4 w-4" />
-                          Edit
-                        </Button>
-                      </Link>
+                      <Button href={`/dashboard/shipments/${shipment.id}/edit`} size="sm">
+                        <PenLine className="mr-2 h-4 w-4" />
+                        Edit
+                      </Button>
                     )}
                   </div>
                 </div>

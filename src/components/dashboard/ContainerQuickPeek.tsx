@@ -140,11 +140,15 @@ export default function ContainerQuickPeek({
             <Button variant="outline" size="sm" onClick={onClose}>
               Close
             </Button>
-            <Link href={`/dashboard/containers/${container.id}`} style={{ textDecoration: 'none' }}>
-              <Button variant="primary" size="sm" icon={<ExternalLink className="w-4 h-4" />}>
-                Open Full View
-              </Button>
-            </Link>
+            <Button
+              href={`/dashboard/containers/${container.id}`}
+              onClick={onClose}
+              variant="primary"
+              size="sm"
+              icon={<ExternalLink className="w-4 h-4" />}
+            >
+              Open Full View
+            </Button>
           </Box>
         )
       }
@@ -258,7 +262,11 @@ export default function ContainerQuickPeek({
                 <Typography sx={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary, #111827)' }}>
                   Loaded Cargo Manifest ({container.shipments.length})
                 </Typography>
-                <Link href={`/dashboard/containers/${container.id}?tab=cargo`} style={{ fontSize: '0.75rem', color: 'var(--accent-gold, #D4AF37)', fontWeight: 600, textDecoration: 'none' }}>
+                <Link
+                  href={`/dashboard/containers/${container.id}?tab=cargo`}
+                  onClick={onClose}
+                  style={{ fontSize: '0.75rem', color: 'var(--accent-gold, #D4AF37)', fontWeight: 600, textDecoration: 'none' }}
+                >
                   View All &rarr;
                 </Link>
               </Box>

@@ -544,9 +544,7 @@ export default function EditShipmentPage() {
             title="Access Restricted"
             description="You do not have permission to modify shipment details"
             action={
-              <Link href={`/dashboard/shipments/${params.id}`} style={{ textDecoration: 'none' }}>
-                <Button variant="primary">Back to Shipment</Button>
-              </Link>
+              <Button href={`/dashboard/shipments/${params.id}`} variant="primary">Back to Shipment</Button>
             }
           />
         </DashboardSurface>
@@ -565,11 +563,9 @@ export default function EditShipmentPage() {
           title="Edit Shipment"
           description="Update shipment details, status, and documents"
           actions={
-            <Link href={`/dashboard/shipments/${params.id}`} style={{ textDecoration: 'none' }}>
-              <Button variant="outline" icon={<ArrowLeft className="w-4 h-4" />} size="sm">
-                Cancel
-              </Button>
-            </Link>
+            <Button href={`/dashboard/shipments/${params.id}`} variant="outline" icon={<ArrowLeft className="w-4 h-4" />} size="sm">
+              Cancel
+            </Button>
           }
         />
 
@@ -1274,9 +1270,7 @@ export default function EditShipmentPage() {
             </DashboardPanel>
 
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, pt: 2 }}>
-                <Link href={`/dashboard/shipments/${params.id}`} style={{ textDecoration: 'none' }}>
-                    <Button variant="ghost" type="button">Cancel</Button>
-                </Link>
+                <Button href={`/dashboard/shipments/${params.id}`} variant="ghost" type="button">Cancel</Button>
                 <Button 
                     type="submit" 
                     variant="primary" 

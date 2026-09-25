@@ -2,6 +2,7 @@
 
 import { Button as MuiButton, ButtonProps as MuiButtonProps, CircularProgress } from '@mui/material';
 import { ReactNode } from 'react';
+import Link from 'next/link';
 import { useTheme } from '@/hooks/useTheme';
 
 /**
@@ -18,6 +19,9 @@ export interface ButtonProps extends Omit<MuiButtonProps, 'variant' | 'size'> {
   icon?: ReactNode;
   iconPosition?: 'start' | 'end';
   fullWidth?: boolean;
+  href?: string;
+  target?: string;
+  rel?: string;
 }
 
 // Variant configurations
@@ -168,10 +172,13 @@ export default function Button({
 
   const variantStyle = variantStyles[variant];
   const sizeStyle = sizeStyles[size];
+  const isLink = Boolean(buttonProps.href);
+  const Component = (buttonProps.component || (isLink ? Link : 'button')) as React.ElementType;
 
   return (
     <MuiButton
       {...buttonProps}
+      component={Component}
       className={["ds-button", buttonProps.className].filter(Boolean).join(" ")}
       disabled={disabled || loading}
       fullWidth={fullWidth}
@@ -179,6 +186,7 @@ export default function Button({
       endIcon={!loading && icon && iconPosition === 'end' ? icon : undefined}
       sx={{
         textTransform: 'none',
+        textDecoration: isLink ? 'none' : undefined,
         fontWeight: 600,
         borderRadius: isCompact ? 1.5 : 2,
         transition: 'all 200ms cubic-bezier(0.4, 0, 0.2, 1)',

@@ -161,16 +161,15 @@ export default function UserCard({
         )}
 
         <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end', mt: 1 }}>
-          <Link href={`/dashboard/users/${user.id}`} style={{ textDecoration: 'none' }}>
-            <Button
-              variant="outline"
-              size="sm"
-              icon={<VisibilityIcon />}
-              sx={{ textTransform: 'none', fontSize: '0.7rem' }}
-            >
-              View
-            </Button>
-          </Link>
+          <Button
+            href={`/dashboard/users/${user.id}`}
+            variant="outline"
+            size="sm"
+            icon={<VisibilityIcon />}
+            sx={{ textTransform: 'none', fontSize: '0.7rem' }}
+          >
+            View
+          </Button>
           {onResetPassword && (
             <Button
               variant="outline"
@@ -182,16 +181,15 @@ export default function UserCard({
               Password
             </Button>
           )}
-          <Link href={`/dashboard/users/${user.id}/edit`} style={{ textDecoration: 'none' }}>
-            <Button
-              variant="ghost"
-              size="sm"
-              icon={<EditIcon />}
-              sx={{ textTransform: 'none', fontSize: '0.7rem' }}
-            >
-              Edit
-            </Button>
-          </Link>
+          <Button
+            href={`/dashboard/users/${user.id}/edit`}
+            variant="ghost"
+            size="sm"
+            icon={<EditIcon />}
+            sx={{ textTransform: 'none', fontSize: '0.7rem' }}
+          >
+            Edit
+          </Button>
           <Button
             variant="ghost"
             size="sm"

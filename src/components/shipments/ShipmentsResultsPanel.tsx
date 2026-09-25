@@ -162,11 +162,9 @@ export default function ShipmentsResultsPanel({
 					description={searchQuery ? 'Try adjusting your search filters' : 'Get started by creating your first shipment'}
 					action={
 						canManageShipments ? (
-							<Link href="/dashboard/shipments/new" style={{ textDecoration: 'none' }}>
-								<Button variant="primary" icon={<Add />} iconPosition="start">
-									Create shipment
-								</Button>
-							</Link>
+							<Button href="/dashboard/shipments/new" variant="primary" icon={<Add />} iconPosition="start">
+								Create shipment
+							</Button>
 						) : undefined
 					}
 				/>

@@ -488,11 +488,9 @@ export default function ContainersPage() {
                 Export CSV
               </Button>
               {isAdmin && (
-                <Link href="/dashboard/containers/new" style={{ textDecoration: 'none' }}>
-                  <Button variant="primary" icon={<Package className="w-4 h-4" />}>
-                    New Container
-                  </Button>
-                </Link>
+                <Button href="/dashboard/containers/new" variant="primary" icon={<Package className="w-4 h-4" />}>
+                  New Container
+                </Button>
               )}
             </Box>
           }
@@ -625,9 +623,9 @@ export default function ContainersPage() {
               description={isAdmin ? "Create your first container to get started" : "You have no containers with your shipments yet"}
               action={
                 isAdmin ? (
-                  <Link href="/dashboard/containers/new" style={{ textDecoration: 'none' }}>
-                    <Button variant="primary">Create First Container</Button>
-                  </Link>
+                  <Button href="/dashboard/containers/new" variant="primary">
+                    Create First Container
+                  </Button>
                 ) : undefined
               }
             />

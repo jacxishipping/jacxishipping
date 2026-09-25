@@ -125,12 +125,10 @@ export default function NewItemPage() {
 				title="Add Item"
 				description="Add a new vehicle or item to container"
 				actions={
-					<Link href={`/dashboard/containers/${containerId ?? ''}`}>
-						<Button variant="outline" size="sm" className="border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--accent-gold)]">
-							<ArrowLeft className="w-4 h-4 mr-2" />
-							Back to Container
-						</Button>
-					</Link>
+					<Button href={`/dashboard/containers/${containerId ?? ''}`} variant="outline" size="sm" className="border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--accent-gold)]">
+						<ArrowLeft className="w-4 h-4 mr-2" />
+						Back to Container
+					</Button>
 				}
 			/>
 
@@ -244,11 +242,9 @@ export default function NewItemPage() {
 					)}
 
 					<div className="flex flex-col sm:flex-row justify-end gap-3 pt-2">
-						<Link href={`/dashboard/containers/${containerId ?? ''}`} className="sm:w-auto w-full">
-							<Button type="button" variant="outline" disabled={isSubmitting} className="w-full sm:w-auto border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--accent-gold)]">
-								Cancel
-							</Button>
-						</Link>
+						<Button href={`/dashboard/containers/${containerId ?? ''}`} variant="outline" disabled={isSubmitting} className="w-full sm:w-auto border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--accent-gold)]">
+							Cancel
+						</Button>
 						<Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto bg-[var(--accent-gold)] text-black hover:bg-[var(--accent-gold)] font-semibold shadow-sm">
 							{isSubmitting ? 'Creating...' : 'Create Item'}
 						</Button>
