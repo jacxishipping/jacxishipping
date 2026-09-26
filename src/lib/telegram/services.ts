@@ -36,6 +36,7 @@ export function formatStatusBadge(status: string): string {
   switch (status) {
     case 'ON_HAND':
       return '🟡 Yard On-Hand';
+    case 'DISPATCHING':
     case 'DISPATCHED':
       return '🚛 Inland Dispatched';
     case 'IN_PORT':
@@ -44,12 +45,37 @@ export function formatStatusBadge(status: string): string {
       return '📦 Loaded in Container';
     case 'IN_TRANSIT':
       return '🌊 Ocean Transit';
+    case 'IN_TRANSIT_TO_DESTINATION':
+      return '🚢 In Transit to Destination';
     case 'ARRIVED':
       return '🏁 Arrived at Destination';
+    case 'RELEASED':
     case 'DELIVERED':
-      return '✅ Delivered';
+      return '✅ Released & Delivered';
     default:
       return `📍 ${status.replace(/_/g, ' ')}`;
+  }
+}
+
+export function calculateShipmentProgress(status: string, containerProgress?: number | null): number {
+  if (typeof containerProgress === 'number') return containerProgress;
+  switch (status) {
+    case 'RELEASED':
+    case 'DELIVERED':
+      return 100;
+    case 'IN_TRANSIT_TO_DESTINATION':
+    case 'ARRIVED':
+      return 85;
+    case 'IN_TRANSIT':
+      return 60;
+    case 'LOADED':
+      return 50;
+    case 'DISPATCHING':
+    case 'DISPATCHED':
+      return 40;
+    case 'ON_HAND':
+    default:
+      return 25;
   }
 }
 
@@ -129,7 +155,7 @@ export async function getCustomerShipments(userId: string): Promise<TelegramShip
       estimatedArrival: s.container?.estimatedArrival ? s.container.estimatedArrival.toLocaleDateString() : null,
       actualArrival: s.container?.actualArrival ? s.container.actualArrival.toLocaleDateString() : null,
       currentLocation: s.container?.currentLocation || (s.status === 'ON_HAND' ? 'Export Yard' : 'In Transit'),
-      progress: s.container?.progress ?? (s.status === 'DELIVERED' ? 100 : s.status === 'ARRIVED' ? 85 : s.status === 'IN_TRANSIT' ? 60 : 30),
+      progress: calculateShipmentProgress(s.status, s.container?.progress),
       arrivalPhotos: allArrival,
       vehiclePhotos: allVehicle,
       totalPhotosCount: allArrival.length + allVehicle.length,

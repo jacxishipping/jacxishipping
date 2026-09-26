@@ -38,7 +38,8 @@ describe('Telegram Utilities & Sanitization', () => {
   it('should format status badge properly', () => {
     assert.strictEqual(formatStatusBadge('ON_HAND'), '🟡 Yard On-Hand');
     assert.strictEqual(formatStatusBadge('IN_TRANSIT'), '🌊 Ocean Transit');
-    assert.strictEqual(formatStatusBadge('DELIVERED'), '✅ Delivered');
+    assert.strictEqual(formatStatusBadge('DELIVERED'), '✅ Released & Delivered');
+    assert.strictEqual(formatStatusBadge('RELEASED'), '✅ Released & Delivered');
   });
 
   it('should escape HTML safely', () => {
