@@ -2,6 +2,7 @@ import { telegramClient } from './client';
 import {
   escapeHtml,
   formatFinanceTelegramMessage,
+  formatProgressBar,
   formatShipmentCard,
   formatShipmentListItem,
   getCustomerFinanceOverview,
