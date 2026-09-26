@@ -300,11 +300,9 @@ export default function ShipmentOverviewTab({
           title="Container Shipping Info"
           actions={
             canViewWorkflowCompanyDetails ? (
-              <Link href={`/dashboard/containers/${shipment.containerId}`}>
-                <Button variant="outline" size="sm">
-                  View Container
-                </Button>
-              </Link>
+              <Button href={`/dashboard/containers/${shipment.containerId}`} variant="outline" size="sm">
+                View Container
+              </Button>
             ) : undefined
           }
         >
@@ -560,28 +558,22 @@ export default function ShipmentOverviewTab({
       <DashboardPanel title="Quick Actions">
         <div className="grid gap-2 sm:grid-cols-2">
           {canManageWorkflow && shipment.container && shipment.container.status !== 'RELEASED' && shipment.container.status !== 'CLOSED' && (
-            <Link href={`/dashboard/containers/${shipment.containerId}`}>
-              <Button variant="outline" size="sm" className="w-full">
-                <Truck className="mr-2 h-4 w-4" />
-                View Container Details
-              </Button>
-            </Link>
+            <Button href={`/dashboard/containers/${shipment.containerId}`} variant="outline" size="sm" className="w-full">
+              <Truck className="mr-2 h-4 w-4" />
+              View Container Details
+            </Button>
           )}
           {canManageWorkflow && shipment.dispatch && (
-            <Link href={`/dashboard/dispatches/${shipment.dispatch.id}`}>
-              <Button variant="outline" size="sm" className="w-full">
-                <Truck className="mr-2 h-4 w-4" />
-                View Dispatch Details
-              </Button>
-            </Link>
+            <Button href={`/dashboard/dispatches/${shipment.dispatch.id}`} variant="outline" size="sm" className="w-full">
+              <Truck className="mr-2 h-4 w-4" />
+              View Dispatch Details
+            </Button>
           )}
           {canManageWorkflow && shipment.transit && (
-            <Link href={`/dashboard/transits/${shipment.transit.id}`}>
-              <Button variant="outline" size="sm" className="w-full">
-                <Ship className="mr-2 h-4 w-4" />
-                View Transit Details
-              </Button>
-            </Link>
+            <Button href={`/dashboard/transits/${shipment.transit.id}`} variant="outline" size="sm" className="w-full">
+              <Ship className="mr-2 h-4 w-4" />
+              View Transit Details
+            </Button>
           )}
           {shipment.releaseToken && (
             <button
@@ -596,12 +588,10 @@ export default function ShipmentOverviewTab({
             </button>
           )}
           {canManageShipmentRecord && (
-            <Link href={`/dashboard/shipments/${shipment.id}/edit`}>
-              <Button variant="outline" size="sm" className="w-full">
-                <PenLine className="mr-2 h-4 w-4" />
-                Edit Shipment
-              </Button>
-            </Link>
+            <Button href={`/dashboard/shipments/${shipment.id}/edit`} variant="outline" size="sm" className="w-full">
+              <PenLine className="mr-2 h-4 w-4" />
+              Edit Shipment
+            </Button>
           )}
         </div>
       </DashboardPanel>

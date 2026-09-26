@@ -154,11 +154,15 @@ export default function ShipmentQuickPeek({
             <Button variant="outline" size="sm" onClick={onClose}>
               Close
             </Button>
-            <Link href={`/dashboard/shipments/${shipment.id}`} style={{ textDecoration: 'none' }}>
-              <Button variant="primary" size="sm" icon={<ExternalLink className="w-4 h-4" />}>
-                Open Full View
-              </Button>
-            </Link>
+            <Button
+              href={`/dashboard/shipments/${shipment.id}`}
+              onClick={onClose}
+              variant="primary"
+              size="sm"
+              icon={<ExternalLink className="w-4 h-4" />}
+            >
+              Open Full View
+            </Button>
           </Box>
         )
       }
@@ -210,7 +214,11 @@ export default function ShipmentQuickPeek({
                 <Typography variant="caption" sx={{ fontWeight: 600 }}>Container</Typography>
               </Box>
               {shipment.container ? (
-                <Link href={`/dashboard/containers/${shipment.container.id}`} style={{ textDecoration: 'none' }}>
+                <Link
+                  href={`/dashboard/containers/${shipment.container.id}`}
+                  onClick={onClose}
+                  style={{ textDecoration: 'none' }}
+                >
                   <span className="font-mono font-bold text-sm text-[var(--accent-gold,#D4AF37)] hover:underline block truncate">
                     {shipment.container.containerNumber}
                   </span>

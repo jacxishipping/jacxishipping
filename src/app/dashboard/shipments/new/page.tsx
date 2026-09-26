@@ -526,11 +526,9 @@ export default function NewShipmentPage() {
 					title="Create New Shipment"
 					description="Add vehicle information with guided steps"
 					actions={
-						<Link href="/dashboard/shipments" style={{ textDecoration: 'none' }}>
-							<Button variant="outline" icon={<ArrowLeft className="w-4 h-4" />} iconPosition="start" size="sm">
-								Back
-							</Button>
-						</Link>
+						<Button href="/dashboard/shipments" variant="outline" icon={<ArrowLeft className="w-4 h-4" />} iconPosition="start" size="sm">
+							Back
+						</Button>
 					}
 				/>
 
@@ -1297,11 +1295,9 @@ export default function NewShipmentPage() {
 													}}
 												/>
 												<Box sx={{ mt: 2 }}>
-													<Link href="/dashboard/containers/new" target="_blank" style={{ textDecoration: 'none' }}>
-														<Button type="button" variant="outline" size="sm">
-															Create New Container
-														</Button>
-													</Link>
+													<Button href="/dashboard/containers/new" target="_blank" variant="outline" size="sm">
+														Create New Container
+													</Button>
 												</Box>
 											</>
 										)}
@@ -1642,11 +1638,9 @@ export default function NewShipmentPage() {
 						</Button>
 
 						<Box sx={{ display: 'flex', gap: 2 }}>
-							<Link href="/dashboard/shipments" style={{ textDecoration: 'none' }}>
-								<Button type="button" variant="ghost">
-									Cancel
-								</Button>
-							</Link>
+							<Button href="/dashboard/shipments" variant="ghost">
+								Cancel
+							</Button>
 							
 							{activeStep === steps.length - 1 ? (
 								<Button

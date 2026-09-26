@@ -258,23 +258,25 @@ export default function ShipmentCard({
 
 				{/* Footer: View Details Button */}
 				<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 1, minWidth: 0, mt: 0.5 }}>
-					<Link href={`/dashboard/shipments/${id}`} style={{ textDecoration: 'none', flexShrink: 0 }}>
-						<Button
-							variant="text"
-							size="small"
-							endIcon={<ArrowForward sx={{ fontSize: { xs: 12, sm: 14 } }} />}
-							sx={{
-								fontSize: { xs: '0.65rem', sm: '0.7rem' },
-								fontWeight: 600,
-								textTransform: 'none',
-								color: 'var(--accent-gold)',
-								minWidth: 0,
-								padding: 0,
-							}}
-						>
-							View Details
-						</Button>
-					</Link>
+					<Button
+						component={Link}
+						href={`/dashboard/shipments/${id}`}
+						variant="text"
+						size="small"
+						endIcon={<ArrowForward sx={{ fontSize: { xs: 12, sm: 14 } }} />}
+						sx={{
+							fontSize: { xs: '0.65rem', sm: '0.7rem' },
+							fontWeight: 600,
+							textTransform: 'none',
+							textDecoration: 'none',
+							color: 'var(--accent-gold)',
+							minWidth: 0,
+							padding: 0,
+							flexShrink: 0,
+						}}
+					>
+						View Details
+					</Button>
 				</Box>
 			</Box>
 		</Slide>

@@ -67,7 +67,7 @@ import {
 	StatusBadge,
 	type MilestoneStep
 } from '@/components/design-system';
-import PermissionRoute from '@/components/auth/PermissionRoute';
+import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import AddExpenseModal from '@/components/containers/AddExpenseModal';
 import AddDamageModal from '@/components/containers/AddDamageModal';
 import AddInvoiceModal from '@/components/containers/AddInvoiceModal';
@@ -754,15 +754,15 @@ export default function ContainerDetailPage() {
 
 	if (loading) {
 		return (
-			<PermissionRoute anyOf={['containers:read_all', 'containers:manage', 'finance:view', 'finance:manage']}>
+			<ProtectedRoute>
 				<DetailPageSkeleton />
-			</PermissionRoute>
+			</ProtectedRoute>
 		);
 	}
 
 	if (!container) {
 		return (
-			<PermissionRoute anyOf={['containers:read_all', 'containers:manage', 'finance:view', 'finance:manage']}>
+			<ProtectedRoute>
 				<DashboardSurface>
 					<EmptyState
 						icon={<Package className="w-12 h-12" />}
@@ -778,7 +778,7 @@ export default function ContainerDetailPage() {
 						}
 					/>
 				</DashboardSurface>
-			</PermissionRoute>
+			</ProtectedRoute>
 		);
 	}
 
@@ -857,7 +857,7 @@ export default function ContainerDetailPage() {
 	});
 
 	return (
-		<PermissionRoute anyOf={['containers:read_all', 'containers:manage', 'finance:view', 'finance:manage']}>
+		<ProtectedRoute>
 			<DashboardSurface>
 				{/* Breadcrumbs */}
 				<Box sx={{ px: 2, pt: 2 }}>
@@ -957,11 +957,9 @@ export default function ContainerDetailPage() {
                                     Delete
                                 </Button>
                             )}
-							<Link href="/dashboard/containers" style={{ textDecoration: 'none' }}>
-								<Button variant="outline" size="sm" icon={<ArrowLeft className="w-4 h-4" />} className="no-print">
-									Back
-								</Button>
-							</Link>
+							<Button href="/dashboard/containers" variant="outline" size="sm" icon={<ArrowLeft className="w-4 h-4" />} className="no-print">
+								Back
+							</Button>
 						</Box>
 					}
 				/>
@@ -3151,6 +3149,6 @@ export default function ContainerDetailPage() {
 					</div>
 				)}
 			</DashboardSurface>
-		</PermissionRoute>
+		</ProtectedRoute>
 	);
 }

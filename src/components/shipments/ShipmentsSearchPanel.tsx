@@ -45,16 +45,15 @@ export default function ShipmentsSearchPanel({
 				className="overflow-hidden"
 				actions={
 					!hideHeader && canManageShipments ? (
-						<Link href="/dashboard/shipments/new" style={{ textDecoration: 'none' }}>
-							<Button
-								variant="primary"
-								size="sm"
-								icon={<Add fontSize="small" />}
-								iconPosition="start"
-							>
-								New shipment
-							</Button>
-						</Link>
+						<Button
+							href="/dashboard/shipments/new"
+							variant="primary"
+							size="sm"
+							icon={<Add fontSize="small" />}
+							iconPosition="start"
+						>
+							New shipment
+						</Button>
 					) : null
 				}
 			>

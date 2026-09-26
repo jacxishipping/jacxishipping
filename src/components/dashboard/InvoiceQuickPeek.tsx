@@ -136,11 +136,15 @@ export default function InvoiceQuickPeek({
               Close
             </Button>
             <Box sx={{ display: 'flex', gap: 1 }}>
-              <Link href={`/dashboard/invoices/${invoice.id}`} style={{ textDecoration: 'none' }}>
-                <Button variant="primary" size="sm" icon={<ExternalLink className="w-4 h-4" />}>
-                  Open Full Invoice
-                </Button>
-              </Link>
+              <Button
+                href={`/dashboard/invoices/${invoice.id}`}
+                onClick={onClose}
+                variant="primary"
+                size="sm"
+                icon={<ExternalLink className="w-4 h-4" />}
+              >
+                Open Full Invoice
+              </Button>
             </Box>
           </Box>
         )
@@ -208,7 +212,11 @@ export default function InvoiceQuickPeek({
                   <Package className="w-4 h-4 text-emerald-600" />
                   <Typography variant="caption" sx={{ fontWeight: 600 }}>Container</Typography>
                 </Box>
-                <Link href={`/dashboard/containers/${invoice.container.id}`} style={{ textDecoration: 'none' }}>
+                <Link
+                  href={`/dashboard/containers/${invoice.container.id}`}
+                  onClick={onClose}
+                  style={{ textDecoration: 'none' }}
+                >
                   <Typography sx={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--accent-gold, #D4AF37)', fontFamily: 'monospace' }} noWrap>
                     {invoice.container.containerNumber}
                   </Typography>
@@ -223,7 +231,11 @@ export default function InvoiceQuickPeek({
                   <FileText className="w-4 h-4 text-purple-600" />
                   <Typography variant="caption" sx={{ fontWeight: 600 }}>Cargo Vehicle</Typography>
                 </Box>
-                <Link href={`/dashboard/shipments/${invoice.shipment.id}`} style={{ textDecoration: 'none' }}>
+                <Link
+                  href={`/dashboard/shipments/${invoice.shipment.id}`}
+                  onClick={onClose}
+                  style={{ textDecoration: 'none' }}
+                >
                   <Typography sx={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--accent-gold, #D4AF37)' }} noWrap>
                     {[invoice.shipment.vehicleYear, invoice.shipment.vehicleMake, invoice.shipment.vehicleModel].filter(Boolean).join(' ') || 'Vehicle'}
                   </Typography>
