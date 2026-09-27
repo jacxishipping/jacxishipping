@@ -2,12 +2,15 @@ import { telegramClient } from './client';
 import {
   escapeHtml,
   formatFinanceTelegramMessage,
+  formatPortFlag,
   formatProgressBar,
-  formatShipmentCard,
+  formatShipmentHeroCard,
   formatShipmentListItem,
+  buildShipmentHeroKeyboard,
   getCustomerFinanceOverview,
   getCustomerShipmentByIdOrVin,
   getCustomerShipments,
+  type TelegramShipmentSummary,
 } from './services';
 import {
   findUserByAccessCode,
@@ -27,6 +30,14 @@ import type {
   TelegramUpdate,
 } from './types';
 import { buildTrackingResponse } from '@/lib/tracking-response';
+
+const APP_URL = (
+  process.env.NEXT_PUBLIC_APP_URL ||
+  process.env.NEXTAUTH_URL ||
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : '') ||
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '') ||
+  'https://www.jacxishipping.com'
+).replace(/\/$/, '');
 
 export const MAIN_MENU_KEYBOARD: TelegramReplyKeyboardMarkup = {
   keyboard: [
@@ -87,7 +98,7 @@ async function handleMessage(message: TelegramMessage): Promise<void> {
   }
 
   if (lowerText === '📦 my shipments' || lowerText === '/shipments') {
-    await sendShipmentsList(chatId, user);
+    await sendShipmentsCarousel(chatId, user, 0);
     return;
   }
 
@@ -132,7 +143,7 @@ async function handleMessage(message: TelegramMessage): Promise<void> {
   }
 
   // Check if message is a VIN or Container number search
-  const isPossibleVinOrContainer = /^[A-Z0-9]{6,17}$/i.test(rawText.replace(/[\s-]/g, ''));
+  const isPossibleVinOrContainer = /^[A-Z0-9]{5,20}$/i.test(rawText.replace(/[\s-]/g, ''));
   if (isPossibleVinOrContainer) {
     await handleSearchQuery(chatId, user, rawText);
     return;
@@ -179,11 +190,11 @@ async function handleUnauthenticatedMessage(message: TelegramMessage, rawText: s
     await telegramClient.sendMessage(
       chatId,
       [
-        '📞 <b>Jacxi Shipping Support:</b>',
+        '📞 <b>Jacxi Shipping Customer Care:</b>',
         '━━━━━━━━━━━━━━━━━━━━━',
-        '🌐 Website: https://jacxishipping.com',
-        '📧 Email: support@jacxishipping.com',
-        '🕒 Hours: Mon - Fri (8:00 AM - 6:00 PM)',
+        `🌐 <b>Website:</b> ${APP_URL}`,
+        '📧 <b>Email:</b> support@jacxishipping.com',
+        '🕒 <b>Support Hours:</b> Mon - Sat (8:00 AM - 7:00 PM)',
       ].join('\n'),
       {
         parse_mode: 'HTML',
@@ -204,12 +215,13 @@ async function handleUnauthenticatedMessage(message: TelegramMessage, rawText: s
         [
           `🎉 <b>Welcome, ${escapeHtml(matchedUser.name || matchedUser.email)}!</b>`,
           '━━━━━━━━━━━━━━━━━━━━━',
-          '✅ You are now authenticated with your Jacxi Shipping account.',
+          '✅ <b>Authentication Successful!</b> Your Telegram is now securely linked with your Jacxi Shipping account.',
           '',
+          `👤 <b>Customer:</b> ${escapeHtml(matchedUser.name || 'Account Holder')}`,
           `📧 <b>Email:</b> ${escapeHtml(matchedUser.email)}`,
           `🔑 <b>Access Code:</b> <code>${matchedUser.loginCode || candidateCode}</code>`,
           '',
-          'Use the menu below to view your shipments, vehicle arrival photos, live tracking, and invoices.',
+          'Use the options below to browse your vehicle cards, view high-res arrival photos, check live container status, and inspect invoices.',
         ].join('\n'),
         {
           parse_mode: 'HTML',
@@ -217,8 +229,8 @@ async function handleUnauthenticatedMessage(message: TelegramMessage, rawText: s
         }
       );
 
-      // Auto-display shipments after successful login
-      await sendShipmentsList(chatId, matchedUser);
+      // Auto-display shipments carousel after successful login
+      await sendShipmentsCarousel(chatId, matchedUser, 0);
       return;
     } else {
       await telegramClient.sendMessage(
@@ -242,11 +254,11 @@ async function handleUnauthenticatedMessage(message: TelegramMessage, rawText: s
   await telegramClient.sendMessage(
     chatId,
     [
-      '🚢 <b>Welcome to Jacxi Shipping Bot!</b>',
+      '🚢 <b>Welcome to Jacxi Shipping Assistant!</b>',
       '━━━━━━━━━━━━━━━━━━━━━',
-      'Track your ocean containers, view vehicle arrival & warehouse inspection photos, and check your invoices directly in Telegram.',
+      'Track your ocean containers, inspect vehicle arrival & warehouse condition photos, and monitor your invoices directly in Telegram.',
       '',
-      '🔐 <b>Please enter your 8-digit Customer Access Code to begin:</b>',
+      '🔐 <b>Please enter your 8-digit Customer Access Code to start:</b>',
       '<i>(Example: <code>83492019</code> or <code>JACX1234</code>)</i>',
     ].join('\n'),
     {
@@ -258,30 +270,46 @@ async function handleUnauthenticatedMessage(message: TelegramMessage, rawText: s
 
 async function sendAuthenticatedWelcome(chatId: number, user: TelegramLinkedUser): Promise<void> {
   const shipments = await getCustomerShipments(user.id);
+  const portalUrl = `${APP_URL}/dashboard`;
+
+  const inlineKeyboard: TelegramInlineKeyboardButton[][] = [
+    [
+      { text: '📦 Browse Shipments', callback_data: 'shipment:page:0' },
+      { text: '💰 Finance & Invoices', callback_data: 'finance:overview' },
+    ],
+    [
+      { text: '🚀 Open Jacxi Portal', web_app: { url: portalUrl } },
+    ],
+  ];
+
   await telegramClient.sendMessage(
     chatId,
     [
-      `👋 <b>Hello, ${escapeHtml(user.name || user.email)}!</b>`,
+      `👋 <b>Welcome Back, ${escapeHtml(user.name || user.email)}!</b>`,
       '━━━━━━━━━━━━━━━━━━━━━',
-      `You have <b>${shipments.length}</b> shipment(s) in your Jacxi account.`,
+      `📦 <b>Active Shipments:</b> <code>${shipments.length} vehicle(s)</code>`,
       '',
-      'Choose an option below or send a <b>VIN / Container #</b> at any time:',
+      'Select an option below or type any <b>VIN / Container #</b> at any time:',
     ].join('\n'),
     {
       parse_mode: 'HTML',
-      reply_markup: MAIN_MENU_KEYBOARD,
+      reply_markup: { inline_keyboard: inlineKeyboard },
     }
   );
 }
 
-async function sendShipmentsList(chatId: number, user: TelegramLinkedUser): Promise<void> {
+async function sendShipmentsCarousel(
+  chatId: number,
+  user: TelegramLinkedUser,
+  pageIndex = 0
+): Promise<void> {
   await telegramClient.sendChatAction(chatId, 'typing');
   const shipments = await getCustomerShipments(user.id);
 
   if (shipments.length === 0) {
     await telegramClient.sendMessage(
       chatId,
-      '📦 <b>No Active Shipments</b>\n\nThere are currently no shipments linked to your account.',
+      '📦 <b>No Active Shipments Found</b>\n\nThere are currently no vehicle shipments associated with your Jacxi account. Once your booking is created, your live tracking and warehouse photos will appear here automatically.',
       {
         parse_mode: 'HTML',
         reply_markup: MAIN_MENU_KEYBOARD,
@@ -290,34 +318,30 @@ async function sendShipmentsList(chatId: number, user: TelegramLinkedUser): Prom
     return;
   }
 
-  // Send summary list
-  const listText = [
-    `📦 <b>Your Shipments (${shipments.length}):</b>`,
-    '━━━━━━━━━━━━━━━━━━━━━',
-    ...shipments.map((s, idx) => formatShipmentListItem(s, idx)),
-    '',
-    '<i>Tap a button below to view details, photos, or tracking for any shipment:</i>',
-  ].join('\n');
+  const validIndex = Math.max(0, Math.min(pageIndex, shipments.length - 1));
+  const current = shipments[validIndex];
+  const cardText = formatShipmentHeroCard(current, validIndex, shipments.length);
+  const keyboard = buildShipmentHeroKeyboard(current, validIndex, shipments.length, APP_URL);
 
-  // Build inline keyboard with buttons for each vehicle
-  const inlineButtons: TelegramInlineKeyboardButton[][] = [];
-  shipments.forEach((s) => {
-    const label = `${s.vehicleMake || ''} ${s.vehicleModel || ''} (${s.vehicleVIN ? s.vehicleVIN.slice(-6) : s.id.slice(-6)})`.trim();
-    inlineButtons.push([
-      {
-        text: `🚗 ${label}`,
-        callback_data: `detail:${s.id}`,
-      },
-      {
-        text: `📸 Photos (${s.totalPhotosCount})`,
-        callback_data: `photos:${s.id}`,
-      },
-    ]);
-  });
+  const heroPhoto = current.arrivalPhotos[0] || current.vehiclePhotos[0];
 
-  await telegramClient.sendMessage(chatId, listText, {
+  if (heroPhoto) {
+    await telegramClient.sendChatAction(chatId, 'upload_photo');
+    const photoResult = await telegramClient.sendPhoto(chatId, heroPhoto, {
+      caption: cardText,
+      parse_mode: 'HTML',
+      reply_markup: keyboard,
+    });
+
+    if (photoResult.ok) {
+      return;
+    }
+  }
+
+  // Fallback to rich text message if no photo or photo fails to load
+  await telegramClient.sendMessage(chatId, cardText, {
     parse_mode: 'HTML',
-    reply_markup: { inline_keyboard: inlineButtons },
+    reply_markup: keyboard,
   });
 }
 
@@ -346,7 +370,7 @@ async function sendPhotosMenu(chatId: number, user: TelegramLinkedUser): Promise
 
   await telegramClient.sendMessage(
     chatId,
-    '📸 <b>Select a vehicle to view its inspection & arrival photos:</b>',
+    '📸 <b>Select a vehicle below to view its high-res arrival & condition photos:</b>',
     {
       parse_mode: 'HTML',
       reply_markup: { inline_keyboard: buttons },
@@ -385,7 +409,7 @@ async function sendShipmentPhotosAlbum(
     media: url,
     caption:
       idx === 0
-        ? `📸 <b>${escapeHtml(shipment.vehicleLabel)}</b>\n🔑 VIN: <code>${shipment.vehicleVIN || 'N/A'}</code>\n📍 Status: ${shipment.statusLabel}\n🖼 Showing ${photosToSend.length} of ${allPhotos.length} photos`
+        ? `📸 <b>${escapeHtml(shipment.vehicleLabel)}</b>\n🔑 VIN: <code>${shipment.vehicleVIN || 'N/A'}</code>\n📍 Status: ${shipment.statusLabel}\n🖼 Showing ${photosToSend.length} of ${allPhotos.length} photo(s)`
         : undefined,
     parse_mode: 'HTML',
   }));
@@ -402,12 +426,20 @@ async function sendShipmentPhotosAlbum(
     }
   }
 
-  // If there are more than 10 photos, mention it
+  // If there are more than 10 photos, mention it with direct portal link
   if (allPhotos.length > 10) {
+    const portalPhotoUrl = `${APP_URL}/dashboard/shipments/${shipment.id}`;
     await telegramClient.sendMessage(
       chatId,
-      `ℹ️ <i>There are ${allPhotos.length - 10} additional photos available for this vehicle on your Jacxi web dashboard.</i>`,
-      { parse_mode: 'HTML' }
+      `ℹ️ <i>There are ${allPhotos.length - 10} additional photos available in the portal.</i>`,
+      {
+        parse_mode: 'HTML',
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '🖼 View All Photos in Portal', web_app: { url: portalPhotoUrl } }],
+          ],
+        },
+      }
     );
   }
 }
@@ -416,10 +448,18 @@ async function sendFinanceSummary(chatId: number, user: TelegramLinkedUser): Pro
   await telegramClient.sendChatAction(chatId, 'typing');
   const finance = await getCustomerFinanceOverview(user.id);
   const text = formatFinanceTelegramMessage(finance);
+  const portalFinanceUrl = `${APP_URL}/dashboard/finance/ledger`;
+
+  const inlineKeyboard: TelegramInlineKeyboardButton[][] = [
+    [
+      { text: '💳 View Due Invoices', callback_data: 'finance:invoices' },
+      { text: '🚀 Open Finance Portal', web_app: { url: portalFinanceUrl } },
+    ],
+  ];
 
   await telegramClient.sendMessage(chatId, text, {
     parse_mode: 'HTML',
-    reply_markup: MAIN_MENU_KEYBOARD,
+    reply_markup: { inline_keyboard: inlineKeyboard },
   });
 }
 
@@ -444,7 +484,7 @@ async function sendTrackingPrompt(chatId: number, user: TelegramLinkedUser): Pro
 
   await telegramClient.sendMessage(
     chatId,
-    '📍 <b>Select a shipment to track, or type any VIN / Container number:</b>',
+    '📍 <b>Select a shipment below or type any VIN / Container number:</b>',
     {
       parse_mode: 'HTML',
       reply_markup: { inline_keyboard: buttons },
@@ -453,35 +493,40 @@ async function sendTrackingPrompt(chatId: number, user: TelegramLinkedUser): Pro
 }
 
 async function sendAccountInfo(chatId: number, user: TelegramLinkedUser): Promise<void> {
+  const portalUrl = `${APP_URL}/dashboard`;
   await telegramClient.sendMessage(
     chatId,
     [
-      'ℹ️ <b>Your Account Details</b>',
+      'ℹ️ <b>Your Customer Profile</b>',
       '━━━━━━━━━━━━━━━━━━━━━',
       `👤 <b>Name:</b> ${escapeHtml(user.name || 'Customer')}`,
       `📧 <b>Email:</b> ${escapeHtml(user.email)}`,
       `📞 <b>Phone:</b> ${escapeHtml(user.phone || 'N/A')}`,
       `🔑 <b>Access Code:</b> <code>${user.loginCode || 'N/A'}</code>`,
-      `📱 <b>Telegram Chat ID:</b> <code>${chatId}</code>`,
+      `📱 <b>Telegram ID:</b> <code>${chatId}</code>`,
       '',
-      '🔒 <i>Your Telegram session is linked and authenticated securely.</i>',
+      '🔒 <i>Your Telegram session is verified and authenticated.</i>',
     ].join('\n'),
     {
       parse_mode: 'HTML',
-      reply_markup: MAIN_MENU_KEYBOARD,
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '🚀 Launch Web Portal', web_app: { url: portalUrl } }],
+        ],
+      },
     }
   );
 }
 
 async function sendHelpMessage(chatId: number, isAuthenticated: boolean): Promise<void> {
   const text = [
-    '🤖 <b>Jacxi Shipping Bot Commands:</b>',
+    '🤖 <b>Jacxi Shipping Bot Manual:</b>',
     '━━━━━━━━━━━━━━━━━━━━━',
-    '/shipments - View all your vehicle shipments',
-    '/photos - View arrival & inspection photos',
-    '/track <VIN> - Track shipment by VIN or Container',
-    '/finance - View account balance & invoices',
-    '/account - View your account profile',
+    '/shipments - Interactive vehicle cards & carousel',
+    '/photos - High-res arrival & inspection photo albums',
+    '/track &lt;VIN&gt; - Live ocean container tracking & ETA',
+    '/finance - Ledger balance & invoice breakdown',
+    '/account - Customer profile details',
     '/logout - Disconnect your Telegram session',
     '/help - Show this guide',
   ].join('\n');
@@ -503,17 +548,22 @@ async function handleSearchQuery(
   // 1. Check if matches user's shipment directly
   const localShipment = await getCustomerShipmentByIdOrVin(user.id, clean);
   if (localShipment) {
-    const card = formatShipmentCard(localShipment);
-    const buttons: TelegramInlineKeyboardButton[][] = [
-      [
-        { text: `📸 Photos (${localShipment.totalPhotosCount})`, callback_data: `photos:${localShipment.id}` },
-        { text: '📍 Live Tracking', callback_data: `track:${localShipment.id}` },
-      ],
-    ];
+    const card = formatShipmentHeroCard(localShipment);
+    const keyboard = buildShipmentHeroKeyboard(localShipment, 0, 1, APP_URL);
+
+    const heroPhoto = localShipment.arrivalPhotos[0] || localShipment.vehiclePhotos[0];
+    if (heroPhoto) {
+      await telegramClient.sendPhoto(chatId, heroPhoto, {
+        caption: card,
+        parse_mode: 'HTML',
+        reply_markup: keyboard,
+      });
+      return;
+    }
 
     await telegramClient.sendMessage(chatId, card, {
       parse_mode: 'HTML',
-      reply_markup: { inline_keyboard: buttons },
+      reply_markup: keyboard,
     });
     return;
   }
@@ -527,8 +577,8 @@ async function handleSearchQuery(
       `📦 <b>Container:</b> <code>${escapeHtml(tracking.containerNumber)}</code>`,
       `📍 <b>Status:</b> ${escapeHtml(tracking.shipmentStatus || 'In Progress')}`,
       `🌐 <b>Current Location:</b> ${escapeHtml(tracking.currentLocation || 'In Transit')}`,
-      `🛫 <b>Origin:</b> ${escapeHtml(tracking.origin || 'N/A')}`,
-      `🛬 <b>Destination:</b> ${escapeHtml(tracking.destination || 'N/A')}`,
+      `🛫 <b>Origin:</b> ${formatPortFlag(tracking.origin)}`,
+      `🛬 <b>Destination:</b> ${formatPortFlag(tracking.destination)}`,
       tracking.estimatedArrival ? `📅 <b>ETA:</b> ${escapeHtml(tracking.estimatedArrival)}` : '',
     ].filter(Boolean);
 
@@ -541,7 +591,7 @@ async function handleSearchQuery(
 
   await telegramClient.sendMessage(
     chatId,
-    `❌ No shipment or container found matching <code>${escapeHtml(query)}</code>. Please check the VIN or Container Number and try again.`,
+    `❌ No shipment or container found matching <code>${escapeHtml(query)}</code>. Please verify the VIN or Container Number and try again.`,
     {
       parse_mode: 'HTML',
       reply_markup: MAIN_MENU_KEYBOARD,
@@ -551,10 +601,11 @@ async function handleSearchQuery(
 
 async function handleCallbackQuery(query: TelegramCallbackQuery): Promise<void> {
   const chatId = query.message?.chat.id || query.from.id;
+  const messageId = query.message?.message_id;
   const data = query.data || '';
   const user = await getTelegramSessionUser(chatId);
 
-  // Acknowledge query to clear loading spinner on Telegram client
+  // Acknowledge query to clear loading spinner
   await telegramClient.answerCallbackQuery(query.id);
 
   if (!user) {
@@ -566,6 +617,44 @@ async function handleCallbackQuery(query: TelegramCallbackQuery): Promise<void> 
     return;
   }
 
+  if (data === 'shipment:noop') {
+    return;
+  }
+
+  // Handle carousel page flip
+  if (data.startsWith('shipment:page:')) {
+    const targetIdx = parseInt(data.replace('shipment:page:', ''), 10) || 0;
+    const shipments = await getCustomerShipments(user.id);
+    if (shipments.length > 0) {
+      const validIdx = Math.max(0, Math.min(targetIdx, shipments.length - 1));
+      const current = shipments[validIdx];
+      const cardText = formatShipmentHeroCard(current, validIdx, shipments.length);
+      const keyboard = buildShipmentHeroKeyboard(current, validIdx, shipments.length, APP_URL);
+
+      if (messageId) {
+        // Attempt in-place caption update if message has a photo
+        if (query.message?.caption !== undefined) {
+          const res = await telegramClient.editMessageCaption(chatId, messageId, cardText, {
+            parse_mode: 'HTML',
+            reply_markup: keyboard,
+          });
+          if (res.ok) return;
+        }
+
+        // Attempt in-place text edit
+        const editRes = await telegramClient.editMessageText(chatId, messageId, cardText, {
+          parse_mode: 'HTML',
+          reply_markup: keyboard,
+        });
+        if (editRes.ok) return;
+      }
+
+      // Fallback: send fresh message
+      await sendShipmentsCarousel(chatId, user, validIdx);
+    }
+    return;
+  }
+
   if (data.startsWith('photos:')) {
     const shipmentId = data.replace('photos:', '');
     await sendShipmentPhotosAlbum(chatId, user, shipmentId);
@@ -573,19 +662,34 @@ async function handleCallbackQuery(query: TelegramCallbackQuery): Promise<void> 
   }
 
   if (data.startsWith('detail:')) {
-    const shipmentId = data.replace('detail:', '');
-    const shipment = await getCustomerShipmentByIdOrVin(user.id, shipmentId);
+    const parts = data.split(':');
+    const shipmentId = parts[1];
+    const pageIndex = parseInt(parts[2] || '0', 10);
+    const shipments = await getCustomerShipments(user.id);
+    const shipment = shipments.find((s) => s.id === shipmentId) || shipments[0];
+
     if (shipment) {
-      const card = formatShipmentCard(shipment);
-      const buttons: TelegramInlineKeyboardButton[][] = [
-        [
-          { text: `📸 Photos (${shipment.totalPhotosCount})`, callback_data: `photos:${shipment.id}` },
-          { text: '📍 Live Tracking', callback_data: `track:${shipment.id}` },
-        ],
-      ];
+      const card = formatShipmentHeroCard(shipment, pageIndex, shipments.length);
+      const keyboard = buildShipmentHeroKeyboard(shipment, pageIndex, shipments.length, APP_URL);
+
+      if (messageId) {
+        if (query.message?.caption !== undefined) {
+          await telegramClient.editMessageCaption(chatId, messageId, card, {
+            parse_mode: 'HTML',
+            reply_markup: keyboard,
+          });
+          return;
+        }
+        await telegramClient.editMessageText(chatId, messageId, card, {
+          parse_mode: 'HTML',
+          reply_markup: keyboard,
+        });
+        return;
+      }
+
       await telegramClient.sendMessage(chatId, card, {
         parse_mode: 'HTML',
-        reply_markup: { inline_keyboard: buttons },
+        reply_markup: keyboard,
       });
     }
     return;
@@ -596,31 +700,46 @@ async function handleCallbackQuery(query: TelegramCallbackQuery): Promise<void> 
     const shipment = await getCustomerShipmentByIdOrVin(user.id, shipmentId);
     if (shipment) {
       const tracking = await buildTrackingResponse(shipment.vehicleVIN || shipment.containerNumber || shipment.id);
-      if (tracking) {
-        const lines = [
-          `📍 <b>Live Tracking: ${escapeHtml(shipment.vehicleLabel)}</b>`,
-          '━━━━━━━━━━━━━━━━━━━━━',
-          `📦 <b>Container:</b> <code>${escapeHtml(shipment.containerNumber || 'Pending')}</code>`,
-          `🔑 <b>VIN:</b> <code>${escapeHtml(shipment.vehicleVIN || 'N/A')}</code>`,
-          `🚢 <b>Vessel:</b> ${escapeHtml(shipment.vesselName || 'TBA')}`,
-          `🛫 <b>Origin:</b> ${escapeHtml(shipment.loadingPort || 'Export Port')}`,
-          `🛬 <b>Destination:</b> ${escapeHtml(shipment.destinationPort || 'Destination Port')}`,
-          shipment.estimatedArrival ? `📅 <b>ETA:</b> ${escapeHtml(shipment.estimatedArrival)}` : '',
-          `📊 <b>Progress:</b> <code>${formatProgressBar(shipment.progress)}</code>`,
-        ].filter(Boolean);
+      const portalMapUrl = `${APP_URL}/dashboard/shipments/${shipment.id}`;
 
-        await telegramClient.sendMessage(chatId, lines.join('\n'), {
-          parse_mode: 'HTML',
-          reply_markup: {
-            inline_keyboard: [
-              [{ text: `📸 View Photos (${shipment.totalPhotosCount})`, callback_data: `photos:${shipment.id}` }],
+      const originStr = shipment.loadingPort ? formatPortFlag(shipment.loadingPort) : 'Export Port';
+      const destStr = shipment.destinationPort ? formatPortFlag(shipment.destinationPort) : 'Destination Port';
+
+      const lines = [
+        `📍 <b>Live Ocean Tracking: ${escapeHtml(shipment.vehicleLabel)}</b>`,
+        '━━━━━━━━━━━━━━━━━━━━━',
+        `📦 <b>Container:</b> <code>${escapeHtml(shipment.containerNumber || 'Pending')}</code>`,
+        `🔑 <b>VIN:</b> <code>${escapeHtml(shipment.vehicleVIN || 'N/A')}</code>`,
+        `🚢 <b>Vessel:</b> ${escapeHtml(shipment.vesselName || 'TBA')}${shipment.voyageNumber ? ` (Voy: ${escapeHtml(shipment.voyageNumber)})` : ''}`,
+        `🏢 <b>Carrier:</b> ${escapeHtml(shipment.shippingLine || 'Ocean Line')}`,
+        `🛫 <b>Origin:</b> ${originStr}`,
+        `🛬 <b>Destination:</b> ${destStr}`,
+        shipment.departureDate ? `🛫 <b>Departed:</b> ${escapeHtml(shipment.departureDate)}` : '',
+        shipment.estimatedArrival ? `📅 <b>ETA:</b> <b>${escapeHtml(shipment.estimatedArrival)}</b>` : '',
+        `🌐 <b>Current Location:</b> ${escapeHtml(tracking?.currentLocation || shipment.currentLocation || 'In Transit')}`,
+        `📊 <b>Transit Progress:</b> <code>${formatProgressBar(shipment.progress)}</code>`,
+      ].filter(Boolean);
+
+      await telegramClient.sendMessage(chatId, lines.join('\n'), {
+        parse_mode: 'HTML',
+        reply_markup: {
+          inline_keyboard: [
+            [
+              { text: `📸 View Photos (${shipment.totalPhotosCount})`, callback_data: `photos:${shipment.id}` },
+              { text: '🗺 Interactive Map', web_app: { url: portalMapUrl } },
             ],
-          },
-        });
-      } else {
-        await telegramClient.sendMessage(chatId, formatShipmentCard(shipment), { parse_mode: 'HTML' });
-      }
+            [
+              { text: '◀ Back to Vehicle Card', callback_data: `detail:${shipment.id}:0` },
+            ],
+          ],
+        },
+      });
     }
+    return;
+  }
+
+  if (data === 'finance:overview' || data === 'finance:invoices') {
+    await sendFinanceSummary(chatId, user);
     return;
   }
 }

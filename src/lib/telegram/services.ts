@@ -238,11 +238,53 @@ export async function getCustomerFinanceOverview(userId: string) {
   };
 }
 
-export function formatShipmentCard(shipment: TelegramShipmentSummary): string {
+export function formatPortFlag(portName: string | null | undefined): string {
+  if (!portName) return '📍 Port';
+  const lower = portName.toLowerCase();
+  if (lower.includes('savannah') || lower.includes('houston') || lower.includes('new york') || lower.includes('los angeles') || lower.includes('miami') || lower.includes('usa') || lower.includes('nj') || lower.includes('ga') || lower.includes('tx')) {
+    return `🇺🇸 ${portName}`;
+  }
+  if (lower.includes('jebel ali') || lower.includes('dubai') || lower.includes('uae') || lower.includes('sharjah') || lower.includes('abu dhabi')) {
+    return `🇦🇪 ${portName}`;
+  }
+  if (lower.includes('poti') || lower.includes('batumi') || lower.includes('georgia')) {
+    return `🇬🇪 ${portName}`;
+  }
+  if (lower.includes('aqaba') || lower.includes('jordan') || lower.includes('amman')) {
+    return `🇯🇴 ${portName}`;
+  }
+  if (lower.includes('bremerhaven') || lower.includes('hamburg') || lower.includes('germany')) {
+    return `🇩🇪 ${portName}`;
+  }
+  if (lower.includes('lagos') || lower.includes('tincan') || lower.includes('apapa') || lower.includes('nigeria')) {
+    return `🇳🇬 ${portName}`;
+  }
+  if (lower.includes('sohar') || lower.includes('salalah') || lower.includes('oman') || lower.includes('muscat')) {
+    return `🇴🇲 ${portName}`;
+  }
+  if (lower.includes('shuwaikh') || lower.includes('kuwait')) {
+    return `🇰🇼 ${portName}`;
+  }
+  if (lower.includes('dammam') || lower.includes('jeddah') || lower.includes('saudi')) {
+    return `🇸🇦 ${portName}`;
+  }
+  if (lower.includes('mersin') || lower.includes('turkey') || lower.includes('istanbul')) {
+    return `🇹🇷 ${portName}`;
+  }
+  return `🌐 ${portName}`;
+}
+
+export function formatShipmentHeroCard(
+  shipment: TelegramShipmentSummary,
+  index = 0,
+  total = 1
+): string {
+  const pageTag = total > 1 ? ` <i>(${index + 1} of ${total})</i>` : '';
   const lines: string[] = [
-    `🚗 <b>${escapeHtml(shipment.vehicleLabel)}</b>`,
-    `<b>Status:</b> ${shipment.statusLabel}`,
-    `<b>Progress:</b> <code>${formatProgressBar(shipment.progress)}</code>`,
+    `🚗 <b>${escapeHtml(shipment.vehicleLabel)}</b>${pageTag}`,
+    '━━━━━━━━━━━━━━━━━━━━━',
+    `📍 <b>Status:</b> ${shipment.statusLabel}`,
+    `📊 <b>Progress:</b> <code>${formatProgressBar(shipment.progress)}</code>`,
     '',
   ];
 
@@ -250,7 +292,7 @@ export function formatShipmentCard(shipment: TelegramShipmentSummary): string {
     lines.push(`🔑 <b>VIN:</b> <code>${escapeHtml(shipment.vehicleVIN)}</code>`);
   }
   if (shipment.lotNumber) {
-    lines.push(`🏷 <b>Lot #:</b> ${escapeHtml(shipment.lotNumber)}${shipment.auctionName ? ` (${escapeHtml(shipment.auctionName)})` : ''}`);
+    lines.push(`🏷 <b>Lot #:</b> <code>${escapeHtml(shipment.lotNumber)}</code>${shipment.auctionName ? ` <i>(${escapeHtml(shipment.auctionName)})</i>` : ''}`);
   }
   if (shipment.vehicleColor) {
     lines.push(`🎨 <b>Color:</b> ${escapeHtml(shipment.vehicleColor)}`);
@@ -260,24 +302,86 @@ export function formatShipmentCard(shipment: TelegramShipmentSummary): string {
     lines.push('');
     lines.push(`📦 <b>Container:</b> <code>${escapeHtml(shipment.containerNumber)}</code>`);
     if (shipment.vesselName) {
-      lines.push(`🚢 <b>Vessel:</b> ${escapeHtml(shipment.vesselName)}${shipment.voyageNumber ? ` (Voyage: ${escapeHtml(shipment.voyageNumber)})` : ''}`);
+      lines.push(`🚢 <b>Vessel:</b> ${escapeHtml(shipment.vesselName)}${shipment.voyageNumber ? ` (Voyage: <code>${escapeHtml(shipment.voyageNumber)}</code>)` : ''}`);
     }
     if (shipment.shippingLine) {
-      lines.push(`🏢 <b>Shipping Line:</b> ${escapeHtml(shipment.shippingLine)}`);
+      lines.push(`🏢 <b>Carrier:</b> ${escapeHtml(shipment.shippingLine)}`);
     }
-    if (shipment.loadingPort) {
-      lines.push(`🛫 <b>Origin:</b> ${escapeHtml(shipment.loadingPort)}${shipment.departureDate ? ` (Dep: ${shipment.departureDate})` : ''}`);
+    if (shipment.loadingPort || shipment.destinationPort) {
+      const originStr = shipment.loadingPort ? formatPortFlag(shipment.loadingPort) : 'Export Port';
+      const destStr = shipment.destinationPort ? formatPortFlag(shipment.destinationPort) : 'Destination Port';
+      lines.push(`🛫 <b>Route:</b> ${originStr} ➔ ${destStr}`);
     }
-    if (shipment.destinationPort) {
-      lines.push(`🛬 <b>Destination:</b> ${escapeHtml(shipment.destinationPort)}${shipment.estimatedArrival ? ` (ETA: ${shipment.estimatedArrival})` : ''}`);
+    if (shipment.departureDate) {
+      lines.push(`🛫 <b>Departure:</b> ${escapeHtml(shipment.departureDate)}`);
+    }
+    if (shipment.estimatedArrival) {
+      lines.push(`📅 <b>Estimated Arrival (ETA):</b> <b>${escapeHtml(shipment.estimatedArrival)}</b>`);
+    }
+    if (shipment.currentLocation) {
+      lines.push(`🌐 <b>Location:</b> ${escapeHtml(shipment.currentLocation)}`);
     }
   }
 
   lines.push('');
-  lines.push(`📸 <b>Photos Available:</b> ${shipment.totalPhotosCount} photo(s)`);
-  lines.push(`💳 <b>Payment:</b> ${shipment.paymentStatus === 'COMPLETED' || shipment.paymentStatus === 'PAID' ? '✅ Paid' : '⏳ Pending / Unpaid'}`);
+  lines.push(`📸 <b>Photos:</b> <b>${shipment.totalPhotosCount}</b> inspection/yard photo(s)`);
+  lines.push(`💳 <b>Invoicing:</b> ${shipment.paymentStatus === 'COMPLETED' || shipment.paymentStatus === 'PAID' ? '✅ Paid in Full' : '⏳ Payment Pending'}`);
 
   return lines.join('\n');
+}
+
+export function buildShipmentHeroKeyboard(
+  shipment: TelegramShipmentSummary,
+  index = 0,
+  total = 1,
+  baseUrl = 'https://www.jacxishipping.com'
+): { inline_keyboard: Array<Array<{ text: string; callback_data?: string; url?: string; web_app?: { url: string } }>> } {
+  const keyboard: Array<Array<{ text: string; callback_data?: string; url?: string; web_app?: { url: string } }>> = [];
+
+  // Row 1: Primary actions
+  const row1: Array<{ text: string; callback_data?: string }> = [];
+  row1.push({
+    text: `📸 Photos (${shipment.totalPhotosCount})`,
+    callback_data: `photos:${shipment.id}`,
+  });
+  row1.push({
+    text: '📍 Live Tracking',
+    callback_data: `track:${shipment.id}`,
+  });
+  keyboard.push(row1);
+
+  // Row 2: Carousel pagination (if multiple shipments)
+  if (total > 1) {
+    const prevIdx = (index - 1 + total) % total;
+    const nextIdx = (index + 1) % total;
+    keyboard.push([
+      { text: '◀ Prev', callback_data: `shipment:page:${prevIdx}` },
+      { text: `🚗 ${index + 1} / ${total}`, callback_data: 'shipment:noop' },
+      { text: 'Next ▶', callback_data: `shipment:page:${nextIdx}` },
+    ]);
+  }
+
+  // Row 3: Secondary actions
+  keyboard.push([
+    { text: '💰 Finance & Invoices', callback_data: 'finance:overview' },
+    { text: '🔄 Refresh Status', callback_data: `detail:${shipment.id}:${index}` },
+  ]);
+
+  // Row 4: Web App direct portal button
+  const cleanBaseUrl = baseUrl.replace(/\/$/, '');
+  const portalUrl = `${cleanBaseUrl}/dashboard/shipments/${shipment.id}`;
+  keyboard.push([
+    {
+      text: '🚀 Open in Jacxi Portal',
+      web_app: { url: portalUrl },
+    },
+  ]);
+
+  return { inline_keyboard: keyboard };
+}
+
+export function formatShipmentCard(shipment: TelegramShipmentSummary): string {
+  return formatShipmentHeroCard(shipment);
 }
 
 export function formatShipmentListItem(shipment: TelegramShipmentSummary, index: number): string {
@@ -292,11 +396,12 @@ export function formatShipmentListItem(shipment: TelegramShipmentSummary, index:
 
 export function formatFinanceTelegramMessage(finance: Awaited<ReturnType<typeof getCustomerFinanceOverview>>): string {
   const lines: string[] = [
-    '💰 <b>Financial & Invoice Summary</b>',
+    '💰 <b>Financial & Invoices Overview</b>',
     '━━━━━━━━━━━━━━━━━━━━━',
-    `📊 <b>Account Balance:</b> <code>$${finance.currentBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</code>`,
-    `⏳ <b>Total Due:</b> <code>$${finance.totalDue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</code>`,
-    `✅ <b>Total Paid:</b> <code>$${finance.totalPaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</code>`,
+    `📊 <b>Current Ledger Balance:</b> <code>$${finance.currentBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</code>`,
+    `⏳ <b>Total Due / Outstanding:</b> <code>$${finance.totalDue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</code>`,
+    `✅ <b>Total Paid to Date:</b> <code>$${finance.totalPaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</code>`,
+    `📦 <b>Total Active Shipments:</b> <code>${finance.shipmentsCount}</code>`,
     '',
   ];
 
@@ -304,10 +409,11 @@ export function formatFinanceTelegramMessage(finance: Awaited<ReturnType<typeof 
     lines.push('📋 <b>Recent Invoices:</b>');
     finance.recentInvoices.forEach((inv) => {
       const icon = inv.status === 'PAID' ? '✅' : inv.status === 'OVERDUE' ? '🚨' : '⏳';
-      lines.push(`${icon} <b>${escapeHtml(inv.invoiceNumber)}</b>: $${inv.total.toFixed(2)} (${inv.status}) • Due: ${inv.dueDate}`);
+      const remainingStr = inv.remaining !== null && inv.remaining > 0 ? ` (Due: $${inv.remaining.toFixed(2)})` : '';
+      lines.push(`${icon} <b>${escapeHtml(inv.invoiceNumber)}</b>: $${inv.total.toFixed(2)}${remainingStr} • Due: ${inv.dueDate}`);
     });
   } else {
-    lines.push('✨ <i>No outstanding invoices at this time.</i>');
+    lines.push('✨ <i>No outstanding invoices at this time. All balances clear!</i>');
   }
 
   return lines.join('\n');

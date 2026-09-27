@@ -101,6 +101,34 @@ export class TelegramClient {
     });
   }
 
+  async editMessageCaption(
+    chatId: number | string,
+    messageId: number,
+    caption?: string,
+    options?: {
+      parse_mode?: 'HTML' | 'Markdown' | 'MarkdownV2';
+      reply_markup?: TelegramInlineKeyboardMarkup;
+    }
+  ): Promise<TelegramApiResponse<TelegramMessage>> {
+    return this.request<TelegramMessage>('editMessageCaption', {
+      chat_id: chatId,
+      message_id: messageId,
+      caption,
+      parse_mode: options?.parse_mode ?? 'HTML',
+      reply_markup: options?.reply_markup,
+    });
+  }
+
+  async deleteMessage(
+    chatId: number | string,
+    messageId: number
+  ): Promise<TelegramApiResponse<boolean>> {
+    return this.request<boolean>('deleteMessage', {
+      chat_id: chatId,
+      message_id: messageId,
+    });
+  }
+
   async sendPhoto(
     chatId: number | string,
     photoUrl: string,

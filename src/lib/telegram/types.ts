@@ -16,10 +16,15 @@ export type TelegramChat = {
   title?: string;
 };
 
+export type TelegramWebAppInfo = {
+  url: string;
+};
+
 export type TelegramInlineKeyboardButton = {
   text: string;
   url?: string;
   callback_data?: string;
+  web_app?: TelegramWebAppInfo;
 };
 
 export type TelegramInlineKeyboardMarkup = {
@@ -30,6 +35,7 @@ export type TelegramKeyboardButton = {
   text: string;
   request_contact?: boolean;
   request_location?: boolean;
+  web_app?: TelegramWebAppInfo;
 };
 
 export type TelegramReplyKeyboardMarkup = {

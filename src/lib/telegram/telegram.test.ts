@@ -84,7 +84,8 @@ describe('Telegram Utilities & Sanitization', () => {
     assert.ok(card.includes('5UXCR6C00N1234567'));
     assert.ok(card.includes('MSCU9876543'));
     assert.ok(card.includes('MSC GULSUN'));
-    assert.ok(card.includes('2 photo(s)'));
+    assert.ok(card.includes('2</b> inspection/yard photo(s)'));
     assert.ok(card.includes('✅ Paid'));
   });
 });
+
