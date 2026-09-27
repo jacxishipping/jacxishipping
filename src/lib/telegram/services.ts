@@ -1,5 +1,7 @@
 import { prisma } from '@/lib/db';
 import { buildTrackingResponse, type NormalizedTracking } from '@/lib/tracking-response';
+import { buildTelegramMiniAppUrl } from './auth';
+import type { TelegramLinkedUser } from './session';
 
 export type TelegramShipmentSummary = {
   id: string;
@@ -334,7 +336,8 @@ export function buildShipmentHeroKeyboard(
   shipment: TelegramShipmentSummary,
   index = 0,
   total = 1,
-  baseUrl = 'https://www.jacxishipping.com'
+  baseUrl = 'https://www.jacxishipping.com',
+  user?: TelegramLinkedUser
 ): { inline_keyboard: Array<Array<{ text: string; callback_data?: string; url?: string; web_app?: { url: string } }>> } {
   const keyboard: Array<Array<{ text: string; callback_data?: string; url?: string; web_app?: { url: string } }>> = [];
 
@@ -367,9 +370,8 @@ export function buildShipmentHeroKeyboard(
     { text: '🔄 Refresh Status', callback_data: `detail:${shipment.id}:${index}` },
   ]);
 
-  // Row 4: Web App direct portal button
-  const cleanBaseUrl = baseUrl.replace(/\/$/, '');
-  const portalUrl = `${cleanBaseUrl}/dashboard/shipments/${shipment.id}`;
+  // Row 4: Web App direct portal button (bridged with token for auto-login)
+  const portalUrl = buildTelegramMiniAppUrl(`/dashboard/shipments/${shipment.id}`, user, baseUrl);
   keyboard.push([
     {
       text: '🚀 Open in Jacxi Portal',

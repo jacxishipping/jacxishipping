@@ -82,12 +82,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Also configure the default chat menu button to launch the Telegram Mini App
+    const menuAppUrl = `${config.appUrl}/telegram-app`;
+    await telegramClient.setChatMenuButton({
+      type: 'web_app',
+      text: '🚀 Jacxi Portal',
+      web_app: { url: menuAppUrl },
+    }).catch(() => null);
+
     const webhookInfo = await telegramClient.getWebhookInfo();
 
     return NextResponse.json({
       success: true,
       message: `Webhook successfully registered to ${webhookUrl}`,
       webhookInfo: webhookInfo.result,
+      miniAppUrl: menuAppUrl,
     });
   } catch (error) {
     return NextResponse.json(

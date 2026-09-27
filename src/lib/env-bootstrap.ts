@@ -20,6 +20,32 @@ function backfillSuffixedEnv() {
   }
 }
 
+function backfillDatabaseEnv() {
+  try {
+    if (!process.env.DATABASE_URL) {
+      const dbUrl =
+        process.env.jacxi_PRISMA_DATABASE_URL ||
+        process.env.jacxi_DATABASE_URL ||
+        process.env.jacxi_POSTGRES_URL;
+      if (dbUrl) {
+        process.env.DATABASE_URL = dbUrl;
+      }
+    }
+    if (!process.env.DIRECT_URL) {
+      const directUrl =
+        process.env.jacxi_POSTGRES_URL ||
+        process.env.jacxi_DATABASE_URL ||
+        process.env.DATABASE_URL;
+      if (directUrl) {
+        process.env.DIRECT_URL = directUrl;
+      }
+    }
+  } catch {
+    // ignore
+  }
+}
+
 backfillSuffixedEnv();
+backfillDatabaseEnv();
 
 export {};

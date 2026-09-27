@@ -20,6 +20,7 @@ import {
   unlinkTelegramSession,
   type TelegramLinkedUser,
 } from './session';
+import { buildTelegramMiniAppUrl } from './auth';
 import type {
   TelegramCallbackQuery,
   TelegramInlineKeyboardButton,
@@ -165,6 +166,24 @@ async function handleUnauthenticatedMessage(message: TelegramMessage, rawText: s
   const lowerText = rawText.toLowerCase();
   const username = message.from?.username;
 
+  if (lowerText === '🔑 enter access code' || lowerText === 'enter access code') {
+    await telegramClient.sendMessage(
+      chatId,
+      [
+        '🔑 <b>Please enter your 8-digit Access Code:</b>',
+        '━━━━━━━━━━━━━━━━━━━━━',
+        'Type or paste your code directly into this chat (e.g. <code>83492019</code> or <code>JACX1234</code>).',
+        '',
+        '💡 <i>Tip: Tap "❓ How to find my code" if you need help finding your code.</i>',
+      ].join('\n'),
+      {
+        parse_mode: 'HTML',
+        reply_markup: AUTH_PROMPT_KEYBOARD,
+      }
+    );
+    return;
+  }
+
   if (lowerText === '❓ how to find my code') {
     await telegramClient.sendMessage(
       chatId,
@@ -204,8 +223,15 @@ async function handleUnauthenticatedMessage(message: TelegramMessage, rawText: s
     return;
   }
 
-  // Check if text is an access code (e.g. 8 alphanumeric characters or formatted with spaces)
-  const candidateCode = sanitizeAccessCode(rawText);
+  // Check if text is or contains an 8-character access code
+  let candidateCode = sanitizeAccessCode(rawText);
+  if (candidateCode.length !== 8) {
+    const codeMatch = rawText.match(/\b([A-Za-z0-9]{4}[-\s]?[A-Za-z0-9]{4})\b/) || rawText.match(/\b([A-Za-z0-9]{8})\b/);
+    if (codeMatch) {
+      candidateCode = sanitizeAccessCode(codeMatch[1]);
+    }
+  }
+
   if (candidateCode.length === 8) {
     const matchedUser = await findUserByAccessCode(candidateCode);
     if (matchedUser) {
@@ -250,7 +276,8 @@ async function handleUnauthenticatedMessage(message: TelegramMessage, rawText: s
     }
   }
 
-  // Default unauthenticated greeting
+  // Default unauthenticated greeting with Mini App launch option
+  const webAppLaunchUrl = buildTelegramMiniAppUrl('/dashboard', undefined, APP_URL);
   await telegramClient.sendMessage(
     chatId,
     [
@@ -263,14 +290,18 @@ async function handleUnauthenticatedMessage(message: TelegramMessage, rawText: s
     ].join('\n'),
     {
       parse_mode: 'HTML',
-      reply_markup: AUTH_PROMPT_KEYBOARD,
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '🚀 Launch Jacxi Mini App', web_app: { url: webAppLaunchUrl } }],
+        ],
+      },
     }
   );
 }
 
 async function sendAuthenticatedWelcome(chatId: number, user: TelegramLinkedUser): Promise<void> {
   const shipments = await getCustomerShipments(user.id);
-  const portalUrl = `${APP_URL}/dashboard`;
+  const portalUrl = buildTelegramMiniAppUrl('/dashboard', user, APP_URL);
 
   const inlineKeyboard: TelegramInlineKeyboardButton[][] = [
     [
@@ -321,7 +352,7 @@ async function sendShipmentsCarousel(
   const validIndex = Math.max(0, Math.min(pageIndex, shipments.length - 1));
   const current = shipments[validIndex];
   const cardText = formatShipmentHeroCard(current, validIndex, shipments.length);
-  const keyboard = buildShipmentHeroKeyboard(current, validIndex, shipments.length, APP_URL);
+  const keyboard = buildShipmentHeroKeyboard(current, validIndex, shipments.length, APP_URL, user);
 
   const heroPhoto = current.arrivalPhotos[0] || current.vehiclePhotos[0];
 
@@ -428,7 +459,7 @@ async function sendShipmentPhotosAlbum(
 
   // If there are more than 10 photos, mention it with direct portal link
   if (allPhotos.length > 10) {
-    const portalPhotoUrl = `${APP_URL}/dashboard/shipments/${shipment.id}`;
+    const portalPhotoUrl = buildTelegramMiniAppUrl(`/dashboard/shipments/${shipment.id}`, user, APP_URL);
     await telegramClient.sendMessage(
       chatId,
       `ℹ️ <i>There are ${allPhotos.length - 10} additional photos available in the portal.</i>`,
@@ -448,7 +479,7 @@ async function sendFinanceSummary(chatId: number, user: TelegramLinkedUser): Pro
   await telegramClient.sendChatAction(chatId, 'typing');
   const finance = await getCustomerFinanceOverview(user.id);
   const text = formatFinanceTelegramMessage(finance);
-  const portalFinanceUrl = `${APP_URL}/dashboard/finance/ledger`;
+  const portalFinanceUrl = buildTelegramMiniAppUrl('/dashboard/finance/ledger', user, APP_URL);
 
   const inlineKeyboard: TelegramInlineKeyboardButton[][] = [
     [
@@ -493,7 +524,7 @@ async function sendTrackingPrompt(chatId: number, user: TelegramLinkedUser): Pro
 }
 
 async function sendAccountInfo(chatId: number, user: TelegramLinkedUser): Promise<void> {
-  const portalUrl = `${APP_URL}/dashboard`;
+  const portalUrl = buildTelegramMiniAppUrl('/dashboard', user, APP_URL);
   await telegramClient.sendMessage(
     chatId,
     [
@@ -629,7 +660,7 @@ async function handleCallbackQuery(query: TelegramCallbackQuery): Promise<void> 
       const validIdx = Math.max(0, Math.min(targetIdx, shipments.length - 1));
       const current = shipments[validIdx];
       const cardText = formatShipmentHeroCard(current, validIdx, shipments.length);
-      const keyboard = buildShipmentHeroKeyboard(current, validIdx, shipments.length, APP_URL);
+      const keyboard = buildShipmentHeroKeyboard(current, validIdx, shipments.length, APP_URL, user);
 
       if (messageId) {
         // Attempt in-place caption update if message has a photo
@@ -670,7 +701,7 @@ async function handleCallbackQuery(query: TelegramCallbackQuery): Promise<void> 
 
     if (shipment) {
       const card = formatShipmentHeroCard(shipment, pageIndex, shipments.length);
-      const keyboard = buildShipmentHeroKeyboard(shipment, pageIndex, shipments.length, APP_URL);
+      const keyboard = buildShipmentHeroKeyboard(shipment, pageIndex, shipments.length, APP_URL, user);
 
       if (messageId) {
         if (query.message?.caption !== undefined) {
@@ -700,7 +731,7 @@ async function handleCallbackQuery(query: TelegramCallbackQuery): Promise<void> 
     const shipment = await getCustomerShipmentByIdOrVin(user.id, shipmentId);
     if (shipment) {
       const tracking = await buildTrackingResponse(shipment.vehicleVIN || shipment.containerNumber || shipment.id);
-      const portalMapUrl = `${APP_URL}/dashboard/shipments/${shipment.id}`;
+      const portalMapUrl = buildTelegramMiniAppUrl(`/dashboard/shipments/${shipment.id}`, user, APP_URL);
 
       const originStr = shipment.loadingPort ? formatPortFlag(shipment.loadingPort) : 'Export Port';
       const destStr = shipment.destinationPort ? formatPortFlag(shipment.destinationPort) : 'Destination Port';

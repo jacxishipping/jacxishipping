@@ -213,6 +213,18 @@ export class TelegramClient {
       drop_pending_updates: dropPendingUpdates,
     });
   }
+
+  async setChatMenuButton(
+    menuButton?: { type: 'default' | 'commands' } | { type: 'web_app'; text: string; web_app: { url: string } }
+  ): Promise<TelegramApiResponse<boolean>> {
+    return this.request<boolean>('setChatMenuButton', {
+      menu_button: menuButton,
+    });
+  }
+
+  async getChatMenuButton(chatId?: number): Promise<TelegramApiResponse<unknown>> {
+    return this.request('getChatMenuButton', chatId ? { chat_id: chatId } : undefined);
+  }
 }
 
 export const telegramClient = new TelegramClient();

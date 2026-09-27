@@ -21,7 +21,7 @@ const mobileAuthUserSelect = {
   updatedAt: true,
 } satisfies Prisma.UserSelect;
 
-type MobileAuthUser = Prisma.UserGetPayload<{
+export type MobileAuthUser = Prisma.UserGetPayload<{
   select: typeof mobileAuthUserSelect;
 }>;
 
@@ -31,9 +31,12 @@ type MobileTokenPayload = {
 };
 
 function getMobileAuthSecret(): string {
-  const secret = process.env.MOBILE_AUTH_SECRET || process.env.NEXTAUTH_SECRET;
+  const secret = process.env.MOBILE_AUTH_SECRET || process.env.NEXTAUTH_SECRET || process.env.NEXTAUTH_SECRET_2;
 
   if (!secret) {
+    if (process.env.NODE_ENV === 'test' || !process.env.NODE_ENV) {
+      return 'jacxi-default-secret-mobile-auth-token-fallback';
+    }
     throw new Error('Missing mobile auth secret');
   }
 
@@ -194,8 +197,7 @@ export function issueMobileAuthToken(user: MobileAuthUser): { token: string; exp
   };
 }
 
-export async function readMobileSessionFromAuthorizationHeader(authorizationHeader: string | null) {
-  const token = parseBearerToken(authorizationHeader);
+export async function verifyMobileAuthToken(token: string | null) {
   if (!token) {
     return null;
   }
@@ -237,4 +239,9 @@ export async function readMobileSessionFromAuthorizationHeader(authorizationHead
     },
     expires: new Date(payload.exp * 1000).toISOString(),
   };
+}
+
+export async function readMobileSessionFromAuthorizationHeader(authorizationHeader: string | null) {
+  const token = parseBearerToken(authorizationHeader);
+  return verifyMobileAuthToken(token);
 }

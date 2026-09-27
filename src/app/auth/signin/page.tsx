@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
@@ -77,14 +77,42 @@ export default function SignInPage() {
 		return `/auth/simple-login${nextSearchParams.size ? `?${nextSearchParams.toString()}` : ''}`;
 	}, [callbackUrl, portalId]);
 
+	// Auto-detect if running inside Telegram Mini App / WebApp
+	useEffect(() => {
+		const tg = typeof window !== 'undefined' ? (window as unknown as { Telegram?: { WebApp?: { initData?: string } } }).Telegram?.WebApp : undefined;
+		const hasTgHash = typeof window !== 'undefined' && window.location.hash.includes('tgWebAppData=');
+		if (tg?.initData || hasTgHash) {
+			const target = callbackUrl || '/dashboard';
+			router.replace(`/telegram-app?target=${encodeURIComponent(target)}`);
+		}
+	}, [callbackUrl, router]);
+
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		setIsLoading(true);
 		setError('');
 
 		try {
+			const trimmedInput = email.trim();
+			const cleanCode = trimmedInput.replace(/[\s\-_]/g, '').toUpperCase();
+
+			// If input looks like an 8-character access code
+			if (cleanCode.length === 8) {
+				const codeResult = await signIn('credentials', {
+					loginCode: cleanCode,
+					redirect: false,
+					callbackUrl: redirectTarget,
+				});
+
+				if (codeResult?.ok && !codeResult.error) {
+					router.replace(codeResult?.url || redirectTarget);
+					router.refresh();
+					return;
+				}
+			}
+
 			// Normalize email to lowercase for consistent matching
-			const normalizedEmail = email.toLowerCase().trim();
+			const normalizedEmail = trimmedInput.toLowerCase();
 			
 			const result = await signIn('credentials', {
 				email: normalizedEmail,
