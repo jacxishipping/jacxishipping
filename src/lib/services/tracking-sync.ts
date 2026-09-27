@@ -11,10 +11,14 @@ export class TrackingSyncService {
 	/**
 	 * Sync tracking events for a container
 	 */
-	async syncContainerTracking(containerId: string): Promise<{
+	async syncContainerTracking(
+		containerId: string,
+		options?: { force?: boolean }
+	): Promise<{
 		success: boolean;
 		newEvents: number;
 		updatedETA: boolean;
+		error?: string;
 	}> {
 		try {
 			// Get container details
@@ -29,12 +33,16 @@ export class TrackingSyncService {
 				},
 			});
 
-			if (!container || !container.autoTrackingEnabled) {
-				return { success: false, newEvents: 0, updatedETA: false };
+			if (!container) {
+				return { success: false, newEvents: 0, updatedETA: false, error: 'Container not found' };
+			}
+
+			if (!options?.force && !container.autoTrackingEnabled) {
+				return { success: false, newEvents: 0, updatedETA: false, error: 'Auto-tracking is disabled for this container' };
 			}
 
 			if (!container.trackingNumber) {
-				return { success: false, newEvents: 0, updatedETA: false };
+				return { success: false, newEvents: 0, updatedETA: false, error: 'Container has no tracking number' };
 			}
 
 			// Fetch tracking data from external API

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { trackingSync } from '@/lib/services/tracking-sync';
 import { validateCronRequest } from '@/lib/cron-auth';
+import { auth } from '@/lib/auth';
 import { logger } from '@/lib/logger';
 
 /**
@@ -53,11 +54,13 @@ export async function GET(request: NextRequest) {
 	}
 }
 
-// Alternative: POST method for manual triggers
+// POST method for manual triggers from dashboard or external cron
 export async function POST(request: NextRequest) {
 	try {
-		// Verify cron secret for security
-		if (!validateCronRequest(request)) {
+		const isCron = validateCronRequest(request);
+		const session = isCron ? null : await auth();
+
+		if (!isCron && !session?.user?.id) {
 			return NextResponse.json(
 				{ error: 'Unauthorized' },
 				{ status: 401 }
@@ -68,12 +71,13 @@ export async function POST(request: NextRequest) {
 		const { containerId } = body;
 
 		if (containerId) {
-			// Sync specific container
-			const result = await trackingSync.syncContainerTracking(containerId);
+			// Sync specific container (force=true for explicit manual triggers)
+			const result = await trackingSync.syncContainerTracking(containerId, { force: true });
 			return NextResponse.json({
-				success: true,
-				message: 'Container tracking synced',
+				success: result.success,
+				message: result.error || (result.success ? 'Container tracking synced' : 'Could not sync tracking'),
 				stats: result,
+				error: result.error,
 			});
 		} else {
 			// Sync all containers

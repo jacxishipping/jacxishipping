@@ -392,16 +392,18 @@ export default function ContainerDetailPage() {
                 const newEvents = data.stats?.newEvents || 0;
                 if (newEvents > 0) {
                     toast.success(`Tracking updated: ${newEvents} new event(s)`);
-                    fetchContainer();
+                } else if (data.stats?.updatedETA) {
+                    toast.success('Estimated arrival date updated');
                 } else {
-                    toast.info('Tracking up to date');
+                    toast.info('Tracking is up to date');
                 }
+                fetchContainer();
             } else {
-                toast.error('Failed to refresh tracking');
+                toast.error(data.error || data.message || 'Failed to refresh tracking');
             }
         } catch (error) {
             console.error('Error refreshing tracking:', error);
-            toast.error('An error occurred');
+            toast.error('An error occurred while refreshing tracking');
         } finally {
             setRefreshingTracking(false);
         }
