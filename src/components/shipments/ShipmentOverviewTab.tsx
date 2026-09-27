@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { History, MapPin, Truck, Ship, PenLine, FileText } from 'lucide-react';
 import { DashboardGrid, DashboardPanel } from '@/components/dashboard/DashboardSurface';
 import { Button, toast } from '@/components/design-system';
+import ShipmentLiveMapPanel from '@/components/shipments/ShipmentLiveMapPanel';
 import type { Shipment, StatusColors } from '@/components/shipments/shipment-detail-types';
 
 type ShipmentOverviewTabProps = {
@@ -46,8 +47,12 @@ export default function ShipmentOverviewTab({
   onRemoveFromTransit,
 }: ShipmentOverviewTabProps) {
   return (
-    <DashboardGrid className="grid-cols-1 gap-4 lg:grid-cols-2">
-      <DashboardPanel title="Current Status" description="Monitor the latest milestone and updates">
+    <div className="flex flex-col gap-4">
+      {/* Live Location Map */}
+      <ShipmentLiveMapPanel shipment={shipment} />
+
+      <DashboardGrid className="grid-cols-1 gap-4 lg:grid-cols-2">
+        <DashboardPanel title="Current Status" description="Monitor the latest milestone and updates">
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             <span
@@ -617,5 +622,6 @@ export default function ShipmentOverviewTab({
         </DashboardPanel>
       )}
     </DashboardGrid>
+    </div>
   );
 }

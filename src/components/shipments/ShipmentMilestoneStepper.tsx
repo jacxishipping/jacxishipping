@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   Clock,
   CircleDot,
+  Compass,
 } from 'lucide-react';
 import type { Shipment } from '@/components/shipments/shipment-detail-types';
 import { cn } from '@/lib/utils';
@@ -31,7 +32,7 @@ interface MilestoneStage {
 interface ShipmentMilestoneStepperProps {
   shipment: Shipment;
   className?: string;
-  onOpenTab?: (tabIndex: number) => void;
+  onOpenTab?: (tab: number | string) => void;
 }
 
 function formatShortDate(value: string | null | undefined): string {
@@ -193,14 +194,24 @@ export default function ShipmentMilestoneStepper({
             <span className="font-semibold text-[var(--text-primary)]">{completedCount}</span> of {stages.length} milestones
           </span>
           {onOpenTab && (
-            <button
-              type="button"
-              onClick={() => onOpenTab(1)} // Tab 1 is Timeline
-              className="ml-2 font-medium text-[var(--accent-gold)] hover:underline flex items-center gap-1"
-            >
-              <Clock className="h-3.5 w-3.5" />
-              Full History &rarr;
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => onOpenTab('map')}
+                className="flex items-center gap-1 font-medium text-cyan-500 hover:text-cyan-400 hover:underline dark:text-cyan-400"
+              >
+                <Compass className="h-3.5 w-3.5 animate-pulse text-cyan-500 dark:text-cyan-400" />
+                Live Map
+              </button>
+              <button
+                type="button"
+                onClick={() => onOpenTab('timeline')}
+                className="flex items-center gap-1 font-medium text-[var(--accent-gold)] hover:underline"
+              >
+                <Clock className="h-3.5 w-3.5" />
+                Full History &rarr;
+              </button>
+            </div>
           )}
         </div>
       </div>

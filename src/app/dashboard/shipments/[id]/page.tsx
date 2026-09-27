@@ -28,11 +28,13 @@ import {
   User,
   Ship,
   AlertTriangle,
+  Radio,
 } from 'lucide-react';
 import { Tabs, Tab, Box, Menu, MenuItem } from '@mui/material';
 import { MoreVertical } from 'lucide-react';
 import { Breadcrumbs, CopyButton, toast, Tooltip } from '@/components/design-system';
 import ShipmentMilestoneStepper from '@/components/shipments/ShipmentMilestoneStepper';
+import ShipmentLiveMapPanel from '@/components/shipments/ShipmentLiveMapPanel';
 
 import ShipmentDetailOverlays from '@/components/shipments/ShipmentDetailOverlays';
 import ShipmentActivityTab from '@/components/shipments/ShipmentActivityTab';
@@ -86,6 +88,7 @@ const containerStatusColors: Record<string, StatusColors> = {
 
 const shipmentTabSlugs = [
   'overview',
+  'map',
   'timeline',
   'photos',
   'documents',
@@ -725,7 +728,14 @@ export default function ShipmentDetailPage() {
   const canAddShipmentExpense = Boolean(shipment?.containerId || shipment?.dispatchId || (shipment?.transitId && shipment?.transit?.currentCompany));
   const canAddDispatchExpense = Boolean(shipment?.dispatchId);
   const canAddTransitExpense = Boolean(shipment?.transitId && shipment?.transit?.currentCompany);
-  const openShipmentTab = useCallback((index: number) => {
+  const openShipmentTab = useCallback((target: number | string) => {
+    let index: number;
+    if (typeof target === 'string') {
+      index = shipmentTabSlugs.indexOf(target);
+      if (index === -1) index = 0;
+    } else {
+      index = target;
+    }
     setActiveTab(index);
     const nextParams = new URLSearchParams(searchParams.toString());
     nextParams.set('tab', shipmentTabSlugs[index] || shipmentTabSlugs[0]);
@@ -1065,6 +1075,15 @@ export default function ShipmentDetailPage() {
                       <ArrowLeft className="mr-2 h-4 w-4" />
                       Back
                     </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openShipmentTab('map')}
+                      className="border-cyan-500/40 text-cyan-500 hover:bg-cyan-500/10 hover:text-cyan-400 dark:text-cyan-400"
+                    >
+                      <Radio className="mr-2 h-4 w-4 animate-pulse text-cyan-500 dark:text-cyan-400" />
+                      Live Map
+                    </Button>
                     <Tooltip title="Download a PDF receipt for this shipment. For official invoices, use the Billing tab on this shipment.">
                       <Button variant="outline" size="sm" onClick={handleDownloadReceipt}>
                         <FileText className="mr-2 h-4 w-4" />
@@ -1127,7 +1146,7 @@ export default function ShipmentDetailPage() {
 
                   <button
                     type="button"
-                    onClick={() => openShipmentTab(4)}
+                    onClick={() => openShipmentTab('financials')}
                     className={`rounded-lg border p-3 text-left transition-colors hover:border-[rgba(var(--accent-gold-rgb),0.45)] ${priceListHeaderClass}`}
                   >
                     <div className="flex items-center gap-2 text-xs font-semibold uppercase text-[var(--text-secondary)]">
@@ -1222,9 +1241,9 @@ export default function ShipmentDetailPage() {
           onAssignDispatch={() => setOpenAssignDispatch(true)}
           onAssignTransit={openAssignTransitDialog}
           onGenerateReleaseToken={handleGenerateReleaseToken}
-          onOpenFinancials={() => openShipmentTab(4)}
-          onOpenBilling={() => openShipmentTab(5)}
-          onOpenDetails={() => openShipmentTab(7)}
+          onOpenFinancials={() => openShipmentTab('financials')}
+          onOpenBilling={() => openShipmentTab('billing')}
+          onOpenDetails={() => openShipmentTab('details')}
         />
 
         {/* Tabs Navigation */}
@@ -1278,17 +1297,18 @@ export default function ShipmentDetailPage() {
             }}
           >
             <Tab value={0} icon={<Info className="h-4 w-4" />} iconPosition="start" label="Overview" />
-            <Tab value={1} icon={<History className="h-4 w-4" />} iconPosition="start" label="Timeline" />
-            <Tab value={2} icon={<ImageIcon className="h-4 w-4" />} iconPosition="start" label={<ShipmentTabLabel label="Photos" meta={String(photoCount)} tone={photoCount > 0 ? 'ready' : 'neutral'} />} />
-            <Tab value={3} icon={<FileText className="h-4 w-4" />} iconPosition="start" label={<ShipmentTabLabel label="Documents" meta={String(documentCount)} tone={documentCount > 0 ? 'ready' : 'warning'} />} />
-            <Tab value={4} icon={<DollarSign className="h-4 w-4" />} iconPosition="start" label={<ShipmentTabLabel label="Financials" meta={priceListTabMeta} tone={priceListTabTone} />} />
-            <Tab value={5} icon={<Wallet className="h-4 w-4" />} iconPosition="start" label={<ShipmentTabLabel label="Billing" meta={billingTabMeta} tone={billingTabTone} />} />
-            <Tab value={6} icon={<AlertTriangle className="h-4 w-4" />} iconPosition="start" label={<ShipmentTabLabel label="Damages" meta={String(damageCount)} tone={damageCount > 0 ? 'danger' : 'ready'} />} />
-            <Tab value={7} icon={<PackageCheck className="h-4 w-4" />} iconPosition="start" label="Details" />
-            {isAdmin && <Tab value={8} icon={<History className="h-4 w-4" />} iconPosition="start" label="Activity" />}
-            {isAdmin && <Tab value={9} icon={<User className="h-4 w-4" />} iconPosition="start" label="Customer" />}
-            {canUseCompanyGetpass && <Tab value={10} icon={<Clock3 className="h-4 w-4" />} iconPosition="start" label="Company Getpass" />}
-            {canViewLedgerComparison && <Tab value={11} icon={<Wallet className="h-4 w-4" />} iconPosition="start" label="Company Ledger" />}
+            <Tab value={1} icon={<Radio className="h-4 w-4" />} iconPosition="start" label={<ShipmentTabLabel label="Live Map" meta="AIS Live" tone="ready" />} />
+            <Tab value={2} icon={<History className="h-4 w-4" />} iconPosition="start" label="Timeline" />
+            <Tab value={3} icon={<ImageIcon className="h-4 w-4" />} iconPosition="start" label={<ShipmentTabLabel label="Photos" meta={String(photoCount)} tone={photoCount > 0 ? 'ready' : 'neutral'} />} />
+            <Tab value={4} icon={<FileText className="h-4 w-4" />} iconPosition="start" label={<ShipmentTabLabel label="Documents" meta={String(documentCount)} tone={documentCount > 0 ? 'ready' : 'warning'} />} />
+            <Tab value={5} icon={<DollarSign className="h-4 w-4" />} iconPosition="start" label={<ShipmentTabLabel label="Financials" meta={priceListTabMeta} tone={priceListTabTone} />} />
+            <Tab value={6} icon={<Wallet className="h-4 w-4" />} iconPosition="start" label={<ShipmentTabLabel label="Billing" meta={billingTabMeta} tone={billingTabTone} />} />
+            <Tab value={7} icon={<AlertTriangle className="h-4 w-4" />} iconPosition="start" label={<ShipmentTabLabel label="Damages" meta={String(damageCount)} tone={damageCount > 0 ? 'danger' : 'ready'} />} />
+            <Tab value={8} icon={<PackageCheck className="h-4 w-4" />} iconPosition="start" label="Details" />
+            {isAdmin && <Tab value={9} icon={<History className="h-4 w-4" />} iconPosition="start" label="Activity" />}
+            {isAdmin && <Tab value={10} icon={<User className="h-4 w-4" />} iconPosition="start" label="Customer" />}
+            {canUseCompanyGetpass && <Tab value={11} icon={<Clock3 className="h-4 w-4" />} iconPosition="start" label="Company Getpass" />}
+            {canViewLedgerComparison && <Tab value={12} icon={<Wallet className="h-4 w-4" />} iconPosition="start" label="Company Ledger" />}
           </Tabs>
         </Box>
 
@@ -1321,8 +1341,13 @@ export default function ShipmentDetailPage() {
           />
         </TabPanel>
 
-        {/* Timeline Tab */}
+        {/* Live Map Tab */}
         <TabPanel value={activeTab} index={1}>
+          <ShipmentLiveMapPanel shipment={shipment} isExpandedView />
+        </TabPanel>
+
+        {/* Timeline Tab */}
+        <TabPanel value={activeTab} index={2}>
           <ShipmentTimelineTab
             items={shipment.unifiedTimeline || []}
             onOpenCompanyLedgerEntry={(companyId, entryId) => {
@@ -1332,7 +1357,7 @@ export default function ShipmentDetailPage() {
         </TabPanel>
 
         {/* Photos Tab */}
-        <TabPanel value={activeTab} index={2}>
+        <TabPanel value={activeTab} index={3}>
           <ShipmentPhotosTab
             vehicleLabel={vehicleLabel}
             vehiclePhotos={shipment.vehiclePhotos || []}
@@ -1350,7 +1375,7 @@ export default function ShipmentDetailPage() {
         </TabPanel>
 
         {/* Documents Tab */}
-        <TabPanel value={activeTab} index={3}>
+        <TabPanel value={activeTab} index={4}>
           <ShipmentDocumentsTab
             documents={shipment.documents || []}
             shipmentId={shipment.id}
@@ -1362,7 +1387,7 @@ export default function ShipmentDetailPage() {
         </TabPanel>
 
         {/* Financials Tab */}
-        <TabPanel value={activeTab} index={4}>
+        <TabPanel value={activeTab} index={5}>
           <ShipmentFinancialsTab
             shipment={shipment}
             canManageShipmentExpenses={canManageShipmentExpenses}
@@ -1416,7 +1441,8 @@ export default function ShipmentDetailPage() {
           />
         </TabPanel>
 
-        <TabPanel value={activeTab} index={5}>
+        {/* Billing Tab */}
+        <TabPanel value={activeTab} index={6}>
           <ShipmentBillingTab
             shipmentId={shipment.id}
             refreshKey={`${shipment.updatedAt}-${shipment.ledgerEntries.length}-${shipment.containerDamages.length}`}
@@ -1425,30 +1451,30 @@ export default function ShipmentDetailPage() {
         </TabPanel>
 
         {/* Damages Tab */}
-        <TabPanel value={activeTab} index={6}>
+        <TabPanel value={activeTab} index={7}>
           <ShipmentDamagesTab damages={shipment.containerDamages || []} shipment={shipment} />
         </TabPanel>
 
         {/* Details Tab */}
-        <TabPanel value={activeTab} index={7}>
+        <TabPanel value={activeTab} index={8}>
           <ShipmentDetailsTab shipment={shipment} formatStatus={formatStatus} />
         </TabPanel>
 
         {isAdmin && (
-          <TabPanel value={activeTab} index={8}>
+          <TabPanel value={activeTab} index={9}>
             <ShipmentActivityTab logs={shipment.auditLogs || []} />
           </TabPanel>
         )}
 
         {/* Customer Tab (Admin Only) */}
         {isAdmin && (
-          <TabPanel value={activeTab} index={9}>
+          <TabPanel value={activeTab} index={10}>
             <ShipmentCustomerTab user={shipment.user} shipmentId={shipment.id} />
           </TabPanel>
         )}
 
         {canUseCompanyGetpass && (
-          <TabPanel value={activeTab} index={10}>
+          <TabPanel value={activeTab} index={11}>
             <ShipmentCompanyGetpassTab
               shipmentId={shipment.id}
               company={shipment.shippingCompany}
@@ -1478,7 +1504,7 @@ export default function ShipmentDetailPage() {
         )}
 
         {canViewLedgerComparison && (
-          <TabPanel value={activeTab} index={11}>
+          <TabPanel value={activeTab} index={12}>
             <ShipmentCompanyLedgerTab
               shipmentId={shipment.id}
               companies={companyLedgerCompanies}
