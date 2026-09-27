@@ -112,7 +112,7 @@ async function handleMessage(message: TelegramMessage): Promise<void> {
   }
 
   if (lowerText === '🚪 logout' || lowerText === '/logout') {
-    unlinkTelegramSession(chatId);
+    await unlinkTelegramSession(chatId);
     await telegramClient.sendMessage(
       chatId,
       '🔒 <b>You have been logged out.</b>\n\nYour Telegram session has been disconnected from your Jacxi account. To log back in anytime, enter your 8-digit access code.',
@@ -198,7 +198,7 @@ async function handleUnauthenticatedMessage(message: TelegramMessage, rawText: s
   if (candidateCode.length === 8) {
     const matchedUser = await findUserByAccessCode(candidateCode);
     if (matchedUser) {
-      linkTelegramSession(chatId, matchedUser, username);
+      await linkTelegramSession(chatId, matchedUser, username);
       await telegramClient.sendMessage(
         chatId,
         [

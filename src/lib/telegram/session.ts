@@ -122,7 +122,8 @@ export async function findUserByAccessCode(accessCode: string): Promise<Telegram
 }
 
 /**
- * Retrieves the authenticated Jacxi user for a Telegram chat ID
+ * Retrieves the authenticated Jacxi user for a Telegram chat ID.
+ * Checks fast memory cache first, then falls back to PostgreSQL database (Prisma Account model).
  */
 export async function getTelegramSessionUser(chatId: number | string): Promise<TelegramLinkedUser | null> {
   const key = String(chatId);
@@ -153,17 +154,65 @@ export async function getTelegramSessionUser(chatId: number | string): Promise<T
     }
   }
 
+  // Fallback to database lookup for serverless cold-starts on Vercel
+  try {
+    const account = await prisma.account.findUnique({
+      where: {
+        provider_providerAccountId: {
+          provider: 'telegram',
+          providerAccountId: key,
+        },
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+            loginCode: true,
+            role: true,
+          },
+        },
+      },
+    });
+
+    if (account?.user) {
+      let username: string | undefined;
+      if (account.session_state) {
+        try {
+          const parsed = JSON.parse(account.session_state);
+          username = parsed.username;
+        } catch {
+          // ignore
+        }
+      }
+
+      sessionStore.set(key, {
+        userId: account.user.id,
+        user: account.user,
+        telegramUsername: username,
+        linkedAt: Date.now(),
+      });
+
+      return account.user;
+    }
+  } catch (error) {
+    console.error('Database error in getTelegramSessionUser:', error);
+  }
+
   return null;
 }
 
 /**
- * Links a Telegram Chat ID to a Jacxi user upon successful digit code verification
+ * Links a Telegram Chat ID to a Jacxi user upon successful digit code verification.
+ * Saves to both fast memory cache and persistent PostgreSQL database.
  */
-export function linkTelegramSession(
+export async function linkTelegramSession(
   chatId: number | string,
   user: TelegramLinkedUser,
   telegramUsername?: string
-): void {
+): Promise<void> {
   const key = String(chatId);
   sessionStore.set(key, {
     userId: user.id,
@@ -171,12 +220,51 @@ export function linkTelegramSession(
     telegramUsername,
     linkedAt: Date.now(),
   });
+
+  try {
+    await prisma.account.upsert({
+      where: {
+        provider_providerAccountId: {
+          provider: 'telegram',
+          providerAccountId: key,
+        },
+      },
+      update: {
+        userId: user.id,
+        type: 'telegram_bot',
+        session_state: JSON.stringify({ username: telegramUsername, linkedAt: Date.now() }),
+      },
+      create: {
+        provider: 'telegram',
+        providerAccountId: key,
+        type: 'telegram_bot',
+        userId: user.id,
+        session_state: JSON.stringify({ username: telegramUsername, linkedAt: Date.now() }),
+      },
+    });
+  } catch (error) {
+    console.error('Error persisting Telegram session to database:', error);
+  }
 }
 
 /**
- * Logs out / Unlinks a Telegram Chat ID
+ * Logs out / Unlinks a Telegram Chat ID.
+ * Clears memory cache and removes record from database.
  */
-export function unlinkTelegramSession(chatId: number | string): boolean {
+export async function unlinkTelegramSession(chatId: number | string): Promise<boolean> {
   const key = String(chatId);
-  return sessionStore.delete(key);
+  sessionStore.delete(key);
+
+  try {
+    await prisma.account.deleteMany({
+      where: {
+        provider: 'telegram',
+        providerAccountId: key,
+      },
+    });
+    return true;
+  } catch (error) {
+    console.error('Error deleting Telegram session from database:', error);
+    return false;
+  }
 }

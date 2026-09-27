@@ -14,7 +14,7 @@ async function checkAuth(request: NextRequest) {
 
   // Check setup key if passed via header or query
   const setupKey = request.headers.get('x-setup-key') || request.nextUrl.searchParams.get('key');
-  const cronSecret = process.env.CRON_SECRET || process.env.NEXTAUTH_SECRET;
+  const cronSecret = process.env.CRON_SECRET || process.env.NEXTAUTH_SECRET || process.env.TELEGRAM_WEBHOOK_SECRET;
   if (setupKey && cronSecret && setupKey === cronSecret) {
     return true;
   }
