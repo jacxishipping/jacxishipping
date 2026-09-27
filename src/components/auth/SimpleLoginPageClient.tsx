@@ -54,8 +54,8 @@ export default function SimpleLoginPageClient({ portal }: SimpleLoginPageClientP
 	}, [callbackUrl, portal?.id]);
 
 	const handleCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-		const value = e.target.value.toUpperCase().slice(0, 8);
-		setLoginCode(value);
+		const sanitized = e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+		setLoginCode(sanitized.slice(0, 8));
 	};
 
 	const handleSubmit = async (e: React.FormEvent) => {
@@ -63,7 +63,8 @@ export default function SimpleLoginPageClient({ portal }: SimpleLoginPageClientP
 		setIsLoading(true);
 		setError('');
 
-		if (loginCode.length !== 8) {
+		const clean = loginCode.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+		if (clean.length !== 8) {
 			setError('Login code must be 8 characters');
 			setIsLoading(false);
 			return;
@@ -71,7 +72,7 @@ export default function SimpleLoginPageClient({ portal }: SimpleLoginPageClientP
 
 		try {
 			const result = await signIn('credentials', {
-				loginCode: loginCode.trim(),
+				loginCode: clean,
 				redirect: false,
 				callbackUrl: redirectTarget,
 			});

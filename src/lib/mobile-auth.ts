@@ -141,7 +141,7 @@ export async function authenticateWithEmailPassword(email: string, password: str
 }
 
 export async function authenticateWithLoginCode(loginCode: string): Promise<MobileAuthUser | null> {
-  const code = loginCode.trim().toUpperCase();
+  const code = loginCode.replace(/[\s\-_]/g, '').trim().toUpperCase();
   if (code.length !== 8) {
     return null;
   }
