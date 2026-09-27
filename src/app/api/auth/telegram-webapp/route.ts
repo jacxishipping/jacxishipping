@@ -1,20 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { issueMobileAuthToken, toMobileUser } from '@/lib/mobile-auth';
-import { verifyTelegramWebAppData } from '@/lib/telegram/auth';
+import { verifyTelegramWebAppData, setTelegramSessionCookies } from '@/lib/telegram/auth';
 
 export const dynamic = 'force-dynamic';
-
-function setSessionCookie(response: NextResponse, token: string) {
-  const isProduction = process.env.NODE_ENV === 'production';
-  response.cookies.set('jacxi_session_token', token, {
-    httpOnly: true,
-    secure: isProduction,
-    sameSite: isProduction ? 'none' : 'lax',
-    path: '/',
-    maxAge: 30 * 24 * 60 * 60, // 30 days
-  });
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -57,7 +46,7 @@ export async function POST(request: NextRequest) {
         expiresAt,
       });
 
-      setSessionCookie(response, token);
+      await setTelegramSessionCookies(response, account.user, token);
       return response;
     }
 

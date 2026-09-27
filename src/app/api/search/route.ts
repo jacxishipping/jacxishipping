@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Prisma, ShipmentSimpleStatus } from '@prisma/client';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { sanitizeTrackNumber } from '@/lib/tracking-sanitize';
 import {
   buildShipmentWorkflowStageWhereInput,
   getShipmentWorkflowStage,
@@ -17,26 +18,8 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const rawQuery = (searchParams.get('query') || searchParams.get('q') || '').trim();
-    let query = rawQuery;
-
-    // Sanitize query if a full URL was passed or scanned
-    if (query.includes('http://') || query.includes('https://') || query.includes('?') || query.includes('/')) {
-      try {
-        const dummyBase = 'https://jacxishipping.com';
-        const parsedUrl = new URL(query, dummyBase);
-        const vin = parsedUrl.searchParams.get('vin');
-        const container = parsedUrl.searchParams.get('container');
-        const q = parsedUrl.searchParams.get('q') || parsedUrl.searchParams.get('trackNumber') || parsedUrl.searchParams.get('trackingNumber') || parsedUrl.searchParams.get('id');
-        if (vin) query = vin.trim();
-        else if (container) query = container.trim();
-        else if (q) query = q.trim();
-        else {
-          const parts = parsedUrl.pathname.split('/').filter(Boolean);
-          const last = parts[parts.length - 1];
-          if (last) query = last.trim();
-        }
-      } catch {}
-    }
+    // Sanitize query using unified tracking-sanitize helper (handles URLs, prefixes, etc.)
+    const query = rawQuery ? sanitizeTrackNumber(rawQuery) || rawQuery : '';
     const type = searchParams.get('type') || 'all';
     const status = searchParams.get('status');
     const workflowStage = searchParams.get('workflowStage');
@@ -69,26 +52,38 @@ export async function GET(request: NextRequest) {
       if (query) {
         orConditions.push(
           { id: { equals: query } },
+          { id: { equals: query.toLowerCase() } },
           { vehicleType: { contains: query, mode: 'insensitive' } },
           { vehicleMake: { contains: query, mode: 'insensitive' } },
           { vehicleModel: { contains: query, mode: 'insensitive' } },
           { vehicleVIN: { contains: query, mode: 'insensitive' } },
           { lotNumber: { contains: query, mode: 'insensitive' } },
-          { auctionName: { contains: query, mode: 'insensitive' } }
-        );
-        
-        if (isAdmin) {
-          orConditions.push({
+          { auctionName: { contains: query, mode: 'insensitive' } },
+          {
             container: {
               OR: [
-                { loadingPort: { contains: query, mode: 'insensitive' } },
-                { destinationPort: { contains: query, mode: 'insensitive' } },
                 { containerNumber: { contains: query, mode: 'insensitive' } },
                 { trackingNumber: { contains: query, mode: 'insensitive' } },
-              ]
-            }
-          });
-        }
+                ...(isAdmin
+                  ? ([
+                      { loadingPort: { contains: query, mode: 'insensitive' as const } },
+                      { destinationPort: { contains: query, mode: 'insensitive' as const } },
+                    ] satisfies Prisma.ContainerWhereInput[])
+                  : []),
+              ],
+            },
+          },
+          {
+            dispatch: {
+              referenceNumber: { contains: query, mode: 'insensitive' },
+            },
+          },
+          {
+            transit: {
+              referenceNumber: { contains: query, mode: 'insensitive' },
+            },
+          }
+        );
       }
 
       const where: Prisma.ShipmentWhereInput = {

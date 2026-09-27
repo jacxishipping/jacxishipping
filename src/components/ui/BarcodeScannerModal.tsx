@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
-import { Camera, Flashlight, SwitchCamera, X, AlertCircle, CheckCircle, RefreshCw } from 'lucide-react';
+import { Camera, Flashlight, SwitchCamera, X, AlertCircle, CheckCircle, RefreshCw, Upload } from 'lucide-react';
 import { Box, Typography, IconButton, Alert } from '@mui/material';
 import Modal from '@/components/design-system/Modal';
 import { Button } from '@/components/design-system';
+import { sanitizeTrackNumber } from '@/lib/tracking-sanitize';
 
 interface BarcodeScannerModalProps {
   open: boolean;
@@ -46,16 +47,22 @@ export function BarcodeScannerModal({
   const [torchOn, setTorchOn] = useState(false);
   const [hasTorch, setHasTorch] = useState(false);
   const [scannedResult, setScannedResult] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const containerId = 'barcode-scanner-viewport';
 
   const stopScanner = useCallback(async () => {
-    if (scannerRef.current && scannerRef.current.isScanning) {
+    if (scannerRef.current) {
       try {
-        await scannerRef.current.stop();
+        if (scannerRef.current.isScanning) {
+          await scannerRef.current.stop();
+        }
+        await scannerRef.current.clear();
       } catch (err) {
         console.error('Error stopping scanner:', err);
+      } finally {
+        scannerRef.current = null;
       }
     }
   }, []);
@@ -68,61 +75,8 @@ export function BarcodeScannerModal({
       }
       playScanSound();
 
-      // Clean decoded text
-      let cleaned = decodedText.trim();
-
-      // If text is a URL, extract parameter (vin, container, trackNumber, id)
-      if (
-        cleaned.startsWith('http://') ||
-        cleaned.startsWith('https://') ||
-        cleaned.includes('?') ||
-        cleaned.includes('/')
-      ) {
-        try {
-          const parsed = new URL(cleaned, 'https://jacxishipping.com');
-          const vin = parsed.searchParams.get('vin');
-          const container = parsed.searchParams.get('container');
-          const q =
-            parsed.searchParams.get('q') ||
-            parsed.searchParams.get('trackNumber') ||
-            parsed.searchParams.get('trackingNumber') ||
-            parsed.searchParams.get('id');
-
-          if (vin) cleaned = vin.trim();
-          else if (container) cleaned = container.trim();
-          else if (q) cleaned = q.trim();
-          else {
-            const parts = parsed.pathname.split('/').filter(Boolean);
-            const lastPart = parts[parts.length - 1];
-            if (
-              lastPart &&
-              (parts.includes('shipments') ||
-                parts.includes('containers') ||
-                parts.includes('tracking'))
-            ) {
-              cleaned = lastPart.trim();
-            }
-          }
-        } catch {}
-      }
-
-      // If text contains ?vin=... or &vin=...
-      const vinParamMatch = cleaned.match(/[?&]vin=([^&#\s]+)/i);
-      if (vinParamMatch) {
-        cleaned = decodeURIComponent(vinParamMatch[1]).trim();
-      }
-
-      // If text contains ?container=... or &container=...
-      const containerParamMatch = cleaned.match(/[?&]container=([^&#\s]+)/i);
-      if (containerParamMatch) {
-        cleaned = decodeURIComponent(containerParamMatch[1]).trim();
-      }
-
-      // If contains a 17-char VIN pattern, extract it cleanly
-      const vinMatch = cleaned.match(/\b([A-HJ-NPR-Z0-9]{17})\b/i);
-      if (vinMatch) {
-        cleaned = vinMatch[1].toUpperCase();
-      }
+      // Clean decoded text using centralized tracking sanitizer
+      const cleaned = sanitizeTrackNumber(decodedText) || decodedText.trim();
 
       setScannedResult(cleaned);
       await stopScanner();
@@ -384,6 +338,41 @@ export function BarcodeScannerModal({
               <Flashlight className="w-4 h-4" />
             </IconButton>
           )}
+
+          {/* Hidden file input for scanning saved QR/barcode images */}
+          <input
+            type="file"
+            accept="image/*"
+            ref={fileInputRef}
+            style={{ display: 'none' }}
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              try {
+                setError(null);
+                const tempScanner = new Html5Qrcode('barcode-scanner-temp-host', { verbose: false });
+                const decoded = await tempScanner.scanFile(file, true);
+                await tempScanner.clear();
+                await handleScanSuccess(decoded);
+              } catch (err) {
+                console.error('File scan error:', err);
+                setError('Could not detect a QR code or barcode from that image. Please try a clearer image.');
+              } finally {
+                if (fileInputRef.current) fileInputRef.current.value = '';
+              }
+            }}
+          />
+          <div id="barcode-scanner-temp-host" style={{ display: 'none' }} />
+
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => fileInputRef.current?.click()}
+            icon={<Upload className="w-3.5 h-3.5" />}
+            className="text-xs"
+          >
+            Upload image
+          </Button>
 
           <Button
             size="sm"

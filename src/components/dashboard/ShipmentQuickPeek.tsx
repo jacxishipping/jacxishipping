@@ -150,19 +150,29 @@ export default function ShipmentQuickPeek({
       badge={shipment ? <StatusBadge status={shipment.status} /> : undefined}
       actions={
         shipment && (
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: 1 }}>
             <Button variant="outline" size="sm" onClick={onClose}>
               Close
             </Button>
-            <Button
-              href={`/dashboard/shipments/${shipment.id}`}
-              onClick={onClose}
-              variant="primary"
-              size="sm"
-              icon={<ExternalLink className="w-4 h-4" />}
-            >
-              Open Full View
-            </Button>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Button
+                href={`/tracking?vin=${encodeURIComponent(shipment.vehicleVIN && shipment.vehicleVIN !== '-' ? shipment.vehicleVIN : shipment.id)}`}
+                variant="outline"
+                size="sm"
+                icon={<Ship className="w-4 h-4 text-[var(--accent-gold)]" />}
+              >
+                Live Tracking
+              </Button>
+              <Button
+                href={`/dashboard/shipments/${shipment.id}`}
+                onClick={onClose}
+                variant="primary"
+                size="sm"
+                icon={<ExternalLink className="w-4 h-4" />}
+              >
+                Open Full View
+              </Button>
+            </Box>
           </Box>
         )
       }
@@ -214,15 +224,27 @@ export default function ShipmentQuickPeek({
                 <Typography variant="caption" sx={{ fontWeight: 600 }}>Container</Typography>
               </Box>
               {shipment.container ? (
-                <Link
-                  href={`/dashboard/containers/${shipment.container.id}`}
-                  onClick={onClose}
-                  style={{ textDecoration: 'none' }}
-                >
-                  <span className="font-mono font-bold text-sm text-[var(--accent-gold,#D4AF37)] hover:underline block truncate">
-                    {shipment.container.containerNumber}
-                  </span>
-                </Link>
+                <>
+                  <Link
+                    href={`/dashboard/containers/${shipment.container.id}`}
+                    onClick={onClose}
+                    style={{ textDecoration: 'none' }}
+                  >
+                    <span className="font-mono font-bold text-sm text-[var(--accent-gold,#D4AF37)] hover:underline block truncate">
+                      {shipment.container.containerNumber}
+                    </span>
+                  </Link>
+                  {shipment.container.destinationPort && (
+                    <Typography sx={{ fontSize: '0.72rem', color: 'var(--text-secondary, #6B7280)', mt: 0.25 }} noWrap>
+                      {shipment.container.destinationPort}
+                    </Typography>
+                  )}
+                  {shipment.container.estimatedArrival && (
+                    <Typography sx={{ fontSize: '0.68rem', color: 'var(--text-secondary, #6B7280)' }} noWrap>
+                      ETA: {new Date(shipment.container.estimatedArrival).toLocaleDateString()}
+                    </Typography>
+                  )}
+                </>
               ) : (
                 <Typography sx={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-secondary, #6B7280)' }}>
                   Unallocated

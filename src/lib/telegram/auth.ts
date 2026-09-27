@@ -1,4 +1,6 @@
 import crypto from 'node:crypto';
+import { NextResponse } from 'next/server';
+import { encode } from 'next-auth/jwt';
 import { issueMobileAuthToken, type MobileAuthUser } from '@/lib/mobile-auth';
 import type { TelegramLinkedUser } from './session';
 
@@ -105,4 +107,57 @@ export function buildTelegramMiniAppUrl(
 
   const { token } = issueMobileAuthToken(mobileUser);
   return `${base}/telegram-app?target=${encodeURIComponent(normalizedTarget)}&token=${encodeURIComponent(token)}`;
+}
+
+/**
+ * Sets both the Telegram mobile session cookie and NextAuth JWT session cookie
+ * so users opening the Telegram Mini App or WebApp are instantly authenticated across
+ * all client components (useSession, ProtectedRoute) and server components (auth()).
+ */
+export async function setTelegramSessionCookies(
+  response: NextResponse,
+  user: { id: string; name?: string | null; email: string; role?: string; image?: string | null },
+  token: string
+) {
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  // 1. Set jacxi_session_token cookie
+  response.cookies.set('jacxi_session_token', token, {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
+    path: '/',
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+  });
+
+  // 2. Set NextAuth session cookie
+  try {
+    const secret = process.env.NEXTAUTH_SECRET || process.env.NEXTAUTH_SECRET_2;
+    if (secret) {
+      const cookieName = `${isProduction ? '__Secure-' : ''}next-auth.session-token`;
+      const nextAuthToken = await encode({
+        token: {
+          id: user.id,
+          name: user.name ?? undefined,
+          email: user.email,
+          role: String(user.role || 'user').trim().toLowerCase(),
+          image: user.image ?? undefined,
+          sub: user.id,
+        },
+        secret,
+        salt: cookieName,
+        maxAge: 30 * 24 * 60 * 60,
+      });
+
+      response.cookies.set(cookieName, nextAuthToken, {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: isProduction ? 'none' : 'lax',
+        path: '/',
+        maxAge: 30 * 24 * 60 * 60,
+      });
+    }
+  } catch (error) {
+    console.error('Failed to issue NextAuth token for Telegram session:', error);
+  }
 }

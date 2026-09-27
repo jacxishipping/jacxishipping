@@ -5,7 +5,7 @@ import { signIn } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import { Visibility, VisibilityOff, Email, Lock, ArrowForward } from '@mui/icons-material';
+import { Visibility, VisibilityOff, Email, Lock, ArrowForward, VpnKey } from '@mui/icons-material';
 import SiteLogo from '@/components/brand/SiteLogo';
 import { Button as DSButton } from '@/components/design-system';
 import { 
@@ -87,17 +87,22 @@ export default function SignInPage() {
 		}
 	}, [callbackUrl, router]);
 
+	const cleanCode = useMemo(() => {
+		return email.trim().replace(/[\s\-_]/g, '').toUpperCase();
+	}, [email]);
+
+	const isAccessCode = useMemo(() => {
+		return cleanCode.length === 8 && /^[A-Z0-9]{8}$/.test(cleanCode);
+	}, [cleanCode]);
+
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		setIsLoading(true);
 		setError('');
 
 		try {
-			const trimmedInput = email.trim();
-			const cleanCode = trimmedInput.replace(/[\s\-_]/g, '').toUpperCase();
-
 			// If input looks like an 8-character access code
-			if (cleanCode.length === 8) {
+			if (isAccessCode) {
 				const codeResult = await signIn('credentials', {
 					loginCode: cleanCode,
 					redirect: false,
@@ -108,11 +113,25 @@ export default function SignInPage() {
 					router.replace(codeResult?.url || redirectTarget);
 					router.refresh();
 					return;
+				} else {
+					setError('Invalid login code. Please check your 8-character code and try again.');
+					return;
 				}
 			}
 
+			const trimmedEmail = email.trim();
+			if (!trimmedEmail) {
+				setError('Please enter your email address or 8-character access code');
+				return;
+			}
+
+			if (!password) {
+				setError('Please enter your password');
+				return;
+			}
+
 			// Normalize email to lowercase for consistent matching
-			const normalizedEmail = trimmedInput.toLowerCase();
+			const normalizedEmail = trimmedEmail.toLowerCase();
 			
 			const result = await signIn('credentials', {
 				email: normalizedEmail,
@@ -241,96 +260,126 @@ export default function SignInPage() {
 						)}
 
 						{/* Form */}
-						<Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-							{/* Email Field */}
+						<Box component="form" onSubmit={handleSubmit} noValidate sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+							{/* Email or Access Code Field */}
 							<Box>
-								<Typography
-									component="label"
-									htmlFor="email"
-									sx={{
-										display: 'block',
-										fontSize: '0.875rem',
-										fontWeight: 500,
-										color: 'var(--text-primary)',
-										mb: 1,
-									}}
-								>
-									{t('auth.email')}
-								</Typography>
+								<Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+									<Typography
+										component="label"
+										htmlFor="email"
+										sx={{
+											display: 'block',
+											fontSize: '0.875rem',
+											fontWeight: 500,
+											color: 'var(--text-primary)',
+										}}
+									>
+										{isAccessCode ? '8-Character Access Code' : `${t('auth.email')} or Access Code`}
+									</Typography>
+									{isAccessCode && (
+										<Typography
+											sx={{
+												fontSize: '0.75rem',
+												fontWeight: 600,
+												color: 'var(--accent-gold)',
+												bgcolor: 'rgba(var(--accent-gold-rgb), 0.12)',
+												px: 1,
+												py: 0.25,
+												borderRadius: 1,
+											}}
+										>
+											Access code detected
+										</Typography>
+									)}
+								</Box>
 								<TextField
 									id="email"
-									type="email"
+									type="text"
 									fullWidth
 									value={email}
 									onChange={(e) => setEmail(e.target.value)}
 									required
-									placeholder="Enter your email"
-									autoComplete="email"
+									placeholder="Enter email or 8-character code (e.g. C24FBSUX)"
+									autoComplete="username"
 									InputProps={{
 										startAdornment: (
 											<InputAdornment position="start">
-												<Email sx={{ fontSize: 20, color: 'var(--text-secondary)' }} />
+												{isAccessCode ? (
+													<VpnKey sx={{ fontSize: 20, color: 'var(--accent-gold)' }} />
+												) : (
+													<Email sx={{ fontSize: 20, color: 'var(--text-secondary)' }} />
+												)}
 											</InputAdornment>
 										),
 									}}
-									sx={textFieldStyles}
+									sx={{
+										...textFieldStyles,
+										...(isAccessCode && {
+											'& .MuiOutlinedInput-root input': {
+												letterSpacing: '0.18em',
+												fontWeight: 700,
+												color: 'var(--text-primary)',
+											},
+										}),
+									}}
 								/>
 							</Box>
 
-							{/* Password Field */}
-							<Box>
-								<Typography
-									component="label"
-									htmlFor="password"
-									sx={{
-										display: 'block',
-										fontSize: '0.875rem',
-										fontWeight: 500,
-										color: 'var(--text-primary)',
-										mb: 1,
-									}}
-								>
-									{t('auth.password')}
-								</Typography>
-								<TextField
-									id="password"
-									type={showPassword ? 'text' : 'password'}
-									fullWidth
-									value={password}
-									onChange={(e) => setPassword(e.target.value)}
-									required
-									placeholder="Enter your password"
-									autoComplete="current-password"
-									InputProps={{
-										startAdornment: (
-											<InputAdornment position="start">
-												<Lock sx={{ fontSize: 20, color: 'var(--text-secondary)' }} />
-											</InputAdornment>
-										),
-										endAdornment: (
-											<InputAdornment position="end">
-												<IconButton
-													onClick={() => setShowPassword(!showPassword)}
-													edge="end"
-													sx={{
-														color: 'var(--accent-gold)',
-														'&:hover': {
+							{/* Password Field - Hidden/not required when entering an 8-character access code */}
+							{!isAccessCode && (
+								<Box>
+									<Typography
+										component="label"
+										htmlFor="password"
+										sx={{
+											display: 'block',
+											fontSize: '0.875rem',
+											fontWeight: 500,
+											color: 'var(--text-primary)',
+											mb: 1,
+										}}
+									>
+										{t('auth.password')}
+									</Typography>
+									<TextField
+										id="password"
+										type={showPassword ? 'text' : 'password'}
+										fullWidth
+										value={password}
+										onChange={(e) => setPassword(e.target.value)}
+										placeholder="Enter your password"
+										autoComplete="current-password"
+										InputProps={{
+											startAdornment: (
+												<InputAdornment position="start">
+													<Lock sx={{ fontSize: 20, color: 'var(--text-secondary)' }} />
+												</InputAdornment>
+											),
+											endAdornment: (
+												<InputAdornment position="end">
+													<IconButton
+														onClick={() => setShowPassword(!showPassword)}
+														edge="end"
+														sx={{
 															color: 'var(--accent-gold)',
-														},
-													}}
-												>
-													{showPassword ? (
-														<VisibilityOff sx={{ fontSize: 20 }} />
-													) : (
-														<Visibility sx={{ fontSize: 20 }} />
-													)}
-												</IconButton>
-											</InputAdornment>
-										),
-									}}
-									sx={textFieldStyles}
-								/>
-							</Box>
+															'&:hover': {
+																color: 'var(--accent-gold)',
+															},
+														}}
+													>
+														{showPassword ? (
+															<VisibilityOff sx={{ fontSize: 20 }} />
+														) : (
+															<Visibility sx={{ fontSize: 20 }} />
+														)}
+													</IconButton>
+												</InputAdornment>
+											),
+										}}
+										sx={textFieldStyles}
+									/>
+								</Box>
+							)}
 
 							{/* Submit Button */}
 							<Button
@@ -363,7 +412,9 @@ export default function SignInPage() {
 										<Typography component="span">{t('auth.signingIn')}</Typography>
 									</Box>
 								) : (
-									<Typography component="span">{t('auth.signIn')}</Typography>
+									<Typography component="span">
+										{isAccessCode ? 'Login with Access Code' : t('auth.signIn')}
+									</Typography>
 								)}
 							</Button>
 						</Box>

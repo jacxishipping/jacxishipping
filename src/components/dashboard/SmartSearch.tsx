@@ -37,6 +37,7 @@ import { BarcodeScannerModal } from '@/components/ui/BarcodeScannerModal';
 
 interface SmartSearchProps {
   onSearch: (filters: SearchFilters) => void;
+  onScan?: (scanned: string) => void;
   placeholder?: string;
   showTypeFilter?: boolean;
   showStatusFilter?: boolean;
@@ -80,6 +81,7 @@ const ITEM_STATUSES = [
 
 export default function SmartSearch({
   onSearch,
+  onScan,
   placeholder = 'Search shipments, tracking numbers, VIN...',
   showTypeFilter = true,
   showStatusFilter = true,
@@ -807,7 +809,11 @@ export default function SmartSearch({
             setQuery(scanned);
             const updated = { ...filters, query: scanned };
             setFilters(updated);
-            handleSearch(updated);
+            if (onScan) {
+              onScan(scanned);
+            } else {
+              handleSearch(updated);
+            }
           }}
           title="Scan VIN or Yard QR Code"
           description="Align the vehicle VIN barcode, tracking QR code, or gate pass within the camera frame"

@@ -19,6 +19,8 @@ import Link from 'next/link';
 import { QRCodeModal, type QRCodeData } from '@/components/dashboard/QRCodeModal';
 import { SavedFilterPresets } from '@/components/dashboard/SavedFilterPresets';
 import { QrCode, Eye, Trash2, PanelRightOpen, Plus } from 'lucide-react';
+import { BarcodeScannerModal } from '@/components/ui/BarcodeScannerModal';
+import { sanitizeTrackNumber } from '@/lib/tracking-sanitize';
 
 export default function ShipmentsListPage() {
 	const router = useRouter();
@@ -74,9 +76,79 @@ export default function ShipmentsListPage() {
 		fetchShipments();
 	}, [fetchShipments]);
 
+	const [scannerOpen, setScannerOpen] = useState(false);
+
 	const handleSearch = (filters: SearchFilters) => {
 		setSearchFilters(filters);
 		setCurrentPage(1); // Reset to first page on new search
+	};
+
+	const handleScanTrack = async (rawScanned: string) => {
+		try {
+			setScannerOpen(false);
+			const clean = sanitizeTrackNumber(rawScanned);
+			if (!clean) {
+				toast.error('Invalid QR code', {
+					description: 'Could not extract a valid VIN, container number, or tracking ID from QR code',
+				});
+				return;
+			}
+
+			// Immediately set search filters to clean code so table displays matching shipment(s)
+			setSearchFilters((prev) => ({ ...prev, query: clean }));
+			setCurrentPage(1);
+
+			// Query search endpoint
+			setLoading(true);
+			const params = new URLSearchParams();
+			params.append('query', clean);
+			params.append('type', 'shipments');
+			params.append('limit', '10');
+
+			const searchRes = await fetch(`/api/search?${params.toString()}&sortBy=createdAt&sortOrder=desc`, { cache: 'no-store' });
+			const searchData = await searchRes.json();
+			const matched = searchData.shipments || [];
+
+			if (matched.length === 1) {
+				const target = matched[0];
+				setShipments(matched);
+				setTotalPages(1);
+				setQuickPeekShipmentId(target.id);
+				const vehicleTitle = [target.vehicleYear, target.vehicleMake, target.vehicleModel].filter(Boolean).join(' ') || target.vehicleType || 'Vehicle';
+				toast.success(`Tracked: ${vehicleTitle}`, {
+					description: `VIN: ${target.vehicleVIN || target.id} • Status: ${target.status}`,
+				});
+			} else if (matched.length > 1) {
+				setShipments(matched);
+				setTotalPages(Math.ceil(matched.length / 10) || 1);
+				toast.success(`Found ${matched.length} shipments matching ${clean}`);
+			} else {
+				// No match in current user shipment list, check universal tracking endpoint
+				const trackingRes = await fetch('/api/tracking', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ trackNumber: clean }),
+				});
+				if (trackingRes.ok) {
+					const trackData = await trackingRes.json();
+					if (trackData.tracking) {
+						toast.info(`Found tracking record for ${clean}. Opening tracking view...`);
+						router.push(`/tracking?vin=${encodeURIComponent(clean)}`);
+						return;
+					}
+				}
+				toast.error(`No shipment found for "${clean}"`, {
+					description: 'Please verify the VIN, container number, or gate pass and try again.',
+				});
+				setShipments([]);
+				setTotalPages(1);
+			}
+		} catch (err) {
+			console.error('Error tracking scanned code:', err);
+			toast.error('Failed to track scanned QR code');
+		} finally {
+			setLoading(false);
+		}
 	};
 
 	const isAdmin = session?.user?.role === 'admin';
@@ -352,23 +424,34 @@ export default function ShipmentsListPage() {
 				title="Shipments"
 				description="Search, filter, and manage your shipments"
 				actions={
-					canManageShipments ? (
+					<div className="flex items-center gap-2">
 						<Button
-							href="/dashboard/shipments/new"
-							variant="primary"
+							variant="outline"
 							size="sm"
-							icon={<Plus className="w-4 h-4" />}
-							iconPosition="start"
+							icon={<QrCode className="w-4 h-4 text-[var(--accent-gold)]" />}
+							onClick={() => setScannerOpen(true)}
 						>
-							New shipment
+							Scan & Track
 						</Button>
-					) : null
+						{canManageShipments ? (
+							<Button
+								href="/dashboard/shipments/new"
+								variant="primary"
+								size="sm"
+								icon={<Plus className="w-4 h-4" />}
+								iconPosition="start"
+							>
+								New shipment
+							</Button>
+						) : null}
+					</div>
 				}
 			/>
 
 			<ShipmentsSearchPanel
 				hideHeader
 				onSearch={handleSearch}
+				onScan={handleScanTrack}
 				canManageShipments={canManageShipments}
 				isAdmin={isAdmin}
 				showDeliveryFilter
@@ -439,6 +522,15 @@ export default function ShipmentsListPage() {
 				open={Boolean(qrModalData)}
 				onClose={() => setQrModalData(null)}
 				data={qrModalData}
+			/>
+
+			{/* Scan to Track Shipment Modal */}
+			<BarcodeScannerModal
+				open={scannerOpen}
+				onClose={() => setScannerOpen(false)}
+				onScan={handleScanTrack}
+				title="Scan to Track Shipment"
+				description="Align vehicle VIN barcode, yard QR sticker, or container code within the camera frame"
 			/>
 		</DashboardSurface>
 	);

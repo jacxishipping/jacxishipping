@@ -10,6 +10,7 @@ import Footer from '@/components/sections/Footer';
 import TrackingRouteMap from '@/components/tracking/TrackingRouteMap';
 import LandingScrollAnimator from '@/components/sections/home/LandingScrollAnimator';
 import { BarcodeScannerModal } from '@/components/ui/BarcodeScannerModal';
+import { sanitizeTrackNumber } from '@/lib/tracking-sanitize';
 
 interface TrackingEventEntry {
 	id: string;
@@ -117,26 +118,12 @@ function TrackingPageInner() {
 	const heroOpacity = useTransform(smoothY, [0, 0.6], [1, 0]);
 
 	const handleTrack = useCallback(async (overrideValue?: string) => {
-		let value = (overrideValue ?? trackingNumber).trim();
+		const raw = (overrideValue ?? trackingNumber).trim();
+		const value = sanitizeTrackNumber(raw) || raw;
 		if (!value) {
 			setErrorMessage('Enter a container or tracking number to continue.');
 			setTrackingDetails(null);
 			return;
-		}
-
-		// Sanitize if a URL was scanned or pasted
-		if (value.includes('http://') || value.includes('https://') || value.includes('?') || value.includes('/')) {
-			const vinMatch = value.match(/[?&]vin=([^&#\s]+)/i);
-			const containerMatch = value.match(/[?&]container=([^&#\s]+)/i);
-			const qMatch = value.match(/[?&](?:q|trackNumber|trackingNumber|id)=([^&#\s]+)/i);
-			if (vinMatch) value = decodeURIComponent(vinMatch[1]).trim();
-			else if (containerMatch) value = decodeURIComponent(containerMatch[1]).trim();
-			else if (qMatch) value = decodeURIComponent(qMatch[1]).trim();
-			else {
-				const parts = value.split('/').filter(Boolean);
-				const lastPart = parts[parts.length - 1];
-				if (lastPart) value = lastPart.split('?')[0].trim();
-			}
 		}
 
 		setIsLoading(true);

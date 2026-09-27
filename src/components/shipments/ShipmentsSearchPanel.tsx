@@ -9,6 +9,7 @@ import { Breadcrumbs, Button } from '@/components/design-system';
 
 type ShipmentsSearchPanelProps = {
 	onSearch: (filters: SearchFilters) => void;
+	onScan?: (scanned: string) => void;
 	canManageShipments?: boolean;
 	isAdmin: boolean;
 	showBreadcrumbs?: boolean;
@@ -18,6 +19,7 @@ type ShipmentsSearchPanelProps = {
 
 export default function ShipmentsSearchPanel({
 	onSearch,
+	onScan,
 	canManageShipments,
 	isAdmin,
 	showBreadcrumbs = false,
@@ -60,6 +62,7 @@ export default function ShipmentsSearchPanel({
 				<Box sx={{ px: { xs: 1, sm: 1.25, md: 1.5 }, py: { xs: 1, sm: 1.25, md: 1.5 } }}>
 					<SmartSearch
 						onSearch={onSearch}
+						onScan={onScan}
 						placeholder="Search shipments by tracking number, VIN, origin, destination..."
 						showTypeFilter={false}
 						showStatusFilter={false}

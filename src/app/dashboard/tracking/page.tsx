@@ -4,10 +4,12 @@ import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Box, Typography } from '@mui/material';
-import { AlertCircle, Calendar, CheckCircle2, Clock, Copy, MapPin, Package, Search, Ship, XCircle } from 'lucide-react';
+import { AlertCircle, Calendar, CheckCircle2, Clock, Copy, MapPin, Package, Search, Ship, XCircle, Camera } from 'lucide-react';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
 import { PageHeader, Button, EmptyState, FormField, Breadcrumbs, toast, DashboardPageSkeleton, StatusBadge } from '@/components/design-system';
 import TrackingRouteMap from '@/components/tracking/TrackingRouteMap';
+import { BarcodeScannerModal } from '@/components/ui/BarcodeScannerModal';
+import { sanitizeTrackNumber } from '@/lib/tracking-sanitize';
 
 interface TrackingEventEntry {
 	id: string;
@@ -74,6 +76,7 @@ export default function DashboardTrackingPage() {
 	const [isLoading, setIsLoading] = useState(false);
 	const [errorMessage, setErrorMessage] = useState<string | null>(null);
 	const [recentTrackingNumbers, setRecentTrackingNumbers] = useState<string[]>([]);
+	const [scannerOpen, setScannerOpen] = useState(false);
 
 	useEffect(() => {
 		if (status === 'unauthenticated') {
@@ -106,7 +109,8 @@ export default function DashboardTrackingPage() {
 	};
 
 	const handleTrack = async (overrideNumber?: string) => {
-		const value = (overrideNumber || trackingNumber).trim();
+		const raw = (overrideNumber || trackingNumber).trim();
+		const value = sanitizeTrackNumber(raw) || raw;
 		if (!value) {
 			setErrorMessage('Enter a container or tracking number to continue.');
 			setTrackingDetails(null);
@@ -194,7 +198,14 @@ export default function DashboardTrackingPage() {
 							}}
 						/>
 					</Box>
-					<Box sx={{ display: 'flex', alignItems: 'flex-end' }}>
+					<Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 1 }}>
+						<Button
+							variant="outline"
+							onClick={() => setScannerOpen(true)}
+							icon={<Camera className="w-4 h-4" />}
+						>
+							Scan
+						</Button>
 						<Button
 							variant="primary"
 							onClick={() => void handleTrack()}
@@ -509,6 +520,17 @@ export default function DashboardTrackingPage() {
 					/>
 				</DashboardPanel>
 			)}
+			<BarcodeScannerModal
+				open={scannerOpen}
+				onClose={() => setScannerOpen(false)}
+				onScan={(scanned) => {
+					setScannerOpen(false);
+					setTrackingNumber(scanned);
+					void handleTrack(scanned);
+				}}
+				title="Scan Container or VIN QR Code"
+				description="Align vehicle VIN barcode, tracking QR code, or container label within the camera frame"
+			/>
 		</DashboardSurface>
 	);
 }

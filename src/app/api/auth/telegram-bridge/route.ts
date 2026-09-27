@@ -1,18 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyMobileAuthToken } from '@/lib/mobile-auth';
+import { setTelegramSessionCookies } from '@/lib/telegram/auth';
 
 export const dynamic = 'force-dynamic';
-
-function setSessionCookie(response: NextResponse, token: string) {
-  const isProduction = process.env.NODE_ENV === 'production';
-  response.cookies.set('jacxi_session_token', token, {
-    httpOnly: true,
-    secure: isProduction,
-    sameSite: isProduction ? 'none' : 'lax',
-    path: '/',
-    maxAge: 30 * 24 * 60 * 60, // 30 days
-  });
-}
 
 export async function GET(request: NextRequest) {
   const token = request.nextUrl.searchParams.get('token');
@@ -34,7 +24,7 @@ export async function GET(request: NextRequest) {
 
   const redirectUrl = new URL(target.startsWith('/') ? target : `/${target}`, request.url);
   const response = NextResponse.redirect(redirectUrl);
-  setSessionCookie(response, token);
+  await setTelegramSessionCookies(response, session.user, token);
   return response;
 }
 
@@ -59,7 +49,7 @@ export async function POST(request: NextRequest) {
       target,
     });
 
-    setSessionCookie(response, token);
+    await setTelegramSessionCookies(response, session.user, token);
     return response;
   } catch (error) {
     console.error('Telegram bridge error:', error);

@@ -38,64 +38,8 @@ export type NormalizedTracking = {
   events: NormalizedTrackingEvent[];
 };
 
-/**
- * Clean incoming search/scan string by extracting VIN, container, or tracking ID
- * from raw text, URLs, or query parameters.
- */
-export function sanitizeTrackNumber(input: string): string {
-  let cleaned = (input || '').trim();
-  if (!cleaned) return '';
-
-  // If input is a URL or query string, extract parameters
-  if (
-    cleaned.startsWith('http://') ||
-    cleaned.startsWith('https://') ||
-    cleaned.includes('?') ||
-    cleaned.includes('/')
-  ) {
-    try {
-      const dummyBase = 'https://jacxishipping.com';
-      const parsedUrl = new URL(cleaned, dummyBase);
-
-      const vinParam = parsedUrl.searchParams.get('vin');
-      if (vinParam) return vinParam.trim().toUpperCase();
-
-      const containerParam = parsedUrl.searchParams.get('container');
-      if (containerParam) return containerParam.trim().toUpperCase();
-
-      const qParam =
-        parsedUrl.searchParams.get('q') ||
-        parsedUrl.searchParams.get('trackNumber') ||
-        parsedUrl.searchParams.get('trackingNumber') ||
-        parsedUrl.searchParams.get('id');
-      if (qParam) return qParam.trim().toUpperCase();
-
-      const pathParts = parsedUrl.pathname.split('/').filter(Boolean);
-      const lastPart = pathParts[pathParts.length - 1];
-      if (
-        lastPart &&
-        (pathParts.includes('shipments') ||
-          pathParts.includes('containers') ||
-          pathParts.includes('tracking'))
-      ) {
-        return lastPart.trim().toUpperCase();
-      }
-    } catch {}
-  }
-
-  // Regex fallback: check for ?vin=... or &vin=...
-  const vinMatch = cleaned.match(/[?&]vin=([^&#\s]+)/i);
-  if (vinMatch) return decodeURIComponent(vinMatch[1]).trim().toUpperCase();
-
-  const containerMatch = cleaned.match(/[?&]container=([^&#\s]+)/i);
-  if (containerMatch) return decodeURIComponent(containerMatch[1]).trim().toUpperCase();
-
-  // 17-character VIN pattern
-  const standardVin = cleaned.match(/\b([A-HJ-NPR-Z0-9]{17})\b/i);
-  if (standardVin) return standardVin[1].toUpperCase();
-
-  return cleaned.toUpperCase();
-}
+import { sanitizeTrackNumber } from '@/lib/tracking-sanitize';
+export { sanitizeTrackNumber };
 
 async function getInternalTrackingSnapshot(containerIdOrNumber: string) {
   const container = await prisma.container.findFirst({
@@ -219,6 +163,7 @@ export async function buildTrackingResponse(
       OR: [
         { vehicleVIN: { equals: requestedNumber, mode: 'insensitive' } },
         { id: requestedNumber },
+        { id: requestedNumber.toLowerCase() },
         { lotNumber: { equals: requestedNumber, mode: 'insensitive' } },
       ],
     },
