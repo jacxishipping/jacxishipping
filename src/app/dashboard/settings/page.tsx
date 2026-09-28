@@ -29,6 +29,9 @@ import {
   Check,
   Maximize2,
   Minimize2,
+  Send,
+  Radio,
+  Smartphone,
 } from 'lucide-react';
 import { Box, Switch, Tab, Tabs, TextField, Typography } from '@mui/material';
 import { useTheme, type ThemeMode, type DensityMode } from '@/hooks/useTheme';
@@ -372,6 +375,22 @@ export default function SettingsPage() {
   const [testingCommunicationChannel, setTestingCommunicationChannel] = useState<'email' | 'sms' | null>(null);
   const [savingCallAgentSettings, setSavingCallAgentSettings] = useState(false);
 
+  // Milestone Alerts State
+  const [milestoneConfig, setMilestoneConfig] = useState({
+    enabled: true,
+    enableWhatsApp: true,
+    enableTelegram: false,
+    enableSms: true,
+    telegramBotToken: '',
+    telegramChatId: '',
+    whatsAppPhoneNumber: '',
+    webhookUrl: '',
+    customTemplates: {} as Record<string, string>,
+  });
+  const [defaultMilestoneTemplates, setDefaultMilestoneTemplates] = useState<any>({});
+  const [savingMilestoneConfig, setSavingMilestoneConfig] = useState(false);
+  const [testingMilestone, setTestingMilestone] = useState<string | null>(null);
+
   useEffect(() => {
     const slugs = isAdmin ? [...baseSettingsTabSlugs, ...adminSettingsTabSlugs] : baseSettingsTabSlugs;
     const tab = searchParams.get('tab');
@@ -390,7 +409,7 @@ export default function SettingsPage() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [profileRes, settingsRes, backupRes, aiConnectivityRes, aiProviderRes, communicationRes, callAgentRes] = await Promise.all([
+        const [profileRes, settingsRes, backupRes, aiConnectivityRes, aiProviderRes, communicationRes, callAgentRes, milestoneRes] = await Promise.all([
           fetch('/api/profile'),
           fetch('/api/settings'),
           isAdmin ? fetch('/api/settings/backup', { cache: 'no-store' }) : Promise.resolve(null),
@@ -398,6 +417,7 @@ export default function SettingsPage() {
           isAdmin ? fetch('/api/settings/ai-provider', { cache: 'no-store' }) : Promise.resolve(null),
           isAdmin ? fetch('/api/settings/communications', { cache: 'no-store' }) : Promise.resolve(null),
           isAdmin ? fetch('/api/settings/call-agent', { cache: 'no-store' }) : Promise.resolve(null),
+          isAdmin ? fetch('/api/notifications/milestone-alerts', { cache: 'no-store' }) : Promise.resolve(null),
         ]);
 
         if (profileRes.ok) {
@@ -473,6 +493,12 @@ export default function SettingsPage() {
             ...data.twilioValues,
             ...data.geminiValues,
           });
+        }
+
+        if (milestoneRes?.ok) {
+          const data = await milestoneRes.json();
+          if (data.config) setMilestoneConfig((prev) => ({ ...prev, ...data.config }));
+          if (data.defaultTemplates) setDefaultMilestoneTemplates(data.defaultTemplates);
         }
       } catch (error) {
         console.error('Error fetching settings data:', error);
@@ -871,6 +897,71 @@ export default function SettingsPage() {
       toast.error(error instanceof Error ? error.message : 'Unable to save live call agent settings');
     } finally {
       setSavingCallAgentSettings(false);
+    }
+  };
+
+  const handleSaveMilestoneConfig = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setSavingMilestoneConfig(true);
+    try {
+      const res = await fetch('/api/notifications/milestone-alerts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'save_config',
+          config: milestoneConfig,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to save milestone alert configuration.');
+      }
+
+      toast.success('Shipment Milestone Alert settings saved successfully.');
+    } catch (err: any) {
+      toast.error(err.message || 'Could not save milestone settings.');
+    } finally {
+      setSavingMilestoneConfig(false);
+    }
+  };
+
+  const handleTestMilestoneTrigger = async (milestone: string, customerPhone?: string) => {
+    setTestingMilestone(milestone);
+    try {
+      const res = await fetch('/api/notifications/milestone-alerts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'trigger',
+          milestone,
+          customerPhone: customerPhone || communicationTestTarget.sms || '+15555555555',
+          customerName: 'Ahmad Al-Mansoor',
+          vehicleInfo: '2023 Mercedes-Benz GLE 450',
+          vin: '4JGFF5KE7PA194821',
+          lotNumber: '58291048',
+          containerNumber: 'MSKU9048123',
+          vesselName: 'MAERSK VOYAGER',
+          originPort: 'Port of Newark (USNWK)',
+          destinationPort: 'Port of Jebel Ali (AEJEA)',
+          etaDate: 'Oct 15, 2026',
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || 'Test trigger failed.');
+      }
+
+      const successfulDispatches = (data.dispatches || []).filter((d: any) => d.success).map((d: any) => d.channel);
+      if (successfulDispatches.length > 0) {
+        toast.success(`Milestone alert sent via: ${successfulDispatches.join(', ')}`);
+      } else {
+        toast.warning('Milestone simulated (check channel credentials).');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Milestone test dispatch failed.');
+    } finally {
+      setTestingMilestone(null);
     }
   };
 
@@ -1752,6 +1843,178 @@ export default function SettingsPage() {
                 Save Communications
               </Button>
             </Box>
+          </Box>
+
+          {/* Automated Shipment Milestone Alerts Subpanel */}
+          <Box sx={{ mt: 4, pt: 3, borderTop: '1px solid var(--border)' }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2.5, flexWrap: 'wrap', gap: 2 }}>
+              <Box>
+                <Typography sx={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Smartphone className="w-5 h-5 text-[var(--accent-gold)]" />
+                  Automated WhatsApp & SMS Milestone Alerts
+                </Typography>
+                <Typography sx={{ fontSize: '0.82rem', color: 'var(--text-secondary)', mt: 0.5 }}>
+                  Automatic trigger notifications dispatched to clients as vehicle cargo advances through global milestones.
+                </Typography>
+              </Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                  {milestoneConfig.enabled ? 'Automations Active' : 'Automations Paused'}
+                </Typography>
+                <Switch
+                  checked={milestoneConfig.enabled}
+                  onChange={(e) => setMilestoneConfig(prev => ({ ...prev, enabled: e.target.checked }))}
+                />
+              </Box>
+            </Box>
+
+            <form onSubmit={handleSaveMilestoneConfig} className="space-y-4">
+              {/* Channel Toggles Grid */}
+              <DashboardGrid className="grid-cols-1 sm:grid-cols-3">
+                <Box sx={{ p: 2, borderRadius: 2, border: '1px solid var(--border)', bgcolor: 'var(--background)' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                    <Typography sx={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                      WhatsApp Business
+                    </Typography>
+                    <Switch
+                      size="small"
+                      checked={milestoneConfig.enableWhatsApp}
+                      onChange={(e) => setMilestoneConfig(prev => ({ ...prev, enableWhatsApp: e.target.checked }))}
+                    />
+                  </Box>
+                  <Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                    Direct WhatsApp notifications via Twilio / Meta API.
+                  </Typography>
+                </Box>
+
+                <Box sx={{ p: 2, borderRadius: 2, border: '1px solid var(--border)', bgcolor: 'var(--background)' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                    <Typography sx={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                      Twilio SMS
+                    </Typography>
+                    <Switch
+                      size="small"
+                      checked={milestoneConfig.enableSms}
+                      onChange={(e) => setMilestoneConfig(prev => ({ ...prev, enableSms: e.target.checked }))}
+                    />
+                  </Box>
+                  <Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                    Cellular text messaging for instant mobile notifications.
+                  </Typography>
+                </Box>
+
+                <Box sx={{ p: 2, borderRadius: 2, border: '1px solid var(--border)', bgcolor: 'var(--background)' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                    <Typography sx={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                      Telegram Bot
+                    </Typography>
+                    <Switch
+                      size="small"
+                      checked={milestoneConfig.enableTelegram}
+                      onChange={(e) => setMilestoneConfig(prev => ({ ...prev, enableTelegram: e.target.checked }))}
+                    />
+                  </Box>
+                  <Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                    Instant dispatch to company Telegram bot / channels.
+                  </Typography>
+                </Box>
+              </DashboardGrid>
+
+              {/* Webhook & Telegram Optional Credentials */}
+              <Box sx={{ p: 2, border: '1px solid var(--border)', borderRadius: 2, bgcolor: 'var(--background)' }}>
+                <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)', mb: 1.5 }}>
+                  Telegram & Webhook Integrations
+                </Typography>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <TextField
+                    label="Telegram Bot Token"
+                    size="small"
+                    value={milestoneConfig.telegramBotToken || ''}
+                    onChange={(e) => setMilestoneConfig(prev => ({ ...prev, telegramBotToken: e.target.value }))}
+                    placeholder="bot123456:ABC-DEF..."
+                  />
+                  <TextField
+                    label="Telegram Chat / Channel ID"
+                    size="small"
+                    value={milestoneConfig.telegramChatId || ''}
+                    onChange={(e) => setMilestoneConfig(prev => ({ ...prev, telegramChatId: e.target.value }))}
+                    placeholder="-100123456789"
+                  />
+                  <TextField
+                    label="Custom Webhook URL"
+                    size="small"
+                    value={milestoneConfig.webhookUrl || ''}
+                    onChange={(e) => setMilestoneConfig(prev => ({ ...prev, webhookUrl: e.target.value }))}
+                    placeholder="https://hooks.zapier.com/..."
+                  />
+                </div>
+              </Box>
+
+              {/* Milestone Template Cards */}
+              <Box sx={{ spaceY: 3 }}>
+                <Typography sx={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', mb: 1 }}>
+                  Configurable Milestone Message Templates
+                </Typography>
+                <Typography sx={{ fontSize: '0.78rem', color: 'var(--text-secondary)', mb: 2 }}>
+                  Variables: {'{customerName}'}, {'{vehicle}'}, {'{vin}'}, {'{lotNumber}'}, {'{containerNumber}'}, {'{vesselName}'}, {'{originPort}'}, {'{destinationPort}'}, {'{etaDate}'}, {'{trackingUrl}'}
+                </Typography>
+
+                <div className="space-y-3">
+                  {[
+                    { key: 'VEHICLE_PICKED_UP', label: '1. Vehicle Picked Up (Auction/Gate Pass)' },
+                    { key: 'CONTAINER_LOADED', label: '2. Container Loaded & Sealed' },
+                    { key: 'VESSEL_DEPARTED', label: '3. Ocean Vessel Departed (AIS Active)' },
+                    { key: 'ARRIVED_AT_PORT', label: '4. Arrived at Destination Port' },
+                    { key: 'CUSTOMS_CLEARED', label: '5. Customs Cleared & Ready for Pickup' },
+                  ].map((m) => {
+                    const currentVal = milestoneConfig.customTemplates[m.key] || defaultMilestoneTemplates[m.key]?.defaultTemplate || '';
+                    return (
+                      <Box key={m.key} sx={{ p: 2, border: '1px solid var(--border)', borderRadius: 2, bgcolor: 'var(--background)' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                          <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                            {m.label}
+                          </Typography>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="text-xs"
+                            icon={<Send className="w-3.5 h-3.5" />}
+                            onClick={() => handleTestMilestoneTrigger(m.key)}
+                            loading={testingMilestone === m.key}
+                          >
+                            Send Test
+                          </Button>
+                        </Box>
+                        <TextField
+                          fullWidth
+                          multiline
+                          rows={2}
+                          size="small"
+                          value={currentVal}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setMilestoneConfig(prev => ({
+                              ...prev,
+                              customTemplates: {
+                                ...prev.customTemplates,
+                                [m.key]: val,
+                              },
+                            }));
+                          }}
+                        />
+                      </Box>
+                    );
+                  })}
+                </div>
+              </Box>
+
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end', pt: 1 }}>
+                <Button type="submit" variant="primary" loading={savingMilestoneConfig} icon={<CheckCircle2 className="w-4 h-4" />}>
+                  Save Milestone Automations
+                </Button>
+              </Box>
+            </form>
           </Box>
         </DashboardPanel>
       ) : null}

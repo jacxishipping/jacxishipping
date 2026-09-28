@@ -19,6 +19,7 @@ import {
     Select
 } from '@/components/design-system';
 import { FileUpload } from '@/components/ui/FileUpload';
+import { AiDocumentOcrModal } from '@/components/documents/AiDocumentOcrModal';
 
 interface Document {
     id: string;
@@ -89,8 +90,9 @@ export default function DocumentsPage() {
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     
-    // Upload State
+    // Upload & OCR State
     const [isUploadOpen, setIsUploadOpen] = useState(false);
+    const [isOcrOpen, setIsOcrOpen] = useState(false);
     const [category, setCategory] = useState('OTHER');
     const [isProcessing, setIsProcessing] = useState(false);
 
@@ -272,11 +274,19 @@ export default function DocumentsPage() {
 				title="Documents"
 				description="Manage templates, uploads, and compliance documents"
 				actions={
-					<>
+					<div className="flex items-center gap-2">
+						<Button 
+							variant="outline" 
+							icon={<Brain className="w-4 h-4 text-[var(--accent-gold)]" />} 
+							size="sm" 
+							onClick={() => setIsOcrOpen(true)}
+						>
+							AI Document OCR
+						</Button>
 						<Button variant="primary" icon={<Upload className="w-4 h-4" />} size="sm" onClick={() => setIsUploadOpen(true)}>
 							Upload Document
 						</Button>
-					</>
+					</div>
 				}
 			/>
 
@@ -531,6 +541,12 @@ export default function DocumentsPage() {
                     </Box>
                 </Box>
             </Modal>
+
+            <AiDocumentOcrModal
+                open={isOcrOpen}
+                onClose={() => setIsOcrOpen(false)}
+                onSuccess={fetchDocuments}
+            />
 		</DashboardSurface>
 	);
 }
