@@ -110,6 +110,7 @@ function TrackingPageInner() {
 	const [isLoading, setIsLoading] = useState(false);
 	const [errorMessage, setErrorMessage] = useState<string | null>(null);
 	const [scannerOpen, setScannerOpen] = useState(false);
+	const [showRouteMap, setShowRouteMap] = useState(false);
 	const autoSearchDone = useRef(false);
 
 	const { scrollYProgress } = useScroll({ target: heroRef, offset: ['start start', 'end start'] });
@@ -443,13 +444,27 @@ function TrackingPageInner() {
 							</div>
 						</motion.div>
 
-						{/* Route Map */}
+						{/* Interactive Route Map Toggle */}
 						{trackingDetails.customerTracking && (
+							<div className="flex justify-end">
+								<button
+									type="button"
+									onClick={() => setShowRouteMap((prev) => !prev)}
+									className="inline-flex items-center gap-2 rounded-2xl border border-[#D4AF37]/40 bg-[#D4AF37]/10 px-5 py-2.5 text-sm font-bold text-[#D4AF37] hover:bg-[#D4AF37]/20 transition-all shadow-sm"
+								>
+									<Ship className="w-4 h-4" />
+									<span>{showRouteMap ? 'Hide Route Map' : 'View Interactive Route Map'}</span>
+								</button>
+							</div>
+						)}
+
+						{/* Route Map (Only on demand) */}
+						{trackingDetails.customerTracking && showRouteMap && (
 							<motion.div
 								initial={{ opacity: 0, scale: 0.97 }}
 								animate={{ opacity: 1, scale: 1 }}
-								transition={{ duration: 0.6, delay: 0.1 }}
-								className="relative rounded-[2rem] border border-black/[0.05] bg-white p-2 overflow-hidden"
+								transition={{ duration: 0.4 }}
+								className="relative rounded-[2rem] border border-black/[0.05] bg-white p-2 overflow-hidden shadow-lg"
 							>
 								<TrackingRouteMap
 									progressPercent={trackingDetails.customerTracking.progressPercent || progressValue || 0}

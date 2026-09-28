@@ -61,6 +61,7 @@ export default function ShipmentLiveMapPanel({
   isExpandedView = false,
 }: ShipmentLiveMapPanelProps) {
   const [viewMode, setViewMode] = useState<'ais-radar' | 'multimodal'>('ais-radar');
+  const [isMapVisible, setIsMapVisible] = useState(false);
 
   // Determine origin, destination, and movement stage
   const originPort = useMemo(() => {
@@ -199,34 +200,49 @@ export default function ShipmentLiveMapPanel({
             </div>
           </div>
 
-          {/* View mode toggle button */}
-          <div className="flex items-center gap-2 self-start sm:self-auto">
-            <div className="inline-flex items-center rounded-xl border border-slate-800 bg-slate-900/90 p-1 text-xs shadow-inner">
-              <button
-                type="button"
-                onClick={() => setViewMode('ais-radar')}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-semibold transition-all ${
-                  viewMode === 'ais-radar'
-                    ? 'bg-cyan-500 font-bold text-slate-950 shadow-md'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <Radio className="h-3.5 w-3.5" />
-                <span>Live AIS Map</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('multimodal')}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-semibold transition-all ${
-                  viewMode === 'multimodal'
-                    ? 'bg-[var(--accent-gold)] font-bold text-slate-950 shadow-md'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <Compass className="h-3.5 w-3.5" />
-                <span>Corridor Route</span>
-              </button>
-            </div>
+          {/* View mode & map toggle buttons */}
+          <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+            <button
+              type="button"
+              onClick={() => setIsMapVisible((prev) => !prev)}
+              className={`flex items-center gap-1.5 rounded-xl border px-3.5 py-2 text-xs font-bold transition-all shadow-md ${
+                isMapVisible
+                  ? 'border-cyan-400/50 bg-cyan-500 text-slate-950 shadow-cyan-500/20'
+                  : 'border-cyan-500/30 bg-cyan-950/70 text-cyan-300 hover:bg-cyan-900/80 hover:text-white'
+              }`}
+            >
+              <Compass className="h-4 w-4" />
+              <span>{isMapVisible ? 'Hide Map' : 'View Live Map & Radar'}</span>
+            </button>
+
+            {isMapVisible && (
+              <div className="inline-flex items-center rounded-xl border border-slate-800 bg-slate-900/90 p-1 text-xs shadow-inner">
+                <button
+                  type="button"
+                  onClick={() => setViewMode('ais-radar')}
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-semibold transition-all ${
+                    viewMode === 'ais-radar'
+                      ? 'bg-cyan-500 font-bold text-slate-950 shadow-md'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <Radio className="h-3.5 w-3.5" />
+                  <span>Live AIS Map</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('multimodal')}
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-semibold transition-all ${
+                    viewMode === 'multimodal'
+                      ? 'bg-[var(--accent-gold)] font-bold text-slate-950 shadow-md'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <Compass className="h-3.5 w-3.5" />
+                  <span>Corridor Route</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -274,42 +290,43 @@ export default function ShipmentLiveMapPanel({
         </div>
       </div>
 
-      {/* Main Interactive Map Component */}
-      {viewMode === 'ais-radar' ? (
-        <div className="relative overflow-hidden rounded-2xl border border-[var(--border)] bg-slate-950 shadow-lg">
-          <LiveSeaRouteMap
-            containerNumber={containerNumber}
-            originPort={originPort}
-            destinationPort={destinationPort}
-            vesselName={vesselName}
-            voyageNumber={voyageNumber}
-            currentProgressPct={progressPercent}
-            departureDate={departureDate}
-            estimatedArrival={estimatedArrival}
-            status={shipment.status}
-          />
-        </div>
-      ) : (
-        /* Multimodal Corridor Overview */
-        <div className="relative overflow-hidden rounded-2xl border border-[var(--border)] bg-slate-950 p-6 text-white shadow-lg">
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="text-base font-semibold text-white">Multimodal Global Corridor</h4>
-                <p className="text-xs text-slate-400">
-                  End-to-end transportation journey from USA Yard to Destination Hub
-                </p>
+      {/* Main Interactive Map Component (Only mounted on demand) */}
+      {isMapVisible && (
+        viewMode === 'ais-radar' ? (
+          <div className="relative overflow-hidden rounded-2xl border border-[var(--border)] bg-slate-950 shadow-lg">
+            <LiveSeaRouteMap
+              containerNumber={containerNumber}
+              originPort={originPort}
+              destinationPort={destinationPort}
+              vesselName={vesselName}
+              voyageNumber={voyageNumber}
+              currentProgressPct={progressPercent}
+              departureDate={departureDate}
+              estimatedArrival={estimatedArrival}
+              status={shipment.status}
+            />
+          </div>
+        ) : (
+          /* Multimodal Corridor Overview */
+          <div className="relative overflow-hidden rounded-2xl border border-[var(--border)] bg-slate-950 p-6 text-white shadow-lg">
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-base font-semibold text-white">Multimodal Global Corridor</h4>
+                  <p className="text-xs text-slate-400">
+                    End-to-end transportation journey from USA Yard to Destination Hub
+                  </p>
+                </div>
+                <span className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-1 text-xs font-medium text-slate-300">
+                  {activeStage === 'sea'
+                    ? 'Stage 2/3: Ocean Transit'
+                    : activeStage === 'transit'
+                    ? 'Stage 3/3: Destination Delivery'
+                    : activeStage === 'delivered'
+                    ? 'Completed'
+                    : 'Stage 1/3: Inland Dispatch'}
+                </span>
               </div>
-              <span className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-1 text-xs font-medium text-slate-300">
-                {activeStage === 'sea'
-                  ? 'Stage 2/3: Ocean Transit'
-                  : activeStage === 'transit'
-                  ? 'Stage 3/3: Destination Delivery'
-                  : activeStage === 'delivered'
-                  ? 'Completed'
-                  : 'Stage 1/3: Inland Dispatch'}
-              </span>
-            </div>
 
             {/* Stages Step Cards */}
             <div className="grid gap-4 md:grid-cols-3">
@@ -433,7 +450,8 @@ export default function ShipmentLiveMapPanel({
             </div>
           </div>
         </div>
-      )}
-    </div>
-  );
+      )
+    )}
+  </div>
+);
 }

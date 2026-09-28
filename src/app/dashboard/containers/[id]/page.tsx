@@ -299,6 +299,7 @@ export default function ContainerDetailPage() {
 	const [selectedShipmentForExpense, setSelectedShipmentForExpense] = useState<string | undefined>(undefined);
 	const [damageModalOpen, setDamageModalOpen] = useState(false);
 	const [customsPacketModalOpen, setCustomsPacketModalOpen] = useState(false);
+	const [showMaritimeMap, setShowMaritimeMap] = useState(false);
 	const [deletingDamageId, setDeletingDamageId] = useState<string | null>(null);
 	const [companies, setCompanies] = useState<CompanyOption[]>([]);
 	const [selectedCompanyId, setSelectedCompanyId] = useState('');
@@ -2113,46 +2114,38 @@ export default function ContainerDetailPage() {
 								}}
 							/>
 
-							<OceanRouteMap 
-								originPort={container.shippingLine || container.loadingPort || 'Port of Newark (USNWK)'}
-								destinationPort={container.destinationPort || 'Port of Jebel Ali (AEJEA)'}
-								vesselName={container.vesselName || 'MAERSK VOYAGER'}
-								voyageNumber={container.voyageNumber || container.trackingNumber || 'V-2409W'}
-								containerNumber={container.containerNumber}
-								currentProgressPct={container.progress ?? 68}
-								departureDate={container.departureDate}
-								estimatedArrival={container.estimatedArrival}
-								etaDays={container.estimatedArrival 
-									? Math.max(1, Math.ceil((new Date(container.estimatedArrival).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
-									: 9}
-								status={statusConfig[container.status]?.label || container.status || 'In Transit'}
-							/>
+							<Box sx={{ display: 'flex', justifyContent: 'flex-start', mb: 1 }}>
+								<Button
+									variant={showMaritimeMap ? 'primary' : 'outline'}
+									size="sm"
+									icon={<Compass className="w-4 h-4" />}
+									onClick={() => setShowMaritimeMap((prev) => !prev)}
+								>
+									{showMaritimeMap ? 'Hide Maritime Map' : 'View Live Vessel Map'}
+								</Button>
+							</Box>
+
+							{showMaritimeMap && (
+								<OceanRouteMap 
+									originPort={container.shippingLine || container.loadingPort || 'Port of Newark (USNWK)'}
+									destinationPort={container.destinationPort || 'Port of Jebel Ali (AEJEA)'}
+									vesselName={container.vesselName || 'MAERSK VOYAGER'}
+									voyageNumber={container.voyageNumber || container.trackingNumber || 'V-2409W'}
+									containerNumber={container.containerNumber}
+									currentProgressPct={container.progress ?? 68}
+									departureDate={container.departureDate}
+									estimatedArrival={container.estimatedArrival}
+									etaDays={container.estimatedArrival 
+										? Math.max(1, Math.ceil((new Date(container.estimatedArrival).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+										: 9}
+									status={statusConfig[container.status]?.label || container.status || 'In Transit'}
+								/>
+							)}
 
 							<DashboardPanel
 								title="Tracking History"
 								description="Location updates and status changes"
 							>
-                            <Box sx={{ mb: 4 }}>
-                                {(() => {
-                                    // Find latest event with coordinates
-                                    const latestEventWithCoords = container.trackingEvents
-                                        ?.filter(e => e.latitude && e.longitude)
-                                        .sort((a, b) => new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime())[0];
-                                    
-                                    const currentCoordinates = latestEventWithCoords && latestEventWithCoords.latitude && latestEventWithCoords.longitude 
-                                        ? { lat: latestEventWithCoords.latitude, lng: latestEventWithCoords.longitude }
-                                        : null;
-
-                                    return (
-                                        <TrackingMap 
-                                            origin={container.loadingPort} 
-                                            destination={container.destinationPort}
-                                            currentLocation={container.currentLocation}
-                                            currentCoordinates={currentCoordinates}
-                                        />
-                                    );
-                                })()}
-                            </Box>
 
 							<Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mb: 2 }}>
 								{canManageWorkflow && container.trackingNumber && (

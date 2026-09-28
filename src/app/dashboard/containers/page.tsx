@@ -67,7 +67,7 @@ export default function ContainersPage() {
   const [quickPeekContainerId, setQuickPeekContainerId] = useState<string | null>(null);
   const [qrModalData, setQrModalData] = useState<QRCodeData | null>(null);
   const [plannerContainer, setPlannerContainer] = useState<Container | null>(null);
-  const [showOceanTracker, setShowOceanTracker] = useState(true);
+  const [showOceanTracker, setShowOceanTracker] = useState(false);
   const [activeOceanContainerId, setActiveOceanContainerId] = useState<string | null>(null);
   const router = useRouter();
   const { data: session } = useSession();

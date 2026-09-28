@@ -77,6 +77,7 @@ export default function DashboardTrackingPage() {
 	const [errorMessage, setErrorMessage] = useState<string | null>(null);
 	const [recentTrackingNumbers, setRecentTrackingNumbers] = useState<string[]>([]);
 	const [scannerOpen, setScannerOpen] = useState(false);
+	const [showRouteMap, setShowRouteMap] = useState(false);
 
 	useEffect(() => {
 		if (status === 'unauthenticated') {
@@ -295,16 +296,30 @@ export default function DashboardTrackingPage() {
 			{/* Tracking Results */}
 			{trackingDetails ? (
 				<>
-					{/* Interactive Route Map */}
-					<DashboardPanel title="Interactive Route Map" description="Live vessel and overland transit visualization">
-						<TrackingRouteMap
-							progressPercent={progressValue ?? 35}
-							origin={trackingDetails.origin || 'USA / Canada'}
-							destination={trackingDetails.destination || 'Afghanistan'}
-							containerNumber={trackingDetails.containerNumber}
-							estimatedArrival={trackingDetails.estimatedArrival}
-						/>
-					</DashboardPanel>
+					{/* Interactive Route Map Toggle Button */}
+					<Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
+						<Button
+							variant={showRouteMap ? 'primary' : 'outline'}
+							size="sm"
+							icon={<Ship className="w-4 h-4" />}
+							onClick={() => setShowRouteMap((prev) => !prev)}
+						>
+							{showRouteMap ? 'Hide Route Map' : 'View Interactive Route Map'}
+						</Button>
+					</Box>
+
+					{/* Interactive Route Map (Only on demand) */}
+					{showRouteMap && (
+						<DashboardPanel title="Interactive Route Map" description="Live vessel and overland transit visualization">
+							<TrackingRouteMap
+								progressPercent={progressValue ?? 35}
+								origin={trackingDetails.origin || 'USA / Canada'}
+								destination={trackingDetails.destination || 'Afghanistan'}
+								containerNumber={trackingDetails.containerNumber}
+								estimatedArrival={trackingDetails.estimatedArrival}
+							/>
+						</DashboardPanel>
+					)}
 
 					{/* Container Details */}
 					<DashboardPanel title="Container Details" description="Current status and information">
