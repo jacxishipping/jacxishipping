@@ -63,24 +63,85 @@ export async function createTokenRouterChatCompletion(
     authHeaders['X-Title'] = 'Jacxi Shipping';
   }
 
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-      ...authHeaders,
-    },
-    body: JSON.stringify({
-      model,
-      messages,
-      max_tokens: options.maxTokens ?? settings.maxTokens,
-      temperature: options.temperature ?? settings.temperature,
-    }),
-    cache: 'no-store',
-    signal: AbortSignal.timeout(25000),
-  });
+  const tokenLimit = options.maxTokens ?? settings.maxTokens;
+  const tempVal = options.temperature ?? settings.temperature;
+  const isReasoningModel = /^(o[134]|gpt-4\.5-preview)/i.test(model);
 
-  const payload = (await response.json().catch(() => null)) as ChatCompletionResponse | null;
+  // Helper to execute request with specific body
+  const executeRequest = async (bodyPayload: Record<string, any>) => {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        ...authHeaders,
+      },
+      body: JSON.stringify(bodyPayload),
+      cache: 'no-store',
+      signal: AbortSignal.timeout(30000),
+    });
+
+    const payload = (await response.json().catch(() => null)) as ChatCompletionResponse | null;
+    return { response, payload };
+  };
+
+  // 1. Initial payload build
+  let bodyPayload: Record<string, any> = {
+    model,
+    messages,
+  };
+
+  if (isReasoningModel) {
+    bodyPayload.max_completion_tokens = tokenLimit;
+  } else {
+    bodyPayload.max_tokens = tokenLimit;
+    bodyPayload.temperature = tempVal;
+  }
+
+  let { response, payload } = await executeRequest(bodyPayload);
+
+  // 2. If 400 Bad Request due to parameter incompatibilities (e.g. unknown parameter 'max_tokens' or 'temperature'), retry adaptively
+  if (!response.ok && response.status === 400) {
+    const errMsg = (payload?.error?.message || '').toLowerCase();
+    
+    // If rejected max_tokens, retry with max_completion_tokens
+    if (errMsg.includes('max_tokens') || errMsg.includes('unknown parameter') || errMsg.includes('unrecognized')) {
+      const fallbackPayload: Record<string, any> = {
+        model,
+        messages,
+        max_completion_tokens: tokenLimit,
+      };
+      // Keep temperature only if not rejected
+      if (!errMsg.includes('temperature') && !isReasoningModel) {
+        fallbackPayload.temperature = tempVal;
+      }
+      
+      const retryRes = await executeRequest(fallbackPayload);
+      if (retryRes.response.ok) {
+        response = retryRes.response;
+        payload = retryRes.payload;
+      } else {
+        // As a last-resort, try bare payload without token or temperature limits
+        const bareRetry = await executeRequest({ model, messages });
+        if (bareRetry.response.ok) {
+          response = bareRetry.response;
+          payload = bareRetry.payload;
+        }
+      }
+    } else if (errMsg.includes('temperature')) {
+      // If rejected temperature, retry without temperature
+      const fallbackPayload: Record<string, any> = {
+        model,
+        messages,
+        max_tokens: tokenLimit,
+      };
+      const retryRes = await executeRequest(fallbackPayload);
+      if (retryRes.response.ok) {
+        response = retryRes.response;
+        payload = retryRes.payload;
+      }
+    }
+  }
 
   if (!response.ok) {
     const errorMessage = payload?.error?.message ?? `TokenRouter AI request failed with status ${response.status}`;

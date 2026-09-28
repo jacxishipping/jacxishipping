@@ -33,23 +33,45 @@ export async function createDigitalOceanChatCompletion(
     throw new Error('DigitalOcean AI is not configured. Set DO_AI_API_KEY to enable AI features.');
   }
 
-  const response = await fetch(DIGITALOCEAN_AI_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model,
-      messages,
-      max_tokens: options.maxTokens ?? 500,
-      temperature: options.temperature ?? 0.3,
-    }),
-    cache: 'no-store',
-    signal: AbortSignal.timeout(25000),
+  const tokenLimit = options.maxTokens ?? 500;
+  const tempVal = options.temperature ?? 0.3;
+
+  const executeRequest = async (bodyPayload: Record<string, any>) => {
+    const res = await fetch(DIGITALOCEAN_AI_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify(bodyPayload),
+      cache: 'no-store',
+      signal: AbortSignal.timeout(30000),
+    });
+    const payload = (await res.json().catch(() => null)) as ChatCompletionResponse | null;
+    return { response: res, payload };
+  };
+
+  let { response, payload } = await executeRequest({
+    model,
+    messages,
+    max_tokens: tokenLimit,
+    temperature: tempVal,
   });
 
-  const payload = (await response.json().catch(() => null)) as ChatCompletionResponse | null;
+  if (!response.ok && response.status === 400) {
+    const errMsg = (payload?.error?.message || '').toLowerCase();
+    if (errMsg.includes('max_tokens') || errMsg.includes('unknown parameter')) {
+      const retryRes = await executeRequest({
+        model,
+        messages,
+        max_completion_tokens: tokenLimit,
+      });
+      if (retryRes.response.ok) {
+        response = retryRes.response;
+        payload = retryRes.payload;
+      }
+    }
+  }
 
   if (!response.ok) {
     const errorMessage = payload?.error?.message ?? `DigitalOcean AI request failed with status ${response.status}`;
