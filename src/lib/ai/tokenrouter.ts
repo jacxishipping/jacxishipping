@@ -54,7 +54,12 @@ function extractAiResponseContent(payload: any): string | null {
   if (payload.choices?.[0]?.text) return payload.choices[0].text.trim();
   if (typeof payload.output === 'string') return payload.output.trim();
   if (typeof payload.output?.content === 'string') return payload.output.content.trim();
+  if (typeof payload.output?.text === 'string') return payload.output.text.trim();
   if (Array.isArray(payload.output) && payload.output[0]?.text) return payload.output[0].text.trim();
+  if (Array.isArray(payload.output) && typeof payload.output[0]?.content === 'string') return payload.output[0].content.trim();
+  if (Array.isArray(payload.output) && Array.isArray(payload.output[0]?.content) && payload.output[0].content[0]?.text) {
+    return payload.output[0].content[0].text.trim();
+  }
   if (Array.isArray(payload.output) && typeof payload.output[0] === 'string') return payload.output[0].trim();
   if (typeof payload.response === 'string') return payload.response.trim();
   if (typeof payload.text === 'string') return payload.text.trim();
@@ -84,6 +89,7 @@ async function parseAiResponse(response: Response): Promise<any> {
               data.choices?.[0]?.delta?.content ||
               data.choices?.[0]?.message?.content ||
               data.output?.content ||
+              data.output?.text ||
               data.text ||
               data.response ||
               '';
@@ -161,25 +167,32 @@ export async function createTokenRouterChatCompletion(
   };
 
   // 1. Initial payload build
-  let bodyPayload: Record<string, any> = {
-    model,
-  };
+  let bodyPayload: Record<string, any>;
 
   if (isMetaOrResponsesEndpoint) {
-    // Meta / Responses API format (curl https://api.meta.ai/v1/responses)
-    bodyPayload.input = messages;
-    bodyPayload.messages = messages;
-    bodyPayload.max_output_tokens = tokenLimit;
-    bodyPayload.temperature = tempVal;
-    bodyPayload.top_p = 1;
-    bodyPayload.stream = false;
+    // Meta / Responses API format (e.g. curl https://api.meta.ai/v1/responses)
+    // ONLY uses `input`, never `messages`
+    bodyPayload = {
+      model,
+      input: messages,
+      stream: false,
+      temperature: tempVal,
+      max_output_tokens: tokenLimit,
+      top_p: 1,
+    };
   } else if (isReasoningModel) {
-    bodyPayload.messages = messages;
-    bodyPayload.max_completion_tokens = tokenLimit;
+    bodyPayload = {
+      model,
+      messages,
+      max_completion_tokens: tokenLimit,
+    };
   } else {
-    bodyPayload.messages = messages;
-    bodyPayload.max_tokens = tokenLimit;
-    bodyPayload.temperature = tempVal;
+    bodyPayload = {
+      model,
+      messages,
+      max_tokens: tokenLimit,
+      temperature: tempVal,
+    };
   }
 
   let { response, payload } = await executeRequest(bodyPayload);
@@ -189,74 +202,131 @@ export async function createTokenRouterChatCompletion(
     const rawError = extractAiErrorMessage(payload, response.status);
     const errMsg = rawError.toLowerCase();
     
-    // Check if error is related to max_tokens parameter
-    if (
+    // Case A: Upstream rejected 'messages' parameter (expects 'input')
+    if (errMsg.includes('messages')) {
+      const inputOnlyPayload: Record<string, any> = {
+        model,
+        input: messages,
+        max_output_tokens: tokenLimit,
+        temperature: tempVal,
+        top_p: 1,
+        stream: false,
+      };
+      const retryRes = await executeRequest(inputOnlyPayload);
+      if (retryRes.response.ok) {
+        response = retryRes.response;
+        payload = retryRes.payload;
+      } else {
+        const bareInputRetry = await executeRequest({ model, input: messages });
+        if (bareInputRetry.response.ok) {
+          response = bareInputRetry.response;
+          payload = bareInputRetry.payload;
+        }
+      }
+    }
+    // Case B: Upstream rejected 'input' parameter (expects 'messages')
+    else if (errMsg.includes('input')) {
+      const messagesOnlyPayload: Record<string, any> = {
+        model,
+        messages,
+        max_tokens: tokenLimit,
+        temperature: tempVal,
+      };
+      const retryRes = await executeRequest(messagesOnlyPayload);
+      if (retryRes.response.ok) {
+        response = retryRes.response;
+        payload = retryRes.payload;
+      } else {
+        const bareMsgRetry = await executeRequest({ model, messages });
+        if (bareMsgRetry.response.ok) {
+          response = bareMsgRetry.response;
+          payload = bareMsgRetry.payload;
+        }
+      }
+    }
+    // Case C: Upstream rejected token limit or extra fields
+    else if (
       errMsg.includes('max_tokens') ||
+      errMsg.includes('max_output_tokens') ||
+      errMsg.includes('max_completion_tokens') ||
       errMsg.includes('unknown parameter') ||
       errMsg.includes('unrecognized') ||
       errMsg.includes('unsupported parameter') ||
       errMsg.includes('extra fields')
     ) {
-      // Stage 1: Try max_output_tokens (Meta / Muse format)
-      const metaPayload: Record<string, any> = {
+      const isInput = isMetaOrResponsesEndpoint || ('input' in bodyPayload);
+      const msgField = isInput ? { input: messages } : { messages };
+
+      // Try max_output_tokens
+      let retry = await executeRequest({
         model,
-        messages,
-        input: messages,
+        ...msgField,
         max_output_tokens: tokenLimit,
         temperature: tempVal,
-      };
-      const metaRes = await executeRequest(metaPayload);
-      if (metaRes.response.ok) {
-        response = metaRes.response;
-        payload = metaRes.payload;
+      });
+
+      if (retry.response.ok) {
+        response = retry.response;
+        payload = retry.payload;
       } else {
-        // Stage 2: Try max_completion_tokens (OpenAI reasoning format)
-        const compPayload: Record<string, any> = {
+        // Try max_completion_tokens
+        retry = await executeRequest({
           model,
-          messages,
+          ...msgField,
           max_completion_tokens: tokenLimit,
-        };
-        if (!errMsg.includes('temperature') && !isReasoningModel) {
-          compPayload.temperature = tempVal;
-        }
-        
-        const compRes = await executeRequest(compPayload);
-        if (compRes.response.ok) {
-          response = compRes.response;
-          payload = compRes.payload;
+        });
+
+        if (retry.response.ok) {
+          response = retry.response;
+          payload = retry.payload;
         } else {
-          // Stage 3: Try temperature only (no token limit parameter)
-          const noTokenRetry = await executeRequest({ model, messages, temperature: tempVal });
-          if (noTokenRetry.response.ok) {
-            response = noTokenRetry.response;
-            payload = noTokenRetry.payload;
+          // Try max_tokens
+          retry = await executeRequest({
+            model,
+            ...msgField,
+            max_tokens: tokenLimit,
+            temperature: tempVal,
+          });
+
+          if (retry.response.ok) {
+            response = retry.response;
+            payload = retry.payload;
           } else {
-            // Stage 4: Bare payload without extra parameters
-            const bareRetry = await executeRequest({ model, messages });
-            if (bareRetry.response.ok) {
-              response = bareRetry.response;
-              payload = bareRetry.payload;
+            // Try temperature only
+            retry = await executeRequest({
+              model,
+              ...msgField,
+              temperature: tempVal,
+            });
+
+            if (retry.response.ok) {
+              response = retry.response;
+              payload = retry.payload;
+            } else {
+              // Bare payload
+              retry = await executeRequest({
+                model,
+                ...msgField,
+              });
+              if (retry.response.ok) {
+                response = retry.response;
+                payload = retry.payload;
+              }
             }
           }
         }
       }
     } else if (errMsg.includes('temperature')) {
-      // Retry without temperature
+      const isInput = isMetaOrResponsesEndpoint || ('input' in bodyPayload);
+      const msgField = isInput ? { input: messages } : { messages };
       const fallbackPayload: Record<string, any> = {
         model,
-        messages,
-        max_tokens: tokenLimit,
+        ...msgField,
       };
       const retryRes = await executeRequest(fallbackPayload);
       if (retryRes.response.ok) {
         response = retryRes.response;
         payload = retryRes.payload;
-      } else {
-        const bareRetry = await executeRequest({ model, messages });
-        if (bareRetry.response.ok) {
-          response = bareRetry.response;
-          payload = bareRetry.payload;
-        }
       }
     }
   }
