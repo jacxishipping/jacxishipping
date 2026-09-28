@@ -47,33 +47,141 @@ function extractAiErrorMessage(payload: any, fallbackStatus?: number): string {
   return fallbackStatus ? `AI provider request failed with status ${fallbackStatus}` : 'Unknown AI provider error';
 }
 
-function extractAiResponseContent(payload: any): string | null {
-  if (!payload) return null;
-  if (typeof payload === 'string') return payload.trim();
-  if (payload.choices?.[0]?.message?.content) return payload.choices[0].message.content.trim();
-  if (payload.choices?.[0]?.text) return payload.choices[0].text.trim();
-  if (typeof payload.output === 'string') return payload.output.trim();
-  if (typeof payload.output?.content === 'string') return payload.output.content.trim();
-  if (typeof payload.output?.text === 'string') return payload.output.text.trim();
-  if (Array.isArray(payload.output) && payload.output[0]?.text) return payload.output[0].text.trim();
-  if (Array.isArray(payload.output) && typeof payload.output[0]?.content === 'string') return payload.output[0].content.trim();
-  if (Array.isArray(payload.output) && Array.isArray(payload.output[0]?.content) && payload.output[0].content[0]?.text) {
-    return payload.output[0].content[0].text.trim();
+function scanForText(obj: any, depth = 0): string | null {
+  if (!obj || depth > 5) return null;
+  if (typeof obj === 'string') {
+    const t = obj.trim();
+    if (t.length > 0 && !t.startsWith('{') && !t.startsWith('http://') && !t.startsWith('https://')) return t;
+    return null;
   }
-  if (Array.isArray(payload.output) && typeof payload.output[0] === 'string') return payload.output[0].trim();
-  if (typeof payload.response === 'string') return payload.response.trim();
-  if (typeof payload.text === 'string') return payload.text.trim();
-  if (typeof payload.content === 'string') return payload.content.trim();
-  if (typeof payload.message?.content === 'string') return payload.message.content.trim();
+  if (Array.isArray(obj)) {
+    for (const item of obj) {
+      const res = scanForText(item, depth + 1);
+      if (res) return res;
+    }
+  } else if (typeof obj === 'object') {
+    const priorityKeys = ['text', 'content', 'delta', 'value', 'output', 'message', 'data', 'response'];
+    for (const k of priorityKeys) {
+      if (k in obj) {
+        const res = scanForText(obj[k], depth + 1);
+        if (res) return res;
+      }
+    }
+    for (const k of Object.keys(obj)) {
+      if (!['id', 'model', 'created', 'usage', 'finish_reason', 'object', 'role', 'status', 'type', 'index', 'timestamp'].includes(k)) {
+        const res = scanForText(obj[k], depth + 1);
+        if (res) return res;
+      }
+    }
+  }
   return null;
 }
 
-async function parseAiResponse(response: Response): Promise<any> {
-  const contentType = response.headers.get('content-type') || '';
-  if (contentType.includes('application/json')) {
-    return response.json().catch(() => null);
+function extractAiResponseContent(payload: any): string | null {
+  if (!payload) return null;
+  if (typeof payload === 'string') {
+    const trimmed = payload.trim();
+    if (!trimmed) return null;
+    try {
+      const parsed = JSON.parse(trimmed);
+      const nested = extractAiResponseContent(parsed);
+      if (nested) return nested;
+    } catch {
+      return trimmed;
+    }
   }
+
+  // 1. Standard OpenAI choices format
+  if (payload.choices && Array.isArray(payload.choices) && payload.choices.length > 0) {
+    const choice = payload.choices[0];
+    if (typeof choice.message?.content === 'string' && choice.message.content.trim()) {
+      return choice.message.content.trim();
+    }
+    if (Array.isArray(choice.message?.content)) {
+      const texts = choice.message.content
+        .map((part: any) => (typeof part === 'string' ? part : part?.text || part?.content || ''))
+        .filter(Boolean);
+      if (texts.length > 0) return texts.join('\n').trim();
+    }
+    if (typeof choice.text === 'string' && choice.text.trim()) {
+      return choice.text.trim();
+    }
+    if (typeof choice.delta?.content === 'string' && choice.delta.content.trim()) {
+      return choice.delta.content.trim();
+    }
+  }
+
+  // 2. Meta Responses API output format
+  if (payload.output) {
+    if (typeof payload.output === 'string' && payload.output.trim()) {
+      return payload.output.trim();
+    }
+    if (typeof payload.output.content === 'string' && payload.output.content.trim()) {
+      return payload.output.content.trim();
+    }
+    if (typeof payload.output.text === 'string' && payload.output.text.trim()) {
+      return payload.output.text.trim();
+    }
+    if (Array.isArray(payload.output)) {
+      const gathered: string[] = [];
+      for (const item of payload.output) {
+        if (typeof item === 'string' && item.trim()) {
+          gathered.push(item.trim());
+        } else if (item && typeof item === 'object') {
+          if (typeof item.text === 'string' && item.text.trim()) {
+            gathered.push(item.text.trim());
+          } else if (typeof item.content === 'string' && item.content.trim()) {
+            gathered.push(item.content.trim());
+          } else if (Array.isArray(item.content)) {
+            for (const part of item.content) {
+              if (typeof part === 'string' && part.trim()) gathered.push(part.trim());
+              else if (typeof part?.text === 'string' && part.text.trim()) gathered.push(part.text.trim());
+              else if (typeof part?.content === 'string' && part.content.trim()) gathered.push(part.content.trim());
+            }
+          }
+        }
+      }
+      if (gathered.length > 0) return gathered.join('\n').trim();
+    }
+  }
+
+  // 3. Nested response object
+  if (payload.response) {
+    if (typeof payload.response === 'string' && payload.response.trim()) {
+      return payload.response.trim();
+    }
+    if (typeof payload.response === 'object') {
+      const nested = extractAiResponseContent(payload.response);
+      if (nested) return nested;
+    }
+  }
+
+  // 4. Gemini / Vertex candidates format
+  if (payload.candidates && Array.isArray(payload.candidates) && payload.candidates.length > 0) {
+    const parts = payload.candidates[0]?.content?.parts;
+    if (Array.isArray(parts)) {
+      const text = parts.map((p: any) => p?.text || '').filter(Boolean).join('\n').trim();
+      if (text) return text;
+    }
+  }
+
+  // 5. Direct fields
+  if (typeof payload.output_text === 'string' && payload.output_text.trim()) return payload.output_text.trim();
+  if (typeof payload.text === 'string' && payload.text.trim()) return payload.text.trim();
+  if (typeof payload.content === 'string' && payload.content.trim()) return payload.content.trim();
+  if (typeof payload.result === 'string' && payload.result.trim()) return payload.result.trim();
+  if (typeof payload.message?.content === 'string' && payload.message.content.trim()) return payload.message.content.trim();
+
+  // 6. Deep scan fallback
+  return scanForText(payload);
+}
+
+async function parseAiResponse(response: Response): Promise<any> {
   const rawText = await response.text().catch(() => '');
+  if (!rawText || !rawText.trim()) {
+    return null;
+  }
+
   try {
     return JSON.parse(rawText);
   } catch {
@@ -83,24 +191,32 @@ async function parseAiResponse(response: Response): Promise<any> {
       for (const line of lines) {
         const trimmed = line.trim();
         if (trimmed.startsWith('data:') && !trimmed.includes('[DONE]')) {
+          const jsonStr = trimmed.slice(5).trim();
+          if (!jsonStr) continue;
           try {
-            const data = JSON.parse(trimmed.slice(5).trim());
+            const data = JSON.parse(jsonStr);
             const delta =
+              (typeof data.delta === 'string' ? data.delta : '') ||
+              data.delta?.text ||
+              data.delta?.content ||
               data.choices?.[0]?.delta?.content ||
               data.choices?.[0]?.message?.content ||
-              data.output?.content ||
-              data.output?.text ||
-              data.text ||
-              data.response ||
+              data.choices?.[0]?.text ||
+              data.output_text ||
+              (typeof data.text === 'string' ? data.text : '') ||
+              (typeof data.content === 'string' ? data.content : '') ||
+              extractAiResponseContent(data) ||
               '';
-            combinedContent += delta;
+            if (delta && typeof delta === 'string') {
+              combinedContent += delta;
+            }
           } catch {
             // continue parsing next line
           }
         }
       }
-      if (combinedContent) {
-        return { choices: [{ message: { content: combinedContent } }] };
+      if (combinedContent.trim()) {
+        return { choices: [{ message: { content: combinedContent.trim() } }] };
       }
     }
     return { text: rawText };
@@ -139,7 +255,7 @@ export async function createTokenRouterChatCompletion(
     authHeaders['X-Title'] = 'Jacxi Shipping';
   }
 
-  const tokenLimit = options.maxTokens ?? settings.maxTokens;
+  const rawTokenLimit = options.maxTokens ?? settings.maxTokens;
   const tempVal = options.temperature ?? settings.temperature;
   const isReasoningModel = /^(o[134]|gpt-4\.5-preview)/i.test(model);
   const isMetaOrResponsesEndpoint =
@@ -148,13 +264,18 @@ export async function createTokenRouterChatCompletion(
     model.toLowerCase().includes('muse-') ||
     model.toLowerCase().includes('spark-');
 
+  // For Meta/Muse or reasoning endpoints, ensure sufficient tokens so reasoning tokens do not exhaust the budget
+  const tokenLimit = isMetaOrResponsesEndpoint
+    ? Math.max(rawTokenLimit || 4096, 4096)
+    : rawTokenLimit;
+
   // Helper to execute request with specific body
   const executeRequest = async (bodyPayload: Record<string, any>) => {
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Accept: 'application/json, text/event-stream',
+        Accept: 'application/json, text/event-stream, text/plain, */*',
         ...authHeaders,
       },
       body: JSON.stringify(bodyPayload),
@@ -179,6 +300,9 @@ export async function createTokenRouterChatCompletion(
       temperature: tempVal,
       max_output_tokens: tokenLimit,
       top_p: 1,
+      reasoning: {
+        effort: 'medium',
+      },
     };
   } else if (isReasoningModel) {
     bodyPayload = {
@@ -341,10 +465,43 @@ export async function createTokenRouterChatCompletion(
     throw new Error(errorMessage);
   }
 
-  const content = extractAiResponseContent(payload);
+  let content = extractAiResponseContent(payload);
+
+  // 3. If response was OK (HTTP 200) but content extraction yielded empty (e.g. Meta stream-only or token exhaustion)
+  if (!content) {
+    // Attempt A: Try with stream: true (SSE stream parsing)
+    const streamPayload = { ...bodyPayload, stream: true };
+    const streamRes = await executeRequest(streamPayload);
+    if (streamRes.response.ok) {
+      const streamContent = extractAiResponseContent(streamRes.payload);
+      if (streamContent) {
+        content = streamContent;
+      }
+    }
+
+    // Attempt B: Try with max_output_tokens: 32000 (if reasoning tokens consumed all output)
+    if (!content) {
+      const highTokenPayload = {
+        ...bodyPayload,
+        max_output_tokens: 32000,
+        stream: true,
+      };
+      const highRes = await executeRequest(highTokenPayload);
+      if (highRes.response.ok) {
+        const highContent = extractAiResponseContent(highRes.payload);
+        if (highContent) {
+          content = highContent;
+        }
+      }
+    }
+  }
 
   if (!content) {
-    throw new Error('TokenRouter AI returned an empty response.');
+    if (payload?.choices?.[0]?.finish_reason === 'length' || payload?.finish_reason === 'length') {
+      throw new Error('AI model exhausted token limit before producing text. Please increase maxTokens in Settings > AI.');
+    }
+    const rawPreview = typeof payload === 'object' ? JSON.stringify(payload) : String(payload || '');
+    throw new Error(`TokenRouter AI returned an empty response. Payload preview: ${rawPreview.slice(0, 200)}`);
   }
 
   return {
