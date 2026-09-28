@@ -16,6 +16,13 @@ import {
   Package,
   Truck,
   HandCoins,
+  TrendingUp,
+  Building2,
+  CheckCircle2,
+  DollarSign,
+  Percent,
+  ArrowUpRight,
+  TrendingDown,
 } from 'lucide-react';
 import AdminRoute from '@/components/auth/AdminRoute';
 import { Button, PageHeader, toast, DashboardPageSkeleton, TableSkeleton, SkeletonCard } from '@/components/design-system';
@@ -104,6 +111,35 @@ type ReportData = {
   }>;
   userBalances?: UserBalance[];
   users?: UserReport[];
+  revenue?: {
+    totalRevenue: number;
+    freightRevenue: number;
+    shipmentCount: number;
+  };
+  costOfGoodsSold?: {
+    totalCOGS: number;
+    shipmentDirectExpenses: number;
+    dispatchExpenses: number;
+    containerExpenses: number;
+  };
+  grossProfit?: {
+    amount: number;
+    marginPercent: number;
+  };
+  operatingExpenses?: {
+    totalOpEx: number;
+    categories: Array<{
+      category: string;
+      amount: number;
+      count: number;
+      percentageOfOpEx: number;
+    }>;
+    count: number;
+  };
+  netIncome?: {
+    amount: number;
+    marginPercent: number;
+  };
   summary?: {
     totalRevenue: number;
     totalExpenses: number;
@@ -127,7 +163,7 @@ type ReportData = {
 export default function FinancialReportsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [reportType, setReportType] = useState<'summary' | 'user-wise' | 'shipment-wise'>('summary');
+  const [reportType, setReportType] = useState<'pnl' | 'summary' | 'user-wise' | 'shipment-wise'>('pnl');
   const [reportData, setReportData] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState({
@@ -372,7 +408,20 @@ export default function FinancialReportsPage() {
 
         {/* Report Type Selection */}
         <DashboardPanel title="Report Type">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <button
+              onClick={() => setReportType('pnl')}
+              className={`p-4 rounded-xl border-2 transition-all text-left ${
+                reportType === 'pnl'
+                  ? 'border-[var(--accent-gold)] bg-[rgba(var(--accent-gold-rgb),0.08)]'
+                  : 'border-[var(--border)] hover:border-[rgba(var(--accent-gold-rgb),0.5)]'
+              }`}
+            >
+              <TrendingUp className="w-6 h-6 text-emerald-400 mb-2" />
+              <p className="text-sm font-semibold text-[var(--text-primary)]">Unified P&L Statement</p>
+              <p className="text-xs text-[var(--text-secondary)] mt-1">Revenue, Freight COGS & OpEx Net Income</p>
+            </button>
+
             <button
               onClick={() => setReportType('summary')}
               className={`p-4 rounded-xl border-2 transition-all text-left ${
@@ -464,6 +513,162 @@ export default function FinancialReportsPage() {
                 Report Period: {reportData.period ? `${formatDate(reportData.period.startDate)} - ${formatDate(reportData.period.endDate)}` : 'N/A'}
               </span>
             </div>
+
+            {/* UNIFIED PROFIT & LOSS (P&L) STATEMENT */}
+            {reportType === 'pnl' && (
+              <div className="space-y-6">
+                {/* P&L Top KPI Summary Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="p-5 rounded-2xl border border-[var(--border)] bg-[var(--panel)] shadow-sm">
+                    <p className="text-xs text-[var(--text-secondary)] uppercase tracking-wider font-semibold">
+                      I. Gross Revenue
+                    </p>
+                    <p className="text-2xl font-bold text-[var(--text-primary)] mt-1">
+                      {formatCurrency(reportData.revenue?.totalRevenue || 0)}
+                    </p>
+                    <p className="text-xs text-[var(--text-secondary)] mt-1">
+                      {reportData.revenue?.shipmentCount || 0} shipments freight volume
+                    </p>
+                  </div>
+
+                  <div className="p-5 rounded-2xl border border-[var(--border)] bg-[var(--panel)] shadow-sm">
+                    <p className="text-xs text-[var(--text-secondary)] uppercase tracking-wider font-semibold">
+                      II. Direct Freight Costs (COGS)
+                    </p>
+                    <p className="text-2xl font-bold text-red-400 mt-1">
+                      {formatCurrency(reportData.costOfGoodsSold?.totalCOGS || 0)}
+                    </p>
+                    <p className="text-xs text-[var(--text-secondary)] mt-1">
+                      Dispatch, ocean freight & port costs
+                    </p>
+                  </div>
+
+                  <div className="p-5 rounded-2xl border border-[var(--border)] bg-[var(--panel)] shadow-sm">
+                    <p className="text-xs text-[var(--text-secondary)] uppercase tracking-wider font-semibold">
+                      III. Gross Freight Profit
+                    </p>
+                    <p className="text-2xl font-bold text-amber-400 mt-1">
+                      {formatCurrency(reportData.grossProfit?.amount || 0)}
+                    </p>
+                    <p className="text-xs text-[var(--text-secondary)] mt-1">
+                      Margin: <span className="font-semibold text-[var(--text-primary)]">{((reportData.grossProfit?.marginPercent || 0)).toFixed(1)}%</span>
+                    </p>
+                  </div>
+
+                  <div className={`p-5 rounded-2xl border shadow-sm ${
+                    (reportData.netIncome?.amount || 0) >= 0
+                      ? 'border-emerald-500/30 bg-[rgba(var(--success-rgb),0.06)]'
+                      : 'border-red-500/30 bg-red-500/10'
+                  }`}>
+                    <p className="text-xs uppercase tracking-wider font-semibold text-muted-foreground">
+                      IV. Net Operating Income (EBITDA)
+                    </p>
+                    <p className={`text-2xl font-bold mt-1 ${
+                      (reportData.netIncome?.amount || 0) >= 0 ? 'text-emerald-400' : 'text-red-400'
+                    }`}>
+                      {formatCurrency(reportData.netIncome?.amount || 0)}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Net Margin: <span className="font-semibold text-foreground">{((reportData.netIncome?.marginPercent || 0)).toFixed(1)}%</span>
+                    </p>
+                  </div>
+                </div>
+
+                {/* Detailed Multi-Tier Financial Statement */}
+                <DashboardPanel title="Income Statement (P&L Breakdown)">
+                  <div className="divide-y divide-border text-sm">
+                    {/* Revenue Section */}
+                    <div className="py-3">
+                      <div className="flex items-center justify-between font-bold text-foreground mb-2">
+                        <span className="text-base text-[var(--accent-gold)]">1. Operating Revenue</span>
+                        <span className="text-base">{formatCurrency(reportData.revenue?.totalRevenue || 0)}</span>
+                      </div>
+                      <div className="pl-4 space-y-1.5 text-xs text-muted-foreground">
+                        <div className="flex justify-between">
+                          <span>Ocean Freight & Vehicle Shipping Fees</span>
+                          <span className="font-mono text-foreground">{formatCurrency(reportData.revenue?.freightRevenue || 0)}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* COGS Section */}
+                    <div className="py-3">
+                      <div className="flex items-center justify-between font-bold text-foreground mb-2">
+                        <span className="text-base text-red-400">2. Cost of Freight Logistics (Direct Expenses)</span>
+                        <span className="text-base text-red-400 font-mono">-{formatCurrency(reportData.costOfGoodsSold?.totalCOGS || 0)}</span>
+                      </div>
+                      <div className="pl-4 space-y-1.5 text-xs text-muted-foreground">
+                        <div className="flex justify-between">
+                          <span>Dispatch & Domestic Inland Towing</span>
+                          <span className="font-mono text-foreground">{formatCurrency(reportData.costOfGoodsSold?.dispatchExpenses || 0)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Container Loading, Drayage & Port Handling</span>
+                          <span className="font-mono text-foreground">{formatCurrency(reportData.costOfGoodsSold?.containerExpenses || 0)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Direct Shipment Recoveries & Operational Costs</span>
+                          <span className="font-mono text-foreground">{formatCurrency(reportData.costOfGoodsSold?.shipmentDirectExpenses || 0)}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Gross Profit Bar */}
+                    <div className="py-3 bg-muted/20 px-3 rounded-lg flex items-center justify-between font-bold text-foreground">
+                      <span className="text-amber-400">GROSS FREIGHT PROFIT</span>
+                      <div className="text-right">
+                        <span className="text-base font-mono">{formatCurrency(reportData.grossProfit?.amount || 0)}</span>
+                        <span className="text-xs text-muted-foreground ml-2">({((reportData.grossProfit?.marginPercent || 0)).toFixed(1)}% margin)</span>
+                      </div>
+                    </div>
+
+                    {/* Operating Expenses (OpEx) Section */}
+                    <div className="py-3">
+                      <div className="flex items-center justify-between font-bold text-foreground mb-2">
+                        <span className="text-base text-purple-400">3. Office & Operating Expenses (OpEx)</span>
+                        <span className="text-base text-purple-400 font-mono">-{formatCurrency(reportData.operatingExpenses?.totalOpEx || 0)}</span>
+                      </div>
+                      <div className="pl-4 space-y-2 text-xs">
+                        {reportData.operatingExpenses?.categories && reportData.operatingExpenses.categories.length > 0 ? (
+                          reportData.operatingExpenses.categories.map((c) => (
+                            <div key={c.category} className="space-y-1">
+                              <div className="flex justify-between text-muted-foreground">
+                                <span className="font-medium text-foreground">{c.category.replace(/_/g, ' ')}</span>
+                                <span className="font-mono text-foreground">{formatCurrency(c.amount)} ({c.percentageOfOpEx.toFixed(1)}%)</span>
+                              </div>
+                              <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
+                                <div
+                                  className="h-full bg-purple-500 rounded-full"
+                                  style={{ width: `${Math.min(100, Math.max(2, c.percentageOfOpEx))}%` }}
+                                />
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-muted-foreground italic">No office expenses recorded in this period.</div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Net Operating Income Bar */}
+                    <div className={`p-4 rounded-xl flex items-center justify-between font-extrabold ${
+                      (reportData.netIncome?.amount || 0) >= 0
+                        ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
+                        : 'bg-red-500/10 border border-red-500/20 text-red-400'
+                    }`}>
+                      <div>
+                        <div className="text-base">NET OPERATING INCOME (EBITDA)</div>
+                        <div className="text-xs font-normal opacity-80">Gross Freight Profit minus All Office & Operational Overhead</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-mono">{formatCurrency(reportData.netIncome?.amount || 0)}</div>
+                        <div className="text-xs opacity-90">{((reportData.netIncome?.marginPercent || 0)).toFixed(1)}% Net Margin</div>
+                      </div>
+                    </div>
+                  </div>
+                </DashboardPanel>
+              </div>
+            )}
 
             {/* Summary Report */}
             {reportType === 'summary' && (

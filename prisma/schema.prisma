@@ -79,6 +79,8 @@ model User {
   sourceTransfers LedgerTransfer[] @relation("SourceUserTransfers")
   destTransfers   LedgerTransfer[] @relation("DestUserTransfers")
   createdTransfers LedgerTransfer[] @relation("CreatedTransfers")
+  createdRecurringExpenses RecurringExpense[] @relation("CreatedRecurringExpenses")
+  createdExpenseBudgets ExpenseBudget[] @relation("CreatedExpenseBudgets")
 
   @@index([loginCode])
 }
@@ -1711,6 +1713,8 @@ model OfficeExpense {
   receiptName     String?               // Original attachment name
   notes           String?
   status          ExpensePaymentStatus  @default(PAID) // PAID, PENDING, CANCELLED
+  recurringExpenseId String?
+  recurringExpense RecurringExpense?    @relation("RecurringOfficeExpenses", fields: [recurringExpenseId], references: [id], onDelete: SetNull)
   recordedById    String?
   recordedBy      User?                 @relation("RecordedOfficeExpenses", fields: [recordedById], references: [id], onDelete: SetNull)
   createdAt       DateTime              @default(now())
@@ -1719,6 +1723,7 @@ model OfficeExpense {
   @@index([category])
   @@index([expenseDate])
   @@index([status])
+  @@index([recurringExpenseId])
   @@index([recordedById])
   @@index([createdAt])
 }
@@ -1745,6 +1750,67 @@ enum ExpensePaymentStatus {
   PAID
   PENDING
   CANCELLED
+}
+
+enum RecurringFrequency {
+  MONTHLY
+  QUARTERLY
+  YEARLY
+  WEEKLY
+  BIWEEKLY
+}
+
+model RecurringExpense {
+  id                 String                @id @default(cuid())
+  title              String
+  category           OfficeExpenseCategory @default(OTHER)
+  amount             Float
+  currency           String                @default("USD")
+  frequency          RecurringFrequency    @default(MONTHLY)
+  dayOfMonth         Int                   @default(1) // Day of month to trigger (1-31)
+  startDate          DateTime              @default(now())
+  endDate            DateTime?
+  paymentMethod      String                @default("BANK_TRANSFER")
+  vendor             String?
+  referencePrefix    String?               // Prefix for generated receipt/ref numbers
+  notes              String?
+  isActive           Boolean               @default(true)
+  autoCreatePaid     Boolean               @default(true) // true = create as PAID, false = create as PENDING
+  lastGeneratedDate  DateTime?
+  nextDueDate        DateTime
+  createdById        String?
+  createdBy          User?                 @relation("CreatedRecurringExpenses", fields: [createdById], references: [id], onDelete: SetNull)
+  generatedExpenses  OfficeExpense[]       @relation("RecurringOfficeExpenses")
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+
+  @@index([isActive])
+  @@index([nextDueDate])
+  @@index([category])
+  @@index([frequency])
+  @@index([createdById])
+}
+
+model ExpenseBudget {
+  id               String                 @id @default(cuid())
+  name             String
+  category         OfficeExpenseCategory? // null = Overall monthly OpEx Cap
+  amount           Float                  // Budget limit
+  currency         String                 @default("USD")
+  month            Int?                   // 1-12 (null = perpetual default monthly cap)
+  year             Int?                   // e.g. 2026 (null = perpetual default)
+  warningThreshold Float                  @default(80.0) // % at which to show warning (e.g. 80%)
+  notifyOnWarning  Boolean                @default(true)
+  notifyOnExceeded Boolean                @default(true)
+  notes            String?
+  createdById      String?
+  createdBy        User?                  @relation("CreatedExpenseBudgets", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+
+  @@index([category])
+  @@index([year, month])
+  @@index([createdById])
 }
 
 model LedgerTransfer {

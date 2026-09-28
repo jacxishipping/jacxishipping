@@ -28,11 +28,14 @@ import {
   ArrowUpRight,
   ExternalLink,
   ChevronRight,
-  RefreshCw,
   Tag,
   Store,
   FileCheck,
+  Repeat,
+  Sliders,
 } from 'lucide-react';
+import RecurringExpensesTab from './RecurringExpensesTab';
+import BudgetsTab from './BudgetsTab';
 import {
   Box,
   Typography,
@@ -168,7 +171,7 @@ export default function OfficeExpensesPage() {
   const [summary, setSummary] = useState<ExpenseSummary | null>(null);
   const [stats, setStats] = useState<ExpenseStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'list' | 'analytics'>('list');
+  const [activeTab, setActiveTab] = useState<'list' | 'analytics' | 'recurring' | 'budgets'>('list');
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -492,6 +495,24 @@ export default function OfficeExpensesPage() {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <PieIcon className="w-4 h-4" />
                   <span>Category Breakdown & Trends</span>
+                </Box>
+              }
+            />
+            <Tab
+              value="recurring"
+              label={
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Repeat className="w-4 h-4" />
+                  <span>Recurring Schedules</span>
+                </Box>
+              }
+            />
+            <Tab
+              value="budgets"
+              label={
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Sliders className="w-4 h-4" />
+                  <span>Budgets & Caps</span>
                 </Box>
               }
             />
@@ -974,6 +995,26 @@ export default function OfficeExpensesPage() {
               </DashboardPanel>
             </div>
           </DashboardGrid>
+        )}
+
+        {activeTab === 'recurring' && (
+          <RecurringExpensesTab
+            onExpenseGenerated={() => {
+              fetchExpenses();
+              fetchStats();
+            }}
+            categoryLabels={Object.fromEntries(
+              Object.entries(CATEGORY_METADATA).map(([k, v]) => [k, v.label])
+            ) as Record<OfficeExpenseCategory, string>}
+          />
+        )}
+
+        {activeTab === 'budgets' && (
+          <BudgetsTab
+            categoryLabels={Object.fromEntries(
+              Object.entries(CATEGORY_METADATA).map(([k, v]) => [k, v.label])
+            ) as Record<OfficeExpenseCategory, string>}
+          />
         )}
 
         {/* Add / Edit Expense Modal */}

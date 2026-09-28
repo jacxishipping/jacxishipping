@@ -368,6 +368,129 @@ export async function GET(request: NextRequest) {
         },
         shipments: shipmentReports,
       });
+    } else if (reportType === 'pnl') {
+      // UNIFIED PROFIT & LOSS (P&L) STATEMENT
+      const expenseDateWhere: any = {};
+      if (startDate || endDate) {
+        expenseDateWhere.expenseDate = {};
+        if (startDate) expenseDateWhere.expenseDate.gte = new Date(startDate);
+        if (endDate) {
+          const end = new Date(endDate);
+          end.setHours(23, 59, 59, 999);
+          expenseDateWhere.expenseDate.lte = end;
+        }
+      }
+
+      const [
+        shipments,
+        dispatchExpenses,
+        containerExpenses,
+        officeExpensesGrouped,
+        officeExpensesTotal,
+      ] = await Promise.all([
+        prisma.shipment.findMany({
+          where: dateWhere,
+          select: {
+            id: true,
+            price: true,
+            createdAt: true,
+            ledgerEntries: {
+              select: { id: true, amount: true, type: true, metadata: true, transactionDate: true },
+            },
+          },
+        }),
+        prisma.dispatchExpense.aggregate({
+          where: dateWhere,
+          _sum: { amount: true },
+          _count: { id: true },
+        }),
+        prisma.containerExpense.aggregate({
+          where: dateWhere,
+          _sum: { amount: true },
+          _count: { id: true },
+        }),
+        prisma.officeExpense.groupBy({
+          by: ['category'],
+          where: { ...expenseDateWhere, status: 'PAID' },
+          _sum: { amount: true },
+          _count: { id: true },
+        }),
+        prisma.officeExpense.aggregate({
+          where: { ...expenseDateWhere, status: 'PAID' },
+          _sum: { amount: true },
+          _count: { id: true },
+        }),
+      ]);
+
+      // 1. Gross Revenue
+      let totalFreightRevenue = 0;
+      let totalShipmentDirectExpenses = 0;
+
+      for (const s of shipments) {
+        totalFreightRevenue += s.price || 0;
+        for (const e of s.ledgerEntries) {
+          const meta = (e.metadata ?? {}) as Record<string, unknown>;
+          if (meta.isExpense === true) {
+            totalShipmentDirectExpenses += e.amount;
+          }
+        }
+      }
+
+      totalFreightRevenue = roundToCents(totalFreightRevenue);
+      const totalDispatchExpenses = roundToCents(dispatchExpenses._sum.amount || 0);
+      const totalContainerExpenses = roundToCents(containerExpenses._sum.amount || 0);
+      const totalDirectLogisticsCosts = roundToCents(
+        totalShipmentDirectExpenses + totalDispatchExpenses + totalContainerExpenses
+      );
+
+      // 2. Gross Margin
+      const grossProfit = roundToCents(totalFreightRevenue - totalDirectLogisticsCosts);
+      const grossMarginPercent = totalFreightRevenue > 0 ? (grossProfit / totalFreightRevenue) * 100 : 0;
+
+      // 3. Operating Expenses (OpEx)
+      const totalOpEx = roundToCents(officeExpensesTotal._sum.amount || 0);
+      const opexByCategory = officeExpensesGrouped.map((g) => ({
+        category: g.category,
+        amount: roundToCents(g._sum.amount || 0),
+        count: g._count.id,
+        percentageOfOpEx: totalOpEx > 0 ? ((g._sum.amount || 0) / totalOpEx) * 100 : 0,
+      })).sort((a, b) => b.amount - a.amount);
+
+      // 4. Net Operating Income (EBITDA)
+      const netOperatingIncome = roundToCents(grossProfit - totalOpEx);
+      const netMarginPercent = totalFreightRevenue > 0 ? (netOperatingIncome / totalFreightRevenue) * 100 : 0;
+
+      return NextResponse.json({
+        reportType: 'pnl',
+        period: {
+          startDate: startDate || 'All time',
+          endDate: endDate || 'Now',
+        },
+        revenue: {
+          totalRevenue: totalFreightRevenue,
+          freightRevenue: totalFreightRevenue,
+          shipmentCount: shipments.length,
+        },
+        costOfGoodsSold: {
+          totalCOGS: totalDirectLogisticsCosts,
+          shipmentDirectExpenses: roundToCents(totalShipmentDirectExpenses),
+          dispatchExpenses: totalDispatchExpenses,
+          containerExpenses: totalContainerExpenses,
+        },
+        grossProfit: {
+          amount: grossProfit,
+          marginPercent: grossMarginPercent,
+        },
+        operatingExpenses: {
+          totalOpEx,
+          categories: opexByCategory,
+          count: officeExpensesTotal._count.id || 0,
+        },
+        netIncome: {
+          amount: netOperatingIncome,
+          marginPercent: netMarginPercent,
+        },
+      });
     } else {
       return NextResponse.json({ error: 'Invalid report type' }, { status: 400 });
     }
