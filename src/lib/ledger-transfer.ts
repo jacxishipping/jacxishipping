@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import { Prisma, LedgerTransferType, LedgerPartyType, LedgerTransferStatus } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { recalculateUserLedgerBalances } from '@/lib/user-ledger';
@@ -27,7 +28,7 @@ export interface CancelTransferInput {
 function generateTransferNumber(): string {
   const now = new Date();
   const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
-  const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+  const randomSuffix = randomBytes(2).toString('hex').toUpperCase();
   return `TRF-${dateStr}-${randomSuffix}`;
 }
 
