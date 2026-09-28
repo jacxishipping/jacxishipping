@@ -80,6 +80,7 @@ import { ContainerCapacityGauge } from '@/components/dashboard/ContainerCapacity
 import { ContainerProfitabilityCard } from '@/components/dashboard/ContainerProfitabilityCard';
 import { TrackingMap } from '@/components/dashboard/TrackingMap';
 import { OceanRouteMap } from '@/components/dashboard/OceanRouteMap';
+import { OceanCarrierSyncCard } from '@/components/containers/OceanCarrierSyncCard';
 import { ContainerLoadPlanner } from '@/components/dashboard/ContainerLoadPlanner';
 import { hasAnyPermission, hasPermission } from '@/lib/rbac';
 
@@ -2084,6 +2085,22 @@ export default function ContainerDetailPage() {
 					{/* Tracking Tab */}
 					{activeTab === 'tracking' && (
 						<Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+							<OceanCarrierSyncCard
+								containerId={container.id}
+								containerNumber={container.containerNumber}
+								shippingLine={container.shippingLine}
+								vesselName={container.vesselName}
+								voyageNumber={container.voyageNumber}
+								loadingPort={container.loadingPort}
+								destinationPort={container.destinationPort}
+								estimatedArrival={container.estimatedArrival}
+								departureDate={container.departureDate}
+								status={container.status}
+								onSyncComplete={() => {
+									fetchContainer();
+								}}
+							/>
+
 							<OceanRouteMap 
 								originPort={container.shippingLine || container.loadingPort || 'Port of Newark (USNWK)'}
 								destinationPort={container.destinationPort || 'Port of Jebel Ali (AEJEA)'}
