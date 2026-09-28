@@ -27,6 +27,7 @@ import {
   Building2,
   HandCoins,
   GitCompareArrows,
+  ArrowLeftRight,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 
@@ -136,11 +137,13 @@ export default async function FinancePage() {
     const data = await getFinancialData(session.user.id, isAdmin);
 
     const quickActions: QuickAction[] = [
+        { href: '/dashboard/finance/office-expenses', label: 'Office & Operating Expenses', description: 'Manage office overhead, rent, utilities, payroll, and supplies', icon: <Building2 className="w-5 h-5" />, adminOnly: true },
         { href: '/dashboard/finance/ledger', label: 'My Ledger', description: 'View your transaction history', icon: <FileText className="w-5 h-5" /> },
         { href: '/dashboard/finance/banking', label: 'Banking', description: 'Preview and import bank CSV statements into your ledger', icon: <Landmark className="w-5 h-5" /> },
         { href: '/dashboard/finance/admin/ledgers', label: 'User Ledgers', description: 'Manage all user accounts', icon: <Users className="w-5 h-5" />, adminOnly: true },
         { href: '/dashboard/finance/reports', label: 'Financial Reports', description: 'Generate detailed analysis', icon: <FileText className="w-5 h-5" />, adminOnly: true },
         { href: '/dashboard/finance/companies', label: 'Company Ledgers', description: 'Manage partner company accounts', icon: <Building2 className="w-5 h-5" />, adminOnly: true },
+        { href: '/dashboard/finance/transfers', label: 'Inter-Ledger Transfers', description: 'Transfer funds and balances between customer and company accounts', icon: <ArrowLeftRight className="w-5 h-5" />, adminOnly: true },
         { href: '/dashboard/finance/price-comparison', label: 'Price Comparison', description: 'Compare shipping rate sheets across companies', icon: <GitCompareArrows className="w-5 h-5" />, adminOnly: true },
     ];
 

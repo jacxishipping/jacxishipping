@@ -75,6 +75,10 @@ model User {
   sentNotifications     Notification[] @relation("NotificationSender")
   partnerPortalMemberships PartnerPortalMembership[]
   plaidItems     PlaidItem[]
+  recordedOfficeExpenses OfficeExpense[] @relation("RecordedOfficeExpenses")
+  sourceTransfers LedgerTransfer[] @relation("SourceUserTransfers")
+  destTransfers   LedgerTransfer[] @relation("DestUserTransfers")
+  createdTransfers LedgerTransfer[] @relation("CreatedTransfers")
 
   @@index([loginCode])
 }
@@ -172,6 +176,8 @@ model Shipment {
   companyGetpassStartedAt DateTime?
   companyGetpassCompletedAt DateTime?
   companyGetpassDurationSeconds Int?
+  companyGatePassRequested Boolean @default(false)
+  companyGatePassRequestedAt DateTime?
 
   // Metadata
   createdAt DateTime @default(now())
@@ -450,7 +456,7 @@ model Payment {
   method        PaymentMethod
   transactionId String?
   gateway       String?
-  idempotencyKey String?      @unique
+  idempotencyKey String?
   refundedAt    DateTime?
   refundReason  String?
   refundOfPaymentId String?   // Self-reference for refund payments
@@ -956,6 +962,8 @@ model Company {
   transitEvents TransitEvent[]
   shipments     Shipment[]           @relation("ShipmentShippingCompany")
   containers    Container[]
+  sourceTransfers LedgerTransfer[] @relation("SourceCompanyTransfers")
+  destTransfers   LedgerTransfer[] @relation("DestCompanyTransfers")
 
   @@index([name])
   @@index([isActive])
@@ -1684,3 +1692,121 @@ model BankReconciliation {
   @@index([invoiceId])
   @@index([status])
 }
+
+// ============================================
+// OFFICE & OPERATING EXPENSES (OpEx)
+// ============================================
+
+model OfficeExpense {
+  id              String                @id @default(cuid())
+  title           String
+  category        OfficeExpenseCategory @default(OTHER)
+  amount          Float
+  currency        String                @default("USD")
+  expenseDate     DateTime              @default(now())
+  paymentMethod   String                @default("CASH") // CASH, BANK_TRANSFER, CHECK, CREDIT_CARD, DEBIT_CARD, ZELLE, OTHER
+  vendor          String?               // Paid to / Vendor / Landlord / Utility / Provider
+  referenceNumber String?               // Receipt #, Check #, Invoice #
+  receiptUrl      String?               // Receipt or invoice attachment URL
+  receiptName     String?               // Original attachment name
+  notes           String?
+  status          ExpensePaymentStatus  @default(PAID) // PAID, PENDING, CANCELLED
+  recordedById    String?
+  recordedBy      User?                 @relation("RecordedOfficeExpenses", fields: [recordedById], references: [id], onDelete: SetNull)
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  @@index([category])
+  @@index([expenseDate])
+  @@index([status])
+  @@index([recordedById])
+  @@index([createdAt])
+}
+
+enum OfficeExpenseCategory {
+  RENT
+  UTILITIES
+  SALARIES_PAYROLL
+  OFFICE_SUPPLIES
+  EQUIPMENT_HARDWARE
+  SOFTWARE_SUBSCRIPTIONS
+  MAINTENANCE_REPAIRS
+  TRAVEL_TRANSPORT
+  MARKETING_ADVERTISING
+  LEGAL_PROFESSIONAL
+  COMMUNICATION_INTERNET
+  TAXES_GOVERNMENT_FEES
+  BANK_FEES
+  MEALS_ENTERTAINMENT
+  OTHER
+}
+
+enum ExpensePaymentStatus {
+  PAID
+  PENDING
+  CANCELLED
+}
+
+model LedgerTransfer {
+  id                         String               @id @default(cuid())
+  transferNumber             String               @unique
+  transferType               LedgerTransferType
+  amount                     Float
+  currency                   String               @default("USD")
+  transferDate               DateTime             @default(now())
+  
+  // Source
+  sourceType                 LedgerPartyType
+  sourceUserId               String?
+  sourceUser                 User?                @relation("SourceUserTransfers", fields: [sourceUserId], references: [id], onDelete: SetNull)
+  sourceCompanyId            String?
+  sourceCompany              Company?             @relation("SourceCompanyTransfers", fields: [sourceCompanyId], references: [id], onDelete: SetNull)
+  sourceLedgerEntryId        String?
+  sourceCompanyLedgerEntryId String?
+
+  // Destination
+  destType                   LedgerPartyType
+  destUserId                 String?
+  destUser                   User?                @relation("DestUserTransfers", fields: [destUserId], references: [id], onDelete: SetNull)
+  destCompanyId              String?
+  destCompany                Company?             @relation("DestCompanyTransfers", fields: [destCompanyId], references: [id], onDelete: SetNull)
+  destLedgerEntryId          String?
+  destCompanyLedgerEntryId   String?
+
+  reference                  String?
+  notes                      String?
+  status                     LedgerTransferStatus @default(COMPLETED)
+  
+  createdById                String?
+  createdBy                  User?                @relation("CreatedTransfers", fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt                  DateTime             @default(now())
+  updatedAt                  DateTime             @updatedAt
+
+  @@index([transferType])
+  @@index([transferDate])
+  @@index([sourceUserId])
+  @@index([sourceCompanyId])
+  @@index([destUserId])
+  @@index([destCompanyId])
+  @@index([createdById])
+  @@index([status])
+}
+
+enum LedgerTransferType {
+  USER_TO_USER
+  USER_TO_COMPANY
+  COMPANY_TO_USER
+  COMPANY_TO_COMPANY
+}
+
+enum LedgerPartyType {
+  USER
+  COMPANY
+}
+
+enum LedgerTransferStatus {
+  COMPLETED
+  CANCELLED
+}
+

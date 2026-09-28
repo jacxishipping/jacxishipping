@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import type { Session } from 'next-auth';
 import type { SvgIconComponent } from '@mui/icons-material';
-import { Dashboard, Inventory2, Description, Search, Analytics, Group, AllInbox, Receipt, AccountBalance, Payment, Business, LocalShipping, SmartToy, PhoneInTalk, Route, ExpandLess, ExpandMore, AdminPanelSettings, CompareArrows, Settings, Timer, ChevronLeft, ChevronRight, Logout, Close } from '@mui/icons-material';
+import { Dashboard, Inventory2, Description, Search, Analytics, Group, AllInbox, Receipt, ReceiptLong, AccountBalance, Payment, Business, LocalShipping, SmartToy, PhoneInTalk, Route, ExpandLess, ExpandMore, AdminPanelSettings, CompareArrows, SwapHoriz, Settings, Timer, ChevronLeft, ChevronRight, Logout, Close } from '@mui/icons-material';
 import { signOut, useSession } from 'next-auth/react';
 import { Drawer, Box, List, ListItemButton, ListItemIcon, ListItemText, Typography, Collapse, IconButton, Avatar, Button, Tooltip, Divider } from '@mui/material';
 import { hasPermission, type Permission } from '@/lib/rbac';
@@ -90,6 +90,12 @@ const financeNavigation: NavigationItem[] = [
 		requiredPermission: 'finance:view',
 	},
 	{
+		name: 'Office Expenses',
+		href: '/dashboard/finance/office-expenses',
+		icon: ReceiptLong,
+		requiredPermission: 'finance:view',
+	},
+	{
 		name: 'Banking',
 		href: '/dashboard/finance/banking',
 		icon: Payment,
@@ -105,6 +111,12 @@ const financeNavigation: NavigationItem[] = [
 		name: 'Company Ledgers',
 		href: '/dashboard/finance/companies',
 		icon: Business,
+		requiredPermission: 'finance:manage',
+	},
+	{
+		name: 'Ledger Transfers',
+		href: '/dashboard/finance/transfers',
+		icon: SwapHoriz,
 		requiredPermission: 'finance:manage',
 	},
 	{
