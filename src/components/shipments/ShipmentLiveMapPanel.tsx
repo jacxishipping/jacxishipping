@@ -20,6 +20,7 @@ import {
   ShieldCheck,
   Eye,
   Info,
+  Package,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { DashboardPanel } from '@/components/dashboard/DashboardSurface';
@@ -63,45 +64,37 @@ export default function ShipmentLiveMapPanel({
   const [viewMode, setViewMode] = useState<'ais-radar' | 'multimodal'>('ais-radar');
   const [isMapVisible, setIsMapVisible] = useState(false);
 
+  const hasContainer = Boolean(shipment.containerId || shipment.container);
+
   // Determine origin, destination, and movement stage
   const originPort = useMemo(() => {
-    return (
-      shipment.container?.loadingPort ||
-      shipment.dispatch?.origin ||
-      shipment.purchaseLocation ||
-      'Port of Newark (USNWK)'
-    );
-  }, [shipment.container?.loadingPort, shipment.dispatch?.origin, shipment.purchaseLocation]);
+    if (shipment.container?.loadingPort) return shipment.container.loadingPort;
+    if (shipment.dispatch?.origin) return shipment.dispatch.origin;
+    if (shipment.purchaseLocation) return shipment.purchaseLocation;
+    return hasContainer ? 'Port of Newark (USNWK)' : 'Origin Yard / Auction';
+  }, [shipment.container?.loadingPort, shipment.dispatch?.origin, shipment.purchaseLocation, hasContainer]);
 
   const destinationPort = useMemo(() => {
-    return (
-      shipment.container?.destinationPort ||
-      shipment.transit?.destination ||
-      'Port of Jebel Ali (AEJEA)'
-    );
-  }, [shipment.container?.destinationPort, shipment.transit?.destination]);
+    if (shipment.container?.destinationPort) return shipment.container.destinationPort;
+    if (shipment.transit?.destination) return shipment.transit.destination;
+    return hasContainer ? 'Port of Jebel Ali (AEJEA)' : 'Destination Port (Pending Container)';
+  }, [shipment.container?.destinationPort, shipment.transit?.destination, hasContainer]);
 
   const vesselName = useMemo(() => {
-    return shipment.container?.vesselName || (shipment.containerId ? 'MAERSK VOYAGER' : 'Carrier Transport');
-  }, [shipment.container?.vesselName, shipment.containerId]);
+    if (shipment.container?.vesselName) return shipment.container.vesselName;
+    if (hasContainer) return 'MAERSK VOYAGER';
+    return 'Pending Container Assignment';
+  }, [shipment.container?.vesselName, hasContainer]);
 
   const voyageNumber = useMemo(() => {
-    return shipment.container?.voyageNumber || 'V-2409W';
-  }, [shipment.container?.voyageNumber]);
+    if (shipment.container?.voyageNumber) return shipment.container.voyageNumber;
+    return hasContainer ? 'V-2409W' : 'Unassigned';
+  }, [shipment.container?.voyageNumber, hasContainer]);
 
   const containerNumber = useMemo(() => {
-    return (
-      shipment.container?.containerNumber ||
-      shipment.dispatch?.referenceNumber ||
-      shipment.transit?.referenceNumber ||
-      `SHP-${shipment.id.slice(-6).toUpperCase()}`
-    );
-  }, [
-    shipment.container?.containerNumber,
-    shipment.dispatch?.referenceNumber,
-    shipment.transit?.referenceNumber,
-    shipment.id,
-  ]);
+    if (shipment.container?.containerNumber) return shipment.container.containerNumber;
+    return 'Unassigned';
+  }, [shipment.container?.containerNumber]);
 
   // Compute calculated progress
   const progressPercent = useMemo(() => {
@@ -140,6 +133,7 @@ export default function ShipmentLiveMapPanel({
     if (shipment.status === 'RELEASED') return 'Port of Arrival / Customs Clearance';
     if (shipment.status === 'IN_TRANSIT') return 'En Route - International Waters';
     if (shipment.status === 'DISPATCHING') return 'Inland Transit to Port';
+    if (shipment.status === 'ON_HAND') return 'Export Yard (Awaiting Container)';
     return 'Origin Yard / Loading';
   }, [shipment.container?.currentLocation, shipment.status]);
 
@@ -160,10 +154,12 @@ export default function ShipmentLiveMapPanel({
 
         <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap items-center gap-3">
-            <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-cyan-500/30 bg-cyan-950/70 text-cyan-400 shadow-inner">
+            <div className={`relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${
+              hasContainer ? 'border-cyan-500/30 bg-cyan-950/70 text-cyan-400' : 'border-amber-500/30 bg-amber-950/70 text-amber-400'
+            } shadow-inner`}>
               <span className="absolute -right-0.5 -top-0.5 flex h-3 w-3">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-400 opacity-75" />
-                <span className="relative inline-flex h-3 w-3 rounded-full bg-cyan-500" />
+                <span className={`absolute inline-flex h-full w-full animate-ping rounded-full ${hasContainer ? 'bg-cyan-400' : 'bg-amber-400'} opacity-75`} />
+                <span className={`relative inline-flex h-3 w-3 rounded-full ${hasContainer ? 'bg-cyan-500' : 'bg-amber-500'}`} />
               </span>
               <Radio className="h-5 w-5 animate-pulse" />
             </div>
@@ -171,12 +167,19 @@ export default function ShipmentLiveMapPanel({
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <h3 className="text-base font-bold tracking-tight text-white sm:text-lg">
-                  Live Shipment Location Map
+                  {hasContainer ? 'Live Shipment Location Map' : 'Shipment Location & Yard Status'}
                 </h3>
-                <span className="inline-flex items-center gap-1 rounded-full border border-cyan-500/40 bg-cyan-500/15 px-2.5 py-0.5 text-xs font-semibold text-cyan-300">
-                  <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-pulse" />
-                  AIS Telemetry Live
-                </span>
+                {hasContainer ? (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-cyan-500/40 bg-cyan-500/15 px-2.5 py-0.5 text-xs font-semibold text-cyan-300">
+                    <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                    AIS Telemetry Live
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/15 px-2.5 py-0.5 text-xs font-semibold text-amber-300">
+                    <Package className="h-3 w-3 text-amber-400" />
+                    Awaiting Container
+                  </span>
+                )}
                 <StatusBadge status={shipment.status} size="sm" />
               </div>
 
@@ -191,11 +194,9 @@ export default function ShipmentLiveMapPanel({
                   <span>Vessel: </span>
                   <strong className="text-white">{vesselName}</strong>
                 </span>
-                {shipment.container?.containerNumber && (
-                  <span className="font-mono text-slate-400">
-                    Container: <strong className="text-slate-200">{shipment.container.containerNumber}</strong>
-                  </span>
-                )}
+                <span className="font-mono text-slate-400">
+                  Container: <strong className="text-slate-200">{containerNumber}</strong>
+                </span>
               </div>
             </div>
           </div>
@@ -292,7 +293,40 @@ export default function ShipmentLiveMapPanel({
 
       {/* Main Interactive Map Component (Only mounted on demand) */}
       {isMapVisible && (
-        viewMode === 'ais-radar' ? (
+        !hasContainer ? (
+          <div className="relative overflow-hidden rounded-2xl border border-amber-500/30 bg-slate-950 p-6 text-white shadow-lg">
+            <div className="flex flex-col gap-4">
+              <div className="flex items-start gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-amber-500/40 bg-amber-950/60 text-amber-400">
+                  <Package className="h-6 w-6" />
+                </div>
+                <div>
+                  <h4 className="text-base font-bold text-white">Awaiting Container Assignment & Loading</h4>
+                  <p className="mt-1 text-xs text-slate-300 leading-relaxed">
+                    This vehicle is currently staged at the yard / in domestic dispatch. Live transatlantic AIS vessel radar, real-time satellite coordinates, and voyage tracking will automatically activate once the vehicle is assigned to a container and departs the export port.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-3 border-t border-slate-800 pt-4">
+                <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Dispatch Status</p>
+                  <p className="mt-1 text-xs font-semibold text-white">
+                    {shipment.dispatch ? `Dispatched (${shipment.dispatch.status})` : 'Not assigned to dispatch'}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Staging Location</p>
+                  <p className="mt-1 text-xs font-semibold text-white">{currentLocationLabel}</p>
+                </div>
+                <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Export Container</p>
+                  <p className="mt-1 font-mono text-xs font-semibold text-amber-400">Unassigned (Queued)</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : viewMode === 'ais-radar' ? (
           <div className="relative overflow-hidden rounded-2xl border border-[var(--border)] bg-slate-950 shadow-lg">
             <LiveSeaRouteMap
               containerNumber={containerNumber}

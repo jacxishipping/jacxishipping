@@ -17,6 +17,7 @@ export type NormalizedTrackingEvent = {
 
 export type NormalizedTracking = {
   containerNumber: string;
+  isContainerAssigned?: boolean;
   containerType?: string;
   shipmentStatus?: string;
   origin?: string;
@@ -217,6 +218,7 @@ export async function buildTrackingResponse(
 
         return {
           ...normalized,
+          isContainerAssigned: true,
           containerType: `${vehicleLabel} (VIN: ${shipment.vehicleVIN || 'N/A'})`,
           shipmentStatus: shipment.status,
           customerTracking,
@@ -251,6 +253,7 @@ export async function buildTrackingResponse(
 
       return {
         containerNumber: shipment.container.containerNumber,
+        isContainerAssigned: true,
         containerType: `${vehicleLabel} (VIN: ${shipment.vehicleVIN || 'N/A'})`,
         shipmentStatus: shipment.status,
         origin: shipment.container.loadingPort || shipment.dispatch?.origin || 'Export Port',
@@ -338,10 +341,11 @@ export async function buildTrackingResponse(
     });
 
     return {
-      containerNumber: shipment.vehicleVIN || shipment.id,
+      containerNumber: 'Unassigned',
+      isContainerAssigned: false,
       containerType: `${vehicleLabel} (VIN: ${shipment.vehicleVIN || 'N/A'})`,
       shipmentStatus: shipment.status,
-      origin: shipment.dispatch?.origin || shipment.purchaseLocation || 'Export Terminal',
+      origin: shipment.dispatch?.origin || shipment.purchaseLocation || 'Export Terminal / Yard',
       originDate: shipment.createdAt.toISOString(),
       destination: 'Destination Port (Pending Container Assignment)',
       currentLocation:

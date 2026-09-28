@@ -25,6 +25,7 @@ interface TrackingEventEntry {
 
 interface TrackingDetails {
 	containerNumber: string;
+	isContainerAssigned?: boolean;
 	containerType?: string;
 	shipmentStatus?: string;
 	customerTracking?: {

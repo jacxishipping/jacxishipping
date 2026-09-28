@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Radio, Map } from 'lucide-react';
+import { Radio, Map, Package } from 'lucide-react';
 import { LiveSeaRouteMap } from '@/components/dashboard/LiveSeaRouteMap';
 
 interface TrackingRouteMapProps {
@@ -18,11 +18,31 @@ export default function TrackingRouteMap({
   progressPercent, 
   origin, 
   destination,
-  containerNumber = 'MSKU9048123',
-  vesselName = 'MAERSK VOYAGER',
+  containerNumber,
+  vesselName,
   estimatedArrival
 }: TrackingRouteMapProps) {
   const [activeView, setActiveView] = useState<'ais-radar' | 'multimodal'>('ais-radar');
+
+  const isUnassigned = !containerNumber || containerNumber === 'Unassigned' || destination.toLowerCase().includes('pending');
+
+  if (isUnassigned) {
+    return (
+      <div className="relative w-full rounded-2xl bg-slate-900 border border-amber-500/30 p-6 text-white shadow-xl">
+        <div className="flex items-start gap-3.5">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-500/15 text-amber-400 border border-amber-500/30">
+            <Package className="h-6 w-6" />
+          </div>
+          <div>
+            <h4 className="text-base font-bold text-white">Awaiting Container Assignment & Loading</h4>
+            <p className="mt-1 text-xs text-slate-300 leading-relaxed">
+              This vehicle is currently staged at the yard / in domestic dispatch. Live transatlantic AIS vessel radar and oceanic route tracking will automatically activate once this vehicle is loaded into an export container and departs the port.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Approximate coordinate anchors for USA/Canada -> selected route -> Afghanistan.
   const nodes = [
