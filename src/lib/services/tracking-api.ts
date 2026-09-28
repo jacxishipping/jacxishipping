@@ -1,19 +1,19 @@
 /**
- * PGL tracking integration service.
- * Fetches container tracking history from the public PGL endpoint.
+ * Tracking integration service.
+ * Fetches container tracking history by first querying the new ContainerTracking Supabase API,
+ * and seamlessly falling back to the legacy PGL endpoint if no data is found.
  */
 
 import { logger } from '@/lib/logger';
+import { containerTrackingClient, type SupabaseTrackingData } from '@/lib/services/container-tracking-client';
 
 const PGL_TRACKING_ENDPOINT = 'https://api.pglsystem.com/api/public/tracking';
 
-// In-memory TTL cache for PGL lookups. The upstream API is slow (1-4s) and
-// tracking data changes infrequently, so a short cache dramatically speeds up
-// repeat lookups (page refreshes, share-link visits, status syncs).
-const PGL_CACHE_TTL_MS = 5 * 60 * 1000;
-const pglCache = new Map<string, { entries: PGLTrackingEntry[]; expiresAt: number }>();
+// In-memory TTL cache for lookups to speed up repeated queries
+const TRACKING_CACHE_TTL_MS = 5 * 60 * 1000;
+const trackingCache = new Map<string, { snapshot: ContainerTrackingSnapshot; expiresAt: number }>();
 
-interface ExternalTrackingEvent {
+export interface ExternalTrackingEvent {
 	status: string;
 	location: string;
 	timestamp: string;
@@ -92,18 +92,27 @@ interface PGLTrackingEntry {
 export class TrackingAPIService {
 	/**
 	 * Fetch tracking data as normalized tracking events.
+	 * Tries Supabase first, then falls back to PGL.
 	 */
 	async fetchTrackingData(
 		trackingNumber: string,
 		_shippingLine?: string
 	): Promise<ExternalTrackingEvent[]> {
 		try {
-			const entries = await this.fetchPGLEntries(trackingNumber);
-			if (entries.length === 0) {
+			const snapshot = await this.fetchContainerTrackingData(trackingNumber);
+			if (!snapshot) {
 				return [];
 			}
 
-			return this.transformEntriesToEvents(entries);
+			return snapshot.trackingEvents.map((ev) => ({
+				status: ev.status,
+				location: ev.location || 'Unknown',
+				timestamp: ev.eventDate,
+				description: ev.description,
+				vesselName: ev.vesselName || snapshot.vesselName,
+				voyageNumber: snapshot.voyageNumber,
+				completed: ev.completed,
+			}));
 		} catch (error) {
 			logger.error('Error fetching tracking data:', error);
 			return [];
@@ -111,21 +120,146 @@ export class TrackingAPIService {
 	}
 
 	/**
-	 * Fetch full tracking data for the container form route.
+	 * Fetch full tracking data for a container.
+	 * Strategy:
+	 * 1. Query the new ContainerTracking Supabase URL backend.
+	 * 2. If no data / error, fallback to legacy PGL API.
 	 */
 	async fetchContainerTrackingData(
 		containerNumber: string
 	): Promise<ContainerTrackingSnapshot | null> {
 		try {
 			const normalizedContainerNumber = containerNumber.trim().toUpperCase();
-			const entries = await this.fetchPGLEntries(normalizedContainerNumber);
-			if (entries.length === 0) {
+
+			// Check in-memory cache
+			const cached = trackingCache.get(normalizedContainerNumber);
+			if (cached && cached.expiresAt > Date.now()) {
+				return cached.snapshot;
+			}
+
+			// 1. PRIMARY: Try the new Supabase Tracking URL backend
+			try {
+				const supabaseData = await containerTrackingClient.fetchContainerTracking(normalizedContainerNumber);
+				if (
+					supabaseData &&
+					(Boolean(supabaseData.events?.length) || Boolean(supabaseData.pol) || Boolean(supabaseData.pod))
+				) {
+					logger.info(`Container tracking data retrieved via Supabase for ${normalizedContainerNumber}`);
+					const snapshot = this.buildSnapshotFromSupabaseData(normalizedContainerNumber, supabaseData);
+					trackingCache.set(normalizedContainerNumber, {
+						snapshot,
+						expiresAt: Date.now() + TRACKING_CACHE_TTL_MS,
+					});
+					return snapshot;
+				}
+			} catch (supabaseError) {
+				logger.warn(`Supabase tracking lookup failed for ${normalizedContainerNumber}, attempting PGL fallback:`, supabaseError);
+			}
+
+			// 2. FALLBACK: Query legacy PGL endpoint if Supabase didn't have data
+			logger.info(`Supabase returned no tracking for ${normalizedContainerNumber}. Falling back to legacy PGL tracking URL...`);
+			const pglEntries = await this.fetchPGLEntries(normalizedContainerNumber);
+			if (pglEntries.length > 0) {
+				logger.info(`Container tracking data retrieved via legacy PGL for ${normalizedContainerNumber}`);
+				const snapshot = this.buildSnapshotFromPGLEntries(normalizedContainerNumber, pglEntries);
+				trackingCache.set(normalizedContainerNumber, {
+					snapshot,
+					expiresAt: Date.now() + TRACKING_CACHE_TTL_MS,
+				});
+				return snapshot;
+			}
+
+			logger.info(`No tracking data found in either Supabase or legacy PGL for container: ${normalizedContainerNumber}`);
+			return null;
+		} catch (error) {
+			logger.error('Error fetching container tracking data:', error);
+			return null;
+		}
+	}
+
+	/**
+	 * Transform Supabase tracking payload into normalized ContainerTrackingSnapshot
+	 */
+	private buildSnapshotFromSupabaseData(
+		normalizedContainerNumber: string,
+		data: SupabaseTrackingData
+	): ContainerTrackingSnapshot {
+		const pol = data.pol || {};
+		const pod = data.pod || {};
+		const rawEvents = data.events || [];
+
+		let vesselName: string | undefined = undefined;
+		let voyageNumber: string | undefined = undefined;
+
+		for (const ev of rawEvents) {
+			if (ev.mode?.vessel?.vessel_name && !vesselName) {
+				vesselName = ev.mode.vessel.vessel_name;
+			}
+			if (ev.mode?.vessel?.voyage_nr && !voyageNumber) {
+				voyageNumber = ev.mode.vessel.voyage_nr;
+			}
+		}
+
+		const loadingPort = [pol.port, pol.country].filter(Boolean).join(', ') || undefined;
+		const destinationPort = [pod.port, pod.country].filter(Boolean).join(', ') || undefined;
+
+		const trackingEvents = rawEvents.map((ev) => {
+			const locStr = [ev.location?.port, ev.location?.country].filter(Boolean).join(', ') || undefined;
+			const rawStatus = ev.action?.action_name || 'Carrier Event';
+			const normalizedStatus = this.normalizeStatus(rawStatus);
+
+			return {
+				status: normalizedStatus,
+				location: locStr || (ev.event_type === 'expected' ? destinationPort : loadingPort),
+				vesselName: ev.mode?.vessel?.vessel_name || vesselName,
+				description: ev.event_type === 'expected' ? 'Estimated Milestone' : 'Actual Carrier Event',
+				eventDate: ev.event_date ? new Date(ev.event_date).toISOString() : new Date().toISOString(),
+				completed: ev.event_type === 'actual',
+				source: 'API' as const,
+			};
+		});
+
+		// Sort events chronologically descending
+		trackingEvents.sort((a, b) => new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime());
+
+		const latestEvent = trackingEvents[0];
+		const latestStatus = latestEvent?.status;
+		const isCompleted = Boolean(data.container?.completed);
+
+		return {
+			containerNumber: data.container?.number || normalizedContainerNumber,
+			trackingNumber: data.container?.number || normalizedContainerNumber,
+			bookingNumber: undefined,
+			vesselName,
+			voyageNumber,
+			shippingLine: data.scac || undefined,
+			loadingPort,
+			destinationPort,
+			loadingDate: pol.etd_date ? new Date(pol.etd_date).toISOString() : undefined,
+			departureDate: pol.etd_date ? new Date(pol.etd_date).toISOString() : undefined,
+			estimatedArrival: pod.eta_date ? new Date(pod.eta_date).toISOString() : undefined,
+			containerType: data.container?.type || undefined,
+			status: isCompleted ? 'Delivered' : latestStatus,
+			trackingEvents,
+			progress: isCompleted ? 100 : this.calculateProgressFromStatus(latestStatus),
+			currentLocation: latestEvent?.location || loadingPort || destinationPort || undefined,
+		};
+	}
+
+	/**
+	 * Get estimated arrival from tracking data.
+	 */
+	async getEstimatedArrival(trackingNumber: string): Promise<Date | null> {
+		try {
+			const snapshot = await this.fetchContainerTrackingData(trackingNumber);
+			if (!snapshot?.estimatedArrival) {
 				return null;
 			}
 
-			return this.buildSnapshotFromPGLEntries(normalizedContainerNumber, entries);
+			const date = new Date(snapshot.estimatedArrival);
+			return Number.isNaN(date.getTime()) ? null : date;
 		} catch (error) {
-			logger.error('Error fetching container tracking data:', error);
+			logger.error('Error fetching ETA:', error);
 			return null;
 		}
 	}
@@ -135,61 +269,36 @@ export class TrackingAPIService {
 	 */
 	private transformEntriesToEvents(entries: PGLTrackingEntry[]): ExternalTrackingEvent[] {
 		try {
-				return entries
-					.map((entry) => {
-						const rawStatus = entry.status || undefined;
-						const status = this.normalizeStatus(rawStatus);
-						const location = this.getEventLocation(entry, rawStatus);
-						const vesselName = this.getVesselName(entry);
-						const voyageNumber = this.getVoyageNumber(entry);
-						const bookingNumber = entry.containers?.bookings?.booking_number;
-						const descriptionParts = [
-							bookingNumber ? `Booking: ${bookingNumber}` : null,
-							voyageNumber ? `Voyage: ${voyageNumber}` : null,
-							rawStatus ? `Source status: ${rawStatus}` : null,
-						].filter(Boolean);
+			return entries
+				.map((entry) => {
+					const rawStatus = entry.status || undefined;
+					const status = this.normalizeStatus(rawStatus);
+					const location = this.getEventLocation(entry, rawStatus);
+					const vesselName = this.getVesselName(entry);
+					const voyageNumber = this.getVoyageNumber(entry);
+					const bookingNumber = entry.containers?.bookings?.booking_number;
+					const descriptionParts = [
+						bookingNumber ? `Booking: ${bookingNumber}` : null,
+						voyageNumber ? `Voyage: ${voyageNumber}` : null,
+						rawStatus ? `Source status: ${rawStatus}` : null,
+					].filter(Boolean);
 
-						return {
-							status,
-							location: location || 'Unknown',
-							timestamp: this.toIsoString(entry.created_at) || new Date().toISOString(),
-							description: descriptionParts.length > 0 ? descriptionParts.join(' • ') : undefined,
-							vesselName: vesselName || undefined,
-							voyageNumber: voyageNumber || undefined,
-							latitude: undefined,
-							longitude: undefined,
-							completed: true,
-						};
-					})
-					.filter((event) => event.status !== 'Status Update');
+					return {
+						status,
+						location: location || 'Unknown',
+						timestamp: this.toIsoString(entry.created_at) || new Date().toISOString(),
+						description: descriptionParts.length > 0 ? descriptionParts.join(' • ') : undefined,
+						vesselName: vesselName || undefined,
+						voyageNumber: voyageNumber || undefined,
+						latitude: undefined,
+						longitude: undefined,
+						completed: true,
+					};
+				})
+				.filter((event) => event.status !== 'Status Update');
 		} catch (error) {
 			logger.error('Error transforming PGL response:', error);
 			return [];
-		}
-	}
-
-	/**
-	 * Get estimated arrival from the latest booking data.
-	 */
-	async getEstimatedArrival(
-		trackingNumber: string
-	): Promise<Date | null> {
-		try {
-			const entries = await this.fetchPGLEntries(trackingNumber);
-			if (entries.length === 0) {
-				return null;
-			}
-
-			const eta = entries[0].containers?.bookings?.eta;
-			if (!eta) {
-				return null;
-			}
-
-			const date = new Date(eta);
-			return Number.isNaN(date.getTime()) ? null : date;
-		} catch (error) {
-			logger.error('Error fetching ETA:', error);
-			return null;
 		}
 	}
 
@@ -240,42 +349,33 @@ export class TrackingAPIService {
 
 	private async fetchPGLEntries(containerNumber: string): Promise<PGLTrackingEntry[]> {
 		const normalizedContainerNumber = containerNumber.trim().toUpperCase();
-
-		const cached = pglCache.get(normalizedContainerNumber);
-		if (cached && cached.expiresAt > Date.now()) {
-			return cached.entries;
-		}
-
 		const url = `${PGL_TRACKING_ENDPOINT}?tracking_value=${encodeURIComponent(normalizedContainerNumber)}`;
 
-		const response = await fetch(url, {
-			cache: 'no-store',
-			headers: {
-				Accept: 'application/json',
-			},
-		});
+		try {
+			const response = await fetch(url, {
+				cache: 'no-store',
+				headers: {
+					Accept: 'application/json',
+				},
+			});
 
-		if (!response.ok) {
-			logger.error('PGL tracking API error:', response.status);
+			if (!response.ok) {
+				logger.error('PGL tracking API error:', response.status);
+				return [];
+			}
+
+			const payload = (await response.json()) as PGLTrackingResponse;
+			if (!payload?.result || !Array.isArray(payload.data) || payload.data.length === 0) {
+				return [];
+			}
+
+			return payload.data
+				.slice()
+				.sort((left, right) => this.getTimestamp(right.created_at) - this.getTimestamp(left.created_at));
+		} catch (err) {
+			logger.error('PGL fetch request failed:', err);
 			return [];
 		}
-
-		const payload = (await response.json()) as PGLTrackingResponse;
-		if (!payload?.result || !Array.isArray(payload.data) || payload.data.length === 0) {
-			logger.info(`No tracking data found for container: ${normalizedContainerNumber}`);
-			return [];
-		}
-
-		const entries = payload.data
-			.slice()
-			.sort((left, right) => this.getTimestamp(right.created_at) - this.getTimestamp(left.created_at));
-
-		pglCache.set(normalizedContainerNumber, {
-			entries,
-			expiresAt: Date.now() + PGL_CACHE_TTL_MS,
-		});
-
-		return entries;
 	}
 
 	private normalizeStatus(status?: string | null): string {
@@ -397,3 +497,4 @@ export class TrackingAPIService {
 
 // Singleton instance
 export const trackingAPI = new TrackingAPIService();
+
