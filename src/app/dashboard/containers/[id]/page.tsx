@@ -46,7 +46,8 @@ import {
     Search,
     Pencil,
     Layers,
-    Compass
+    Compass,
+    ShieldCheck
 } from 'lucide-react';
 import QRCode from 'react-qr-code';
 import { formatMoney as formatCurrency } from '@/lib/format';
@@ -81,6 +82,7 @@ import { ContainerProfitabilityCard } from '@/components/dashboard/ContainerProf
 import { TrackingMap } from '@/components/dashboard/TrackingMap';
 import { OceanRouteMap } from '@/components/dashboard/OceanRouteMap';
 import { OceanCarrierSyncCard } from '@/components/containers/OceanCarrierSyncCard';
+import { CustomsDocumentPacketModal } from '@/components/containers/CustomsDocumentPacketModal';
 import { ContainerLoadPlanner } from '@/components/dashboard/ContainerLoadPlanner';
 import { hasAnyPermission, hasPermission } from '@/lib/rbac';
 
@@ -296,6 +298,7 @@ export default function ContainerDetailPage() {
 	const [shipmentExpenseModalOpen, setShipmentExpenseModalOpen] = useState(false);
 	const [selectedShipmentForExpense, setSelectedShipmentForExpense] = useState<string | undefined>(undefined);
 	const [damageModalOpen, setDamageModalOpen] = useState(false);
+	const [customsPacketModalOpen, setCustomsPacketModalOpen] = useState(false);
 	const [deletingDamageId, setDeletingDamageId] = useState<string | null>(null);
 	const [companies, setCompanies] = useState<CompanyOption[]>([]);
 	const [selectedCompanyId, setSelectedCompanyId] = useState('');
@@ -915,6 +918,15 @@ export default function ContainerDetailPage() {
                                     Duplicate
                                 </Button>
                             )}
+							<Button 
+								variant="outline" 
+								size="sm" 
+								icon={<ShieldCheck className="w-4 h-4 text-emerald-400" />}
+								onClick={() => setCustomsPacketModalOpen(true)}
+								className="no-print"
+							>
+								Customs Packet
+							</Button>
 							<Button 
 								variant="primary" 
 								size="sm" 
@@ -3166,6 +3178,28 @@ export default function ContainerDetailPage() {
 							/>
 						</div>
 					</div>
+				)}
+				{/* Destination Customs Document Packet Modal */}
+				{customsPacketModalOpen && (
+					<CustomsDocumentPacketModal
+						open={customsPacketModalOpen}
+						onClose={() => setCustomsPacketModalOpen(false)}
+						container={{
+							id: container.id,
+							containerNumber: container.containerNumber,
+							trackingNumber: container.trackingNumber,
+							vesselName: container.vesselName,
+							voyageNumber: container.voyageNumber,
+							shippingLine: container.shippingLine,
+							bookingNumber: container.bookingNumber,
+							loadingPort: container.loadingPort,
+							destinationPort: container.destinationPort,
+							departureDate: container.departureDate,
+							estimatedArrival: container.estimatedArrival,
+							status: container.status,
+							shipments: container.shipments,
+						}}
+					/>
 				)}
 			</DashboardSurface>
 		</ProtectedRoute>
