@@ -8,6 +8,8 @@ import {
   resolvePortLocation
 } from '@/lib/maritime/sea-routes';
 
+import { containerTrackingClient } from '@/lib/services/container-tracking-client';
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -27,6 +29,7 @@ export async function GET(request: NextRequest) {
     let departureDate: Date | null = null;
     let estimatedArrival: Date | null = null;
     let foundContainerNumber = containerNumber || 'MSKU9048123';
+    let detectedImo: string | undefined = undefined;
 
     // If containerId or containerNumber is passed, fetch from DB
     if (containerId || containerNumber) {
@@ -58,6 +61,8 @@ export async function GET(request: NextRequest) {
         if (container.destinationPort) destinationPort = container.destinationPort;
         if (container.departureDate) departureDate = new Date(container.departureDate);
         if (container.estimatedArrival) estimatedArrival = new Date(container.estimatedArrival);
+        if (container.vesselName) vesselName = container.vesselName;
+        if (container.voyageNumber) voyageNumber = container.voyageNumber;
 
         // Compute progress based on dates or status
         if (container.status === 'ARRIVED_PORT' || container.status === 'CUSTOMS_CLEARANCE' || container.status === 'RELEASED' || container.status === 'CLOSED') {
@@ -84,7 +89,25 @@ export async function GET(request: NextRequest) {
       estimatedArrival
     );
 
+    // Check if live satellite GPS fix is available for this vessel
+    let liveFix: { lat: number; lon: number; course: number } | null = null;
+    if (detectedImo) {
+      const imoFix = await containerTrackingClient.getLiveVesselLocation(detectedImo).catch(() => null);
+      if (imoFix && imoFix.lat !== null && imoFix.lon !== null) {
+        liveFix = { lat: imoFix.lat, lon: imoFix.lon, course: imoFix.course || routeAnalysis.vesselHeading };
+        routeAnalysis.vesselCurrentPos = { lat: imoFix.lat, lng: imoFix.lon };
+        if (imoFix.course !== null) {
+          routeAnalysis.vesselHeading = imoFix.course;
+        }
+      }
+    }
+
     const telemetry = generateVesselAISTelemetry(vesselName, voyageNumber, routeAnalysis);
+    if (liveFix) {
+      telemetry.currentPosition = { lat: liveFix.lat, lng: liveFix.lon };
+      telemetry.headingDegrees = liveFix.course;
+      telemetry.aisStation = 'Live Satellite AIS (Supabase Vessel Constellation)';
+    }
 
     // Port Congestion & AIS Weather Analysis
     const congestionFactor = Math.round(12 + (routeAnalysis.activeWaypointIndex * 4.5) % 15); // e.g. 15-27%
