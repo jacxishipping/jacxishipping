@@ -26,8 +26,21 @@ type ChatCompletionResponse = {
   }>;
   error?: {
     message?: string;
-  };
+  } | string;
+  message?: string;
+  detail?: string;
 };
+
+function extractAiErrorMessage(payload: any, fallbackStatus?: number): string {
+  if (!payload) return fallbackStatus ? `AI provider request failed with status ${fallbackStatus}` : 'Unknown AI provider error';
+  if (typeof payload === 'string') return payload;
+  if (typeof payload.error === 'string') return payload.error;
+  if (typeof payload.error?.message === 'string') return payload.error.message;
+  if (typeof payload.message === 'string') return payload.message;
+  if (typeof payload.detail === 'string') return payload.detail;
+  if (Array.isArray(payload.errors) && payload.errors.length > 0) return String(payload.errors[0]);
+  return fallbackStatus ? `AI provider request failed with status ${fallbackStatus}` : 'Unknown AI provider error';
+}
 
 export async function isTokenRouterConfigured() {
   return isAiProviderConfigured(await getEffectiveAiProviderSettings());
@@ -100,18 +113,25 @@ export async function createTokenRouterChatCompletion(
 
   let { response, payload } = await executeRequest(bodyPayload);
 
-  // 2. If 400 Bad Request due to parameter incompatibilities (e.g. unknown parameter 'max_tokens' or 'temperature'), retry adaptively
-  if (!response.ok && response.status === 400) {
-    const errMsg = (payload?.error?.message || '').toLowerCase();
+  // 2. If 400 or 422 Bad Request due to parameter incompatibilities, retry adaptively
+  if (!response.ok && (response.status === 400 || response.status === 422)) {
+    const rawError = extractAiErrorMessage(payload, response.status);
+    const errMsg = rawError.toLowerCase();
     
-    // If rejected max_tokens, retry with max_completion_tokens
-    if (errMsg.includes('max_tokens') || errMsg.includes('unknown parameter') || errMsg.includes('unrecognized')) {
+    // Check if error is related to max_tokens, parameters, or reasoning model constraints
+    if (
+      errMsg.includes('max_tokens') ||
+      errMsg.includes('unknown parameter') ||
+      errMsg.includes('unrecognized') ||
+      errMsg.includes('unsupported parameter') ||
+      errMsg.includes('extra fields')
+    ) {
+      // Step A: Retry with max_completion_tokens
       const fallbackPayload: Record<string, any> = {
         model,
         messages,
         max_completion_tokens: tokenLimit,
       };
-      // Keep temperature only if not rejected
       if (!errMsg.includes('temperature') && !isReasoningModel) {
         fallbackPayload.temperature = tempVal;
       }
@@ -121,15 +141,22 @@ export async function createTokenRouterChatCompletion(
         response = retryRes.response;
         payload = retryRes.payload;
       } else {
-        // As a last-resort, try bare payload without token or temperature limits
-        const bareRetry = await executeRequest({ model, messages });
-        if (bareRetry.response.ok) {
-          response = bareRetry.response;
-          payload = bareRetry.payload;
+        // Step B: Retry with temperature only (no token limit parameter)
+        const noTokenRetry = await executeRequest({ model, messages, temperature: tempVal });
+        if (noTokenRetry.response.ok) {
+          response = noTokenRetry.response;
+          payload = noTokenRetry.payload;
+        } else {
+          // Step C: Bare payload without extra parameters
+          const bareRetry = await executeRequest({ model, messages });
+          if (bareRetry.response.ok) {
+            response = bareRetry.response;
+            payload = bareRetry.payload;
+          }
         }
       }
     } else if (errMsg.includes('temperature')) {
-      // If rejected temperature, retry without temperature
+      // Retry without temperature
       const fallbackPayload: Record<string, any> = {
         model,
         messages,
@@ -139,12 +166,18 @@ export async function createTokenRouterChatCompletion(
       if (retryRes.response.ok) {
         response = retryRes.response;
         payload = retryRes.payload;
+      } else {
+        const bareRetry = await executeRequest({ model, messages });
+        if (bareRetry.response.ok) {
+          response = bareRetry.response;
+          payload = bareRetry.payload;
+        }
       }
     }
   }
 
   if (!response.ok) {
-    const errorMessage = payload?.error?.message ?? `TokenRouter AI request failed with status ${response.status}`;
+    const errorMessage = extractAiErrorMessage(payload, response.status);
     if (/missing\s+authentication\s+header/i.test(errorMessage)) {
       throw new Error(
         `AI provider rejected authentication headers for ${settings.provider || 'configured provider'}. Re-save a valid API key in Settings > AI and confirm the endpoint ${endpoint} matches that key.`,
