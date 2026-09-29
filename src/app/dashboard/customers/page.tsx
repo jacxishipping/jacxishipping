@@ -254,61 +254,14 @@ export default function CustomersPage() {
   const handleExportCustomerVinCsv = useCallback(async () => {
     try {
       toast.info('Exporting customer VIN data...');
-      const firstPageResponse = await fetch('/api/users?page=1&pageSize=100&roleType=customers');
-      if (!firstPageResponse.ok) {
-        throw new Error('Failed to fetch initial customer export data');
+
+      // ⚡ Bolt: Replaced O(N) sequential API calls with a single bulk endpoint to eliminate frontend N+1 queries.
+      const response = await fetch('/api/users/export-vins');
+      if (!response.ok) {
+        throw new Error('Failed to fetch customer export data');
       }
 
-      const firstPageData = await firstPageResponse.json();
-      const totalPages = firstPageData.totalPages ?? 1;
-
-      const customerPageResponses = await Promise.all(
-        Array.from({ length: totalPages }, (_, index) =>
-          fetch(`/api/users?page=${index + 1}&pageSize=100&roleType=customers`)
-        )
-      );
-
-      const customerPages = await Promise.all(
-        customerPageResponses.map(async (response) => {
-          if (!response.ok) {
-            throw new Error('Failed to fetch customer export data');
-          }
-          return response.json();
-        })
-      );
-
-      const customerList = customerPages.flatMap((page) => page.users ?? []);
-
-      const rows = await Promise.all(
-        customerList.map(async (customer: UserData) => {
-          try {
-            const detailResponse = await fetch(`/api/users/${customer.id}`);
-            if (!detailResponse.ok) {
-              return {
-                customerName: customer.name || 'Unnamed Customer',
-                shipmentVins: 'N/A',
-              };
-            }
-
-            const detail = await detailResponse.json();
-            const shipmentVins = (detail.user?.shipments ?? [])
-              .map((shipment: { vehicleVIN?: string | null }) => shipment.vehicleVIN)
-              .filter((vin: string | null | undefined): vin is string => Boolean(vin && vin.trim()))
-              .join(' | ');
-
-            return {
-              customerName: detail.user?.name || customer.name || 'Unnamed Customer',
-              shipmentVins: shipmentVins || 'N/A',
-            };
-          } catch (error) {
-            console.error(`Error exporting customer ${customer.id}:`, error);
-            return {
-              customerName: customer.name || 'Unnamed Customer',
-              shipmentVins: 'N/A',
-            };
-          }
-        })
-      );
+      const { rows } = await response.json();
 
       exportToCSVWithHeaders(
         rows,
