@@ -499,7 +499,7 @@ export async function extractAuctionRatesFromPdf(buffer: Buffer) {
     }
   }
 
-  await document.destroy();
+  await document.cleanup();
   const fallback = parseAuctionRatesFromRows(rowParts);
   const mergedEntries = mergeParsedRates(entries, fallback.entries);
 
