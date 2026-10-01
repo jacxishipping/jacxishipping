@@ -1,8 +1,14 @@
-import { Prisma, LedgerTransferType, LedgerPartyType, LedgerTransferStatus } from '@prisma/client';
-import { prisma } from '@/lib/db';
-import { recalculateUserLedgerBalances } from '@/lib/user-ledger';
-import { recalculateCompanyLedgerBalances } from '@/lib/company-ledger';
-import { createAuditLog } from '@/lib/audit';
+import {
+  Prisma,
+  LedgerTransferType,
+  LedgerPartyType,
+  LedgerTransferStatus,
+} from "@prisma/client";
+import { randomBytes } from "node:crypto";
+import { prisma } from "@/lib/db";
+import { recalculateUserLedgerBalances } from "@/lib/user-ledger";
+import { recalculateCompanyLedgerBalances } from "@/lib/company-ledger";
+import { createAuditLog } from "@/lib/audit";
 
 export interface ExecuteTransferInput {
   transferType: LedgerTransferType;
@@ -26,8 +32,11 @@ export interface CancelTransferInput {
 
 function generateTransferNumber(): string {
   const now = new Date();
-  const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
-  const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+  const dateStr = now.toISOString().slice(0, 10).replace(/-/g, "");
+  const randomSuffix = randomBytes(3)
+    .toString("hex")
+    .substring(0, 4)
+    .toUpperCase();
   return `TRF-${dateStr}-${randomSuffix}`;
 }
 
@@ -35,7 +44,7 @@ export async function executeLedgerTransfer(input: ExecuteTransferInput) {
   const {
     transferType,
     amount,
-    currency = 'USD',
+    currency = "USD",
     transferDate = new Date(),
     sourceUserId,
     sourceCompanyId,
@@ -47,54 +56,61 @@ export async function executeLedgerTransfer(input: ExecuteTransferInput) {
   } = input;
 
   if (!amount || amount <= 0) {
-    throw new Error('Transfer amount must be greater than zero.');
+    throw new Error("Transfer amount must be greater than zero.");
   }
 
-  const txDate = typeof transferDate === 'string' ? new Date(transferDate) : transferDate;
+  const txDate =
+    typeof transferDate === "string" ? new Date(transferDate) : transferDate;
 
   // Validation according to transfer type
   let sourceType: LedgerPartyType;
   let destType: LedgerPartyType;
-  let sourceName = '';
-  let destName = '';
+  let sourceName = "";
+  let destName = "";
 
   switch (transferType) {
-    case 'USER_TO_USER':
+    case "USER_TO_USER":
       if (!sourceUserId || !destUserId) {
-        throw new Error('Both source and destination customers are required.');
+        throw new Error("Both source and destination customers are required.");
       }
       if (sourceUserId === destUserId) {
-        throw new Error('Source and destination customer cannot be the same account.');
+        throw new Error(
+          "Source and destination customer cannot be the same account.",
+        );
       }
-      sourceType = 'USER';
-      destType = 'USER';
+      sourceType = "USER";
+      destType = "USER";
       break;
 
-    case 'USER_TO_COMPANY':
+    case "USER_TO_COMPANY":
       if (!sourceUserId || !destCompanyId) {
-        throw new Error('Source customer and destination company are required.');
+        throw new Error(
+          "Source customer and destination company are required.",
+        );
       }
-      sourceType = 'USER';
-      destType = 'COMPANY';
+      sourceType = "USER";
+      destType = "COMPANY";
       break;
 
-    case 'COMPANY_TO_USER':
+    case "COMPANY_TO_USER":
       if (!sourceCompanyId || !destUserId) {
-        throw new Error('Source company and destination customer are required.');
+        throw new Error(
+          "Source company and destination customer are required.",
+        );
       }
-      sourceType = 'COMPANY';
-      destType = 'USER';
+      sourceType = "COMPANY";
+      destType = "USER";
       break;
 
-    case 'COMPANY_TO_COMPANY':
+    case "COMPANY_TO_COMPANY":
       if (!sourceCompanyId || !destCompanyId) {
-        throw new Error('Both source and destination companies are required.');
+        throw new Error("Both source and destination companies are required.");
       }
       if (sourceCompanyId === destCompanyId) {
-        throw new Error('Source and destination company cannot be the same.');
+        throw new Error("Source and destination company cannot be the same.");
       }
-      sourceType = 'COMPANY';
-      destType = 'COMPANY';
+      sourceType = "COMPANY";
+      destType = "COMPANY";
       break;
 
     default:
@@ -102,35 +118,35 @@ export async function executeLedgerTransfer(input: ExecuteTransferInput) {
   }
 
   // Fetch names
-  if (sourceType === 'USER' && sourceUserId) {
+  if (sourceType === "USER" && sourceUserId) {
     const user = await prisma.user.findUnique({
       where: { id: sourceUserId },
       select: { id: true, name: true, email: true },
     });
-    if (!user) throw new Error('Source customer not found.');
+    if (!user) throw new Error("Source customer not found.");
     sourceName = user.name || user.email;
-  } else if (sourceType === 'COMPANY' && sourceCompanyId) {
+  } else if (sourceType === "COMPANY" && sourceCompanyId) {
     const company = await prisma.company.findUnique({
       where: { id: sourceCompanyId },
       select: { id: true, name: true },
     });
-    if (!company) throw new Error('Source company not found.');
+    if (!company) throw new Error("Source company not found.");
     sourceName = company.name;
   }
 
-  if (destType === 'USER' && destUserId) {
+  if (destType === "USER" && destUserId) {
     const user = await prisma.user.findUnique({
       where: { id: destUserId },
       select: { id: true, name: true, email: true },
     });
-    if (!user) throw new Error('Destination customer not found.');
+    if (!user) throw new Error("Destination customer not found.");
     destName = user.name || user.email;
-  } else if (destType === 'COMPANY' && destCompanyId) {
+  } else if (destType === "COMPANY" && destCompanyId) {
     const company = await prisma.company.findUnique({
       where: { id: destCompanyId },
       select: { id: true, name: true },
     });
-    if (!company) throw new Error('Destination company not found.');
+    if (!company) throw new Error("Destination company not found.");
     destName = company.name;
   }
 
@@ -144,50 +160,50 @@ export async function executeLedgerTransfer(input: ExecuteTransferInput) {
     let destCompanyLedgerEntryId: string | null = null;
 
     // 1. Create Source Entry (DEBIT - funds leaving source account)
-    if (sourceType === 'USER' && sourceUserId) {
+    if (sourceType === "USER" && sourceUserId) {
       const entry = await tx.ledgerEntry.create({
         data: {
           userId: sourceUserId,
-          type: 'DEBIT',
+          type: "DEBIT",
           amount,
           balance: 0, // will be recalculated
           transactionDate: txDate,
           description: `Transfer to ${destName} (${transferNumber})`,
           notes: notes || `Inter-ledger transfer to ${destName}`,
-          createdBy: createdById || 'SYSTEM',
+          createdBy: createdById || "SYSTEM",
           metadata: {
             isInterLedgerTransfer: true,
             transferNumber,
             transferType,
-            role: 'SOURCE',
+            role: "SOURCE",
             counterpartyType: destType,
-            counterpartyId: destType === 'USER' ? destUserId : destCompanyId,
+            counterpartyId: destType === "USER" ? destUserId : destCompanyId,
             counterpartyName: destName,
             reference: reference || null,
           },
         },
       });
       sourceLedgerEntryId = entry.id;
-    } else if (sourceType === 'COMPANY' && sourceCompanyId) {
+    } else if (sourceType === "COMPANY" && sourceCompanyId) {
       const entry = await tx.companyLedgerEntry.create({
         data: {
           companyId: sourceCompanyId,
-          type: 'DEBIT',
+          type: "DEBIT",
           amount,
           balance: 0,
           transactionDate: txDate,
           description: `Transfer to ${destName} (${transferNumber})`,
-          category: 'Inter-Ledger Transfer',
+          category: "Inter-Ledger Transfer",
           reference: transferNumber,
           notes: notes || `Inter-ledger transfer to ${destName}`,
-          createdBy: createdById || 'SYSTEM',
+          createdBy: createdById || "SYSTEM",
           metadata: {
             isInterLedgerTransfer: true,
             transferNumber,
             transferType,
-            role: 'SOURCE',
+            role: "SOURCE",
             counterpartyType: destType,
-            counterpartyId: destType === 'USER' ? destUserId : destCompanyId,
+            counterpartyId: destType === "USER" ? destUserId : destCompanyId,
             counterpartyName: destName,
             customReference: reference || null,
           },
@@ -197,50 +213,52 @@ export async function executeLedgerTransfer(input: ExecuteTransferInput) {
     }
 
     // 2. Create Destination Entry (CREDIT - funds entering destination account)
-    if (destType === 'USER' && destUserId) {
+    if (destType === "USER" && destUserId) {
       const entry = await tx.ledgerEntry.create({
         data: {
           userId: destUserId,
-          type: 'CREDIT',
+          type: "CREDIT",
           amount,
           balance: 0,
           transactionDate: txDate,
           description: `Transfer from ${sourceName} (${transferNumber})`,
           notes: notes || `Inter-ledger transfer from ${sourceName}`,
-          createdBy: createdById || 'SYSTEM',
+          createdBy: createdById || "SYSTEM",
           metadata: {
             isInterLedgerTransfer: true,
             transferNumber,
             transferType,
-            role: 'DESTINATION',
+            role: "DESTINATION",
             counterpartyType: sourceType,
-            counterpartyId: sourceType === 'USER' ? sourceUserId : sourceCompanyId,
+            counterpartyId:
+              sourceType === "USER" ? sourceUserId : sourceCompanyId,
             counterpartyName: sourceName,
             reference: reference || null,
           },
         },
       });
       destLedgerEntryId = entry.id;
-    } else if (destType === 'COMPANY' && destCompanyId) {
+    } else if (destType === "COMPANY" && destCompanyId) {
       const entry = await tx.companyLedgerEntry.create({
         data: {
           companyId: destCompanyId,
-          type: 'CREDIT',
+          type: "CREDIT",
           amount,
           balance: 0,
           transactionDate: txDate,
           description: `Transfer from ${sourceName} (${transferNumber})`,
-          category: 'Inter-Ledger Transfer',
+          category: "Inter-Ledger Transfer",
           reference: transferNumber,
           notes: notes || `Inter-ledger transfer from ${sourceName}`,
-          createdBy: createdById || 'SYSTEM',
+          createdBy: createdById || "SYSTEM",
           metadata: {
             isInterLedgerTransfer: true,
             transferNumber,
             transferType,
-            role: 'DESTINATION',
+            role: "DESTINATION",
             counterpartyType: sourceType,
-            counterpartyId: sourceType === 'USER' ? sourceUserId : sourceCompanyId,
+            counterpartyId:
+              sourceType === "USER" ? sourceUserId : sourceCompanyId,
             counterpartyName: sourceName,
             customReference: reference || null,
           },
@@ -269,7 +287,7 @@ export async function executeLedgerTransfer(input: ExecuteTransferInput) {
         destCompanyLedgerEntryId,
         reference: reference || null,
         notes: notes || null,
-        status: 'COMPLETED',
+        status: "COMPLETED",
         createdById: createdById || null,
       },
     });
@@ -278,16 +296,22 @@ export async function executeLedgerTransfer(input: ExecuteTransferInput) {
     let sourceNewBalance = 0;
     let destNewBalance = 0;
 
-    if (sourceType === 'USER' && sourceUserId) {
+    if (sourceType === "USER" && sourceUserId) {
       sourceNewBalance = await recalculateUserLedgerBalances(tx, sourceUserId);
-    } else if (sourceType === 'COMPANY' && sourceCompanyId) {
-      sourceNewBalance = await recalculateCompanyLedgerBalances(tx, sourceCompanyId);
+    } else if (sourceType === "COMPANY" && sourceCompanyId) {
+      sourceNewBalance = await recalculateCompanyLedgerBalances(
+        tx,
+        sourceCompanyId,
+      );
     }
 
-    if (destType === 'USER' && destUserId) {
+    if (destType === "USER" && destUserId) {
       destNewBalance = await recalculateUserLedgerBalances(tx, destUserId);
-    } else if (destType === 'COMPANY' && destCompanyId) {
-      destNewBalance = await recalculateCompanyLedgerBalances(tx, destCompanyId);
+    } else if (destType === "COMPANY" && destCompanyId) {
+      destNewBalance = await recalculateCompanyLedgerBalances(
+        tx,
+        destCompanyId,
+      );
     }
 
     return {
@@ -301,17 +325,25 @@ export async function executeLedgerTransfer(input: ExecuteTransferInput) {
 
   if (createdById) {
     await createAuditLog(
-      'LedgerTransfer',
+      "LedgerTransfer",
       result.transfer.id,
-      'CREATE',
+      "CREATE",
       createdById,
       {
         transferNumber: result.transfer.transferNumber,
         transferType: result.transfer.transferType,
         amount: result.transfer.amount,
-        source: { type: sourceType, id: sourceUserId || sourceCompanyId, name: sourceName },
-        dest: { type: destType, id: destUserId || destCompanyId, name: destName },
-      }
+        source: {
+          type: sourceType,
+          id: sourceUserId || sourceCompanyId,
+          name: sourceName,
+        },
+        dest: {
+          type: destType,
+          id: destUserId || destCompanyId,
+          name: destName,
+        },
+      },
     );
   }
 
@@ -332,46 +364,56 @@ export async function cancelLedgerTransfer(input: CancelTransferInput) {
   });
 
   if (!transfer) {
-    throw new Error('Ledger transfer record not found.');
+    throw new Error("Ledger transfer record not found.");
   }
 
-  if (transfer.status === 'CANCELLED') {
-    throw new Error('This transfer has already been cancelled.');
+  if (transfer.status === "CANCELLED") {
+    throw new Error("This transfer has already been cancelled.");
   }
 
   const result = await prisma.$transaction(async (tx) => {
     // Delete or reverse entries
     if (transfer.sourceLedgerEntryId) {
-      await tx.ledgerEntry.delete({ where: { id: transfer.sourceLedgerEntryId } }).catch(() => null);
+      await tx.ledgerEntry
+        .delete({ where: { id: transfer.sourceLedgerEntryId } })
+        .catch(() => null);
     }
     if (transfer.sourceCompanyLedgerEntryId) {
-      await tx.companyLedgerEntry.delete({ where: { id: transfer.sourceCompanyLedgerEntryId } }).catch(() => null);
+      await tx.companyLedgerEntry
+        .delete({ where: { id: transfer.sourceCompanyLedgerEntryId } })
+        .catch(() => null);
     }
     if (transfer.destLedgerEntryId) {
-      await tx.ledgerEntry.delete({ where: { id: transfer.destLedgerEntryId } }).catch(() => null);
+      await tx.ledgerEntry
+        .delete({ where: { id: transfer.destLedgerEntryId } })
+        .catch(() => null);
     }
     if (transfer.destCompanyLedgerEntryId) {
-      await tx.companyLedgerEntry.delete({ where: { id: transfer.destCompanyLedgerEntryId } }).catch(() => null);
+      await tx.companyLedgerEntry
+        .delete({ where: { id: transfer.destCompanyLedgerEntryId } })
+        .catch(() => null);
     }
 
     const updatedTransfer = await tx.ledgerTransfer.update({
       where: { id: transferId },
       data: {
-        status: 'CANCELLED',
-        notes: reason ? `${transfer.notes ? `${transfer.notes} | ` : ''}Cancelled: ${reason}` : transfer.notes,
+        status: "CANCELLED",
+        notes: reason
+          ? `${transfer.notes ? `${transfer.notes} | ` : ""}Cancelled: ${reason}`
+          : transfer.notes,
       },
     });
 
     // Recalculate
-    if (transfer.sourceType === 'USER' && transfer.sourceUserId) {
+    if (transfer.sourceType === "USER" && transfer.sourceUserId) {
       await recalculateUserLedgerBalances(tx, transfer.sourceUserId);
-    } else if (transfer.sourceType === 'COMPANY' && transfer.sourceCompanyId) {
+    } else if (transfer.sourceType === "COMPANY" && transfer.sourceCompanyId) {
       await recalculateCompanyLedgerBalances(tx, transfer.sourceCompanyId);
     }
 
-    if (transfer.destType === 'USER' && transfer.destUserId) {
+    if (transfer.destType === "USER" && transfer.destUserId) {
       await recalculateUserLedgerBalances(tx, transfer.destUserId);
-    } else if (transfer.destType === 'COMPANY' && transfer.destCompanyId) {
+    } else if (transfer.destType === "COMPANY" && transfer.destCompanyId) {
       await recalculateCompanyLedgerBalances(tx, transfer.destCompanyId);
     }
 
@@ -380,15 +422,15 @@ export async function cancelLedgerTransfer(input: CancelTransferInput) {
 
   if (cancelledById) {
     await createAuditLog(
-      'LedgerTransfer',
+      "LedgerTransfer",
       transfer.id,
-      'UPDATE',
+      "UPDATE",
       cancelledById,
       {
-        action: 'CANCEL_TRANSFER',
+        action: "CANCEL_TRANSFER",
         transferNumber: transfer.transferNumber,
-        reason: reason || 'Transfer cancelled and ledger entries reversed',
-      }
+        reason: reason || "Transfer cancelled and ledger entries reversed",
+      },
     );
   }
 
@@ -399,7 +441,7 @@ export async function getLedgerTransferParties() {
   const [users, companies] = await Promise.all([
     prisma.user.findMany({
       where: {
-        role: { not: 'admin' }, // or include all non-system users
+        role: { not: "admin" }, // or include all non-system users
       },
       select: {
         id: true,
@@ -407,12 +449,12 @@ export async function getLedgerTransferParties() {
         email: true,
         phone: true,
         ledgerEntries: {
-          orderBy: [{ transactionDate: 'desc' }, { createdAt: 'desc' }],
+          orderBy: [{ transactionDate: "desc" }, { createdAt: "desc" }],
           take: 1,
           select: { balance: true },
         },
       },
-      orderBy: { name: 'asc' },
+      orderBy: { name: "asc" },
     }),
     prisma.company.findMany({
       where: { isActive: true },
@@ -422,18 +464,18 @@ export async function getLedgerTransferParties() {
         code: true,
         companyType: true,
         ledgerEntries: {
-          orderBy: [{ transactionDate: 'desc' }, { createdAt: 'desc' }],
+          orderBy: [{ transactionDate: "desc" }, { createdAt: "desc" }],
           take: 1,
           select: { balance: true },
         },
       },
-      orderBy: { name: 'asc' },
+      orderBy: { name: "asc" },
     }),
   ]);
 
   const userOptions = users.map((u) => ({
     id: u.id,
-    type: 'USER' as const,
+    type: "USER" as const,
     name: u.name || u.email,
     email: u.email,
     phone: u.phone,
@@ -442,7 +484,7 @@ export async function getLedgerTransferParties() {
 
   const companyOptions = companies.map((c) => ({
     id: c.id,
-    type: 'COMPANY' as const,
+    type: "COMPANY" as const,
     name: c.name,
     code: c.code,
     companyType: c.companyType,

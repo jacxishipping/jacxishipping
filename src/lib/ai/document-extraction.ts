@@ -171,7 +171,7 @@ async function renderPdfPageImages(buffer: Buffer, maxPages = 2) {
       images.push(renderedCanvas.toDataURL('image/png'));
     }
   } finally {
-    await document.destroy();
+    await document.cleanup();
   }
 
   return images;
