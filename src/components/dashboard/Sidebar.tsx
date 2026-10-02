@@ -361,11 +361,11 @@ function NavItem({ item, isActive, badge, badgeColor, onNavClick, collapsed }: N
 				justifyContent: collapsed ? 'center' : 'initial',
 				minHeight: 0,
 				transition: 'all 150ms ease',
-				color: active ? 'var(--accent-gold)' : 'var(--text-primary)',
+				color: active ? 'var(--accent-gold)' : 'var(--text-secondary)',
 				bgcolor: active ? 'rgba(var(--accent-gold-rgb), 0.15)' : 'transparent',
 				boxShadow: active ? 'inset 0 0 0 1px rgba(var(--accent-gold-rgb), 0.2)' : 'none',
 				'&:hover': {
-					bgcolor: 'rgba(var(--accent-gold-rgb), 0.06)',
+					bgcolor: 'rgba(var(--accent-gold-rgb), 0.08)',
 					color: 'var(--text-primary)',
 				},
 				'&::before': active
@@ -387,7 +387,10 @@ function NavItem({ item, isActive, badge, badgeColor, onNavClick, collapsed }: N
 				sx={{
 					minWidth: collapsed ? 0 : 32,
 					justifyContent: 'center',
-					color: active ? 'var(--accent-gold)' : 'var(--text-primary)',
+					color: active ? 'var(--accent-gold)' : 'var(--text-secondary)',
+					'.MuiListItemButton-root:hover &': {
+						color: 'var(--text-primary)',
+					},
 				}}
 			>
 				<Icon sx={{ fontSize: 18, filter: active ? 'drop-shadow(0 0 4px rgba(var(--accent-gold-rgb), 0.5))' : 'none' }} />

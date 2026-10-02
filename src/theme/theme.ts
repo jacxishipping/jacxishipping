@@ -204,7 +204,7 @@ export function getMuiTheme(
         styleOverrides: {
           root: {
             borderRadius: isCompact ? 6 : 8,
-            backgroundColor: mode === 'dark' ? '#18181B' : '#FFFFFF',
+            backgroundColor: p.background,
             fontSize: isCompact ? '0.775rem' : '0.875rem',
             '& .MuiOutlinedInput-notchedOutline': {
               borderColor: p.border,

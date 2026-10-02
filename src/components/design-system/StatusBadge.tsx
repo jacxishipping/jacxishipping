@@ -86,139 +86,139 @@ function getStatusIcon(status: string) {
   }
 }
 
-// Status color mappings with enhanced contrast
+// Status color mappings with enhanced theme adaptability and contrast
 const statusColors: Record<string, { bg: string; text: string; border: string }> = {
   // Shipment Statuses
   ON_HAND: {
-    bg: 'rgba(16, 185, 129, 0.12)',
-    text: 'var(--success-dark)', // Darker green for text
-    border: 'var(--success)',
+    bg: 'rgba(var(--success-rgb), 0.12)',
+    text: 'var(--success-dark)',
+    border: 'rgba(var(--success-rgb), 0.3)',
   },
   DISPATCHING: {
-    bg: 'rgba(234, 179, 8, 0.12)',
-    text: '#A16207',
-    border: '#EAB308',
+    bg: 'rgba(var(--warning-rgb), 0.12)',
+    text: 'var(--warning-dark)',
+    border: 'rgba(var(--warning-rgb), 0.3)',
   },
   IN_TRANSIT: {
-    bg: 'rgba(59, 130, 246, 0.12)',
-    text: 'var(--info-dark)', // Darker blue for text
-    border: 'var(--info)',
+    bg: 'rgba(var(--info-rgb), 0.12)',
+    text: 'var(--info-dark)',
+    border: 'rgba(var(--info-rgb), 0.3)',
   },
   IN_TRANSIT_TO_DESTINATION: {
-    bg: 'rgba(79, 70, 229, 0.12)',
-    text: '#3730A3',
-    border: '#4F46E5',
+    bg: 'rgba(var(--info-rgb), 0.12)',
+    text: 'var(--info-dark)',
+    border: 'rgba(var(--info-rgb), 0.3)',
   },
   AT_PORT: {
-    bg: 'rgba(245, 158, 11, 0.12)',
-    text: 'var(--warning-dark)', // Darker amber for text
-    border: 'var(--warning)',
+    bg: 'rgba(var(--warning-rgb), 0.12)',
+    text: 'var(--warning-dark)',
+    border: 'rgba(var(--warning-rgb), 0.3)',
   },
   CUSTOMS: {
-    bg: 'rgba(139, 92, 246, 0.12)',
-    text: '#7C3AED', // Violet-600
-    border: '#8B5CF6',
+    bg: 'rgba(var(--accent-gold-rgb), 0.12)',
+    text: 'var(--accent-gold)',
+    border: 'rgba(var(--accent-gold-rgb), 0.3)',
   },
   RELEASED: {
-    bg: 'rgba(16, 185, 129, 0.12)',
+    bg: 'rgba(var(--success-rgb), 0.12)',
     text: 'var(--success-dark)',
-    border: 'var(--success)',
+    border: 'rgba(var(--success-rgb), 0.3)',
   },
   DELIVERED: {
-    bg: 'rgba(5, 150, 105, 0.12)',
-    text: '#047857', // Emerald-700
-    border: '#059669',
+    bg: 'rgba(var(--success-rgb), 0.12)',
+    text: 'var(--success-dark)',
+    border: 'rgba(var(--success-rgb), 0.3)',
   },
   CANCELLED: {
-    bg: 'rgba(107, 114, 128, 0.12)',
-    text: '#374151', // Gray-700
-    border: 'var(--text-secondary)',
+    bg: 'rgba(var(--border-rgb), 0.35)',
+    text: 'var(--text-secondary)',
+    border: 'var(--border)',
   },
   DELAYED: {
-    bg: 'rgba(239, 68, 68, 0.12)',
-    text: 'var(--error-dark)', // Darker red
-    border: 'var(--error)',
+    bg: 'rgba(var(--error-rgb), 0.12)',
+    text: 'var(--error-dark)',
+    border: 'rgba(var(--error-rgb), 0.3)',
   },
 
   // Container Statuses
   CREATED: {
-    bg: 'rgba(107, 114, 128, 0.12)',
-    text: '#374151',
-    border: 'var(--text-secondary)',
+    bg: 'rgba(var(--border-rgb), 0.35)',
+    text: 'var(--text-secondary)',
+    border: 'var(--border)',
   },
   WAITING_FOR_LOADING: {
-    bg: 'rgba(245, 158, 11, 0.12)',
+    bg: 'rgba(var(--warning-rgb), 0.12)',
     text: 'var(--warning-dark)',
-    border: 'var(--warning)',
+    border: 'rgba(var(--warning-rgb), 0.3)',
   },
   LOADED: {
-    bg: 'rgba(59, 130, 246, 0.12)',
+    bg: 'rgba(var(--info-rgb), 0.12)',
     text: 'var(--info-dark)',
-    border: 'var(--info)',
+    border: 'rgba(var(--info-rgb), 0.3)',
   },
   ARRIVED_PORT: {
-    bg: 'rgba(16, 185, 129, 0.12)',
+    bg: 'rgba(var(--success-rgb), 0.12)',
     text: 'var(--success-dark)',
-    border: 'var(--success)',
+    border: 'rgba(var(--success-rgb), 0.3)',
   },
   CUSTOMS_CLEARANCE: {
-    bg: 'rgba(249, 115, 22, 0.12)',
-    text: '#C2410C', // Orange-700
-    border: '#F97316',
+    bg: 'rgba(var(--accent-gold-rgb), 0.12)',
+    text: 'var(--accent-gold)',
+    border: 'rgba(var(--accent-gold-rgb), 0.3)',
   },
   CLOSED: {
-    bg: 'rgba(75, 85, 99, 0.12)',
-    text: '#1F2937', // Gray-800
-    border: '#4B5563',
+    bg: 'rgba(var(--border-rgb), 0.35)',
+    text: 'var(--text-secondary)',
+    border: 'var(--border)',
   },
 
   // Payment Statuses
   PAID: {
-    bg: 'rgba(16, 185, 129, 0.12)',
+    bg: 'rgba(var(--success-rgb), 0.12)',
     text: 'var(--success-dark)',
-    border: 'var(--success)',
+    border: 'rgba(var(--success-rgb), 0.3)',
   },
   PENDING: {
-    bg: 'rgba(245, 158, 11, 0.12)',
+    bg: 'rgba(var(--warning-rgb), 0.12)',
     text: 'var(--warning-dark)',
-    border: 'var(--warning)',
+    border: 'rgba(var(--warning-rgb), 0.3)',
   },
   OVERDUE: {
-    bg: 'rgba(239, 68, 68, 0.12)',
+    bg: 'rgba(var(--error-rgb), 0.12)',
     text: 'var(--error-dark)',
-    border: 'var(--error)',
+    border: 'rgba(var(--error-rgb), 0.3)',
   },
   PARTIAL: {
-    bg: 'rgba(59, 130, 246, 0.12)',
+    bg: 'rgba(var(--info-rgb), 0.12)',
     text: 'var(--info-dark)',
-    border: 'var(--info)',
+    border: 'rgba(var(--info-rgb), 0.3)',
   },
   REFUNDED: {
-    bg: 'rgba(107, 114, 128, 0.12)',
-    text: '#374151',
-    border: 'var(--text-secondary)',
+    bg: 'rgba(var(--border-rgb), 0.35)',
+    text: 'var(--text-secondary)',
+    border: 'var(--border)',
   },
 
   // Generic Statuses
   SUCCESS: {
-    bg: 'rgba(16, 185, 129, 0.12)',
+    bg: 'rgba(var(--success-rgb), 0.12)',
     text: 'var(--success-dark)',
-    border: 'var(--success)',
+    border: 'rgba(var(--success-rgb), 0.3)',
   },
   WARNING: {
-    bg: 'rgba(245, 158, 11, 0.12)',
+    bg: 'rgba(var(--warning-rgb), 0.12)',
     text: 'var(--warning-dark)',
-    border: 'var(--warning)',
+    border: 'rgba(var(--warning-rgb), 0.3)',
   },
   ERROR: {
-    bg: 'rgba(239, 68, 68, 0.12)',
+    bg: 'rgba(var(--error-rgb), 0.12)',
     text: 'var(--error-dark)',
-    border: 'var(--error)',
+    border: 'rgba(var(--error-rgb), 0.3)',
   },
   INFO: {
-    bg: 'rgba(59, 130, 246, 0.12)',
+    bg: 'rgba(var(--info-rgb), 0.12)',
     text: 'var(--info-dark)',
-    border: 'var(--info)',
+    border: 'rgba(var(--info-rgb), 0.3)',
   },
   // User Roles
   ADMIN: {
@@ -227,9 +227,9 @@ const statusColors: Record<string, { bg: string; text: string; border: string }>
     border: 'rgba(var(--accent-gold-rgb), 0.3)',
   },
   MANAGER: {
-    bg: 'rgba(59, 130, 246, 0.12)',
+    bg: 'rgba(var(--info-rgb), 0.12)',
     text: 'var(--info-dark)',
-    border: 'var(--info)',
+    border: 'rgba(var(--info-rgb), 0.3)',
   },
   USER: {
     bg: 'var(--panel)',

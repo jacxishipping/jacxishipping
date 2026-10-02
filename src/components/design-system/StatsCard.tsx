@@ -94,17 +94,17 @@ export default function StatsCard({
 	const trendColor = isNeutralTrend
 		? 'var(--text-secondary)'
 		: trend?.isPositive
-			? 'var(--text-primary)'
-			: 'var(--error)';
+			? 'var(--success-dark)'
+			: 'var(--error-dark)';
 	const trendBorderColor = isNeutralTrend
 		? 'var(--border)'
 		: trend?.isPositive
-			? 'var(--border)'
-			: 'var(--error)';
+			? 'rgba(var(--success-rgb), 0.3)'
+			: 'rgba(var(--error-rgb), 0.3)';
 	const trendBackground = isNeutralTrend
 		? 'var(--panel)'
 		: trend?.isPositive
-			? 'var(--background)'
+			? 'rgba(var(--success-rgb), 0.12)'
 			: 'rgba(var(--error-rgb), 0.12)';
 	const trendPrefix = isNeutralTrend ? '' : trend?.isPositive ? '+' : '−';
 
