@@ -10,7 +10,6 @@ import { KeyboardShortcutHelp } from '@/components/design-system';
 import { SessionProvider } from '@/components/providers/SessionProvider';
 import { Box } from '@mui/material';
 
-import { CommandPaletteProvider } from '@/components/providers/CommandPaletteProvider';
 import { LenisWrapperProvider, useLenisWrapper } from '@/components/providers/LenisWrapperProvider';
 import { ConfirmActionProvider } from '@/components/ui/ConfirmActionProvider';
 import { KeyboardShortcutsModal } from '@/components/dashboard/KeyboardShortcutsModal';
@@ -129,13 +128,11 @@ export default function DashboardLayout({
   return (
     <SessionProvider>
       <ProtectedRoute>
-        <CommandPaletteProvider>
-          <LenisWrapperProvider>
-            <ConfirmActionProvider>
-              <DashboardLayoutInner>{children}</DashboardLayoutInner>
-            </ConfirmActionProvider>
-          </LenisWrapperProvider>
-        </CommandPaletteProvider>
+        <LenisWrapperProvider>
+          <ConfirmActionProvider>
+            <DashboardLayoutInner>{children}</DashboardLayoutInner>
+          </ConfirmActionProvider>
+        </LenisWrapperProvider>
       </ProtectedRoute>
     </SessionProvider>
   );

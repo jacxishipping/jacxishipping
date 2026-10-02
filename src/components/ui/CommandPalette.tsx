@@ -126,8 +126,14 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
       }
     };
 
+    const handleOpenEvent = () => onOpenChange(true);
+
     document.addEventListener('keydown', down);
-    return () => document.removeEventListener('keydown', down);
+    window.addEventListener('open-global-search', handleOpenEvent);
+    return () => {
+      document.removeEventListener('keydown', down);
+      window.removeEventListener('open-global-search', handleOpenEvent);
+    };
   }, [open, onOpenChange]);
 
   const runCommand = useCallback(
