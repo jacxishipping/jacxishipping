@@ -41,20 +41,20 @@ export default function ServicesPreviewSection() {
   });
 
   return (
-    <section ref={containerRef} className="relative bg-[#F9FAFB] text-gray-900">
-      {/* Sticky Header Section */}
-      <div className="sticky top-0 z-10 flex h-[35vh] flex-col justify-center bg-[#F9FAFB] px-4 pt-16 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+    <section ref={containerRef} className="relative bg-[#F9FAFB] text-gray-900 py-12 lg:py-0">
+      {/* Header Section */}
+      <div className="relative lg:sticky top-0 z-10 flex flex-col justify-center bg-[#F9FAFB] px-4 pt-8 lg:pt-16 sm:px-6 lg:px-8 max-w-7xl mx-auto lg:h-[35vh]">
         <motion.div
-           initial={{ opacity: 0, y: 30 }}
+           initial={{ opacity: 0, y: 20 }}
            whileInView={{ opacity: 1, y: 0 }}
            viewport={{ once: true }}
-           transition={{ duration: 0.8 }}
+           transition={{ duration: 0.6 }}
         >
           <div className="inline-flex items-center gap-3">
-             <div className="h-px w-8 bg-[#D4AF37]" />
+             <div className="h-px w-6 sm:w-8 bg-[#D4AF37]" />
              <span className="text-xs font-mono uppercase tracking-widest text-[#D4AF37]">capabilities</span>
           </div>
-          <h2 className="mt-8 text-5xl font-extrabold tracking-tight sm:text-6xl lg:text-7xl">
+          <h2 className="mt-4 sm:mt-8 text-3xl font-extrabold tracking-tight sm:text-5xl lg:text-7xl">
             End-to-end logistics.<br />
             <span className="text-black/40 italic font-serif font-light tracking-normal">Simplified.</span>
           </h2>
@@ -62,7 +62,7 @@ export default function ServicesPreviewSection() {
       </div>
 
       {/* Spaced out scrolling content */}
-      <div className="relative z-20 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-[20vh] mt-10 space-y-[20vh]">
+      <div className="relative z-20 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-16 lg:pb-[20vh] mt-8 sm:mt-10 space-y-12 sm:space-y-16 lg:space-y-[20vh]">
         {services.map((service, index) => {
           return (
             <ServiceCard 

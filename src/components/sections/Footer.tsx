@@ -32,7 +32,7 @@ const footerNavigation = {
 
 export default function Footer() {
   return (
-    <footer className="relative bg-[#F9FAFB] pt-32 pb-12 overflow-hidden selection:bg-[#D4AF37] selection:text-gray-900" aria-labelledby="footer-heading">
+    <footer className="relative bg-[#F9FAFB] pt-16 sm:pt-24 lg:pt-32 pb-12 overflow-hidden selection:bg-[#D4AF37] selection:text-gray-900" aria-labelledby="footer-heading">
       <h2 id="footer-heading" className="sr-only">Footer</h2>
       
       {/* Abstract Background Effects */}
@@ -44,13 +44,13 @@ export default function Footer() {
       <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         
         {/* Giant Typographic CTA */}
-        <div className="mb-32 flex flex-col items-center justify-center text-center">
+        <div className="mb-16 sm:mb-28 flex flex-col items-center justify-center text-center">
            <motion.h3 
-             initial={{ opacity: 0, y: 40 }}
+             initial={{ opacity: 0, y: 30 }}
              whileInView={{ opacity: 1, y: 0 }}
              viewport={{ once: true }}
-             transition={{ duration: 0.8, ease: "easeOut" }}
-             className="text-[4rem] font-black leading-none tracking-tighter text-gray-900 sm:text-[6rem] md:text-[8rem] lg:text-[10rem]"
+             transition={{ duration: 0.6, ease: "easeOut" }}
+             className="text-4xl font-black leading-none tracking-tight text-gray-900 sm:text-7xl md:text-8xl lg:text-9xl"
            >
              READY TO <br/>
              <span className="text-[#D4AF37] font-serif font-light italic tracking-normal">SHIP?</span>
@@ -60,23 +60,23 @@ export default function Footer() {
              initial={{ opacity: 0, scale: 0.8 }}
              whileInView={{ opacity: 1, scale: 1 }}
              viewport={{ once: true }}
-             transition={{ duration: 0.6, delay: 0.3 }}
-             className="-mt-10 sm:-mt-16 md:-mt-24"
+             transition={{ duration: 0.5, delay: 0.2 }}
+             className="-mt-6 sm:-mt-12 md:-mt-16"
            >
             <Magnetic strength={0.4} intensity={0.2}>
               <Link
                 href="/#quote"
-                className="group relative flex h-32 w-32 items-center justify-center rounded-full bg-gray-900 text-gray-900 shadow-2xl transition-transform hover:scale-110 sm:h-40 sm:w-40"
+                className="group relative flex h-24 w-24 sm:h-36 sm:w-36 items-center justify-center rounded-full bg-slate-950 text-white shadow-2xl transition-transform hover:scale-105"
               >
-                <div className="absolute inset-0 rounded-full border border-[#D4AF37] scale-150 opacity-0 group-hover:scale-100 group-hover:opacity-100 transition-all duration-700 ease-out" />
-                <span className="text-sm font-bold uppercase tracking-widest sm:text-base">Start now</span>
+                <div className="absolute inset-0 rounded-full border border-[#D4AF37] scale-150 opacity-0 group-hover:scale-100 group-hover:opacity-100 transition-all duration-500 ease-out" />
+                <span className="text-xs sm:text-sm font-bold uppercase tracking-widest text-[#D4AF37] group-hover:text-white transition-colors">Start now</span>
               </Link>
             </Magnetic>
            </motion.div>
         </div>
 
-        <div className="grid border-t border-black/5 pt-16 xl:grid-cols-3 xl:gap-8">
-          <div className="space-y-8 xl:col-span-1">
+        <div className="grid border-t border-black/5 pt-12 sm:pt-16 xl:grid-cols-3 xl:gap-8">
+          <div className="space-y-6 sm:space-y-8 xl:col-span-1">
             <SiteMark className="h-8 text-gray-900 relative z-10" />
             <p className="max-w-xs text-sm leading-relaxed text-black/60">
               Premium vehicle logistics from North America to Afghanistan. Flawless handling through trusted corridors.
