@@ -1526,8 +1526,43 @@ export default function ShipmentDetailPage() {
                 void refreshShipmentPage();
               }}
             />
-          </TabPanel>
-        )}
+        {/* Mobile Floating Sticky Action Bar */}
+        <div
+          className="block sm:hidden fixed bottom-[calc(68px+env(safe-area-inset-bottom,0px))] left-3 right-3 z-40 p-2 rounded-2xl border border-[rgba(var(--accent-gold-rgb),0.3)] bg-[rgba(var(--panel-rgb),0.92)] backdrop-blur-xl shadow-lg"
+          style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}
+        >
+          <div className="flex items-center justify-between gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => openShipmentTab('map')}
+              className="flex-1 text-xs border-cyan-500/40 text-cyan-500"
+            >
+              <Radio className="mr-1 h-3.5 w-3.5 animate-pulse" />
+              Live Map
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDownloadReceipt}
+              className="flex-1 text-xs"
+            >
+              <FileText className="mr-1 h-3.5 w-3.5" />
+              Receipt
+            </Button>
+            {canManageShipmentRecord && (
+              <Button
+                href={`/dashboard/shipments/${shipment.id}/edit`}
+                variant="primary"
+                size="sm"
+                className="flex-1 text-xs"
+              >
+                <PenLine className="mr-1 h-3.5 w-3.5" />
+                Edit
+              </Button>
+            )}
+          </div>
+        </div>
       </DashboardSurface>
 
       <ShipmentDetailOverlays
