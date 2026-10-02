@@ -32,7 +32,7 @@ import {
   Breadcrumbs,
   Button, 
   StatsCard, 
-  LoadingState 
+  DashboardPageSkeleton
 } from '@/components/design-system';
 
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
@@ -214,7 +214,7 @@ export default function AnalyticsPage() {
   }, [data]);
 
   if (status === 'loading' || loading) {
-    return <LoadingState fullScreen message="Loading analytics..." />;
+    return <DashboardPageSkeleton />;
   }
 
   if (!session || !isAdmin) {

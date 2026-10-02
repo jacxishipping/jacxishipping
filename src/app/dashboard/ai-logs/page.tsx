@@ -10,7 +10,7 @@ import {
   Typography,
 } from '@mui/material';
 import { AlertTriangle, Bot, Clock, Filter, RefreshCcw, Search as SearchIcon, ShieldCheck, XCircle } from 'lucide-react';
-import { PageHeader, Button, EmptyState, LoadingState, StatsCard, StatusBadge, Modal, toast } from '@/components/design-system';
+import { PageHeader, Button, EmptyState, DashboardPageSkeleton, StatsCard, StatusBadge, Modal, toast } from '@/components/design-system';
 import { DashboardGrid, DashboardPanel, DashboardSurface } from '@/components/dashboard/DashboardSurface';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { hasPermission } from '@/lib/rbac';
@@ -264,7 +264,7 @@ export default function AiLogsPage() {
   };
 
   if (status === 'loading' || loading) {
-    return <LoadingState fullScreen message="Loading AI logs..." />;
+    return <DashboardPageSkeleton />;
   }
 
   return (

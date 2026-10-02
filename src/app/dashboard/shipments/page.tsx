@@ -508,6 +508,10 @@ export default function ShipmentsListPage() {
 				onNextPage={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
 				onQuickPeek={(id) => setQuickPeekShipmentId(id)}
 				onOpenQR={(shipment) => handleOpenQR(shipment)}
+				onClearFilters={() => {
+					setSearchFilters({ query: '', type: 'shipments' });
+					setCurrentPage(1);
+				}}
 			/>
 
 			{/* Slide-over Quick Peek Drawer */}

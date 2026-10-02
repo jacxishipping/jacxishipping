@@ -48,7 +48,7 @@ import {
   StatsCard, 
   FormField,
   Select,
-  LoadingState
+  FormPageSkeleton
 } from '@/components/design-system';
 import {
   DEFAULT_SHIPPING_RATE_CONFIG,
@@ -994,7 +994,7 @@ export default function SettingsPage() {
   }, [isAdmin]);
 
   if (status === 'loading' || loading) {
-    return <LoadingState fullScreen message="Loading settings..." />;
+    return <FormPageSkeleton />;
   }
 
   return (

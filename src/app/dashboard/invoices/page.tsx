@@ -668,7 +668,21 @@ const confirmAction = useConfirmAction();
 					<EmptyState
 						icon={<FileText className="w-12 h-12" />}
 						title="No Invoices"
-						description={searchTerm ? 'No invoices match your search' : 'No invoices have been created yet'}
+						description={searchTerm || statusFilter !== 'all' ? 'No invoices match your search or filter criteria' : 'No invoices have been created yet'}
+						action={
+							searchTerm || statusFilter !== 'all' ? (
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={() => {
+										setSearchTerm('');
+										setStatusFilter('all');
+									}}
+								>
+									Clear Filters
+								</Button>
+							) : undefined
+						}
 					/>
 				) : (
 					<DataTable

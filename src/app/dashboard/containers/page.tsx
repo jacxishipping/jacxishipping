@@ -73,6 +73,35 @@ export default function ContainersPage() {
   const { data: session } = useSession();
   const isAdmin = session?.user?.role === 'admin';
 
+  useEffect(() => {
+    try {
+      const savedMode = window.localStorage.getItem('jacxi.containers_view_mode');
+      if (savedMode === 'bulk') {
+        setShowBulkTable(true);
+      }
+    } catch {
+      // ignore storage errors
+    }
+  }, []);
+
+  const handleToggleViewMode = () => {
+    setShowBulkTable((prev) => {
+      const next = !prev;
+      try {
+        window.localStorage.setItem('jacxi.containers_view_mode', next ? 'bulk' : 'cards');
+      } catch {
+        // ignore storage errors
+      }
+      return next;
+    });
+  };
+
+  const handleClearFilters = () => {
+    setStatusFilter('all');
+    setSearchQuery('');
+    setPage(1);
+  };
+
   const handleOpenQR = (container: Container, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     setQrModalData({
@@ -475,7 +504,7 @@ export default function ContainersPage() {
               {isAdmin && (
                 <Button 
                   variant="outline"
-                  onClick={() => setShowBulkTable((prev) => !prev)}
+                  onClick={handleToggleViewMode}
                 >
                   {showBulkTable ? 'Card view' : 'Bulk mode'}
                 </Button>
@@ -620,10 +649,21 @@ export default function ContainersPage() {
             <EmptyState
               icon={<Package />}
               title="No containers found"
-              description={isAdmin ? "Create your first container to get started" : "You have no containers with your shipments yet"}
+              description={searchQuery || statusFilter !== 'all' ? "No containers match your search or status filter criteria" : (isAdmin ? "Create your first container to get started" : "You have no containers with your shipments yet")}
               action={
-                isAdmin ? (
-                  <Button href="/dashboard/containers/new" variant="primary">
+                searchQuery || statusFilter !== 'all' ? (
+                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', justifyContent: 'center' }}>
+                    <Button variant="outline" size="sm" onClick={handleClearFilters}>
+                      Clear Filters
+                    </Button>
+                    {isAdmin && (
+                      <Button href="/dashboard/containers/new" variant="primary" size="sm" icon={<Package className="w-4 h-4" />}>
+                        New Container
+                      </Button>
+                    )}
+                  </Box>
+                ) : isAdmin ? (
+                  <Button href="/dashboard/containers/new" variant="primary" icon={<Package className="w-4 h-4" />}>
                     Create First Container
                   </Button>
                 ) : undefined

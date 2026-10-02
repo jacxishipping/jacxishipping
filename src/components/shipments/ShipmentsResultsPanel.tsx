@@ -41,6 +41,7 @@ type ShipmentsResultsPanelProps = {
 	onNextPage: () => void;
 	onQuickPeek?: (id: string) => void;
 	onOpenQR?: (shipment: any) => void;
+	onClearFilters?: () => void;
 };
 
 export default function ShipmentsResultsPanel({
@@ -66,6 +67,7 @@ export default function ShipmentsResultsPanel({
 	onNextPage,
 	onQuickPeek,
 	onOpenQR,
+	onClearFilters,
 }: ShipmentsResultsPanelProps) {
 	const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 	const [notificationPayload, setNotificationPayload] = useState<CustomerNotificationPayload | null>(null);
@@ -159,9 +161,20 @@ export default function ShipmentsResultsPanel({
 				<EmptyState
 					icon={<Inventory2 />}
 					title="No shipments found"
-					description={searchQuery ? 'Try adjusting your search filters' : 'Get started by creating your first shipment'}
+					description={searchQuery ? 'No shipments match your search criteria' : 'Get started by creating your first shipment'}
 					action={
-						canManageShipments ? (
+						onClearFilters && searchQuery ? (
+							<Box sx={{ display: 'flex', gap: 1, alignItems: 'center', justifyContent: 'center' }}>
+								<Button variant="outline" size="sm" onClick={onClearFilters}>
+									Clear Filters
+								</Button>
+								{canManageShipments ? (
+									<Button href="/dashboard/shipments/new" variant="primary" size="sm" icon={<Add />} iconPosition="start">
+										Create shipment
+									</Button>
+								) : null}
+							</Box>
+						) : canManageShipments ? (
 							<Button href="/dashboard/shipments/new" variant="primary" icon={<Add />} iconPosition="start">
 								Create shipment
 							</Button>
