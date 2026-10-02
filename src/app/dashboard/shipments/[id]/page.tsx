@@ -1526,6 +1526,9 @@ export default function ShipmentDetailPage() {
                 void refreshShipmentPage();
               }}
             />
+          </TabPanel>
+        )}
+
         {/* Mobile Floating Sticky Action Bar */}
         <div
           className="block sm:hidden fixed bottom-[calc(68px+env(safe-area-inset-bottom,0px))] left-3 right-3 z-40 p-2 rounded-2xl border border-[rgba(var(--accent-gold-rgb),0.3)] bg-[rgba(var(--panel-rgb),0.92)] backdrop-blur-xl shadow-lg"
