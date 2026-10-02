@@ -32,6 +32,12 @@ import {
   Send,
   Radio,
   Smartphone,
+  Globe,
+  Sparkles,
+  Eye,
+  Layers,
+  Car,
+  Clock,
 } from 'lucide-react';
 import { Box, Switch, Tab, Tabs, TextField, Typography } from '@mui/material';
 import { useTheme, type ThemeMode, type DensityMode } from '@/hooks/useTheme';
@@ -48,7 +54,8 @@ import {
   StatsCard, 
   FormField,
   Select,
-  FormPageSkeleton
+  FormPageSkeleton,
+  StatusBadge,
 } from '@/components/design-system';
 import {
   DEFAULT_SHIPPING_RATE_CONFIG,
@@ -1161,10 +1168,106 @@ export default function SettingsPage() {
 
       {/* Tab 1: Preferences */}
       <TabPanel value={activeTab} index={1}>
-        <div className="max-w-3xl">
+        <div className="max-w-4xl space-y-6">
+          {/* Live Interactive Visual Preview Studio */}
+          <DashboardPanel
+            title={
+              <div className="flex items-center justify-between w-full">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-[var(--accent-gold)]" />
+                  <span>Live Interface Preview</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="px-2.5 py-0.5 text-xs font-bold rounded-full bg-[rgba(var(--accent-gold-rgb),0.15)] text-[var(--accent-gold)] border border-[rgba(var(--accent-gold-rgb),0.3)] uppercase tracking-wider">
+                    {settingsForm.theme || currentTheme} mode
+                  </span>
+                  <span className="px-2.5 py-0.5 text-xs font-bold rounded-full bg-[var(--background)] text-[var(--text-secondary)] border border-[var(--border)] capitalize">
+                    {settingsForm.sidebarDensity || currentDensity} scale
+                  </span>
+                </div>
+              </div>
+            }
+            description="Real-time preview of your selected theme, density scale, and typography"
+          >
+            <div className="p-4 sm:p-5 rounded-2xl border border-[var(--border)] bg-[var(--background)] space-y-4">
+              {/* Preview Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {/* Sample Stats Card */}
+                <div className="p-3.5 rounded-xl border border-[var(--border)] bg-[var(--panel)] shadow-sm">
+                  <div className="flex items-center justify-between text-xs text-[var(--text-secondary)] mb-1">
+                    <span className="font-semibold uppercase tracking-wider text-[10px]">Active Freight</span>
+                    <Car className="w-4 h-4 text-[var(--accent-gold)]" />
+                  </div>
+                  <div className="text-xl font-black text-[var(--text-primary)]">
+                    42 Vehicles
+                  </div>
+                  <div className="text-xs text-emerald-600 font-medium mt-0.5">
+                    ↑ 18% vs last month
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-xl border border-[var(--border)] bg-[var(--panel)] shadow-sm">
+                  <div className="flex items-center justify-between text-xs text-[var(--text-secondary)] mb-1">
+                    <span className="font-semibold uppercase tracking-wider text-[10px]">Total Revenue</span>
+                    <DollarSign className="w-4 h-4 text-[var(--info)]" />
+                  </div>
+                  <div className="text-xl font-black text-[var(--text-primary)]">
+                    $148,500.00
+                  </div>
+                  <div className="text-xs text-[var(--text-secondary)] mt-0.5">
+                    12 pending invoices
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-xl border border-[var(--border)] bg-[var(--panel)] shadow-sm">
+                  <div className="flex items-center justify-between text-xs text-[var(--text-secondary)] mb-1">
+                    <span className="font-semibold uppercase tracking-wider text-[10px]">Container ETA</span>
+                    <Clock className="w-4 h-4 text-amber-500" />
+                  </div>
+                  <div className="text-xl font-black text-[var(--text-primary)]">
+                    4 On Water
+                  </div>
+                  <div className="text-xs text-amber-500 font-medium mt-0.5">
+                    Jebel Ali Port in 6 days
+                  </div>
+                </div>
+              </div>
+
+              {/* Sample Table Row Preview */}
+              <div className="p-3 rounded-xl border border-[var(--border)] bg-[var(--panel)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-[rgba(var(--accent-gold-rgb),0.12)] border border-[rgba(var(--accent-gold-rgb),0.3)] flex items-center justify-center text-[var(--accent-gold)] font-bold text-xs">
+                    VIN
+                  </div>
+                  <div>
+                    <div className="text-xs sm:text-sm font-bold text-[var(--text-primary)]">
+                      2024 Lexus RX 350 Premium
+                    </div>
+                    <div className="text-[11px] font-mono text-[var(--text-secondary)]">
+                      JTJ11BKZ0R204891 • Lot #8492019
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 self-end sm:self-center">
+                  <StatusBadge status="IN_TRANSIT" size="sm" />
+                  <span className="text-xs font-bold text-[var(--accent-gold)] px-2 py-1 rounded bg-[rgba(var(--accent-gold-rgb),0.08)] border border-[rgba(var(--accent-gold-rgb),0.2)]">
+                    $4,250.00
+                  </span>
+                  <button
+                    type="button"
+                    className="px-2.5 py-1 text-xs font-semibold rounded-lg border border-[var(--border)] bg-[var(--background)] text-[var(--text-primary)] hover:border-[var(--accent-gold)] transition-colors"
+                  >
+                    Quick Peek
+                  </button>
+                </div>
+              </div>
+            </div>
+          </DashboardPanel>
+
+          {/* Preferences Configuration Form */}
           <DashboardPanel 
-            title="Interface Preferences" 
-            description="Customize your dashboard experience and visual appearance"
+            title="Interface & Layout Customization" 
+            description="Adjust your theme, display density, motion animations, and regional options"
           >
             <form onSubmit={handleSavePreferences} className="space-y-6">
               {/* Visual Theme Selector */}
@@ -1177,19 +1280,19 @@ export default function SettingsPage() {
                     {
                       id: 'light',
                       name: 'Light Mode',
-                      desc: 'Clean daylight enterprise view',
+                      desc: 'Clean daylight enterprise view with soft gray backgrounds',
                       icon: Sun,
                     },
                     {
                       id: 'dark',
                       name: 'Dark Mode',
-                      desc: 'Deep contrast for low-light work',
+                      desc: 'Deep high contrast for low-light environments and long shifts',
                       icon: Moon,
                     },
                     {
                       id: 'system',
                       name: 'System Default',
-                      desc: 'Syncs automatically with OS settings',
+                      desc: 'Automatically synchronizes with your device operating system setting',
                       icon: Monitor,
                     },
                   ].map((item) => {
@@ -1204,7 +1307,7 @@ export default function SettingsPage() {
                         }}
                         className={`relative flex flex-col p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
                           isSelected
-                            ? 'border-[var(--accent-gold)] bg-[var(--panel)] shadow-md'
+                            ? 'border-[var(--accent-gold)] bg-[var(--panel)] shadow-md ring-2 ring-[var(--accent-gold)]/20'
                             : 'border-[var(--border)] bg-[var(--panel)] hover:border-[var(--accent-gold)]/50'
                         }`}
                       >
@@ -1245,15 +1348,15 @@ export default function SettingsPage() {
                   {[
                     {
                       id: 'comfortable',
-                      name: 'Comfort Theme (Relaxed)',
-                      desc: 'Spacious padding, standard row heights, and optimal readability',
+                      name: 'Comfort Theme (Relaxed / 8px)',
+                      desc: 'Spacious 16-24px padding, standard row heights, and optimal readability across all screens',
                       icon: Maximize2,
-                      tag: 'Default',
+                      tag: 'Standard',
                     },
                     {
                       id: 'compact',
-                      name: 'Compact Theme (High Density)',
-                      desc: 'Condensed table rows, tighter card paddings, and higher data density for power operations',
+                      name: 'Compact Theme (High-Density / 5px)',
+                      desc: 'Condensed 4-8px table cells, tighter card margins, and maximum visible data for fleet dispatchers',
                       icon: Minimize2,
                       tag: 'Power Users',
                     },
@@ -1269,7 +1372,7 @@ export default function SettingsPage() {
                         }}
                         className={`relative flex flex-col p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
                           isSelected
-                            ? 'border-[var(--accent-gold)] bg-[var(--panel)] shadow-md'
+                            ? 'border-[var(--accent-gold)] bg-[var(--panel)] shadow-md ring-2 ring-[var(--accent-gold)]/20'
                             : 'border-[var(--border)] bg-[var(--panel)] hover:border-[var(--accent-gold)]/50'
                         }`}
                       >
@@ -1305,21 +1408,66 @@ export default function SettingsPage() {
                   })}
                 </div>
               </div>
+
+              {/* Motion & Transition Behavior */}
+              <div className="p-4 rounded-xl border border-[var(--border)] bg-[var(--background)] flex items-center justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-[var(--panel)] border border-[var(--border)] text-[var(--accent-gold)]">
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="text-sm font-bold text-[var(--text-primary)] block">
+                      Smooth Motion & Inertia Transitions
+                    </span>
+                    <span className="text-xs text-[var(--text-secondary)] block mt-0.5">
+                      Enables Lenis smooth scrolling, subtle card lifts, and micro-animations for interactive elements.
+                    </span>
+                  </div>
+                </div>
+                <Switch
+                  checked={settingsForm.animationsEnabled}
+                  onChange={(e) => setSettingsForm(prev => ({ ...prev, animationsEnabled: e.target.checked }))}
+                  sx={{
+                    '& .MuiSwitch-switchBase.Mui-checked': {
+                      color: 'var(--accent-gold)',
+                    },
+                    '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                      backgroundColor: 'var(--accent-gold)',
+                    },
+                  }}
+                />
+              </div>
               
+              {/* Regional & Language Settings */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Select
-                  label="Language"
+                  label="Display Language"
                   value={settingsForm.language}
                   onChange={(value) => setSettingsForm(prev => ({ ...prev, language: String(value) }))}
                   options={[
-                    { value: 'en', label: 'English' },
-                    { value: 'ar', label: 'Arabic' },
-                    { value: 'fr', label: 'French' },
+                    { value: 'en', label: 'English (US)' },
+                    { value: 'ar', label: 'Arabic (العربية)' },
+                    { value: 'fr', label: 'French (Français)' },
+                  ]}
+                />
+                <Select
+                  label="Default Workspace"
+                  value="/dashboard"
+                  onChange={() => {}}
+                  options={[
+                    { value: '/dashboard', label: 'Overview / KPI Dashboard' },
+                    { value: '/dashboard/shipments', label: 'Shipments Fleet' },
+                    { value: '/dashboard/operations', label: 'Operations Command Board' },
+                    { value: '/dashboard/containers', label: 'Ocean Containers' },
+                    { value: '/dashboard/finance', label: 'Accounting & Ledgers' },
                   ]}
                 />
               </div>
 
-              <div className="flex justify-end pt-2">
+              <div className="flex items-center justify-between pt-3 border-t border-[var(--border)]">
+                <span className="text-xs text-[var(--text-secondary)]">
+                  Preferences are stored in your secure account profile.
+                </span>
                 <Button type="submit" disabled={savingPreferences} variant="primary">
                   {savingPreferences ? 'Saving...' : 'Save Preferences'}
                 </Button>
