@@ -28,30 +28,30 @@ export async function GET(request: NextRequest) {
       dateFilter.lte = new Date(endDate);
     }
 
-    // Get all invoices in the period
-    const invoices = await prisma.userInvoice.findMany({
-      where: dateFilter.gte || dateFilter.lte ? { createdAt: dateFilter } : {},
-      include: {
-        lineItems: true,
-        container: {
-          include: {
-            shipments: {
-              select: {
-                serviceType: true,
+    // ⚡ Bolt: Execute independent queries in parallel using Promise.all to reduce total latency
+    const [invoices, containerExpenses] = await Promise.all([
+      prisma.userInvoice.findMany({
+        where: dateFilter.gte || dateFilter.lte ? { createdAt: dateFilter } : {},
+        include: {
+          lineItems: true,
+          container: {
+            include: {
+              shipments: {
+                select: {
+                  serviceType: true,
+                },
               },
             },
           },
         },
-      },
-    });
-
-    // Get all container expenses in the period
-    const containerExpenses = await prisma.containerExpense.findMany({
-      where: dateFilter.gte || dateFilter.lte ? { createdAt: dateFilter } : {},
-      include: {
-        container: true,
-      },
-    });
+      }),
+      prisma.containerExpense.findMany({
+        where: dateFilter.gte || dateFilter.lte ? { createdAt: dateFilter } : {},
+        include: {
+          container: true,
+        },
+      })
+    ]);
 
     // Calculate revenue by service type
     let purchaseRevenue = 0;
