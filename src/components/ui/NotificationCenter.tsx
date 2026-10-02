@@ -1,26 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
-import {
-  Bell,
-  X,
-  Check,
-  Package,
-  Ship,
-  FileText,
-  AlertCircle,
-  RefreshCw,
-} from "lucide-react";
-import {
-  IconButton,
-  Badge,
-  Drawer,
-  Box,
-  Typography,
-  Divider,
-} from "@mui/material";
-import { toast } from "@/components/design-system";
+import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { Bell, X, Check, Package, Ship, FileText, AlertCircle, RefreshCw } from 'lucide-react';
+import { IconButton, Badge, Drawer, Box, Typography, Divider, Tooltip } from '@mui/material';
+import { toast } from '@/components/design-system';
 
 interface Notification {
   id: string;
@@ -205,22 +189,24 @@ export function NotificationCenter() {
 
   return (
     <>
-      <IconButton
-        onClick={() => setOpen(true)}
-        aria-label="Open notifications"
-        sx={{
-          color: "var(--text-secondary)",
-          p: 1,
-          "&:hover": {
-            bgcolor: "rgba(var(--border-rgb), 0.4)",
-            color: "var(--text-primary)",
-          },
-        }}
-      >
-        <Badge badgeContent={unreadCount} color="error">
-          <Bell className="w-5 h-5" />
-        </Badge>
-      </IconButton>
+      <Tooltip title="Notifications">
+        <IconButton
+          onClick={() => setOpen(true)}
+          aria-label="Notifications"
+          sx={{
+            color: 'var(--text-secondary)',
+            p: 1,
+            '&:hover': {
+              bgcolor: 'rgba(var(--border-rgb), 0.4)',
+              color: 'var(--text-primary)',
+            },
+          }}
+        >
+          <Badge badgeContent={unreadCount} color="error">
+            <Bell className="w-5 h-5" />
+          </Badge>
+        </IconButton>
+      </Tooltip>
 
       <Drawer
         anchor="right"
@@ -258,15 +244,12 @@ export function NotificationCenter() {
               {unreadCount} unread
             </Typography>
           </Box>
-          <Box sx={{ display: "flex", gap: 1 }}>
-            <IconButton
-              onClick={fetchNotifications}
-              size="small"
-              title="Refresh"
-              aria-label="Refresh notifications"
-            >
-              <RefreshCw className="w-4 h-4" />
-            </IconButton>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Tooltip title="Refresh">
+              <IconButton onClick={fetchNotifications} size="small" aria-label="Refresh notifications">
+                   <RefreshCw className="w-4 h-4" />
+              </IconButton>
+            </Tooltip>
             {unreadCount > 0 && (
               <button
                 onClick={markAllAsRead}
@@ -275,13 +258,11 @@ export function NotificationCenter() {
                 Mark all read
               </button>
             )}
-            <IconButton
-              onClick={() => setOpen(false)}
-              size="small"
-              aria-label="Close notifications"
-            >
-              <X className="w-5 h-5" />
-            </IconButton>
+            <Tooltip title="Close">
+              <IconButton onClick={() => setOpen(false)} size="small" aria-label="Close notifications">
+                <X className="w-5 h-5" />
+              </IconButton>
+            </Tooltip>
           </Box>
         </Box>
 
@@ -397,17 +378,19 @@ export function NotificationCenter() {
                             </Box>
                           </Box>
                         </Box>
-                        <IconButton
-                          size="small"
-                          aria-label="Delete notification"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteNotification(notification.id);
-                          }}
-                          sx={{ mt: -1 }}
-                        >
-                          <X className="w-4 h-4 opacity-50 hover:opacity-100" />
-                        </IconButton>
+                        <Tooltip title="Delete">
+                          <IconButton
+                            size="small"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteNotification(notification.id);
+                            }}
+                            sx={{ mt: -1 }}
+                            aria-label="Delete notification"
+                          >
+                            <X className="w-4 h-4 opacity-50 hover:opacity-100" />
+                          </IconButton>
+                        </Tooltip>
                       </Box>
                       <Typography
                         sx={{
