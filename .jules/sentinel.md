@@ -7,3 +7,8 @@
 **Vulnerability:** Found uses of `$queryRawUnsafe` and `$executeRawUnsafe` which pose a high risk for SQL injection, as they rely on the caller to handle parameterization correctly.
 **Learning:** While manual parameterization (e.g. `$1`) was used, these 'Unsafe' variants inherently bypass Prisma's built-in protections, making it far too easy for future code changes to accidentally introduce SQL injection via string concatenation.
 **Prevention:** Strictly enforce the use of `$queryRaw` and `$executeRaw` alongside the `Prisma.sql` tagged template literal for all raw database queries to guarantee native parameterization and defend against injection.
+
+## 2025-02-28 - [Insecure Randomness for Identifiers]
+**Vulnerability:** Found uses of `Math.random()` to generate business-critical identifiers like reference numbers in `src/app/api/dispatches/route.ts`, `src/app/api/transits/route.ts`, `src/app/api/shipments/[id]/inspection/route.ts`, and `src/lib/ledger-transfer.ts`.
+**Learning:** `Math.random()` is not cryptographically secure and produces predictable outputs. Using it for reference numbers, IDs, or tokens creates a vulnerability where identifiers could be guessed or collision-prone.
+**Prevention:** Always use cryptographically secure pseudo-random number generators (CSPRNG) like `crypto.randomBytes()` or `crypto.randomInt()` from the native `node:crypto` module (or Web Crypto API in client environments) when generating identifiers, tokens, or any value requiring unpredictability.

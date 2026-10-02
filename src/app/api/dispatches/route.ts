@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { DispatchStatus } from '@prisma/client';
 import { z } from 'zod';
@@ -19,7 +20,8 @@ const createDispatchSchema = z.object({
 
 function generateReferenceNumber(): string {
   const year = new Date().getFullYear();
-  const random = Math.random().toString(36).substring(2, 7).toUpperCase();
+  // 🛡️ Sentinel: Used cryptographically secure random bytes instead of predictable Math.random()
+  const random = randomBytes(3).toString('hex').substring(0, 5).toUpperCase();
   return `DSP-${year}-${random}`;
 }
 

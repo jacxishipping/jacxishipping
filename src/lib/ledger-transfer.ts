@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import { Prisma, LedgerTransferType, LedgerPartyType, LedgerTransferStatus } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { recalculateUserLedgerBalances } from '@/lib/user-ledger';
@@ -27,7 +28,8 @@ export interface CancelTransferInput {
 function generateTransferNumber(): string {
   const now = new Date();
   const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
-  const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+  // 🛡️ Sentinel: Used cryptographically secure random bytes instead of predictable Math.random()
+  const randomSuffix = randomBytes(2).toString('hex').toUpperCase(); // 4 chars like original
   return `TRF-${dateStr}-${randomSuffix}`;
 }
 

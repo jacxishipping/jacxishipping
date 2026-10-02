@@ -1,3 +1,4 @@
+import { randomInt } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
@@ -134,8 +135,9 @@ export async function POST(
       payload.markers.some((m) => m.severity === 'CRITICAL' || m.severity === 'HIGH');
 
     const cleanVin = (shipment.vehicleVIN || 'VEH').slice(-6);
+    // 🛡️ Sentinel: Used cryptographically secure random integer instead of predictable Math.random()
     const reportNumber =
-      payload.reportNumber || `JACXI-CR-${cleanVin}-${Math.floor(1000 + Math.random() * 9000)}`;
+      payload.reportNumber || `JACXI-CR-${cleanVin}-${randomInt(1000, 10000)}`;
 
     const inspectionRecordData: VehicleInspectionData = {
       ...payload,
