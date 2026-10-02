@@ -193,20 +193,16 @@ export const shipmentsApi = {
   },
 
   async uploadDocument(id: string, file: FormData): Promise<Shipment> {
-    const response = await client.post<Shipment>(`/api/shipments/${id}/documents`, file, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    // Let axios set the multipart boundary from the FormData instance; a
+    // hardcoded content-type breaks React Native uploads.
+    const response = await client.post<Shipment>(`/api/shipments/${id}/documents`, file);
     return response.data;
   },
 
   async uploadPhoto(id: string, file: FormData): Promise<Shipment> {
-    const response = await client.post<Shipment>(`/api/shipments/${id}/photos`, file, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    // Let axios set the multipart boundary from the FormData instance; a
+    // hardcoded content-type breaks React Native uploads.
+    const response = await client.post<Shipment>(`/api/shipments/${id}/photos`, file);
     return response.data;
   },
 

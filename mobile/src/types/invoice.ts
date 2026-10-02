@@ -34,11 +34,11 @@ export interface Invoice {
 
 export interface InvoiceFilters {
   status?: InvoiceStatus;
+  // Mobile legacy name; mapped to backend `userId` on the way out.
   customerId?: string;
+  userId?: string;
   shipmentId?: string;
   containerId?: string;
-  dateFrom?: string;
-  dateTo?: string;
   search?: string;
 }
 

@@ -1,11 +1,15 @@
 import client, { apiClient } from './client';
 import { AuthResponse, LoginCodeCredentials, LoginCredentials, User } from '../types/auth';
 
-const MOBILE_AUTH_PATH = '/api/mobile-auth';
+// Canonical mobile auth endpoints served by Next.js (`src/app/api/auth/*`).
+// These share the same HMAC token contract as the web mobile bridge
+// (`src/lib/mobile-auth.ts`), so the app must not invent parallel
+// `/api/mobile-auth/*` or `/api/auth/refresh` paths.
+const AUTH_PATH = '/api/auth';
 
 export const authApi = {
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    const response = await client.post<AuthResponse>(`${MOBILE_AUTH_PATH}/signin`, credentials);
+    const response = await client.post<AuthResponse>(`${AUTH_PATH}/signin`, credentials);
     
     if (response.data.token) {
       await apiClient.setToken(response.data.token);
@@ -15,7 +19,7 @@ export const authApi = {
   },
 
   async loginWithCode(credentials: LoginCodeCredentials): Promise<AuthResponse> {
-    const response = await client.post<AuthResponse>(`${MOBILE_AUTH_PATH}/signin-code`, credentials);
+    const response = await client.post<AuthResponse>(`${AUTH_PATH}/signin-code`, credentials);
     
     if (response.data.token) {
       await apiClient.setToken(response.data.token);
@@ -26,37 +30,30 @@ export const authApi = {
 
   async logout(): Promise<void> {
     try {
-      await client.post(`${MOBILE_AUTH_PATH}/signout`);
+      await client.post(`${AUTH_PATH}/signout`);
     } finally {
       await apiClient.removeToken();
     }
   },
 
   async getCurrentUser(): Promise<User> {
-    const response = await client.get<User>(`${MOBILE_AUTH_PATH}/me`);
+    const response = await client.get<User>(`${AUTH_PATH}/me`);
     return response.data;
   },
 
-  async refreshToken(): Promise<{ token: string }> {
-    const response = await client.post<{ token: string }>('/api/auth/refresh');
-    
-    if (response.data.token) {
-      await apiClient.setToken(response.data.token);
-    }
-    
-    return response.data;
+  // NOTE: the backend issues long-lived HMAC tokens (30d TTL) and exposes no
+  // refresh or password-reset endpoints for mobile. Callers should treat 401
+  // as terminal (the apiClient clears storage + fires onUnauthorized) and send
+  // the user back through login instead of attempting a silent refresh.
+  async refreshToken(): Promise<never> {
+    throw new Error('Session refresh is not supported. Please sign in again.');
   },
 
-  async forgotPassword(email: string): Promise<{ message: string }> {
-    const response = await client.post<{ message: string }>('/api/auth/forgot-password', { email });
-    return response.data;
+  async forgotPassword(_email: string): Promise<never> {
+    throw new Error('Password reset is not available in the mobile app yet.');
   },
 
-  async resetPassword(token: string, password: string): Promise<{ message: string }> {
-    const response = await client.post<{ message: string }>('/api/auth/reset-password', {
-      token,
-      password,
-    });
-    return response.data;
+  async resetPassword(_token: string, _password: string): Promise<never> {
+    throw new Error('Password reset is not available in the mobile app yet.');
   },
 };

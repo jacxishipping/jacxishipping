@@ -153,7 +153,7 @@ export const Button: React.FC<ButtonProps> = ({
 
     const variantStyles: Record<string, TextStyle> = {
       primary: {
-        color: colors.textPrimary,
+        color: colors.accentContrast,
       },
       secondary: {
         color: colors.textPrimary,
@@ -186,7 +186,7 @@ export const Button: React.FC<ButtonProps> = ({
       {loading ? (
         <ActivityIndicator
           size="small"
-          color={variant === 'primary' ? colors.textPrimary : colors.accent}
+          color={variant === 'primary' ? colors.accentContrast : colors.accent}
         />
       ) : (
         <Text style={[getTextStyle(), textStyle]}>{title}</Text>

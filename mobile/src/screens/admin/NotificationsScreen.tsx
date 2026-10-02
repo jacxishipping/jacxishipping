@@ -63,7 +63,7 @@ const NotificationsScreen: React.FC = () => {
                 </Text>
               </View>
               <Text style={[styles.title, { color: colors.textPrimary }]}>{item.title}</Text>
-              <Text style={[styles.message, { color: colors.textSecondary }]}>{item.message}</Text>
+              <Text style={[styles.message, { color: colors.textSecondary }]}>{item.description ?? item.message}</Text>
             </Card>
           </TouchableOpacity>
         )}

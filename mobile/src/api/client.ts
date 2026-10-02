@@ -53,10 +53,11 @@ function resolveApiUrl() {
 export const API_URL = resolveApiUrl();
 
 const TOKEN_KEY = 'auth_token';
-const REFRESH_TOKEN_KEY = 'refresh_token';
+const SESSION_KEY = 'auth_session';
 
 export class ApiClient {
   private client: AxiosInstance;
+  private unauthorizedHandler: (() => Promise<void> | void) | null = null;
 
   constructor() {
     this.client = axios.create({
@@ -68,6 +69,20 @@ export class ApiClient {
     });
 
     this.setupInterceptors();
+  }
+
+  public onUnauthorized(handler: (() => Promise<void> | void) | null) {
+    this.unauthorizedHandler = handler;
+  }
+
+  private async handleUnauthorized() {
+    await secureStorage.deleteItem(TOKEN_KEY);
+    await secureStorage.deleteItem(SESSION_KEY);
+    try {
+      await this.unauthorizedHandler?.();
+    } catch (error) {
+      console.error('Unauthorized handler error:', error);
+    }
   }
 
   private setupInterceptors() {
@@ -85,31 +100,14 @@ export class ApiClient {
     this.client.interceptors.response.use(
       (response) => response,
       async (error: AxiosError) => {
-        const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
-
-        if (error.response?.status === 401 && !originalRequest._retry) {
-          originalRequest._retry = true;
-
-          try {
-            const refreshToken = await secureStorage.getItem(REFRESH_TOKEN_KEY);
-            if (refreshToken) {
-              const response = await axios.post(API_URL + '/api/auth/refresh', {
-                refreshToken,
-              });
-
-              const { token } = response.data;
-              await secureStorage.setItem(TOKEN_KEY, token);
-
-              if (originalRequest.headers) {
-                originalRequest.headers.Authorization = 'Bearer ' + token;
-              }
-
-              return this.client(originalRequest);
-            }
-          } catch (refreshError) {
-            await secureStorage.deleteItem(TOKEN_KEY);
-            await secureStorage.deleteItem(REFRESH_TOKEN_KEY);
-            return Promise.reject(refreshError);
+        // Mobile auth tokens are long-lived JWTs issued by /api/mobile-auth/*
+        // and there is no refresh endpoint. A 401 means the session is dead:
+        // clear it once and notify the auth store so the UI returns to login.
+        if (error.response?.status === 401) {
+          const originalRequest = error.config as (InternalAxiosRequestConfig & { _retry?: boolean }) | undefined;
+          if (originalRequest && !originalRequest._retry) {
+            originalRequest._retry = true;
+            await this.handleUnauthorized();
           }
         }
 
@@ -156,7 +154,7 @@ export class ApiClient {
 
   public async removeToken() {
     await secureStorage.deleteItem(TOKEN_KEY);
-    await secureStorage.deleteItem(REFRESH_TOKEN_KEY);
+    await secureStorage.deleteItem(SESSION_KEY);
   }
 }
 

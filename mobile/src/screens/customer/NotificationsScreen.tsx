@@ -1,13 +1,14 @@
 import React from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNotifications, useMarkNotificationAsRead } from '../../hooks/useNotifications';
+import { useNotifications, useMarkNotificationAsRead, useMarkAllNotificationsAsRead } from '../../hooks/useNotifications';
 import { AppTopBar } from '../../components/shared/AppTopBar';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
 import { ErrorState } from '../../components/shared/ErrorState';
 import { EmptyState } from '../../components/shared/EmptyState';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
+import { Button } from '../../components/ui/Button';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { Typography } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
@@ -16,8 +17,9 @@ import { Notification } from '../../types/api';
 
 const NotificationsScreen: React.FC = () => {
   const { colors } = useAppTheme();
-  const { data, isLoading, error, refetch } = useNotifications();
+  const { data, isLoading, isRefetching, error, refetch } = useNotifications();
   const markAsRead = useMarkNotificationAsRead();
+  const markAllAsRead = useMarkAllNotificationsAsRead();
 
   const handleNotificationPress = (notification: Notification) => {
     if (!notification.read) {
@@ -29,6 +31,7 @@ const NotificationsScreen: React.FC = () => {
   if (error) return <ErrorState message={(error as any).message} onRetry={refetch} />;
 
   const notifications = data?.data || [];
+  const unreadCount = data?.unreadCount ?? notifications.filter((item) => !item.read).length;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
@@ -44,16 +47,27 @@ const NotificationsScreen: React.FC = () => {
                 </Text>
               </View>
               <Text style={[styles.title, { color: colors.textPrimary }]}>{item.title}</Text>
-              <Text style={[styles.message, { color: colors.textSecondary }]}>{item.message}</Text>
+              <Text style={[styles.message, { color: colors.textSecondary }]}>{item.description ?? item.message}</Text>
             </Card>
           </TouchableOpacity>
         )}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
-        ListHeaderComponent={<AppTopBar section="Notifications" detail="Recent system updates and shipment alerts" showBack hideNotifications />}
+        ListHeaderComponent={
+          <View>
+            <AppTopBar section="Notifications" detail="Recent system updates and shipment alerts" showBack hideNotifications />
+            {unreadCount > 0 && (
+              <Button
+                title={markAllAsRead.isPending ? 'Marking…' : `Mark all as read (${unreadCount})`}
+                variant="secondary"
+                onPress={() => markAllAsRead.mutate()}
+                disabled={markAllAsRead.isPending}
+              />
+            )}
+          </View>
+        }
         ListEmptyComponent={<EmptyState icon="notifications" title="No Notifications" />}
-        onRefresh={refetch}
-        refreshing={isLoading}
+        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={colors.accent} />}
       />
     </SafeAreaView>
   );

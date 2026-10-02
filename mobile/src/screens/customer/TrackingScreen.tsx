@@ -2,33 +2,51 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useForm, Controller } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { AppTopBar } from '../../components/shared/AppTopBar';
 import { TrackingTimeline } from '../../components/customer/TrackingTimeline';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
+import { EmptyState } from '../../components/shared/EmptyState';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { Typography } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
 import { trackingApi } from '../../api/tracking';
 import { Shipment } from '../../types/shipment';
+import { CustomerStackParamList } from '../../navigation/CustomerNavigator';
+
+const trackingSchema = z.object({
+  trackingNumber: z.string().trim().min(3, 'Enter at least 3 characters'),
+});
+
+type TrackingForm = z.infer<typeof trackingSchema>;
+type NavigationProp = NativeStackNavigationProp<CustomerStackParamList>;
 
 const TrackingScreen: React.FC = () => {
   const { colors } = useAppTheme();
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<NavigationProp>();
   const [loading, setLoading] = useState(false);
   const [shipment, setShipment] = useState<Shipment | null>(null);
   const [error, setError] = useState('');
-  
-  const { control, handleSubmit } = useForm();
+  const [lastQuery, setLastQuery] = useState('');
 
-  const onSubmit = async (data: any) => {
+  const { control, handleSubmit, formState: { errors } } = useForm<TrackingForm>({
+    resolver: zodResolver(trackingSchema),
+    defaultValues: { trackingNumber: '' },
+  });
+
+  const onSubmit = async (data: TrackingForm) => {
+    const trackingNumber = data.trackingNumber.trim();
     try {
       setLoading(true);
       setError('');
-      const result = await trackingApi.trackByNumber(data.trackingNumber);
+      setLastQuery(trackingNumber);
+      const result = await trackingApi.trackByNumber(trackingNumber);
       setShipment(result);
     } catch (err: any) {
       setError(err.message || 'Failed to track shipment');
@@ -53,6 +71,8 @@ const TrackingScreen: React.FC = () => {
                 placeholder="Enter tracking number or VIN"
                 value={value}
                 onChangeText={onChange}
+                autoCapitalize="characters"
+                error={errors.trackingNumber?.message}
               />
             )}
           />
@@ -68,13 +88,30 @@ const TrackingScreen: React.FC = () => {
           </View>
         </Card>
 
-        {error && (
+        {error ? (
           <Card style={styles.error}>
             <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
+            {lastQuery ? (
+              <Button
+                title="Retry search"
+                variant="secondary"
+                onPress={handleSubmit(onSubmit)}
+                loading={loading}
+                fullWidth
+              />
+            ) : null}
           </Card>
-        )}
+        ) : null}
 
         {loading && <LoadingSpinner />}
+
+        {!loading && !error && !shipment && (
+          <EmptyState
+            icon="tracking"
+            title="Track any vehicle or container"
+            description="Enter a tracking number, VIN, or container number above. Results come straight from POST /api/tracking."
+          />
+        )}
 
         {shipment && (
           <Card style={styles.result}>

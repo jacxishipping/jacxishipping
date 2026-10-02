@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuth } from './src/hooks/useAuth';
 import { ThemePreferenceProvider, useThemePreference } from './src/contexts/ThemePreferenceContext';
 import { RootNavigator } from './src/navigation';
+import { ErrorBoundary } from './src/components/shared/ErrorBoundary';
 import 'react-native-reanimated';
 
 const queryClient = new QueryClient({
@@ -29,7 +30,9 @@ function AppContent() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <QueryClientProvider client={queryClient}>
         <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-        <RootNavigator />
+        <ErrorBoundary>
+          <RootNavigator />
+        </ErrorBoundary>
       </QueryClientProvider>
     </GestureHandlerRootView>
   );

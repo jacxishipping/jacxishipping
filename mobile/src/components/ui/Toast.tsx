@@ -59,10 +59,11 @@ export const Toast: React.FC<ToastProps> = ({
         styles.container,
         {
           backgroundColor: getBackgroundColor(),
+          shadowColor: colors.shadow,
         },
       ]}
     >
-      <Text style={styles.message}>{message}</Text>
+      <Text style={[styles.message, { color: colors.accentContrast }]}>{message}</Text>
     </Animated.View>
   );
 };

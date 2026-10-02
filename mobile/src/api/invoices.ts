@@ -7,9 +7,16 @@ export const invoicesApi = {
     filters?: InvoiceFilters,
     pagination?: PaginationParams
   ): Promise<InvoiceListResponse> {
+    // Backend supports status/userId/containerId/shipmentId/search + limit/offset
+    // (see src/app/api/invoices/route.ts). Map the legacy mobile `customerId`
+    // filter onto `userId` and never send unsupported date filters.
+    const { customerId, userId, dateFrom: _dateFrom, dateTo: _dateTo, ...rest } = filters ?? {};
+    void _dateFrom;
+    void _dateTo;
     const response = await client.get<InvoiceListResponse>('/api/invoices', {
       params: {
-        ...filters,
+        ...rest,
+        userId: userId ?? customerId,
         limit: pagination?.pageSize,
         offset:
           pagination?.pageSize && pagination?.page
@@ -54,8 +61,10 @@ export const invoicesApi = {
   },
 
   async downloadInvoice(id: string): Promise<Blob> {
+    // React Native has no Blob URL download affordance; request raw bytes and
+    // let the caller hand them to expo-file-system / sharing.
     const response = await client.get(`/api/invoices/${id}/pdf`, {
-      responseType: 'blob',
+      responseType: 'arraybuffer',
     });
     return response.data;
   },

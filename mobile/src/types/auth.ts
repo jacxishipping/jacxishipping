@@ -1,4 +1,10 @@
-export type UserRole = 'ADMIN' | 'MANAGER' | 'USER' | 'CUSTOMER';
+export type UserRole = 'ADMIN' | 'MANAGER' | 'USER' | 'CUSTOMER' | 'CUSTOMER_SERVICE';
+
+/** Staff roles that should see the admin workspace. */
+export const STAFF_ROLES: ReadonlyArray<UserRole> = ['ADMIN', 'MANAGER', 'CUSTOMER_SERVICE'];
+
+/** End-customer roles that should see the customer workspace. */
+export const CUSTOMER_ROLES: ReadonlyArray<UserRole> = ['USER', 'CUSTOMER'];
 
 export interface User {
   id: string;

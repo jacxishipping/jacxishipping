@@ -43,6 +43,10 @@ const DashboardScreen: React.FC = () => {
 
   const shipments = shipmentsData?.data || [];
   const activeCount = shipmentsData?.total || 0;
+  const deliveredCount = shipments.filter((shipment) => shipment.status === 'DELIVERED').length;
+  const inTransitCount = shipments.filter((shipment) =>
+    ['IN_TRANSIT', 'IN_TRANSIT_TO_DESTINATION', 'AT_PORT'].includes(shipment.status)
+  ).length;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
@@ -64,6 +68,17 @@ const DashboardScreen: React.FC = () => {
         <Card style={styles.statsCard}>
           <Text style={[styles.statsLabel, { color: colors.textSecondary }]}>Active Shipments</Text>
           <Text style={[styles.statsValue, { color: colors.accent }]}>{activeCount}</Text>
+          <View style={styles.statsRow}>
+            <View style={styles.statItem}>
+              <Text style={[styles.statValue, { color: colors.textPrimary }]}>{inTransitCount}</Text>
+              <Text style={[styles.statLabel, { color: colors.textSecondary }]}>In transit now</Text>
+            </View>
+            <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
+            <View style={styles.statItem}>
+              <Text style={[styles.statValue, { color: colors.textPrimary }]}>{deliveredCount}</Text>
+              <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Delivered in view</Text>
+            </View>
+          </View>
         </Card>
 
         <View style={styles.quickActions}>
@@ -157,6 +172,16 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize['5xl'],
     fontWeight: Typography.fontWeight.bold,
   },
+  statsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: Spacing.base,
+    width: '100%',
+  },
+  statItem: { flex: 1, alignItems: 'center' },
+  statDivider: { width: 1, alignSelf: 'stretch', marginHorizontal: Spacing.base },
+  statValue: { fontSize: Typography.fontSize.xl, fontWeight: Typography.fontWeight.bold },
+  statLabel: { fontSize: Typography.fontSize.xs, marginTop: Spacing.xs },
   quickActions: {
     flexDirection: 'row',
     flexWrap: 'wrap',

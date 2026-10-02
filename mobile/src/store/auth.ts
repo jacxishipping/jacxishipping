@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { User, AuthSession } from '../types/auth';
 import { authApi } from '../api/auth';
+import { apiClient } from '../api/client';
 import * as secureStorage from '../utils/secureStorage';
 
 export interface AuthState {
@@ -18,7 +19,34 @@ export interface AuthState {
 
 const SESSION_KEY = 'auth_session';
 
-export const useAuthStore = create<AuthState>((set) => ({
+function isSessionExpired(expiresAt?: string): boolean {
+  if (!expiresAt) return false;
+  const expiry = Date.parse(expiresAt);
+  return Number.isNaN(expiry) ? false : expiry <= Date.now();
+}
+
+async function persistSession(session: AuthSession) {
+  await secureStorage.setItem(SESSION_KEY, JSON.stringify(session));
+}
+
+async function clearSession() {
+  // apiClient.removeToken purges both the bearer token and cached session.
+  await apiClient.removeToken();
+}
+
+export const useAuthStore = create<AuthState>((set) => {
+  // A 401 from the API means the HMAC token is dead (no refresh endpoint).
+  // Funnel that signal here so any screen drops back to the login flow.
+  apiClient.onUnauthorized(() => {
+    set({
+      user: null,
+      isAuthenticated: false,
+      isLoading: false,
+      error: 'Your session has expired. Please sign in again.',
+    });
+  });
+
+  return {
   user: null,
   isAuthenticated: false,
   isLoading: true,
@@ -26,17 +54,17 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   login: async (email: string, password: string) => {
     try {
-      set({ error: null });
+      set({ isLoading: true, error: null });
       const response = await authApi.login({ email, password });
-      
+
       const session: AuthSession = {
         user: response.user,
         token: response.token,
         expiresAt: response.expiresAt,
       };
-      
-      await secureStorage.setItem(SESSION_KEY, JSON.stringify(session));
-      
+
+      await persistSession(session);
+
       set({
         user: response.user,
         isAuthenticated: true,
@@ -54,17 +82,17 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   loginWithCode: async (loginCode: string) => {
     try {
-      set({ error: null });
+      set({ isLoading: true, error: null });
       const response = await authApi.loginWithCode({ loginCode });
-      
+
       const session: AuthSession = {
         user: response.user,
         token: response.token,
         expiresAt: response.expiresAt,
       };
-      
-      await secureStorage.setItem(SESSION_KEY, JSON.stringify(session));
-      
+
+      await persistSession(session);
+
       set({
         user: response.user,
         isAuthenticated: true,
@@ -86,7 +114,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      await secureStorage.deleteItem(SESSION_KEY);
+      await clearSession();
       set({
         user: null,
         isAuthenticated: false,
@@ -100,19 +128,41 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       set({ isLoading: true });
       const sessionData = await secureStorage.getItem(SESSION_KEY);
-      
+
       if (sessionData) {
-        const session: AuthSession = JSON.parse(sessionData);
-        
+        let session: AuthSession;
+        try {
+          session = JSON.parse(sessionData);
+        } catch {
+          await clearSession();
+          set({ user: null, isAuthenticated: false, isLoading: false });
+          return;
+        }
+
+        if (isSessionExpired(session.expiresAt)) {
+          await clearSession();
+          set({
+            user: null,
+            isAuthenticated: false,
+            isLoading: false,
+            error: 'Your session has expired. Please sign in again.',
+          });
+          return;
+        }
+
         try {
           const user = await authApi.getCurrentUser();
+          // Re-seed the cached session with the verified user so a stale
+          // profile can never linger after a role change.
+          const nextSession: AuthSession = { ...session, user };
+          await persistSession(nextSession);
           set({
             user,
             isAuthenticated: true,
             isLoading: false,
           });
         } catch (error) {
-          await secureStorage.deleteItem(SESSION_KEY);
+          await clearSession();
           set({
             user: null,
             isAuthenticated: false,
@@ -120,7 +170,7 @@ export const useAuthStore = create<AuthState>((set) => ({
           });
         }
       } else {
-        set({ isLoading: false });
+        set({ isLoading: false, isAuthenticated: false, user: null });
       }
     } catch (error) {
       console.error('Load session error:', error);
@@ -129,10 +179,11 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   setUser: (user: User) => {
-    set({ user });
+    set({ user, isAuthenticated: Boolean(user) });
   },
 
   clearError: () => {
     set({ error: null });
   },
-}));
+  };
+});

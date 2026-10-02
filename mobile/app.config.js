@@ -31,7 +31,7 @@ module.exports = {
       supportsTablet: true,
       bundleIdentifier: 'com.jacxi.shipping',
       infoPlist: {
-        UIBackgroundModes: ['remote-notification', 'remote-notification'],
+        UIBackgroundModes: ['remote-notification'],
         ITSAppUsesNonExemptEncryption: false,
       },
     },
@@ -41,12 +41,9 @@ module.exports = {
         backgroundColor: '#0A0A0A',
       },
       package: 'com.jacxi.shipping',
-      permissions: [
-        'CAMERA',
-        'READ_EXTERNAL_STORAGE',
-        'WRITE_EXTERNAL_STORAGE',
-        'NOTIFICATIONS',
-      ],
+      // READ/WRITE_EXTERNAL_STORAGE are legacy; keep the camera + notification
+      // permissions actually used by uploads and push.
+      permissions: ['CAMERA', 'NOTIFICATIONS'],
     },
     web: {
       favicon: './assets/favicon.png',
@@ -60,12 +57,9 @@ module.exports = {
         },
       ],
     ],
-    extra: {
-      eas: {
-        projectId: 'f9cccaeb-b579-4f07-a757-5244f0ccf045',
-      },
-    },
     owner: 'jacxishipping',
+    // NOTE: `extra` must appear once — an earlier duplicate silently dropped
+    // the EAS projectId.
     extra: {
       eas: {
         projectId: 'f9cccaeb-b579-4f07-a757-5244f0ccf045',

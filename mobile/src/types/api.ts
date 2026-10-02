@@ -42,8 +42,12 @@ export interface Notification {
   id: string;
   type: 'INFO' | 'SUCCESS' | 'WARNING' | 'ERROR';
   title: string;
-  message: string;
+  // Backend canonical shape is { title, description }; `message` stays as a
+  // tolerated alias for older cached payloads.
+  description: string;
+  message?: string;
   read: boolean;
+  origin?: 'system' | 'direct';
   link?: string;
   createdAt: string;
 }

@@ -1,4 +1,5 @@
 import { useAuthStore } from '../store/auth';
+import { CUSTOMER_ROLES, STAFF_ROLES } from '../types/auth';
 
 export const useAuth = () => {
   const {
@@ -13,8 +14,8 @@ export const useAuth = () => {
     clearError,
   } = useAuthStore();
 
-  const isAdmin = user?.role === 'ADMIN' || user?.role === 'MANAGER';
-  const isCustomer = user?.role === 'USER' || user?.role === 'CUSTOMER';
+  const isAdmin = user ? STAFF_ROLES.includes(user.role) : false;
+  const isCustomer = user ? CUSTOMER_ROLES.includes(user.role) : false;
 
   return {
     user,
