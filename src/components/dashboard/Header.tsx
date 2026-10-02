@@ -275,6 +275,7 @@ export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
 						<Link href="/dashboard/settings" style={{ textDecoration: 'none' }}>
 							<IconButton
 								sx={{
+									display: { xs: 'none', sm: 'inline-flex' },
 									color: 'var(--text-secondary)',
 									p: 0.75,
 									'&:hover': {

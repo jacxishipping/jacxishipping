@@ -1020,29 +1020,29 @@ export default function ShipmentDetailPage() {
             ]}
           />
 
-          <DashboardPanel noHeaderBorder>
-            <div className="flex flex-col gap-5 lg:flex-row">
+          <DashboardPanel noHeaderBorder className="overflow-hidden">
+            <div className="flex flex-col gap-4 sm:gap-5 lg:flex-row">
               <button
                 type="button"
                 onClick={() => openLightbox(primaryPhoto ? [primaryPhoto] : [], 0, 'Vehicle Photo')}
-                className="relative h-44 w-full overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--background)] text-left lg:h-auto lg:w-72 lg:flex-shrink-0"
+                className="relative h-48 sm:h-52 w-full overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--background)] text-left lg:h-auto lg:w-72 lg:flex-shrink-0 group cursor-pointer"
               >
                 {primaryPhoto ? (
-                  <Image src={primaryPhoto} alt={vehicleLabel} fill className="object-cover" sizes="(max-width: 1024px) 100vw, 288px" />
+                  <Image src={primaryPhoto} alt={vehicleLabel} fill className="object-cover transition-transform duration-300 group-hover:scale-105" sizes="(max-width: 1024px) 100vw, 288px" />
                 ) : (
-                  <div className="flex h-full min-h-44 items-center justify-center text-[var(--text-secondary)]">
+                  <div className="flex h-full min-h-48 items-center justify-center text-[var(--text-secondary)]">
                     <ImageIcon className="h-10 w-10" />
                   </div>
                 )}
-                <div className="absolute left-3 top-3 rounded-full border border-white/30 bg-black/55 px-3 py-1 text-xs font-semibold text-white">
+                <div className="absolute left-3 top-3 rounded-full border border-white/30 bg-black/60 backdrop-blur-sm px-3 py-1 text-xs font-semibold text-white">
                   {serviceLabel}
                 </div>
               </button>
 
               <div className="min-w-0 flex-1">
-                <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                <div className="flex flex-col gap-3.5 xl:flex-row xl:items-start xl:justify-between">
                   <div className="min-w-0">
-                    <div className="mb-2 flex flex-wrap items-center gap-2">
+                    <div className="mb-2 flex flex-wrap items-center gap-1.5 sm:gap-2">
                       <StatusBadge status={shipment.status} size="sm" />
                       {shipment.paymentStatus && (
                         <StatusBadge status={shipment.paymentStatus} size="sm" />
@@ -1052,27 +1052,33 @@ export default function ShipmentDetailPage() {
                       )}
                     </div>
 
-                    <h1 className="text-2xl font-semibold leading-tight text-[var(--text-primary)] sm:text-3xl">
+                    <h1 className="text-xl font-bold leading-tight text-[var(--text-primary)] sm:text-2xl lg:text-3xl">
                       {vehicleLabel}
                     </h1>
-                    <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm text-[var(--text-secondary)]">
-                      <span className="inline-flex items-center gap-1.5">
+                    <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs sm:text-sm text-[var(--text-secondary)]">
+                      <span className="inline-flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--background)] px-2 py-0.5">
                         <span>VIN:</span>
-                        <strong className="font-mono text-[var(--text-primary)]">{shipment.vehicleVIN || 'Not recorded'}</strong>
+                        <strong className="font-mono text-[var(--text-primary)]">{shipment.vehicleVIN || 'N/A'}</strong>
                         {shipment.vehicleVIN && <CopyButton value={shipment.vehicleVIN} label="VIN" />}
                       </span>
-                      <span className="inline-flex items-center gap-1.5">
+                      <span className="inline-flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--background)] px-2 py-0.5">
                         <span>Lot:</span>
-                        <strong className="font-mono text-[var(--text-primary)]">{shipment.lotNumber || 'Not recorded'}</strong>
+                        <strong className="font-mono text-[var(--text-primary)]">{shipment.lotNumber || 'N/A'}</strong>
                         {shipment.lotNumber && <CopyButton value={shipment.lotNumber} label="Lot #" />}
                       </span>
-                      <span>Auction: <strong className="text-[var(--text-primary)]">{shipment.auctionName || 'Not recorded'}</strong></span>
+                      {shipment.auctionName && (
+                        <span className="inline-flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--background)] px-2 py-0.5">
+                          <span>Auction:</span>
+                          <strong className="text-[var(--text-primary)]">{shipment.auctionName}</strong>
+                        </span>
+                      )}
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap gap-2">
+                  {/* Actions Bar */}
+                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                     <Button href="/dashboard/shipments" variant="outline" size="sm">
-                      <ArrowLeft className="mr-2 h-4 w-4" />
+                      <ArrowLeft className="mr-1.5 h-3.5 w-3.5" />
                       Back
                     </Button>
                     <Button
@@ -1081,93 +1087,94 @@ export default function ShipmentDetailPage() {
                       onClick={() => openShipmentTab('map')}
                       className="border-cyan-500/40 text-cyan-500 hover:bg-cyan-500/10 hover:text-cyan-400 dark:text-cyan-400"
                     >
-                      <Radio className="mr-2 h-4 w-4 animate-pulse text-cyan-500 dark:text-cyan-400" />
+                      <Radio className="mr-1.5 h-3.5 w-3.5 animate-pulse text-cyan-500 dark:text-cyan-400" />
                       Live Map
                     </Button>
                     <Tooltip title="Download a PDF receipt for this shipment. For official invoices, use the Billing tab on this shipment.">
                       <Button variant="outline" size="sm" onClick={handleDownloadReceipt}>
-                        <FileText className="mr-2 h-4 w-4" />
+                        <FileText className="mr-1.5 h-3.5 w-3.5" />
                         Receipt
                       </Button>
                     </Tooltip>
                     {shipment.releaseToken && (
                       <Tooltip title="Download release token document as PDF with customer, vehicle, and payment details.">
                         <Button variant="outline" size="sm" onClick={handleDownloadReleaseToken}>
-                          <FileText className="mr-2 h-4 w-4" />
+                          <FileText className="mr-1.5 h-3.5 w-3.5" />
                           Token PDF
                         </Button>
                       </Tooltip>
                     )}
                     {canManageShipmentRecord && (
                       <Button href={`/dashboard/shipments/${shipment.id}/edit`} size="sm">
-                        <PenLine className="mr-2 h-4 w-4" />
+                        <PenLine className="mr-1.5 h-3.5 w-3.5" />
                         Edit
                       </Button>
                     )}
                   </div>
                 </div>
 
-                <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-                  <div className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-3">
-                    <div className="flex items-center gap-2 text-xs font-semibold uppercase text-[var(--text-secondary)]">
-                      <User className="h-4 w-4" />
+                {/* 5 KPI Metric Summary Boxes */}
+                <div className="mt-4 sm:mt-5 grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-5 gap-2 sm:gap-3">
+                  <div className="rounded-xl border border-[var(--border)] bg-[var(--background)] p-2.5 sm:p-3">
+                    <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase text-[var(--text-secondary)]">
+                      <User className="h-3.5 w-3.5 text-[var(--accent-gold)]" />
                       Customer
                     </div>
-                    <div className="mt-1 truncate text-sm font-semibold text-[var(--text-primary)]">{shipment.user.name || shipment.user.email}</div>
-                    <div className="truncate text-xs text-[var(--text-secondary)]">{shipment.user.email}</div>
+                    <div className="mt-1 truncate text-xs sm:text-sm font-semibold text-[var(--text-primary)]">{shipment.user.name || shipment.user.email}</div>
+                    <div className="truncate text-[11px] text-[var(--text-secondary)]">{shipment.user.email}</div>
                   </div>
 
-                  <div className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-3">
-                    <div className="flex items-center gap-2 text-xs font-semibold uppercase text-[var(--text-secondary)]">
-                      <MapPin className="h-4 w-4" />
+                  <div className="rounded-xl border border-[var(--border)] bg-[var(--background)] p-2.5 sm:p-3">
+                    <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase text-[var(--text-secondary)]">
+                      <MapPin className="h-3.5 w-3.5 text-[var(--accent-gold)]" />
                       Route
                     </div>
-                    <div className="mt-1 truncate text-sm font-semibold text-[var(--text-primary)]">{shipmentRoute}</div>
-                    <div className="truncate text-xs text-[var(--text-secondary)]">{movementLabel}: {activeMovement}</div>
+                    <div className="mt-1 truncate text-xs sm:text-sm font-semibold text-[var(--text-primary)]">{shipmentRoute}</div>
+                    <div className="truncate text-[11px] text-[var(--text-secondary)]">{movementLabel}: {activeMovement}</div>
                   </div>
 
-                  <div className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-3">
-                    <div className="flex items-center gap-2 text-xs font-semibold uppercase text-[var(--text-secondary)]">
-                      <CalendarCheck className="h-4 w-4" />
+                  <div className="rounded-xl border border-[var(--border)] bg-[var(--background)] p-2.5 sm:p-3">
+                    <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase text-[var(--text-secondary)]">
+                      <CalendarCheck className="h-3.5 w-3.5 text-[var(--accent-gold)]" />
                       ETA
                     </div>
-                    <div className="mt-1 text-sm font-semibold text-[var(--text-primary)]">{formatShortDate(shipment.container?.estimatedArrival)}</div>
-                    <div className="text-xs text-[var(--text-secondary)]">Created {formatShortDate(shipment.createdAt)}</div>
+                    <div className="mt-1 text-xs sm:text-sm font-semibold text-[var(--text-primary)]">{formatShortDate(shipment.container?.estimatedArrival)}</div>
+                    <div className="text-[11px] text-[var(--text-secondary)]">Created {formatShortDate(shipment.createdAt)}</div>
                   </div>
 
-                  <div className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-3">
-                    <div className="flex items-center gap-2 text-xs font-semibold uppercase text-[var(--text-secondary)]">
-                      <DollarSign className="h-4 w-4" />
-                      Customer Balance
+                  <div className="rounded-xl border border-[var(--border)] bg-[var(--background)] p-2.5 sm:p-3">
+                    <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase text-[var(--text-secondary)]">
+                      <DollarSign className="h-3.5 w-3.5 text-[var(--accent-gold)]" />
+                      Balance
                     </div>
-                    <div className="mt-1 text-sm font-semibold text-[var(--text-primary)]">{formatMoney(netUserCharged)}</div>
-                    <div className="text-xs text-[var(--text-secondary)]">Expenses {formatMoney(classifiedShipmentExpenseData.total)}</div>
+                    <div className="mt-1 text-xs sm:text-sm font-semibold text-[var(--text-primary)]">{formatMoney(netUserCharged)}</div>
+                    <div className="text-[11px] text-[var(--text-secondary)]">Exp: {formatMoney(classifiedShipmentExpenseData.total)}</div>
                   </div>
 
                   <button
                     type="button"
                     onClick={() => openShipmentTab('financials')}
-                    className={`rounded-lg border p-3 text-left transition-colors hover:border-[rgba(var(--accent-gold-rgb),0.45)] ${priceListHeaderClass}`}
+                    className={`col-span-2 sm:col-span-1 xl:col-span-1 rounded-xl border p-2.5 sm:p-3 text-left transition-colors hover:border-[rgba(var(--accent-gold-rgb),0.45)] ${priceListHeaderClass}`}
                   >
-                    <div className="flex items-center gap-2 text-xs font-semibold uppercase text-[var(--text-secondary)]">
-                      <ReceiptText className="h-4 w-4" />
+                    <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase text-[var(--text-secondary)]">
+                      <ReceiptText className="h-3.5 w-3.5 text-[var(--accent-gold)]" />
                       Price List
                     </div>
-                    <div className="mt-1 truncate text-sm font-semibold text-[var(--text-primary)]">{priceListHeaderStatus}</div>
-                    <div className="truncate text-xs text-[var(--text-secondary)]">{priceListHeaderDetail}</div>
+                    <div className="mt-1 truncate text-xs sm:text-sm font-semibold text-[var(--text-primary)]">{priceListHeaderStatus}</div>
+                    <div className="truncate text-[11px] text-[var(--text-secondary)]">{priceListHeaderDetail}</div>
                   </button>
                 </div>
 
-                <div className="mt-4 flex flex-wrap items-center gap-2">
+                <div className="mt-3.5 flex flex-wrap items-center gap-2">
                   {canAssignDispatch && (
                     <Button variant="outline" size="sm" onClick={() => setOpenAssignDispatch(true)}>
-                      <Truck className="mr-2 h-4 w-4" />
+                      <Truck className="mr-1.5 h-3.5 w-3.5" />
                       Assign Dispatch
                     </Button>
                   )}
                   {canManageWorkflow && isReleasedForTransit && !shipment.transitId && (
                     <Button variant="outline" size="sm" onClick={openAssignTransitDialog}>
-                      <Ship className="mr-2 h-4 w-4" />
+                      <Ship className="mr-1.5 h-3.5 w-3.5" />
                       Assign Transit
                     </Button>
                   )}
@@ -1251,11 +1258,11 @@ export default function ShipmentDetailPage() {
           sx={{
             position: 'sticky',
             top: 0,
-            zIndex: 15,
+            zIndex: 10,
             border: '1px solid var(--border)',
             borderRadius: '12px',
             backgroundColor: 'var(--panel)',
-            boxShadow: '0 12px 28px rgba(var(--text-primary-rgb),0.08)',
+            boxShadow: '0 8px 24px rgba(var(--text-primary-rgb),0.06)',
             overflow: 'hidden',
           }}
         >
@@ -1266,21 +1273,23 @@ export default function ShipmentDetailPage() {
             }}
             variant="scrollable"
             scrollButtons="auto"
+            allowScrollButtonsMobile
             sx={{
-              minHeight: 52,
+              minHeight: 48,
               '& .MuiTabs-flexContainer': {
                 gap: 0.25,
-                px: 1,
+                px: { xs: 0.5, sm: 1 },
               },
               '& .MuiTab-root': {
                 textTransform: 'none',
-                fontSize: '0.875rem',
-                fontWeight: 650,
+                fontSize: { xs: '0.8rem', sm: '0.875rem' },
+                fontWeight: 600,
                 color: 'var(--text-secondary)',
-                minHeight: 52,
-                borderRadius: '10px',
-                my: 0.75,
-                px: 1.5,
+                minHeight: 48,
+                borderRadius: '8px',
+                my: 0.5,
+                px: { xs: 1.25, sm: 1.75 },
+                py: 0.75,
                 '&:hover': {
                   color: 'var(--accent-gold)',
                   backgroundColor: 'rgba(var(--accent-gold-rgb), 0.08)',
@@ -1289,10 +1298,12 @@ export default function ShipmentDetailPage() {
               '& .Mui-selected': {
                 color: 'var(--accent-gold) !important',
                 backgroundColor: 'rgba(var(--accent-gold-rgb), 0.1)',
+                fontWeight: 700,
               },
               '& .MuiTabs-indicator': {
                 backgroundColor: 'var(--accent-gold)',
                 height: 3,
+                borderRadius: '3px 3px 0 0',
               },
             }}
           >
