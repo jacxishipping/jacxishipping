@@ -577,7 +577,7 @@ export default function ContainersPage() {
               Search containers
             </button>
           </form>
-          <Box sx={{ mt: 1.5 }}>
+          <Box sx={{ mt: 1.5, display: { xs: 'none', sm: 'block' } }}>
             <SavedFilterPresets
               storageKey="containers"
               currentFilters={{ status: statusFilter, search: searchQuery }}
@@ -665,29 +665,36 @@ export default function ContainersPage() {
                     }}
                   >
                     {/* Header */}
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 2 }}>
-                      <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Typography sx={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'monospace' }}>
-                            {container.containerNumber}
-                          </Typography>
-                          <span onClick={(e) => e.stopPropagation()}>
-                            <CopyButton value={container.containerNumber} label="Container #" />
-                          </span>
-                        </Box>
-                        {container.trackingNumber && (
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-                            <Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
-                              {container.trackingNumber}
+                    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'stretch', sm: 'flex-start' }, gap: 1.5, mb: 2 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flex: 1, minWidth: 0 }}>
+                        <Box sx={{ minWidth: 0 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Typography sx={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {container.containerNumber}
                             </Typography>
                             <span onClick={(e) => e.stopPropagation()}>
-                              <CopyButton value={container.trackingNumber} label="Tracking #" />
+                              <CopyButton value={container.containerNumber} label="Container #" />
                             </span>
                           </Box>
-                        )}
+                          {container.trackingNumber && (
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+                              <Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
+                                {container.trackingNumber}
+                              </Typography>
+                              <span onClick={(e) => e.stopPropagation()}>
+                                <CopyButton value={container.trackingNumber} label="Tracking #" />
+                              </span>
+                            </Box>
+                          )}
+                        </Box>
+                        <Box sx={{ display: { xs: 'block', sm: 'none' } }}>
+                          <StatusBadge status={container.status} size="sm" />
+                        </Box>
                       </Box>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <StatusBadge status={container.status} size="sm" />
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: { xs: 'flex-end', sm: 'flex-start' }, gap: 0.5 }}>
+                        <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+                          <StatusBadge status={container.status} size="sm" />
+                        </Box>
                         <IconButton
                           size="small"
                           onClick={(e) => {

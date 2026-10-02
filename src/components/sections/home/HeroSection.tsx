@@ -132,28 +132,27 @@ export default function HeroSection() {
           className="relative z-10 flex flex-col justify-center pt-8 sm:pt-24 lg:pt-0"
         >
           {/* Trust Badge */}
-          <motion.div variants={itemVariants} className="inline-flex items-center gap-3 rounded-full border border-black/10 bg-[#F9FAFB]/[0.03] px-2 py-1.5 pr-5 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.5)] backdrop-blur-xl self-start overflow-hidden relative group">
-            <span className="absolute inset-0 w-10 bg-[#F9FAFB]/10 -translate-x-[150%] skew-x-[-20deg] animate-[shimmer_3s_ease-in-out_infinite]" />
-            <span className="relative z-10 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-900 text-gray-900 shadow-[0_0_15px_rgba(255,255,255,0.8)]">
+          <motion.div variants={itemVariants} className="inline-flex items-center gap-3 rounded-full border border-black/10 bg-white/80 px-2.5 py-1.5 pr-4 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.1)] backdrop-blur-xl self-start overflow-hidden relative group">
+            <span className="relative z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#D4AF37] text-white shadow-sm">
               <ShieldCheck className="h-3.5 w-3.5" />
             </span>
-            <span className="relative z-10 text-xs font-bold uppercase tracking-[0.15em] text-gray-900">
+            <span className="relative z-10 text-xs font-bold uppercase tracking-[0.12em] text-slate-900">
               #1 N.A. to Afghanistan
             </span>
           </motion.div>
 
           {/* Headline - Word by Word Reveal */}
           <motion.h1 
-            className="mt-10 max-w-4xl text-[3.25rem] font-bold leading-[0.95] tracking-tighter text-gray-900 sm:text-[4.5rem] lg:text-[5rem] xl:text-[6.5rem] drop-shadow-2xl"
+            className="mt-6 sm:mt-10 max-w-4xl text-3xl font-extrabold leading-[1.05] tracking-tight text-slate-900 sm:text-5xl lg:text-6xl xl:text-7xl"
           >
             {titleWords.slice(0, 3).map((word, i) => (
-              <motion.span key={i} className="inline-block mr-3 lg:mr-4 origin-bottom-left" variants={wordVariants}>{word}</motion.span>
+              <motion.span key={i} className="inline-block mr-2 sm:mr-3 lg:mr-4 origin-bottom-left" variants={wordVariants}>{word}</motion.span>
             ))}
             <br className="hidden sm:block"/>
-            <span className="relative inline-block mt-2">
-              <motion.span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-white via-white to-white/50 px-2 pl-0 flex" variants={wordVariants}>
+            <span className="relative inline-block mt-1 sm:mt-2">
+              <motion.span className="relative z-10 text-slate-900 px-1 pl-0 inline-flex flex-wrap" variants={wordVariants}>
                 {titleWords.slice(3, 5).map((word, i) => (
-                   <span key={i} className="mr-3 lg:mr-4">{word}</span>
+                   <span key={i} className="mr-2 sm:mr-3 lg:mr-4">{word}</span>
                 ))}
               </motion.span>
               <motion.span 
@@ -161,41 +160,40 @@ export default function HeroSection() {
                 animate={{ scaleX: 1 }}
                 transition={{ duration: 1, delay: 0.8, ease: "circOut" }}
                 style={{ originX: 0 }}
-                className="absolute bottom-2 left-0 right-0 h-4 md:h-6 bg-[var(--accent-gold)] -z-10 mix-blend-color transform -rotate-2"
+                className="absolute bottom-1 left-0 right-0 h-3 sm:h-5 bg-[#D4AF37]/30 -z-10 transform -rotate-1 rounded"
               ></motion.span>
             </span>
             <br className="hidden sm:block"/>
-            <motion.span className="block mt-6 text-[0.3em] font-extrabold leading-[1.3] text-black/60 uppercase tracking-[0.3em] font-mono text-outline hover:text-gray-900 transition-colors duration-500" variants={wordVariants}>
+            <motion.span className="block mt-4 sm:mt-6 text-xs sm:text-sm font-extrabold leading-[1.3] text-[#D4AF37] uppercase tracking-[0.25em] font-mono" variants={wordVariants}>
               TO AFGHANISTAN
             </motion.span>
           </motion.h1>
 
           {/* Value Prop text */}
-          <motion.p variants={itemVariants} className="mt-8 max-w-xl text-lg leading-relaxed text-black/70 sm:text-xl font-medium drop-shadow-md">
-            Premium vehicle logistics from <span className="text-gray-900">USA and Canada</span> directly to{' '}
-            <span className="text-gray-900">Afghanistan</span>. Flawless handling through <span className="text-[var(--accent-gold)] underline decoration-white/20 underline-offset-4 decoration-2">Mersin</span> or <span className="text-[var(--accent-gold)] underline decoration-white/20 underline-offset-4 decoration-2">UAE</span>.
+          <motion.p variants={itemVariants} className="mt-6 sm:mt-8 max-w-xl text-base sm:text-lg leading-relaxed text-slate-600 sm:text-xl font-medium">
+            Premium vehicle logistics from <span className="text-slate-900 font-semibold">USA and Canada</span> directly to{' '}
+            <span className="text-slate-900 font-semibold">Afghanistan</span>. Flawless handling through <span className="text-[#D4AF37] font-semibold underline decoration-[#D4AF37]/30 underline-offset-4 decoration-2">Mersin</span> or <span className="text-[#D4AF37] font-semibold underline decoration-[#D4AF37]/30 underline-offset-4 decoration-2">UAE</span>.
           </motion.p>
 
-          {/* Call to Actions - Magnetic */}
-          <motion.div variants={itemVariants} className="mt-12 flex flex-col gap-4 sm:flex-row sm:items-center">
+          {/* Call to Actions */}
+          <motion.div variants={itemVariants} className="mt-8 sm:mt-12 flex flex-col gap-3 sm:flex-row sm:items-center">
             <Magnetic>
               <Link
                 href="/#quote"
-                className="group relative inline-flex h-16 min-w-[200px] items-center justify-center gap-3 overflow-hidden rounded-full bg-white px-8 text-base font-bold text-black shadow-[0_8px_30px_rgba(255,255,255,0.2)] transition-all duration-500 hover:shadow-[0_8px_40px_rgba(255,255,255,0.4)]"
+                className="group relative inline-flex h-14 sm:h-16 w-full sm:w-auto min-w-[200px] items-center justify-center gap-3 overflow-hidden rounded-full bg-slate-950 px-8 text-base font-bold text-white shadow-xl transition-all duration-300 hover:brightness-110"
               >
-                <div className="absolute inset-0 h-full w-full bg-[var(--accent-gold)] translate-y-full transition-transform duration-500 ease-[cubic-bezier(0.76,0,0.24,1)] group-hover:translate-y-0" />
-                <span className="relative z-10 group-hover:text-gray-900 transition-colors duration-500">Get a free quote</span>
-                <ArrowRight className="relative z-10 h-5 w-5 -rotate-45 transition-transform duration-500 group-hover:rotate-0 group-hover:text-gray-900 group-hover:translate-x-1" />
+                <div className="absolute inset-0 h-full w-full bg-[#D4AF37] translate-y-full transition-transform duration-500 ease-[cubic-bezier(0.76,0,0.24,1)] group-hover:translate-y-0" />
+                <span className="relative z-10 group-hover:text-slate-950 transition-colors duration-500">Get a free quote</span>
+                <ArrowRight className="relative z-10 h-5 w-5 -rotate-45 transition-transform duration-500 group-hover:rotate-0 group-hover:text-slate-950 group-hover:translate-x-1" />
               </Link>
             </Magnetic>
             
             <Magnetic>
               <Link
                 href="/#process"
-                className="group relative inline-flex h-16 items-center justify-center gap-3 rounded-full border border-black/10 bg-transparent px-8 text-base font-semibold text-gray-900 backdrop-blur-md transition-all duration-500 hover:bg-[#F9FAFB]/5 hover:border-black/[0.03]0"
+                className="group relative inline-flex h-14 sm:h-16 w-full sm:w-auto items-center justify-center gap-3 rounded-full border border-slate-200 bg-white/80 px-8 text-base font-semibold text-slate-900 backdrop-blur-md transition-all duration-300 hover:bg-white hover:border-[#D4AF37]"
               >
-                 <span className="absolute inset-0 rounded-full border border-transparent group-hover:border-black/10 group-hover:scale-105 transition-all duration-500 ease-out" />
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F9FAFB]/5 text-gray-900 backdrop-blur-sm group-hover:bg-white group-hover:text-black transition-colors duration-500">
+                <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-slate-100 text-slate-900 group-hover:bg-[#D4AF37] group-hover:text-slate-950 transition-colors duration-300">
                   <CirclePlay className="h-4 w-4 fill-current" />
                 </div>
                 How it works
@@ -204,7 +202,7 @@ export default function HeroSection() {
           </motion.div>
 
           <motion.div variants={itemVariants} className="mt-6 max-w-xl">
-            <p className="mb-3 text-sm font-semibold text-black/70">Already shipping with us? Track your container.</p>
+            <p className="mb-2 text-xs sm:text-sm font-semibold text-slate-600">Already shipping with us? Track your container.</p>
             <HeroTrackingForm />
           </motion.div>
 

@@ -118,68 +118,80 @@ export default function Header({ isAuthenticated = false }: { isAuthenticated?: 
       <AnimatePresence>
         {isMobileMenuOpen && (
           <motion.div
-            initial={{ clipPath: 'circle(0% at 100% 0)' }}
-            animate={{ clipPath: 'circle(150% at 100% 0)' }}
-            exit={{ clipPath: 'circle(0% at 100% 0)' }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-            className="fixed inset-0 z-[200] bg-gray-900 text-white"
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.98 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+            className="fixed inset-0 z-[200] flex flex-col bg-slate-950 text-white overflow-y-auto"
           >
-            <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10" />
+            <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10 pointer-events-none" />
+            <div className="absolute top-0 right-0 h-72 w-72 bg-[#D4AF37]/10 rounded-full blur-3xl pointer-events-none" />
             
-            <div className="relative flex h-full flex-col px-6 py-8">
-              <div className="flex items-center justify-between">
-                <SiteMark className="h-8 w-8 text-[#D4AF37]" />
+            <div className="relative flex min-h-full flex-col justify-between px-6 py-6 sm:px-8">
+              <div className="flex items-center justify-between pb-6 border-b border-white/10">
+                <Link 
+                  href="/" 
+                  onClick={() => setIsMobileMenuOpen(false)} 
+                  className="flex items-center gap-3"
+                >
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#D4AF37]/20 border border-[#D4AF37]/30 text-[#D4AF37]">
+                    <SiteMark className="h-6 w-6" />
+                  </div>
+                  <span className="text-xl font-extrabold tracking-tight text-white">JACXI</span>
+                </Link>
                 <button
                   type="button"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex h-12 w-12 items-center justify-center rounded-full border border-black/10 text-gray-900 hover:bg-[#F9FAFB]/5 transition-colors outline-none"
+                  aria-label="Close navigation menu"
+                  className="flex h-11 w-11 items-center justify-center rounded-full border border-white/20 text-white bg-white/10 hover:bg-white/20 transition-colors outline-none"
                 >
                   <X className="h-6 w-6" />
                 </button>
               </div>
 
-              <div className="mt-auto mb-auto flex flex-col gap-6">
+              <div className="my-8 flex flex-col gap-4">
                 {navigation.map((item, i) => (
                   <motion.div
-                     initial={{ opacity: 0, y: 40 }}
-                     animate={{ opacity: 1, y: 0 }}
-                     transition={{ delay: 0.2 + (i * 0.1), duration: 0.8, ease: "easeOut" }}
+                     initial={{ opacity: 0, x: -20 }}
+                     animate={{ opacity: 1, x: 0 }}
+                     transition={{ delay: 0.08 + (i * 0.05), duration: 0.4, ease: "easeOut" }}
                      key={item.name}
                   >
                     <Link
                       href={item.href}
                       onClick={() => setIsMobileMenuOpen(false)}
-                      className="group flex items-center justify-between text-4xl font-extrabold tracking-tighter"
+                      className="group flex items-center justify-between py-2 text-2xl sm:text-3xl font-bold tracking-tight text-white/90 hover:text-[#D4AF37] transition-colors"
                     >
                       <span className="relative">
                         {item.name}
-                        <span className="absolute -bottom-2 left-0 h-1 w-full scale-x-0 bg-[#D4AF37] transition-transform duration-500 origin-left group-hover:scale-x-100" />
+                        <span className="absolute -bottom-1 left-0 h-0.5 w-full scale-x-0 bg-[#D4AF37] transition-transform duration-300 origin-left group-hover:scale-x-100" />
                       </span>
+                      <span className="text-xs font-mono text-white/40 group-hover:text-[#D4AF37] transition-colors">0{i + 1}</span>
                     </Link>
                   </motion.div>
                 ))}
               </div>
 
               <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.8 }}
-                className="grid gap-4 mt-auto border-t border-black/5 pt-8"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.35, duration: 0.4 }}
+                className="grid gap-3 pt-6 border-t border-white/10"
               >
                 <Link
                   href={isAuthenticated ? "/dashboard" : "/auth/signin"}
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center justify-center h-14 rounded-xl border border-black/10 font-bold"
+                  className="flex items-center justify-center h-12 rounded-xl border border-white/20 bg-white/5 font-semibold text-white hover:bg-white/10 transition-colors"
                 >
-                  {isAuthenticated ? "Dashboard" : "Sign in"}
+                  {isAuthenticated ? "Go to Dashboard" : "Sign In"}
                 </Link>
                 {!isAuthenticated && (
                    <Link
                     href="/auth/signup"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center justify-center h-14 rounded-xl bg-gray-900 text-gray-900 font-bold"
+                    className="flex items-center justify-center h-12 rounded-xl bg-[#D4AF37] text-slate-950 font-bold hover:brightness-110 shadow-lg shadow-[#D4AF37]/20 transition-all"
                   >
-                    Sign up
+                    Create Account
                   </Link>
                 )}
               </motion.div>

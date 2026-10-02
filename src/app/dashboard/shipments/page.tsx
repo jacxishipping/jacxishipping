@@ -473,7 +473,7 @@ export default function ShipmentsListPage() {
 						setCurrentPage(1);
 					}}
 				/>
-				<Box sx={{ mt: 1, px: 0.5 }}>
+				<Box sx={{ mt: 1, px: 0.5, display: { xs: 'none', sm: 'block' } }}>
 					<SavedFilterPresets
 						storageKey="shipments"
 						currentFilters={searchFilters}

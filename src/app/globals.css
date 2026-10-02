@@ -94,12 +94,11 @@ html {
 
 /* Mobile Touch Optimization */
 @media (max-width: 768px) {
-	/* Minimum touch target size for mobile (44x44px recommended by Apple/Google) */
+	/* Minimum touch target size for interactive action buttons without breaking inline text links */
 	button:not(table button):not(.table-action-btn):not(.status-badge):not(.ds-compact-btn), 
-	a:not(table a), 
+	.touch-target,
 	input[type="button"], 
-	input[type="submit"],
-	.touch-target {
+	input[type="submit"] {
 		min-height: 44px;
 		min-width: 44px;
 	}

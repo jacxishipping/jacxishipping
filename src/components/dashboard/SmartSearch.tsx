@@ -11,7 +11,8 @@ import {
   Inventory2,
   LocalShipping,
   ExpandMore,
-  ExpandLess
+  ExpandLess,
+  History as HistoryIcon
 } from '@mui/icons-material';
 import { 
   TextField,
@@ -34,6 +35,7 @@ import {
 } from '@/lib/shipment-workflow-stage';
 import { Camera } from 'lucide-react';
 import { BarcodeScannerModal } from '@/components/ui/BarcodeScannerModal';
+import { triggerHaptic } from '@/lib/haptics';
 
 interface SmartSearchProps {
   onSearch: (filters: SearchFilters) => void;
@@ -97,11 +99,46 @@ export default function SmartSearch({
   const [query, setQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [isFocused, setIsFocused] = useState(false);
   const [filters, setFilters] = useState<SearchFilters>({
     query: '',
     type: defaultType,
   });
   const [isSearching, setIsSearching] = useState(false);
+
+  // Load recent searches from localStorage
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('jacxi_recent_searches');
+      if (stored) {
+        setRecentSearches(JSON.parse(stored));
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const saveRecentSearch = (term: string) => {
+    const trimmed = term.trim();
+    if (!trimmed || trimmed.length < 2) return;
+    try {
+      const updated = [trimmed, ...recentSearches.filter(s => s.toLowerCase() !== trimmed.toLowerCase())].slice(0, 5);
+      setRecentSearches(updated);
+      localStorage.setItem('jacxi_recent_searches', JSON.stringify(updated));
+    } catch {
+      // ignore
+    }
+  };
+
+  const clearRecentSearches = () => {
+    setRecentSearches([]);
+    try {
+      localStorage.removeItem('jacxi_recent_searches');
+    } catch {
+      // ignore
+    }
+  };
 
   // Count active filters (derived state, no need for useEffect)
   const activeFiltersCount = (() => {
@@ -119,9 +156,12 @@ export default function SmartSearch({
   const handleSearch = useCallback((newFilters: SearchFilters) => {
     setIsSearching(true);
     setFilters(newFilters);
+    if (newFilters.query) {
+      saveRecentSearch(newFilters.query);
+    }
     onSearch(newFilters);
     setTimeout(() => setIsSearching(false), 300);
-  }, [onSearch]);
+  }, [onSearch, recentSearches]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Debounced search
   useEffect(() => {
@@ -135,11 +175,13 @@ export default function SmartSearch({
   }, [query, filters, handleSearch]);
 
   const updateFilter = (key: keyof SearchFilters, value: string | undefined) => {
+    triggerHaptic('light');
     const newFilters = { ...filters, [key]: value || undefined };
     handleSearch(newFilters);
   };
 
   const clearFilters = () => {
+    triggerHaptic('light');
     setQuery('');
     const clearedFilters: SearchFilters = {
       query: '',
@@ -274,6 +316,47 @@ export default function SmartSearch({
             </Button>
           </Box>
         </Box>
+
+        {/* Recent Searches Suggestions */}
+        {recentSearches.length > 0 && !query && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1, overflowX: 'auto', pb: 0.5, '::-webkit-scrollbar': { display: 'none' } }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
+              <HistoryIcon sx={{ fontSize: 14, color: 'var(--text-secondary)' }} />
+              <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                Recent:
+              </Typography>
+            </Box>
+            {recentSearches.map((term) => (
+              <Chip
+                key={term}
+                label={term}
+                size="small"
+                onClick={() => {
+                  triggerHaptic('light');
+                  setQuery(term);
+                  handleSearch({ ...filters, query: term });
+                }}
+                sx={{
+                  fontSize: '0.75rem',
+                  bgcolor: 'rgba(var(--accent-gold-rgb), 0.08)',
+                  color: 'var(--text-primary)',
+                  border: '1px solid rgba(var(--accent-gold-rgb), 0.2)',
+                  cursor: 'pointer',
+                  '&:hover': {
+                    bgcolor: 'rgba(var(--accent-gold-rgb), 0.18)',
+                  },
+                }}
+              />
+            ))}
+            <button
+              type="button"
+              onClick={clearRecentSearches}
+              className="text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] underline flex-shrink-0 ml-1 cursor-pointer"
+            >
+              Clear
+            </button>
+          </Box>
+        )}
 
         {/* Quick Type Filter */}
         {showTypeFilter && (
