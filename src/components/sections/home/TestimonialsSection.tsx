@@ -39,7 +39,7 @@ export default function TestimonialsSection() {
   const x2 = useTransform(scrollYProgress, [0, 1], [-400, 0]);
 
   return (
-    <section ref={containerRef} className="relative overflow-hidden bg-[#F9FAFB] py-32 sm:py-48 text-black">
+    <section ref={containerRef} className="relative overflow-hidden bg-[#F9FAFB] py-16 sm:py-28 lg:py-40 text-black">
       
       {/* Absolute Background Typography */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full text-center pointer-events-none opacity-5">
@@ -48,19 +48,19 @@ export default function TestimonialsSection() {
         </h2>
       </div>
 
-      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 mb-24 text-center">
+      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 mb-10 sm:mb-16 text-center">
         <motion.div
            initial={{ opacity: 0, y: 20 }}
            whileInView={{ opacity: 1, y: 0 }}
            viewport={{ once: true }}
            transition={{ duration: 0.6 }}
         >
-          <div className="inline-flex items-center gap-3 justify-center mb-6">
+          <div className="inline-flex items-center gap-3 justify-center mb-4 sm:mb-6">
             <span className="h-px w-6 bg-[#D4AF37]" />
             <span className="text-xs font-mono uppercase tracking-[0.2em] text-[#D4AF37]">Verified clients</span>
             <span className="h-px w-6 bg-[#D4AF37]" />
           </div>
-          <h2 className="text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl max-w-3xl mx-auto">
+          <h2 className="text-3xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl max-w-3xl mx-auto">
             Reputation built on <br/>
             <span className="italic font-serif font-light text-black/40">flawless delivery.</span>
           </h2>
@@ -68,8 +68,8 @@ export default function TestimonialsSection() {
       </div>
 
       {/* Marquee Row 1 */}
-      <div className="relative flex whitespace-nowrap mb-8 [mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)]">
-        <motion.div style={{ x: x1 }} className="flex gap-8 px-4">
+      <div className="relative flex whitespace-nowrap mb-6 [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]">
+        <motion.div style={{ x: x1 }} className="flex gap-4 sm:gap-8 px-4">
           {[...testimonials, ...testimonials].slice(0, 4).map((item, idx) => (
              <TestimonialCard key={`row1-${idx}`} item={item} />
           ))}
@@ -77,8 +77,8 @@ export default function TestimonialsSection() {
       </div>
 
       {/* Marquee Row 2 */}
-      <div className="relative flex whitespace-nowrap [mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)]">
-        <motion.div style={{ x: x2 }} className="flex gap-8 px-4">
+      <div className="relative flex whitespace-nowrap [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]">
+        <motion.div style={{ x: x2 }} className="flex gap-4 sm:gap-8 px-4">
           {[...testimonials, ...testimonials].slice(4, 8).map((item, idx) => (
              <TestimonialCard key={`row2-${idx}`} item={item} />
           ))}
@@ -90,22 +90,22 @@ export default function TestimonialsSection() {
 
 function TestimonialCard({ item }: { item: any }) {
   return (
-    <div className="group relative w-[450px] sm:w-[500px] shrink-0 rounded-[2rem] border border-black/5 bg-white p-10 shadow-xl transition-all hover:bg-black hover:text-white cursor-grab active:cursor-grabbing">
-      <div className="absolute top-10 right-10 text-[#D4AF37] opacity-20 group-hover:opacity-100 transition-opacity">
-        <Quote className="h-12 w-12" />
+    <div className="group relative w-[85vw] max-w-[360px] sm:w-[480px] shrink-0 rounded-2xl sm:rounded-3xl border border-black/5 bg-white p-6 sm:p-8 shadow-md transition-all hover:shadow-xl hover:border-[#D4AF37]/40 cursor-grab active:cursor-grabbing">
+      <div className="absolute top-6 right-6 text-[#D4AF37] opacity-30 group-hover:opacity-100 transition-opacity">
+        <Quote className="h-8 w-8 sm:h-10 sm:w-10" />
       </div>
       
-      <p className="text-lg sm:text-xl font-medium leading-relaxed whitespace-normal min-h-[120px] pr-8">
+      <p className="text-sm sm:text-base font-medium leading-relaxed whitespace-normal min-h-[90px] sm:min-h-[110px] pr-6 text-slate-700">
         "{item.quote}"
       </p>
       
-      <div className="mt-10 flex items-center gap-5 border-t border-black/10 group-hover:border-white/10 pt-6 transition-colors">
-        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#D4AF37] text-white font-bold text-xl shadow-lg">
+      <div className="mt-6 flex items-center gap-4 border-t border-black/5 pt-4 transition-colors">
+        <div className="flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-[#D4AF37] text-white font-bold text-base shadow-sm">
           {item.name.charAt(0)}
         </div>
         <div>
-          <p className="font-extrabold tracking-tight text-lg">{item.name}</p>
-          <p className="text-xs font-bold uppercase tracking-widest opacity-50 font-mono mt-1">{item.role}</p>
+          <p className="font-extrabold tracking-tight text-sm sm:text-base text-slate-900">{item.name}</p>
+          <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-slate-400 font-mono mt-0.5">{item.role}</p>
         </div>
       </div>
     </div>

@@ -227,8 +227,8 @@ export default function ShipmentMilestoneStepper({
       </div>
 
       {/* Stepper Horizontal Scroll Container */}
-      <div className="overflow-x-auto pb-2 -mx-2 px-2">
-        <div className="min-w-[760px] grid grid-cols-7 gap-2">
+      <div className="overflow-x-auto pb-2 -mx-2 px-2 scroll-smooth" style={{ WebkitOverflowScrolling: 'touch' }}>
+        <div className="flex sm:grid sm:grid-cols-7 gap-2 min-w-full sm:min-w-[760px] snap-x snap-mandatory">
           {stages.map((stage, idx) => {
             const Icon = stage.icon;
             const isComplete = stage.status === 'complete';
@@ -239,7 +239,8 @@ export default function ShipmentMilestoneStepper({
               <div
                 key={stage.id}
                 className={cn(
-                  'relative flex flex-col p-2.5 rounded-xl border transition-all text-left',
+                  'relative flex flex-col p-2.5 rounded-xl border transition-all text-left snap-start',
+                  'min-w-[145px] max-w-[170px] sm:min-w-0 sm:max-w-none flex-shrink-0 sm:flex-shrink',
                   isComplete && 'border-emerald-500/30 bg-emerald-500/5 hover:bg-emerald-500/10',
                   isCurrent && 'border-[var(--accent-gold)] bg-[rgba(var(--accent-gold-rgb),0.08)] shadow-[0_0_15px_rgba(var(--accent-gold-rgb),0.12)]',
                   isPending && 'border-[var(--border)] bg-[var(--background)]/60 opacity-65'

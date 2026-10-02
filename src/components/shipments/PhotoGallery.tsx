@@ -1,9 +1,10 @@
 'use client';
 
 import Image from 'next/image';
-import { Upload, Plus, Download, ZoomIn, Package } from 'lucide-react';
+import { Upload, Plus, Download, ZoomIn, Package, Camera } from 'lucide-react';
 import { useRef, useState, useCallback } from 'react';
 import { cn } from '@/lib/utils';
+import { triggerHaptic } from '@/lib/haptics';
 
 export interface PhotoGalleryItem {
   url: string;
@@ -43,6 +44,7 @@ export default function PhotoGallery({
   className,
 }: PhotoGalleryProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
   const [deletingIndex, setDeletingIndex] = useState<number | null>(null);
   const [downloadingIndex, setDownloadingIndex] = useState<number | null>(null);
@@ -50,6 +52,7 @@ export default function PhotoGallery({
 
   const handleFiles = useCallback(async (files: FileList | null) => {
     if (!files || files.length === 0 || !onUpload) return;
+    triggerHaptic('light');
     await onUpload(Array.from(files));
   }, [onUpload]);
 
@@ -107,45 +110,70 @@ export default function PhotoGallery({
 
       {/* Upload area */}
       {canUpload && onUpload && (
-        <div
-          role="button"
-          tabIndex={0}
-          onClick={() => inputRef.current?.click()}
-          onKeyDown={(e) => e.key === 'Enter' && inputRef.current?.click()}
-          onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-          onDragLeave={() => setDragging(false)}
-          onDrop={handleDrop}
-          className={cn(
-            'relative flex h-24 w-full cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed transition-all duration-200',
-            dragging
-              ? 'border-[var(--accent-gold)] bg-[var(--accent-gold)]/10 scale-[1.01]'
-              : 'border-[var(--border)] bg-[var(--background)] hover:border-[var(--accent-gold)]/70 hover:bg-[var(--accent-gold)]/5',
-            uploading && 'pointer-events-none opacity-60'
-          )}
-        >
-          <input
-            ref={inputRef}
-            type="file"
-            multiple
-            accept="image/jpeg,image/jpg,image/png,image/webp"
-            onChange={(e) => void handleFiles(e.target.files).then(() => { e.target.value = ''; })}
-            className="hidden"
-            disabled={uploading}
-          />
-          <div className="flex flex-col items-center gap-1">
-            {uploading ? (
-              <div className="h-6 w-6 animate-spin rounded-full border-2 border-[var(--accent-gold)] border-t-transparent" />
-            ) : (
-              <div className="flex items-center gap-1.5">
-                <Plus className="h-4 w-4 text-[var(--accent-gold)]" />
-                <Upload className="h-4 w-4 text-[var(--accent-gold)]" />
-              </div>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => inputRef.current?.click()}
+            onKeyDown={(e) => e.key === 'Enter' && inputRef.current?.click()}
+            onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={handleDrop}
+            className={cn(
+              'relative flex-1 flex h-24 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed transition-all duration-200',
+              dragging
+                ? 'border-[var(--accent-gold)] bg-[var(--accent-gold)]/10 scale-[1.01]'
+                : 'border-[var(--border)] bg-[var(--background)] hover:border-[var(--accent-gold)]/70 hover:bg-[var(--accent-gold)]/5',
+              uploading && 'pointer-events-none opacity-60'
             )}
-            <p className="text-xs text-[var(--text-secondary)]">
-              <span className="font-semibold text-[var(--accent-gold)]">{uploadLabel || 'Add Photos'}</span>
-              {' — drag & drop or click'}
-            </p>
+          >
+            <input
+              ref={inputRef}
+              type="file"
+              multiple
+              accept="image/jpeg,image/jpg,image/png,image/webp"
+              onChange={(e) => void handleFiles(e.target.files).then(() => { e.target.value = ''; })}
+              className="hidden"
+              disabled={uploading}
+            />
+            <div className="flex flex-col items-center gap-1">
+              {uploading ? (
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-[var(--accent-gold)] border-t-transparent" />
+              ) : (
+                <div className="flex items-center gap-1.5">
+                  <Plus className="h-4 w-4 text-[var(--accent-gold)]" />
+                  <Upload className="h-4 w-4 text-[var(--accent-gold)]" />
+                </div>
+              )}
+              <p className="text-xs text-[var(--text-secondary)]">
+                <span className="font-semibold text-[var(--accent-gold)]">{uploadLabel || 'Upload Photos'}</span>
+                {' — files or drag & drop'}
+              </p>
+            </div>
           </div>
+
+          {/* Quick 1-Tap Camera Button for Mobile/Yard Inspectors */}
+          <button
+            type="button"
+            onClick={() => cameraInputRef.current?.click()}
+            disabled={uploading}
+            className="flex h-24 sm:w-36 items-center justify-center gap-2 rounded-xl border border-[rgba(var(--accent-gold-rgb),0.4)] bg-[rgba(var(--accent-gold-rgb),0.08)] p-3 text-xs font-semibold text-[var(--accent-gold)] transition-all hover:bg-[rgba(var(--accent-gold-rgb),0.15)] active:scale-95 disabled:opacity-50"
+          >
+            <input
+              ref={cameraInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={(e) => void handleFiles(e.target.files).then(() => { e.target.value = ''; })}
+              className="hidden"
+              disabled={uploading}
+            />
+            <Camera className="h-5 w-5" />
+            <div className="flex flex-col text-left">
+              <span>Take Photo</span>
+              <span className="text-[10px] opacity-75 font-normal">Rear Camera</span>
+            </div>
+          </button>
         </div>
       )}
 

@@ -36,13 +36,13 @@ export default function RoutesAnimatedSection() {
   const pathLength = useTransform(scrollYProgress, [0, 1], [0, 1]);
 
   return (
-    <section ref={containerRef} id="route" className="relative overflow-hidden bg-[#F9FAFB] py-24 sm:py-32 selection:bg-[var(--accent-gold)] selection:text-gray-900 scroll-mt-20">
+    <section ref={containerRef} id="route" className="relative overflow-hidden bg-[#F9FAFB] py-16 sm:py-24 lg:py-32 selection:bg-[var(--accent-gold)] selection:text-gray-900 scroll-mt-20">
       <div id="routes" className="absolute -top-20" aria-hidden="true" />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(var(--accent-gold-rgb),0.1)_0%,transparent_70%)]" />
       <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10" />
 
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="grid gap-16 lg:grid-cols-[1fr_1.3fr] lg:items-center">
+        <div className="grid gap-12 lg:gap-16 lg:grid-cols-[1fr_1.3fr] lg:items-center">
           
           <motion.div
             initial={{ opacity: 0, x: -40 }}
@@ -50,17 +50,17 @@ export default function RoutesAnimatedSection() {
             viewport={{ once: true, margin: '-10% 0px' }}
             transition={{ duration: 0.8, ease: "easeOut" }}
           >
-            <div className="inline-flex items-center rounded-full border border-black/5 bg-[#F9FAFB]/[0.03] px-3 py-1 font-mono text-xs uppercase tracking-widest text-[#D4AF37] backdrop-blur-md">
+            <div className="inline-flex items-center rounded-full border border-black/5 bg-white/80 px-3 py-1 font-mono text-xs uppercase tracking-widest text-[#D4AF37] backdrop-blur-md shadow-sm">
               <span className="mr-2 h-1.5 w-1.5 rounded-full bg-[#D4AF37] animate-pulse" />
               Global routing
             </div>
             
-            <h2 className="mt-8 text-4xl font-extrabold leading-[1.05] tracking-tight text-gray-900 sm:text-5xl lg:text-[4rem]">
+            <h2 className="mt-6 text-3xl font-extrabold leading-[1.1] tracking-tight text-gray-900 sm:text-5xl lg:text-[4rem]">
               Precision paths to <br/>
               <span className="text-black/50 italic font-serif font-light">Afghanistan.</span>
             </h2>
-            <p className="mt-6 text-lg leading-relaxed text-black/60">
-              Your vehicle moves from <span className="text-gray-900">North America</span> to <span className="text-gray-900">Afghanistan</span> through carefully optimized corridors: the <span className="text-[#D4AF37]">Mersin Route</span> or the <span className="text-[#D4AF37]">UAE Route</span>. Clear visibility at every nautical mile.
+            <p className="mt-4 sm:mt-6 text-base sm:text-lg leading-relaxed text-black/60">
+              Your vehicle moves from <span className="text-gray-900 font-semibold">North America</span> to <span className="text-gray-900 font-semibold">Afghanistan</span> through carefully optimized corridors: the <span className="text-[#D4AF37] font-semibold">Mersin Route</span> or the <span className="text-[#D4AF37] font-semibold">UAE Route</span>. Clear visibility at every nautical mile.
             </p>
 
             <div className="mt-12 flex flex-col gap-6 relative">

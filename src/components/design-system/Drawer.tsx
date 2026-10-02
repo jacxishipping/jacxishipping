@@ -71,13 +71,17 @@ export default function Drawer({
         sx: {
           width: { xs: '100%', sm: drawerWidth },
           maxWidth: '100vw',
+          maxHeight: { xs: '88vh', sm: '100vh' },
+          height: { xs: 'auto', sm: '100%' },
+          borderTopLeftRadius: { xs: 20, sm: 0 },
+          borderTopRightRadius: { xs: 20, sm: 0 },
           bgcolor: 'var(--panel-bg, #FFFFFF)',
           color: 'var(--text-primary, #111827)',
-          borderLeft: '1px solid var(--border, #E5E7EB)',
-          boxShadow: '-8px 0 32px rgba(0, 0, 0, 0.1)',
+          borderLeft: { xs: 'none', sm: '1px solid var(--border, #E5E7EB)' },
+          borderTop: { xs: '1px solid var(--border, #E5E7EB)', sm: 'none' },
+          boxShadow: { xs: '0 -8px 32px rgba(0, 0, 0, 0.15)', sm: '-8px 0 32px rgba(0, 0, 0, 0.1)' },
           display: 'flex',
           flexDirection: 'column',
-          height: '100%',
           overflow: 'hidden',
           transition: 'transform 240ms cubic-bezier(0.16, 1, 0.3, 1)',
         },
@@ -90,6 +94,11 @@ export default function Drawer({
         },
       }}
     >
+      {/* Mobile Pull Handle Indicator */}
+      <Box sx={{ display: { xs: 'flex', sm: 'none' }, justifyContent: 'center', pt: 1.5, pb: 0.5, bgcolor: 'var(--background, #F9FAFB)' }}>
+        <Box sx={{ width: 40, height: 4.5, borderRadius: 3, bgcolor: 'var(--border)', opacity: 0.8 }} />
+      </Box>
+
       {/* Header */}
       {(title || showCloseButton) && (
         <Box
@@ -97,7 +106,7 @@ export default function Drawer({
             display: 'flex',
             alignItems: 'flex-start',
             justifyContent: 'space-between',
-            p: 2.5,
+            p: { xs: 2, sm: 2.5 },
             borderBottom: '1px solid var(--border, #E5E7EB)',
             bgcolor: 'var(--background, #F9FAFB)',
             gap: 2,

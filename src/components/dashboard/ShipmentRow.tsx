@@ -187,18 +187,24 @@ export default function ShipmentRow({
 			>
 				{/* Column 1: Vehicle Info & Status */}
 				<Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, minWidth: 0, overflow: 'hidden' }}>
-					<Typography
-						sx={{
-							fontSize: { xs: '0.85rem', sm: '0.9rem', md: '0.95rem' },
-							fontWeight: 700,
-							color: 'var(--text-primary)',
-							overflow: 'hidden',
-							textOverflow: 'ellipsis',
-							whiteSpace: 'nowrap',
-						}}
-					>
-						{vehicleInfo}
-					</Typography>
+					<Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1 }}>
+						<Typography
+							sx={{
+								fontSize: { xs: '0.9rem', sm: '0.92rem', md: '0.95rem' },
+								fontWeight: 700,
+								color: 'var(--text-primary)',
+								overflow: 'hidden',
+								textOverflow: 'ellipsis',
+								whiteSpace: 'nowrap',
+								flex: 1,
+							}}
+						>
+							{vehicleInfo}
+						</Typography>
+						<Box sx={{ display: { xs: 'flex', md: 'none' }, shrink: 0 }}>
+							<StatusBadge status={status} size="sm" showIcon />
+						</Box>
+					</Box>
 					{vehicleVIN && (
 						<Box
 							sx={{
@@ -223,7 +229,7 @@ export default function ShipmentRow({
 					<Typography sx={{ fontSize: { xs: '0.62rem', sm: '0.65rem', md: '0.68rem' }, color: 'var(--text-secondary)' }}>
 						Created: {new Date(createdAt).toLocaleDateString()}
 					</Typography>
-				<Box sx={{ display: { xs: 'none', md: 'flex' } }}>{statusRow}</Box>
+					<Box sx={{ display: { xs: 'none', md: 'flex' } }}>{statusRow}</Box>
 				</Box>
 
 				{/* Column 2: Vehicle Type */}
@@ -525,11 +531,34 @@ export default function ShipmentRow({
 						justifyContent: 'space-between',
 						alignItems: 'center',
 						gap: 1,
-						pt: 0.5,
-						borderTop: '1px solid rgba(var(--border-rgb), 0.45)',
+						pt: 1,
+						mt: 0.5,
+						borderTop: '1px solid rgba(var(--border-rgb), 0.4)',
 					}}
 				>
-					<Box sx={{ minWidth: 0, overflow: 'hidden' }}>{statusRow}</Box>
+					<Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, minWidth: 0 }}>
+						{yardReceived && (
+							<Chip
+								label="Yard Received"
+								size="small"
+								sx={{
+									height: 22,
+									fontSize: '0.65rem',
+									fontWeight: 700,
+									bgcolor: 'rgba(34, 197, 94, 0.12)',
+									color: 'rgb(21, 128, 61)',
+								}}
+							/>
+						)}
+						{paymentStatus && (
+							<StatusBadge 
+								status={paymentStatus} 
+								variant="default" 
+								size="sm" 
+								icon={<CreditCard sx={{ fontSize: 11 }} />} 
+							/>
+						)}
+					</Box>
 					<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexShrink: 0 }}>
 						{onQuickPeek && (
 							<Button
@@ -541,9 +570,9 @@ export default function ShipmentRow({
 									onQuickPeek(id);
 								}}
 								sx={{
-									minHeight: { xs: '44px', md: 'auto' },
+									minHeight: { xs: '36px', md: 'auto' },
 									borderRadius: '999px',
-									px: 1.25,
+									px: 1,
 								}}
 							/>
 						)}
@@ -563,7 +592,7 @@ export default function ShipmentRow({
 									});
 								}}
 								sx={{
-									minHeight: { xs: '44px', md: 'auto' },
+									minHeight: { xs: '36px', md: 'auto' },
 									borderRadius: '999px',
 									px: 1,
 								}}
@@ -578,9 +607,11 @@ export default function ShipmentRow({
 								event.stopPropagation();
 							}}
 							sx={{
-								minHeight: { xs: '44px', md: 'auto' },
+								minHeight: { xs: '36px', md: 'auto' },
 								borderRadius: '999px',
 								px: 1.5,
+								fontSize: '0.75rem',
+								fontWeight: 600,
 							}}
 						>
 							View
@@ -590,20 +621,18 @@ export default function ShipmentRow({
 							href={editHref}
 							variant="ghost"
 							size="sm"
-							icon={<Edit sx={{ fontSize: 14 }} />}
+							icon={<Edit sx={{ fontSize: 13 }} />}
 							iconPosition="start"
 							onClick={(event) => {
 								event.stopPropagation();
 							}}
 							sx={{
-								minHeight: { xs: '44px', md: 'auto' },
+								minHeight: { xs: '36px', md: 'auto' },
 								borderRadius: '999px',
 								px: 1.25,
+								fontSize: '0.75rem',
+								fontWeight: 600,
 								color: 'var(--accent-gold)',
-								'&:hover': {
-									bgcolor: 'rgba(var(--accent-gold-rgb), 0.08)',
-									color: 'var(--accent-gold)',
-								},
 							}}
 						>
 							Edit

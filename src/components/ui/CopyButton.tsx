@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Check, Copy } from 'lucide-react';
 import { Tooltip } from '@mui/material';
+import { triggerHaptic } from '@/lib/haptics';
 
 interface CopyButtonProps {
   value: string;
@@ -22,6 +23,7 @@ export function CopyButton({ value, label, className = '', size = 'sm' }: CopyBu
     try {
       await navigator.clipboard.writeText(value);
       setCopied(true);
+      triggerHaptic('success');
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       console.error('Failed to copy text: ', err);

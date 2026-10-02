@@ -89,7 +89,7 @@ export function SavedFilterPresets<T extends Record<string, any>>({
   return (
     <Box
       sx={{
-        display: 'flex',
+        display: { xs: 'none', sm: 'flex' },
         alignItems: 'center',
         gap: 1,
         flexWrap: 'wrap',

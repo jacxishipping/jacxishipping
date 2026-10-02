@@ -117,13 +117,10 @@ export async function POST(
     }
 
     if (assignableIds.length > 0) {
-      await routeDeps.prisma.$transaction(async (tx) => {
-        for (const shipmentId of assignableIds) {
-          await tx.shipment.update({
-            where: { id: shipmentId },
-            data: { transitId: params.id, status: 'IN_TRANSIT_TO_DESTINATION' },
-          });
-        }
+      // ⚡ Bolt: Replaced O(N) transaction loop with a single optimized updateMany query to prevent N+1 database roundtrips.
+      await routeDeps.prisma.shipment.updateMany({
+        where: { id: { in: assignableIds } },
+        data: { transitId: params.id, status: 'IN_TRANSIT_TO_DESTINATION' },
       });
 
       const assignedShipments = assignableIds
