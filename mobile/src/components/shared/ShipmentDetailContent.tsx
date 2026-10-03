@@ -3,6 +3,7 @@ import { Alert, Image, Linking, Modal, ScrollView, StyleSheet, Text, TouchableOp
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { format } from 'date-fns';
 import { useQueryClient } from '@tanstack/react-query';
+import { useNavigation } from '@react-navigation/native';
 import { Shipment } from '../../types/shipment';
 import { AppTopBar } from './AppTopBar';
 import { AppIcon } from './AppIcon';
@@ -54,6 +55,7 @@ const formatDateValue = (value?: string | null) => {
 export const ShipmentDetailContent: React.FC<ShipmentDetailContentProps> = ({ shipment, showCustomer }) => {
   const { colors } = useAppTheme();
   const { isAdmin } = useAuth();
+  const navigation = useNavigation<any>();
   const queryClient = useQueryClient();
   const vehicleLabel = [shipment.vehicle.year, shipment.vehicle.make, shipment.vehicle.model].filter(Boolean).join(' ');
   const routeOrigin = [shipment.origin.city, shipment.origin.state].filter(Boolean).join(', ');
@@ -270,6 +272,16 @@ export const ShipmentDetailContent: React.FC<ShipmentDetailContentProps> = ({ sh
           <Text style={[styles.value, { color: colors.textPrimary }]}>{formatValue(shipment.invoiceId)}</Text>
         </View>
       </View>
+      {shipment.invoiceId ? (
+        <View style={{ marginTop: Spacing.md }}>
+          <Button
+            title="View Full Detailed Invoice"
+            variant="secondary"
+            size="sm"
+            onPress={() => navigation.navigate('InvoiceDetail', { id: shipment.invoiceId! })}
+          />
+        </View>
+      ) : null}
       {shipment.notes ? <Text style={[styles.notes, { color: colors.textSecondary }]}>Notes: {shipment.notes}</Text> : null}
     </Card>
   );

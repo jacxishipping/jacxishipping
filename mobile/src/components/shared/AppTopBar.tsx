@@ -19,6 +19,7 @@ interface AppTopBarProps {
   showBack?: boolean;
   hideNotifications?: boolean;
   hideWorkspace?: boolean;
+  rightAction?: React.ReactNode;
 }
 
 type QuickShortcut = {
@@ -39,6 +40,7 @@ export const AppTopBar: React.FC<AppTopBarProps> = ({
   showBack = false,
   hideNotifications = false,
   hideWorkspace = false,
+  rightAction,
 }) => {
   const navigation = useNavigation<any>();
   const { colors } = useAppTheme();
@@ -212,6 +214,8 @@ export const AppTopBar: React.FC<AppTopBarProps> = ({
         </View>
 
         <View style={styles.actions}>
+          {rightAction}
+
           {!hideNotifications && isAuthenticated ? (
             <TouchableOpacity
               activeOpacity={0.85}

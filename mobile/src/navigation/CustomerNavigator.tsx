@@ -8,6 +8,7 @@ import ShipmentsScreen from '../screens/customer/ShipmentsScreen';
 import ShipmentDetailScreen from '../screens/customer/ShipmentDetailScreen';
 import TrackingScreen from '../screens/customer/TrackingScreen';
 import InvoicesScreen from '../screens/customer/InvoicesScreen';
+import InvoiceDetailScreen from '../screens/customer/InvoiceDetailScreen';
 import NotificationsScreen from '../screens/customer/NotificationsScreen';
 import ProfileScreen from '../screens/customer/ProfileScreen';
 import SearchScreen from '../screens/shared/SearchScreen';
@@ -27,6 +28,7 @@ export type CustomerStackParamList = {
   Home: NavigatorScreenParams<CustomerTabParamList> | undefined;
   Search: undefined;
   ShipmentDetail: { id: string };
+  InvoiceDetail: { id: string };
   Notifications: undefined;
   Documents: undefined;
   Containers: undefined;
@@ -63,6 +65,7 @@ export const CustomerNavigator = () => {
       <Stack.Screen name="Home" component={CustomerTabs} />
       <Stack.Screen name="Search" component={SearchScreen} />
       <Stack.Screen name="ShipmentDetail" component={ShipmentDetailScreen} />
+      <Stack.Screen name="InvoiceDetail" component={InvoiceDetailScreen} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="Documents" component={DocumentsScreen} />
       <Stack.Screen name="Containers" component={ContainersScreen} />

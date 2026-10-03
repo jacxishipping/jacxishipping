@@ -37,7 +37,14 @@ export type AppIconName =
   | 'users'
   | 'partnerPortals'
   | 'analytics'
-  | 'systemTools';
+  | 'systemTools'
+  | 'download'
+  | 'share'
+  | 'copy'
+  | 'check'
+  | 'alert'
+  | 'car'
+  | 'creditCard';
 
 const iconMap: Record<AppIconName, React.ComponentProps<typeof MaterialCommunityIcons>['name']> = {
   brand: 'anchor',
@@ -76,6 +83,13 @@ const iconMap: Record<AppIconName, React.ComponentProps<typeof MaterialCommunity
   partnerPortals: 'domain',
   analytics: 'chart-timeline-variant',
   systemTools: 'tools',
+  download: 'download-outline',
+  share: 'share-variant-outline',
+  copy: 'content-copy',
+  check: 'check-circle',
+  alert: 'alert-circle-outline',
+  car: 'car',
+  creditCard: 'credit-card-outline',
 };
 
 export function getTabIconName(routeName: string): AppIconName {

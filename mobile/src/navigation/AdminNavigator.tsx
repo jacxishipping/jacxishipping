@@ -16,6 +16,7 @@ import ContainerDetailScreen from '../screens/admin/ContainerDetailScreen';
 import DispatchesScreen from '../screens/admin/DispatchesScreen';
 import DispatchDetailScreen from '../screens/admin/DispatchDetailScreen';
 import InvoicesScreen from '../screens/admin/InvoicesScreen';
+import InvoiceDetailScreen from '../screens/customer/InvoiceDetailScreen';
 import FinanceScreen from '../screens/admin/FinanceScreen';
 import DocumentsScreen from '../screens/admin/DocumentsScreen';
 import AnalyticsScreen from '../screens/admin/AnalyticsScreen';
@@ -64,6 +65,7 @@ export type AdminStackParamList = {
   Containers: undefined;
   Dispatches: undefined;
   Invoices: undefined;
+  InvoiceDetail: { id: string };
   Finance: undefined;
   FinanceReports: undefined;
   AgingReport: undefined;
@@ -130,6 +132,7 @@ export const AdminNavigator = () => {
       <Stack.Screen name="DispatchDetail" component={DispatchDetailScreen} />
       <Stack.Screen name="Dispatches" component={DispatchesScreen} />
       <Stack.Screen name="Invoices" component={InvoicesScreen} />
+      <Stack.Screen name="InvoiceDetail" component={InvoiceDetailScreen} />
       <Stack.Screen name="Finance" component={FinanceScreen} />
       <Stack.Screen name="FinanceReports" component={FinanceReportsScreen} />
       <Stack.Screen name="AgingReport" component={AgingReportScreen} />
