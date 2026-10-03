@@ -1,9 +1,9 @@
 import React from 'react';
 import { Text, View, StyleSheet } from 'react-native';
-import { Button } from './ui/Button';
-import { Spacing } from '../constants/spacing';
-import { Typography } from '../constants/typography';
-import { useAppTheme } from '../hooks/useAppTheme';
+import { Button } from '../ui/Button';
+import { Spacing } from '../../constants/spacing';
+import { Typography } from '../../constants/typography';
+import { useAppTheme } from '../../hooks/useAppTheme';
 
 interface Props {
   children: React.ReactNode;

@@ -40,6 +40,8 @@ export interface InvoiceFilters {
   shipmentId?: string;
   containerId?: string;
   search?: string;
+  dateFrom?: string;
+  dateTo?: string;
 }
 
 export interface InvoiceListResponse {
