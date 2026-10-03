@@ -21,3 +21,6 @@
 ## 2024-05-24 - Bulk updates instead of looped updates in transactions
 **Learning:** Found an N+1 query issue in \`src/app/api/transits/[id]/shipments/bulk/route.ts\` where the code iterated over shipments and repeatedly used \`await tx.shipment.update()\` within a transaction. This creates sequential updates and can be exponentially slow for bulk updates.
 **Action:** When updating multiple records inside a transaction (or outside) where the changes are the same, replace the \`for\` loop of \`update\` calls with a single \`updateMany\` query using an \`in\` filter (e.g., \`where: { id: { in: ids } }\`) to update everything in a single roundtrip.
+## 2024-05-24 - Bulk inserts instead of looped creations in transactions
+**Learning:** Found an N+1 query issue in `src/app/api/finance/companies/[id]/ledger/import-bank-csv/route.ts` where the code iterated over imported CSV rows and repeatedly used `await tx.companyLedgerEntry.create()` within a transaction. This creates sequential insertions and can be exponentially slow for bulk imports.
+**Action:** When inserting multiple records inside a transaction (or outside), replace the `for` loop of `create` calls with a single `createMany` query passing an array of objects to insert everything in a single database roundtrip.
