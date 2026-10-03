@@ -32,6 +32,7 @@ export function detectOceanCarrier(
   if (lowerQuery.includes('evergreen')) return SUPPORTED_OCEAN_CARRIERS.EVERGREEN;
   if (lowerQuery.includes('yang') || lowerQuery.includes('ming')) return SUPPORTED_OCEAN_CARRIERS.YANG_MING;
   if (lowerQuery.includes('zim')) return SUPPORTED_OCEAN_CARRIERS.ZIM;
+  if (lowerQuery.includes('turkon') || lowerQuery.includes('turkonline') || lowerQuery.includes('turk online')) return SUPPORTED_OCEAN_CARRIERS.TURKON;
 
   // Fallback to Universal DCSA carrier
   return SUPPORTED_OCEAN_CARRIERS.GENERIC_DCSA;

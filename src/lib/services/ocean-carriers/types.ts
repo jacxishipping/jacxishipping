@@ -12,6 +12,7 @@ export type OceanCarrierCode =
   | 'EVERGREEN'
   | 'YANG_MING'
   | 'ZIM'
+  | 'TURKON'
   | 'GENERIC_DCSA';
 
 export interface CarrierMetadata {
@@ -143,6 +144,15 @@ export const SUPPORTED_OCEAN_CARRIERS: Record<OceanCarrierCode, CarrierMetadata>
     prefixes: ['ZIMU', 'ZCSU'],
     accentColor: '#D38827',
     trackingBaseUrl: 'https://www.zim.com/tools/track-a-shipment',
+    apiType: 'CARRIER_DIRECT',
+  },
+  TURKON: {
+    code: 'TURKON',
+    name: 'Turkon Line / Turkonline',
+    scac: 'TRKU',
+    prefixes: ['TRKU'],
+    accentColor: '#E31B23',
+    trackingBaseUrl: 'https://myturkonline.turkon.com/tracking',
     apiType: 'CARRIER_DIRECT',
   },
   GENERIC_DCSA: {
