@@ -1,11 +1,11 @@
-'use client';
-import { formatMoney as formatCurrency } from '@/lib/format';
+"use client";
+import { formatMoney as formatCurrency } from "@/lib/format";
 
-import { useSession } from 'next-auth/react';
-import { useRouter, useParams } from 'next/navigation';
-import { useEffect, useState, useMemo } from 'react';
-import Link from 'next/link';
-import { hasPermission } from '@/lib/rbac';
+import { useSession } from "next-auth/react";
+import { useRouter, useParams } from "next/navigation";
+import { useEffect, useState, useMemo } from "react";
+import Link from "next/link";
+import { hasPermission } from "@/lib/rbac";
 import {
   ArrowBack,
   Add,
@@ -23,7 +23,7 @@ import {
   LocalShipping,
   Close,
   Check,
-} from '@mui/icons-material';
+} from "@mui/icons-material";
 import {
   Box,
   Typography,
@@ -40,17 +40,32 @@ import {
   Alert,
   Snackbar,
   Chip,
-} from '@mui/material';
-import { Breadcrumbs, Button, toast, EmptyState, SkeletonCard, SkeletonTable, Tooltip, StatusBadge, DashboardPageSkeleton, StatsCard } from '@/components/design-system';
-import { DataTable, Column } from '@/components/ui/DataTable';
-import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
-import ProtectedRoute from '@/components/auth/ProtectedRoute';
+} from "@mui/material";
+import {
+  Breadcrumbs,
+  Button,
+  toast,
+  EmptyState,
+  SkeletonCard,
+  SkeletonTable,
+  Tooltip,
+  StatusBadge,
+  DashboardPageSkeleton,
+  StatsCard,
+} from "@/components/design-system";
+import { DataTable, Column } from "@/components/ui/DataTable";
+import {
+  DashboardSurface,
+  DashboardPanel,
+  DashboardGrid,
+} from "@/components/dashboard/DashboardSurface";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
 
 interface LedgerEntry {
   id: string;
   transactionDate: string;
   description: string;
-  type: 'DEBIT' | 'CREDIT';
+  type: "DEBIT" | "CREDIT";
   transactionInfoType?: TransactionInfoType;
   amount: number;
   balance: number;
@@ -75,19 +90,25 @@ interface LedgerSummary {
   totalShipmentPurchaseAmount: number;
   totalShipmentExpenses: number;
   currentBalance: number;
-  transactionInfoBreakdown: Record<TransactionInfoType, {
-    totalDebit: number;
-    totalCredit: number;
-    balance: number;
-  }>;
+  transactionInfoBreakdown: Record<
+    TransactionInfoType,
+    {
+      totalDebit: number;
+      totalCredit: number;
+      balance: number;
+    }
+  >;
 }
 
-type TransactionInfoType = 'CAR_PAYMENT' | 'SHIPPING_PAYMENT' | 'STORAGE_PAYMENT';
+type TransactionInfoType =
+  | "CAR_PAYMENT"
+  | "SHIPPING_PAYMENT"
+  | "STORAGE_PAYMENT";
 
 const transactionInfoTypeLabels: Record<TransactionInfoType, string> = {
-  CAR_PAYMENT: 'Car Payment',
-  SHIPPING_PAYMENT: 'Shipping Payment',
-  STORAGE_PAYMENT: 'Storage Payment',
+  CAR_PAYMENT: "Car Payment",
+  SHIPPING_PAYMENT: "Shipping Payment",
+  STORAGE_PAYMENT: "Storage Payment",
 };
 
 export default function UserLedgerManagementPage() {
@@ -114,38 +135,42 @@ export default function UserLedgerManagementPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [filters, setFilters] = useState({
-    search: '',
-    type: '',
-    transactionInfoType: '',
-    startDate: '',
-    endDate: '',
+    search: "",
+    type: "",
+    transactionInfoType: "",
+    startDate: "",
+    endDate: "",
   });
   const [showFilters, setShowFilters] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<LedgerEntry | null>(null);
-  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean;
+    message: string;
+    severity: "success" | "error";
+  }>({
     open: false,
-    message: '',
-    severity: 'success',
+    message: "",
+    severity: "success",
   });
 
   const [formData, setFormData] = useState({
-    description: '',
-    type: 'DEBIT' as 'DEBIT' | 'CREDIT',
-    transactionInfoType: 'SHIPPING_PAYMENT' as TransactionInfoType,
-    amount: '',
-    notes: '',
+    description: "",
+    type: "DEBIT" as "DEBIT" | "CREDIT",
+    transactionInfoType: "SHIPPING_PAYMENT" as TransactionInfoType,
+    amount: "",
+    notes: "",
   });
 
   useEffect(() => {
-    if (status === 'loading') return;
+    if (status === "loading") return;
     if (!session) {
-      router.replace('/auth/signin');
+      router.replace("/auth/signin");
       return;
     }
-    if (!hasPermission(session.user?.role, 'finance:manage')) {
-      router.replace('/dashboard/finance/ledger');
+    if (!hasPermission(session.user?.role, "finance:manage")) {
+      router.replace("/dashboard/finance/ledger");
       return;
     }
     fetchUser();
@@ -160,7 +185,7 @@ export default function UserLedgerManagementPage() {
         setUser(data.user);
       }
     } catch (error) {
-      console.error('Error fetching user:', error);
+      console.error("Error fetching user:", error);
     }
   };
 
@@ -170,10 +195,12 @@ export default function UserLedgerManagementPage() {
       const params = new URLSearchParams({
         userId,
         page: page.toString(),
-        limit: '20',
+        limit: "20",
         ...(filters.search && { search: filters.search }),
         ...(filters.type && { type: filters.type }),
-        ...(filters.transactionInfoType && { transactionInfoType: filters.transactionInfoType }),
+        ...(filters.transactionInfoType && {
+          transactionInfoType: filters.transactionInfoType,
+        }),
         ...(filters.startDate && { startDate: filters.startDate }),
         ...(filters.endDate && { endDate: filters.endDate }),
       });
@@ -181,7 +208,7 @@ export default function UserLedgerManagementPage() {
       const response = await fetch(`/api/ledger?recalc=true&${params}`);
 
       if (!response.ok) {
-        throw new Error('Failed to fetch ledger entries');
+        throw new Error("Failed to fetch ledger entries");
       }
 
       const data = await response.json();
@@ -189,8 +216,8 @@ export default function UserLedgerManagementPage() {
       setSummary(data.summary);
       setTotalPages(data.pagination.totalPages);
     } catch (error) {
-      console.error('Error fetching ledger:', error);
-      toast.error('Failed to load ledger');
+      console.error("Error fetching ledger:", error);
+      toast.error("Failed to load ledger");
     } finally {
       setLoading(false);
     }
@@ -200,9 +227,9 @@ export default function UserLedgerManagementPage() {
     e.preventDefault();
     try {
       const amount = parseFloat(formData.amount);
-      const response = await fetch('/api/ledger', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/ledger", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userId,
           description: formData.description,
@@ -214,17 +241,27 @@ export default function UserLedgerManagementPage() {
       });
 
       if (response.ok) {
-        toast.success('Transaction added successfully');
+        toast.success("Transaction added successfully");
         setShowAddModal(false);
-        setFormData({ description: '', type: 'DEBIT', transactionInfoType: 'SHIPPING_PAYMENT', amount: '', notes: '' });
+        setFormData({
+          description: "",
+          type: "DEBIT",
+          transactionInfoType: "SHIPPING_PAYMENT",
+          amount: "",
+          notes: "",
+        });
         fetchLedgerEntries();
       } else {
         const error = await response.json();
-        setSnackbar({ open: true, message: error.error || 'Failed to add transaction', severity: 'error' });
+        setSnackbar({
+          open: true,
+          message: error.error || "Failed to add transaction",
+          severity: "error",
+        });
       }
     } catch (error) {
-      console.error('Error adding entry:', error);
-      toast.error('An error occurred');
+      console.error("Error adding entry:", error);
+      toast.error("An error occurred");
     }
   };
 
@@ -234,8 +271,8 @@ export default function UserLedgerManagementPage() {
 
     try {
       const response = await fetch(`/api/ledger/${selectedEntry.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           description: formData.description,
           notes: formData.notes,
@@ -243,41 +280,59 @@ export default function UserLedgerManagementPage() {
       });
 
       if (response.ok) {
-        toast.success('Transaction updated successfully');
+        toast.success("Transaction updated successfully");
         setShowEditModal(false);
         setSelectedEntry(null);
-        setFormData({ description: '', type: 'DEBIT', transactionInfoType: 'SHIPPING_PAYMENT', amount: '', notes: '' });
+        setFormData({
+          description: "",
+          type: "DEBIT",
+          transactionInfoType: "SHIPPING_PAYMENT",
+          amount: "",
+          notes: "",
+        });
         fetchLedgerEntries();
       } else {
         const error = await response.json();
-        setSnackbar({ open: true, message: error.error || 'Failed to update transaction', severity: 'error' });
+        setSnackbar({
+          open: true,
+          message: error.error || "Failed to update transaction",
+          severity: "error",
+        });
       }
     } catch (error) {
-      console.error('Error updating entry:', error);
-      toast.error('An error occurred');
+      console.error("Error updating entry:", error);
+      toast.error("An error occurred");
     }
   };
 
   const handleDeleteEntry = async (entryId: string) => {
-    if (!confirm('Are you sure you want to delete this transaction? This action cannot be undone.')) {
+    if (
+      !confirm(
+        "Are you sure you want to delete this transaction? This action cannot be undone.",
+      )
+    ) {
       return;
     }
 
     try {
       const response = await fetch(`/api/ledger/${entryId}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
 
       if (response.ok) {
-        toast.success('Transaction deleted successfully');
+        toast.success("Transaction deleted successfully");
         fetchLedgerEntries();
       } else {
         const error = await response.json();
-        setSnackbar({ open: true, message: error.error || 'Failed to delete transaction', severity: 'error' });
+        setSnackbar({
+          open: true,
+          message: error.error || "Failed to delete transaction",
+          severity: "error",
+        });
       }
     } catch (error) {
-      console.error('Error deleting entry:', error);
-      toast.error('An error occurred');
+      console.error("Error deleting entry:", error);
+      toast.error("An error occurred");
     }
   };
 
@@ -286,14 +341,14 @@ export default function UserLedgerManagementPage() {
     setFormData({
       description: entry.description,
       type: entry.type,
-      transactionInfoType: entry.transactionInfoType || 'SHIPPING_PAYMENT',
+      transactionInfoType: entry.transactionInfoType || "SHIPPING_PAYMENT",
       amount: entry.amount.toString(),
-      notes: entry.notes || '',
+      notes: entry.notes || "",
     });
     setShowEditModal(true);
   };
 
-  const handleExport = async (format: 'pdf' | 'excel') => {
+  const handleExport = async (format: "pdf" | "excel") => {
     try {
       const params = new URLSearchParams({
         userId,
@@ -301,201 +356,275 @@ export default function UserLedgerManagementPage() {
         ...(filters.endDate && { endDate: filters.endDate }),
       });
 
-      const endpoint = format === 'pdf' ? '/api/ledger/export-pdf' : '/api/ledger/export';
+      const endpoint =
+        format === "pdf" ? "/api/ledger/export-pdf" : "/api/ledger/export";
       const response = await fetch(`${endpoint}?${params}`);
 
-      if (!response.ok) throw new Error('Failed to export ledger');
+      if (!response.ok) throw new Error("Failed to export ledger");
 
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
-      a.download = `ledger-${user?.name || 'user'}-${Date.now()}.${format === 'pdf' ? 'html' : 'csv'}`;
+      a.download = `ledger-${user?.name || "user"}-${Date.now()}.${format === "pdf" ? "html" : "csv"}`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
 
-      toast.success('Ledger exported successfully');
+      toast.success("Ledger exported successfully");
     } catch (error) {
-      console.error('Error exporting ledger:', error);
-      toast.error('Failed to export ledger');
+      console.error("Error exporting ledger:", error);
+      toast.error("Failed to export ledger");
     }
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
   const getBalanceColor = (balance: number) => {
-    if (balance > 0) return 'var(--error)';
-    if (balance < 0) return 'var(--success)';
-    return 'var(--text-secondary)';
+    if (balance > 0) return "var(--error)";
+    if (balance < 0) return "var(--success)";
+    return "var(--text-secondary)";
   };
 
-  const columns = useMemo<Column<LedgerEntry>[]>(() => [
-    {
-      key: 'transactionDate',
-      header: 'Date',
-      sortable: true,
-      width: '15%',
-      render: (_, row) => (
-        <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-          {formatDate(row.transactionDate)}
-        </span>
-      )
-    },
-    {
-      key: 'description',
-      header: 'Description',
-      sortable: true,
-      width: '35%',
-      render: (_, row) => {
-        const isPending = row.metadata?.pendingInvoice === true;
-        const isInvoicePaid = !isPending && (typeof row.metadata?.invoiceId === 'string' || typeof row.metadata?.invoiceNumber === 'string');
-        return (
-          <Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-              <Typography sx={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 500 }}>
-                {row.description}
+  const columns = useMemo<Column<LedgerEntry>[]>(
+    () => [
+      {
+        key: "transactionDate",
+        header: "Date",
+        sortable: true,
+        width: "15%",
+        render: (_, row) => (
+          <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>
+            {formatDate(row.transactionDate)}
+          </span>
+        ),
+      },
+      {
+        key: "description",
+        header: "Description",
+        sortable: true,
+        width: "35%",
+        render: (_, row) => {
+          const isPending = row.metadata?.pendingInvoice === true;
+          const isInvoicePaid =
+            !isPending &&
+            (typeof row.metadata?.invoiceId === "string" ||
+              typeof row.metadata?.invoiceNumber === "string");
+          return (
+            <Box>
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1,
+                  flexWrap: "wrap",
+                }}
+              >
+                <Typography
+                  sx={{
+                    fontSize: "0.85rem",
+                    color: "var(--text-primary)",
+                    fontWeight: 500,
+                  }}
+                >
+                  {row.description}
+                </Typography>
+                {isPending && (
+                  <Box
+                    component="span"
+                    sx={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      px: 0.75,
+                      py: 0.25,
+                      borderRadius: 1,
+                      fontSize: "0.65rem",
+                      fontWeight: 700,
+                      letterSpacing: "0.05em",
+                      backgroundColor: "rgba(var(--warning-rgb), 0.15)",
+                      color: "var(--warning-dark, #B45309)",
+                      border: "1px solid rgba(var(--warning-rgb), 0.3)",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    Pending Invoice
+                  </Box>
+                )}
+                {isInvoicePaid && (
+                  <Box
+                    component="span"
+                    sx={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      px: 0.75,
+                      py: 0.25,
+                      borderRadius: 1,
+                      fontSize: "0.65rem",
+                      fontWeight: 700,
+                      letterSpacing: "0.05em",
+                      backgroundColor: "rgba(var(--success-rgb), 0.15)",
+                      color: "var(--success-dark, #047857)",
+                      border: "1px solid rgba(var(--success-rgb), 0.3)",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    Invoice Paid
+                  </Box>
+                )}
+              </Box>
+              <Typography
+                sx={{
+                  fontSize: "0.72rem",
+                  color: "var(--accent-gold)",
+                  mt: 0.5,
+                  fontWeight: 600,
+                }}
+              >
+                {row.transactionInfoType
+                  ? transactionInfoTypeLabels[row.transactionInfoType]
+                  : "Not specified"}
               </Typography>
-              {isPending && (
-                <Box
-                  component="span"
+              {row.notes && (
+                <Typography
                   sx={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    px: 0.75,
-                    py: 0.25,
-                    borderRadius: 1,
-                    fontSize: '0.65rem',
-                    fontWeight: 700,
-                    letterSpacing: '0.05em',
-                    backgroundColor: 'rgba(var(--warning-rgb), 0.15)',
-                    color: 'var(--warning-dark, #B45309)',
-                    border: '1px solid rgba(var(--warning-rgb), 0.3)',
-                    textTransform: 'uppercase',
+                    fontSize: "0.75rem",
+                    color: "var(--text-secondary)",
+                    mt: 0.5,
                   }}
                 >
-                  Pending Invoice
-                </Box>
+                  {row.notes}
+                </Typography>
               )}
-              {isInvoicePaid && (
-                <Box
-                  component="span"
+              {row.shipment && (
+                <Typography
                   sx={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    px: 0.75,
-                    py: 0.25,
-                    borderRadius: 1,
-                    fontSize: '0.65rem',
-                    fontWeight: 700,
-                    letterSpacing: '0.05em',
-                    backgroundColor: 'rgba(var(--success-rgb), 0.15)',
-                    color: 'var(--success-dark, #047857)',
-                    border: '1px solid rgba(var(--success-rgb), 0.3)',
-                    textTransform: 'uppercase',
+                    fontSize: "0.75rem",
+                    color: "var(--accent-gold)",
+                    mt: 0.5,
                   }}
                 >
-                  Invoice Paid
-                </Box>
+                  {row.shipment.vehicleMake} {row.shipment.vehicleModel}
+                </Typography>
               )}
             </Box>
-            <Typography sx={{ fontSize: '0.72rem', color: 'var(--accent-gold)', mt: 0.5, fontWeight: 600 }}>
-              {row.transactionInfoType ? transactionInfoTypeLabels[row.transactionInfoType] : 'Not specified'}
-            </Typography>
-            {row.notes && (
-              <Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)', mt: 0.5 }}>
-                {row.notes}
-              </Typography>
-            )}
-            {row.shipment && (
-              <Typography sx={{ fontSize: '0.75rem', color: 'var(--accent-gold)', mt: 0.5 }}>
-                {row.shipment.vehicleMake} {row.shipment.vehicleModel}
-              </Typography>
-            )}
+          );
+        },
+      },
+      {
+        key: "type",
+        header: "Type",
+        sortable: true,
+        align: "center" as const,
+        width: "10%",
+        render: (_, row) => (
+          <Chip
+            label={row.type}
+            size="small"
+            icon={
+              row.type === "DEBIT" ? <TrendingUpIcon /> : <TrendingDownIcon />
+            }
+            sx={{
+              backgroundColor:
+                row.type === "DEBIT"
+                  ? "rgba(var(--error-rgb), 0.1)"
+                  : "rgba(var(--success-rgb), 0.1)",
+              color: row.type === "DEBIT" ? "var(--error)" : "var(--success)",
+              fontWeight: 600,
+              fontSize: "0.75rem",
+            }}
+          />
+        ),
+      },
+      {
+        key: "amount",
+        header: "Amount",
+        sortable: true,
+        align: "right" as const,
+        width: "15%",
+        render: (_, row) => (
+          <span
+            style={{
+              fontSize: "0.9rem",
+              fontWeight: 600,
+              color: row.type === "DEBIT" ? "var(--error)" : "var(--success)",
+            }}
+          >
+            {row.type === "DEBIT" ? "+" : "-"}
+            {formatCurrency(row.amount)}
+          </span>
+        ),
+      },
+      {
+        key: "balance",
+        header: "Balance",
+        sortable: true,
+        align: "right" as const,
+        width: "15%",
+        render: (_, row) => (
+          <span
+            style={{
+              fontSize: "0.9rem",
+              fontWeight: 600,
+              color: getBalanceColor(row.balance),
+            }}
+          >
+            {formatCurrency(row.balance)}
+          </span>
+        ),
+      },
+      {
+        key: "actions",
+        header: "Actions",
+        align: "center" as const,
+        width: "10%",
+        render: (_, row) => (
+          <Box
+            sx={{
+              display: "flex",
+              gap: 0.5,
+              justifyContent: "center",
+              flexWrap: "nowrap",
+              whiteSpace: "nowrap",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Tooltip title="Edit transaction">
+              <IconButton
+                size="small"
+                onClick={() => openEditModal(row)}
+                sx={{ color: "var(--accent-gold)" }}
+                aria-label="Edit transaction"
+              >
+                <Edit fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Delete transaction">
+              <IconButton
+                size="small"
+                onClick={() => handleDeleteEntry(row.id)}
+                sx={{ color: "#ef4444" }}
+                aria-label="Delete transaction"
+              >
+                <Delete fontSize="small" />
+              </IconButton>
+            </Tooltip>
           </Box>
-        );
-      }
-    },
-    {
-      key: 'type',
-      header: 'Type',
-      sortable: true,
-      align: 'center' as const,
-      width: '10%',
-      render: (_, row) => (
-        <Chip
-          label={row.type}
-          size="small"
-          icon={row.type === 'DEBIT' ? <TrendingUpIcon /> : <TrendingDownIcon />}
-          sx={{
-            backgroundColor: row.type === 'DEBIT' ? 'rgba(var(--error-rgb), 0.1)' : 'rgba(var(--success-rgb), 0.1)',
-            color: row.type === 'DEBIT' ? 'var(--error)' : 'var(--success)',
-            fontWeight: 600,
-            fontSize: '0.75rem',
-          }}
-        />
-      )
-    },
-    {
-      key: 'amount',
-      header: 'Amount',
-      sortable: true,
-      align: 'right' as const,
-      width: '15%',
-      render: (_, row) => (
-        <span style={{ fontSize: '0.9rem', fontWeight: 600, color: row.type === 'DEBIT' ? 'var(--error)' : 'var(--success)' }}>
-          {row.type === 'DEBIT' ? '+' : '-'}{formatCurrency(row.amount)}
-        </span>
-      )
-    },
-    {
-      key: 'balance',
-      header: 'Balance',
-      sortable: true,
-      align: 'right' as const,
-      width: '15%',
-      render: (_, row) => (
-        <span style={{ fontSize: '0.9rem', fontWeight: 600, color: getBalanceColor(row.balance) }}>
-          {formatCurrency(row.balance)}
-        </span>
-      )
-    },
-    {
-      key: 'actions',
-      header: 'Actions',
-      align: 'center' as const,
-      width: '10%',
-      render: (_, row) => (
-        <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
-          <IconButton
-            size="small"
-            onClick={() => openEditModal(row)}
-            sx={{ color: 'var(--accent-gold)' }}
-          >
-            <Edit fontSize="small" />
-          </IconButton>
-          <IconButton
-            size="small"
-            onClick={() => handleDeleteEntry(row.id)}
-            sx={{ color: '#ef4444' }}
-          >
-            <Delete fontSize="small" />
-          </IconButton>
-        </Box>
-      )
-    }
-  ], []);
+        ),
+      },
+    ],
+    [],
+  );
 
-  if (status === 'loading' || loading || !user) {
+  if (status === "loading" || loading || !user) {
     return (
       <ProtectedRoute>
         <DashboardSurface>
@@ -510,20 +639,28 @@ export default function UserLedgerManagementPage() {
       <DashboardSurface>
         {/* Back Button & Title */}
         <Box sx={{ mb: 2 }}>
-          <Link href="/dashboard/finance/admin/ledgers" style={{ textDecoration: 'none' }}>
+          <Link
+            href="/dashboard/finance/admin/ledgers"
+            style={{ textDecoration: "none" }}
+          >
             <Button
               variant="outline"
               size="sm"
               icon={<ArrowBack />}
-              sx={{ textTransform: 'none', fontSize: '0.78rem', mb: 2 }}
+              sx={{ textTransform: "none", fontSize: "0.78rem", mb: 2 }}
             >
               Back to All Ledgers
             </Button>
           </Link>
-          <Typography variant="h5" sx={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+          <Typography
+            variant="h5"
+            sx={{ fontWeight: 600, color: "var(--text-primary)" }}
+          >
             {user.name || user.email}'s Ledger
           </Typography>
-          <Typography sx={{ fontSize: '0.9rem', color: 'var(--text-secondary)', mt: 0.5 }}>
+          <Typography
+            sx={{ fontSize: "0.9rem", color: "var(--text-secondary)", mt: 0.5 }}
+          >
             Manage financial transactions for {user.email}
           </Typography>
         </Box>
@@ -570,21 +707,35 @@ export default function UserLedgerManagementPage() {
               size="sm"
               onClick={() => setShowAddModal(true)}
               icon={<Add />}
-              sx={{ textTransform: 'none', fontSize: '0.78rem', fontWeight: 600 }}
+              sx={{
+                textTransform: "none",
+                fontSize: "0.78rem",
+                fontWeight: 600,
+              }}
             >
               Add Transaction
             </Button>
           }
         >
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
               <TextField
                 placeholder="Search transactions..."
                 size="small"
                 value={filters.search}
-                onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                onChange={(e) =>
+                  setFilters({ ...filters, search: e.target.value })
+                }
                 InputProps={{
-                  startAdornment: <Search sx={{ mr: 1, color: 'var(--text-secondary)', fontSize: 20 }} />,
+                  startAdornment: (
+                    <Search
+                      sx={{
+                        mr: 1,
+                        color: "var(--text-secondary)",
+                        fontSize: 20,
+                      }}
+                    />
+                  ),
                 }}
                 fullWidth
               />
@@ -593,19 +744,31 @@ export default function UserLedgerManagementPage() {
                 size="sm"
                 onClick={() => setShowFilters(!showFilters)}
                 icon={<FilterList />}
-                sx={{ textTransform: 'none', fontSize: '0.75rem', minWidth: 120 }}
+                sx={{
+                  textTransform: "none",
+                  fontSize: "0.75rem",
+                  minWidth: 120,
+                }}
               >
-                {showFilters ? 'Hide' : 'Show'} Filters
+                {showFilters ? "Hide" : "Show"} Filters
               </Button>
             </Box>
 
             {showFilters && (
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2 }}>
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)" },
+                  gap: 2,
+                }}
+              >
                 <FormControl size="small" fullWidth>
                   <InputLabel>Type</InputLabel>
                   <Select
                     value={filters.type}
-                    onChange={(e) => setFilters({ ...filters, type: e.target.value })}
+                    onChange={(e) =>
+                      setFilters({ ...filters, type: e.target.value })
+                    }
                     label="Type"
                   >
                     <MenuItem value="">All Types</MenuItem>
@@ -618,7 +781,9 @@ export default function UserLedgerManagementPage() {
                   type="date"
                   size="small"
                   value={filters.startDate}
-                  onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
+                  onChange={(e) =>
+                    setFilters({ ...filters, startDate: e.target.value })
+                  }
                   InputLabelProps={{ shrink: true }}
                   fullWidth
                 />
@@ -627,38 +792,40 @@ export default function UserLedgerManagementPage() {
                   type="date"
                   size="small"
                   value={filters.endDate}
-                  onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
+                  onChange={(e) =>
+                    setFilters({ ...filters, endDate: e.target.value })
+                  }
                   InputLabelProps={{ shrink: true }}
                   fullWidth
                 />
               </Box>
             )}
 
-            <Box sx={{ display: 'flex', gap: 1 }}>
+            <Box sx={{ display: "flex", gap: 1 }}>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => window.print()}
                 icon={<Print />}
-                sx={{ textTransform: 'none', fontSize: '0.75rem' }}
+                sx={{ textTransform: "none", fontSize: "0.75rem" }}
               >
                 Print
               </Button>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => handleExport('pdf')}
+                onClick={() => handleExport("pdf")}
                 icon={<Download />}
-                sx={{ textTransform: 'none', fontSize: '0.75rem' }}
+                sx={{ textTransform: "none", fontSize: "0.75rem" }}
               >
                 PDF
               </Button>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => handleExport('excel')}
+                onClick={() => handleExport("excel")}
                 icon={<Download />}
-                sx={{ textTransform: 'none', fontSize: '0.75rem' }}
+                sx={{ textTransform: "none", fontSize: "0.75rem" }}
               >
                 Excel
               </Button>
@@ -669,39 +836,44 @@ export default function UserLedgerManagementPage() {
         {/* Transactions Table */}
         <DashboardPanel
           title="Transaction History"
-          description={`${entries.length} transaction${entries.length !== 1 ? 's' : ''}`}
+          description={`${entries.length} transaction${entries.length !== 1 ? "s" : ""}`}
           fullHeight
         >
-          <DataTable 
-            data={entries}
-            columns={columns}
-            keyField="id"
-          />
+          <DataTable data={entries} columns={columns} keyField="id" />
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 3 }}>
-              <Typography sx={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                mt: 3,
+              }}
+            >
+              <Typography
+                sx={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}
+              >
                 Page {page} of {totalPages}
               </Typography>
-              <Box sx={{ display: 'flex', gap: 1 }}>
+              <Box sx={{ display: "flex", gap: 1 }}>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1}
                   icon={<ChevronLeft />}
-                  sx={{ textTransform: 'none', fontSize: '0.75rem' }}
+                  sx={{ textTransform: "none", fontSize: "0.75rem" }}
                 >
                   Previous
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={page === totalPages}
                   icon={<ChevronRight />}
-                  sx={{ textTransform: 'none', fontSize: '0.75rem' }}
+                  sx={{ textTransform: "none", fontSize: "0.75rem" }}
                 >
                   Next
                 </Button>
@@ -712,41 +884,64 @@ export default function UserLedgerManagementPage() {
       </DashboardSurface>
 
       {/* Add Transaction Modal */}
-      <Dialog open={showAddModal} onClose={() => setShowAddModal(false)} maxWidth="sm" fullWidth>
+      <Dialog
+        open={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        maxWidth="sm"
+        fullWidth
+      >
         <DialogTitle>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
             <Typography variant="h6">Add Transaction</Typography>
-            <IconButton onClick={() => setShowAddModal(false)} size="small">
-              <Close />
-            </IconButton>
+            <Tooltip title="Close">
+              <IconButton
+                aria-label="Close add transaction modal"
+                onClick={() => setShowAddModal(false)}
+                size="small"
+              >
+                <Close />
+              </IconButton>
+            </Tooltip>
           </Box>
         </DialogTitle>
         <form onSubmit={handleAddEntry}>
           <DialogContent>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
               {/* Account balance info */}
               {(() => {
                 const enteredAmount = parseFloat(formData.amount) || 0;
-                const projectedBalance = formData.type === 'DEBIT'
-                  ? summary.currentBalance + enteredAmount
-                  : summary.currentBalance - enteredAmount;
-                const currentBalanceLabel = summary.currentBalance > 0
-                  ? `Customer owes ${formatCurrency(summary.currentBalance)}`
-                  : summary.currentBalance < 0
-                    ? `Customer has ${formatCurrency(Math.abs(summary.currentBalance))} credit`
-                    : 'Account is settled';
-                const projectedBalanceLabel = projectedBalance > 0
-                  ? `customer will owe ${formatCurrency(projectedBalance)}`
-                  : projectedBalance < 0
-                    ? `customer will have ${formatCurrency(Math.abs(projectedBalance))} credit`
-                    : 'account will be settled';
+                const projectedBalance =
+                  formData.type === "DEBIT"
+                    ? summary.currentBalance + enteredAmount
+                    : summary.currentBalance - enteredAmount;
+                const currentBalanceLabel =
+                  summary.currentBalance > 0
+                    ? `Customer owes ${formatCurrency(summary.currentBalance)}`
+                    : summary.currentBalance < 0
+                      ? `Customer has ${formatCurrency(Math.abs(summary.currentBalance))} credit`
+                      : "Account is settled";
+                const projectedBalanceLabel =
+                  projectedBalance > 0
+                    ? `customer will owe ${formatCurrency(projectedBalance)}`
+                    : projectedBalance < 0
+                      ? `customer will have ${formatCurrency(Math.abs(projectedBalance))} credit`
+                      : "account will be settled";
                 return (
                   <>
                     <Alert
-                      severity={formData.type === 'DEBIT' ? 'info' : 'success'}
-                      sx={{ fontSize: '0.9rem', fontWeight: 500 }}
+                      severity={formData.type === "DEBIT" ? "info" : "success"}
+                      sx={{ fontSize: "0.9rem", fontWeight: 500 }}
                     >
-                      Current Balance: {currentBalanceLabel}. {enteredAmount > 0 ? `After this transaction, ${projectedBalanceLabel}.` : 'Enter an amount to preview the new balance.'}
+                      Current Balance: {currentBalanceLabel}.{" "}
+                      {enteredAmount > 0
+                        ? `After this transaction, ${projectedBalanceLabel}.`
+                        : "Enter an amount to preview the new balance."}
                     </Alert>
                   </>
                 );
@@ -756,7 +951,12 @@ export default function UserLedgerManagementPage() {
                 <InputLabel>Type *</InputLabel>
                 <Select
                   value={formData.type}
-                  onChange={(e) => setFormData({ ...formData, type: e.target.value as 'DEBIT' | 'CREDIT' })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      type: e.target.value as "DEBIT" | "CREDIT",
+                    })
+                  }
                   label="Type *"
                   required
                 >
@@ -769,20 +969,32 @@ export default function UserLedgerManagementPage() {
                 <InputLabel>Category *</InputLabel>
                 <Select
                   value={formData.transactionInfoType}
-                  onChange={(e) => setFormData({ ...formData, transactionInfoType: e.target.value as TransactionInfoType })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      transactionInfoType: e.target
+                        .value as TransactionInfoType,
+                    })
+                  }
                   label="Category *"
                   required
                 >
-                  {Object.entries(transactionInfoTypeLabels).map(([value, label]) => (
-                    <MenuItem key={value} value={value}>{label}</MenuItem>
-                  ))}
+                  {Object.entries(transactionInfoTypeLabels).map(
+                    ([value, label]) => (
+                      <MenuItem key={value} value={value}>
+                        {label}
+                      </MenuItem>
+                    ),
+                  )}
                 </Select>
               </FormControl>
 
               <TextField
                 label="Description *"
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
                 placeholder="e.g. Shipping charge, Customer payment"
                 required
                 fullWidth
@@ -792,23 +1004,28 @@ export default function UserLedgerManagementPage() {
                 label="Amount * (USD)"
                 type="number"
                 value={formData.amount}
-                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, amount: e.target.value })
+                }
                 placeholder="0.00"
-                inputProps={{ step: '0.01', min: '0.01' }}
+                inputProps={{ step: "0.01", min: "0.01" }}
                 helperText={
                   formData.amount
                     ? (() => {
                         const amt = parseFloat(formData.amount) || 0;
-                        const projected = formData.type === 'DEBIT'
-                          ? summary.currentBalance + amt
-                          : summary.currentBalance - amt;
-                        if (projected > 0) return `New balance: customer owes ${formatCurrency(projected)}`;
-                        if (projected < 0) return `New balance: customer has ${formatCurrency(Math.abs(projected))} credit`;
-                        return 'New balance: account settled';
+                        const projected =
+                          formData.type === "DEBIT"
+                            ? summary.currentBalance + amt
+                            : summary.currentBalance - amt;
+                        if (projected > 0)
+                          return `New balance: customer owes ${formatCurrency(projected)}`;
+                        if (projected < 0)
+                          return `New balance: customer has ${formatCurrency(Math.abs(projected))} credit`;
+                        return "New balance: account settled";
                       })()
-                    : ''
+                    : ""
                 }
-                FormHelperTextProps={{ sx: { color: '#22c55e' } }}
+                FormHelperTextProps={{ sx: { color: "#22c55e" } }}
                 required
                 fullWidth
               />
@@ -816,7 +1033,9 @@ export default function UserLedgerManagementPage() {
               <TextField
                 label="Notes (Optional)"
                 value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, notes: e.target.value })
+                }
                 placeholder="Add any additional notes"
                 multiline
                 rows={3}
@@ -825,14 +1044,17 @@ export default function UserLedgerManagementPage() {
             </Box>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setShowAddModal(false)} sx={{ textTransform: 'none' }}>
+            <Button
+              onClick={() => setShowAddModal(false)}
+              sx={{ textTransform: "none" }}
+            >
               Cancel
             </Button>
             <Button
               type="submit"
               variant="primary"
               icon={<Check />}
-              sx={{ textTransform: 'none' }}
+              sx={{ textTransform: "none" }}
             >
               Add Transaction
             </Button>
@@ -841,20 +1063,38 @@ export default function UserLedgerManagementPage() {
       </Dialog>
 
       {/* Edit Transaction Modal */}
-      <Dialog open={showEditModal} onClose={() => setShowEditModal(false)} maxWidth="sm" fullWidth>
+      <Dialog
+        open={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        maxWidth="sm"
+        fullWidth
+      >
         <DialogTitle>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
             <Typography variant="h6">Edit Transaction</Typography>
-            <IconButton onClick={() => setShowEditModal(false)} size="small">
-              <Close />
-            </IconButton>
+            <Tooltip title="Close">
+              <IconButton
+                aria-label="Close edit transaction modal"
+                onClick={() => setShowEditModal(false)}
+                size="small"
+              >
+                <Close />
+              </IconButton>
+            </Tooltip>
           </Box>
         </DialogTitle>
         <form onSubmit={handleEditEntry}>
           <DialogContent>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <Alert severity="warning" sx={{ fontSize: '0.85rem' }}>
-                Note: Type and amount cannot be edited to maintain ledger integrity. Only description and notes can be updated.
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <Alert severity="warning" sx={{ fontSize: "0.85rem" }}>
+                Note: Type and amount cannot be edited to maintain ledger
+                integrity. Only description and notes can be updated.
               </Alert>
 
               <TextField
@@ -874,7 +1114,9 @@ export default function UserLedgerManagementPage() {
               <TextField
                 label="Description *"
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
                 required
                 fullWidth
               />
@@ -882,7 +1124,9 @@ export default function UserLedgerManagementPage() {
               <TextField
                 label="Notes"
                 value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, notes: e.target.value })
+                }
                 multiline
                 rows={3}
                 fullWidth
@@ -890,10 +1134,18 @@ export default function UserLedgerManagementPage() {
             </Box>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setShowEditModal(false)} sx={{ textTransform: 'none' }}>
+            <Button
+              onClick={() => setShowEditModal(false)}
+              sx={{ textTransform: "none" }}
+            >
               Cancel
             </Button>
-            <Button type="submit" variant="primary" icon={<Check />} sx={{ textTransform: 'none' }}>
+            <Button
+              type="submit"
+              variant="primary"
+              icon={<Check />}
+              sx={{ textTransform: "none" }}
+            >
               Update Transaction
             </Button>
           </DialogActions>
@@ -905,9 +1157,12 @@ export default function UserLedgerManagementPage() {
         open={snackbar.open}
         autoHideDuration={6000}
         onClose={() => setSnackbar({ ...snackbar, open: false })}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
       >
-        <Alert severity={snackbar.severity} onClose={() => setSnackbar({ ...snackbar, open: false })}>
+        <Alert
+          severity={snackbar.severity}
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+        >
           {snackbar.message}
         </Alert>
       </Snackbar>
