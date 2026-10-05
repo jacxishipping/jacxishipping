@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowLeft, Upload, X, Loader2, Package, User, FileText, CheckCircle, ArrowRight, Camera } from 'lucide-react';
+import { ArrowLeft, Upload, X, Loader2, Package, User, FileText, CheckCircle, ArrowRight, Camera, Zap } from 'lucide-react';
 import { Box, Stepper, Step, StepLabel, Typography, LinearProgress, Autocomplete, TextField } from '@mui/material';
 import { DashboardSurface, DashboardPanel } from '@/components/dashboard/DashboardSurface';
 import { PageHeader, Button, FormField, Breadcrumbs, toast } from '@/components/design-system';
@@ -15,6 +15,8 @@ import { shipmentSchema, type ShipmentFormData } from '@/lib/validations/shipmen
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { BarcodeScannerModal } from '@/components/ui/BarcodeScannerModal';
 import { AiDocumentAutoFillDropzone, type ExtractedShipmentData } from '@/components/shipments/AiDocumentAutoFillDropzone';
+import AuctionSmartFillModal from '@/components/shipments/AuctionSmartFillModal';
+import type { ParsedAuctionData } from '@/lib/auction-smart-parser';
 import { compressImage, isValidImageFile, formatFileSize } from '@/lib/utils/image-compression';
 import { decodeVIN as decodeVINService, getBestWeightEstimate } from '@/lib/services/vin-decoder';
 import { buildCopartLotSummary, fetchCopartLotDataForShipment } from '@/lib/copart/lot-client';
@@ -65,6 +67,27 @@ export default function NewShipmentPage() {
 	const [decodingVin, setDecodingVin] = useState(false);
 	const [fetchingLotData, setFetchingLotData] = useState(false);
 	const [scannerOpen, setScannerOpen] = useState(false);
+	const [smartFillOpen, setSmartFillOpen] = useState(false);
+
+	const handleApplySmartParsedData = (data: ParsedAuctionData) => {
+		const setVal = (field: Parameters<typeof setValue>[0], val: Parameters<typeof setValue>[1]) => {
+			setValue(field, val, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
+		};
+
+		if (data.lotNumber) setVal('lotNumber', data.lotNumber);
+		if (data.auctionName) setVal('auctionName', data.auctionName);
+		if (data.vehicleMake) setVal('vehicleMake', data.vehicleMake);
+		if (data.vehicleModel) setVal('vehicleModel', data.vehicleModel);
+		if (data.vehicleYear) setVal('vehicleYear', data.vehicleYear);
+		if (data.vehicleColor) setVal('vehicleColor', data.vehicleColor);
+		if (data.vehicleType) setVal('vehicleType', data.vehicleType);
+		if (data.vehicleVIN) setVal('vehicleVIN', data.vehicleVIN);
+		if (typeof data.hasKey === 'boolean') setVal('hasKey', data.hasKey);
+		if (typeof data.hasTitle === 'boolean') setVal('hasTitle', data.hasTitle);
+		if (data.purchaseLocation && !formValues.purchaseLocation) setVal('purchaseLocation', data.purchaseLocation);
+		if (data.purchasePrice && !formValues.purchasePrice) setVal('purchasePrice', data.purchasePrice.toString());
+		if (data.internalNotes && !formValues.internalNotes) setVal('internalNotes', data.internalNotes);
+	};
 
 	const handleBarcodeScan = (scannedVin: string) => {
 		setValue('vehicleVIN', scannedVin, { shouldValidate: true });
@@ -777,8 +800,8 @@ export default function NewShipmentPage() {
 										</select>
 									</Box>
 									<Box>
-										<Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-end' }}>
-											<Box sx={{ flex: 1 }}>
+										<Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-end', flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
+											<Box sx={{ flex: 1, minWidth: { xs: '100%', sm: 0 } }}>
 												<FormField
 													id="lotNumber"
 													label="Lot Number"
@@ -786,22 +809,32 @@ export default function NewShipmentPage() {
 													{...register('lotNumber')}
 												/>
 											</Box>
-											<Button
-												type="button"
-												variant="outline"
-												size="sm"
-												onClick={() => lotNumberValue && fetchAuctionLotData(lotNumberValue)}
-												disabled={!lotNumberValue || fetchingLotData}
-												loading={fetchingLotData}
-												className="shrink-0 text-xs"
-											>
-												{fetchingLotData ? 'Fetching...' : 'Fetch Data'}
-											</Button>
+											<Box sx={{ display: 'flex', gap: 1 }}>
+												<Button
+													type="button"
+													variant="outline"
+													size="sm"
+													onClick={() => setSmartFillOpen(true)}
+													className="shrink-0 text-xs bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20"
+												>
+													<Zap className="w-3.5 h-3.5 mr-1 fill-amber-400" />
+													Smart Paste
+												</Button>
+												<Button
+													type="button"
+													variant="outline"
+													size="sm"
+													onClick={() => lotNumberValue && fetchAuctionLotData(lotNumberValue)}
+													disabled={!lotNumberValue || fetchingLotData}
+													loading={fetchingLotData}
+													className="shrink-0 text-xs"
+												>
+													{fetchingLotData ? 'Fetching...' : 'Fetch'}
+												</Button>
+											</Box>
 										</Box>
 										<Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)', mt: 0.75 }}>
-											{auctionNameValue === 'IAAI'
-												? 'Enter an IAAI stock number and click Fetch Data to auto-fill vehicle details.'
-												: 'Enter a Copart or auction lot number and click Fetch Data to auto-fill vehicle details.'}
+											Use <strong className="text-amber-400 font-semibold">Smart Paste</strong> to auto-fill without proxies or Oxylabs, or enter a lot number to fetch.
 										</Typography>
 									</Box>
 								</Box>
@@ -1656,6 +1689,14 @@ export default function NewShipmentPage() {
 					onScan={handleBarcodeScan}
 					title="Scan Vehicle VIN Barcode"
 					description="Point your camera at the VIN barcode on the door jamb, title, or windshield"
+				/>
+
+				<AuctionSmartFillModal
+					isOpen={smartFillOpen}
+					onClose={() => setSmartFillOpen(false)}
+					onApply={handleApplySmartParsedData}
+					initialLotNumber={lotNumberValue}
+					initialAuctionName={auctionNameValue}
 				/>
 			</DashboardSurface>
 		</ProtectedRoute>

@@ -16,13 +16,16 @@ import {
   User, 
   CheckCircle,
   Save,
-  AlertCircle
+  AlertCircle,
+  Zap,
 } from 'lucide-react';
 import { Box, Typography, LinearProgress, Autocomplete, TextField } from '@mui/material';
 
 import { DashboardSurface, DashboardPanel } from '@/components/dashboard/DashboardSurface';
 import { PageHeader, Button, FormField, Breadcrumbs, toast, EmptyState, FormPageSkeleton } from '@/components/design-system';
 import ShipmentWorkflowStrip from '@/components/shipments/ShipmentWorkflowStrip';
+import AuctionSmartFillModal from '@/components/shipments/AuctionSmartFillModal';
+import type { ParsedAuctionData } from '@/lib/auction-smart-parser';
 import { shipmentSchema, type ShipmentFormData } from '@/lib/validations/shipment';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { compressImage, isValidImageFile, formatFileSize } from '@/lib/utils/image-compression';
@@ -99,8 +102,29 @@ export default function EditShipmentPage() {
   const [uploadingFiles, setUploadingFiles] = useState<Set<string>>(new Set());
   const [decodingVin, setDecodingVin] = useState(false);
   const [fetchingLotData, setFetchingLotData] = useState(false);
+  const [smartFillOpen, setSmartFillOpen] = useState(false);
   const [transitWorkflowContext, setTransitWorkflowContext] = useState<TransitWorkflowContext | null>(null);
   const [dispatchWorkflowContext, setDispatchWorkflowContext] = useState<DispatchWorkflowContext | null>(null);
+
+  const handleApplySmartParsedData = (data: ParsedAuctionData) => {
+    const setVal = (field: Parameters<typeof setValue>[0], val: Parameters<typeof setValue>[1]) => {
+      setValue(field, val, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
+    };
+
+    if (data.lotNumber) setVal('lotNumber', data.lotNumber);
+    if (data.auctionName) setVal('auctionName', data.auctionName);
+    if (data.vehicleMake) setVal('vehicleMake', data.vehicleMake);
+    if (data.vehicleModel) setVal('vehicleModel', data.vehicleModel);
+    if (data.vehicleYear) setVal('vehicleYear', data.vehicleYear);
+    if (data.vehicleColor) setVal('vehicleColor', data.vehicleColor);
+    if (data.vehicleType) setVal('vehicleType', data.vehicleType);
+    if (data.vehicleVIN) setVal('vehicleVIN', data.vehicleVIN);
+    if (typeof data.hasKey === 'boolean') setVal('hasKey', data.hasKey);
+    if (typeof data.hasTitle === 'boolean') setVal('hasTitle', data.hasTitle);
+    if (data.purchaseLocation && !watch('purchaseLocation')) setVal('purchaseLocation', data.purchaseLocation);
+    if (data.purchasePrice && !watch('purchasePrice')) setVal('purchasePrice', data.purchasePrice.toString());
+    if (data.internalNotes && !watch('internalNotes')) setVal('internalNotes', data.internalNotes);
+  };
 
   const canManageShipments = useMemo(() => hasPermission(session?.user?.role, 'shipments:manage'), [session]);
 
@@ -711,24 +735,36 @@ export default function EditShipmentPage() {
                 <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2 }}>
                   <FormField id="vehicleColor" label="Color" {...register('vehicleColor')} />
                   <Box>
-                    <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-end' }}>
-                      <Box sx={{ flex: 1 }}>
+                    <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-end', flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
+                      <Box sx={{ flex: 1, minWidth: { xs: '100%', sm: 0 } }}>
                         <FormField id="lotNumber" label="Lot Number" placeholder="Auction lot #" {...register('lotNumber')} />
                       </Box>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => lotNumberValue && fetchAuctionLotData(lotNumberValue)}
-                        disabled={!lotNumberValue || fetchingLotData}
-                        loading={fetchingLotData}
-                        className="shrink-0 text-xs"
-                      >
-                        {fetchingLotData ? 'Fetching...' : 'Fetch Data'}
-                      </Button>
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSmartFillOpen(true)}
+                          className="shrink-0 text-xs bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20"
+                        >
+                          <Zap className="w-3.5 h-3.5 mr-1 fill-amber-400" />
+                          Smart Paste
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => lotNumberValue && fetchAuctionLotData(lotNumberValue)}
+                          disabled={!lotNumberValue || fetchingLotData}
+                          loading={fetchingLotData}
+                          className="shrink-0 text-xs"
+                        >
+                          {fetchingLotData ? 'Fetching...' : 'Fetch'}
+                        </Button>
+                      </Box>
                     </Box>
                     <Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)', mt: 0.75 }}>
-                      Enter a Copart or IAAI lot/stock number and click Fetch Data to auto-fill vehicle details.
+                      Use <strong className="text-amber-400 font-semibold">Smart Paste</strong> for instant proxy-free fill, or enter a lot number.
                     </Typography>
                   </Box>
                   <FormField id="auctionName" label="Auction Name" {...register('auctionName')} />
@@ -1296,6 +1332,14 @@ export default function EditShipmentPage() {
             </Box>
           </Box>
         </form>
+
+        <AuctionSmartFillModal
+          isOpen={smartFillOpen}
+          onClose={() => setSmartFillOpen(false)}
+          onApply={handleApplySmartParsedData}
+          initialLotNumber={watch('lotNumber')}
+          initialAuctionName={watch('auctionName')}
+        />
       </DashboardSurface>
     </ProtectedRoute>
   );
