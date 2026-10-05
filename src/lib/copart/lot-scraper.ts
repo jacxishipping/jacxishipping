@@ -3,6 +3,7 @@ type CopartDynamicLotDetails = {
 };
 
 import { fetchLotHtml, hasLotFetchProxy } from '@/lib/lot-fetch-proxy';
+import { fetchCopartLotWithNativeBrowser } from '@/lib/copart/lot-browser-scraper';
 
 type OxylabsCopartParsedContent = {
   vin?: string;
@@ -36,7 +37,7 @@ type OxylabsCopartJobPayload = {
   results?: OxylabsCopartResult[];
 };
 
-type CopartLotRawPayload = {
+export type CopartLotRawPayload = {
   lotNumberStr?: string;
   lcy?: number;
   mkn?: string;
@@ -75,7 +76,7 @@ export type CopartLotVehicleData = {
   purchaseLocation?: string;
   internalNotes?: string;
   copartUrl: string;
-  source: 'copart-public-page' | 'copart-oxylabs-data-api';
+  source: 'copart-native-browser' | 'copart-public-page' | 'copart-oxylabs-data-api';
   extracted: {
     bodyStyle?: string;
     damage?: string;
@@ -110,6 +111,8 @@ function hasOxylabsCopartProvider() {
 
 export function getCopartDataProviderDebugInfo() {
   return {
+    engine: 'copart-native-browser',
+    hasNativeEngine: true,
     hasOxylabsDataApi: hasOxylabsCopartProvider(),
     oxylabsParserPreset: getOxylabsCopartParserPreset(),
     hasLotFetchProxy: hasLotFetchProxy(),
@@ -457,8 +460,18 @@ export async function fetchCopartLotVehicleData(lotNumber: string): Promise<Copa
   }
 
   const copartUrl = `${COPART_LOT_URL}/${normalizedLotNumber}`;
+  let nativeEngineError: Error | undefined;
+
+  // 1. Primary In-House Engine: Stealth Headless Browser
+  try {
+    return await fetchCopartLotWithNativeBrowser(normalizedLotNumber);
+  } catch (error) {
+    nativeEngineError = error instanceof Error ? error : new Error(String(error));
+  }
+
   let oxylabsError: Error | undefined;
 
+  // 2. Secondary Provider (if configured in environment)
   if (hasOxylabsCopartProvider()) {
     try {
       return await fetchCopartLotVehicleDataFromOxylabs(normalizedLotNumber, copartUrl);
@@ -467,6 +480,7 @@ export async function fetchCopartLotVehicleData(lotNumber: string): Promise<Copa
     }
   }
 
+  // 3. Direct Fast HTTP / Proxy Fallback
   const requestHeaders = {
     'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
     'accept-language': 'en-US,en;q=0.9',
@@ -491,14 +505,14 @@ export async function fetchCopartLotVehicleData(lotNumber: string): Promise<Copa
 
   if (!raw) {
     if (looksBlockedByCopart(page.html)) {
-      throw new Error(oxylabsError ? `${buildCopartBlockedMessage(page.viaProxy)} Oxylabs data API also failed: ${oxylabsError.message}` : buildCopartBlockedMessage(page.viaProxy));
+      throw new Error(nativeEngineError ? nativeEngineError.message : buildCopartBlockedMessage(page.viaProxy));
     }
 
     if (!page.response.ok) {
-      throw new Error(oxylabsError ? `${buildCopartStatusMessage(page.response.status, page.viaProxy)} Oxylabs data API also failed: ${oxylabsError.message}` : buildCopartStatusMessage(page.response.status, page.viaProxy));
+      throw new Error(nativeEngineError ? nativeEngineError.message : buildCopartStatusMessage(page.response.status, page.viaProxy));
     }
 
-    throw new Error(oxylabsError ? `Copart lot payload was not found on the public page. Oxylabs data API also failed: ${oxylabsError.message}` : 'Copart lot payload was not found on the public page.');
+    throw new Error(nativeEngineError ? nativeEngineError.message : 'Copart lot payload was not found on the public page.');
   }
 
   return {

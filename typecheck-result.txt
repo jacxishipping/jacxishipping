@@ -1,0 +1,7 @@
+src/lib/copart/lot-browser-scraper.ts(303,59): error TS2339: Property 'mkn' does not exist on type 'never'.
+src/lib/copart/lot-browser-scraper.ts(303,89): error TS2339: Property 'lotNumberStr' does not exist on type 'never'.
+src/lib/copart/lot-scraper.ts(229,45): error TS2304: Cannot find name 'OxylabsCopartParsedContent'.
+src/lib/copart/lot-scraper.ts(273,87): error TS2304: Cannot find name 'OxylabsCopartResult'.
+src/lib/copart/lot-scraper.ts(319,58): error TS2304: Cannot find name 'OxylabsCopartJobPayload'.
+src/lib/copart/lot-scraper.ts(363,87): error TS2304: Cannot find name 'OxylabsCopartJobPayload'.
+src/lib/copart/lot-scraper.ts(388,89): error TS2304: Cannot find name 'OxylabsCopartJobPayload'.
