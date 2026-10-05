@@ -23,15 +23,13 @@ import {
 import { Button, StatusBadge, toast } from '@/components/design-system';
 import type { Shipment } from '@/components/shipments/shipment-detail-types';
 import {
-  AiDamageDetectionResult,
-  AiDetectedDamage,
-  convertAiResultToInspectionData,
-} from '@/lib/ai/damage-detection';
-import {
   SEVERITY_CONFIG,
   DAMAGE_TYPE_LABELS,
   GRADE_CONFIG,
   VehicleInspectionData,
+  AiDamageDetectionResult,
+  AiDetectedDamage,
+  convertAiResultToInspectionData,
 } from '@/types/vehicle-inspection';
 import VehicleDamageBlueprint from '@/components/inspections/VehicleDamageBlueprint';
 

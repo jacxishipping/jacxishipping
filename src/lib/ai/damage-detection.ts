@@ -14,63 +14,18 @@ import {
   TireCondition,
   DrivableStatus,
   VehicleInspectionData,
+  AiDetectedDamage,
+  AiDamageDetectionResult,
+  TransitDamageComparisonResult,
+  convertAiResultToInspectionData,
 } from '@/types/vehicle-inspection';
 
-export interface AiDetectedDamage {
-  id: string;
-  pinNumber: number;
-  view: BlueprintViewType;
-  x: number;
-  y: number;
-  zone: string;
-  damageType: DamageType;
-  severity: DamageSeverity;
-  description: string;
-  estimatedCost: number;
-  confidence: number;
-  sourcePhotoUrl?: string;
-  sourcePhotoIndex?: number;
-  origin?: 'PRE_EXISTING' | 'TRANSIT_INDUCED';
-  intakeEvidenceUrl?: string;
-  arrivalEvidenceUrl?: string;
-  claimNotes?: string;
-}
-
-export interface AiDamageDetectionResult {
-  shipmentId: string;
-  overallGrade: VehicleConditionGrade;
-  gradeRationale: string;
-  totalEstimatedCost: number;
-  damagesCount: number;
-  damages: AiDetectedDamage[];
-  custodySummary: {
-    windshieldCondition: WindshieldCondition;
-    airbagStatus: AirbagStatus;
-    tireCondition: TireCondition;
-    drivableStatus: DrivableStatus;
-  };
-  generalNotes: string;
-  analyzedPhotosCount: number;
-  analyzedPhotoUrls: string[];
-  provider: string;
-  analyzedAt: string;
-  transitComparison?: TransitDamageComparisonResult;
-}
-
-export interface TransitDamageComparisonResult {
-  shipmentId: string;
-  hasNewTransitDamages: boolean;
-  transitClaimLiabilityCost: number;
-  preExistingCost: number;
-  totalDamageCost: number;
-  preExistingCount: number;
-  transitInducedCount: number;
-  damages: AiDetectedDamage[];
-  executiveSummary: string;
-  carrierLiabilityRecommendation: string;
-  analyzedAt: string;
-  provider: string;
-}
+export type {
+  AiDetectedDamage,
+  AiDamageDetectionResult,
+  TransitDamageComparisonResult,
+};
+export { convertAiResultToInspectionData };
 
 const BLUEPRINT_ZONES_COORDINATES: Record<
   string,
@@ -722,46 +677,3 @@ function generateSimulatedDamageResult(
   };
 }
 
-export function convertAiResultToInspectionData(
-  result: AiDamageDetectionResult,
-  inspectorName = 'AI Vision Inspector',
-  yardLocation = 'Yard Intake',
-): VehicleInspectionData {
-  const markers: DamageMarker[] = result.damages.map((d) => ({
-    id: d.id,
-    pinNumber: d.pinNumber,
-    view: d.view,
-    x: d.x,
-    y: d.y,
-    zone: d.zone,
-    damageType: d.damageType,
-    severity: d.severity,
-    description: d.description,
-    estimatedCost: d.estimatedCost,
-    photos: d.sourcePhotoUrl ? [d.sourcePhotoUrl] : [],
-    createdAt: result.analyzedAt,
-  }));
-
-  const reportNumber = `JACXI-AI-${Date.now().toString().slice(-6)}`;
-
-  return {
-    shipmentId: result.shipmentId,
-    reportNumber,
-    inspectorName,
-    yardLocation,
-    inspectedAt: result.analyzedAt,
-    overallGrade: result.overallGrade,
-    fuelLevel: 'HALF',
-    keyStatus: 'ONE_KEY',
-    hasPhysicalKey: true,
-    drivableStatus: result.custodySummary.drivableStatus,
-    windshieldCondition: result.custodySummary.windshieldCondition,
-    airbagStatus: result.custodySummary.airbagStatus,
-    tireCondition: result.custodySummary.tireCondition,
-    odometerUnit: 'MILES',
-    markers,
-    generalPhotos: result.analyzedPhotoUrls,
-    generalNotes: result.generalNotes,
-    insuranceDisclaimerAgreed: true,
-  };
-}
