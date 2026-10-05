@@ -129,25 +129,51 @@ function buildProxyUrl(targetUrl: string) {
   return `${proxyUrl}${separator}url=${encodeURIComponent(targetUrl)}`;
 }
 
+function parseProxyDetails() {
+  const rawProxyUrl = normalizeEnvValue(getProxyUrlEnv());
+  if (!rawProxyUrl) return null;
+
+  let normalized = rawProxyUrl;
+  if (/^socks5h?:\/\//i.test(normalized)) {
+    normalized = normalized.replace(/^socks5h?:\/\//i, 'http://');
+  } else if (!/^[a-z]+:\/\//i.test(normalized)) {
+    normalized = `http://${normalized}`;
+  }
+
+  try {
+    const url = new URL(normalized);
+    const explicitUsername = normalizeEnvValue(getProxyUsernameEnv());
+    const explicitPassword = normalizeEnvValue(getProxyPasswordEnv());
+
+    const username = explicitUsername || (url.username ? decodeURIComponent(url.username) : undefined);
+    const password = explicitPassword || (url.password ? decodeURIComponent(url.password) : undefined);
+
+    return {
+      host: url.host,
+      hostname: url.hostname,
+      port: url.port || '7777',
+      username,
+      password,
+      uri: `http://${url.host}`,
+    };
+  } catch {
+    return null;
+  }
+}
+
 function getProxyAgent() {
   if (!cachedProxyAgent) {
-    const proxyUrl = normalizeEnvValue(getProxyUrlEnv());
-    if (!proxyUrl) {
-      throw new Error('LOT_FETCH_PROXY_URL is not configured.');
+    const details = parseProxyDetails();
+    if (!details) {
+      throw new Error('LOT_FETCH_PROXY_URL is not configured or invalid.');
     }
 
-    const normalizedProxyUrl = /^[a-z]+:\/\//i.test(proxyUrl) ? proxyUrl : `http://${proxyUrl}`;
-    const url = new URL(normalizedProxyUrl);
-
-    const username = normalizeEnvValue(getProxyUsernameEnv()) || (url.username ? decodeURIComponent(url.username) : undefined);
-    const password = normalizeEnvValue(getProxyPasswordEnv()) || (url.password ? decodeURIComponent(url.password) : undefined);
-
     const proxyOptions: { uri: string; token?: string } = {
-      uri: `${url.protocol}//${url.host}`,
+      uri: details.uri,
     };
 
-    if (username || password) {
-      const authString = `${username || ''}:${password || ''}`;
+    if (details.username || details.password) {
+      const authString = `${details.username || ''}:${details.password || ''}`;
       proxyOptions.token = `Basic ${Buffer.from(authString).toString('base64')}`;
     }
 
