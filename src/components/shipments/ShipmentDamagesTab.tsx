@@ -13,6 +13,7 @@ import {
 import VehicleDamageBlueprint from '@/components/inspections/VehicleDamageBlueprint';
 import VehicleDamageInspectionModal from '@/components/inspections/VehicleDamageInspectionModal';
 import InspectionConditionReportModal from '@/components/inspections/InspectionConditionReportModal';
+import ShipmentAiDamageModal from '@/components/shipments/ShipmentAiDamageModal';
 import {
   Sparkles,
   Camera,
@@ -24,18 +25,22 @@ import {
   Plus,
   RefreshCw,
   ExternalLink,
+  Wrench,
+  Bot,
 } from 'lucide-react';
 import { Button, StatusBadge, toast } from '@/components/design-system';
 
 type ShipmentDamagesTabProps = {
   damages: Shipment['containerDamages'];
   shipment?: Shipment;
+  onInspectionUpdated?: (inspection: VehicleInspectionData) => void;
 };
 
-export default function ShipmentDamagesTab({ damages, shipment }: ShipmentDamagesTabProps) {
+export default function ShipmentDamagesTab({ damages, shipment, onInspectionUpdated }: ShipmentDamagesTabProps) {
   const [inspection, setInspection] = useState<VehicleInspectionData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isInspectionModalOpen, setIsInspectionModalOpen] = useState(false);
+  const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
   const [selectedMarker, setSelectedMarker] = useState<DamageMarker | null>(null);
 
@@ -49,6 +54,7 @@ export default function ShipmentDamagesTab({ damages, shipment }: ShipmentDamage
       .then((data) => {
         if (data?.inspection) {
           setInspection(data.inspection);
+          onInspectionUpdated?.(data.inspection);
         }
       })
       .catch((err) => {
@@ -69,8 +75,45 @@ export default function ShipmentDamagesTab({ damages, shipment }: ShipmentDamage
     ? GRADE_CONFIG[inspection.overallGrade]
     : GRADE_CONFIG.GRADE_B;
 
+  const totalPhotosCount = (shipment?.vehiclePhotos?.length || 0) + (shipment?.arrivalPhotos?.length || 0);
+
   return (
     <div className="space-y-6">
+      {/* AI Quick-Scan Banner (Shown when no inspection or empty markers) */}
+      {markers.length === 0 && totalPhotosCount > 0 && (
+        <div className="relative overflow-hidden rounded-2xl border border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-background to-amber-500/5 p-5 shadow-lg shadow-amber-500/5">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 text-black shadow-md shadow-amber-500/20 shrink-0">
+                <Sparkles className="w-6 h-6 animate-pulse" />
+              </div>
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2">
+                  <h4 className="text-sm font-bold text-[var(--text-primary)]">
+                    Auto-Detect Damages from Photos with AI
+                  </h4>
+                  <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wide bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                    Vision AI
+                  </span>
+                </div>
+                <p className="text-xs text-[var(--text-secondary)]">
+                  Scan {totalPhotosCount} uploaded shipment photo(s) with AI to automatically detect scratches, dents, and defects, place 2D blueprint pins, and estimate repair claims.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsAiModalOpen(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-amber-400 to-amber-600 text-black hover:brightness-110 transition-all shadow-md shadow-amber-500/20 shrink-0"
+            >
+              <Bot className="w-4 h-4" />
+              <span>Launch AI Vision Scan</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* 2D Interactive Blueprint & Yard Condition Card */}
       <DashboardPanel
         title="2D Vehicle Blueprint & Condition Inspection"
@@ -108,7 +151,19 @@ export default function ShipmentDamagesTab({ damages, shipment }: ShipmentDamage
               )}
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              {/* AI Auto-Detect Button */}
+              {totalPhotosCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setIsAiModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-amber-400/20 to-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 transition-all shadow-sm"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+                  <span>AI Damage Scan</span>
+                </button>
+              )}
+
               {inspection && (
                 <button
                   type="button"
@@ -125,7 +180,7 @@ export default function ShipmentDamagesTab({ damages, shipment }: ShipmentDamage
                 onClick={() => setIsInspectionModalOpen(true)}
                 className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold bg-[var(--accent-gold)] text-black hover:brightness-110 transition-all shadow-sm"
               >
-                <Sparkles className="w-3.5 h-3.5" />
+                <Wrench className="w-3.5 h-3.5" />
                 <span>{inspection ? 'Edit / Add Pins' : 'Launch Yard Inspection'}</span>
               </button>
             </div>
@@ -272,6 +327,22 @@ export default function ShipmentDamagesTab({ damages, shipment }: ShipmentDamage
       </DashboardPanel>
 
       {/* Modals */}
+      {isAiModalOpen && shipment && (
+        <ShipmentAiDamageModal
+          isOpen={isAiModalOpen}
+          onClose={() => setIsAiModalOpen(false)}
+          shipment={shipment}
+          onInspectionApplied={(saved) => {
+            setInspection(saved);
+            onInspectionUpdated?.(saved);
+          }}
+          onOpenFullInspectionWithAi={(prefilled) => {
+            setInspection(prefilled);
+            setIsInspectionModalOpen(true);
+          }}
+        />
+      )}
+
       {isInspectionModalOpen && shipment && (
         <VehicleDamageInspectionModal
           isOpen={isInspectionModalOpen}
@@ -279,6 +350,7 @@ export default function ShipmentDamagesTab({ damages, shipment }: ShipmentDamage
           shipment={shipment}
           onInspectionSaved={(saved) => {
             setInspection(saved);
+            onInspectionUpdated?.(saved);
             setIsInspectionModalOpen(false);
           }}
         />

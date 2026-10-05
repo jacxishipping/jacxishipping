@@ -1382,6 +1382,7 @@ export default function ShipmentDetailPage() {
             onDownloadAll={downloadAllPhotos}
             onUploadArrivalPhotos={handleArrivalPhotosUpload}
             onRemoveArrivalPhoto={removeArrivalPhoto}
+            onOpenAiDamageScan={() => openShipmentTab(7)}
           />
         </TabPanel>
 
