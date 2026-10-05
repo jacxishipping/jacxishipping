@@ -75,6 +75,7 @@ export type CopartLotVehicleData = {
   purchaseDate?: string;
   purchaseLocation?: string;
   internalNotes?: string;
+  vehiclePhotos?: string[];
   copartUrl: string;
   source: 'copart-native-browser' | 'copart-public-page' | 'copart-oxylabs-data-api';
   extracted: {

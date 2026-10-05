@@ -28,6 +28,7 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { compressImage, isValidImageFile, formatFileSize } from '@/lib/utils/image-compression';
 import { decodeVIN as decodeVINService, getBestWeightEstimate } from '@/lib/services/vin-decoder';
 import { buildCopartLotSummary, fetchCopartLotDataForShipment } from '@/lib/copart/lot-client';
+import { buildIaaiLotSummary, fetchIaaiLotDataForShipment } from '@/lib/iaai/lot-client';
 import { hasPermission } from '@/lib/rbac';
 interface UserOption {
   id: string;
@@ -314,15 +315,27 @@ export default function EditShipmentPage() {
     }
   };
 
-  const fetchCopartLotData = async (lotNumber: string) => {
+  const fetchAuctionLotData = async (lotNumber: string) => {
     if (!lotNumber?.trim()) return;
+
+    const auctionNameValue = watch('auctionName');
+    const targetAuction = auctionNameValue === 'IAAI' ? 'IAAI' : 'Copart';
 
     setFetchingLotData(true);
     try {
-      const lotData = await fetchCopartLotDataForShipment(lotNumber.trim());
+      const trimmedLotNumber = lotNumber.trim();
+      const { lotData, lotSummary } = await (targetAuction === 'IAAI'
+        ? fetchIaaiLotDataForShipment(trimmedLotNumber).then((data) => ({
+            lotData: data,
+            lotSummary: buildIaaiLotSummary(data),
+          }))
+        : fetchCopartLotDataForShipment(trimmedLotNumber).then((data) => ({
+            lotData: data,
+            lotSummary: buildCopartLotSummary(data),
+          })));
 
       setValue('lotNumber', lotData.lotNumber);
-      setValue('auctionName', lotData.auctionName);
+      setValue('auctionName', lotData.auctionName || targetAuction);
       if (lotData.vehicleMake) setValue('vehicleMake', lotData.vehicleMake);
       if (lotData.vehicleModel) setValue('vehicleModel', lotData.vehicleModel);
       if (lotData.vehicleYear) setValue('vehicleYear', lotData.vehicleYear);
@@ -335,12 +348,12 @@ export default function EditShipmentPage() {
       if (lotData.purchaseLocation && !watch('purchaseLocation')) setValue('purchaseLocation', lotData.purchaseLocation);
       if (lotData.internalNotes && !watch('internalNotes')) setValue('internalNotes', lotData.internalNotes);
 
-      toast.success('Copart lot data fetched', {
-        description: buildCopartLotSummary(lotData),
+      toast.success(`${targetAuction} lot data fetched`, {
+        description: lotSummary,
       });
     } catch (error) {
-      console.error('Error fetching Copart lot data:', error);
-      toast.error('Failed to fetch Copart lot data', {
+      console.error(`Error fetching ${targetAuction} lot data:`, error);
+      toast.error(`Failed to fetch ${targetAuction} lot data`, {
         description: error instanceof Error ? error.message : 'Please verify the lot number and try again',
       });
     } finally {
@@ -700,21 +713,22 @@ export default function EditShipmentPage() {
                   <Box>
                     <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-end' }}>
                       <Box sx={{ flex: 1 }}>
-                        <FormField id="lotNumber" label="Lot Number" placeholder="Copart lot #" {...register('lotNumber')} />
+                        <FormField id="lotNumber" label="Lot Number" placeholder="Auction lot #" {...register('lotNumber')} />
                       </Box>
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
-                        onClick={() => lotNumberValue && fetchCopartLotData(lotNumberValue)}
+                        onClick={() => lotNumberValue && fetchAuctionLotData(lotNumberValue)}
                         disabled={!lotNumberValue || fetchingLotData}
                         loading={fetchingLotData}
+                        className="shrink-0 text-xs"
                       >
                         {fetchingLotData ? 'Fetching...' : 'Fetch Data'}
                       </Button>
                     </Box>
                     <Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)', mt: 0.75 }}>
-                      Enter a Copart lot number and use Fetch Data to auto-fill the vehicle details from the public lot page.
+                      Enter a Copart or IAAI lot/stock number and click Fetch Data to auto-fill vehicle details.
                     </Typography>
                   </Box>
                   <FormField id="auctionName" label="Auction Name" {...register('auctionName')} />

@@ -32,17 +32,19 @@ export async function POST(
     }
 
     const body = await request.json().catch(() => ({}));
-    const { photoSource, photoUrls, maxPhotos, autoApply } = body as {
+    const { photoSource, photoUrls, maxPhotos, autoApply, mode } = body as {
       photoSource?: 'ALL' | 'VEHICLE' | 'ARRIVAL' | 'CUSTOM';
       photoUrls?: string[];
       maxPhotos?: number;
       autoApply?: boolean;
+      mode?: 'INSPECTION' | 'TRANSIT_COMPARISON';
     };
 
     const aiResult = await detectDamagesWithAi(id, {
       photoSource,
       photoUrls,
       maxPhotos,
+      mode,
     });
 
     // If autoApply is requested, save directly as an inspection quality check

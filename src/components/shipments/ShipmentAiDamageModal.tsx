@@ -55,10 +55,13 @@ export default function ShipmentAiDamageModal({
   );
 
   const [selectedPhotos, setSelectedPhotos] = useState<string[]>(allPhotos);
+  const [scanMode, setScanMode] = useState<'INSPECTION' | 'TRANSIT_COMPARISON'>(
+    shipment.vehiclePhotos?.length && shipment.arrivalPhotos?.length ? 'TRANSIT_COMPARISON' : 'INSPECTION'
+  );
   const [isScanning, setIsScanning] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
   const [scanResult, setScanResult] = useState<AiDamageDetectionResult | null>(null);
-  const [activeTab, setActiveTab] = useState<'blueprint' | 'manifest' | 'custody'>('blueprint');
+  const [activeTab, setActiveTab] = useState<'blueprint' | 'manifest' | 'transit' | 'custody'>('blueprint');
   const [selectedDamage, setSelectedDamage] = useState<AiDetectedDamage | null>(null);
 
   if (!isOpen) return null;
@@ -89,6 +92,7 @@ export default function ShipmentAiDamageModal({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           photoUrls: selectedPhotos,
+          mode: scanMode,
           autoApply: false,
         }),
       });
@@ -99,6 +103,11 @@ export default function ShipmentAiDamageModal({
       }
 
       setScanResult(data.result);
+      if (data.result.transitComparison) {
+        setActiveTab('transit');
+      } else {
+        setActiveTab('blueprint');
+      }
       if (data.result.damages?.length > 0) {
         setSelectedDamage(data.result.damages[0]);
       }
@@ -220,13 +229,48 @@ export default function ShipmentAiDamageModal({
           {/* Phase 1: Photo Selection (Shown when not scanned yet or when re-selecting) */}
           {!scanResult && !isScanning && (
             <div className="space-y-5">
+              {/* Scan Mode Toggle */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-[var(--background)] border border-[var(--border)]">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-amber-400" />
+                  <span className="text-xs font-bold text-[var(--text-primary)]">Analysis Mode:</span>
+                </div>
+                <div className="flex items-center gap-1.5 bg-[var(--card)] p-1 rounded-lg border border-[var(--border)]">
+                  <button
+                    type="button"
+                    onClick={() => setScanMode('INSPECTION')}
+                    className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${
+                      scanMode === 'INSPECTION'
+                        ? 'bg-amber-400 text-black shadow-sm'
+                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                    }`}
+                  >
+                    Standard Intake Scan
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setScanMode('TRANSIT_COMPARISON')}
+                    className={`px-3 py-1 rounded-md text-xs font-bold transition-all flex items-center gap-1.5 ${
+                      scanMode === 'TRANSIT_COMPARISON'
+                        ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-sm'
+                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                    }`}
+                  >
+                    <ShieldAlert className="w-3.5 h-3.5" />
+                    Transit Damage Comparison (Before vs After)
+                  </button>
+                </div>
+              </div>
+
               <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-xl bg-gradient-to-r from-amber-500/10 via-background to-transparent border border-amber-500/20">
                 <div>
                   <h4 className="text-sm font-bold text-[var(--text-primary)]">
                     Select Shipment Photos to Analyze ({selectedPhotos.length}/{allPhotos.length})
                   </h4>
                   <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-                    Our AI vision model inspects panels, lights, glass, tires, and frame for scratches, dents, and defects.
+                    {scanMode === 'TRANSIT_COMPARISON'
+                      ? 'AI will compare baseline auction intake photos against destination port arrival photos to isolate carrier liability.'
+                      : 'Our AI vision model inspects panels, lights, glass, tires, and frame for scratches, dents, and defects.'}
                   </p>
                 </div>
 
@@ -410,7 +454,21 @@ export default function ShipmentAiDamageModal({
 
               {/* View Selector Tabs */}
               <div className="flex items-center justify-between border-b border-[var(--border)] pb-2">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 overflow-x-auto">
+                  {scanResult.transitComparison && (
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('transit')}
+                      className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                        activeTab === 'transit'
+                          ? 'bg-cyan-500 text-white shadow-sm'
+                          : 'bg-[var(--background)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                      }`}
+                    >
+                      <ShieldAlert className="w-3.5 h-3.5" />
+                      Transit Differential (Before vs After)
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => setActiveTab('blueprint')}
@@ -455,6 +513,155 @@ export default function ShipmentAiDamageModal({
                   <span>Re-select Photos</span>
                 </button>
               </div>
+
+              {/* Tab 0: Transit Comparison Differential (Before vs After) */}
+              {activeTab === 'transit' && scanResult.transitComparison && (
+                <div className="space-y-5 animate-in fade-in">
+                  {/* Differential Summary Cards */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="p-4 rounded-xl border border-blue-500/30 bg-blue-500/5 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-blue-400">
+                          Pre-Existing (Auction Intake)
+                        </span>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-400">
+                          {scanResult.transitComparison.preExistingCount} Items
+                        </span>
+                      </div>
+                      <p className="text-xl font-black text-[var(--text-primary)]">
+                        ${scanResult.transitComparison.preExistingCost.toFixed(2)}
+                      </p>
+                      <p className="text-[11px] text-[var(--text-secondary)]">
+                        Present prior to container loading at departure origin.
+                      </p>
+                    </div>
+
+                    <div className="p-4 rounded-xl border border-red-500/30 bg-red-500/5 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-red-400">
+                          Carrier Transit Induced
+                        </span>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-red-500/20 text-red-400 animate-pulse">
+                          {scanResult.transitComparison.transitInducedCount} New
+                        </span>
+                      </div>
+                      <p className="text-xl font-black text-red-400">
+                        ${scanResult.transitComparison.transitClaimLiabilityCost.toFixed(2)}
+                      </p>
+                      <p className="text-[11px] text-[var(--text-secondary)]">
+                        Damages occurred during ocean voyage / lashing / handling.
+                      </p>
+                    </div>
+
+                    <div className="p-4 rounded-xl border border-amber-500/30 bg-amber-500/5 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400">
+                          Total Vessel Cargo Claim
+                        </span>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-400">
+                          Marine Subrogation
+                        </span>
+                      </div>
+                      <p className="text-xl font-black text-amber-400">
+                        ${scanResult.transitComparison.totalDamageCost.toFixed(2)}
+                      </p>
+                      <p className="text-[11px] text-[var(--text-secondary)]">
+                        Combined repair valuation across all photo milestones.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Surveyor Statement & Liability Recommendation */}
+                  <div className="p-4 rounded-xl border border-[var(--border)] bg-[var(--background)] space-y-2.5">
+                    <div className="flex items-center gap-2 text-cyan-400 text-xs font-bold uppercase tracking-wider">
+                      <ShieldCheck className="w-4 h-4" />
+                      <span>Marine Cargo Surveyor Recommendation</span>
+                    </div>
+                    <p className="text-xs text-[var(--text-primary)] font-medium leading-relaxed">
+                      {scanResult.transitComparison.executiveSummary}
+                    </p>
+                    <div className="p-3 rounded-lg bg-[var(--card)] border border-[var(--border)] text-xs text-amber-400/90 flex items-start gap-2">
+                      <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                      <span>{scanResult.transitComparison.carrierLiabilityRecommendation}</span>
+                    </div>
+                  </div>
+
+                  {/* Differential Damage List */}
+                  <div className="space-y-3">
+                    <h5 className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">
+                      Categorized Damage Hotspots
+                    </h5>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {scanResult.transitComparison.damages.map((dmg) => {
+                        const isTransit = dmg.origin === 'TRANSIT_INDUCED';
+                        const sev = SEVERITY_CONFIG[dmg.severity] || SEVERITY_CONFIG.MEDIUM;
+                        return (
+                          <div
+                            key={dmg.id}
+                            className={`p-4 rounded-xl border transition-all space-y-2.5 ${
+                              isTransit
+                                ? 'border-red-500/40 bg-red-500/5'
+                                : 'border-[var(--border)] bg-[var(--background)]'
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className="flex items-center justify-center w-6 h-6 rounded-full text-white text-xs font-bold"
+                                  style={{ backgroundColor: sev.color }}
+                                >
+                                  {dmg.pinNumber}
+                                </span>
+                                <div>
+                                  <h6 className="text-xs font-bold text-[var(--text-primary)]">
+                                    {dmg.zone}
+                                  </h6>
+                                  <span className="text-[10px] text-[var(--text-secondary)]">
+                                    {dmg.view.toUpperCase()} View
+                                  </span>
+                                </div>
+                              </div>
+
+                              <span
+                                className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                  isTransit
+                                    ? 'bg-red-500/20 text-red-400 border border-red-500/40'
+                                    : 'bg-blue-500/20 text-blue-400 border border-blue-500/40'
+                                }`}
+                              >
+                                {isTransit ? '⚠️ TRANSIT INDUCED' : '📋 PRE-EXISTING'}
+                              </span>
+                            </div>
+
+                            <p className="text-xs text-[var(--text-secondary)]">{dmg.description}</p>
+                            {dmg.claimNotes && (
+                              <p className="text-[11px] text-amber-400/80 italic bg-[var(--card)] p-2 rounded border border-[var(--border)]">
+                                Claim Note: {dmg.claimNotes}
+                              </p>
+                            )}
+
+                            <div className="flex items-center justify-between pt-2 border-t border-[var(--border)] text-xs">
+                              <span
+                                className="px-2 py-0.5 rounded text-[10px] font-bold"
+                                style={{
+                                  backgroundColor: sev.bg,
+                                  color: sev.color,
+                                  border: `1px solid ${sev.border}`,
+                                }}
+                              >
+                                {DAMAGE_TYPE_LABELS[dmg.damageType]}
+                              </span>
+                              <span className="font-bold text-amber-400">
+                                ${dmg.estimatedCost.toFixed(2)} USD
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Tab 1: Interactive Blueprint with AI Markers */}
               {activeTab === 'blueprint' && (

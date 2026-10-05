@@ -240,25 +240,12 @@ export default function NewShipmentPage() {
 	const fetchAuctionLotData = async (lotNumber: string) => {
 		if (!lotNumber?.trim()) return;
 
-		if (serviceTypeValue !== 'PURCHASE_AND_SHIPPING') {
-			toast.error('Lot data fetch is only available for Purchase + Shipping shipments');
-			return;
-		}
-
-		if (!auctionNameValue) {
-			toast.error('Select an auction before fetching lot data');
-			return;
-		}
-
-		if (auctionNameValue !== 'Copart' && auctionNameValue !== 'IAAI') {
-			toast.error('Automatic lot data fetch currently supports Copart and IAAI only');
-			return;
-		}
+		const targetAuction = auctionNameValue === 'IAAI' ? 'IAAI' : 'Copart';
 
 		setFetchingLotData(true);
 		try {
 			const trimmedLotNumber = lotNumber.trim();
-			const { lotData, lotSummary } = await (auctionNameValue === 'IAAI'
+			const { lotData, lotSummary } = await (targetAuction === 'IAAI'
 				? fetchIaaiLotDataForShipment(trimmedLotNumber).then((data) => ({
 					lotData: data,
 					lotSummary: buildIaaiLotSummary(data),
@@ -273,7 +260,7 @@ export default function NewShipmentPage() {
 			};
 
 			setFetchedValue('lotNumber', lotData.lotNumber);
-			setFetchedValue('auctionName', lotData.auctionName);
+			setFetchedValue('auctionName', lotData.auctionName || targetAuction);
 			if (lotData.vehicleMake) setFetchedValue('vehicleMake', lotData.vehicleMake);
 			if (lotData.vehicleModel) setFetchedValue('vehicleModel', lotData.vehicleModel);
 			if (lotData.vehicleYear) setFetchedValue('vehicleYear', lotData.vehicleYear);
@@ -285,13 +272,17 @@ export default function NewShipmentPage() {
 			if (lotData.purchaseDate && !formValues.purchaseDate) setFetchedValue('purchaseDate', lotData.purchaseDate);
 			if (lotData.purchaseLocation && !formValues.purchaseLocation) setFetchedValue('purchaseLocation', lotData.purchaseLocation);
 			if (lotData.internalNotes && !formValues.internalNotes) setFetchedValue('internalNotes', lotData.internalNotes);
+			if (Array.isArray(lotData.vehiclePhotos) && lotData.vehiclePhotos.length > 0) {
+				setVehiclePhotos((prev) => (prev.length === 0 ? lotData.vehiclePhotos! : prev));
+				setValue('vehiclePhotos', lotData.vehiclePhotos, { shouldDirty: true });
+			}
 
-			toast.success(`${auctionNameValue} lot data fetched`, {
+			toast.success(`${targetAuction} lot data fetched`, {
 				description: lotSummary,
 			});
 		} catch (error) {
-			console.error(`Error fetching ${auctionNameValue} lot data:`, error);
-			toast.error(`Failed to fetch ${auctionNameValue || 'auction'} lot data`, {
+			console.error(`Error fetching ${targetAuction} lot data:`, error);
+			toast.error(`Failed to fetch ${targetAuction} lot data`, {
 				description: error instanceof Error ? error.message : 'Please verify the lot number and try again',
 			});
 		} finally {
@@ -795,29 +786,22 @@ export default function NewShipmentPage() {
 													{...register('lotNumber')}
 												/>
 											</Box>
-											{serviceTypeValue === 'PURCHASE_AND_SHIPPING' && (
-												<Button
-													type="button"
-													variant="outline"
-													size="sm"
-													onClick={() => lotNumberValue && fetchAuctionLotData(lotNumberValue)}
-													disabled={!lotNumberValue || !auctionNameValue || auctionNameValue === 'Other' || fetchingLotData}
-													loading={fetchingLotData}
-												>
-													{fetchingLotData ? 'Fetching...' : 'Fetch Data'}
-												</Button>
-											)}
+											<Button
+												type="button"
+												variant="outline"
+												size="sm"
+												onClick={() => lotNumberValue && fetchAuctionLotData(lotNumberValue)}
+												disabled={!lotNumberValue || fetchingLotData}
+												loading={fetchingLotData}
+												className="shrink-0 text-xs"
+											>
+												{fetchingLotData ? 'Fetching...' : 'Fetch Data'}
+											</Button>
 										</Box>
 										<Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)', mt: 0.75 }}>
-											{serviceTypeValue === 'PURCHASE_AND_SHIPPING'
-												? auctionNameValue === 'Copart'
-													? 'Enter a Copart lot number and use Fetch Data to auto-fill vehicle details.'
-													: auctionNameValue
-														? auctionNameValue === 'IAAI'
-															? 'Enter an IAAI stock number and use Fetch Data to auto-fill vehicle details.'
-															: 'Save the auction and lot number manually. Automatic fetch supports Copart and IAAI only.'
-														: 'Select an auction before fetching lot data.'
-												: 'Lot data fetch is available only for Purchase + Shipping shipments.'}
+											{auctionNameValue === 'IAAI'
+												? 'Enter an IAAI stock number and click Fetch Data to auto-fill vehicle details.'
+												: 'Enter a Copart or auction lot number and click Fetch Data to auto-fill vehicle details.'}
 										</Typography>
 									</Box>
 								</Box>

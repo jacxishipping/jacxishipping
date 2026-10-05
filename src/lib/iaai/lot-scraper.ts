@@ -1,6 +1,7 @@
 type IaaiVehicleJson = Record<string, unknown>;
 
 import { fetchLotHtml, hasLotFetchProxy, type LotFetchHtmlResult } from '@/lib/lot-fetch-proxy';
+import { fetchIaaiLotWithNativeBrowser } from '@/lib/iaai/lot-browser-scraper';
 
 export type IaaiLotVehicleData = {
   lotNumber: string;
@@ -16,6 +17,7 @@ export type IaaiLotVehicleData = {
   purchaseDate?: string;
   purchaseLocation?: string;
   internalNotes?: string;
+  vehiclePhotos?: string[];
   iaaiUrl: string;
   source: 'iaai-public-page' | 'iaai-provider-api';
   extracted: {
@@ -524,6 +526,13 @@ export async function fetchIaaiLotVehicleData(stockNumber: string): Promise<Iaai
   const normalizedStockNumber = normalizeValue(stockNumber);
   if (!normalizedStockNumber || !/^[a-zA-Z0-9~-]{4,40}$/.test(normalizedStockNumber)) {
     throw new Error('IAAI stock numbers must be 4-40 letters, numbers, hyphens, or region suffixes like ~US.');
+  }
+
+  // 1. Primary In-House Engine: Stealth Headless Browser
+  try {
+    return await fetchIaaiLotWithNativeBrowser(normalizedStockNumber);
+  } catch (err) {
+    // Continue to fallback
   }
 
   const [primaryIaaiUrl, ...fallbackIaaiUrls] = buildIaaiVehicleUrls(normalizedStockNumber);
