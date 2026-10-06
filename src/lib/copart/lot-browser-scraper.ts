@@ -202,20 +202,20 @@ async function getOrLaunchBrowser(): Promise<Browser> {
 
   try {
     browserInstance = await chromium.launch(launchOptions);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    if (message.includes("Executable doesn't exist") || message.includes('playwright install')) {
+    return browserInstance;
+  } catch {
+    try {
+      browserInstance = await chromium.launch({ ...launchOptions, channel: 'chrome' });
+      return browserInstance;
+    } catch {
       try {
         browserInstance = await chromium.launch({ ...launchOptions, channel: 'msedge' });
+        return browserInstance;
       } catch {
-        browserInstance = await chromium.launch({ ...launchOptions, channel: 'chrome' });
+        throw new Error('Headless browser engine is not available in this environment.');
       }
-    } else {
-      throw error;
     }
   }
-
-  return browserInstance;
 }
 
 function scheduleBrowserIdleClose() {

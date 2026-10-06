@@ -506,14 +506,14 @@ export async function fetchCopartLotVehicleData(lotNumber: string): Promise<Copa
 
   if (!raw) {
     if (looksBlockedByCopart(page.html)) {
-      throw new Error(nativeEngineError ? nativeEngineError.message : buildCopartBlockedMessage(page.viaProxy));
+      throw new Error(buildCopartBlockedMessage(page.viaProxy));
     }
 
     if (!page.response.ok) {
-      throw new Error(nativeEngineError ? nativeEngineError.message : buildCopartStatusMessage(page.response.status, page.viaProxy));
+      throw new Error(buildCopartStatusMessage(page.response.status, page.viaProxy));
     }
 
-    throw new Error(nativeEngineError ? nativeEngineError.message : 'Copart lot payload was not found on the public page.');
+    throw new Error('Copart lot payload was not found on the public page. You can use the Smart Paste feature to auto-fill this shipment.');
   }
 
   return {
