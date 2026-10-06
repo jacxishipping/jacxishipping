@@ -303,31 +303,96 @@ function parseOxylabsTitle(title?: string) {
   };
 }
 
+export function parseCopartSlug(slug: string) {
+  if (!slug) return {};
+  const cleanSlug = slug.toLowerCase().replace(/[^a-z0-9-]/g, '');
+  const tokens = cleanSlug.split('-').filter(Boolean);
+
+  const yearIdx = tokens.findIndex((t) => /^(19\d{2}|20\d{2})$/.test(t));
+  if (yearIdx === -1) return {};
+
+  const year = tokens[yearIdx];
+  const prefixTokens = tokens.slice(0, yearIdx);
+  const remainingTokens = tokens.slice(yearIdx + 1);
+
+  let make: string | undefined;
+  let modelTokens: string[] = [];
+  let state: string | undefined;
+  let cityTokens: string[] = [];
+
+  if (remainingTokens.length > 0) {
+    make = remainingTokens[0].charAt(0).toUpperCase() + remainingTokens[0].slice(1);
+    const afterMake = remainingTokens.slice(1);
+
+    const stateIdx = afterMake.findIndex((t) => /^[a-z]{2}$/.test(t));
+    if (stateIdx !== -1) {
+      modelTokens = afterMake.slice(0, stateIdx);
+      state = afterMake[stateIdx].toUpperCase();
+      cityTokens = afterMake.slice(stateIdx + 1);
+    } else {
+      modelTokens = afterMake;
+    }
+  }
+
+  const model = modelTokens
+    .map((t) => t.charAt(0).toUpperCase() + t.slice(1))
+    .join(' ');
+
+  const city = cityTokens
+    .map((t) => t.charAt(0).toUpperCase() + t.slice(1))
+    .join(' ');
+
+  const purchaseLocation = state && city ? `${city}, ${state}` : state || city || undefined;
+  const docType = prefixTokens.length > 0 ? prefixTokens.map((t) => t.charAt(0).toUpperCase() + t.slice(1)).join(' ') : undefined;
+
+  return {
+    year,
+    make,
+    model: model || undefined,
+    purchaseLocation,
+    docType,
+  };
+}
+
 function normalizeOxylabsCopartResult(lotNumber: string, fallbackUrl: string, result: OxylabsCopartResult): CopartLotVehicleData {
   const content = result.content || {};
   const titleParts = parseOxylabsTitle(content.title);
-  const purchaseLocation = buildOxylabsLocation(content.notes);
+  const resultUrl = normalizeValue(result.url) || fallbackUrl;
+  
+  // Extract slug metadata from redirected Copart URL if title parts are missing
+  const slugMatch = resultUrl.match(/copart\.com\/lot\/\d+\/([a-zA-Z0-9_-]+)/i);
+  const slugMeta = slugMatch ? parseCopartSlug(slugMatch[1]) : {};
+
+  const vehicleYear = titleParts.vehicleYear || slugMeta.year;
+  const vehicleMake = titleParts.vehicleMake || slugMeta.make;
+  const vehicleModel = titleParts.vehicleModel || slugMeta.model;
+  const purchaseLocation = buildOxylabsLocation(content.notes) || slugMeta.purchaseLocation;
   const purchaseDate = parseCopartSaleDateToPurchaseDate(content.sale_date);
+
+  const notesParts = [
+    buildOxylabsInternalNotes(content),
+    slugMeta.docType ? `Doc type: ${slugMeta.docType}` : undefined,
+  ].filter(Boolean);
 
   return {
     lotNumber: normalizeValue(content.lot_number) || lotNumber,
     auctionName: 'Copart',
-    vehicleMake: titleParts.vehicleMake,
-    vehicleModel: titleParts.vehicleModel,
-    vehicleYear: titleParts.vehicleYear,
+    vehicleMake,
+    vehicleModel,
+    vehicleYear,
     vehicleVIN: normalizeValue(content.vin),
     vehicleColor: normalizeValue(content.color),
     vehicleType: inferVehicleType(normalizeValue(content.body_style), normalizeValue(content.vehicle_type)),
     hasKey: typeof content.has_key === 'boolean' ? content.has_key : undefined,
-    hasTitle: undefined,
+    hasTitle: slugMeta.docType?.toLowerCase().includes('clean') ? true : undefined,
     purchaseDate,
     purchaseLocation,
-    internalNotes: buildOxylabsInternalNotes(content),
-    copartUrl: normalizeValue(result.url) || fallbackUrl,
+    internalNotes: notesParts.length > 0 ? notesParts.join(' | ') : undefined,
+    copartUrl: resultUrl,
     source: 'copart-oxylabs-data-api',
     extracted: {
       bodyStyle: normalizeValue(content.body_style),
-      damage: normalizeValue(content.primary_damage),
+      damage: normalizeValue(content.primary_damage) || slugMeta.docType,
       transmission: typeof content.transmission === 'string' ? normalizeValue(content.transmission) : undefined,
       engine: normalizeValue(content.engine_type),
       cylinders: normalizeValue(content.cylinders),
@@ -419,7 +484,7 @@ async function fetchCopartLotVehicleDataFromOxylabs(lotNumber: string, copartUrl
   await waitForOxylabsCopartJob(jobId, authHeader);
 
   const { response: resultsResponse, payload: resultsPayload } = await fetchOxylabsJson<OxylabsCopartJobPayload>(
-    `${OXYLABS_DATA_API_URL}/${jobId}/results?type=parsed`,
+    `${OXYLABS_DATA_API_URL}/${jobId}/results`,
     {
       headers: {
         Authorization: authHeader,
@@ -429,11 +494,11 @@ async function fetchCopartLotVehicleDataFromOxylabs(lotNumber: string, copartUrl
   );
 
   const result = resultsPayload.results?.[0];
-  if (result?.content) {
+  if (result) {
     return normalizeOxylabsCopartResult(lotNumber, copartUrl, result);
   }
 
-  throw new Error(buildOxylabsCopartErrorMessage(`results endpoint returned status ${resultsResponse.status} without parsed content.`));
+  throw new Error(buildOxylabsCopartErrorMessage(`results endpoint returned status ${resultsResponse.status} without content.`));
 }
 
 function extractLotPayload(html: string) {

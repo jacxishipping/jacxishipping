@@ -74,13 +74,46 @@ export function parseAuctionUrl(url: string): Partial<ParsedAuctionData> | null 
     };
 
     if (slug) {
-      const parts = slug.split('-');
-      const yearMatch = parts[0]?.match(/^(19\d{2}|20\d{2})$/);
-      if (yearMatch) {
-        result.vehicleYear = yearMatch[1];
-        if (parts[1]) result.vehicleMake = parts[1].toUpperCase();
-        if (parts.length > 2) {
-          result.vehicleModel = parts.slice(2).join(' ').toUpperCase();
+      const cleanSlug = slug.toLowerCase().replace(/[^a-z0-9-]/g, '');
+      const tokens = cleanSlug.split('-').filter(Boolean);
+      const yearIdx = tokens.findIndex((t) => /^(19\d{2}|20\d{2})$/.test(t));
+      
+      if (yearIdx !== -1) {
+        result.vehicleYear = tokens[yearIdx];
+        const prefixTokens = tokens.slice(0, yearIdx);
+        const remainingTokens = tokens.slice(yearIdx + 1);
+
+        if (remainingTokens.length > 0) {
+          result.vehicleMake = remainingTokens[0].toUpperCase();
+          const afterMake = remainingTokens.slice(1);
+          const stateIdx = afterMake.findIndex((t) => /^[a-z]{2}$/.test(t));
+          
+          let modelTokens: string[] = [];
+          let state: string | undefined;
+          let cityTokens: string[] = [];
+
+          if (stateIdx !== -1) {
+            modelTokens = afterMake.slice(0, stateIdx);
+            state = afterMake[stateIdx].toUpperCase();
+            cityTokens = afterMake.slice(stateIdx + 1);
+          } else {
+            modelTokens = afterMake;
+          }
+
+          if (modelTokens.length > 0) {
+            result.vehicleModel = modelTokens.join(' ').toUpperCase();
+          }
+
+          if (state && cityTokens.length > 0) {
+            const city = cityTokens.map((c) => c.charAt(0).toUpperCase() + c.slice(1)).join(' ');
+            result.purchaseLocation = `${city}, ${state}`;
+          } else if (state) {
+            result.purchaseLocation = state;
+          }
+        }
+
+        if (prefixTokens.length > 0) {
+          result.internalNotes = `Doc/Title Type: ${prefixTokens.join(' ').toUpperCase()}`;
         }
       }
     }
