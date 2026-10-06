@@ -46,6 +46,14 @@ interface ContainerOption {
   currentCount: number;
   maxCapacity: number;
   destinationPort: string | null;
+  trackingNumber?: string | null;
+  shippingLine?: string | null;
+  bookingNumber?: string | null;
+  company?: {
+    id: string;
+    name: string;
+    code: string;
+  } | null;
 }
 
 interface TransitWorkflowContext {
@@ -264,14 +272,31 @@ export default function EditShipmentPage() {
     fetchData();
   }, [params.id, canManageShipments, status, reset, router]);
 
-  const fetchContainers = async () => {
+  const [containerSearchInput, setContainerSearchInput] = useState('');
+
+  const fetchContainers = async (searchTerm = '') => {
     setLoadingContainers(true);
     try {
-      // Fetch all active containers by using a large limit
-      const response = await fetch('/api/containers?status=active&limit=1000', { cache: 'no-store' });
+      const query = new URLSearchParams({
+        limit: '1000',
+      });
+      if (searchTerm.trim()) {
+        query.set('search', searchTerm.trim());
+      } else {
+        query.set('status', 'active');
+      }
+      const response = await fetch(`/api/containers?${query.toString()}`, { cache: 'no-store' });
       if (response.ok) {
         const data = await response.json();
-        setContainers(data.containers);
+        const incoming = (data.containers || []) as ContainerOption[];
+        setContainers((prev) => {
+          const selectedId = watch('containerId');
+          const selectedContainer = prev.find((c) => c.id === selectedId);
+          if (selectedContainer && !incoming.some((c) => c.id === selectedId)) {
+            return [selectedContainer, ...incoming];
+          }
+          return incoming;
+        });
       }
     } catch (error) {
       console.error('Error fetching containers:', error);
@@ -282,10 +307,22 @@ export default function EditShipmentPage() {
 
   // Watch status changes to fetch containers if needed
   useEffect(() => {
-    if (statusValue === 'IN_TRANSIT' && containers.length === 0) {
-      fetchContainers();
+    if (statusValue === 'IN_TRANSIT') {
+      fetchContainers(containerSearchInput);
     }
-  }, [statusValue, containers.length]);
+  }, [statusValue]);
+
+  // Debounced search for containers when typing
+  useEffect(() => {
+    if (statusValue !== 'IN_TRANSIT') return;
+    if (!containerSearchInput.trim()) return;
+
+    const timer = setTimeout(() => {
+      void fetchContainers(containerSearchInput);
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [containerSearchInput, statusValue]);
 
   // VIN Decoder with enhanced data extraction
   const decodeVIN = async (vin: string) => {
@@ -1046,59 +1083,102 @@ export default function EditShipmentPage() {
                     <Typography component="label" htmlFor="containerId" sx={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)', mb: 1 }}>
                       Container *
                     </Typography>
-                    {loadingContainers ? (
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                        <Loader2 className="animate-spin w-4 h-4" />
-                        <Typography variant="body2">Loading containers...</Typography>
-                      </Box>
-                    ) : (
-                      <Autocomplete
-                        options={containers}
-                        getOptionLabel={(option) => 
-                          `${option.containerNumber} - ${option.destinationPort || 'No destination'} (${option.currentCount}/${option.maxCapacity})`
+                    <Autocomplete
+                      options={containers}
+                      isOptionEqualToValue={(option, value) => option.id === value?.id}
+                      getOptionLabel={(option) => 
+                        typeof option === 'string' 
+                          ? option 
+                          : `${option.containerNumber || ''}${option.destinationPort ? ` - ${option.destinationPort}` : ''} (${option.currentCount ?? 0}/${option.maxCapacity ?? 0})`
+                      }
+                      filterOptions={(options, state) => {
+                        const query = (state.inputValue || '').toLowerCase().trim();
+                        if (!query) return options;
+                        return options.filter((c) => {
+                          const num = (c.containerNumber || '').toLowerCase();
+                          const dest = (c.destinationPort || '').toLowerCase();
+                          const track = (c.trackingNumber || '').toLowerCase();
+                          const line = (c.shippingLine || '').toLowerCase();
+                          const company = (c.company?.name || '').toLowerCase();
+                          const booking = (c.bookingNumber || '').toLowerCase();
+                          return num.includes(query) || dest.includes(query) || track.includes(query) || line.includes(query) || company.includes(query) || booking.includes(query);
+                        });
+                      }}
+                      inputValue={containerSearchInput}
+                      onInputChange={(_, newInputValue, reason) => {
+                        if (reason === 'input' || reason === 'clear') {
+                          setContainerSearchInput(newInputValue);
                         }
-                        value={containers.find(c => c.id === watch('containerId')) || null}
-                        onChange={(_, newValue) => {
-                          setValue('containerId', newValue?.id || '', { shouldValidate: true });
-                        }}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            placeholder="Select a container"
-                            error={!!errors.containerId}
-                            helperText={errors.containerId?.message}
-                            sx={{
-                              '& .MuiOutlinedInput-root': {
-                                borderRadius: '16px',
-                                backgroundColor: 'var(--background)',
-                                '& fieldset': {
-                                  borderColor: errors.containerId ? 'var(--error)' : 'rgba(var(--border-rgb), 0.9)',
-                                },
-                                '&:hover fieldset': {
-                                  borderColor: errors.containerId ? 'var(--error)' : 'var(--accent-gold)',
-                                },
-                                '&.Mui-focused fieldset': {
-                                  borderColor: errors.containerId ? 'var(--error)' : 'var(--accent-gold)',
-                                },
+                      }}
+                      value={containers.find(c => c.id === watch('containerId')) || null}
+                      onChange={(_, newValue) => {
+                        setValue('containerId', newValue?.id || '', { shouldValidate: true });
+                      }}
+                      renderOption={(props, option) => (
+                        <li {...props} key={option.id}>
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, py: 0.5, width: '100%' }}>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <Typography sx={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-primary)' }}>
+                                {option.containerNumber}
+                              </Typography>
+                              <Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                                {option.currentCount}/{option.maxCapacity} loaded
+                              </Typography>
+                            </Box>
+                            <Box sx={{ display: 'flex', gap: 1, fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                              {option.destinationPort && <span>Port: {option.destinationPort}</span>}
+                              {option.shippingLine && <span>• {option.shippingLine}</span>}
+                              {option.company?.name && <span>• {option.company.name}</span>}
+                            </Box>
+                          </Box>
+                        </li>
+                      )}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          placeholder="Search by container #, tracking #, line, or port..."
+                          error={!!errors.containerId}
+                          helperText={errors.containerId?.message}
+                          InputProps={{
+                            ...params.InputProps,
+                            endAdornment: (
+                              <>
+                                {loadingContainers ? <Loader2 className="animate-spin w-4 h-4 text-[var(--accent-gold)] mr-2" /> : null}
+                                {params.InputProps.endAdornment}
+                              </>
+                            ),
+                          }}
+                          sx={{
+                            '& .MuiOutlinedInput-root': {
+                              borderRadius: '16px',
+                              backgroundColor: 'var(--background)',
+                              '& fieldset': {
+                                borderColor: errors.containerId ? 'var(--error)' : 'rgba(var(--border-rgb), 0.9)',
                               },
-                              '& .MuiInputBase-input': {
-                                color: 'var(--text-primary)',
-                                fontSize: '0.875rem',
+                              '&:hover fieldset': {
+                                borderColor: errors.containerId ? 'var(--error)' : 'var(--accent-gold)',
                               },
-                              '& .MuiInputLabel-root': {
-                                color: 'var(--text-secondary)',
+                              '&.Mui-focused fieldset': {
+                                borderColor: errors.containerId ? 'var(--error)' : 'var(--accent-gold)',
                               },
-                            }}
-                          />
-                        )}
-                        sx={{
-                          '& .MuiAutocomplete-paper': {
-                            backgroundColor: 'var(--panel)',
-                            border: '1px solid var(--border)',
-                          },
-                        }}
-                      />
-                    )}
+                            },
+                            '& .MuiInputBase-input': {
+                              color: 'var(--text-primary)',
+                              fontSize: '0.875rem',
+                            },
+                            '& .MuiInputLabel-root': {
+                              color: 'var(--text-secondary)',
+                            },
+                          }}
+                        />
+                      )}
+                      sx={{
+                        '& .MuiAutocomplete-paper': {
+                          backgroundColor: 'var(--panel)',
+                          border: '1px solid var(--border)',
+                        },
+                      }}
+                    />
                   </Box>
                 )}
               </Box>

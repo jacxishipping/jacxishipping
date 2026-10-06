@@ -76,13 +76,16 @@ export async function GET(request: NextRequest) {
       where.containerId = null;
     }
 
-    // Search by VIN, make, model
+    // Search by VIN, make, model, lotNumber, customer name/email
     if (search) {
+      const trimmedSearch = search.trim();
       where.OR = [
-        { vehicleVIN: { contains: search, mode: 'insensitive' } },
-        { vehicleMake: { contains: search, mode: 'insensitive' } },
-        { vehicleModel: { contains: search, mode: 'insensitive' } },
-        { lotNumber: { contains: search, mode: 'insensitive' } },
+        { vehicleVIN: { contains: trimmedSearch, mode: 'insensitive' } },
+        { vehicleMake: { contains: trimmedSearch, mode: 'insensitive' } },
+        { vehicleModel: { contains: trimmedSearch, mode: 'insensitive' } },
+        { lotNumber: { contains: trimmedSearch, mode: 'insensitive' } },
+        { user: { name: { contains: trimmedSearch, mode: 'insensitive' } } },
+        { user: { email: { contains: trimmedSearch, mode: 'insensitive' } } },
       ];
     }
 

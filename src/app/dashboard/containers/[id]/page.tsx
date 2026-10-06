@@ -801,10 +801,19 @@ export default function ContainerDetailPage() {
 	const displayedExpenseTotal = displayedExpenses.reduce((sum, expense) => sum + expense.amount, 0);
 	const isContainerWorkflowLocked = container.status === 'CLOSED' && !canOverrideClosedStages;
 
-	const fetchAvailableShipments = async () => {
+	const fetchAvailableShipments = async (searchTerm = '') => {
 		setLoadingAvailableShipments(true);
 		try {
-			const response = await fetch('/api/shipments?status=ON_HAND&unassigned=true');
+			const query = new URLSearchParams({
+				status: 'ON_HAND',
+				unassigned: 'true',
+				limit: '100',
+				page: '1',
+			});
+			if (searchTerm.trim()) {
+				query.set('search', searchTerm.trim());
+			}
+			const response = await fetch(`/api/shipments?${query.toString()}`);
 			const data = await response.json();
 			if (response.ok) {
 				setAvailableShipments(data.shipments || []);
@@ -817,6 +826,16 @@ export default function ContainerDetailPage() {
 			setLoadingAvailableShipments(false);
 		}
 	};
+
+	useEffect(() => {
+		if (!assignShipmentModalOpen) return;
+
+		const timer = setTimeout(() => {
+			void fetchAvailableShipments(shipmentSearchQuery);
+		}, 250);
+
+		return () => clearTimeout(timer);
+	}, [assignShipmentModalOpen, shipmentSearchQuery]);
 
 	const handleAssignShipments = async () => {
 		if (selectedShipmentIds.length === 0) return;
@@ -848,16 +867,16 @@ export default function ContainerDetailPage() {
 		setSelectedShipmentIds([]);
 		setShipmentSearchQuery('');
 		setAssignShipmentModalOpen(true);
-		fetchAvailableShipments();
 	};
 
 	const filteredAvailableShipments = availableShipments.filter((s) => {
 		if (!shipmentSearchQuery) return true;
-		const q = shipmentSearchQuery.toLowerCase();
+		const q = shipmentSearchQuery.toLowerCase().trim();
 		return (
 			(s.vehicleMake && s.vehicleMake.toLowerCase().includes(q)) ||
 			(s.vehicleModel && s.vehicleModel.toLowerCase().includes(q)) ||
 			(s.vehicleVIN && s.vehicleVIN.toLowerCase().includes(q)) ||
+			(s.lotNumber && s.lotNumber.toLowerCase().includes(q)) ||
 			(s.user?.name && s.user.name.toLowerCase().includes(q)) ||
 			(s.user?.email && s.user.email.toLowerCase().includes(q))
 		);
