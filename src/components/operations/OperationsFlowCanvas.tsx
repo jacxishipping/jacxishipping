@@ -33,8 +33,13 @@ import {
   CheckSquare,
   Square,
   Zap,
+  Compass,
+  Workflow,
+  Target,
+  ExternalLink,
 } from 'lucide-react';
 import { Button, toast, Modal } from '@/components/design-system';
+import EntityWireframeModal from './EntityWireframeModal';
 
 export interface FlowShipment {
   id: string;
@@ -157,8 +162,27 @@ export default function OperationsFlowCanvas({
   const [mousePos, setMousePos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [hoveredTargetNodeId, setHoveredTargetNodeId] = useState<string | null>(null);
 
-  // Add Item Modals
+  // Focus Wireframe on Specific Entity
+  const [focusedWireframeEntity, setFocusedWireframeEntity] = useState<{
+    type: NodeType;
+    id: string;
+    title: string;
+  } | null>(null);
+
+  // Wireframe Detail Modal State
+  const [wireframeModalState, setWireframeModalState] = useState<{
+    open: boolean;
+    type: 'shipment' | 'container' | 'dispatch' | 'transit';
+    id: string;
+  }>({
+    open: false,
+    type: 'shipment',
+    id: '',
+  });
+
+  // Add Item Modals & Wireframe Picker
   const [showAddModal, setShowAddModal] = useState<NodeType | null>(null);
+  const [showWireframePicker, setShowWireframePicker] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedToAdd, setSelectedToAdd] = useState<string[]>([]);
 
@@ -168,11 +192,10 @@ export default function OperationsFlowCanvas({
   // Auto layout on initial load if no nodes exist
   const initAutoLayout = useCallback(() => {
     const newNodes: CanvasNode[] = [];
-    const nodeWidth = 280;
     const colSpacing = 340;
     const rowSpacing = 160;
 
-    // Pick up to 5 unassigned / active shipments
+    // Pick up to 6 unassigned / active shipments
     const activeShipments = shipments.slice(0, 6);
     activeShipments.forEach((s, idx) => {
       newNodes.push({
@@ -230,6 +253,7 @@ export default function OperationsFlowCanvas({
     });
 
     setNodes(newNodes);
+    setFocusedWireframeEntity(null);
     toast.success('Auto-arranged workflow workspace');
   }, [shipments, dispatches, containers]);
 
@@ -239,6 +263,57 @@ export default function OperationsFlowCanvas({
       initAutoLayout();
     }
   }, [shipments.length, dispatches.length, containers.length, nodes.length, initAutoLayout]);
+
+  // Determine connected nodes for Focus Wireframe Mode
+  const focusedNodeIdSet = useMemo(() => {
+    if (!focusedWireframeEntity) return null;
+    const set = new Set<string>();
+
+    const { type, id } = focusedWireframeEntity;
+
+    if (type === 'shipment') {
+      const s = shipments.find((item) => item.id === id);
+      if (s) {
+        set.add(`node-shipment-${s.id}`);
+        if (s.dispatchId) set.add(`node-dispatch-${s.dispatchId}`);
+        if (s.containerId) set.add(`node-container-${s.containerId}`);
+        if (s.destinationPort) {
+          set.add(`node-port-${s.destinationPort.replace(/\s+/g, '-').toLowerCase()}`);
+        }
+      }
+    } else if (type === 'container') {
+      const c = containers.find((item) => item.id === id);
+      if (c) {
+        set.add(`node-container-${c.id}`);
+        shipments.filter((s) => s.containerId === c.id).forEach((s) => {
+          set.add(`node-shipment-${s.id}`);
+          if (s.dispatchId) set.add(`node-dispatch-${s.dispatchId}`);
+        });
+        if (c.destinationPort) {
+          set.add(`node-port-${c.destinationPort.replace(/\s+/g, '-').toLowerCase()}`);
+        }
+      }
+    } else if (type === 'dispatch') {
+      const d = dispatches.find((item) => item.id === id);
+      if (d) {
+        set.add(`node-dispatch-${d.id}`);
+        shipments.filter((s) => s.dispatchId === d.id).forEach((s) => {
+          set.add(`node-shipment-${s.id}`);
+          if (s.containerId) set.add(`node-container-${s.containerId}`);
+        });
+      }
+    } else if (type === 'port') {
+      set.add(`node-port-${id.replace(/\s+/g, '-').toLowerCase()}`);
+      containers.filter((c) => c.destinationPort === id).forEach((c) => {
+        set.add(`node-container-${c.id}`);
+      });
+      shipments.filter((s) => s.destinationPort === id).forEach((s) => {
+        set.add(`node-shipment-${s.id}`);
+      });
+    }
+
+    return set;
+  }, [focusedWireframeEntity, shipments, containers, dispatches]);
 
   // Compute Active Wires based on real relational state
   const computedWires = useMemo(() => {
@@ -461,7 +536,56 @@ export default function OperationsFlowCanvas({
   // Clear All Nodes (Clean Slate)
   const handleClearCanvas = () => {
     setNodes([]);
+    setFocusedWireframeEntity(null);
     toast.info('Canvas cleared. Click "+ Add to Flow" to build your custom workspace.');
+  };
+
+  // Focus Wireframe on specific entity
+  const handleFocusEntityWireframe = (type: NodeType, id: string, title: string) => {
+    setFocusedWireframeEntity({ type, id, title });
+
+    // If matching nodes aren't already on canvas, add them automatically
+    const existingEntityIds = new Set(nodes.map((n) => `${n.type}:${n.entityId}`));
+    const nodesToAdd: CanvasNode[] = [];
+
+    if (!existingEntityIds.has(`${type}:${id}`)) {
+      nodesToAdd.push({
+        id: `node-${type}-${id}`,
+        type,
+        entityId: id,
+        title,
+        x: 80,
+        y: 80,
+      });
+    }
+
+    if (type === 'shipment') {
+      const s = shipments.find((item) => item.id === id);
+      if (s?.dispatchId && !existingEntityIds.has(`dispatch:${s.dispatchId}`)) {
+        nodesToAdd.push({
+          id: `node-dispatch-${s.dispatchId}`,
+          type: 'dispatch',
+          entityId: s.dispatchId,
+          x: 420,
+          y: 80,
+        });
+      }
+      if (s?.containerId && !existingEntityIds.has(`container:${s.containerId}`)) {
+        nodesToAdd.push({
+          id: `node-container-${s.containerId}`,
+          type: 'container',
+          entityId: s.containerId,
+          x: 760,
+          y: 80,
+        });
+      }
+    }
+
+    if (nodesToAdd.length > 0) {
+      setNodes((prev) => [...prev, ...nodesToAdd]);
+    }
+
+    toast.success(`Focused wireframe for: ${title}`);
   };
 
   // Add elements from picker
@@ -497,7 +621,8 @@ export default function OperationsFlowCanvas({
     color: string = '#EAB308',
     isDashed = false,
     wireId?: string,
-    shipmentId?: string
+    shipmentId?: string,
+    isHighlighted = false
   ) => {
     const dx = Math.abs(end.x - start.x) * 0.5;
     const cp1x = start.x + Math.max(dx, 60);
@@ -517,23 +642,23 @@ export default function OperationsFlowCanvas({
           d={d}
           fill="none"
           stroke={color}
-          strokeWidth="6"
-          strokeOpacity="0.15"
-          className="transition-all duration-300 group-hover/wire:stroke-opacity-40"
+          strokeWidth={isHighlighted ? '10' : '6'}
+          strokeOpacity={isHighlighted ? '0.35' : '0.15'}
+          className="transition-all duration-300 group-hover/wire:stroke-opacity-50"
         />
         {/* Core Line */}
         <path
           d={d}
           fill="none"
           stroke={color}
-          strokeWidth="2.5"
+          strokeWidth={isHighlighted ? '4' : '2.5'}
           strokeDasharray={isDashed ? '6 4' : 'none'}
           className={isDashed ? 'animate-[dash_1s_linear_infinite]' : ''}
         />
         {/* Animated pulse dot */}
         {!isDashed && (
-          <circle r="3.5" fill={color} className="animate-pulse">
-            <animateMotion path={d} dur="3s" repeatCount="indefinite" />
+          <circle r={isHighlighted ? '4.5' : '3.5'} fill={color} className="animate-pulse">
+            <animateMotion path={d} dur={isHighlighted ? '2s' : '3s'} repeatCount="indefinite" />
           </circle>
         )}
 
@@ -632,6 +757,19 @@ export default function OperationsFlowCanvas({
           >
             + Add Port
           </Button>
+
+          {/* Wireframe Inspector Quick Trigger */}
+          <Button
+            size="sm"
+            variant="primary"
+            icon={<Layers className="w-3.5 h-3.5" />}
+            onClick={() => {
+              setSearchQuery('');
+              setShowWireframePicker(true);
+            }}
+          >
+            Inspect Specific Wireframe
+          </Button>
         </div>
 
         {/* Canvas Controls: Zoom & Arrange */}
@@ -700,6 +838,50 @@ export default function OperationsFlowCanvas({
         </div>
       </div>
 
+      {/* Focus Wireframe Active Banner */}
+      {focusedWireframeEntity && (
+        <div className="flex items-center justify-between gap-3 p-3 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 text-xs">
+          <div className="flex items-center gap-2">
+            <Target className="w-4 h-4 text-indigo-400 animate-pulse shrink-0" />
+            <div>
+              <span className="font-bold text-[var(--text-primary)]">
+                Focused Wireframe Lineage:
+              </span>{' '}
+              <strong className="text-indigo-400 font-mono">
+                {focusedWireframeEntity.type.toUpperCase()}: {focusedWireframeEntity.title}
+              </strong>{' '}
+              <span className="text-[var(--text-secondary)]">
+                ({focusedNodeIdSet ? focusedNodeIdSet.size : 1} connected nodes highlighted)
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() =>
+                setWireframeModalState({
+                  open: true,
+                  type: focusedWireframeEntity.type as any,
+                  id: focusedWireframeEntity.id,
+                })
+              }
+              className="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold flex items-center gap-1 shadow-sm transition-colors"
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span>Blueprint & Transit</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setFocusedWireframeEntity(null)}
+              className="px-2.5 py-1 rounded-lg bg-[var(--panel)] border hover:bg-[var(--background)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] font-bold transition-colors"
+            >
+              Reset (Show Full Canvas)
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Main Interactive Flow Canvas */}
       <div
         ref={canvasRef}
@@ -742,7 +924,20 @@ export default function OperationsFlowCanvas({
               if (wire.targetType === 'container') color = 'url(#grad-container)';
               if (wire.targetType === 'port') color = 'url(#grad-port)';
 
-              return renderWirePath(start, end, color, false, wire.id, wire.shipmentId);
+              const isHighlighted =
+                Boolean(focusedNodeIdSet) &&
+                focusedNodeIdSet!.has(wire.sourceNodeId) &&
+                focusedNodeIdSet!.has(wire.targetNodeId);
+
+              return renderWirePath(
+                start,
+                end,
+                color,
+                false,
+                wire.id,
+                wire.shipmentId,
+                isHighlighted
+              );
             })}
 
             {/* Render In-Progress Wiring Line */}
@@ -776,6 +971,7 @@ export default function OperationsFlowCanvas({
             nodes.map((node) => {
               const isHovered = hoveredTargetNodeId === node.id;
               const isWiringSrc = wiringSource?.nodeId === node.id;
+              const isFocused = !focusedNodeIdSet || focusedNodeIdSet.has(node.id);
 
               return (
                 <div
@@ -800,10 +996,14 @@ export default function OperationsFlowCanvas({
                     handleDropOnNode(e, node);
                   }}
                   className={`absolute w-72 rounded-2xl border bg-[var(--panel)] shadow-lg transition-all z-20 ${
-                    isHovered
+                    !isFocused
+                      ? 'opacity-25 grayscale hover:grayscale-0 hover:opacity-100'
+                      : isHovered
                       ? 'border-[var(--accent-gold)] ring-4 ring-[var(--accent-gold)]/30 scale-105'
                       : isWiringSrc
                       ? 'border-[var(--accent-gold)] ring-2 ring-[var(--accent-gold)]'
+                      : focusedNodeIdSet?.has(node.id)
+                      ? 'border-indigo-500 ring-2 ring-indigo-500/40 shadow-xl'
                       : 'border-[var(--border)] hover:border-[var(--accent-gold)]/60'
                   }`}
                 >
@@ -853,14 +1053,40 @@ export default function OperationsFlowCanvas({
                       </span>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => removeNode(node.id)}
-                      className="p-1 rounded-lg text-[var(--text-secondary)] hover:text-[var(--error)] hover:bg-[var(--background)] transition-colors"
-                      title="Remove node from canvas"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      {/* Focus Wireframe Button on Node */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          let title = node.entityId;
+                          if (node.type === 'shipment') {
+                            const s = shipments.find((item) => item.id === node.entityId);
+                            title = `${s?.vehicleYear || ''} ${s?.vehicleMake || ''} (${s?.vehicleVIN?.slice(-6) || ''})`;
+                          } else if (node.type === 'dispatch') {
+                            const d = dispatches.find((item) => item.id === node.entityId);
+                            title = d?.referenceNumber || node.entityId;
+                          } else if (node.type === 'container') {
+                            const c = containers.find((item) => item.id === node.entityId);
+                            title = c?.containerNumber || node.entityId;
+                          }
+                          handleFocusEntityWireframe(node.type, node.entityId, title);
+                        }}
+                        className="p-1 rounded-lg text-[var(--text-secondary)] hover:text-indigo-400 hover:bg-[var(--background)] transition-colors"
+                        title="Focus and isolate wireframe lineage"
+                      >
+                        <Target className="w-3.5 h-3.5" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => removeNode(node.id)}
+                        className="p-1 rounded-lg text-[var(--text-secondary)] hover:text-[var(--error)] hover:bg-[var(--background)] transition-colors"
+                        title="Remove node from canvas"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
 
                   {/* Node Content Body */}
@@ -904,6 +1130,22 @@ export default function OperationsFlowCanvas({
                           </div>
 
                           <div className="pt-2 border-t border-[var(--border)] flex items-center justify-between text-[10px]">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setWireframeModalState({
+                                  open: true,
+                                  type: 'shipment',
+                                  id: s.id,
+                                });
+                              }}
+                              className="text-indigo-400 font-bold hover:underline flex items-center gap-1"
+                            >
+                              <Layers className="w-3 h-3" />
+                              <span>Wireframe</span>
+                            </button>
+
                             {onInspectShipment && (
                               <button
                                 type="button"
@@ -914,7 +1156,6 @@ export default function OperationsFlowCanvas({
                                 <span>Inspect</span>
                               </button>
                             )}
-                            <span className="text-[var(--text-secondary)] font-mono">Drag card or socket →</span>
                           </div>
                         </div>
                       );
@@ -948,9 +1189,27 @@ export default function OperationsFlowCanvas({
 
                           {/* Assigned Vehicles in Dispatch */}
                           <div className="pt-1">
-                            <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-wider block mb-1">
-                              Assigned Vehicles ({d.shipments?.length || 0})
-                            </span>
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-wider">
+                                Vehicles ({d.shipments?.length || 0})
+                              </span>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setWireframeModalState({
+                                    open: true,
+                                    type: 'dispatch',
+                                    id: d.id,
+                                  });
+                                }}
+                                className="text-[10px] text-blue-400 font-bold hover:underline flex items-center gap-0.5"
+                              >
+                                <Layers className="w-3 h-3" />
+                                <span>Wireframe</span>
+                              </button>
+                            </div>
+
                             <div className="space-y-1 max-h-24 overflow-y-auto pr-1">
                               {d.shipments && d.shipments.length > 0 ? (
                                 d.shipments.map((item) => (
@@ -1025,6 +1284,27 @@ export default function OperationsFlowCanvas({
 
                           {/* Stowed Vehicles */}
                           <div className="pt-1">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-wider">
+                                Stowed Cargo ({count})
+                              </span>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setWireframeModalState({
+                                    open: true,
+                                    type: 'container',
+                                    id: c.id,
+                                  });
+                                }}
+                                className="text-[10px] text-indigo-400 font-bold hover:underline flex items-center gap-0.5"
+                              >
+                                <Layers className="w-3 h-3" />
+                                <span>Wireframe</span>
+                              </button>
+                            </div>
+
                             <div className="space-y-1 max-h-24 overflow-y-auto pr-1">
                               {c.shipments && c.shipments.length > 0 ? (
                                 c.shipments.map((item) => (
@@ -1058,14 +1338,28 @@ export default function OperationsFlowCanvas({
 
                     {/* 4. Port Node Body */}
                     {node.type === 'port' && (
-                      <div className="space-y-1 text-center py-2">
+                      <div className="space-y-2 text-center py-2">
                         <MapPin className="w-6 h-6 text-emerald-500 mx-auto mb-1" />
                         <h4 className="text-xs font-bold text-[var(--text-primary)]">
                           {node.title || node.entityId}
                         </h4>
-                        <span className="text-[10px] text-[var(--text-secondary)] font-mono">
+                        <span className="text-[10px] text-[var(--text-secondary)] font-mono block">
                           Destination Terminal
                         </span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setWireframeModalState({
+                              open: true,
+                              type: 'transit',
+                              id: node.entityId,
+                            })
+                          }
+                          className="mt-1 text-[10px] font-bold text-emerald-500 hover:underline inline-flex items-center gap-1"
+                        >
+                          <Compass className="w-3 h-3" />
+                          <span>Transit Blueprint</span>
+                        </button>
                       </div>
                     )}
                   </div>
@@ -1075,6 +1369,223 @@ export default function OperationsFlowCanvas({
           )}
         </div>
       </div>
+
+      {/* Wireframe Specific Entity Quick Picker Modal */}
+      <Modal
+        open={showWireframePicker}
+        onClose={() => setShowWireframePicker(false)}
+        title="Inspect Specific Wireframe & Supply Chain Lineage"
+      >
+        <div className="space-y-4">
+          <p className="text-xs text-[var(--text-secondary)]">
+            Select any vehicle, ocean container, or carrier dispatch to inspect its exact end-to-end wireframe, stowing layout, and multi-modal transit checkpoints:
+          </p>
+
+          <div className="relative">
+            <Search className="w-4 h-4 text-[var(--text-secondary)] absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Search VIN, container #, dispatch reference, client..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-3 py-1.5 rounded-xl border border-[var(--border)] bg-[var(--background)] text-xs text-[var(--text-primary)]"
+            />
+          </div>
+
+          <div className="space-y-4 max-h-80 overflow-y-auto pr-1">
+            {/* 1. Shipments Section */}
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)] flex items-center gap-1 mb-2">
+                <Package className="w-3.5 h-3.5 text-[var(--accent-gold)]" />
+                Vehicles & Cargo Shipments ({shipments.length})
+              </span>
+              <div className="space-y-1.5">
+                {shipments
+                  .filter(
+                    (s) =>
+                      !searchQuery ||
+                      `${s.vehicleYear} ${s.vehicleMake} ${s.vehicleModel} ${s.vehicleVIN} ${s.lotNumber}`
+                        .toLowerCase()
+                        .includes(searchQuery.toLowerCase())
+                  )
+                  .slice(0, 8)
+                  .map((s) => (
+                    <div
+                      key={s.id}
+                      className="p-2.5 rounded-xl border border-[var(--border)] bg-[var(--background)] hover:border-[var(--accent-gold)] flex items-center justify-between text-xs"
+                    >
+                      <div>
+                        <p className="font-bold text-[var(--text-primary)]">
+                          {s.vehicleYear || ''} {s.vehicleMake || ''} {s.vehicleModel || ''}
+                        </p>
+                        <p className="text-[10px] font-mono text-[var(--text-secondary)]">
+                          VIN: {s.vehicleVIN || 'N/A'} {s.lotNumber ? `• Lot #${s.lotNumber}` : ''}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowWireframePicker(false);
+                            handleFocusEntityWireframe(
+                              'shipment',
+                              s.id,
+                              `${s.vehicleYear || ''} ${s.vehicleMake || ''} (${s.vehicleVIN?.slice(-6) || ''})`
+                            );
+                          }}
+                          className="px-2.5 py-1 rounded-lg text-xs font-bold bg-[var(--panel)] border text-[var(--text-primary)] hover:border-indigo-500 hover:text-indigo-400 flex items-center gap-1"
+                        >
+                          <Target className="w-3 h-3 text-indigo-400" />
+                          <span>Focus Canvas</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowWireframePicker(false);
+                            setWireframeModalState({
+                              open: true,
+                              type: 'shipment',
+                              id: s.id,
+                            });
+                          }}
+                          className="px-2.5 py-1 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white flex items-center gap-1"
+                        >
+                          <Layers className="w-3 h-3" />
+                          <span>Blueprint</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+
+            {/* 2. Containers Section */}
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)] flex items-center gap-1 mb-2">
+                <Ship className="w-3.5 h-3.5 text-indigo-500" />
+                Ocean Containers ({containers.length})
+              </span>
+              <div className="space-y-1.5">
+                {containers
+                  .filter(
+                    (c) =>
+                      !searchQuery ||
+                      `${c.containerNumber} ${c.destinationPort} ${c.vesselName}`
+                        .toLowerCase()
+                        .includes(searchQuery.toLowerCase())
+                  )
+                  .map((c) => (
+                    <div
+                      key={c.id}
+                      className="p-2.5 rounded-xl border border-[var(--border)] bg-[var(--background)] hover:border-indigo-500 flex items-center justify-between text-xs"
+                    >
+                      <div>
+                        <span className="font-mono font-bold text-[var(--text-primary)]">
+                          {c.containerNumber}
+                        </span>
+                        <p className="text-[10px] text-indigo-400 mt-0.5">
+                          Port: {c.destinationPort || 'TBD'} • Stowed: {c.shipments?.length || 0} / {c.maxCapacity}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowWireframePicker(false);
+                            handleFocusEntityWireframe('container', c.id, c.containerNumber);
+                          }}
+                          className="px-2.5 py-1 rounded-lg text-xs font-bold bg-[var(--panel)] border text-[var(--text-primary)] hover:border-indigo-500 hover:text-indigo-400 flex items-center gap-1"
+                        >
+                          <Target className="w-3 h-3 text-indigo-400" />
+                          <span>Focus Canvas</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowWireframePicker(false);
+                            setWireframeModalState({
+                              open: true,
+                              type: 'container',
+                              id: c.id,
+                            });
+                          }}
+                          className="px-2.5 py-1 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white flex items-center gap-1"
+                        >
+                          <Layers className="w-3 h-3" />
+                          <span>Blueprint</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+
+            {/* 3. Dispatches Section */}
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)] flex items-center gap-1 mb-2">
+                <Truck className="w-3.5 h-3.5 text-blue-500" />
+                Carrier Dispatches ({dispatches.length})
+              </span>
+              <div className="space-y-1.5">
+                {dispatches
+                  .filter(
+                    (d) =>
+                      !searchQuery ||
+                      `${d.referenceNumber} ${d.company?.name} ${d.origin} ${d.destination}`
+                        .toLowerCase()
+                        .includes(searchQuery.toLowerCase())
+                  )
+                  .map((d) => (
+                    <div
+                      key={d.id}
+                      className="p-2.5 rounded-xl border border-[var(--border)] bg-[var(--background)] hover:border-blue-500 flex items-center justify-between text-xs"
+                    >
+                      <div>
+                        <span className="font-mono font-bold text-[var(--text-primary)]">
+                          {d.referenceNumber}
+                        </span>
+                        <p className="text-[10px] text-[var(--text-secondary)] mt-0.5">
+                          Carrier: {d.company?.name || 'Carrier'} • {d.origin} → {d.destination}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowWireframePicker(false);
+                            handleFocusEntityWireframe('dispatch', d.id, d.referenceNumber);
+                          }}
+                          className="px-2.5 py-1 rounded-lg text-xs font-bold bg-[var(--panel)] border text-[var(--text-primary)] hover:border-blue-500 hover:text-blue-400 flex items-center gap-1"
+                        >
+                          <Target className="w-3 h-3 text-blue-400" />
+                          <span>Focus Canvas</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowWireframePicker(false);
+                            setWireframeModalState({
+                              open: true,
+                              type: 'dispatch',
+                              id: d.id,
+                            });
+                          }}
+                          className="px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white flex items-center gap-1"
+                        >
+                          <Layers className="w-3 h-3" />
+                          <span>Blueprint</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </Modal>
 
       {/* Add Items Modal */}
       <Modal
@@ -1303,6 +1814,25 @@ export default function OperationsFlowCanvas({
           </div>
         </div>
       </Modal>
+
+      {/* Specific Entity Detailed Wireframe Blueprint & Transit Modal */}
+      <EntityWireframeModal
+        open={wireframeModalState.open}
+        onClose={() => setWireframeModalState((prev) => ({ ...prev, open: false }))}
+        entityType={wireframeModalState.type}
+        entityId={wireframeModalState.id}
+        shipments={shipments}
+        dispatches={dispatches}
+        containers={containers}
+        onSelectEntity={(type, id) => {
+          setWireframeModalState({
+            open: true,
+            type,
+            id,
+          });
+        }}
+        onInspectDamage={onInspectShipment}
+      />
     </div>
   );
 }
