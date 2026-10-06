@@ -21,3 +21,7 @@
 ## 2024-05-24 - Bulk updates instead of looped updates in transactions
 **Learning:** Found an N+1 query issue in \`src/app/api/transits/[id]/shipments/bulk/route.ts\` where the code iterated over shipments and repeatedly used \`await tx.shipment.update()\` within a transaction. This creates sequential updates and can be exponentially slow for bulk updates.
 **Action:** When updating multiple records inside a transaction (or outside) where the changes are the same, replace the \`for\` loop of \`update\` calls with a single \`updateMany\` query using an \`in\` filter (e.g., \`where: { id: { in: ids } }\`) to update everything in a single roundtrip.
+
+## 2026-10-06 - Avoiding N+1 Queries with Conditionals in Bulk Updates
+**Learning:** Found an N+1 query issue in bulk operations (like updating shipment charges) where conditional logic inside a loop prevents using a single `updateMany`. Instead of falling back to sequential `update` calls inside the transaction, grouping IDs into arrays based on the condition allows executing exactly two `updateMany` queries.
+**Action:** When bulk updating records that require slightly different data based on a condition, iterate once to group their IDs into arrays (e.g., `idsToRelease` and `idsToKeep`), then execute one `updateMany` for each group. Combine this with `createMany` for any related inserts to fully eliminate O(N) database roundtrips within the transaction.
