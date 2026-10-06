@@ -339,6 +339,87 @@ export default function ContainerDetailPage() {
 		void fetchCompanies();
 	}, [isAdmin]);
 
+	const fetchAvailableShipments = async (searchTerm = '') => {
+		setLoadingAvailableShipments(true);
+		try {
+			const query = new URLSearchParams({
+				status: 'ON_HAND',
+				unassigned: 'true',
+				limit: '100',
+				page: '1',
+			});
+			if (searchTerm.trim()) {
+				query.set('search', searchTerm.trim());
+			}
+			const response = await fetch(`/api/shipments?${query.toString()}`);
+			const data = await response.json();
+			if (response.ok) {
+				setAvailableShipments(data.shipments || []);
+			} else {
+				toast.error('Failed to load available shipments');
+			}
+		} catch {
+			toast.error('Failed to load available shipments');
+		} finally {
+			setLoadingAvailableShipments(false);
+		}
+	};
+
+	useEffect(() => {
+		if (!assignShipmentModalOpen) return;
+
+		const timer = setTimeout(() => {
+			void fetchAvailableShipments(shipmentSearchQuery);
+		}, 250);
+
+		return () => clearTimeout(timer);
+	}, [assignShipmentModalOpen, shipmentSearchQuery]);
+
+	const handleAssignShipments = async () => {
+		if (selectedShipmentIds.length === 0) return;
+		setAssigningShipments(true);
+		try {
+			const response = await fetch(`/api/containers/${params.id}/shipments`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ shipmentIds: selectedShipmentIds }),
+			});
+			const data = await response.json();
+			if (response.ok) {
+				toast.success(`${selectedShipmentIds.length} shipment(s) assigned successfully`);
+				setAssignShipmentModalOpen(false);
+				setSelectedShipmentIds([]);
+				setShipmentSearchQuery('');
+				fetchContainer();
+			} else {
+				toast.error(data.error || 'Failed to assign shipments');
+			}
+		} catch {
+			toast.error('Failed to assign shipments');
+		} finally {
+			setAssigningShipments(false);
+		}
+	};
+
+	const openAssignShipmentModal = () => {
+		setSelectedShipmentIds([]);
+		setShipmentSearchQuery('');
+		setAssignShipmentModalOpen(true);
+	};
+
+	const filteredAvailableShipments = availableShipments.filter((s) => {
+		if (!shipmentSearchQuery) return true;
+		const q = shipmentSearchQuery.toLowerCase().trim();
+		return (
+			(s.vehicleMake && s.vehicleMake.toLowerCase().includes(q)) ||
+			(s.vehicleModel && s.vehicleModel.toLowerCase().includes(q)) ||
+			(s.vehicleVIN && s.vehicleVIN.toLowerCase().includes(q)) ||
+			(s.lotNumber && s.lotNumber.toLowerCase().includes(q)) ||
+			(s.user?.name && s.user.name.toLowerCase().includes(q)) ||
+			(s.user?.email && s.user.email.toLowerCase().includes(q))
+		);
+	});
+
 	const fetchContainer = async () => {
 		try {
 			setLoading(true);
@@ -800,87 +881,6 @@ export default function ContainerDetailPage() {
 	const displayedExpenses = expenseView === 'CONTAINER' ? containerOnlyExpenses : shipmentOnlyExpenses;
 	const displayedExpenseTotal = displayedExpenses.reduce((sum, expense) => sum + expense.amount, 0);
 	const isContainerWorkflowLocked = container.status === 'CLOSED' && !canOverrideClosedStages;
-
-	const fetchAvailableShipments = async (searchTerm = '') => {
-		setLoadingAvailableShipments(true);
-		try {
-			const query = new URLSearchParams({
-				status: 'ON_HAND',
-				unassigned: 'true',
-				limit: '100',
-				page: '1',
-			});
-			if (searchTerm.trim()) {
-				query.set('search', searchTerm.trim());
-			}
-			const response = await fetch(`/api/shipments?${query.toString()}`);
-			const data = await response.json();
-			if (response.ok) {
-				setAvailableShipments(data.shipments || []);
-			} else {
-				toast.error('Failed to load available shipments');
-			}
-		} catch {
-			toast.error('Failed to load available shipments');
-		} finally {
-			setLoadingAvailableShipments(false);
-		}
-	};
-
-	useEffect(() => {
-		if (!assignShipmentModalOpen) return;
-
-		const timer = setTimeout(() => {
-			void fetchAvailableShipments(shipmentSearchQuery);
-		}, 250);
-
-		return () => clearTimeout(timer);
-	}, [assignShipmentModalOpen, shipmentSearchQuery]);
-
-	const handleAssignShipments = async () => {
-		if (selectedShipmentIds.length === 0) return;
-		setAssigningShipments(true);
-		try {
-			const response = await fetch(`/api/containers/${params.id}/shipments`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ shipmentIds: selectedShipmentIds }),
-			});
-			const data = await response.json();
-			if (response.ok) {
-				toast.success(`${selectedShipmentIds.length} shipment(s) assigned successfully`);
-				setAssignShipmentModalOpen(false);
-				setSelectedShipmentIds([]);
-				setShipmentSearchQuery('');
-				fetchContainer();
-			} else {
-				toast.error(data.error || 'Failed to assign shipments');
-			}
-		} catch {
-			toast.error('Failed to assign shipments');
-		} finally {
-			setAssigningShipments(false);
-		}
-	};
-
-	const openAssignShipmentModal = () => {
-		setSelectedShipmentIds([]);
-		setShipmentSearchQuery('');
-		setAssignShipmentModalOpen(true);
-	};
-
-	const filteredAvailableShipments = availableShipments.filter((s) => {
-		if (!shipmentSearchQuery) return true;
-		const q = shipmentSearchQuery.toLowerCase().trim();
-		return (
-			(s.vehicleMake && s.vehicleMake.toLowerCase().includes(q)) ||
-			(s.vehicleModel && s.vehicleModel.toLowerCase().includes(q)) ||
-			(s.vehicleVIN && s.vehicleVIN.toLowerCase().includes(q)) ||
-			(s.lotNumber && s.lotNumber.toLowerCase().includes(q)) ||
-			(s.user?.name && s.user.name.toLowerCase().includes(q)) ||
-			(s.user?.email && s.user.email.toLowerCase().includes(q))
-		);
-	});
 
 	return (
 		<ProtectedRoute>

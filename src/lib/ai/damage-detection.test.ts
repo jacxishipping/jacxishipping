@@ -82,4 +82,30 @@ describe('AI Damage Detection Service', () => {
     assert.equal(inspection.airbagStatus, 'INTACT');
     assert.equal(inspection.insuranceDisclaimerAgreed, true);
   });
+
+  it('converts pristine GRADE_A result with zero damages', () => {
+    const cleanAiResult: AiDamageDetectionResult = {
+      shipmentId: 'shipment-clean-999',
+      overallGrade: 'GRADE_A',
+      gradeRationale: 'Vehicle is in excellent cosmetic condition with no visible defects.',
+      totalEstimatedCost: 0,
+      damagesCount: 0,
+      damages: [],
+      custodySummary: {
+        windshieldCondition: 'INTACT',
+        airbagStatus: 'INTACT',
+        tireCondition: 'ALL_GOOD',
+        drivableStatus: 'RUNS_AND_DRIVES',
+      },
+      generalNotes: 'No damage observed across photos.',
+      analyzedPhotosCount: 4,
+      analyzedPhotoUrls: [],
+      provider: 'Google Gemini Vision (gemini-2.0-flash)',
+      analyzedAt: new Date().toISOString(),
+    };
+
+    const inspection = convertAiResultToInspectionData(cleanAiResult);
+    assert.equal(inspection.overallGrade, 'GRADE_A');
+    assert.equal(inspection.markers.length, 0);
+  });
 });
