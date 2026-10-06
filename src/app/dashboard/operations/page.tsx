@@ -44,6 +44,8 @@ import {
   Maximize2,
   Car,
   Camera,
+  Network,
+  Workflow,
 } from 'lucide-react';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
@@ -51,6 +53,7 @@ import { PageHeader, StatsCard, Button, toast, CopyButton, Modal, FormField, Sel
 import { DISPATCH_STATUS_LABELS } from '@/lib/dispatch-workflow';
 import VehicleDamageInspectionModal from '@/components/inspections/VehicleDamageInspectionModal';
 import { BarcodeScannerModal } from '@/components/ui/BarcodeScannerModal';
+import OperationsFlowCanvas from '@/components/operations/OperationsFlowCanvas';
 
 interface ShipmentItem {
   id: string;
@@ -133,7 +136,7 @@ interface CompanyItem {
   type?: string | null;
 }
 
-type BoardMode = 'dispatch' | 'container' | 'pipeline' | 'analytics';
+type BoardMode = 'flow' | 'dispatch' | 'container' | 'pipeline' | 'analytics';
 type FilterTag = 'all' | 'title_ok' | 'title_pending' | 'has_keys' | 'aging_alert';
 
 const PIPELINE_COLUMNS = [
@@ -148,7 +151,7 @@ export default function OperationsBoardPage() {
   const router = useRouter();
   const { data: session } = useSession();
 
-  const [mode, setMode] = useState<BoardMode>('dispatch');
+  const [mode, setMode] = useState<BoardMode>('flow');
   const [shipments, setShipments] = useState<ShipmentItem[]>([]);
   const [dispatches, setDispatches] = useState<DispatchItem[]>([]);
   const [containers, setContainers] = useState<ContainerItem[]>([]);
@@ -702,6 +705,18 @@ export default function OperationsBoardPage() {
             <div className="flex items-center gap-1.5 p-1 rounded-xl bg-[var(--background)] border border-[var(--border)]">
               <button
                 type="button"
+                onClick={() => setMode('flow')}
+                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  mode === 'flow'
+                    ? 'bg-[var(--accent-gold)] text-white shadow-md'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                }`}
+              >
+                <Workflow className="w-4 h-4" />
+                <span>Flow Studio (Wire & Drag)</span>
+              </button>
+              <button
+                type="button"
                 onClick={() => setMode('dispatch')}
                 className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
                   mode === 'dispatch'
@@ -865,6 +880,52 @@ export default function OperationsBoardPage() {
         {/* WORKSPACE CONTENT */}
         {loading ? (
           <CompactSkeleton />
+        ) : mode === 'flow' ? (
+          /* ============================================================
+             MODE 0: INTERACTIVE VISUAL FLOW STUDIO (WIRE & DRAG CANVAS)
+             ============================================================ */
+          <OperationsFlowCanvas
+            shipments={shipments}
+            dispatches={dispatches}
+            containers={containers}
+            onAssignToDispatch={async (dispatchId, shipmentIds) => {
+              const res = await fetch('/api/operations', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  action: 'assign_to_dispatch',
+                  targetId: dispatchId,
+                  shipmentIds,
+                }),
+              });
+              const data = await res.json();
+              if (!res.ok) throw new Error(data.error || 'Failed to assign');
+              fetchBoardData();
+            }}
+            onUnassignFromDispatch={handleUnassignFromDispatch}
+            onAssignToContainer={async (containerId, shipmentIds) => {
+              const res = await fetch('/api/operations', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  action: 'assign_to_container',
+                  targetId: containerId,
+                  shipmentIds,
+                }),
+              });
+              const data = await res.json();
+              if (!res.ok) throw new Error(data.error || 'Failed to stow in container');
+              fetchBoardData();
+            }}
+            onUnassignFromContainer={handleUnassignFromContainer}
+            onInspectShipment={(s) => {
+              const fullShipment = shipments.find((item) => item.id === s.id);
+              if (fullShipment) setInspectingShipment(fullShipment);
+            }}
+            onRefresh={fetchBoardData}
+            onOpenCreateDispatch={() => setShowCreateDispatchModal(true)}
+            onOpenCreateContainer={() => setShowCreateContainerModal(true)}
+          />
         ) : mode === 'dispatch' ? (
           /* ============================================================
              MODE 1: INLAND DISPATCH ALLOCATION (READY POOL -> DISPATCH LANES)
