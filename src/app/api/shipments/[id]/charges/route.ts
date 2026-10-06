@@ -381,45 +381,72 @@ export async function PATCH(
     }
 
     const actorId = session.user.id;
+    // ⚡ Bolt: Replaced sequential O(N) update and create loops inside transaction with bulk O(1) operations (updateMany and createMany) to prevent N+1 query performance bottleneck
     await prisma.$transaction(async (tx) => {
+      const chargesToReleaseInvoice: string[] = [];
+      const chargesToKeepInvoice: string[] = [];
+      const auditLogs = [];
+
       for (const charge of charges) {
         const linkedInvoice = charge.invoiceId ? linkedInvoiceMap.get(charge.invoiceId) : undefined;
 
-        await tx.shipmentCharge.update({
-          where: { id: charge.id },
+        if (linkedInvoice) {
+          chargesToReleaseInvoice.push(charge.id);
+        } else {
+          chargesToKeepInvoice.push(charge.id);
+        }
+
+        auditLogs.push({
+          chargeId: charge.id,
+          action: body.status === 'APPROVED' ? 'BULK_APPROVAL' : 'BULK_DISPUTE',
+          description:
+            body.status === 'APPROVED'
+              ? `Shipment charge approved in bulk: ${charge.description}`
+              : `Shipment charge disputed in bulk: ${charge.description}`,
+          performedBy: actorId,
+          oldValue: charge.status,
+          newValue: body.status,
+          metadata: {
+            mode: 'bulk',
+            chargeIds: uniqueChargeIds,
+            ...(trimmedNote ? { note: trimmedNote } : {}),
+            ...(linkedInvoice
+              ? { releasedFromInvoice: linkedInvoice.invoiceNumber, releasedFromInvoiceStatus: linkedInvoice.status }
+              : {}),
+          },
+        });
+      }
+
+      if (chargesToKeepInvoice.length > 0) {
+        await tx.shipmentCharge.updateMany({
+          where: { id: { in: chargesToKeepInvoice } },
           data: {
             status: body.status,
             approvedAt: body.status === 'APPROVED' ? new Date() : null,
             approvedBy: body.status === 'APPROVED' ? actorId : null,
             notes: trimmedNote,
-            // Release the charge from a not-yet-issued invoice; the next invoice
-            // generation rebuilds the draft from approved charges.
-            ...(linkedInvoice
-              ? { invoiceId: null, invoicedAt: null }
-              : {}),
           },
         });
+      }
 
-        await tx.shipmentChargeAuditLog.create({
+      if (chargesToReleaseInvoice.length > 0) {
+        await tx.shipmentCharge.updateMany({
+          where: { id: { in: chargesToReleaseInvoice } },
           data: {
-            chargeId: charge.id,
-            action: body.status === 'APPROVED' ? 'BULK_APPROVAL' : 'BULK_DISPUTE',
-            description:
-              body.status === 'APPROVED'
-                ? `Shipment charge approved in bulk: ${charge.description}`
-                : `Shipment charge disputed in bulk: ${charge.description}`,
-            performedBy: actorId,
-            oldValue: charge.status,
-            newValue: body.status,
-            metadata: {
-              mode: 'bulk',
-              chargeIds: uniqueChargeIds,
-              ...(trimmedNote ? { note: trimmedNote } : {}),
-              ...(linkedInvoice
-                ? { releasedFromInvoice: linkedInvoice.invoiceNumber, releasedFromInvoiceStatus: linkedInvoice.status }
-                : {}),
-            },
+            status: body.status,
+            approvedAt: body.status === 'APPROVED' ? new Date() : null,
+            approvedBy: body.status === 'APPROVED' ? actorId : null,
+            notes: trimmedNote,
+            // Release the charge from a not-yet-issued invoice
+            invoiceId: null,
+            invoicedAt: null,
           },
+        });
+      }
+
+      if (auditLogs.length > 0) {
+        await tx.shipmentChargeAuditLog.createMany({
+          data: auditLogs,
         });
       }
     });
