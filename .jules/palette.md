@@ -1,0 +1,3 @@
+## 2024-10-07 - Add tooltips to icon-only buttons
+**Learning:** Reusable components like Modal, Drawer, and Alert often have icon-only close buttons. Wrapping these buttons in `Tooltip` components and explicitly setting `aria-label` ensures screen reader users understand the button's purpose and sighted users receive a hover hint. Theme toggles also benefit from these hints.
+**Action:** Always wrap `IconButton` components containing only icons in a `Tooltip` and provide a descriptive `aria-label`. If the component already has a tooltip, ensure the `aria-label` matches or provides the necessary context.
