@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { User, UserPlus, Eye, EyeOff, Copy, Check, Pencil, Trash2, Shield, Users as UsersIcon } from 'lucide-react';
-import { Box, Typography, IconButton } from '@mui/material';
+import { Box, Typography, IconButton, Tooltip } from '@mui/material';
 import { PageHeader, StatsCard, toast, SkeletonCard, StatusBadge, Button, CompactSkeleton } from '@/components/design-system';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import SmartSearch, { SearchFilters } from '@/components/dashboard/SmartSearch';
@@ -260,29 +260,33 @@ export default function UsersPage() {
 					<Typography sx={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>
 						{showEmailsFor.has(row.id) ? row.email : maskEmail(row.email)}
 					</Typography>
-					<IconButton
-						size="small"
-						onClick={() => toggleEmailVisibility(row.id)}
-						title="Toggle email visibility"
-					>
-						{showEmailsFor.has(row.id) ? (
-							<EyeOff style={{ width: 15, height: 15 }} />
-						) : (
-							<Eye style={{ width: 15, height: 15 }} />
-						)}
-					</IconButton>
-					{showEmailsFor.has(row.id) && (
+					<Tooltip title={showEmailsFor.has(row.id) ? 'Hide email' : 'Show email'}>
 						<IconButton
 							size="small"
-							onClick={() => copyToClipboard(row.email, row.id)}
-							title="Copy email"
+							onClick={() => toggleEmailVisibility(row.id)}
+							aria-label={showEmailsFor.has(row.id) ? 'Hide email' : 'Show email'}
 						>
-							{copiedEmail === row.id ? (
-								<Check style={{ color: 'green', width: 15, height: 15 }} />
+							{showEmailsFor.has(row.id) ? (
+								<EyeOff style={{ width: 15, height: 15 }} />
 							) : (
-								<Copy style={{ color: 'var(--accent-gold)', width: 15, height: 15 }} />
+								<Eye style={{ width: 15, height: 15 }} />
 							)}
 						</IconButton>
+					</Tooltip>
+					{showEmailsFor.has(row.id) && (
+						<Tooltip title={copiedEmail === row.id ? 'Copied!' : 'Copy email'}>
+							<IconButton
+								size="small"
+								onClick={() => copyToClipboard(row.email, row.id)}
+								aria-label={copiedEmail === row.id ? 'Copied!' : 'Copy email'}
+							>
+								{copiedEmail === row.id ? (
+									<Check style={{ color: 'green', width: 15, height: 15 }} />
+								) : (
+									<Copy style={{ color: 'var(--accent-gold)', width: 15, height: 15 }} />
+								)}
+							</IconButton>
+						</Tooltip>
 					)}
 				</Box>
 			),
