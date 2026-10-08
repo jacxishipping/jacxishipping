@@ -1,22 +1,23 @@
 "use client";
 
-import { 
-  Dialog, 
-  DialogTitle, 
-  DialogContent, 
-  DialogActions, 
-  IconButton, 
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  IconButton,
   Box,
   Typography,
   SxProps,
   Theme,
-} from '@mui/material';
-import { Close } from '@mui/icons-material';
-import { ReactNode } from 'react';
+} from "@mui/material";
+import { Close } from "@mui/icons-material";
+import { ReactNode } from "react";
+import Tooltip from "./Tooltip";
 
 /**
  * Modal Component
- * 
+ *
  * Accessible modal dialog with animations and consistent styling.
  */
 
@@ -27,7 +28,7 @@ export interface ModalProps {
   description?: ReactNode;
   children: ReactNode;
   actions?: ReactNode;
-  size?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
+  size?: "sm" | "md" | "lg" | "xl" | "full";
   showCloseButton?: boolean;
   disableBackdropClick?: boolean;
   className?: string;
@@ -37,11 +38,11 @@ export interface ModalProps {
 
 // Size configurations
 const sizeConfig = {
-  sm: '400px',
-  md: '600px',
-  lg: '800px',
-  xl: '1000px',
-  full: '95vw',
+  sm: "400px",
+  md: "600px",
+  lg: "800px",
+  xl: "1000px",
+  full: "95vw",
 };
 
 export default function Modal({
@@ -51,15 +52,18 @@ export default function Modal({
   description,
   children,
   actions,
-  size = 'md',
+  size = "md",
   showCloseButton = true,
   disableBackdropClick = false,
   className,
   contentSx,
   actionsSx,
 }: ModalProps) {
-  const handleClose = (_event: object, reason: 'backdropClick' | 'escapeKeyDown') => {
-    if (disableBackdropClick && reason === 'backdropClick') {
+  const handleClose = (
+    _event: object,
+    reason: "backdropClick" | "escapeKeyDown",
+  ) => {
+    if (disableBackdropClick && reason === "backdropClick") {
       return;
     }
 
@@ -76,22 +80,23 @@ export default function Modal({
       className={className}
       PaperProps={{
         sx: {
-          width: '100%',
+          width: "100%",
           maxWidth: sizeConfig[size],
           borderRadius: { xs: 2.5, sm: 3 },
-          bgcolor: 'var(--panel)',
-          backgroundImage: 'none',
-          boxShadow: '0 24px 60px rgba(var(--text-primary-rgb), 0.15), 0 8px 16px rgba(var(--text-primary-rgb), 0.1)',
+          bgcolor: "var(--panel)",
+          backgroundImage: "none",
+          boxShadow:
+            "0 24px 60px rgba(var(--text-primary-rgb), 0.15), 0 8px 16px rgba(var(--text-primary-rgb), 0.1)",
           m: { xs: 1, sm: 2.5 },
-          maxHeight: { xs: 'calc(100% - 16px)', sm: 'calc(100% - 40px)' },
-          overflow: 'hidden',
+          maxHeight: { xs: "calc(100% - 16px)", sm: "calc(100% - 40px)" },
+          overflow: "hidden",
         },
       }}
       slotProps={{
         backdrop: {
           sx: {
-            bgcolor: 'rgba(0, 0, 0, 0.5)',
-            backdropFilter: 'blur(4px)',
+            bgcolor: "rgba(0, 0, 0, 0.5)",
+            backdropFilter: "blur(4px)",
           },
         },
       }}
@@ -100,23 +105,23 @@ export default function Modal({
       {(title || showCloseButton) && (
         <DialogTitle
           sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
             gap: 2,
             px: { xs: 2, sm: 3 },
             py: { xs: 1.75, sm: 2.5 },
-            borderBottom: '1px solid var(--border)',
-            bgcolor: 'var(--panel)',
+            borderBottom: "1px solid var(--border)",
+            bgcolor: "var(--panel)",
           }}
         >
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            {typeof title === 'string' ? (
+            {typeof title === "string" ? (
               <Typography
                 sx={{
-                  fontSize: { xs: '1rem', sm: '1.125rem' },
+                  fontSize: { xs: "1rem", sm: "1.125rem" },
                   fontWeight: 600,
-                  color: 'var(--text-primary)',
+                  color: "var(--text-primary)",
                 }}
               >
                 {title}
@@ -128,9 +133,9 @@ export default function Modal({
               <Typography
                 sx={{
                   mt: 0.5,
-                  fontSize: { xs: '0.8125rem', sm: '0.875rem' },
+                  fontSize: { xs: "0.8125rem", sm: "0.875rem" },
                   lineHeight: 1.5,
-                  color: 'var(--text-secondary)',
+                  color: "var(--text-secondary)",
                 }}
               >
                 {description}
@@ -138,19 +143,22 @@ export default function Modal({
             ) : null}
           </Box>
           {showCloseButton && (
-            <IconButton
-              onClick={onClose}
-              sx={{
-                color: 'var(--text-secondary)',
-                border: '1px solid rgba(var(--border-rgb), 0.6)',
-                p: 0.75,
-                '&:hover': {
-                  bgcolor: 'rgba(var(--border-rgb), 0.2)',
-                },
-              }}
-            >
-              <Close sx={{ fontSize: 18 }} />
-            </IconButton>
+            <Tooltip title="Close modal">
+              <IconButton
+                aria-label="Close modal"
+                onClick={onClose}
+                sx={{
+                  color: "var(--text-secondary)",
+                  border: "1px solid rgba(var(--border-rgb), 0.6)",
+                  p: 0.75,
+                  "&:hover": {
+                    bgcolor: "rgba(var(--border-rgb), 0.2)",
+                  },
+                }}
+              >
+                <Close sx={{ fontSize: 18 }} />
+              </IconButton>
+            </Tooltip>
           )}
         </DialogTitle>
       )}
@@ -160,9 +168,9 @@ export default function Modal({
         sx={{
           px: { xs: 2, sm: 3 },
           py: { xs: 2, sm: 3 },
-          color: 'var(--text-primary)',
-          overflowY: 'auto',
-          bgcolor: 'var(--panel)',
+          color: "var(--text-primary)",
+          overflowY: "auto",
+          bgcolor: "var(--panel)",
           ...contentSx,
         }}
       >
@@ -176,12 +184,12 @@ export default function Modal({
             px: { xs: 2, sm: 3 },
             py: { xs: 1.75, sm: 2.5 },
             gap: 1.5,
-            borderTop: '1px solid var(--border)',
-            bgcolor: 'var(--panel)',
-            flexDirection: { xs: 'column-reverse', sm: 'row' },
-            '& > *': {
-              width: { xs: '100% !important', sm: 'auto !important' },
-              m: '0 !important',
+            borderTop: "1px solid var(--border)",
+            bgcolor: "var(--panel)",
+            flexDirection: { xs: "column-reverse", sm: "row" },
+            "& > *": {
+              width: { xs: "100% !important", sm: "auto !important" },
+              m: "0 !important",
             },
             ...actionsSx,
           }}
@@ -202,7 +210,7 @@ export interface ConfirmDialogProps {
   message: ReactNode;
   confirmText?: string;
   cancelText?: string;
-  severity?: 'info' | 'warning' | 'error';
+  severity?: "info" | "warning" | "error";
   loading?: boolean;
 }
 
@@ -212,15 +220,15 @@ export function ConfirmDialog({
   onConfirm,
   title,
   message,
-  confirmText = 'Confirm',
-  cancelText = 'Cancel',
-  severity = 'info',
+  confirmText = "Confirm",
+  cancelText = "Cancel",
+  severity = "info",
   loading = false,
 }: ConfirmDialogProps) {
   const severityColors = {
-    info: 'var(--info)',
-    warning: 'var(--warning)',
-    error: 'var(--error)',
+    info: "var(--info)",
+    warning: "var(--warning)",
+    error: "var(--error)",
   };
 
   return (
@@ -235,14 +243,14 @@ export function ConfirmDialog({
             onClick={onClose}
             disabled={loading}
             style={{
-              padding: '8px 16px',
-              borderRadius: '8px',
-              border: '1px solid var(--border)',
-              background: 'transparent',
-              color: 'var(--text-primary)',
-              fontSize: '0.875rem',
+              padding: "8px 16px",
+              borderRadius: "8px",
+              border: "1px solid var(--border)",
+              background: "transparent",
+              color: "var(--text-primary)",
+              fontSize: "0.875rem",
               fontWeight: 600,
-              cursor: loading ? 'not-allowed' : 'pointer',
+              cursor: loading ? "not-allowed" : "pointer",
               opacity: loading ? 0.5 : 1,
             }}
           >
@@ -252,23 +260,23 @@ export function ConfirmDialog({
             onClick={onConfirm}
             disabled={loading}
             style={{
-              padding: '8px 16px',
-              borderRadius: '8px',
-              border: 'none',
+              padding: "8px 16px",
+              borderRadius: "8px",
+              border: "none",
               background: severityColors[severity],
-              color: '#FFFFFF',
-              fontSize: '0.875rem',
+              color: "#FFFFFF",
+              fontSize: "0.875rem",
               fontWeight: 600,
-              cursor: loading ? 'not-allowed' : 'pointer',
+              cursor: loading ? "not-allowed" : "pointer",
               opacity: loading ? 0.7 : 1,
             }}
           >
-            {loading ? 'Processing...' : confirmText}
+            {loading ? "Processing..." : confirmText}
           </button>
         </>
       }
     >
-      <Typography sx={{ color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+      <Typography sx={{ color: "var(--text-secondary)", lineHeight: 1.6 }}>
         {message}
       </Typography>
     </Modal>
