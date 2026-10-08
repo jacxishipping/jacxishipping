@@ -21,3 +21,7 @@
 ## 2024-05-24 - Bulk updates instead of looped updates in transactions
 **Learning:** Found an N+1 query issue in \`src/app/api/transits/[id]/shipments/bulk/route.ts\` where the code iterated over shipments and repeatedly used \`await tx.shipment.update()\` within a transaction. This creates sequential updates and can be exponentially slow for bulk updates.
 **Action:** When updating multiple records inside a transaction (or outside) where the changes are the same, replace the \`for\` loop of \`update\` calls with a single \`updateMany\` query using an \`in\` filter (e.g., \`where: { id: { in: ids } }\`) to update everything in a single roundtrip.
+
+## 2024-05-24 - Parallelizing Loop Dependencies using Promise.all
+**Learning:** Found sequential await statements inside loops in `src/app/api/operations/route.ts` that cause N+1 query bottlenecks. For example, updating containers dynamically while assigning shipments in a `for` loop caused unnecessary blocking where `await prisma.container.update` was executed sequentially.
+**Action:** Always extract loop logic that involves database calls into pre-computation phases. First, determine all required updates locally. Then, use `Promise.all` to batch dispatch `prisma.*.update` and `prisma.*.updateMany` calls in parallel, drastically reducing request latency.
