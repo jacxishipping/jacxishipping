@@ -1,3 +1,9 @@
-## 2024-10-07 - Add tooltips to icon-only buttons
-**Learning:** Reusable components like Modal, Drawer, and Alert often have icon-only close buttons. Wrapping these buttons in `Tooltip` components and explicitly setting `aria-label` ensures screen reader users understand the button's purpose and sighted users receive a hover hint. Theme toggles also benefit from these hints.
-**Action:** Always wrap `IconButton` components containing only icons in a `Tooltip` and provide a descriptive `aria-label`. If the component already has a tooltip, ensure the `aria-label` matches or provides the necessary context.
+## 2024-09-24 - FormField Component A11y and Validation State
+**Learning:** Reusable custom form field wrappers in this app were rendering helper text correctly visually but failing to programmatically associate that text with the underlying `TextField` input, hiding errors and guidance from screen reader users. Also, error states were not coloring labels consistently with native MUI inputs.
+**Action:** When creating custom wrappers around native or MUI inputs, always generate and assign unique IDs to external helper text and wire them up using `aria-describedby` (safely concatenating with consumer-provided ARIA attributes). Ensure label colors reflect error states matching the input.
+## 2026-09-30 - Add Tooltips and ARIA labels to IconButtons
+**Learning:** Using IconButton without accessible names (like aria-label) combined with missing Tooltips for hover state reduces usability. Adding Tooltips and aria-labels solves both screen-reader accessibility and mouse hover UX issues.
+**Action:** When using IconButton components for actions, always verify they contain an aria-label (or text child) and wrap them with Tooltip for explicit interaction context.
+## 2026-10-08 - Dynamic Tooltips and ARIA Labels for Interactive IconButtons
+**Learning:** IconButtons used for toggling states (e.g., showing/hiding email) or performing inline actions (e.g., copying to clipboard) lack critical screen-reader and visual context when relying solely on native HTML 'title' attributes. Furthermore, dynamic state changes, like transitioning from 'Copy' to 'Copied!' should be reflected in both the tooltip and ARIA label for complete accessibility.
+**Action:** Replace native 'title' attributes on IconButtons with MUI Tooltips. Ensure dynamic ARIA labels and Tooltip titles are synchronized with the component's state to provide accurate feedback across all modalities.

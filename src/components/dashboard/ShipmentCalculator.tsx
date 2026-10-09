@@ -1,7 +1,7 @@
 'use client';
 import { formatMoney as formatCurrency } from '@/lib/format';
 
-import { useEffect, useState } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import { 
     Box, 
     MenuItem, 
@@ -10,10 +10,11 @@ import {
     InputLabel, 
     Typography,
     Paper,
-    TextField
+    TextField,
+    Chip
 } from '@mui/material';
 import { Button } from '@/components/design-system';
-import { Calculator, MapPin, Truck, ArrowRight } from 'lucide-react';
+import { Calculator, MapPin, Truck, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     type AuctionRateEntry,
@@ -22,7 +23,6 @@ import {
     type ShippingRateCalculatorConfig,
     normalizeShippingRateConfig,
 } from '@/lib/shipping-rate-calculator';
-import { buildAverageCompanyRateEstimate } from '@/lib/shipping-rate-average';
 
 type CompanyRateOption = {
     id: string;
@@ -36,7 +36,15 @@ type CompanyRateOption = {
         destinationLabel: string;
         sourceFileName: string;
         createdAt: string;
+        config?: unknown;
     }>;
+};
+
+type CalculatorAuctionRate = AuctionRateEntry & {
+    companyId?: string;
+    companyName?: string;
+    priceListName?: string;
+    sourceFileName?: string;
 };
 
 type CalculationTrace = {
@@ -49,9 +57,8 @@ type CalculationTrace = {
     rowSource: string;
     rowConfidence: string;
     laneLabel: string;
-    averagedCompanyCount?: number;
-    matchedAuctionRows?: number;
-    matchLevel?: 'lane' | 'state' | 'none';
+    isExactLocation: boolean;
+    locationName?: string;
 };
 
 export default function ShipmentCalculator() {
@@ -67,26 +74,8 @@ export default function ShipmentCalculator() {
     const [companyId, setCompanyId] = useState('');
     const [calculationTrace, setCalculationTrace] = useState<CalculationTrace | null>(null);
 
-    const stateAuctionRates = config.auctionRates.filter((rate) => rate.stateCode === origin);
     const selectedCompany = companies.find((company) => company.id === companyId);
     const activeCompanyPriceList = selectedCompany?.priceLists?.[0];
-    const allCompanyEstimate = origin && !companyId
-        ? buildAverageCompanyRateEstimate(
-            companies.map((company) => {
-                const activeList = company.priceLists?.[0];
-                return {
-                    companyId: company.id,
-                    companyName: company.name,
-                    priceListId: activeList?.id || null,
-                    priceListName: activeList?.name || null,
-                    sourceFileName: activeList?.sourceFileName || null,
-                    config: company.priceListConfig,
-                };
-            }),
-            origin,
-            { city: pickupCity, branch: pickupBranch },
-        )
-        : null;
 
     useEffect(() => {
         let isMounted = true;
@@ -144,39 +133,94 @@ export default function ShipmentCalculator() {
         setPickupBranch('');
     }, [companies, companyId, defaultConfig]);
 
-    const handleCalculate = () => {
-        if (!origin) return;
-        
-        const selectedAuctionRate = pickupLocation
-            ? stateAuctionRates[Number(pickupLocation)]
-            : null;
-        const averagedBaseRate = !companyId ? allCompanyEstimate?.averageBaseRate : null;
-        const baseRate = averagedBaseRate || selectedAuctionRate?.total || config.stateRates[origin] || config.fallbackRate;
-        const multiplier = config.vehicleTypes.find(v => v.id === vehicleType)?.multiplier || 1;
-        
-        setEstimatedCost(Math.round(baseRate * multiplier));
-        setCalculationTrace({
-            companyName: selectedCompany?.name || (averagedBaseRate ? 'All active shipping companies' : 'Default dashboard rates'),
-            priceListName: activeCompanyPriceList?.name || 'Default rate settings',
-            priceListId: activeCompanyPriceList?.id || (averagedBaseRate ? 'average' : 'settings'),
-            sourceFileName: activeCompanyPriceList?.sourceFileName || (averagedBaseRate ? 'active company price lists' : config.updatedFromPdfName || 'manual settings'),
-            baseRate,
-            multiplier,
-            rowSource: averagedBaseRate ? 'company average' : selectedAuctionRate?.source || (selectedAuctionRate ? 'uploaded row' : config.stateRates[origin] ? 'state rate' : 'fallback rate'),
-            rowConfidence: averagedBaseRate ? 'high' : selectedAuctionRate?.confidence || (selectedAuctionRate ? 'unknown' : 'high'),
-            laneLabel: averagedBaseRate
-                ? `${origin} ${allCompanyEstimate?.matchLevel === 'lane' ? 'lane' : 'state'} average from ${allCompanyEstimate?.companyCount || 0} company price list${allCompanyEstimate?.companyCount === 1 ? '' : 's'}`
-                : selectedAuctionRate ? formatAuctionRateLabel(selectedAuctionRate) : `${origin} state rate`,
-            averagedCompanyCount: allCompanyEstimate?.companyCount,
-            matchedAuctionRows: allCompanyEstimate?.matchedAuctionRows,
-            matchLevel: allCompanyEstimate?.matchLevel,
-        });
-    };
+    // Aggregate exact auction lanes for the selected origin state
+    const availableAuctionRates = useMemo<CalculatorAuctionRate[]>(() => {
+        if (!origin) return [];
+        if (companyId) {
+            return config.auctionRates
+                .filter((rate) => rate.stateCode === origin)
+                .map((rate) => ({
+                    ...rate,
+                    companyId: selectedCompany?.id,
+                    companyName: selectedCompany?.name,
+                    priceListName: activeCompanyPriceList?.name || 'Active Price List',
+                    sourceFileName: activeCompanyPriceList?.sourceFileName || '',
+                }));
+        }
 
-    const formatAuctionRateLabel = (rate: AuctionRateEntry) => {
+        // When companyId is empty, aggregate auction rates from all active company price lists
+        const list: CalculatorAuctionRate[] = [];
+        for (const comp of companies) {
+            const activeList = comp.priceLists?.[0];
+            const compConfig = normalizeShippingRateConfig(activeList?.config || comp.priceListConfig);
+            const matching = compConfig.auctionRates.filter((r) => r.stateCode === origin);
+            for (const r of matching) {
+                list.push({
+                    ...r,
+                    companyId: comp.id,
+                    companyName: comp.name,
+                    priceListName: activeList?.name || 'Active Price List',
+                    sourceFileName: activeList?.sourceFileName || '',
+                });
+            }
+        }
+
+        if (list.length === 0) {
+            return defaultConfig.auctionRates
+                .filter((rate) => rate.stateCode === origin)
+                .map((rate) => ({ ...rate, companyName: 'Default Rates' }));
+        }
+
+        return list;
+    }, [origin, companyId, config, companies, selectedCompany, activeCompanyPriceList, defaultConfig]);
+
+    const formatAuctionRateLabel = (rate: CalculatorAuctionRate) => {
         const location = [rate.branch, rate.city].filter(Boolean).join(' - ');
         const loadingPoint = rate.loadingPoint ? ` to ${rate.loadingPoint}` : '';
-        return `${location || rate.stateCode}${loadingPoint} (${formatCurrency(rate.total)})`;
+        const companyTag = !companyId && rate.companyName ? ` • ${rate.companyName}` : '';
+        return `${location || rate.stateCode}${loadingPoint}: ${formatCurrency(rate.total)}${companyTag}`;
+    };
+
+    const handleCalculate = () => {
+        if (!origin) return;
+
+        let selectedAuctionRate: CalculatorAuctionRate | null = pickupLocation !== ''
+            ? availableAuctionRates[Number(pickupLocation)] || null
+            : null;
+
+        // If not selected in dropdown, check if city or branch was typed
+        if (!selectedAuctionRate && (pickupCity || pickupBranch)) {
+            const qCity = pickupCity.trim().toLowerCase();
+            const qBranch = pickupBranch.trim().toLowerCase();
+            selectedAuctionRate = availableAuctionRates.find((r) => {
+                const matchCity = qCity && (r.city.toLowerCase().includes(qCity) || qCity.includes(r.city.toLowerCase()));
+                const matchBranch = qBranch && (r.branch.toLowerCase().includes(qBranch) || qBranch.includes(r.branch.toLowerCase()));
+                return Boolean((qCity && matchCity) || (qBranch && matchBranch));
+            }) || null;
+        }
+
+        const isExactLocation = Boolean(selectedAuctionRate);
+        const baseRate = selectedAuctionRate ? selectedAuctionRate.total : (config.stateRates[origin] || config.fallbackRate);
+        const multiplier = config.vehicleTypes.find(v => v.id === vehicleType)?.multiplier || 1;
+
+        setEstimatedCost(Math.round(baseRate * multiplier));
+        setCalculationTrace({
+            companyName: selectedAuctionRate?.companyName || selectedCompany?.name || 'Shipping Rate Sheet',
+            priceListName: selectedAuctionRate?.priceListName || activeCompanyPriceList?.name || 'Default rate settings',
+            priceListId: selectedAuctionRate?.companyId || activeCompanyPriceList?.id || 'rate-sheet',
+            sourceFileName: selectedAuctionRate?.sourceFileName || activeCompanyPriceList?.sourceFileName || config.updatedFromPdfName || 'manual settings',
+            baseRate,
+            multiplier,
+            rowSource: isExactLocation ? 'Exact Location Rate' : (config.stateRates[origin] ? 'State Flat Rate' : 'Fallback Rate'),
+            rowConfidence: isExactLocation ? 'high' : 'standard',
+            laneLabel: selectedAuctionRate
+                ? `${[selectedAuctionRate.branch, selectedAuctionRate.city].filter(Boolean).join(' - ')}, ${selectedAuctionRate.stateCode}`
+                : `${origin} State Rate`,
+            isExactLocation,
+            locationName: selectedAuctionRate
+                ? [selectedAuctionRate.branch, selectedAuctionRate.city].filter(Boolean).join(' - ')
+                : undefined,
+        });
     };
 
     return (
@@ -185,7 +229,7 @@ export default function ShipmentCalculator() {
             sx={{ 
                 p: 0, 
                 borderRadius: 3, 
-                overflow: 'hidden',
+                overflow: 'hidden', 
                 border: '1px solid var(--border)',
                 background: 'linear-gradient(145deg, var(--panel), var(--background))',
                 height: '100%',
@@ -218,7 +262,7 @@ export default function ShipmentCalculator() {
                         Quick Rate Calculator
                     </Typography>
                     <Typography variant="body2" sx={{ color: 'var(--text-secondary)' }}>
-                        Instant quote to {config.destinationLabel}
+                        Exact location shipping quotes to {config.destinationLabel}
                     </Typography>
                 </Box>
             </Box>
@@ -269,7 +313,6 @@ export default function ShipmentCalculator() {
                             label="Company Rate Sheet"
                             onChange={(e) => {
                                 setCompanyId(e.target.value);
-                                setOrigin('');
                                 setPickupLocation('');
                                 setPickupCity('');
                                 setPickupBranch('');
@@ -278,7 +321,7 @@ export default function ShipmentCalculator() {
                             }}
                             sx={{ bgcolor: 'var(--background)' }}
                         >
-                            <MenuItem value="">Average of all active company price lists</MenuItem>
+                            <MenuItem value="">All Companies (Exact Location Rates)</MenuItem>
                             {companies.map((company) => {
                                 const activeList = company.priceLists?.[0];
                                 const rowCount = activeList
@@ -286,7 +329,7 @@ export default function ShipmentCalculator() {
                                     : company.priceListConfig?.auctionRates?.length || 0;
                                 return (
                                     <MenuItem key={company.id} value={company.id}>
-                                        {company.name}{rowCount ? ` (${rowCount} rows)` : ' (no uploaded list)'}
+                                        {company.name}{rowCount ? ` (${rowCount} rates)` : ' (no uploaded list)'}
                                     </MenuItem>
                                 );
                             })}
@@ -314,12 +357,12 @@ export default function ShipmentCalculator() {
                         </Select>
                     </FormControl>
 
-                    {stateAuctionRates.length > 0 && (
+                    {availableAuctionRates.length > 0 && (
                         <FormControl fullWidth size="small">
-                            <InputLabel>Pickup Location</InputLabel>
+                            <InputLabel>Pickup Location (Exact Price)</InputLabel>
                             <Select
                                 value={pickupLocation}
-                                label="Pickup Location"
+                                label="Pickup Location (Exact Price)"
                                 onChange={(e) => {
                                     setPickupLocation(e.target.value);
                                     setEstimatedCost(null);
@@ -328,10 +371,12 @@ export default function ShipmentCalculator() {
                                 sx={{ bgcolor: 'var(--background)' }}
                             >
                                 <MenuItem value="">
-                                    Lowest state rate ({formatCurrency(config.stateRates[origin] || config.fallbackRate)})
+                                    {companyId
+                                        ? `State flat rate (${formatCurrency(config.stateRates[origin] || config.fallbackRate)})`
+                                        : 'Select location for exact price'}
                                 </MenuItem>
-                                {stateAuctionRates.map((rate, index) => (
-                                    <MenuItem key={`${rate.stateCode}-${rate.branch}-${rate.city}-${index}`} value={String(index)}>
+                                {availableAuctionRates.map((rate, index) => (
+                                    <MenuItem key={`${rate.companyId || ''}-${rate.stateCode}-${rate.branch}-${rate.city}-${index}`} value={String(index)}>
                                         {formatAuctionRateLabel(rate)}
                                     </MenuItem>
                                 ))}
@@ -339,7 +384,7 @@ export default function ShipmentCalculator() {
                         </FormControl>
                     )}
 
-                    {!companyId && (
+                    {!pickupLocation && (
                         <>
                             <TextField
                                 label="Pickup City"
@@ -350,7 +395,7 @@ export default function ShipmentCalculator() {
                                     setEstimatedCost(null);
                                     setCalculationTrace(null);
                                 }}
-                                placeholder="Los Angeles"
+                                placeholder="e.g. Florence, Los Angeles"
                                 sx={{ bgcolor: 'var(--background)' }}
                             />
                             <TextField
@@ -362,7 +407,7 @@ export default function ShipmentCalculator() {
                                     setEstimatedCost(null);
                                     setCalculationTrace(null);
                                 }}
-                                placeholder="Los Angeles"
+                                placeholder="e.g. Copart, IAA"
                                 sx={{ bgcolor: 'var(--background)' }}
                             />
                         </>
@@ -404,12 +449,13 @@ export default function ShipmentCalculator() {
                         variant="caption"
                         sx={{ display: 'block', textAlign: 'center', mt: 1, color: 'var(--text-secondary)' }}
                     >
-                        {activeCompanyPriceList
-                            ? `Using ${activeCompanyPriceList.name} from ${activeCompanyPriceList.sourceFileName}.`
-                            : allCompanyEstimate?.companyCount
-                                ? `Averaging ${allCompanyEstimate.companyCount} active company price list${allCompanyEstimate.companyCount === 1 ? '' : 's'} for ${origin} using ${allCompanyEstimate.matchLevel === 'lane' ? 'matched lanes' : 'state rates'}.`
-                                : 'Rates update daily and include standard handling.'}
-                        {!activeCompanyPriceList && config.updatedFromPdfName ? ` Last file: ${config.updatedFromPdfName}.` : ''}
+                        {pickupLocation !== '' && availableAuctionRates[Number(pickupLocation)]
+                            ? `Exact location rate: ${formatAuctionRateLabel(availableAuctionRates[Number(pickupLocation)])}.`
+                            : availableAuctionRates.length > 0
+                                ? `${availableAuctionRates.length} exact auction locations available for ${origin}. Select one to see exact price.`
+                                : activeCompanyPriceList
+                                    ? `Using ${activeCompanyPriceList.name} from ${activeCompanyPriceList.sourceFileName}.`
+                                    : 'Rates update daily and include ocean freight & standard handling.'}
                     </Typography>
                 </Box>
 
@@ -422,25 +468,43 @@ export default function ShipmentCalculator() {
                         >
                             <Box sx={{ 
                                 mt: 2, 
-                                p: 2, 
+                                p: 2.5, 
                                 borderRadius: 2, 
-                                bgcolor: 'rgba(var(--accent-gold-rgb), 0.12)', 
-                                border: '1px solid rgba(var(--accent-gold-rgb), 0.6)',
+                                bgcolor: calculationTrace?.isExactLocation ? 'rgba(34, 197, 94, 0.08)' : 'rgba(var(--accent-gold-rgb), 0.12)', 
+                                border: calculationTrace?.isExactLocation ? '1px solid rgba(34, 197, 94, 0.4)' : '1px solid rgba(var(--accent-gold-rgb), 0.6)',
                                 textAlign: 'center'
                             }}>
-                                <Typography variant="caption" sx={{ color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: 1 }}>
-                                    Estimated Shipping Cost
-                                </Typography>
-                                <Typography variant="h3" sx={{ fontWeight: 800, color: 'var(--text-primary)', my: 1 }}>
+                                <Box sx={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 0.75,
+                                    px: 1.25,
+                                    py: 0.35,
+                                    borderRadius: 1.5,
+                                    bgcolor: calculationTrace?.isExactLocation ? 'rgba(34, 197, 94, 0.15)' : 'rgba(var(--accent-gold-rgb), 0.18)',
+                                    color: calculationTrace?.isExactLocation ? '#15803d' : 'var(--accent-gold)',
+                                    fontWeight: 800,
+                                    fontSize: '0.75rem',
+                                    mb: 1,
+                                    letterSpacing: '0.05em'
+                                }}>
+                                    {calculationTrace?.isExactLocation ? <CheckCircle2 size={14} /> : <MapPin size={14} />}
+                                    {calculationTrace?.isExactLocation ? 'EXACT LOCATION RATE' : 'STATE FLAT RATE'}
+                                </Box>
+                                <Typography variant="h3" sx={{ fontWeight: 800, color: 'var(--text-primary)', my: 0.5 }}>
                                     {formatCurrency(estimatedCost)}
                                 </Typography>
-                                <Typography variant="caption" sx={{ display: 'block', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
-                                    *Rates are subject to change. Includes ocean freight & standard handling.
+                                <Typography variant="body2" sx={{ color: 'var(--text-secondary)', fontWeight: 600 }}>
+                                    {calculationTrace?.isExactLocation 
+                                        ? `Exact price for ${calculationTrace?.laneLabel} (${calculationTrace?.companyName})`
+                                        : `State rate for ${origin}. Select a pickup location above for the exact auction price.`}
+                                </Typography>
+                                <Typography variant="caption" sx={{ display: 'block', color: 'var(--text-secondary)', fontStyle: 'italic', mt: 0.5 }}>
+                                    *Rates include ocean freight & standard handling to {config.destinationLabel}.
                                 </Typography>
                                 {calculationTrace && (
                                     <Typography variant="caption" sx={{ display: 'block', color: 'var(--text-secondary)', mt: 1 }}>
-                                        Source: {calculationTrace.companyName} / {calculationTrace.priceListName} ({calculationTrace.priceListId}) / {calculationTrace.sourceFileName}. Base {formatCurrency(calculationTrace.baseRate)} x {calculationTrace.multiplier}; {calculationTrace.rowSource} / {calculationTrace.rowConfidence}.
-                                        {calculationTrace.averagedCompanyCount ? ` ${calculationTrace.averagedCompanyCount} companies, ${calculationTrace.matchedAuctionRows || 0} matched auction rows, ${calculationTrace.matchLevel || 'state'} match.` : ''}
+                                        Source: {calculationTrace.companyName} • {calculationTrace.priceListName} • Base {formatCurrency(calculationTrace.baseRate)} x {calculationTrace.multiplier} ({calculationTrace.rowSource})
                                     </Typography>
                                 )}
                             </Box>

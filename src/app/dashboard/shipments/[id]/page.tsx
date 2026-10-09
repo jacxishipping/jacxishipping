@@ -1523,6 +1523,7 @@ export default function ShipmentDetailPage() {
               entries={companyLedgerEntries}
               paymentSummary={shipment.companyPaymentSummary || { charged: 0, paid: 0, remaining: 0, status: 'NOT_DUE' }}
               canManageLedger={canManageCompanyLedger}
+              shipment={shipment}
               onTransactionCreated={() => {
                 void refreshShipmentPage();
               }}

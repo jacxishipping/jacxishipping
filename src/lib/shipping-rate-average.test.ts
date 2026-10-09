@@ -123,6 +123,38 @@ describe('shipping rate average', () => {
     assert.equal(estimate.companyCount, 2);
   });
 
+  it('returns exact location rates and company breakdown for matching lane', () => {
+    const estimate = buildAverageCompanyRateEstimate([
+      {
+        companyId: 'company-1',
+        companyName: 'Alpha Shipping',
+        config: {
+          auctionRates: [
+            { stateCode: 'AL', branch: 'Florence', city: 'Florence', total: 1288 },
+            { stateCode: 'AL', branch: 'Tanner', city: 'Tanner', total: 1078 },
+          ],
+        },
+      },
+      {
+        companyId: 'company-2',
+        companyName: 'Beta Shipping',
+        config: {
+          auctionRates: [
+            { stateCode: 'AL', branch: 'Florence', city: 'Florence', total: 1300 },
+          ],
+        },
+      },
+    ], 'AL', { city: 'Florence', branch: 'Florence' });
+
+    assert.equal(estimate.matchLevel, 'lane');
+    assert.equal(estimate.exactLocationRate, 1288);
+    assert.equal(estimate.exactCompanyRates.length, 2);
+    assert.equal(estimate.exactCompanyRates[0].companyName, 'Alpha Shipping');
+    assert.equal(estimate.exactCompanyRates[0].rate, 1288);
+    assert.equal(estimate.exactCompanyRates[1].companyName, 'Beta Shipping');
+    assert.equal(estimate.exactCompanyRates[1].rate, 1300);
+  });
+
   it('returns null when no company has a real price for the state', () => {
     const estimate = buildAverageCompanyRateEstimate([
       {
@@ -136,3 +168,4 @@ describe('shipping rate average', () => {
     assert.equal(estimate.companyCount, 0);
   });
 });
+

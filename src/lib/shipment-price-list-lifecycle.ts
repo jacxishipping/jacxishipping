@@ -74,15 +74,42 @@ function vehicleLabel(shipment: PriceListShipment) {
   return shipment.vehicleVIN && label ? `${label} (${shipment.vehicleVIN})` : shipment.vehicleVIN || label || shipment.id;
 }
 
+const US_STATE_CODES = new Set([
+  'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
+  'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
+  'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
+  'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
+  'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY',
+]);
+
+export function extractStateCode(text?: string | null): string | null {
+  if (!text) return null;
+  const trimmed = text.trim().toUpperCase();
+  if (trimmed.length === 2 && US_STATE_CODES.has(trimmed)) return trimmed;
+  // Match standalone 2-letter state code (e.g. "Atlanta, GA" or "Dallas, TX 75201")
+  const match = trimmed.match(/\b([A-Z]{2})\b/);
+  if (match && US_STATE_CODES.has(match[1])) return match[1];
+  return null;
+}
+
 function scoreLane(rate: AuctionRateEntry, shipment: PriceListShipment) {
   const branch = normalizeText(shipment.auctionName);
   const city = normalizeText(shipment.purchaseLocation);
+  const rBranch = normalizeText(rate.branch);
+  const rCity = normalizeText(rate.city);
   let score = 0;
 
-  if (branch && normalizeText(rate.branch) === branch) score += 3;
-  if (city && normalizeText(rate.city) === city) score += 3;
-  if (city && normalizeText(rate.branch) === city) score += 2;
-  if (branch && normalizeText(rate.city) === branch) score += 2;
+  // Exact equality
+  if (branch && rBranch === branch) score += 10;
+  if (city && rCity === city) score += 10;
+  if (city && rBranch === city) score += 8;
+  if (branch && rCity === branch) score += 8;
+
+  // Substring / containment match (e.g. "Copart Atlanta" contains "atlanta")
+  if (branch && rBranch && (branch.includes(rBranch) || rBranch.includes(branch))) score += 6;
+  if (city && rCity && (city.includes(rCity) || rCity.includes(city))) score += 6;
+  if (city && rBranch && (city.includes(rBranch) || rBranch.includes(city))) score += 5;
+  if (branch && rCity && (branch.includes(rCity) || rCity.includes(branch))) score += 5;
 
   return score;
 }
@@ -90,8 +117,7 @@ function scoreLane(rate: AuctionRateEntry, shipment: PriceListShipment) {
 function resolvePriceFromCompanyPriceList(shipment: PriceListShipment, company: PriceListCompany) {
   const activePriceList = company.priceLists?.[0] || null;
   const config = normalizeShippingRateConfig(activePriceList?.config || company.priceListConfig);
-  const rawState = String(shipment.purchaseLocation || shipment.auctionName || '').trim().toUpperCase();
-  const stateCode = rawState.length === 2 ? rawState : null;
+  const stateCode = extractStateCode(shipment.purchaseLocation) || extractStateCode(shipment.auctionName);
   const stateAuctionRates = stateCode
     ? config.auctionRates.filter((rate) => rate.stateCode === stateCode)
     : config.auctionRates;
@@ -99,6 +125,7 @@ function resolvePriceFromCompanyPriceList(shipment: PriceListShipment, company: 
     .map((rate) => ({ rate, score: scoreLane(rate, shipment) }))
     .filter((item) => item.score > 0)
     .sort((left, right) => right.score - left.score || left.rate.total - right.rate.total);
+  const isExactMatched = scoredRows.length > 0;
   const matchedRate = scoredRows[0]?.rate || (stateCode ? null : stateAuctionRates[0] || null);
   const stateRate = stateCode ? config.stateRates[stateCode] : null;
   const basePrice = matchedRate?.total || stateRate || null;
@@ -118,8 +145,8 @@ function resolvePriceFromCompanyPriceList(shipment: PriceListShipment, company: 
     branch: matchedRate?.branch || shipment.auctionName || null,
     city: matchedRate?.city || shipment.purchaseLocation || null,
     loadingPoint: matchedRate?.loadingPoint || null,
-    matchSource: matchedRate ? 'auction_lane' : 'state_rate',
-    confidence: matchedRate?.confidence || (matchedRate ? 'medium' : 'low'),
+    matchSource: isExactMatched ? 'exact_location' : matchedRate ? 'auction_lane' : 'state_rate',
+    confidence: isExactMatched ? 'high' : (matchedRate?.confidence || 'medium'),
   };
 }
 
