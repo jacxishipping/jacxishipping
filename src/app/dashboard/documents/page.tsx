@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { AlertTriangle, Brain, CheckCircle2, FileText, Folder, Search as SearchIcon, ShieldCheck, Upload } from 'lucide-react';
+import { AlertTriangle, Brain, CheckCircle2, FileText, Folder, Newspaper, Search as SearchIcon, ShieldCheck, Upload } from 'lucide-react';
 import { Box, Typography } from '@mui/material';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
 import { 
@@ -20,6 +20,7 @@ import {
 } from '@/components/design-system';
 import { FileUpload } from '@/components/ui/FileUpload';
 import { AiDocumentOcrModal } from '@/components/documents/AiDocumentOcrModal';
+import { AnnouncementGeneratorModal } from '@/components/documents/AnnouncementGeneratorModal';
 
 interface Document {
     id: string;
@@ -93,6 +94,7 @@ export default function DocumentsPage() {
     // Upload & OCR State
     const [isUploadOpen, setIsUploadOpen] = useState(false);
     const [isOcrOpen, setIsOcrOpen] = useState(false);
+    const [isAnnouncementOpen, setIsAnnouncementOpen] = useState(false);
     const [category, setCategory] = useState('OTHER');
     const [isProcessing, setIsProcessing] = useState(false);
 
@@ -276,6 +278,14 @@ export default function DocumentsPage() {
 				actions={
 					<div className="flex items-center gap-2">
 						<Button 
+							variant="primary" 
+							icon={<Newspaper className="w-4 h-4 text-slate-900" />} 
+							size="sm" 
+							onClick={() => setIsAnnouncementOpen(true)}
+						>
+							Create Announcement
+						</Button>
+						<Button 
 							variant="outline" 
 							icon={<Brain className="w-4 h-4 text-[var(--accent-gold)]" />} 
 							size="sm" 
@@ -283,7 +293,7 @@ export default function DocumentsPage() {
 						>
 							AI Document OCR
 						</Button>
-						<Button variant="primary" icon={<Upload className="w-4 h-4" />} size="sm" onClick={() => setIsUploadOpen(true)}>
+						<Button variant="outline" icon={<Upload className="w-4 h-4" />} size="sm" onClick={() => setIsUploadOpen(true)}>
 							Upload Document
 						</Button>
 					</div>
@@ -313,7 +323,54 @@ export default function DocumentsPage() {
                     size="md"
                     subtitle="Last 7 days"
                 />
+                <div 
+                    onClick={() => setIsAnnouncementOpen(true)} 
+                    className="cursor-pointer transition-transform hover:scale-[1.01]"
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setIsAnnouncementOpen(true); }}
+                >
+                    <StatsCard
+                        icon={<Newspaper style={{ fontSize: 18 }} />}
+                        title="Announcements"
+                        value="Letterhead"
+                        variant="warning"
+                        size="md"
+                        subtitle="Click to Generate"
+                    />
+                </div>
 			</DashboardGrid>
+
+            {/* Official Announcement Generator Banner */}
+            <div className="relative overflow-hidden rounded-2xl border border-[rgba(var(--accent-gold-rgb),0.3)] bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 p-5 shadow-lg">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-[rgba(var(--accent-gold-rgb),0.15)] border border-[rgba(var(--accent-gold-rgb),0.3)] flex items-center justify-center text-[var(--accent-gold)] shrink-0">
+                            <Newspaper className="w-6 h-6 text-amber-400" />
+                        </div>
+                        <div>
+                            <div className="flex items-center gap-2">
+                                <h3 className="text-base font-bold text-white">Official Announcement & Circular Generator</h3>
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-600/20 text-red-400 border border-red-500/30">
+                                    Jacxi Shipping Letterhead
+                                </span>
+                            </div>
+                            <p className="text-xs text-slate-300 mt-1 max-w-2xl">
+                                Generate official Jacxi Shipping announcements and news documents in PDF matching the company letterhead. Simply enter Date, Title, and Body text to print or export.
+                            </p>
+                        </div>
+                    </div>
+                    <Button
+                        variant="primary"
+                        size="sm"
+                        icon={<Newspaper className="w-4 h-4 text-slate-900" />}
+                        onClick={() => setIsAnnouncementOpen(true)}
+                        className="shrink-0"
+                    >
+                        Create Announcement
+                    </Button>
+                </div>
+            </div>
 
 			{/* Search */}
 			<DashboardPanel title="Search Documents" description="Find documents by name">
@@ -546,6 +603,11 @@ export default function DocumentsPage() {
                 open={isOcrOpen}
                 onClose={() => setIsOcrOpen(false)}
                 onSuccess={fetchDocuments}
+            />
+
+            <AnnouncementGeneratorModal
+                open={isAnnouncementOpen}
+                onClose={() => setIsAnnouncementOpen(false)}
             />
 		</DashboardSurface>
 	);
