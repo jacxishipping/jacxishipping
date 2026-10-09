@@ -32,7 +32,8 @@ Second paragraph with multiple lines.`;
 
     assert.ok(html.includes('<!DOCTYPE html>'));
     assert.ok(html.includes('dir="rtl"'));
-    assert.ok(html.includes('data:image/png;base64,')); // Jacxi logo
+    assert.ok(html.includes('/jacxi-logo-transparent.png')); // Jacxi transparent logo
+    assert.ok(html.includes('data:image/png;base64,')); // Jacxi transparent logo fallback
     assert.ok(html.includes('Decorative Gold Divider')); // Gold divider
     assert.ok(html.includes('اړینه خبرتیا')); // Badge
     assert.ok(html.includes('09/18/2026 :نېټه')); // Date

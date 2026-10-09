@@ -85,18 +85,14 @@ export function AnnouncementGeneratorModal({
   const [website, setWebsite] = useState<string>(
     initialData?.website || 'www.jacxishipping.com'
   );
-  const [direction, setDirection] = useState<'auto' | 'rtl' | 'ltr'>('auto');
+  const [direction, setDirection] = useState<'rtl' | 'ltr'>(
+    initialData?.direction === 'ltr' ? 'ltr' : 'rtl'
+  );
 
   // UI accordion for secondary details
   const [showAdvanced, setShowAdvanced] = useState<boolean>(false);
   const [copied, setCopied] = useState<boolean>(false);
   const [previewScale, setPreviewScale] = useState<number>(0.85);
-
-  // Auto-detect direction
-  const effectiveDirection = useMemo<'rtl' | 'ltr'>(() => {
-    if (direction === 'rtl' || direction === 'ltr') return direction;
-    return isRTLText(`${title} ${badgeText} ${bodyText}`) ? 'rtl' : 'ltr';
-  }, [direction, title, badgeText, bodyText]);
 
   // Construct current options
   const currentOptions = useMemo<AnnouncementDocumentOptions>(() => {
@@ -110,9 +106,9 @@ export function AnnouncementGeneratorModal({
       phone: phone.trim(),
       email: email.trim(),
       website: website.trim(),
-      direction: effectiveDirection,
+      direction,
     };
-  }, [date, badgeText, title, salutation, bodyText, closingNote, phone, email, website, effectiveDirection]);
+  }, [date, badgeText, title, salutation, bodyText, closingNote, phone, email, website, direction]);
 
   // Generate preview HTML
   const previewHtml = useMemo(() => {
@@ -266,6 +262,49 @@ export function AnnouncementGeneratorModal({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[720px]">
         {/* Left Column: Form Inputs (5 cols on lg) */}
         <div className="lg:col-span-5 flex flex-col gap-4 overflow-y-auto max-h-[78vh] pr-2">
+          {/* Document Direction (RTL / LTR) Option */}
+          <div className="bg-[var(--surface-subtle)] border border-[var(--border-subtle)] rounded-xl p-3">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Languages className="w-4 h-4 text-amber-500" />
+                <span className="text-xs font-bold text-[var(--text-primary)]">Document Direction & Layout</span>
+              </div>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                direction === 'rtl' 
+                  ? 'bg-amber-500/15 text-amber-500 border-amber-500/30' 
+                  : 'bg-blue-500/15 text-blue-400 border-blue-500/30'
+              }`}>
+                {direction === 'rtl' ? 'Active: RTL (پښتو / دری)' : 'Active: LTR (English)'}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setDirection('rtl')}
+                className={`py-2.5 px-3 rounded-lg text-xs font-bold border transition-all flex items-center justify-center gap-2 ${
+                  direction === 'rtl'
+                    ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 border-amber-400 shadow-md ring-2 ring-amber-500/20'
+                    : 'bg-[var(--surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:border-amber-500/50 hover:text-[var(--text-primary)]'
+                }`}
+              >
+                <span className="text-sm font-black">←</span>
+                <span>RTL (پښتو / دری / Arabic)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setDirection('ltr')}
+                className={`py-2.5 px-3 rounded-lg text-xs font-bold border transition-all flex items-center justify-center gap-2 ${
+                  direction === 'ltr'
+                    ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 border-amber-400 shadow-md ring-2 ring-amber-500/20'
+                    : 'bg-[var(--surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:border-amber-500/50 hover:text-[var(--text-primary)]'
+                }`}
+              >
+                <span>LTR (English / Latin)</span>
+                <span className="text-sm font-black">→</span>
+              </button>
+            </div>
+          </div>
+
           {/* Quick Preset Toolbar */}
           <div className="bg-[var(--surface-subtle)] border border-[var(--border-subtle)] rounded-xl p-3">
             <div className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-2 flex items-center justify-between">
@@ -316,6 +355,8 @@ export function AnnouncementGeneratorModal({
                 onChange={(e) => setDate(e.target.value)}
                 placeholder="e.g. 09/18/2026"
                 className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-gold)]"
+                dir={direction}
+                style={{ textAlign: direction === 'rtl' ? 'right' : 'left' }}
               />
             </div>
             <div>
@@ -329,7 +370,8 @@ export function AnnouncementGeneratorModal({
                 onChange={(e) => setBadgeText(e.target.value)}
                 placeholder="e.g. اړینه خبرتیا or IMPORTANT NOTICE"
                 className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-gold)]"
-                dir={effectiveDirection}
+                dir={direction}
+                style={{ textAlign: direction === 'rtl' ? 'right' : 'left' }}
               />
             </div>
           </div>
@@ -347,9 +389,13 @@ export function AnnouncementGeneratorModal({
               rows={2}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Enter document title..."
+              placeholder={direction === 'rtl' ? 'د سند سرلیک دلته داخل کړئ...' : 'Enter document title...'}
               className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-gold)] font-medium"
-              dir={effectiveDirection}
+              dir={direction}
+              style={{
+                fontFamily: direction === 'rtl' ? "'Noto Naskh Arabic', 'Segoe UI', Tahoma, sans-serif" : undefined,
+                textAlign: direction === 'rtl' ? 'right' : 'left',
+              }}
             />
           </div>
 
@@ -365,7 +411,8 @@ export function AnnouncementGeneratorModal({
               onChange={(e) => setSalutation(e.target.value)}
               placeholder="e.g. ګرانه پیرودونکیه، or Dear Valued Customer,"
               className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-gold)]"
-              dir={effectiveDirection}
+              dir={direction}
+              style={{ textAlign: direction === 'rtl' ? 'right' : 'left' }}
             />
           </div>
 
@@ -382,9 +429,13 @@ export function AnnouncementGeneratorModal({
               rows={12}
               value={bodyText}
               onChange={(e) => setBodyText(e.target.value)}
-              placeholder="Type or paste the announcement text here..."
+              placeholder={direction === 'rtl' ? 'د خبرتیا متن دلته ولیکئ...' : 'Type or paste the announcement text here...'}
               className="w-full flex-1 px-3 py-2 text-sm rounded-lg border border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-gold)] font-normal leading-relaxed resize-y"
-              dir={effectiveDirection}
+              dir={direction}
+              style={{
+                fontFamily: direction === 'rtl' ? "'Noto Naskh Arabic', 'Segoe UI', Tahoma, sans-serif" : undefined,
+                textAlign: direction === 'rtl' ? 'right' : 'left',
+              }}
             />
           </div>
 
@@ -400,11 +451,12 @@ export function AnnouncementGeneratorModal({
               onChange={(e) => setClosingNote(e.target.value)}
               placeholder="e.g. ستاسو له دوامدارې همکارۍ او ملګرتیا څخه مننه"
               className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-gold)] font-semibold"
-              dir={effectiveDirection}
+              dir={direction}
+              style={{ textAlign: direction === 'rtl' ? 'right' : 'left' }}
             />
           </div>
 
-          {/* Advanced Details Toggle */}
+          {/* Advanced Details Toggle (Contact Info) */}
           <div className="border border-[var(--border-subtle)] rounded-xl overflow-hidden bg-[var(--surface-subtle)]">
             <button
               type="button"
@@ -412,55 +464,14 @@ export function AnnouncementGeneratorModal({
               className="w-full px-3 py-2.5 text-xs font-semibold text-[var(--text-secondary)] flex items-center justify-between hover:bg-[var(--surface-hover)] transition-colors"
             >
               <span className="flex items-center gap-1.5">
-                <Languages className="w-3.5 h-3.5 text-amber-500" />
-                Direction & Contact Information
+                <Info className="w-3.5 h-3.5 text-amber-500" />
+                Customize Contact Information (Phone, Email, Website)
               </span>
               {showAdvanced ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </button>
 
             {showAdvanced && (
               <div className="p-3 border-t border-[var(--border-subtle)] flex flex-col gap-3 bg-[var(--surface)]">
-                <div>
-                  <span className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
-                    Text Direction
-                  </span>
-                  <div className="grid grid-cols-3 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setDirection('auto')}
-                      className={`px-2 py-1 text-xs rounded border ${
-                        direction === 'auto'
-                          ? 'bg-[var(--accent-gold)] text-slate-900 font-bold border-[var(--accent-gold)]'
-                          : 'border-[var(--border-subtle)] text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]'
-                      }`}
-                    >
-                      Auto-Detect
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDirection('rtl')}
-                      className={`px-2 py-1 text-xs rounded border ${
-                        direction === 'rtl'
-                          ? 'bg-[var(--accent-gold)] text-slate-900 font-bold border-[var(--accent-gold)]'
-                          : 'border-[var(--border-subtle)] text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]'
-                      }`}
-                    >
-                      RTL (پښتو / دری)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDirection('ltr')}
-                      className={`px-2 py-1 text-xs rounded border ${
-                        direction === 'ltr'
-                          ? 'bg-[var(--accent-gold)] text-slate-900 font-bold border-[var(--accent-gold)]'
-                          : 'border-[var(--border-subtle)] text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]'
-                      }`}
-                    >
-                      LTR (English)
-                    </button>
-                  </div>
-                </div>
-
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <div>
                     <label htmlFor={phoneInputId} className="block text-[11px] font-medium text-[var(--text-secondary)] mb-1">
@@ -511,6 +522,15 @@ export function AnnouncementGeneratorModal({
             <div className="flex items-center gap-2">
               <Eye className="w-4 h-4 text-amber-400" />
               <span className="font-semibold text-slate-100">Live Letterhead Preview</span>
+              <button
+                type="button"
+                onClick={() => setDirection(d => d === 'rtl' ? 'ltr' : 'rtl')}
+                className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-[11px] font-bold text-amber-400 border border-slate-700 transition-colors cursor-pointer flex items-center gap-1"
+                title="Click to toggle RTL / LTR layout"
+              >
+                <span>{direction === 'rtl' ? 'RTL' : 'LTR'}</span>
+                <span className="text-[10px] text-slate-400">⇄</span>
+              </button>
               <span className="px-1.5 py-0.5 rounded bg-slate-800 text-[10px] text-slate-400 border border-slate-700">
                 A4 Portrait
               </span>

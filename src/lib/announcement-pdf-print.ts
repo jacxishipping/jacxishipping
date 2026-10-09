@@ -253,6 +253,7 @@ export function generateAnnouncementPrintHtml(options: AnnouncementDocumentOptio
       align-items: flex-start;
       width: 100%;
       margin-bottom: 4px;
+      direction: ltr !important; /* Keeps logo on left and meta badge on right matching Jacxi Shipping.pdf */
     }
 
     .header-logo-box {
@@ -264,6 +265,7 @@ export function generateAnnouncementPrintHtml(options: AnnouncementDocumentOptio
       width: auto;
       display: block;
       object-fit: contain;
+      background: transparent !important;
     }
 
     .header-meta-box {
@@ -271,6 +273,7 @@ export function generateAnnouncementPrintHtml(options: AnnouncementDocumentOptio
       flex-direction: column;
       align-items: flex-end;
       text-align: right;
+      direction: ${isRtl ? 'rtl' : 'ltr'};
     }
 
     .badge-label {
@@ -280,6 +283,8 @@ export function generateAnnouncementPrintHtml(options: AnnouncementDocumentOptio
       line-height: 1.25;
       letter-spacing: 0.5px;
       margin-bottom: 4px;
+      direction: ${isRtl ? 'rtl' : 'ltr'};
+      text-align: right;
     }
 
     .date-label {
@@ -288,6 +293,8 @@ export function generateAnnouncementPrintHtml(options: AnnouncementDocumentOptio
       font-weight: 600;
       line-height: 1.3;
       white-space: nowrap;
+      direction: ${isRtl ? 'rtl' : 'ltr'};
+      text-align: right;
     }
 
     /* Gold Divider */
@@ -304,6 +311,7 @@ export function generateAnnouncementPrintHtml(options: AnnouncementDocumentOptio
       max-width: 680px;
       height: auto;
       display: block;
+      background: transparent !important;
     }
 
     /* Title Pill Banner */
@@ -320,6 +328,7 @@ export function generateAnnouncementPrintHtml(options: AnnouncementDocumentOptio
       margin-bottom: 24px;
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
       box-sizing: border-box;
+      direction: ${isRtl ? 'rtl' : 'ltr'};
     }
 
     /* Body Area */
@@ -328,6 +337,7 @@ export function generateAnnouncementPrintHtml(options: AnnouncementDocumentOptio
       display: flex;
       flex-direction: column;
       margin-bottom: 20px;
+      direction: ${isRtl ? 'rtl' : 'ltr'};
     }
 
     .salutation-heading {
@@ -336,15 +346,18 @@ export function generateAnnouncementPrintHtml(options: AnnouncementDocumentOptio
       color: #0f172a;
       margin-bottom: 14px;
       text-align: ${isRtl ? 'right' : 'left'};
+      direction: ${isRtl ? 'rtl' : 'ltr'};
     }
 
     .announcement-paragraph {
       font-size: 13.5px;
-      line-height: 1.82;
+      line-height: 1.85;
       color: #1e293b;
-      text-align: justify;
-      text-justify: inter-word;
+      text-align: ${isRtl ? 'right' : 'left'};
+      text-align-last: ${isRtl ? 'right' : 'left'};
+      direction: ${isRtl ? 'rtl' : 'ltr'};
       margin-bottom: 14px;
+      word-spacing: ${isRtl ? '1px' : 'normal'};
     }
 
     .announcement-paragraph strong,
@@ -360,6 +373,7 @@ export function generateAnnouncementPrintHtml(options: AnnouncementDocumentOptio
       margin-top: 14px;
       margin-bottom: 24px;
       text-align: ${isRtl ? 'right' : 'left'};
+      direction: ${isRtl ? 'rtl' : 'ltr'};
       line-height: 1.5;
     }
 
@@ -425,7 +439,7 @@ export function generateAnnouncementPrintHtml(options: AnnouncementDocumentOptio
     <!-- Header -->
     <header class="announcement-header">
       <div class="header-logo-box">
-        <img src="${JACXI_LOGO_BASE64}" alt="Jacxi Shipping Logo" class="header-logo-img" />
+        <img src="/jacxi-logo-transparent.png" onerror="this.onerror=null;this.src='${JACXI_LOGO_BASE64}'" alt="Jacxi Shipping Logo" class="header-logo-img" />
       </div>
       <div class="header-meta-box">
         ${badgeText ? `<div class="badge-label">${badgeText}</div>` : ''}
