@@ -48,6 +48,10 @@ import {
 	AlertCircle,
 	X,
 	Eye,
+	Columns2,
+	Printer,
+	ExternalLink,
+	Maximize2,
 } from 'lucide-react';
 import { DashboardSurface, DashboardPanel } from '@/components/dashboard/DashboardSurface';
 import { ActivityLog } from '@/components/dashboard/ActivityLog';
@@ -174,6 +178,23 @@ export default function InvoiceDetailPage() {
 	const [disputedLineIds, setDisputedLineIds] = useState<Set<string>>(() => new Set());
 	const [isEditOpen, setIsEditOpen] = useState(false);
 	const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+	const [isSplitView, setIsSplitView] = useState(() => {
+		if (typeof window !== 'undefined') {
+			return localStorage.getItem('jacxi.invoice_split_preview') === 'true';
+		}
+		return false;
+	});
+	const [pdfRefreshKey, setPdfRefreshKey] = useState(0);
+
+	const toggleSplitView = () => {
+		setIsSplitView((prev) => {
+			const next = !prev;
+			if (typeof window !== 'undefined') {
+				localStorage.setItem('jacxi.invoice_split_preview', String(next));
+			}
+			return next;
+		});
+	};
 	const [editModalTab, setEditModalTab] = useState<'details' | 'items'>('details');
 	const [editForm, setEditForm] = useState({
 		dueDate: '',
@@ -231,6 +252,7 @@ export default function InvoiceDetailPage() {
 
 			if (response.ok) {
 				setInvoice(data);
+				setPdfRefreshKey((k) => k + 1);
 			} else {
 				toast.error('Failed to load invoice');
 			}
@@ -1335,7 +1357,7 @@ export default function InvoiceDetailPage() {
 				</DialogActions>
 			</Dialog>
 
-			<Box sx={{ maxWidth: '1400px', mx: 'auto', p: { xs: 2, md: 3 } }}>
+			<Box sx={{ maxWidth: isSplitView ? '1920px' : '1400px', mx: 'auto', p: { xs: 2, md: 3 }, transition: 'max-width 0.2s ease' }}>
 				{/* Breadcrumbs */}
 				<Breadcrumbs
 					items={[
@@ -1381,6 +1403,16 @@ export default function InvoiceDetailPage() {
 								</Button>
 							)}
 							<Button
+								variant={isSplitView ? 'primary' : 'outline'}
+								size="sm"
+								icon={<Columns2 className="w-4 h-4" />}
+								onClick={toggleSplitView}
+								sx={isSplitView ? { bgcolor: 'var(--accent-gold)', color: 'white' } : {}}
+								title="Toggle Split-Screen Live PDF"
+							>
+								{isSplitView ? 'Close Split' : 'Split-Screen PDF'}
+							</Button>
+							<Button
 								variant="outline"
 								size="sm"
 								icon={<Eye className="w-4 h-4 text-[var(--accent-gold)]" />}
@@ -1422,8 +1454,10 @@ export default function InvoiceDetailPage() {
 					}
 				/>
 
-				{/* Main Content */}
-				<DashboardSurface>
+				{/* Main Content & Live PDF Split Layout */}
+				<Box sx={{ display: 'grid', gridTemplateColumns: isSplitView ? { xs: '1fr', lg: '1fr 480px', xl: '1fr 540px' } : '1fr', gap: 3, alignItems: 'start' }}>
+					<Box sx={{ minWidth: 0, width: '100%' }}>
+						<DashboardSurface>
 					<Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' }, gap: 3 }}>
 						{/* Invoice Information */}
 						<DashboardPanel 
@@ -1883,6 +1917,128 @@ export default function InvoiceDetailPage() {
 						</DashboardPanel>
 					</Box>
 				</DashboardSurface>
+					</Box>
+
+					{/* Right Column: Sticky Live PDF Document Preview */}
+					{isSplitView && (
+						<Box
+							sx={{
+								display: { xs: 'none', lg: 'flex' },
+								flexDirection: 'column',
+								position: 'sticky',
+								top: '80px',
+								height: 'calc(100vh - 105px)',
+								minHeight: '680px',
+								bgcolor: 'var(--panel)',
+								border: '1px solid var(--border)',
+								borderRadius: 3,
+								overflow: 'hidden',
+								boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+								zIndex: 10,
+							}}
+						>
+							{/* Top Bar */}
+							<Box
+								sx={{
+									px: 2,
+									py: 1.5,
+									borderBottom: '1px solid var(--border)',
+									bgcolor: 'rgba(var(--text-primary-rgb), 0.02)',
+									display: 'flex',
+									alignItems: 'center',
+									justifyContent: 'space-between',
+								}}
+							>
+								<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+									<Box
+										sx={{
+											p: 0.85,
+											borderRadius: 2,
+											bgcolor: 'rgba(var(--accent-gold-rgb), 0.12)',
+											color: 'var(--accent-gold)',
+											display: 'flex',
+											alignItems: 'center',
+											justifyContent: 'center',
+										}}
+									>
+										<FileText className="w-4 h-4" />
+									</Box>
+									<div>
+										<Typography sx={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>
+											Live PDF Preview
+										</Typography>
+										<Typography sx={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
+											{invoice.invoiceNumber} &bull; Auto-syncs on edit
+										</Typography>
+									</div>
+								</Box>
+								<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+									<button
+										type="button"
+										onClick={() => setPdfRefreshKey((k) => k + 1)}
+										className="p-1.5 rounded-lg border border-[var(--border)] hover:bg-[rgba(var(--text-primary-rgb),0.06)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all"
+										title="Refresh PDF"
+									>
+										<RotateCcw className="w-3.5 h-3.5" />
+									</button>
+									<button
+										type="button"
+										onClick={() => {
+											const iframe = document.getElementById('live-pdf-iframe') as HTMLIFrameElement;
+											if (iframe?.contentWindow) {
+												try {
+													iframe.contentWindow.focus();
+													iframe.contentWindow.print();
+													return;
+												} catch {}
+											}
+											window.open(`/api/invoices/${invoice.id}/pdf`, '_blank');
+										}}
+										className="p-1.5 rounded-lg border border-[var(--border)] hover:bg-[rgba(var(--text-primary-rgb),0.06)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all"
+										title="Print PDF"
+									>
+										<Printer className="w-3.5 h-3.5" />
+									</button>
+									<button
+										type="button"
+										onClick={() => window.open(`/api/invoices/${invoice.id}/pdf`, '_blank')}
+										className="p-1.5 rounded-lg border border-[var(--border)] hover:bg-[rgba(var(--text-primary-rgb),0.06)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all"
+										title="Open in new tab"
+									>
+										<ExternalLink className="w-3.5 h-3.5" />
+									</button>
+									<button
+										type="button"
+										onClick={() => setIsPreviewOpen(true)}
+										className="p-1.5 rounded-lg border border-[var(--border)] hover:bg-[rgba(var(--text-primary-rgb),0.06)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all"
+										title="Full screen preview"
+									>
+										<Maximize2 className="w-3.5 h-3.5" />
+									</button>
+									<button
+										type="button"
+										onClick={toggleSplitView}
+										className="p-1.5 rounded-lg border border-[var(--border)] hover:bg-red-500/10 text-[var(--text-secondary)] hover:text-red-500 transition-all"
+										title="Close Split View"
+									>
+										<X className="w-3.5 h-3.5" />
+									</button>
+								</Box>
+							</Box>
+
+							{/* Live Iframe Viewer */}
+							<Box sx={{ flex: 1, position: 'relative', bgcolor: '#0f172a' }}>
+								<iframe
+									id="live-pdf-iframe"
+									key={`live-pdf-${pdfRefreshKey}`}
+									src={`/api/invoices/${invoice.id}/pdf`}
+									title={`Invoice PDF ${invoice.invoiceNumber}`}
+									className="w-full h-full border-0"
+								/>
+							</Box>
+						</Box>
+					)}
+				</Box>
 			</Box>
 
 			{/* In-app Invoice PDF Preview Modal */}

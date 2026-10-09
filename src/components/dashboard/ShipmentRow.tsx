@@ -57,6 +57,9 @@ interface ShipmentRowProps {
 	delay?: number;
 	onQuickPeek?: (id: string) => void;
 	onOpenQR?: (shipment: any) => void;
+	selectable?: boolean;
+	selected?: boolean;
+	onToggleSelect?: (id: string) => void;
 }
 
 const formatStatus = (status: string) => {
@@ -87,6 +90,9 @@ export default function ShipmentRow({
 	delay = 0,
 	onQuickPeek,
 	onOpenQR,
+	selectable = false,
+	selected = false,
+	onToggleSelect,
 }: ShipmentRowProps) {
 	const router = useRouter();
 	const vehicleInfo = [vehicleMake, vehicleModel, vehicleYear].filter(Boolean).join(' ') || vehicleType;
@@ -148,9 +154,9 @@ export default function ShipmentRow({
 				sx={{
 					animationDelay: `${delay}s`,
 					animationFillMode: 'both',
-					background: 'var(--panel)',
-					border: '1px solid rgba(var(--panel-rgb), 0.9)',
-					borderLeft: '3px solid transparent',
+					background: selected ? 'rgba(var(--accent-gold-rgb), 0.05)' : 'var(--panel)',
+					border: selected ? '1px solid var(--accent-gold)' : '1px solid rgba(var(--panel-rgb), 0.9)',
+					borderLeft: selected ? '3px solid var(--accent-gold)' : '3px solid transparent',
 					borderRadius: 2,
 					boxShadow: '0 18px 32px rgba(var(--text-primary-rgb), 0.08)',
 					padding: { xs: 1.25, sm: 1.5, md: 1.75 },
@@ -187,7 +193,24 @@ export default function ShipmentRow({
 			>
 				{/* Column 1: Vehicle Info & Status */}
 				<Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, minWidth: 0, overflow: 'hidden' }}>
-					<Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1 }}>
+					<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+						{selectable && (
+							<span
+								onClick={(e) => {
+									e.stopPropagation();
+									if (onToggleSelect) onToggleSelect(id);
+								}}
+								className="p-1 rounded-md hover:bg-[var(--panel)] cursor-pointer inline-flex items-center shrink-0"
+								title={selected ? "Deselect" : "Select for batch action"}
+							>
+								<input
+									type="checkbox"
+									checked={selected}
+									onChange={() => {}}
+									className="w-4 h-4 rounded accent-[var(--accent-gold)] cursor-pointer"
+								/>
+							</span>
+						)}
 						<Typography
 							sx={{
 								fontSize: { xs: '0.9rem', sm: '0.92rem', md: '0.95rem' },

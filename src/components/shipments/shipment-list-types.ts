@@ -41,6 +41,9 @@ export interface Shipment {
 	} | null;
 	yardReceived?: boolean;
 	yardReceivedAt?: string | null;
+	lotNumber?: string | null;
+	hasKey?: boolean;
+	hasTitle?: boolean;
 	user?: {
 		name: string | null;
 		email: string;
