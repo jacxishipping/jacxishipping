@@ -1,5 +1,6 @@
 import { formatMoney as formatCurrency } from '@/lib/format';
 import { US_STATES, type AuctionRateEntry } from '@/lib/shipping-rate-calculator';
+import { JACXI_LOGO_BASE64 } from './jacxi-pdf-logo-base64';
 
 export interface PrintCompanyPriceListOptions {
   companyName: string;
@@ -116,8 +117,9 @@ export function generatePriceListPrintHtml(options: PrintCompanyPriceListOptions
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       color: #1a1a1a;
-      background: #ffffff;
-      padding: 24px 32px;
+      background: #f0f2f5;
+      padding: 0;
+      margin: 0;
       font-size: 11px;
       line-height: 1.45;
       -webkit-print-color-adjust: exact;
@@ -126,52 +128,68 @@ export function generatePriceListPrintHtml(options: PrintCompanyPriceListOptions
 
     /* Print toolbar */
     .toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 9999;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      background: #f3f4f6;
-      border: 1px solid #d1d5db;
-      border-radius: 8px;
-      padding: 12px 18px;
-      margin-bottom: 24px;
+      background: #1e293b;
+      color: #ffffff;
+      padding: 12px 24px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
     .toolbar-title {
       font-weight: 700;
       font-size: 14px;
-      color: #1a1a1a;
+      color: #ffffff;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
+    }
+    .toolbar-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
     }
     .toolbar-btn {
-      background: #b89327;
-      color: #ffffff;
+      background: #d4af37;
+      color: #111827;
       border: none;
-      padding: 8px 20px;
+      padding: 8px 18px;
       font-size: 13px;
       font-weight: 700;
       border-radius: 6px;
       cursor: pointer;
-      margin-left: 8px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      text-decoration: none;
       transition: background 0.15s ease;
     }
     .toolbar-btn:hover {
-      background: #9a781b;
+      background: #c59b27;
     }
     .toolbar-btn-secondary {
-      background: #ffffff;
-      color: #374151;
-      border: 1px solid #d1d5db;
+      background: rgba(255, 255, 255, 0.15);
+      color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.25);
     }
     .toolbar-btn-secondary:hover {
-      background: #f9fafb;
+      background: rgba(255, 255, 255, 0.25);
     }
 
     /* Page container */
     .doc-page {
-      background: #ffffff;
-      margin-bottom: 24px;
       position: relative;
+      width: 210mm;
+      min-height: 297mm;
+      margin: 20px auto;
+      padding: 42pt 34pt 32pt 34pt;
+      background: #ffffff;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      box-sizing: border-box;
+      overflow: hidden;
     }
 
     .page-break {
@@ -179,56 +197,60 @@ export function generatePriceListPrintHtml(options: PrintCompanyPriceListOptions
       break-after: page;
     }
 
+    /* Top Accent Bars */
+    .top-bar-black {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 18px;
+      background: #000000;
+    }
+    .top-bar-gold {
+      position: absolute;
+      top: 18px;
+      left: 0;
+      right: 0;
+      height: 3.5px;
+      background: #d4af37;
+    }
+
     /* Running Header */
     .doc-header {
       display: flex;
       justify-content: space-between;
-      align-items: flex-start;
-      border-bottom: 1.5px solid #1a1a1a;
-      padding-bottom: 12px;
-      margin-bottom: 16px;
+      align-items: center;
+      border-bottom: 1px solid #d4af37;
+      padding-bottom: 10px;
+      margin-bottom: 18px;
     }
-    .doc-header-left {
-      display: flex;
-      flex-direction: column;
-    }
-    .doc-header-category {
-      font-size: 8.5px;
-      font-weight: 800;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: #b89327;
-    }
-    .doc-header-subtitle {
-      font-size: 7.5px;
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: #5c5c5c;
-      margin-top: 2px;
+    .doc-logo {
+      height: 38px;
+      object-fit: contain;
+      display: block;
     }
     .doc-header-right {
       text-align: right;
     }
     .doc-header-right-title {
-      font-size: 8.5px;
+      font-size: 10px;
       font-weight: 800;
-      letter-spacing: 0.12em;
+      letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: #b89327;
+      color: #000000;
     }
     .doc-header-right-sub {
-      font-size: 7.5px;
+      font-size: 8.5px;
       font-weight: 700;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      color: #5c5c5c;
+      color: #c59b27;
       margin-top: 2px;
     }
 
     /* Cover Page Elements */
     .cover-hero {
-      margin-top: 8px;
+      margin-top: 4px;
       margin-bottom: 22px;
     }
     .cover-title {
@@ -239,7 +261,7 @@ export function generatePriceListPrintHtml(options: PrintCompanyPriceListOptions
       line-height: 1.15;
     }
     .cover-desc {
-      font-size: 10px;
+      font-size: 9.5px;
       color: #4b5563;
       margin-top: 8px;
       line-height: 1.55;
@@ -254,13 +276,13 @@ export function generatePriceListPrintHtml(options: PrintCompanyPriceListOptions
       margin-bottom: 22px;
     }
     .corridor-card {
-      border: 1px solid #e5e7eb;
-      background: #fafafa;
-      border-radius: 6px;
+      border: 1px solid #e8dfce;
+      border-top: 3px solid #d4af37;
+      background: #ffffff;
+      border-radius: 3px;
       padding: 12px 14px;
       display: flex;
       flex-direction: column;
-      position: relative;
     }
     .corridor-card-header {
       font-size: 7.5px;
@@ -276,9 +298,9 @@ export function generatePriceListPrintHtml(options: PrintCompanyPriceListOptions
       margin-top: 3px;
     }
     .corridor-card-price {
-      font-size: 17px;
+      font-size: 18px;
       font-weight: 850;
-      color: #b89327;
+      color: #c59b27;
       margin-top: 8px;
       letter-spacing: -0.01em;
     }
@@ -297,24 +319,23 @@ export function generatePriceListPrintHtml(options: PrintCompanyPriceListOptions
       padding-top: 6px;
     }
 
-    /* Stats Bar (4 columns) */
+    /* Stats Bar (Solid Black Background matching PDF) */
     .stats-bar {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       gap: 10px;
-      background: #fdfbf7;
-      border: 1px solid #ebdcb8;
-      border-radius: 6px;
-      padding: 12px 14px;
+      background: #000000;
+      border-radius: 4px;
+      padding: 12px 16px;
       margin-bottom: 22px;
     }
     .stat-item {
       text-align: center;
     }
     .stat-value {
-      font-size: 16px;
+      font-size: 18px;
       font-weight: 850;
-      color: #1a1a1a;
+      color: #c59b27;
       letter-spacing: -0.01em;
     }
     .stat-label {
@@ -322,8 +343,8 @@ export function generatePriceListPrintHtml(options: PrintCompanyPriceListOptions
       font-weight: 800;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      color: #8a701c;
-      margin-top: 3px;
+      color: #ffffff;
+      margin-top: 4px;
     }
 
     /* Section Header */
@@ -332,10 +353,8 @@ export function generatePriceListPrintHtml(options: PrintCompanyPriceListOptions
       font-weight: 800;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: #1a1a1a;
+      color: #c59b27;
       margin-bottom: 10px;
-      border-bottom: 1px solid #e5e7eb;
-      padding-bottom: 4px;
     }
 
     /* How to Read a Line (4 steps) */
@@ -346,57 +365,43 @@ export function generatePriceListPrintHtml(options: PrintCompanyPriceListOptions
       margin-bottom: 22px;
     }
     .step-box {
-      border: 1px solid #e5e7eb;
+      border: 1px solid #e8dfce;
       background: #ffffff;
-      border-radius: 6px;
+      border-radius: 3px;
       padding: 10px 12px;
     }
     .step-num {
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 850;
-      color: #b89327;
+      color: #c59b27;
       margin-bottom: 2px;
     }
     .step-title {
-      font-size: 9.5px;
+      font-size: 10px;
       font-weight: 800;
       color: #1a1a1a;
       margin-bottom: 4px;
     }
     .step-desc {
-      font-size: 7.5px;
+      font-size: 7.8px;
       color: #5c5c5c;
       line-height: 1.45;
     }
 
     /* Policy Inclusions / Exclusions */
-    .policy-boxes {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
+    .policy-section {
       margin-bottom: 20px;
     }
-    .policy-box {
-      border: 1px solid #e5e7eb;
-      border-radius: 6px;
-      padding: 12px 14px;
-      background: #ffffff;
+    .policy-block {
+      margin-bottom: 14px;
     }
-    .policy-box.included {
-      border-left: 3px solid #16a34a;
-      background: #fcfdfc;
-    }
-    .policy-box.excluded {
-      border-left: 3px solid #d97706;
-      background: #fdfcf9;
-    }
-    .policy-title {
-      font-size: 8px;
+    .policy-block-title {
+      font-size: 8.5px;
       font-weight: 800;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      color: #1a1a1a;
-      margin-bottom: 8px;
+      color: #c59b27;
+      margin-bottom: 6px;
     }
     .policy-list {
       list-style: none;
@@ -405,8 +410,8 @@ export function generatePriceListPrintHtml(options: PrintCompanyPriceListOptions
     }
     .policy-list li {
       font-size: 8px;
-      color: #4b5563;
-      margin-bottom: 5px;
+      color: #374151;
+      margin-bottom: 4px;
       line-height: 1.45;
       position: relative;
       padding-left: 14px;
@@ -415,17 +420,19 @@ export function generatePriceListPrintHtml(options: PrintCompanyPriceListOptions
       content: "•";
       position: absolute;
       left: 0;
-      color: #b89327;
+      color: #c59b27;
       font-weight: bold;
+      font-size: 11px;
+      line-height: 1;
     }
 
     /* Page 2: Commercial Rules */
     .rules-title {
-      font-size: 20px;
+      font-size: 26px;
       font-weight: 800;
       color: #1a1a1a;
       letter-spacing: -0.01em;
-      margin-top: 6px;
+      margin-top: 4px;
       margin-bottom: 18px;
     }
     .rules-grid {
@@ -435,18 +442,17 @@ export function generatePriceListPrintHtml(options: PrintCompanyPriceListOptions
       margin-bottom: 24px;
     }
     .rule-card {
-      border: 1px solid #e5e7eb;
-      border-left: 3.5px solid #b89327;
-      background: #fafafa;
-      border-radius: 6px;
+      border: 1px solid #e8dfce;
+      border-left: 3.5px solid #c59b27;
+      background: #ffffff;
+      border-radius: 3px;
       padding: 12px 16px;
     }
     .rule-card-title {
-      font-size: 10px;
+      font-size: 10.5px;
       font-weight: 800;
       color: #1a1a1a;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
+      letter-spacing: 0.02em;
       margin-bottom: 4px;
     }
     .rule-card-text {
@@ -468,8 +474,11 @@ export function generatePriceListPrintHtml(options: PrintCompanyPriceListOptions
       letter-spacing: 0.02em;
     }
     .doc-footer-brand {
-      font-weight: 700;
-      color: #374151;
+      color: #5c5c5c;
+    }
+    .doc-footer-center {
+      color: #1a1a1a;
+      font-weight: 600;
     }
 
     /* Table Styles */
@@ -487,16 +496,15 @@ export function generatePriceListPrintHtml(options: PrintCompanyPriceListOptions
       display: table-header-group;
     }
     table.rates-table th {
-      background: #f3f4f6;
-      border-top: 1.5px solid #1a1a1a;
-      border-bottom: 1.5px solid #1a1a1a;
+      background: #000000;
+      color: #d4af37;
       padding: 6px 8px;
       text-align: left;
       font-weight: 800;
       font-size: 7.5px;
       text-transform: uppercase;
-      color: #1a1a1a;
       letter-spacing: 0.05em;
+      border: none;
     }
     table.rates-table th.num-col {
       text-align: right;
@@ -505,12 +513,15 @@ export function generatePriceListPrintHtml(options: PrintCompanyPriceListOptions
       page-break-inside: avoid;
     }
     table.rates-table tbody tr:nth-child(even) {
-      background: #fbfbfb;
+      background: #f6f1e3;
+    }
+    table.rates-table tbody tr:nth-child(odd) {
+      background: #ffffff;
     }
     table.rates-table td {
       padding: 5.5px 8px;
-      border-bottom: 1px solid #ebebeb;
-      color: #262626;
+      border-bottom: 1px solid #e4e4e4;
+      color: #1a1a1a;
       font-size: 7.8px;
     }
     table.rates-table td.num-col {
@@ -519,19 +530,18 @@ export function generatePriceListPrintHtml(options: PrintCompanyPriceListOptions
       font-family: inherit;
     }
     table.rates-table td.sedan-total {
-      font-weight: 800;
+      font-weight: 850;
       color: #1a1a1a;
     }
     table.rates-table td.suv-total {
-      font-weight: 800;
-      color: #926315;
+      font-weight: 850;
+      color: #c59b27;
     }
 
-    /* State Banner Row */
+    /* State Banner Row (Solid Black matching PDF) */
     .state-banner-row td {
-      background: #f6f1e3 !important;
-      border-top: 1px solid #d4af37 !important;
-      border-bottom: 1px solid #d4af37 !important;
+      background: #000000 !important;
+      border: none !important;
       padding: 5px 8px !important;
     }
     .state-banner-content {
@@ -540,17 +550,14 @@ export function generatePriceListPrintHtml(options: PrintCompanyPriceListOptions
       align-items: center;
       font-size: 8.5px;
       font-weight: 850;
-      color: #1a1a1a;
+      color: #d4af37;
       letter-spacing: 0.06em;
       text-transform: uppercase;
     }
     .state-yard-badge {
-      font-size: 7.2px;
+      font-size: 7.5px;
       font-weight: 800;
-      background: rgba(184, 147, 39, 0.15);
-      color: #8a701c;
-      padding: 1px 7px;
-      border-radius: 4px;
+      color: #ffffff;
       letter-spacing: 0.05em;
     }
 
@@ -576,7 +583,7 @@ export function generatePriceListPrintHtml(options: PrintCompanyPriceListOptions
     }
     .state-flat-card {
       border: 1px solid #e5e7eb;
-      background: #fafafa;
+      background: #ffffff;
       border-radius: 4px;
       padding: 6px 10px;
       display: flex;
@@ -593,17 +600,24 @@ export function generatePriceListPrintHtml(options: PrintCompanyPriceListOptions
     @media print {
       body {
         padding: 0;
+        margin: 0;
         background: #ffffff;
       }
       .no-print {
         display: none !important;
       }
       @page {
-        size: A4;
-        margin: 10mm 12mm 12mm 12mm;
+        size: A4 portrait;
+        margin: 0;
       }
       .doc-page {
-        margin-bottom: 0;
+        margin: 0;
+        padding: 42pt 34pt 32pt 34pt;
+        width: 210mm;
+        min-height: 297mm;
+        box-shadow: none;
+        page-break-after: always;
+        break-after: page;
       }
       .page-break {
         page-break-after: always;
@@ -624,32 +638,37 @@ export function generatePriceListPrintHtml(options: PrintCompanyPriceListOptions
   <!-- Print Toolbar (Hidden during actual print) -->
   <div class="toolbar no-print">
     <div class="toolbar-title">
-      <span>📄</span>
-      <span>${companyName} — Price List Print Preview (${destinationLabel})</span>
+      <img src="${JACXI_LOGO_BASE64}" alt="JACXI" style="height: 24px; filter: brightness(0) invert(1);" />
+      <span>${companyName} — Price List Rate Sheet (${destinationLabel})</span>
     </div>
-    <div>
-      <button class="toolbar-btn toolbar-btn-secondary" onclick="window.close()">Close Preview</button>
-      <button class="toolbar-btn" onclick="window.print()">Print Document (Ctrl+P)</button>
+    <div class="toolbar-actions">
+      <a class="toolbar-btn toolbar-btn-secondary" href="/downloads/JACXI_Price_List_2026_Mersin_Yards.pdf" target="_blank" download="JACXI_Price_List_2026_Mersin_Yards.pdf">
+        ⬇ Download Original PDF
+      </a>
+      <button class="toolbar-btn toolbar-btn-secondary" onclick="window.close()">Close</button>
+      <button class="toolbar-btn" onclick="window.print()">🖨 Print Rate Sheet</button>
     </div>
   </div>
 
   <!-- PAGE 1: COVER / CORRIDOR GUIDE -->
   <div class="doc-page page-break">
+    <div class="top-bar-black"></div>
+    <div class="top-bar-gold"></div>
+
     <div class="doc-header">
-      <div class="doc-header-left">
-        <span class="doc-header-category">PRICE LIST</span>
-        <span class="doc-header-subtitle">${tariffYear} · ${destinationLabel.toUpperCase()} TARIFF</span>
+      <div>
+        <img src="${JACXI_LOGO_BASE64}" alt="${companyName}" class="doc-logo" />
       </div>
       <div class="doc-header-right">
-        <span class="doc-header-right-title">${companyName}</span>
-        <span class="doc-header-right-sub">${companyType.toUpperCase()} RATE SCHEDULE</span>
+        <div class="doc-header-right-title">PRICE LIST</div>
+        <div class="doc-header-right-sub">${tariffYear} · ${destinationLabel.toUpperCase()} TARIFF</div>
       </div>
     </div>
 
     <div class="cover-hero">
       <h1 class="cover-title">Single-car rate schedule</h1>
       <p class="cover-desc">
-        Door-to-${destinationLabel} guide rates for a running sedan. Each line is origin towing from the named US auction yard to the load port, plus ocean freight and clearance to ${destinationLabel}. Effective ${effectiveDate}.
+        Door-to-${destinationLabel} guide rates for a running sedan. Each line is origin towing from the named US auction yard to the load port, plus ocean freight and clearance to ${destinationLabel}, Turkey. Effective ${effectiveDate}.
       </p>
     </div>
 
@@ -685,7 +704,7 @@ export function generatePriceListPrintHtml(options: PrintCompanyPriceListOptions
       </div>
     </div>
 
-    <!-- Key Stats Metrics Row -->
+    <!-- Key Stats Metrics Row (Solid Black Bar matching PDF) -->
     <div class="stats-bar">
       <div class="stat-item">
         <div class="stat-value">${auctionRates.length > 0 ? auctionRates.length : (stateEntries.length || 307)}</div>
@@ -721,7 +740,7 @@ export function generatePriceListPrintHtml(options: PrintCompanyPriceListOptions
       <div class="step-box">
         <div class="step-num">03</div>
         <div class="step-title">Towing</div>
-        <div class="step-desc">Inland from that yard to the nominated load port.</div>
+        <div class="step-desc">Inland from that yard to the load port.</div>
       </div>
       <div class="step-box">
         <div class="step-num">04</div>
@@ -731,21 +750,21 @@ export function generatePriceListPrintHtml(options: PrintCompanyPriceListOptions
     </div>
 
     <!-- Included / Not Included -->
-    <div class="policy-boxes">
-      <div class="policy-box included">
-        <div class="policy-title">INCLUDED IN THE PRINTED TOTAL</div>
+    <div class="policy-section">
+      <div class="policy-block">
+        <div class="policy-block-title">INCLUDED IN THE PRINTED TOTAL</div>
         <ul class="policy-list">
           <li>Origin towing from the named main-branch yard to the load port</li>
           <li>Ocean freight on the nominated corridor</li>
           <li>${destinationLabel} arrival clearance as packaged in the source tariff</li>
         </ul>
       </div>
-      <div class="policy-box excluded">
-        <div class="policy-title">NOT IN THE PRINTED TOTAL</div>
+      <div class="policy-block">
+        <div class="policy-block-title">NOT IN THE PRINTED TOTAL</div>
         <ul class="policy-list">
           <li>SUV +$100 · pickup / extra-large SUV / full-size truck +$50–$100</li>
           <li>Sublot, off-site, Manheim and ADESA extras · destination demurrage</li>
-          <li>Inland transit beyond ${destinationLabel} (Islam Qala & provinces) — quoted on file</li>
+          <li>Afghanistan inland beyond ${destinationLabel} (Islam Qala and provinces) — quoted on the file</li>
           <li>Marine insurance, non-running handling, enclosed inland, storage after free time</li>
         </ul>
       </div>
@@ -753,21 +772,23 @@ export function generatePriceListPrintHtml(options: PrintCompanyPriceListOptions
 
     <div class="doc-footer">
       <span class="doc-footer-brand">Transparency  ·  Precision  ·  Reliability</span>
-      <span>USA → ${destinationLabel}  ·  Effective ${effectiveDate}</span>
+      <span class="doc-footer-center">USA → ${destinationLabel}  ·  Effective ${effectiveDate}</span>
       <span>1</span>
     </div>
   </div>
 
   <!-- PAGE 2: COMMERCIAL RULES -->
   <div class="doc-page page-break">
+    <div class="top-bar-black"></div>
+    <div class="top-bar-gold"></div>
+
     <div class="doc-header">
-      <div class="doc-header-left">
-        <span class="doc-header-category">PRICE LIST</span>
-        <span class="doc-header-subtitle">${tariffYear} · RULES</span>
+      <div>
+        <img src="${JACXI_LOGO_BASE64}" alt="${companyName}" class="doc-logo" />
       </div>
       <div class="doc-header-right">
-        <span class="doc-header-right-title">${companyName}</span>
-        <span class="doc-header-right-sub">COMMERCIAL POLICY</span>
+        <div class="doc-header-right-title">PRICE LIST</div>
+        <div class="doc-header-right-sub">${tariffYear} · RULES</div>
       </div>
     </div>
 
@@ -812,28 +833,30 @@ export function generatePriceListPrintHtml(options: PrintCompanyPriceListOptions
       <div class="rule-card">
         <div class="rule-card-title">Validity</div>
         <div class="rule-card-text">
-          Figures are the ${effectiveDate} schedule. Ocean, bunker, equipment and inland move with the market. A dated ${companyName} quotation is the instrument that locks a named vehicle.
+          Figures are the ${effectiveDate} schedule. Ocean, bunker, equipment and inland move. A dated JACXI quotation is the instrument that locks a named vehicle.
         </div>
       </div>
     </div>
 
     <div class="doc-footer">
       <span class="doc-footer-brand">Transparency  ·  Precision  ·  Reliability</span>
-      <span>USA → ${destinationLabel}  ·  Effective ${effectiveDate}</span>
+      <span class="doc-footer-center">USA → ${destinationLabel}  ·  Effective ${effectiveDate}</span>
       <span>2</span>
     </div>
   </div>
 
   <!-- PAGE 3 ONWARDS: YARD RATES (SEDAN + SUV) -->
   <div class="doc-page">
+    <div class="top-bar-black"></div>
+    <div class="top-bar-gold"></div>
+
     <div class="doc-header">
-      <div class="doc-header-left">
-        <span class="doc-header-category">PRICE LIST</span>
-        <span class="doc-header-subtitle">YARD RATES · SEDAN + SUV</span>
+      <div>
+        <img src="${JACXI_LOGO_BASE64}" alt="${companyName}" class="doc-logo" />
       </div>
       <div class="doc-header-right">
-        <span class="doc-header-right-title">${companyName}</span>
-        <span class="doc-header-right-sub">${destinationLabel.toUpperCase()} TARIFF SCHEDULE</span>
+        <div class="doc-header-right-title">PRICE LIST</div>
+        <div class="doc-header-right-sub">YARD RATES · SEDAN + SUV</div>
       </div>
     </div>
 
@@ -856,14 +879,14 @@ export function generatePriceListPrintHtml(options: PrintCompanyPriceListOptions
       <table class="rates-table">
         <thead>
           <tr>
-            <th style="width: 32px;">STATE</th>
+            <th style="width: 38px;">STATE</th>
             <th>BRANCH / AUCTION</th>
             <th>CITY / YARD</th>
-            <th style="width: 40px; text-align: center;">PORT</th>
+            <th style="width: 35px; text-align: center;">PORT</th>
             <th class="num-col" style="width: 65px;">TOWING</th>
-            <th class="num-col" style="width: 95px;">OCEAN + CLEARANCE</th>
-            <th class="num-col" style="width: 80px;">SEDAN TOTAL</th>
-            <th class="num-col" style="width: 80px;">SUV TOTAL</th>
+            <th class="num-col" style="width: 110px;">OCEAN + CLEARANCE</th>
+            <th class="num-col" style="width: 85px;">SEDAN TOTAL</th>
+            <th class="num-col" style="width: 85px;">SUV TOTAL</th>
           </tr>
         </thead>
         <tbody>
@@ -938,7 +961,7 @@ export function generatePriceListPrintHtml(options: PrintCompanyPriceListOptions
 
     <div class="doc-footer">
       <span class="doc-footer-brand">Transparency  ·  Precision  ·  Reliability</span>
-      <span>USA → ${destinationLabel}  ·  Effective ${effectiveDate}</span>
+      <span class="doc-footer-center">USA → ${destinationLabel}  ·  Effective ${effectiveDate}</span>
       <span>${companyName} Official Rate Schedule</span>
     </div>
   </div>
