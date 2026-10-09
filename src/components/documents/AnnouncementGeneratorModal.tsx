@@ -516,43 +516,55 @@ export function AnnouncementGeneratorModal({
         </div>
 
         {/* Right Column: Real-time Live Document Preview (7 cols on lg) */}
-        <div className="lg:col-span-7 flex flex-col bg-slate-900/90 rounded-2xl border border-slate-800 p-3 shadow-inner">
+        <div 
+          className="lg:col-span-7 flex flex-col rounded-2xl border p-3 shadow-inner"
+          style={{
+            backgroundColor: 'var(--surface-subtle)',
+            borderColor: 'var(--border)',
+          }}
+        >
           {/* Preview Toolbar */}
-          <div className="flex items-center justify-between pb-3 border-b border-slate-800 text-xs text-slate-300">
+          <div 
+            className="flex items-center justify-between pb-3 border-b text-xs"
+            style={{
+              borderColor: 'var(--border)',
+              color: 'var(--text-secondary)',
+            }}
+          >
             <div className="flex items-center gap-2">
-              <Eye className="w-4 h-4 text-amber-400" />
-              <span className="font-semibold text-slate-100">Live Letterhead Preview</span>
+              <Eye className="w-4 h-4 text-amber-500" />
+              <span className="font-semibold text-[var(--text-primary)]">Live Letterhead Preview</span>
               <button
                 type="button"
                 onClick={() => setDirection(d => d === 'rtl' ? 'ltr' : 'rtl')}
-                className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-[11px] font-bold text-amber-400 border border-slate-700 transition-colors cursor-pointer flex items-center gap-1"
+                className="px-2 py-0.5 rounded bg-[var(--panel)] hover:bg-[var(--surface-hover)] text-[11px] font-bold text-amber-600 dark:text-amber-400 border border-[var(--border)] transition-colors cursor-pointer flex items-center gap-1 shadow-sm"
                 title="Click to toggle RTL / LTR layout"
               >
                 <span>{direction === 'rtl' ? 'RTL' : 'LTR'}</span>
-                <span className="text-[10px] text-slate-400">⇄</span>
+                <span className="text-[10px] text-[var(--text-tertiary)]">⇄</span>
               </button>
-              <span className="px-1.5 py-0.5 rounded bg-slate-800 text-[10px] text-slate-400 border border-slate-700">
+              <span className="px-1.5 py-0.5 rounded bg-[var(--panel)] text-[10px] text-[var(--text-tertiary)] border border-[var(--border)]">
                 A4 Portrait
               </span>
             </div>
 
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1 bg-slate-800 px-2 py-1 rounded-lg border border-slate-700">
-                <span className="text-[10px] text-slate-400">Zoom:</span>
+              <div className="flex items-center gap-1 bg-[var(--panel)] px-2 py-1 rounded-lg border border-[var(--border)] shadow-sm">
+                <span className="text-[10px] text-[var(--text-tertiary)]">Zoom:</span>
                 <button
                   type="button"
                   onClick={() => setPreviewScale((s) => Math.max(0.5, s - 0.1))}
-                  className="px-1.5 text-slate-300 hover:text-white font-bold"
+                  className="px-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] font-bold"
                 >
                   -
                 </button>
-                <span className="text-[11px] font-mono text-amber-300 w-10 text-center">
+                <span className="text-[11px] font-mono text-amber-600 dark:text-amber-300 w-10 text-center font-bold">
                   {Math.round(previewScale * 100)}%
                 </span>
                 <button
                   type="button"
                   onClick={() => setPreviewScale((s) => Math.min(1.2, s + 0.1))}
-                  className="px-1.5 text-slate-300 hover:text-white font-bold"
+                  className="px-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] font-bold"
                 >
                   +
                 </button>
@@ -561,16 +573,22 @@ export function AnnouncementGeneratorModal({
               <button
                 type="button"
                 onClick={handleCopyHtml}
-                className="p-1.5 text-slate-400 hover:text-slate-100 rounded-lg hover:bg-slate-800 transition-colors flex items-center gap-1"
+                className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded-lg hover:bg-[var(--surface-hover)] border border-transparent hover:border-[var(--border)] transition-colors flex items-center gap-1"
                 title="Copy Standalone HTML"
               >
-                {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
               </button>
             </div>
           </div>
 
           {/* Preview Canvas Area */}
-          <div className="flex-1 overflow-auto flex justify-center items-start p-4 bg-slate-950/60 rounded-xl mt-3 min-h-[640px]">
+          <div 
+            className="flex-1 overflow-auto flex justify-center items-start p-4 rounded-xl mt-3 min-h-[640px] border shadow-inner"
+            style={{
+              backgroundColor: 'var(--surface)',
+              borderColor: 'var(--border-subtle)',
+            }}
+          >
             <div
               style={{
                 transform: `scale(${previewScale})`,

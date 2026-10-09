@@ -104,6 +104,7 @@ export interface LiveSeaRouteMapProps {
   selectedContainerId?: string;
   onSelectContainer?: (id: string) => void;
   className?: string;
+  defaultTheme?: MapTileTheme;
 }
 
 type MapTileTheme = 'nautical-dark' | 'satellite' | 'ocean-light';
@@ -122,6 +123,7 @@ export function LiveSeaRouteMap({
   selectedContainerId,
   onSelectContainer,
   className = '',
+  defaultTheme = 'ocean-light',
 }: LiveSeaRouteMapProps) {
   // Scrubber & Playback state
   const [isLiveAIS, setIsLiveAIS] = useState(true);
@@ -129,7 +131,7 @@ export function LiveSeaRouteMap({
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState<1 | 2 | 5>(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [mapTheme, setMapTheme] = useState<MapTileTheme>('nautical-dark');
+  const [mapTheme, setMapTheme] = useState<MapTileTheme>(defaultTheme);
   const [centerTarget, setCenterTarget] = useState<[number, number] | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -337,15 +339,26 @@ export function LiveSeaRouteMap({
   return (
     <div 
       ref={containerRef}
-      className={`relative w-full rounded-2xl bg-slate-950 border border-slate-800 text-slate-100 overflow-hidden shadow-2xl flex flex-col font-sans ${className} ${
+      className={`relative w-full rounded-2xl overflow-hidden border shadow-sm flex flex-col font-sans transition-all ${className} ${
         isFullscreen ? 'h-screen rounded-none' : 'min-h-[580px]'
       }`}
+      style={{
+        backgroundColor: 'var(--panel)',
+        borderColor: 'var(--border)',
+        color: 'var(--text-primary)',
+      }}
     >
       {/* ── TOP TELEMETRY HUD HEADER ── */}
-      <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 p-4 bg-slate-900/90 backdrop-blur-md border-b border-slate-800">
+      <div 
+        className="relative z-10 flex flex-wrap items-center justify-between gap-3 p-4 backdrop-blur-md border-b"
+        style={{
+          backgroundColor: 'var(--surface)',
+          borderColor: 'var(--border)',
+        }}
+      >
         {/* Left: Vessel Identity & Live AIS Beacon */}
         <div className="flex items-center gap-3">
-          <div className="relative p-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
+          <div className="relative p-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-600 dark:text-cyan-400">
             <Ship className="w-5 h-5" />
             <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
@@ -355,34 +368,34 @@ export function LiveSeaRouteMap({
 
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="text-sm font-extrabold tracking-tight text-white flex items-center gap-1.5">
+              <h3 className="text-sm font-extrabold tracking-tight text-[var(--text-primary)] flex items-center gap-1.5">
                 <span>{vesselName}</span>
                 <span title={telemetry.flag.country} className="text-base leading-none">
                   {telemetry.flag.emoji}
                 </span>
               </h3>
-              <span className="px-2 py-0.5 text-[10px] font-mono font-bold rounded bg-slate-800 border border-slate-700 text-cyan-400">
+              <span className="px-2 py-0.5 text-[10px] font-mono font-bold rounded bg-[var(--surface-subtle)] border border-[var(--border)] text-cyan-600 dark:text-cyan-400">
                 {telemetry.imoNumber}
               </span>
-              <span className="px-1.5 py-0.5 text-[10px] font-mono font-semibold rounded bg-slate-800/80 text-slate-400">
+              <span className="px-1.5 py-0.5 text-[10px] font-mono font-semibold rounded bg-[var(--surface-subtle)] text-[var(--text-secondary)] border border-[var(--border)]">
                 {voyageNumber}
               </span>
             </div>
 
-            <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-2 flex-wrap">
-              <span>Container: <strong className="font-mono text-slate-200">{containerNumber}</strong></span>
+            <p className="text-xs text-[var(--text-secondary)] mt-0.5 flex items-center gap-2 flex-wrap">
+              <span>Container: <strong className="font-mono text-[var(--text-primary)]">{containerNumber}</strong></span>
               <span>•</span>
-              <span className="text-cyan-300 font-medium flex items-center gap-1">
-                <Compass className="w-3 h-3 text-cyan-400" />
+              <span className="text-cyan-600 dark:text-cyan-300 font-medium flex items-center gap-1">
+                <Compass className="w-3 h-3 text-cyan-500" />
                 {telemetry.headingDegrees}° COG
               </span>
               <span>•</span>
-              <span className="text-emerald-400 font-medium flex items-center gap-1">
-                <Gauge className="w-3 h-3 text-emerald-400" />
+              <span className="text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
+                <Gauge className="w-3 h-3 text-emerald-500" />
                 {telemetry.speedKnots} kn
               </span>
               <span>•</span>
-              <span className="text-slate-400 hidden sm:inline">{telemetry.aisStation}</span>
+              <span className="text-[var(--text-secondary)] hidden sm:inline">{telemetry.aisStation}</span>
             </p>
           </div>
         </div>
@@ -391,15 +404,15 @@ export function LiveSeaRouteMap({
         <div className="flex items-center gap-4 flex-wrap">
           {/* Fleet Container Switcher (if list provided) */}
           {containersList && containersList.length > 0 && onSelectContainer && (
-            <div className="hidden md:flex items-center gap-2 bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700">
-              <Navigation className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+            <div className="hidden md:flex items-center gap-2 bg-[var(--surface-subtle)] px-3 py-1.5 rounded-xl border border-[var(--border)]">
+              <Navigation className="w-3.5 h-3.5 text-cyan-500 shrink-0" />
               <select
                 value={selectedContainerId || containersList.find(c => c.containerNumber === containerNumber)?.id || ''}
                 onChange={(e) => onSelectContainer(e.target.value)}
-                className="bg-transparent text-xs font-mono font-bold text-white outline-none cursor-pointer pr-1 py-0.5"
+                className="bg-transparent text-xs font-mono font-bold text-[var(--text-primary)] outline-none cursor-pointer pr-1 py-0.5"
               >
                 {containersList.map((c) => (
-                  <option key={c.id} value={c.id} className="bg-slate-900 text-white font-mono">
+                  <option key={c.id} value={c.id} className="bg-[var(--surface)] text-[var(--text-primary)] font-mono">
                     {c.containerNumber} — {c.progress}% ({c.destinationPort || 'In Transit'})
                   </option>
                 ))}
@@ -409,30 +422,30 @@ export function LiveSeaRouteMap({
 
           {/* Live ETA Ticker */}
           <div className="bg-gradient-to-r from-amber-500/10 to-amber-600/5 border border-amber-500/25 px-3.5 py-1.5 rounded-xl flex items-center gap-3">
-            <Clock className="w-4 h-4 text-amber-400 shrink-0" />
+            <Clock className="w-4 h-4 text-amber-500 shrink-0" />
             <div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-amber-300/80 block">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-300/80 block">
                 Estimated Port Arrival
               </span>
-              <div className="flex items-center gap-1.5 font-mono text-xs font-extrabold text-amber-300">
+              <div className="flex items-center gap-1.5 font-mono text-xs font-extrabold text-amber-600 dark:text-amber-300">
                 <span>{timeRemaining.days}d</span>
                 <span>:</span>
                 <span>{String(timeRemaining.hours).padStart(2, '0')}h</span>
                 <span>:</span>
                 <span>{String(timeRemaining.minutes).padStart(2, '0')}m</span>
-                <span className="text-amber-400/60">:</span>
-                <span className="text-amber-400/80 text-[11px]">{String(timeRemaining.seconds).padStart(2, '0')}s</span>
+                <span className="opacity-60">:</span>
+                <span className="text-[11px] opacity-80">{String(timeRemaining.seconds).padStart(2, '0')}s</span>
               </div>
             </div>
           </div>
 
           {/* Map Controls Group */}
-          <div className="flex items-center gap-1.5 bg-slate-800/80 p-1 rounded-xl border border-slate-700">
+          <div className="flex items-center gap-1.5 bg-[var(--surface-subtle)] p-1 rounded-xl border border-[var(--border)]">
             {/* Center on vessel button */}
             <button
               type="button"
               onClick={handleCenterOnVessel}
-              className="p-1.5 rounded-lg text-slate-300 hover:text-cyan-400 hover:bg-slate-700 transition-colors"
+              className="p-1.5 rounded-lg text-[var(--text-secondary)] hover:text-cyan-600 dark:hover:text-cyan-400 hover:bg-[var(--surface-hover)] transition-colors"
               title="Center Map on Vessel"
             >
               <Crosshair className="w-4 h-4" />
@@ -443,11 +456,11 @@ export function LiveSeaRouteMap({
               type="button"
               onClick={() => {
                 setMapTheme(prev => 
-                  prev === 'nautical-dark' ? 'satellite' : 
-                  prev === 'satellite' ? 'ocean-light' : 'nautical-dark'
+                  prev === 'ocean-light' ? 'satellite' : 
+                  prev === 'satellite' ? 'nautical-dark' : 'ocean-light'
                 );
               }}
-              className="p-1.5 rounded-lg text-slate-300 hover:text-cyan-400 hover:bg-slate-700 transition-colors"
+              className="p-1.5 rounded-lg text-[var(--text-secondary)] hover:text-cyan-600 dark:hover:text-cyan-400 hover:bg-[var(--surface-hover)] transition-colors"
               title={`Switch Map Theme (Current: ${mapTheme})`}
             >
               <Layers className="w-4 h-4" />
@@ -457,7 +470,7 @@ export function LiveSeaRouteMap({
             <button
               type="button"
               onClick={toggleFullscreen}
-              className="p-1.5 rounded-lg text-slate-300 hover:text-cyan-400 hover:bg-slate-700 transition-colors"
+              className="p-1.5 rounded-lg text-[var(--text-secondary)] hover:text-cyan-600 dark:hover:text-cyan-400 hover:bg-[var(--surface-hover)] transition-colors"
               title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
             >
               {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
@@ -467,7 +480,7 @@ export function LiveSeaRouteMap({
       </div>
 
       {/* ── INTERACTIVE LEAFLET MARITIME RADAR ── */}
-      <div className="relative flex-1 w-full min-h-[360px] bg-slate-950">
+      <div className="relative flex-1 w-full min-h-[360px] bg-[#eef3f7] dark:bg-slate-950">
         {typeof window !== 'undefined' && (
           <MapContainer
             center={[routeAnalysis.vesselCurrentPos.lat, routeAnalysis.vesselCurrentPos.lng]}
@@ -490,7 +503,7 @@ export function LiveSeaRouteMap({
               <Polyline
                 positions={traveledCoords}
                 pathOptions={{
-                  color: '#06b6d4', // cyan-500
+                  color: '#0891b2', // cyan-600
                   weight: 4,
                   opacity: 0.95,
                   lineCap: 'round',
@@ -504,7 +517,7 @@ export function LiveSeaRouteMap({
               <Polyline
                 positions={remainingCoords}
                 pathOptions={{
-                  color: '#38bdf8', // sky-400
+                  color: '#0284c7', // sky-600
                   weight: 3,
                   opacity: 0.45,
                   dashArray: '8, 8',
@@ -592,19 +605,26 @@ export function LiveSeaRouteMap({
 
         {/* Floating Ocean Conditions & Zone Pill Overlay */}
         <div className="absolute top-4 left-4 z-[400] flex flex-col gap-2 pointer-events-auto">
-          <div className="bg-slate-900/85 backdrop-blur-md border border-slate-700/80 px-3 py-2 rounded-xl text-xs text-slate-300 shadow-xl max-w-[280px]">
-            <div className="flex items-center justify-between gap-3 text-[10px] uppercase font-bold tracking-wider text-cyan-400 mb-1">
+          <div 
+            className="backdrop-blur-md border px-3 py-2 rounded-xl text-xs shadow-lg max-w-[280px]"
+            style={{
+              backgroundColor: 'var(--surface)',
+              borderColor: 'var(--border)',
+              color: 'var(--text-primary)',
+            }}
+          >
+            <div className="flex items-center justify-between gap-3 text-[10px] uppercase font-bold tracking-wider text-cyan-600 dark:text-cyan-400 mb-1">
               <span>Maritime Zone</span>
-              <span className="text-emerald-400">Live AIS</span>
+              <span className="text-emerald-500 dark:text-emerald-400">Live AIS</span>
             </div>
-            <p className="font-bold text-sm text-white truncate">{routeAnalysis.currentZoneName}</p>
-            <div className="mt-2 pt-2 border-t border-slate-800 grid grid-cols-2 gap-2 text-[11px] text-slate-400">
+            <p className="font-bold text-sm text-[var(--text-primary)] truncate">{routeAnalysis.currentZoneName}</p>
+            <div className="mt-2 pt-2 border-t border-[var(--border)] grid grid-cols-2 gap-2 text-[11px] text-[var(--text-secondary)]">
               <div className="flex items-center gap-1.5">
-                <Waves className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                <Waves className="w-3.5 h-3.5 text-cyan-500 shrink-0" />
                 <span>{telemetry.weather.waveHeightMeters}m Swell</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <Wind className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                <Wind className="w-3.5 h-3.5 text-cyan-500 shrink-0" />
                 <span>{telemetry.weather.windSpeedKnots} kn {telemetry.weather.windDirection}</span>
               </div>
             </div>
@@ -613,7 +633,7 @@ export function LiveSeaRouteMap({
 
         {/* Floating Live vs Scrubbed State Pill */}
         {!isLiveAIS && (
-          <div className="absolute top-4 right-4 z-[400] bg-amber-500/90 text-slate-950 font-bold text-xs px-3 py-1.5 rounded-full shadow-lg flex items-center gap-2">
+          <div className="absolute top-4 right-4 z-[400] bg-amber-500/95 text-slate-950 font-bold text-xs px-3 py-1.5 rounded-full shadow-lg flex items-center gap-2">
             <span>Simulating Voyage ({Math.round(scrubberProgress)}%)</span>
             <button
               onClick={handleResetToLive}
@@ -626,14 +646,21 @@ export function LiveSeaRouteMap({
       </div>
 
       {/* ── BOTTOM INTERACTIVE VOYAGE SCRUBBER & METRICS HUD ── */}
-      <div className="relative z-10 p-4 bg-slate-900/95 backdrop-blur-md border-t border-slate-800 space-y-3">
+      <div 
+        className="relative z-10 p-4 backdrop-blur-md border-t space-y-3"
+        style={{
+          backgroundColor: 'var(--surface)',
+          borderColor: 'var(--border)',
+          color: 'var(--text-primary)',
+        }}
+      >
         {/* Scrubber Control Row */}
         <div className="flex items-center gap-4">
           {/* Play/Pause Button */}
           <button
             type="button"
             onClick={() => setIsPlaying(!isPlaying)}
-            className="p-2 rounded-xl bg-cyan-500 text-slate-950 hover:bg-cyan-400 transition-colors shadow-md shrink-0"
+            className="p-2 rounded-xl bg-cyan-500 text-slate-950 hover:bg-cyan-400 transition-colors shadow-sm shrink-0"
             title={isPlaying ? 'Pause Simulation' : 'Play Voyage Simulation'}
           >
             {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
@@ -643,7 +670,7 @@ export function LiveSeaRouteMap({
           <button
             type="button"
             onClick={() => setPlaybackSpeed(s => (s === 1 ? 2 : s === 2 ? 5 : 1))}
-            className="px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 shrink-0"
+            className="px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-[var(--surface-subtle)] hover:bg-[var(--surface-hover)] text-cyan-600 dark:text-cyan-300 border border-[var(--border)] shrink-0"
             title="Simulation Speed"
           >
             {playbackSpeed}x
@@ -662,7 +689,7 @@ export function LiveSeaRouteMap({
                 setIsLiveAIS(false);
                 setScrubberProgress(parseFloat(e.target.value));
               }}
-              className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400 focus:outline-none"
+              className="w-full h-2 bg-[var(--border)] rounded-lg appearance-none cursor-pointer accent-cyan-500 focus:outline-none"
             />
           </div>
 
@@ -673,8 +700,8 @@ export function LiveSeaRouteMap({
             disabled={isLiveAIS}
             className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shrink-0 ${
               isLiveAIS
-                ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400'
-                : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700'
+                ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
+                : 'bg-[var(--surface-subtle)] hover:bg-[var(--surface-hover)] text-[var(--text-secondary)] border border-[var(--border)]'
             }`}
           >
             <Radio className={`w-3.5 h-3.5 ${isLiveAIS ? 'animate-pulse' : ''}`} />
@@ -683,39 +710,39 @@ export function LiveSeaRouteMap({
         </div>
 
         {/* Voyage Distance & Waypoints Row */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-slate-800/80 text-xs">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-[var(--border)] text-xs">
           <div>
-            <span className="text-[10px] uppercase font-bold text-slate-500 block">Distance Covered</span>
-            <p className="font-mono font-bold text-slate-200 mt-0.5">
-              {routeAnalysis.distanceCoveredNM.toLocaleString()} <span className="text-[10px] text-slate-400">NM</span>
+            <span className="text-[10px] uppercase font-bold text-[var(--text-secondary)] block">Distance Covered</span>
+            <p className="font-mono font-bold text-[var(--text-primary)] mt-0.5">
+              {routeAnalysis.distanceCoveredNM.toLocaleString()} <span className="text-[10px] text-[var(--text-secondary)]">NM</span>
             </p>
           </div>
 
           <div>
-            <span className="text-[10px] uppercase font-bold text-slate-500 block">Distance Remaining</span>
-            <p className="font-mono font-bold text-cyan-400 mt-0.5">
-              {routeAnalysis.distanceRemainingNM.toLocaleString()} <span className="text-[10px] text-slate-400">NM</span>
+            <span className="text-[10px] uppercase font-bold text-[var(--text-secondary)] block">Distance Remaining</span>
+            <p className="font-mono font-bold text-cyan-600 dark:text-cyan-400 mt-0.5">
+              {routeAnalysis.distanceRemainingNM.toLocaleString()} <span className="text-[10px] text-[var(--text-secondary)]">NM</span>
             </p>
           </div>
 
           <div>
-            <span className="text-[10px] uppercase font-bold text-slate-500 block">Total Oceanic Route</span>
-            <p className="font-mono font-bold text-slate-200 mt-0.5">
-              {routeAnalysis.totalDistanceNM.toLocaleString()} <span className="text-[10px] text-slate-400">NM</span>
-              <span className="text-[10px] text-slate-500 ml-1">({routeAnalysis.totalDistanceKM.toLocaleString()} km)</span>
+            <span className="text-[10px] uppercase font-bold text-[var(--text-secondary)] block">Total Oceanic Route</span>
+            <p className="font-mono font-bold text-[var(--text-primary)] mt-0.5">
+              {routeAnalysis.totalDistanceNM.toLocaleString()} <span className="text-[10px] text-[var(--text-secondary)]">NM</span>
+              <span className="text-[10px] text-[var(--text-secondary)] ml-1">({routeAnalysis.totalDistanceKM.toLocaleString()} km)</span>
             </p>
           </div>
 
           <div>
-            <span className="text-[10px] uppercase font-bold text-slate-500 block">Voyage Completion</span>
+            <span className="text-[10px] uppercase font-bold text-[var(--text-secondary)] block">Voyage Completion</span>
             <div className="flex items-center gap-2 mt-0.5">
-              <div className="flex-1 h-2 bg-slate-800 rounded-full overflow-hidden">
+              <div className="flex-1 h-2 bg-[var(--border)] rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-cyan-500 to-emerald-400 transition-all duration-300"
+                  className="h-full bg-gradient-to-r from-cyan-500 to-emerald-500 transition-all duration-300"
                   style={{ width: `${Math.round(scrubberProgress)}%` }}
                 />
               </div>
-              <span className="font-mono font-bold text-emerald-400">{Math.round(scrubberProgress)}%</span>
+              <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">{Math.round(scrubberProgress)}%</span>
             </div>
           </div>
         </div>

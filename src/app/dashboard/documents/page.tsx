@@ -342,20 +342,27 @@ export default function DocumentsPage() {
 			</DashboardGrid>
 
             {/* Official Announcement Generator Banner */}
-            <div className="relative overflow-hidden rounded-2xl border border-[rgba(var(--accent-gold-rgb),0.3)] bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 p-5 shadow-lg">
+            <div 
+                className="relative overflow-hidden rounded-2xl border p-5 shadow-sm transition-all"
+                style={{
+                    backgroundColor: 'var(--panel)',
+                    borderColor: 'var(--border)',
+                    borderTop: '2px solid rgba(var(--accent-gold-rgb), 0.5)',
+                }}
+            >
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-[rgba(var(--accent-gold-rgb),0.15)] border border-[rgba(var(--accent-gold-rgb),0.3)] flex items-center justify-center text-[var(--accent-gold)] shrink-0">
-                            <Newspaper className="w-6 h-6 text-amber-400" />
+                        <div className="w-12 h-12 rounded-xl bg-[rgba(var(--accent-gold-rgb),0.12)] border border-[rgba(var(--accent-gold-rgb),0.25)] flex items-center justify-center text-[var(--accent-gold)] shrink-0">
+                            <Newspaper className="w-6 h-6 text-amber-500" />
                         </div>
                         <div>
-                            <div className="flex items-center gap-2">
-                                <h3 className="text-base font-bold text-white">Official Announcement & Circular Generator</h3>
-                                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-600/20 text-red-400 border border-red-500/30">
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <h3 className="text-base font-bold text-[var(--text-primary)]">Official Announcement & Circular Generator</h3>
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20">
                                     Jacxi Shipping Letterhead
                                 </span>
                             </div>
-                            <p className="text-xs text-slate-300 mt-1 max-w-2xl">
+                            <p className="text-xs text-[var(--text-secondary)] mt-1 max-w-2xl leading-relaxed">
                                 Generate official Jacxi Shipping announcements and news documents in PDF matching the company letterhead. Simply enter Date, Title, and Body text to print or export.
                             </p>
                         </div>
@@ -363,7 +370,7 @@ export default function DocumentsPage() {
                     <Button
                         variant="primary"
                         size="sm"
-                        icon={<Newspaper className="w-4 h-4 text-slate-900" />}
+                        icon={<Newspaper className="w-4 h-4 text-slate-950" />}
                         onClick={() => setIsAnnouncementOpen(true)}
                         className="shrink-0"
                     >

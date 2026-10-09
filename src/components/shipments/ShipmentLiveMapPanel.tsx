@@ -40,7 +40,14 @@ const LiveSeaRouteMap = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex h-[450px] w-full items-center justify-center rounded-2xl border border-[var(--border)] bg-slate-950 text-slate-400">
+      <div 
+        className="flex h-[450px] w-full items-center justify-center rounded-2xl border"
+        style={{
+          backgroundColor: 'var(--panel)',
+          borderColor: 'var(--border)',
+          color: 'var(--text-secondary)',
+        }}
+      >
         <div className="flex flex-col items-center gap-3">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--accent-gold)] border-t-transparent" />
           <p className="text-sm font-medium">Initializing live satellite navigation system...</p>
@@ -147,16 +154,19 @@ export default function ShipmentLiveMapPanel({
   return (
     <div className={`flex flex-col gap-4 ${className}`}>
       {/* Header Info Banner */}
-      <div className="relative overflow-hidden rounded-2xl border border-[var(--border)] bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 p-4 text-white shadow-xl sm:p-5">
-        {/* Ambient background glow */}
-        <div className="pointer-events-none absolute -right-20 -top-20 h-60 w-60 rounded-full bg-cyan-500/10 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-20 -left-20 h-60 w-60 rounded-full bg-[var(--accent-gold)]/10 blur-3xl" />
-
+      <div 
+        className="relative overflow-hidden rounded-2xl border p-4 shadow-sm sm:p-5"
+        style={{
+          backgroundColor: 'var(--panel)',
+          borderColor: 'var(--border)',
+          color: 'var(--text-primary)',
+        }}
+      >
         <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap items-center gap-3">
             <div className={`relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${
-              hasContainer ? 'border-cyan-500/30 bg-cyan-950/70 text-cyan-400' : 'border-amber-500/30 bg-amber-950/70 text-amber-400'
-            } shadow-inner`}>
+              hasContainer ? 'border-cyan-500/30 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400' : 'border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400'
+            } shadow-sm`}>
               <span className="absolute -right-0.5 -top-0.5 flex h-3 w-3">
                 <span className={`absolute inline-flex h-full w-full animate-ping rounded-full ${hasContainer ? 'bg-cyan-400' : 'bg-amber-400'} opacity-75`} />
                 <span className={`relative inline-flex h-3 w-3 rounded-full ${hasContainer ? 'bg-cyan-500' : 'bg-amber-500'}`} />
@@ -166,36 +176,36 @@ export default function ShipmentLiveMapPanel({
 
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <h3 className="text-base font-bold tracking-tight text-white sm:text-lg">
+                <h3 className="text-base font-bold tracking-tight text-[var(--text-primary)] sm:text-lg">
                   {hasContainer ? 'Live Shipment Location Map' : 'Shipment Location & Yard Status'}
                 </h3>
                 {hasContainer ? (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-cyan-500/40 bg-cyan-500/15 px-2.5 py-0.5 text-xs font-semibold text-cyan-300">
-                    <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                  <span className="inline-flex items-center gap-1 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-2.5 py-0.5 text-xs font-semibold text-cyan-600 dark:text-cyan-400">
+                    <span className="h-1.5 w-1.5 rounded-full bg-cyan-500 animate-pulse" />
                     AIS Telemetry Live
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/15 px-2.5 py-0.5 text-xs font-semibold text-amber-300">
-                    <Package className="h-3 w-3 text-amber-400" />
+                  <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-xs font-semibold text-amber-600 dark:text-amber-400">
+                    <Package className="h-3 w-3 text-amber-500" />
                     Awaiting Container
                   </span>
                 )}
                 <StatusBadge status={shipment.status} size="sm" />
               </div>
 
-              <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-300">
+              <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[var(--text-secondary)]">
                 <span className="flex items-center gap-1">
-                  <MapPin className="h-3.5 w-3.5 text-cyan-400" />
+                  <MapPin className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400" />
                   <span>Current: </span>
-                  <strong className="text-white">{currentLocationLabel}</strong>
+                  <strong className="text-[var(--text-primary)]">{currentLocationLabel}</strong>
                 </span>
                 <span className="flex items-center gap-1">
                   <Ship className="h-3.5 w-3.5 text-[var(--accent-gold)]" />
                   <span>Vessel: </span>
-                  <strong className="text-white">{vesselName}</strong>
+                  <strong className="text-[var(--text-primary)]">{vesselName}</strong>
                 </span>
-                <span className="font-mono text-slate-400">
-                  Container: <strong className="text-slate-200">{containerNumber}</strong>
+                <span className="font-mono text-[var(--text-secondary)]">
+                  Container: <strong className="text-[var(--text-primary)]">{containerNumber}</strong>
                 </span>
               </div>
             </div>
@@ -206,10 +216,10 @@ export default function ShipmentLiveMapPanel({
             <button
               type="button"
               onClick={() => setIsMapVisible((prev) => !prev)}
-              className={`flex items-center gap-1.5 rounded-xl border px-3.5 py-2 text-xs font-bold transition-all shadow-md ${
+              className={`flex items-center gap-1.5 rounded-xl border px-3.5 py-2 text-xs font-bold transition-all shadow-sm ${
                 isMapVisible
-                  ? 'border-cyan-400/50 bg-cyan-500 text-slate-950 shadow-cyan-500/20'
-                  : 'border-cyan-500/30 bg-cyan-950/70 text-cyan-300 hover:bg-cyan-900/80 hover:text-white'
+                  ? 'border-cyan-500 bg-cyan-500 text-slate-950 shadow-cyan-500/20'
+                  : 'border-[var(--border)] bg-[var(--surface-subtle)] hover:bg-[var(--surface-hover)] text-[var(--text-primary)]'
               }`}
             >
               <Compass className="h-4 w-4" />
@@ -217,14 +227,20 @@ export default function ShipmentLiveMapPanel({
             </button>
 
             {isMapVisible && (
-              <div className="inline-flex items-center rounded-xl border border-slate-800 bg-slate-900/90 p-1 text-xs shadow-inner">
+              <div 
+                className="inline-flex items-center rounded-xl border p-1 text-xs shadow-sm"
+                style={{
+                  backgroundColor: 'var(--surface-subtle)',
+                  borderColor: 'var(--border)',
+                }}
+              >
                 <button
                   type="button"
                   onClick={() => setViewMode('ais-radar')}
                   className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-semibold transition-all ${
                     viewMode === 'ais-radar'
-                      ? 'bg-cyan-500 font-bold text-slate-950 shadow-md'
-                      : 'text-slate-400 hover:text-slate-200'
+                      ? 'bg-cyan-500 font-bold text-slate-950 shadow-sm'
+                      : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                   }`}
                 >
                   <Radio className="h-3.5 w-3.5" />
@@ -235,8 +251,8 @@ export default function ShipmentLiveMapPanel({
                   onClick={() => setViewMode('multimodal')}
                   className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-semibold transition-all ${
                     viewMode === 'multimodal'
-                      ? 'bg-[var(--accent-gold)] font-bold text-slate-950 shadow-md'
-                      : 'text-slate-400 hover:text-slate-200'
+                      ? 'bg-[var(--panel)] font-bold text-[var(--text-primary)] shadow-sm border border-[var(--border)]'
+                      : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                   }`}
                 >
                   <Compass className="h-3.5 w-3.5" />
@@ -248,42 +264,48 @@ export default function ShipmentLiveMapPanel({
         </div>
 
         {/* Route Corridor Quick Summary Strip */}
-        <div className="relative z-10 mt-4 grid grid-cols-1 gap-2 rounded-xl border border-slate-800/80 bg-slate-900/60 p-3 sm:grid-cols-3">
+        <div 
+          className="relative z-10 mt-4 grid grid-cols-1 gap-2 rounded-xl border p-3 sm:grid-cols-3"
+          style={{
+            backgroundColor: 'var(--surface)',
+            borderColor: 'var(--border)',
+          }}
+        >
           <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-800 text-emerald-400">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
               <MapPin className="h-4 w-4" />
             </div>
             <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Origin Port / Yard</p>
-              <p className="truncate text-xs font-semibold text-white">{originPort}</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)]">Origin Port / Yard</p>
+              <p className="truncate text-xs font-semibold text-[var(--text-primary)]">{originPort}</p>
             </div>
           </div>
 
           <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-800 text-cyan-400">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-cyan-500/10 text-cyan-600 dark:text-cyan-400">
               <Navigation className="h-4 w-4" />
             </div>
             <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Transit Progress</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)]">Transit Progress</p>
               <div className="flex items-center gap-2">
-                <div className="h-1.5 w-24 overflow-hidden rounded-full bg-slate-700">
+                <div className="h-1.5 w-24 overflow-hidden rounded-full bg-[var(--border)]">
                   <div
-                    className="h-full bg-gradient-to-r from-cyan-400 to-[var(--accent-gold)] transition-all duration-500"
+                    className="h-full bg-gradient-to-r from-cyan-500 to-[var(--accent-gold)] transition-all duration-500"
                     style={{ width: `${progressPercent}%` }}
                   />
                 </div>
-                <span className="text-xs font-bold text-cyan-300">{progressPercent}%</span>
+                <span className="text-xs font-bold text-cyan-600 dark:text-cyan-400">{progressPercent}%</span>
               </div>
             </div>
           </div>
 
           <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-800 text-[var(--accent-gold)]">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[rgba(var(--accent-gold-rgb),0.1)] text-[var(--accent-gold)]">
               <CalendarCheck className="h-4 w-4" />
             </div>
             <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Destination & ETA</p>
-              <p className="truncate text-xs font-semibold text-white">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)]">Destination & ETA</p>
+              <p className="truncate text-xs font-semibold text-[var(--text-primary)]">
                 {destinationPort} {estimatedArrival ? `• ${formatShortDate(estimatedArrival)}` : ''}
               </p>
             </div>
@@ -294,40 +316,47 @@ export default function ShipmentLiveMapPanel({
       {/* Main Interactive Map Component (Only mounted on demand) */}
       {isMapVisible && (
         !hasContainer ? (
-          <div className="relative overflow-hidden rounded-2xl border border-amber-500/30 bg-slate-950 p-6 text-white shadow-lg">
+          <div 
+            className="relative overflow-hidden rounded-2xl border p-6 shadow-sm"
+            style={{
+              backgroundColor: 'var(--panel)',
+              borderColor: 'var(--border)',
+              color: 'var(--text-primary)',
+            }}
+          >
             <div className="flex flex-col gap-4">
               <div className="flex items-start gap-3">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-amber-500/40 bg-amber-950/60 text-amber-400">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400">
                   <Package className="h-6 w-6" />
                 </div>
                 <div>
-                  <h4 className="text-base font-bold text-white">Awaiting Container Assignment & Loading</h4>
-                  <p className="mt-1 text-xs text-slate-300 leading-relaxed">
+                  <h4 className="text-base font-bold text-[var(--text-primary)]">Awaiting Container Assignment & Loading</h4>
+                  <p className="mt-1 text-xs text-[var(--text-secondary)] leading-relaxed">
                     This vehicle is currently staged at the yard / in domestic dispatch. Live transatlantic AIS vessel radar, real-time satellite coordinates, and voyage tracking will automatically activate once the vehicle is assigned to a container and departs the export port.
                   </p>
                 </div>
               </div>
 
-              <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-3 border-t border-slate-800 pt-4">
-                <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-3">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Dispatch Status</p>
-                  <p className="mt-1 text-xs font-semibold text-white">
+              <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-3 border-t border-[var(--border)] pt-4">
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-subtle)] p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">Dispatch Status</p>
+                  <p className="mt-1 text-xs font-semibold text-[var(--text-primary)]">
                     {shipment.dispatch ? `Dispatched (${shipment.dispatch.status})` : 'Not assigned to dispatch'}
                   </p>
                 </div>
-                <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-3">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Staging Location</p>
-                  <p className="mt-1 text-xs font-semibold text-white">{currentLocationLabel}</p>
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-subtle)] p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">Staging Location</p>
+                  <p className="mt-1 text-xs font-semibold text-[var(--text-primary)]">{currentLocationLabel}</p>
                 </div>
-                <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-3">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Export Container</p>
-                  <p className="mt-1 font-mono text-xs font-semibold text-amber-400">Unassigned (Queued)</p>
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-subtle)] p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">Export Container</p>
+                  <p className="mt-1 font-mono text-xs font-semibold text-amber-600 dark:text-amber-400">Unassigned (Queued)</p>
                 </div>
               </div>
             </div>
           </div>
         ) : viewMode === 'ais-radar' ? (
-          <div className="relative overflow-hidden rounded-2xl border border-[var(--border)] bg-slate-950 shadow-lg">
+          <div className="relative overflow-hidden rounded-2xl border border-[var(--border)] shadow-sm">
             <LiveSeaRouteMap
               containerNumber={containerNumber}
               originPort={originPort}
@@ -342,16 +371,23 @@ export default function ShipmentLiveMapPanel({
           </div>
         ) : (
           /* Multimodal Corridor Overview */
-          <div className="relative overflow-hidden rounded-2xl border border-[var(--border)] bg-slate-950 p-6 text-white shadow-lg">
+          <div 
+            className="relative overflow-hidden rounded-2xl border p-6 shadow-sm"
+            style={{
+              backgroundColor: 'var(--panel)',
+              borderColor: 'var(--border)',
+              color: 'var(--text-primary)',
+            }}
+          >
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="text-base font-semibold text-white">Multimodal Global Corridor</h4>
-                  <p className="text-xs text-slate-400">
+                  <h4 className="text-base font-semibold text-[var(--text-primary)]">Multimodal Global Corridor</h4>
+                  <p className="text-xs text-[var(--text-secondary)]">
                     End-to-end transportation journey from USA Yard to Destination Hub
                   </p>
                 </div>
-                <span className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-1 text-xs font-medium text-slate-300">
+                <span className="rounded-lg border border-[var(--border)] bg-[var(--surface-subtle)] px-3 py-1 text-xs font-medium text-[var(--text-primary)]">
                   {activeStage === 'sea'
                     ? 'Stage 2/3: Ocean Transit'
                     : activeStage === 'transit'
@@ -368,38 +404,38 @@ export default function ShipmentLiveMapPanel({
               <div
                 className={`relative rounded-xl border p-4 transition-all ${
                   activeStage === 'dispatch'
-                    ? 'border-cyan-500/50 bg-cyan-950/20 shadow-lg shadow-cyan-500/10'
+                    ? 'border-cyan-500/50 bg-cyan-500/10 shadow-sm'
                     : progressPercent > 30
-                    ? 'border-emerald-500/30 bg-slate-900/40'
-                    : 'border-slate-800 bg-slate-900/20'
+                    ? 'border-emerald-500/30 bg-emerald-500/5'
+                    : 'border-[var(--border)] bg-[var(--surface-subtle)]'
                 }`}
               >
                 <div className="flex items-center gap-3">
                   <div
                     className={`flex h-9 w-9 items-center justify-center rounded-lg ${
                       progressPercent > 30
-                        ? 'bg-emerald-900/50 text-emerald-400'
+                        ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
                         : activeStage === 'dispatch'
-                        ? 'bg-cyan-900/50 text-cyan-400'
-                        : 'bg-slate-800 text-slate-500'
+                        ? 'bg-cyan-500/15 text-cyan-600 dark:text-cyan-400'
+                        : 'bg-[var(--border)] text-[var(--text-secondary)]'
                     }`}
                   >
                     <Truck className="h-5 w-5" />
                   </div>
                   <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Leg 1</span>
-                    <h5 className="text-sm font-semibold text-white">Inland Dispatch</h5>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">Leg 1</span>
+                    <h5 className="text-sm font-semibold text-[var(--text-primary)]">Inland Dispatch</h5>
                   </div>
                 </div>
-                <div className="mt-3 space-y-1 text-xs text-slate-300">
+                <div className="mt-3 space-y-1 text-xs text-[var(--text-secondary)]">
                   <p>
-                    <strong>Origin:</strong> {shipment.dispatch?.origin || shipment.purchaseLocation || 'USA Auction Yard'}
+                    <strong className="text-[var(--text-primary)]">Origin:</strong> {shipment.dispatch?.origin || shipment.purchaseLocation || 'USA Auction Yard'}
                   </p>
                   <p>
-                    <strong>Port:</strong> {shipment.dispatch?.destination || originPort}
+                    <strong className="text-[var(--text-primary)]">Port:</strong> {shipment.dispatch?.destination || originPort}
                   </p>
                   {shipment.dispatch?.referenceNumber && (
-                    <p className="font-mono text-slate-400">Ref: {shipment.dispatch.referenceNumber}</p>
+                    <p className="font-mono text-[var(--text-secondary)]">Ref: {shipment.dispatch.referenceNumber}</p>
                   )}
                 </div>
               </div>
@@ -408,37 +444,37 @@ export default function ShipmentLiveMapPanel({
               <div
                 className={`relative rounded-xl border p-4 transition-all ${
                   activeStage === 'sea'
-                    ? 'border-cyan-500/50 bg-cyan-950/20 shadow-lg shadow-cyan-500/10'
+                    ? 'border-cyan-500/50 bg-cyan-500/10 shadow-sm'
                     : progressPercent > 75
-                    ? 'border-emerald-500/30 bg-slate-900/40'
-                    : 'border-slate-800 bg-slate-900/20'
+                    ? 'border-emerald-500/30 bg-emerald-500/5'
+                    : 'border-[var(--border)] bg-[var(--surface-subtle)]'
                 }`}
               >
                 <div className="flex items-center gap-3">
                   <div
                     className={`flex h-9 w-9 items-center justify-center rounded-lg ${
                       progressPercent > 75
-                        ? 'bg-emerald-900/50 text-emerald-400'
+                        ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
                         : activeStage === 'sea'
-                        ? 'bg-cyan-900/50 text-cyan-400'
-                        : 'bg-slate-800 text-slate-500'
+                        ? 'bg-cyan-500/15 text-cyan-600 dark:text-cyan-400'
+                        : 'bg-[var(--border)] text-[var(--text-secondary)]'
                     }`}
                   >
                     <Ship className="h-5 w-5" />
                   </div>
                   <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Leg 2</span>
-                    <h5 className="text-sm font-semibold text-white">Ocean Sea Transit</h5>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">Leg 2</span>
+                    <h5 className="text-sm font-semibold text-[var(--text-primary)]">Ocean Sea Transit</h5>
                   </div>
                 </div>
-                <div className="mt-3 space-y-1 text-xs text-slate-300">
+                <div className="mt-3 space-y-1 text-xs text-[var(--text-secondary)]">
                   <p>
-                    <strong>Port:</strong> {originPort} → {destinationPort}
+                    <strong className="text-[var(--text-primary)]">Port:</strong> {originPort} → {destinationPort}
                   </p>
                   <p>
-                    <strong>Vessel:</strong> {vesselName} ({voyageNumber})
+                    <strong className="text-[var(--text-primary)]">Vessel:</strong> {vesselName} ({voyageNumber})
                   </p>
-                  <p className="font-mono text-slate-400">Container: {containerNumber}</p>
+                  <p className="font-mono text-[var(--text-secondary)]">Container: {containerNumber}</p>
                 </div>
               </div>
 
@@ -446,38 +482,38 @@ export default function ShipmentLiveMapPanel({
               <div
                 className={`relative rounded-xl border p-4 transition-all ${
                   activeStage === 'transit'
-                    ? 'border-cyan-500/50 bg-cyan-950/20 shadow-lg shadow-cyan-500/10'
+                    ? 'border-cyan-500/50 bg-cyan-500/10 shadow-sm'
                     : activeStage === 'delivered'
-                    ? 'border-emerald-500/30 bg-slate-900/40'
-                    : 'border-slate-800 bg-slate-900/20'
+                    ? 'border-emerald-500/30 bg-emerald-500/5'
+                    : 'border-[var(--border)] bg-[var(--surface-subtle)]'
                 }`}
               >
                 <div className="flex items-center gap-3">
                   <div
                     className={`flex h-9 w-9 items-center justify-center rounded-lg ${
                       activeStage === 'delivered'
-                        ? 'bg-emerald-900/50 text-emerald-400'
+                        ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
                         : activeStage === 'transit'
-                        ? 'bg-cyan-900/50 text-cyan-400'
-                        : 'bg-slate-800 text-slate-500'
+                        ? 'bg-cyan-500/15 text-cyan-600 dark:text-cyan-400'
+                        : 'bg-[var(--border)] text-[var(--text-secondary)]'
                     }`}
                   >
                     <Anchor className="h-5 w-5" />
                   </div>
                   <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Leg 3</span>
-                    <h5 className="text-sm font-semibold text-white">Destination Transit</h5>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">Leg 3</span>
+                    <h5 className="text-sm font-semibold text-[var(--text-primary)]">Destination Transit</h5>
                   </div>
                 </div>
-                <div className="mt-3 space-y-1 text-xs text-slate-300">
+                <div className="mt-3 space-y-1 text-xs text-[var(--text-secondary)]">
                   <p>
-                    <strong>Route:</strong> {shipment.transit?.origin || 'UAE / Port Hub'} → {shipment.transit?.destination || 'Islam Qala / Afghanistan'}
+                    <strong className="text-[var(--text-primary)]">Route:</strong> {shipment.transit?.origin || 'UAE / Port Hub'} → {shipment.transit?.destination || 'Islam Qala / Afghanistan'}
                   </p>
                   <p>
-                    <strong>Status:</strong> {shipment.transit?.status || 'Awaiting Release'}
+                    <strong className="text-[var(--text-primary)]">Status:</strong> {shipment.transit?.status || 'Awaiting Release'}
                   </p>
                   {shipment.transit?.referenceNumber && (
-                    <p className="font-mono text-slate-400">Ref: {shipment.transit.referenceNumber}</p>
+                    <p className="font-mono text-[var(--text-secondary)]">Ref: {shipment.transit.referenceNumber}</p>
                   )}
                 </div>
               </div>
