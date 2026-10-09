@@ -22,6 +22,7 @@ import {
 	Search,
 	Download,
 	Eye,
+	ExternalLink,
 	Calendar,
 	DollarSign,
 	User,
@@ -30,6 +31,7 @@ import {
 } from 'lucide-react';
 import { DashboardSurface, DashboardPanel } from '@/components/dashboard/DashboardSurface';
 import InvoiceQuickPeek from '@/components/dashboard/InvoiceQuickPeek';
+import InvoicePreviewModal from '@/components/invoices/InvoicePreviewModal';
 import { 
 	PageHeader, 
 	Button, 
@@ -116,6 +118,13 @@ export default function InvoicesPage() {
 	const [currentPage, setCurrentPage] = useState(1);
 	const [pagination, setPagination] = useState({ total: 0, totalAll: 0, limit: 25, offset: 0, hasMore: false });
 	const [quickPeekInvoiceId, setQuickPeekInvoiceId] = useState<string | null>(null);
+	const [previewInvoice, setPreviewInvoice] = useState<{
+		id: string;
+		invoiceNumber: string;
+		customerName?: string;
+		totalAmount?: number;
+		status?: string;
+	} | null>(null);
 
 	const isAdmin = hasPermission(session?.user?.role, 'invoices:manage');
 	const customerFilterUserId = searchParams.get('userId');
@@ -369,6 +378,23 @@ export default function InvoicesPage() {
 					<Button
 						variant="outline"
 						size="sm"
+						icon={<Eye className="w-3 h-3 text-[var(--accent-gold)]" />}
+						onClick={() => {
+							setPreviewInvoice({
+								id: row.id,
+								invoiceNumber: row.invoiceNumber,
+								customerName: row.customer,
+								totalAmount: row.total,
+								status: row.status,
+							});
+						}}
+						title="Interactive PDF preview"
+					>
+						Preview
+					</Button>
+					<Button
+						variant="outline"
+						size="sm"
 						icon={<PanelRightOpen className="w-3 h-3" />}
 						onClick={() => setQuickPeekInvoiceId(row.id)}
 						title="Quick peek invoice details"
@@ -378,7 +404,7 @@ export default function InvoicesPage() {
 					<Button
 						variant="outline"
 						size="sm"
-						icon={<Eye className="w-3 h-3" />}
+						icon={<ExternalLink className="w-3 h-3" />}
 						onClick={() => router.push(`/dashboard/invoices/${row.id}`)}
 					>
 						View
@@ -792,6 +818,17 @@ const confirmAction = useConfirmAction();
 					invoiceId={quickPeekInvoiceId}
 					open={Boolean(quickPeekInvoiceId)}
 					onClose={() => setQuickPeekInvoiceId(null)}
+				/>
+
+				{/* Interactive Invoice PDF Preview Modal */}
+				<InvoicePreviewModal
+					open={Boolean(previewInvoice)}
+					invoiceId={previewInvoice?.id || null}
+					invoiceNumber={previewInvoice?.invoiceNumber}
+					customerName={previewInvoice?.customerName}
+					totalAmount={previewInvoice?.totalAmount}
+					status={previewInvoice?.status}
+					onClose={() => setPreviewInvoice(null)}
 				/>
 		</DashboardSurface>
 	);

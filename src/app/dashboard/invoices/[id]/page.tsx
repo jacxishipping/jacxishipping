@@ -47,9 +47,11 @@ import {
 	Tag,
 	AlertCircle,
 	X,
+	Eye,
 } from 'lucide-react';
 import { DashboardSurface, DashboardPanel } from '@/components/dashboard/DashboardSurface';
 import { ActivityLog } from '@/components/dashboard/ActivityLog';
+import InvoicePreviewModal from '@/components/invoices/InvoicePreviewModal';
 import { 
 	PageHeader,
 	Button, 
@@ -171,6 +173,7 @@ export default function InvoiceDetailPage() {
 	const [updating, setUpdating] = useState(false);
 	const [disputedLineIds, setDisputedLineIds] = useState<Set<string>>(() => new Set());
 	const [isEditOpen, setIsEditOpen] = useState(false);
+	const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 	const [editModalTab, setEditModalTab] = useState<'details' | 'items'>('details');
 	const [editForm, setEditForm] = useState({
 		dueDate: '',
@@ -1378,6 +1381,14 @@ export default function InvoiceDetailPage() {
 								</Button>
 							)}
 							<Button
+								variant="outline"
+								size="sm"
+								icon={<Eye className="w-4 h-4 text-[var(--accent-gold)]" />}
+								onClick={() => setIsPreviewOpen(true)}
+							>
+								Preview PDF
+							</Button>
+							<Button
 								variant="primary"
 								size="sm"
 								icon={<Download className="w-4 h-4" />}
@@ -1873,6 +1884,17 @@ export default function InvoiceDetailPage() {
 					</Box>
 				</DashboardSurface>
 			</Box>
+
+			{/* In-app Invoice PDF Preview Modal */}
+			<InvoicePreviewModal
+				open={isPreviewOpen}
+				invoiceId={invoice.id}
+				invoiceNumber={invoice.invoiceNumber}
+				customerName={invoice.user?.name || invoice.user?.email}
+				totalAmount={invoice.total}
+				status={invoice.status}
+				onClose={() => setIsPreviewOpen(false)}
+			/>
 		</>
 	);
 }

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { AlertTriangle, Brain, CheckCircle2, FileText, Folder, Newspaper, Search as SearchIcon, ShieldCheck, Upload } from 'lucide-react';
+import { AlertTriangle, Brain, CheckCircle2, FileText, Folder, Newspaper, Search as SearchIcon, ShieldCheck, Upload, Eye, Receipt, Printer, ExternalLink, Download } from 'lucide-react';
 import { Box, Typography } from '@mui/material';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
 import { 
@@ -16,11 +16,15 @@ import {
     toast, 
     DashboardPageSkeleton, 
     Modal,
-    Select
+    Select,
+    StatusBadge
 } from '@/components/design-system';
 import { FileUpload } from '@/components/ui/FileUpload';
 import { AiDocumentOcrModal } from '@/components/documents/AiDocumentOcrModal';
 import { AnnouncementGeneratorModal } from '@/components/documents/AnnouncementGeneratorModal';
+import DocumentPreviewModal from '@/components/documents/DocumentPreviewModal';
+import InvoicePreviewModal from '@/components/invoices/InvoicePreviewModal';
+import { formatMoney as formatCurrency } from '@/lib/format';
 
 interface Document {
     id: string;
@@ -91,6 +95,13 @@ export default function DocumentsPage() {
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     
+    // Preview & Tab State
+    const [activeTab, setActiveTab] = useState<'documents' | 'invoices'>('documents');
+    const [previewDocument, setPreviewDocument] = useState<Document | null>(null);
+    const [previewInvoice, setPreviewInvoice] = useState<{ id: string; invoiceNumber?: string; customerName?: string; totalAmount?: number; status?: string } | null>(null);
+    const [invoices, setInvoices] = useState<any[]>([]);
+    const [loadingInvoices, setLoadingInvoices] = useState(false);
+
     // Upload & OCR State
     const [isUploadOpen, setIsUploadOpen] = useState(false);
     const [isOcrOpen, setIsOcrOpen] = useState(false);
@@ -121,12 +132,44 @@ export default function DocumentsPage() {
         }
     };
 
+    const fetchInvoices = async () => {
+        setLoadingInvoices(true);
+        try {
+            const response = await fetch('/api/invoices?limit=40');
+            if (response.ok) {
+                const data = await response.json();
+                setInvoices(data.invoices || []);
+            }
+        } catch (error) {
+            console.error('Failed to fetch invoices:', error);
+        } finally {
+            setLoadingInvoices(false);
+        }
+    };
+
 	useEffect(() => {
 		if (status === 'authenticated') {
 			fetchDocuments();
+            fetchInvoices();
 		}
         // eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [status, page, search]); // Debounce search in real app
+
+    const currentDocIndex = useMemo(() => {
+        if (!previewDocument) return -1;
+        return documents.findIndex(d => d.id === previewDocument.id);
+    }, [previewDocument, documents]);
+
+    const hasPrevDoc = currentDocIndex > 0;
+    const hasNextDoc = currentDocIndex >= 0 && currentDocIndex < documents.length - 1;
+
+    const handlePrevDoc = () => {
+        if (hasPrevDoc) setPreviewDocument(documents[currentDocIndex - 1]);
+    };
+
+    const handleNextDoc = () => {
+        if (hasNextDoc) setPreviewDocument(documents[currentDocIndex + 1]);
+    };
 
     const handleFileUpload = async (file: File) => {
         try {
@@ -302,12 +345,20 @@ export default function DocumentsPage() {
 
 			{/* Stats */}
 			<DashboardGrid className="grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-				<StatsCard
-					icon={<FileText style={{ fontSize: 18 }} />}
-					title="Total Documents"
-					value={documents.length}
-					subtitle="All documents"
-				/>
+				<div 
+					onClick={() => setActiveTab('documents')} 
+					className="cursor-pointer transition-transform hover:scale-[1.01]"
+					role="button"
+					tabIndex={0}
+					onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setActiveTab('documents'); }}
+				>
+					<StatsCard
+						icon={<FileText style={{ fontSize: 18 }} />}
+						title="Total Documents"
+						value={documents.length}
+						subtitle={activeTab === 'documents' ? 'Viewing Documents' : 'Click to View'}
+					/>
+				</div>
                 <StatsCard
                     icon={<Folder style={{ fontSize: 18 }} />}
                     title="Categories"
@@ -315,14 +366,25 @@ export default function DocumentsPage() {
                     variant="info"
                     size="md"
                 />
-                <StatsCard
-                    icon={<Upload style={{ fontSize: 18 }} />}
-                    title="Recent"
-                    value={documents.filter(d => new Date(d.createdAt) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)).length}
-                    variant="success"
-                    size="md"
-                    subtitle="Last 7 days"
-                />
+				<div 
+					onClick={() => {
+						setActiveTab('invoices');
+						if (invoices.length === 0) fetchInvoices();
+					}} 
+					className="cursor-pointer transition-transform hover:scale-[1.01]"
+					role="button"
+					tabIndex={0}
+					onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { setActiveTab('invoices'); if (invoices.length === 0) fetchInvoices(); } }}
+				>
+					<StatsCard
+						icon={<Receipt style={{ fontSize: 18 }} />}
+						title="Official Invoices"
+						value={invoices.length}
+						variant="success"
+						size="md"
+						subtitle={activeTab === 'invoices' ? 'Viewing Invoices' : 'Click to Preview'}
+					/>
+				</div>
                 <div 
                     onClick={() => setIsAnnouncementOpen(true)} 
                     className="cursor-pointer transition-transform hover:scale-[1.01]"
@@ -379,145 +441,339 @@ export default function DocumentsPage() {
                 </div>
             </div>
 
-			{/* Search */}
-			<DashboardPanel title="Search Documents" description="Find documents by name">
-				<FormField
-					label=""
-					placeholder="Search documents..."
-					value={search}
-					onChange={(e) => setSearch(e.target.value)}
-					leftIcon={<SearchIcon style={{ fontSize: 20, color: 'var(--text-secondary)' }} />}
-				/>
-			</DashboardPanel>
+			{/* Document vs Invoice Hub Tab Switcher */}
+			<div className="flex items-center gap-2 border-b border-[var(--border)] pb-3 mt-2">
+				<button
+					type="button"
+					onClick={() => setActiveTab('documents')}
+					className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-sm ${
+						activeTab === 'documents'
+							? 'bg-[var(--accent-gold)] text-white'
+							: 'bg-[var(--surface-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border)]'
+					}`}
+				>
+					<FileText className="w-4 h-4" />
+					<span>Company Documents ({documents.length})</span>
+				</button>
+				<button
+					type="button"
+					onClick={() => {
+						setActiveTab('invoices');
+						if (invoices.length === 0) fetchInvoices();
+					}}
+					className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-sm ${
+						activeTab === 'invoices'
+							? 'bg-[var(--accent-gold)] text-white'
+							: 'bg-[var(--surface-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border)]'
+					}`}
+				>
+					<Receipt className="w-4 h-4" />
+					<span>Official Invoices ({invoices.length})</span>
+				</button>
+			</div>
 
-			{/* Categories */}
-			{documents.length === 0 && !loading ? (
-				<DashboardPanel fullHeight>
-					<EmptyState
-						icon={<FileText />}
-						title="No documents found"
-						description={search ? `No documents match "${search}".` : "Upload your first document to get started."}
-                        action={
-                            <Button variant="primary" onClick={() => setIsUploadOpen(true)}>
-                                Upload Document
-                            </Button>
-                        }
-					/>
-				</DashboardPanel>
-			) : (
-				categories.filter(c => c.documents.length > 0).map((category) => {
-					const Icon = category.icon;
-					return (
-						<DashboardPanel
-							key={category.id}
-							title={category.title}
-							description={category.description}
-							actions={
-								<Box
-									sx={{
-										width: 40,
-										height: 40,
-										borderRadius: 2,
-										display: 'flex',
-										alignItems: 'center',
-										justifyContent: 'center',
-										bgcolor: category.iconBg,
-										color: category.iconColor,
-									}}
-								>
-									<Icon style={{ fontSize: 20 }} />
-								</Box>
-							}
-						>
-							<DashboardGrid className="grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-								{category.documents.map((document) => (
-									<Box
-										key={document.id}
-										sx={{
-											borderRadius: 2,
-											border: '1px solid var(--border)',
-											background: 'var(--panel)',
-											boxShadow: '0 8px 20px rgba(var(--text-primary-rgb), 0.06)',
-											p: 2,
-											cursor: 'pointer',
-											transition: 'all 0.2s ease',
-											'&:hover': {
-												transform: 'translateY(-2px)',
-												boxShadow: '0 16px 32px rgba(var(--text-primary-rgb), 0.1)',
-												borderColor: category.iconColor,
-											},
-										}}
-                                        onClick={() => window.open(document.fileUrl, '_blank')}
-									>
-										<Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 2 }}>
-											<Typography sx={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)', flex: 1, wordBreak: 'break-all' }}>
-												{document.name}
-											</Typography>
-                                            <Box
-                                                sx={{
-                                                    px: 1,
-                                                    py: 0.5,
-                                                    borderRadius: 1,
-                                                    fontSize: '0.65rem',
-                                                    fontWeight: 600,
-                                                    textTransform: 'uppercase',
-                                                    bgcolor: 'var(--background)',
-                                                    border: '1px solid var(--border)',
-                                                    color: 'var(--text-secondary)'
-                                                }}
-                                            >
-                                                {document.fileType.split('/')[1] || 'FILE'}
-                                            </Box>
-										</Box>
+			{/* TAB 1: ALL COMPANY & UPLOADED DOCUMENTS */}
+			{activeTab === 'documents' && (
+				<>
+					{/* Search */}
+					<DashboardPanel title="Search Documents" description="Find documents by name">
+						<FormField
+							label=""
+							placeholder="Search documents..."
+							value={search}
+							onChange={(e) => setSearch(e.target.value)}
+							leftIcon={<SearchIcon style={{ fontSize: 20, color: 'var(--text-secondary)' }} />}
+						/>
+					</DashboardPanel>
 
-										<Box sx={{ display: 'flex', gap: 2, mb: 2, fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-											<Box
-												sx={{
-													px: 1.5,
-													py: 0.5,
-													borderRadius: 1,
-													bgcolor: 'var(--background)',
-													textTransform: 'capitalize',
-												}}
-											>
-												{document.category.replace('_', ' ').toLowerCase()}
-											</Box>
-											<span>{formatSize(document.fileSize)}</span>
-										</Box>
-                                        
-                                        <Box sx={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
-                                            Uploaded by {document.uploadedBy} on {new Date(document.createdAt).toLocaleDateString()}
-                                        </Box>
-									</Box>
-								))}
-							</DashboardGrid>
+					{/* Categories */}
+					{documents.length === 0 && !loading ? (
+						<DashboardPanel fullHeight>
+							<EmptyState
+								icon={<FileText />}
+								title="No documents found"
+								description={search ? `No documents match "${search}".` : "Upload your first document to get started."}
+								action={
+									<Button variant="primary" onClick={() => setIsUploadOpen(true)}>
+										Upload Document
+									</Button>
+								}
+							/>
 						</DashboardPanel>
-					);
-				})
+					) : (
+						categories.filter(c => c.documents.length > 0).map((category) => {
+							const Icon = category.icon;
+							return (
+								<DashboardPanel
+									key={category.id}
+									title={category.title}
+									description={category.description}
+									actions={
+										<Box
+											sx={{
+												width: 40,
+												height: 40,
+												borderRadius: 2,
+												display: 'flex',
+												alignItems: 'center',
+												justifyContent: 'center',
+												bgcolor: category.iconBg,
+												color: category.iconColor,
+											}}
+										>
+											<Icon style={{ fontSize: 20 }} />
+										</Box>
+									}
+								>
+									<DashboardGrid className="grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+										{category.documents.map((document) => (
+											<Box
+												key={document.id}
+												sx={{
+													borderRadius: 2,
+													border: '1px solid var(--border)',
+													background: 'var(--panel)',
+													boxShadow: '0 8px 20px rgba(var(--text-primary-rgb), 0.06)',
+													p: 2.5,
+													cursor: 'pointer',
+													transition: 'all 0.2s ease',
+													display: 'flex',
+													flexDirection: 'column',
+													justifyContent: 'space-between',
+													'&:hover': {
+														transform: 'translateY(-2px)',
+														boxShadow: '0 16px 32px rgba(var(--text-primary-rgb), 0.1)',
+														borderColor: category.iconColor,
+													},
+												}}
+												onClick={() => setPreviewDocument(document)}
+											>
+												<div>
+													<Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 1.5 }}>
+														<Typography sx={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', flex: 1, wordBreak: 'break-all' }}>
+															{document.name}
+														</Typography>
+														<Box
+															sx={{
+																px: 1,
+																py: 0.5,
+																borderRadius: 1,
+																fontSize: '0.65rem',
+																fontWeight: 700,
+																textTransform: 'uppercase',
+																bgcolor: 'var(--surface-subtle)',
+																border: '1px solid var(--border)',
+																color: 'var(--text-secondary)',
+																ml: 1,
+																shrink: 0,
+															}}
+														>
+															{document.fileType.split('/')[1] || 'FILE'}
+														</Box>
+													</Box>
+
+													<Box sx={{ display: 'flex', gap: 2, mb: 1.5, fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+														<Box
+															sx={{
+																px: 1.5,
+																py: 0.5,
+																borderRadius: 1,
+																bgcolor: 'var(--surface-subtle)',
+																border: '1px solid var(--border-subtle)',
+																textTransform: 'capitalize',
+																fontWeight: 600,
+															}}
+														>
+															{document.category.replace('_', ' ').toLowerCase()}
+														</Box>
+														<span className="self-center font-mono">{formatSize(document.fileSize)}</span>
+													</Box>
+													
+													<Box sx={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
+														Uploaded by {document.uploadedBy} on {new Date(document.createdAt).toLocaleDateString()}
+													</Box>
+												</div>
+
+												{/* Quick Preview & Download Actions */}
+												<Box 
+													sx={{ display: 'flex', gap: 1, mt: 2.5, pt: 1.5, borderTop: '1px solid var(--border)' }} 
+													onClick={(e) => e.stopPropagation()}
+												>
+													<Button
+														variant="primary"
+														size="sm"
+														icon={<Eye className="w-3.5 h-3.5 text-slate-900" />}
+														onClick={() => setPreviewDocument(document)}
+														className="flex-1"
+													>
+														Preview
+													</Button>
+													<Button
+														variant="outline"
+														size="sm"
+														icon={<Download className="w-3.5 h-3.5" />}
+														onClick={() => {
+															const a = window.document.createElement('a');
+															a.href = document.fileUrl;
+															a.download = document.name;
+															a.target = '_blank';
+															window.document.body.appendChild(a);
+															a.click();
+															window.document.body.removeChild(a);
+														}}
+														title="Download File"
+													>
+														Download
+													</Button>
+												</Box>
+											</Box>
+										))}
+									</DashboardGrid>
+								</DashboardPanel>
+							);
+						})
+					)}
+
+					{/* Pagination Controls */}
+					{totalPages > 1 && (
+						<Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mt: 4, mb: 4 }}>
+							<Button 
+								variant="outline" 
+								disabled={page === 1}
+								onClick={() => setPage(p => Math.max(1, p - 1))}
+							>
+								Previous
+							</Button>
+							<Box sx={{ display: 'flex', alignItems: 'center' }}>
+								Page {page} of {totalPages}
+							</Box>
+							<Button 
+								variant="outline" 
+								disabled={page === totalPages}
+								onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+							>
+								Next
+							</Button>
+						</Box>
+					)}
+				</>
 			)}
 
-            {/* Pagination Controls */}
-            {totalPages > 1 && (
-                <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mt: 4, mb: 4 }}>
-                    <Button 
-                        variant="outline" 
-                        disabled={page === 1}
-                        onClick={() => setPage(p => Math.max(1, p - 1))}
-                    >
-                        Previous
-                    </Button>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        Page {page} of {totalPages}
-                    </Box>
-                    <Button 
-                        variant="outline" 
-                        disabled={page === totalPages}
-                        onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                    >
-                        Next
-                    </Button>
-                </Box>
-            )}
+			{/* TAB 2: OFFICIAL SYSTEM INVOICES & STATEMENTS */}
+			{activeTab === 'invoices' && (
+				<DashboardPanel
+					title="Official Invoices"
+					description="Real-time letterhead invoices generated in the system. Click Preview to view, print, or download official Jacxi Shipping invoices."
+					actions={
+						<Button
+							variant="outline"
+							size="sm"
+							icon={<Receipt className="w-4 h-4" />}
+							onClick={() => router.push('/dashboard/invoices')}
+						>
+							Manage Invoices
+						</Button>
+					}
+				>
+					{invoices.length === 0 && !loadingInvoices ? (
+						<EmptyState
+							icon={<Receipt />}
+							title="No invoices found"
+							description="No official customer invoices have been generated yet."
+						/>
+					) : (
+						<DashboardGrid className="grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+							{invoices.map((inv) => (
+								<Box
+									key={inv.id}
+									sx={{
+										borderRadius: 2,
+										border: '1px solid var(--border)',
+										background: 'var(--panel)',
+										boxShadow: '0 8px 20px rgba(var(--text-primary-rgb), 0.06)',
+										p: 2.5,
+										cursor: 'pointer',
+										transition: 'all 0.2s ease',
+										display: 'flex',
+										flexDirection: 'column',
+										justifyContent: 'space-between',
+										'&:hover': {
+											transform: 'translateY(-2px)',
+											boxShadow: '0 16px 32px rgba(var(--text-primary-rgb), 0.1)',
+											borderColor: 'var(--accent-gold)',
+										},
+									}}
+									onClick={() => setPreviewInvoice({
+										id: inv.id,
+										invoiceNumber: inv.invoiceNumber,
+										customerName: inv.user?.name || inv.user?.email,
+										totalAmount: inv.total,
+										status: inv.status,
+									})}
+								>
+									<div>
+										<div className="flex items-center justify-between gap-2 mb-2">
+											<span className="font-mono font-bold text-sm text-[var(--accent-gold)]">
+												{inv.invoiceNumber}
+											</span>
+											<StatusBadge status={inv.status} size="sm" />
+										</div>
+
+										<Typography sx={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', mb: 0.5 }}>
+											{inv.user?.name || inv.user?.email || 'Customer'}
+										</Typography>
+
+										<div className="flex items-center justify-between text-xs text-[var(--text-secondary)] mt-2">
+											<span>Issue: {new Date(inv.issueDate || inv.createdAt).toLocaleDateString()}</span>
+											<span className="font-mono font-extrabold text-sm text-[var(--text-primary)]">
+												{formatCurrency(inv.total)}
+											</span>
+										</div>
+									</div>
+
+									{/* Action buttons */}
+									<div 
+										className="flex items-center gap-2 mt-4 pt-2 border-t border-[var(--border)]"
+										onClick={(e) => e.stopPropagation()}
+									>
+										<Button
+											variant="primary"
+											size="sm"
+											icon={<Eye className="w-3.5 h-3.5 text-slate-900" />}
+											onClick={() => setPreviewInvoice({
+												id: inv.id,
+												invoiceNumber: inv.invoiceNumber,
+												customerName: inv.user?.name || inv.user?.email,
+												totalAmount: inv.total,
+												status: inv.status,
+											})}
+											className="flex-1"
+										>
+											Preview
+										</Button>
+										<Button
+											variant="outline"
+											size="sm"
+											icon={<Download className="w-3.5 h-3.5" />}
+											onClick={() => {
+												const a = window.document.createElement('a');
+												a.href = `/api/invoices/${inv.id}/pdf?download=1`;
+												a.download = `Invoice-${inv.invoiceNumber}.pdf`;
+												window.document.body.appendChild(a);
+												a.click();
+												window.document.body.removeChild(a);
+											}}
+											title="Download PDF"
+										>
+											PDF
+										</Button>
+									</div>
+								</Box>
+							))}
+						</DashboardGrid>
+					)}
+				</DashboardPanel>
+			)}
 
             {/* Upload Modal */}
             <Modal
@@ -616,6 +872,28 @@ export default function DocumentsPage() {
                 open={isAnnouncementOpen}
                 onClose={() => setIsAnnouncementOpen(false)}
             />
+
+			{/* In-app Document Preview Modal */}
+			<DocumentPreviewModal
+				open={Boolean(previewDocument)}
+				document={previewDocument}
+				onClose={() => setPreviewDocument(null)}
+				hasPrev={hasPrevDoc}
+				hasNext={hasNextDoc}
+				onNavigatePrev={handlePrevDoc}
+				onNavigateNext={handleNextDoc}
+			/>
+
+			{/* In-app Invoice Preview Modal */}
+			<InvoicePreviewModal
+				open={Boolean(previewInvoice)}
+				invoiceId={previewInvoice?.id || null}
+				invoiceNumber={previewInvoice?.invoiceNumber}
+				customerName={previewInvoice?.customerName}
+				totalAmount={previewInvoice?.totalAmount}
+				status={previewInvoice?.status}
+				onClose={() => setPreviewInvoice(null)}
+			/>
 		</DashboardSurface>
 	);
 }
