@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { 
@@ -26,6 +26,11 @@ import {
   CustomerNotificationModal, 
   type CustomerNotificationPayload 
 } from '@/components/dashboard/CustomerNotificationModal';
+import { 
+  RolePerspectiveSwitcher, 
+  type DashboardPerspective, 
+  DASHBOARD_PERSPECTIVES 
+} from '@/components/dashboard/RolePerspectiveSwitcher';
 
 export type TodayWorkItem = {
   id: string;
@@ -80,6 +85,47 @@ export default function DashboardTodayWork({
   const [peekShipmentId, setPeekShipmentId] = useState<string | null>(null);
   const [peekContainerId, setPeekContainerId] = useState<string | null>(null);
   const [notificationPayload, setNotificationPayload] = useState<CustomerNotificationPayload | null>(null);
+  const [perspective, setPerspective] = useState<DashboardPerspective>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('jacxi.dashboard_perspective') as DashboardPerspective | null;
+      if (saved && ['all', 'dispatcher', 'port_yard', 'finance'].includes(saved)) return saved;
+    }
+    return 'all';
+  });
+
+  const handlePerspectiveChange = (newP: DashboardPerspective) => {
+    setPerspective(newP);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('jacxi.dashboard_perspective', newP);
+    }
+  };
+
+  const displayedWorkItems = useMemo(() => {
+    if (perspective === 'all') return workItems;
+
+    return [...workItems].sort((a, b) => {
+      const aText = `${a.title} ${a.subtitle} ${a.detail} ${a.severityLabel}`.toLowerCase();
+      const bText = `${b.title} ${b.subtitle} ${b.detail} ${b.severityLabel}`.toLowerCase();
+
+      let aMatch = false;
+      let bMatch = false;
+
+      if (perspective === 'dispatcher') {
+        aMatch = aText.includes('dispatch') || aText.includes('pickup') || aText.includes('tow') || aText.includes('inland') || a.type === 'dispatch';
+        bMatch = bText.includes('dispatch') || bText.includes('pickup') || bText.includes('tow') || bText.includes('inland') || b.type === 'dispatch';
+      } else if (perspective === 'port_yard') {
+        aMatch = aText.includes('container') || aText.includes('port') || aText.includes('yard') || aText.includes('dock') || aText.includes('demurrage') || a.type === 'container';
+        bMatch = bText.includes('container') || bText.includes('port') || bText.includes('yard') || bText.includes('dock') || bText.includes('demurrage') || b.type === 'container';
+      } else if (perspective === 'finance') {
+        aMatch = aText.includes('invoice') || aText.includes('paid') || aText.includes('price') || aText.includes('revenue') || aText.includes('balance');
+        bMatch = bText.includes('invoice') || bText.includes('paid') || bText.includes('price') || bText.includes('revenue') || bText.includes('balance');
+      }
+
+      if (aMatch && !bMatch) return -1;
+      if (!aMatch && bMatch) return 1;
+      return 0;
+    });
+  }, [workItems, perspective]);
 
   const visibleQuickActions = [
     hasPermission(role, 'shipments:manage')
@@ -119,12 +165,12 @@ export default function DashboardTodayWork({
       : null,
   ].filter(Boolean) as Array<{ label: string; href: string; icon: ReactNode }>;
 
-  const focusCards = [
+  const baseFocusCards = [
     {
       label: 'Urgent Work',
-      value: workItems.length,
-      detail: workItems.length > 0 ? 'Open exceptions need review' : 'No operational exceptions',
-      tone: workItems.length > 0 ? 'text-[var(--warning)]' : 'text-[var(--success)]',
+      value: displayedWorkItems.length,
+      detail: displayedWorkItems.length > 0 ? 'Open exceptions in view' : 'No operational exceptions',
+      tone: displayedWorkItems.length > 0 ? 'text-[var(--warning)]' : 'text-[var(--success)]',
       href: '#top-exceptions-list',
     },
     {
@@ -150,6 +196,13 @@ export default function DashboardTodayWork({
     },
   ];
 
+  const focusCards = useMemo(() => {
+    if (perspective === 'finance') {
+      return [baseFocusCards[1], baseFocusCards[2], baseFocusCards[0], baseFocusCards[3]];
+    }
+    return baseFocusCards;
+  }, [baseFocusCards, perspective]);
+
   const handleOpenNotification = (e: React.MouseEvent, item: TodayWorkItem) => {
     e.preventDefault();
     e.stopPropagation();
@@ -170,18 +223,27 @@ export default function DashboardTodayWork({
     }
   };
 
+  const activePerspectiveMeta = DASHBOARD_PERSPECTIVES.find((p) => p.id === perspective) || DASHBOARD_PERSPECTIVES[0];
+
   return (
     <div className="space-y-3">
       {/* Header row */}
-      <div className="mb-3 flex items-center justify-between">
+      <div className="mb-2 flex items-center justify-between">
         <div>
           <div className="text-sm font-semibold text-[var(--text-primary)]">Priority Work</div>
-          <div className="text-xs text-[var(--text-secondary)]">Urgent items, 1-click resolvers and quick actions</div>
+          <div className="text-xs text-[var(--text-secondary)]">Urgent items, 1-click resolvers and role-adaptive workflows</div>
         </div>
         <Button href="/dashboard/shipments" variant="ghost" size="sm">
           Workbench
         </Button>
       </div>
+
+      {/* Role Perspective Switcher Bar */}
+      <RolePerspectiveSwitcher
+        activePerspective={perspective}
+        onChange={handlePerspectiveChange}
+        className="mb-3"
+      />
 
       {/* Interactive focus metrics */}
       <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -204,19 +266,27 @@ export default function DashboardTodayWork({
 
       {/* Urgent items list with 1-click inline resolvers */}
       <div className="mb-4" id="top-exceptions-list">
-        <div className="mb-1.5 flex items-center justify-between">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
-            Top exceptions ({workItems.length})
+        <div className="mb-1.5 flex items-center justify-between flex-wrap gap-1">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)] flex items-center gap-1.5">
+            <span>Exceptions ({displayedWorkItems.length})</span>
+            {perspective !== 'all' && (
+              <span 
+                className="px-1.5 py-0.5 rounded text-[9px] font-bold tracking-normal uppercase"
+                style={{ backgroundColor: activePerspectiveMeta.badgeBg, color: activePerspectiveMeta.color }}
+              >
+                {activePerspectiveMeta.shortLabel} Spotlight
+              </span>
+            )}
           </div>
           <span className="text-[10px] text-[var(--text-secondary)]">1-Click quick actions available</span>
         </div>
-        {workItems.length === 0 ? (
+        {displayedWorkItems.length === 0 ? (
           <div className="rounded-xl border border-dashed border-[var(--border)] bg-[var(--background)] p-4 text-xs text-[var(--text-secondary)] text-center">
-            No urgent operational exceptions. All systems running smoothly.
+            No urgent operational exceptions for this view. All systems running smoothly.
           </div>
         ) : (
           <div className="divide-y divide-[var(--border)] rounded-xl border border-[var(--border)] bg-[var(--panel)] text-sm shadow-sm overflow-hidden">
-            {workItems.slice(0, 4).map((item) => {
+            {displayedWorkItems.slice(0, 4).map((item) => {
               const isHigh = item.severityLabel.toLowerCase().includes('high') || item.severityLabel.toLowerCase().includes('critical') || item.ageDays > 7;
               const hasShipmentOrContainer = Boolean(item.shipmentId || item.containerId);
 
