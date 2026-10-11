@@ -1,0 +1,60 @@
+--- src/components/dashboard/DocumentManager.tsx
++++ src/components/dashboard/DocumentManager.tsx
+@@ -16,6 +16,7 @@
+   ListItemSecondaryAction,
+   IconButton,
+   Divider,
++  Tooltip,
+   Chip,
+   TextField,
+ } from '@mui/material';
+@@ -409,24 +410,29 @@
+                     </IconButton>
+                   )}
+-                  <IconButton
+-                    edge="end"
+-                    aria-label="preview"
+-                    sx={{ mr: 1, color: 'var(--accent-gold)' }}
+-                    onClick={() => setPreviewDoc(doc)}
+-                    title="Preview document"
+-                  >
+-                    <Eye className="w-4 h-4" />
+-                  </IconButton>
+-                  <IconButton edge="end" aria-label="download" sx={{ mr: 1 }} href={doc.fileUrl} target="_blank">
+-                    <Download className="w-4 h-4" />
+-                  </IconButton>
++                  <Tooltip title="Preview document">
++                    <IconButton
++                      edge="end"
++                      aria-label="preview"
++                      sx={{ mr: 1, color: 'var(--accent-gold)' }}
++                      onClick={() => setPreviewDoc(doc)}
++                    >
++                      <Eye className="w-4 h-4" />
++                    </IconButton>
++                  </Tooltip>
++                  <Tooltip title="Download">
++                    <IconButton edge="end" aria-label="download" sx={{ mr: 1 }} href={doc.fileUrl} target="_blank">
++                      <Download className="w-4 h-4" />
++                    </IconButton>
++                  </Tooltip>
+                   {!readOnly && (
+-                    <IconButton
+-                        edge="end"
+-                        aria-label="delete"
+-                        color="error"
+-                        onClick={() => handleDelete(doc.id)}
+-                    >
+-                        <Trash2 className="w-4 h-4" />
+-                    </IconButton>
++                    <Tooltip title="Delete">
++                      <IconButton
++                          edge="end"
++                          aria-label="delete"
++                          color="error"
++                          onClick={() => handleDelete(doc.id)}
++                      >
++                          <Trash2 className="w-4 h-4" />
++                      </IconButton>
++                    </Tooltip>
+                   )}

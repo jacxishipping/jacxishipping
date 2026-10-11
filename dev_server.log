@@ -1,0 +1,230 @@
+
+> jacxi-shipping@0.1.0 dev /app
+> cross-env RUN_CUSTOM_SERVER=1 NODE_ENV=development tsx server.ts
+
+✓ Running next.config.ts took 55ms
+> Ready on http://0.0.0.0:3000
+○ Compiling /dashboard/documents/page ...
+🌐 i18next is made possible by our own product, Locize — consider powering your project with managed localization (AI, CDN, integrations): https://locize.com 💙
+i18next: languageChanged en
+i18next: initialized {
+  debug: true,
+  initAsync: true,
+  ns: [ 'translation' ],
+  defaultNS: [ 'translation' ],
+  fallbackLng: [ 'en' ],
+  fallbackNS: false,
+  supportedLngs: false,
+  nonExplicitSupportedLngs: false,
+  load: 'all',
+  preload: false,
+  simplifyPluralSuffix: true,
+  keySeparator: '.',
+  nsSeparator: ':',
+  pluralSeparator: '_',
+  contextSeparator: '_',
+  partialBundledLanguages: false,
+  saveMissing: false,
+  updateMissing: false,
+  saveMissingTo: 'fallback',
+  saveMissingPlurals: true,
+  missingKeyHandler: false,
+  missingInterpolationHandler: false,
+  postProcess: false,
+  postProcessPassResolved: false,
+  returnNull: false,
+  returnEmptyString: true,
+  returnObjects: false,
+  joinArrays: false,
+  returnedObjectHandler: false,
+  parseMissingKeyHandler: false,
+  appendNamespaceToMissingKey: false,
+  appendNamespaceToCIMode: false,
+  overloadTranslationOptionHandler: [Function: overloadTranslationOptionHandler],
+  interpolation: {
+    escapeValue: false,
+    format: [Function: bound format],
+    prefix: '{{',
+    suffix: '}}',
+    formatSeparator: ',',
+    unescapePrefix: '-',
+    nestingPrefix: '$t(',
+    nestingSuffix: ')',
+    nestingOptionsSeparator: ',',
+    maxReplaces: 1000,
+    skipOnVariables: true
+  },
+  cacheInBuiltFormats: true,
+  resources: {
+    en: { translation: [Object] },
+    dr: { translation: [Object] },
+    ps: { translation: [Object] }
+  },
+  lng: 'en',
+  detection: {
+    order: [ 'localStorage', 'navigator', 'htmlTag' ],
+    caches: [ 'localStorage' ]
+  },
+  ignoreJSONStructure: true
+}
+ GET /dashboard/documents 200 in 18.3s (next.js: 17.0s, proxy.ts: 466ms, application-code: 907ms)
+○ Compiling /api/auth/[...nextauth]/route ...
+ GET /dashboard/documents 200 in 484ms (next.js: 196ms, proxy.ts: 199ms, application-code: 89ms)
+ GET /api/auth/session 200 in 6.9s (next.js: 6.5s, proxy.ts: 282ms, application-code: 119ms)
+ GET /api/auth/session 200 in 74ms (next.js: 55ms, proxy.ts: 11ms, application-code: 8ms)
+○ Compiling /auth/signin/page ...
+ GET /auth/signin 200 in 6.3s (next.js: 6.1s, proxy.ts: 23ms, application-code: 246ms)
+ GET /api/auth/session 200 in 697ms (next.js: 63ms, proxy.ts: 538ms, application-code: 96ms)
+ GET /api/auth/session 200 in 40ms (next.js: 14ms, proxy.ts: 18ms, application-code: 8ms)
+i18next: languageChanged en
+i18next: initialized {
+  debug: true,
+  initAsync: true,
+  ns: [ 'translation' ],
+  defaultNS: [ 'translation' ],
+  fallbackLng: [ 'en' ],
+  fallbackNS: false,
+  supportedLngs: false,
+  nonExplicitSupportedLngs: false,
+  load: 'all',
+  preload: false,
+  simplifyPluralSuffix: true,
+  keySeparator: '.',
+  nsSeparator: ':',
+  pluralSeparator: '_',
+  contextSeparator: '_',
+  partialBundledLanguages: false,
+  saveMissing: false,
+  updateMissing: false,
+  saveMissingTo: 'fallback',
+  saveMissingPlurals: true,
+  missingKeyHandler: false,
+  missingInterpolationHandler: false,
+  postProcess: false,
+  postProcessPassResolved: false,
+  returnNull: false,
+  returnEmptyString: true,
+  returnObjects: false,
+  joinArrays: false,
+  returnedObjectHandler: false,
+  parseMissingKeyHandler: false,
+  appendNamespaceToMissingKey: false,
+  appendNamespaceToCIMode: false,
+  overloadTranslationOptionHandler: [Function: overloadTranslationOptionHandler],
+  interpolation: {
+    escapeValue: false,
+    format: [Function: bound format],
+    prefix: '{{',
+    suffix: '}}',
+    formatSeparator: ',',
+    unescapePrefix: '-',
+    nestingPrefix: '$t(',
+    nestingSuffix: ')',
+    nestingOptionsSeparator: ',',
+    maxReplaces: 1000,
+    skipOnVariables: true
+  },
+  cacheInBuiltFormats: true,
+  resources: {
+    en: { translation: [Object] },
+    dr: { translation: [Object] },
+    ps: { translation: [Object] }
+  },
+  lng: 'en',
+  detection: {
+    order: [ 'localStorage', 'navigator', 'htmlTag' ],
+    caches: [ 'localStorage' ]
+  },
+  ignoreJSONStructure: true
+}
+ GET /auth/signin 200 in 715ms (next.js: 4ms, proxy.ts: 19ms, application-code: 692ms)
+○ Compiling /page ...
+i18next: languageChanged en
+i18next: initialized {
+  debug: true,
+  initAsync: true,
+  ns: [ 'translation' ],
+  defaultNS: [ 'translation' ],
+  fallbackLng: [ 'en' ],
+  fallbackNS: false,
+  supportedLngs: false,
+  nonExplicitSupportedLngs: false,
+  load: 'all',
+  preload: false,
+  simplifyPluralSuffix: true,
+  keySeparator: '.',
+  nsSeparator: ':',
+  pluralSeparator: '_',
+  contextSeparator: '_',
+  partialBundledLanguages: false,
+  saveMissing: false,
+  updateMissing: false,
+  saveMissingTo: 'fallback',
+  saveMissingPlurals: true,
+  missingKeyHandler: false,
+  missingInterpolationHandler: false,
+  postProcess: false,
+  postProcessPassResolved: false,
+  returnNull: false,
+  returnEmptyString: true,
+  returnObjects: false,
+  joinArrays: false,
+  returnedObjectHandler: false,
+  parseMissingKeyHandler: false,
+  appendNamespaceToMissingKey: false,
+  appendNamespaceToCIMode: false,
+  overloadTranslationOptionHandler: [Function: overloadTranslationOptionHandler],
+  interpolation: {
+    escapeValue: false,
+    format: [Function: bound format],
+    prefix: '{{',
+    suffix: '}}',
+    formatSeparator: ',',
+    unescapePrefix: '-',
+    nestingPrefix: '$t(',
+    nestingSuffix: ')',
+    nestingOptionsSeparator: ',',
+    maxReplaces: 1000,
+    skipOnVariables: true
+  },
+  cacheInBuiltFormats: true,
+  resources: {
+    en: { translation: [Object] },
+    dr: { translation: [Object] },
+    ps: { translation: [Object] }
+  },
+  lng: 'en',
+  detection: {
+    order: [ 'localStorage', 'navigator', 'htmlTag' ],
+    caches: [ 'localStorage' ]
+  },
+  ignoreJSONStructure: true
+}
+⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ GET / 200 in 5.1s (next.js: 4.5s, proxy.ts: 9ms, application-code: 549ms)
+○ Compiling /api/public/shipping-rate-estimate/route ...
+Error building public shipping rate estimate: Error [PrismaClientInitializationError]:
+Invalid `prisma.company.findMany()` invocation:
+
+
+error: Environment variable not found: DATABASE_URL.
+  -->  schema.prisma:11
+   |
+10 |   provider  = "postgresql"
+11 |   url       = env("DATABASE_URL")
+   |
+
+Validation Error Count: 1
+    at async GET (src/app/api/public/shipping-rate-estimate/route.ts:20:23)
+  18 |
+  19 |   try {
+> 20 |     const companies = await prisma.company.findMany({
+     |                       ^
+  21 |       where: {
+  22 |         isActive: true,
+  23 |         OR: [ {
+  clientVersion: '6.19.3',
+  errorCode: undefined,
+  retryable: undefined
+}
+ GET /api/public/shipping-rate-estimate?originState=NJ 200 in 571ms (next.js: 42ms, proxy.ts: 32ms, application-code: 497ms)
