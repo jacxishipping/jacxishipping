@@ -7,3 +7,6 @@
 ## 2026-10-08 - Dynamic Tooltips and ARIA Labels for Interactive IconButtons
 **Learning:** IconButtons used for toggling states (e.g., showing/hiding email) or performing inline actions (e.g., copying to clipboard) lack critical screen-reader and visual context when relying solely on native HTML 'title' attributes. Furthermore, dynamic state changes, like transitioning from 'Copy' to 'Copied!' should be reflected in both the tooltip and ARIA label for complete accessibility.
 **Action:** Replace native 'title' attributes on IconButtons with MUI Tooltips. Ensure dynamic ARIA labels and Tooltip titles are synchronized with the component's state to provide accurate feedback across all modalities.
+## 2026-10-24 - Tooltips on native action buttons
+**Learning:** Document Manager action buttons (Preview, Download, Delete) lacked `Tooltip` wrappers, decreasing accessibility for non-screen reader users, while relying on basic `title` props for the "preview" action.
+**Action:** Replaced the native `title` prop with MUI `<Tooltip>` components wrapping all IconButtons in the Document Manager. This is a recurring pattern observed throughout the project to provide consistent context across the UI.
