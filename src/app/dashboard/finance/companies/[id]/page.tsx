@@ -17,6 +17,7 @@ import {
   Tabs,
   TextField,
   Tooltip,
+} from '@mui/material';
 import { AlertTriangle, ArrowLeft, Building2, Car, CheckCircle2, DollarSign, Eye, GitCompareArrows, Landmark, Package, Pencil, Plus, Printer, ReceiptText, Search, Trash2, Truck, Upload } from 'lucide-react';
 import PermissionRoute from "@/components/auth/PermissionRoute";
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
@@ -1178,7 +1179,6 @@ export default function CompanyLedgerDetailPage() {
               <Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
                 {row.category || 'General'}{row.reference ? ` • Ref: ${row.reference}` : ''}
               </Box>
-            </Box>
             {(() => {
               const metadata = (row.metadata || {}) as Record<string, unknown>;
               const metaShipmentId = typeof metadata.shipmentId === 'string' ? metadata.shipmentId : null;
@@ -1233,9 +1233,9 @@ export default function CompanyLedgerDetailPage() {
           </Box>
         );
       },
-      },
-      {
-        key: 'type',
+    },
+    {
+      key: 'type',
         header: 'Type',
         align: 'center',
         render: (_, row) => {
