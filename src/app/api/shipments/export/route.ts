@@ -37,6 +37,7 @@ export async function GET(request: NextRequest) {
     const containerId = searchParams.get('containerId');
     const transitId = searchParams.get('transitId');
     const dispatchId = searchParams.get('dispatchId');
+    const companyId = searchParams.get('companyId');
     const userId = searchParams.get('userId') || searchParams.get('customerId');
     const idsParam = searchParams.get('ids');
     const dateFrom = searchParams.get('dateFrom');
@@ -107,6 +108,27 @@ export async function GET(request: NextRequest) {
     // Dispatch filter
     if (dispatchId) {
       where.dispatchId = dispatchId;
+    }
+
+    // Company filter (dispatched, shipped, or transited by this company)
+    if (companyId) {
+      const companyCondition: Prisma.ShipmentWhereInput = {
+        OR: [
+          { dispatch: { companyId } },
+          { shippingCompanyId: companyId },
+          { container: { companyId } },
+          { transit: { companyId } },
+        ],
+      };
+      if (where.AND) {
+        if (Array.isArray(where.AND)) {
+          where.AND.push(companyCondition);
+        } else {
+          where.AND = [where.AND, companyCondition];
+        }
+      } else {
+        where.AND = [companyCondition];
+      }
     }
 
     // Date range filter

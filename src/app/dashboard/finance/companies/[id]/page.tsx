@@ -18,7 +18,7 @@ import {
   TextField,
   Tooltip,
 } from '@mui/material';
-import { AlertTriangle, ArrowLeft, Building2, Car, CheckCircle2, DollarSign, Eye, GitCompareArrows, Landmark, Package, Pencil, Plus, Printer, ReceiptText, Search, Trash2, Truck, Upload } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Building2, Car, CheckCircle2, DollarSign, Download, Eye, GitCompareArrows, Landmark, Package, Pencil, Plus, Printer, ReceiptText, Search, Trash2, Truck, Upload } from 'lucide-react';
 import PermissionRoute from "@/components/auth/PermissionRoute";
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
 import { Breadcrumbs, Button, StatsCard, toast, TableSkeleton, PageHeader } from '@/components/design-system';
@@ -26,6 +26,7 @@ import { DataTable, Column } from '@/components/ui/DataTable';
 import { normalizeShippingRateConfig, type AuctionRateEntry, type ShippingRateCalculatorConfig } from '@/lib/shipping-rate-calculator';
 import CompanyPriceListDrawer from '@/components/finance/CompanyPriceListDrawer';
 import { printCompanyPriceList } from '@/lib/price-list-print';
+import { openUniversalShipmentExport } from '@/components/shipments/UniversalShipmentExportModal';
 
 type PriceListImportMode = 'replace' | 'merge' | 'add_new';
 
@@ -1437,6 +1438,20 @@ export default function CompanyLedgerDetailPage() {
             <Button
               variant="outline"
               size="sm"
+              icon={<Download className="w-3.5 h-3.5 text-emerald-500" />}
+              onClick={() =>
+                openUniversalShipmentExport({
+                  shipmentIds: [row.id],
+                  title: `Export Shipment ${row.vehicleVIN || row.id}`,
+                  subtitle: `${row.vehicleMake || ''} ${row.vehicleModel || ''}`.trim(),
+                })
+              }
+            >
+              Export
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               icon={<Eye className="w-3.5 h-3.5" />}
               onClick={() => router.push(`/dashboard/shipments/${row.id}`)}
             >
@@ -1502,6 +1517,21 @@ export default function CompanyLedgerDetailPage() {
                   Banking
                 </Button>
               </Link>
+              <Button
+                variant="outline"
+                icon={<Download className="w-4 h-4 text-emerald-500" />}
+                onClick={() => {
+                  const sIds = (company.shipments || []).map((s) => s.id);
+                  openUniversalShipmentExport({
+                    shipmentIds: sIds.length > 0 ? sIds : undefined,
+                    filters: { companyId: company.id },
+                    title: `Export ${company.name} Shipments`,
+                    subtitle: `${company.name} Ledger • ${company.shipments?.length || 0} associated shipments`,
+                  });
+                }}
+              >
+                Export Shipments
+              </Button>
               <Button
                 variant="outline"
                 icon={<ReceiptText className="w-4 h-4 text-[var(--accent-gold)]" />}
@@ -1614,6 +1644,22 @@ export default function CompanyLedgerDetailPage() {
               <Button
                 variant="outline"
                 size="sm"
+                icon={<Download className="w-4 h-4 text-emerald-500" />}
+                onClick={() => {
+                  const sIds = (company.shipments || []).map((s) => s.id);
+                  openUniversalShipmentExport({
+                    shipmentIds: sIds.length > 0 ? sIds : undefined,
+                    filters: { companyId: company.id },
+                    title: `Export ${company.name} Shipments`,
+                    subtitle: `${company.name} Ledger • ${company.shipments?.length || 0} associated shipments`,
+                  });
+                }}
+              >
+                Export Shipments ({company.shipments?.length || 0})
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
                 icon={<ReceiptText className="w-4 h-4 text-[var(--accent-gold)]" />}
                 onClick={() => setOpenPriceListDrawer(true)}
               >
@@ -1624,7 +1670,7 @@ export default function CompanyLedgerDetailPage() {
                 size="sm"
                 icon={<Upload className="w-4 h-4" />}
                 onClick={() => {
-                  setActiveTab(1);
+                  setActiveTab(3);
                   const nextParams = new URLSearchParams(searchParams.toString());
                   nextParams.set('tab', 'price-list');
                   router.replace(`?${nextParams.toString()}`, { scroll: false });
@@ -1975,6 +2021,26 @@ export default function CompanyLedgerDetailPage() {
           <DashboardPanel
             title="Company Shipments"
             description="All shipments handled by this company across dispatch, shipping, and transit operations"
+            actions={
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  icon={<Download className="w-4 h-4 text-emerald-500" />}
+                  onClick={() => {
+                    const sIds = filteredCompanyShipments.map((s) => s.id);
+                    openUniversalShipmentExport({
+                      shipmentIds: sIds.length > 0 ? sIds : undefined,
+                      filters: { companyId: company.id },
+                      title: `Export ${company.name} Shipments`,
+                      subtitle: `${filteredCompanyShipments.length} filtered shipment record(s)`,
+                    });
+                  }}
+                >
+                  Export Shipments ({filteredCompanyShipments.length})
+                </Button>
+              </Box>
+            }
           >
             <DashboardGrid className="grid-cols-1 sm:grid-cols-2 md:grid-cols-4 mb-4">
               <StatsCard
@@ -2040,6 +2106,14 @@ export default function CompanyLedgerDetailPage() {
               data={filteredCompanyShipments}
               columns={shipmentColumns}
               keyField="id"
+              selectable
+              onExport={(selectedRows) =>
+                openUniversalShipmentExport({
+                  shipmentIds: selectedRows.map((r) => r.id),
+                  title: `Export Selected (${selectedRows.length}) Shipments`,
+                  subtitle: `${company.name} Ledger • Selected vehicles`,
+                })
+              }
               onRowClick={(row) => router.push(`/dashboard/shipments/${row.id}`)}
             />
           </DashboardPanel>
@@ -2496,10 +2570,37 @@ export default function CompanyLedgerDetailPage() {
             </Box>
 
             <Box>
-              <Box sx={{ fontWeight: 600, mb: 1 }}>Shipped Vehicles</Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                <Box sx={{ fontWeight: 600 }}>Shipped Vehicles</Box>
+                {((company.shipments || []).filter((s) => s.isShipped).length > 0) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    icon={<Download className="w-3.5 h-3.5 text-emerald-500" />}
+                    onClick={() => {
+                      const shippedVehicles = (company.shipments || []).filter((s) => s.isShipped);
+                      openUniversalShipmentExport({
+                        shipmentIds: shippedVehicles.map((s) => s.id),
+                        title: `Export Shipped Vehicles - ${company.name}`,
+                        subtitle: `${shippedVehicles.length} vehicles linked to shipping operations`,
+                      });
+                    }}
+                  >
+                    Export Shipped Vehicles
+                  </Button>
+                )}
+              </Box>
               <DataTable
                 data={(company.shipments || []).filter((s) => s.isShipped)}
                 keyField="id"
+                selectable
+                onExport={(selectedRows) =>
+                  openUniversalShipmentExport({
+                    shipmentIds: selectedRows.map((r) => r.id),
+                    title: `Export Selected Shipped Vehicles (${selectedRows.length})`,
+                    subtitle: `${company.name} • Shipped vehicles`,
+                  })
+                }
                 columns={[
                   {
                     key: 'vehicleVIN',
@@ -2518,6 +2619,20 @@ export default function CompanyLedgerDetailPage() {
                     align: 'center',
                     render: (_, row) => (
                       <Box sx={{ display: 'flex', gap: 0.75, justifyContent: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          icon={<Download className="w-3.5 h-3.5 text-emerald-500" />}
+                          onClick={() =>
+                            openUniversalShipmentExport({
+                              shipmentIds: [row.id],
+                              title: `Export Vehicle ${row.vehicleVIN || row.id}`,
+                              subtitle: `${row.vehicleMake || ''} ${row.vehicleModel || ''}`.trim(),
+                            })
+                          }
+                        >
+                          Export
+                        </Button>
                         <Button
                           variant="outline"
                           size="sm"

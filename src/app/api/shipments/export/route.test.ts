@@ -278,4 +278,56 @@ describe('Shipments Export API Route', () => {
       routeDeps.prisma.shipment.findMany = originalFindMany;
     }
   });
+
+  it('filters shipments by companyId for company ledgers', async () => {
+    const originalAuth = routeDeps.auth;
+    const originalFindMany = routeDeps.prisma.shipment.findMany;
+
+    try {
+      (routeDeps as any).auth = async () => ({
+        user: { id: 'usr-admin-1', role: 'admin' },
+      } as any);
+
+      let capturedArgs: any = null;
+      (routeDeps.prisma.shipment as any).findMany = async (args: any) => {
+        capturedArgs = args;
+        return [
+          {
+            id: 'shp-comp-1',
+            vehicleMake: 'BMW',
+            vehicleModel: 'X5',
+            vehicleYear: 2023,
+            vehicleVIN: '5UXCR6C09P9',
+            status: 'DISPATCHING',
+            createdAt: new Date('2026-03-01T10:00:00.000Z'),
+            auditLogs: [],
+            ledgerEntries: [],
+          },
+        ];
+      };
+
+      const req = new NextRequest('http://localhost:3000/api/shipments/export?format=json&companyId=comp-xyz-99');
+      const res = await GET(req);
+
+      assert.strictEqual(res.status, 200);
+      const data = await res.json();
+      assert.strictEqual(data.count, 1);
+      assert.strictEqual(data.shipments[0].vin, '5UXCR6C09P9');
+
+      // Verify the Prisma query where condition received companyId matching dispatch, shippingCompanyId, container, transit
+      assert.ok(capturedArgs?.where?.AND);
+      const compCondition = capturedArgs.where.AND[0];
+      assert.deepStrictEqual(compCondition, {
+        OR: [
+          { dispatch: { companyId: 'comp-xyz-99' } },
+          { shippingCompanyId: 'comp-xyz-99' },
+          { container: { companyId: 'comp-xyz-99' } },
+          { transit: { companyId: 'comp-xyz-99' } },
+        ],
+      });
+    } finally {
+      routeDeps.auth = originalAuth;
+      routeDeps.prisma.shipment.findMany = originalFindMany;
+    }
+  });
 });

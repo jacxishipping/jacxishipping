@@ -43,6 +43,7 @@ export interface ShipmentExportFilters {
   containerId?: string;
   transitId?: string;
   dispatchId?: string;
+  companyId?: string;
   userId?: string;
   dateFrom?: string;
   dateTo?: string;
@@ -226,6 +227,7 @@ export function UniversalShipmentExportModal() {
         if (filters.containerId) params.append('containerId', filters.containerId);
         if (filters.transitId) params.append('transitId', filters.transitId);
         if (filters.dispatchId) params.append('dispatchId', filters.dispatchId);
+        if (filters.companyId) params.append('companyId', filters.companyId);
         if (filters.userId) params.append('userId', filters.userId);
       }
 
