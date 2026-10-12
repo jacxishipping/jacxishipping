@@ -132,6 +132,10 @@ export default function EditShipmentPage() {
     if (data.purchaseLocation && !watch('purchaseLocation')) setVal('purchaseLocation', data.purchaseLocation);
     if (data.purchasePrice && !watch('purchasePrice')) setVal('purchasePrice', data.purchasePrice.toString());
     if (data.internalNotes && !watch('internalNotes')) setVal('internalNotes', data.internalNotes);
+    if (Array.isArray(data.vehiclePhotos) && data.vehiclePhotos.length > 0) {
+      setVehiclePhotos(data.vehiclePhotos);
+      setVal('vehiclePhotos', data.vehiclePhotos);
+    }
   };
 
   const canManageShipments = useMemo(() => hasPermission(session?.user?.role, 'shipments:manage'), [session]);
@@ -424,6 +428,10 @@ export default function EditShipmentPage() {
       if (lotData.purchaseDate && !watch('purchaseDate')) setValue('purchaseDate', lotData.purchaseDate);
       if (lotData.purchaseLocation && !watch('purchaseLocation')) setValue('purchaseLocation', lotData.purchaseLocation);
       if (lotData.internalNotes && !watch('internalNotes')) setValue('internalNotes', lotData.internalNotes);
+      if (Array.isArray(lotData.vehiclePhotos) && lotData.vehiclePhotos.length > 0) {
+        setVehiclePhotos(lotData.vehiclePhotos);
+        setValue('vehiclePhotos', lotData.vehiclePhotos, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
+      }
 
       // If an unmasked 17-character VIN is present and weight is unset, decode weight in background
       if (lotData.vehicleVIN && lotData.vehicleVIN.length === 17 && !lotData.vehicleVIN.includes('*') && !watch('weight')) {

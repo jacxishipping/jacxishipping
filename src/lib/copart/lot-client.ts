@@ -22,6 +22,7 @@ export function buildCopartLotSummary(data: CopartLotVehicleData) {
     data.extracted.damage ? `Damage: ${data.extracted.damage}` : undefined,
     data.extracted.odometer ? `Odometer: ${data.extracted.odometer}` : undefined,
     data.purchaseLocation,
+    data.vehiclePhotos?.length ? `${data.vehiclePhotos.length} photo${data.vehiclePhotos.length === 1 ? '' : 's'} loaded` : undefined,
     data.vehicleVIN?.includes('*') ? 'VIN is masked on the public Copart page' : undefined,
   ].filter(Boolean);
 

@@ -95,6 +95,10 @@ export default function NewShipmentPage() {
 		if (data.purchaseLocation && !formValues.purchaseLocation) setVal('purchaseLocation', data.purchaseLocation);
 		if (data.purchasePrice && !formValues.purchasePrice) setVal('purchasePrice', data.purchasePrice.toString());
 		if (data.internalNotes && !formValues.internalNotes) setVal('internalNotes', data.internalNotes);
+		if (Array.isArray(data.vehiclePhotos) && data.vehiclePhotos.length > 0) {
+			setVehiclePhotos(data.vehiclePhotos);
+			setVal('vehiclePhotos', data.vehiclePhotos);
+		}
 	};
 
 	const handleBarcodeScan = (scannedVin: string) => {
@@ -350,8 +354,8 @@ export default function NewShipmentPage() {
 			if (lotData.purchaseLocation && !formValues.purchaseLocation) setFetchedValue('purchaseLocation', lotData.purchaseLocation);
 			if (lotData.internalNotes && !formValues.internalNotes) setFetchedValue('internalNotes', lotData.internalNotes);
 			if (Array.isArray(lotData.vehiclePhotos) && lotData.vehiclePhotos.length > 0) {
-				setVehiclePhotos((prev) => (prev.length === 0 ? lotData.vehiclePhotos! : prev));
-				setValue('vehiclePhotos', lotData.vehiclePhotos, { shouldDirty: true });
+				setVehiclePhotos(lotData.vehiclePhotos);
+				setValue('vehiclePhotos', lotData.vehiclePhotos, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
 			}
 
 			// If an unmasked 17-character VIN is present and weight is unset, decode weight in background
@@ -1108,6 +1112,100 @@ export default function NewShipmentPage() {
 											/>
 										</Box>
 									</>
+								)}
+
+								{/* Vehicle Photos Quick Preview (when fetched from auction or uploaded) */}
+								{vehiclePhotos.length > 0 && (
+									<Box
+										sx={{
+											mt: 3,
+											p: 2.5,
+											borderRadius: '16px',
+											backgroundColor: 'rgba(var(--accent-gold-rgb), 0.05)',
+											border: '1px solid rgba(var(--accent-gold-rgb), 0.25)',
+										}}
+									>
+										<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5, flexWrap: 'wrap', gap: 1 }}>
+											<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+												<Camera className="w-5 h-5 text-amber-400" />
+												<Typography sx={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+													Vehicle Photos ({vehiclePhotos.length} loaded from {auctionNameValue || 'Auction'})
+												</Typography>
+											</Box>
+											<Button
+												type="button"
+												variant="outline"
+												size="sm"
+												onClick={() => setActiveStep(1)}
+												className="text-xs border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
+											>
+												Manage in Photos Step &rarr;
+											</Button>
+										</Box>
+										<Box
+											sx={{
+												display: 'flex',
+												gap: 1.5,
+												overflowX: 'auto',
+												pb: 1,
+												pt: 0.5,
+											}}
+										>
+											{vehiclePhotos.slice(0, 10).map((photo, index) => (
+												<Box
+													key={index}
+													sx={{
+														position: 'relative',
+														width: 88,
+														height: 88,
+														flexShrink: 0,
+														borderRadius: '12px',
+														overflow: 'hidden',
+														border: '1px solid rgba(var(--border-rgb), 0.8)',
+														backgroundColor: 'var(--background)',
+													}}
+												>
+													<Image
+														src={photo}
+														alt={`Vehicle photo ${index + 1}`}
+														fill
+														className="object-cover"
+														unoptimized
+													/>
+												</Box>
+											))}
+											{vehiclePhotos.length > 10 && (
+												<Box
+													onClick={() => setActiveStep(1)}
+													sx={{
+														width: 88,
+														height: 88,
+														flexShrink: 0,
+														borderRadius: '12px',
+														border: '1px dashed rgba(var(--accent-gold-rgb), 0.4)',
+														display: 'flex',
+														flexDirection: 'column',
+														alignItems: 'center',
+														justifyContent: 'center',
+														cursor: 'pointer',
+														backgroundColor: 'rgba(var(--accent-gold-rgb), 0.05)',
+														transition: 'all 0.2s ease',
+														'&:hover': {
+															backgroundColor: 'rgba(var(--accent-gold-rgb), 0.1)',
+															borderColor: 'var(--accent-gold)',
+														},
+													}}
+												>
+													<Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--accent-gold)' }}>
+														+{vehiclePhotos.length - 10}
+													</Typography>
+													<Typography sx={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>
+														more
+													</Typography>
+												</Box>
+											)}
+										</Box>
+									</Box>
 								)}
 							</Box>
 						</DashboardPanel>
