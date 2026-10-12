@@ -64,6 +64,7 @@ import {
   type ShippingRateCalculatorConfig,
 } from '@/lib/shipping-rate-calculator';
 import { TrackingApisTab } from '@/components/dashboard/settings/TrackingApisTab';
+import { BackupDatabaseTab } from '@/components/dashboard/settings/BackupDatabaseTab';
 
 const DEFAULT_SETTINGS = {
   theme: 'light',
@@ -1522,85 +1523,30 @@ export default function SettingsPage() {
 
       {/* Tab 3: Security & Backup */}
       <TabPanel value={activeTab} index={3}>
-        <div className="max-w-3xl">
+        <div className="space-y-6">
           <DashboardPanel 
-            title={isAdmin ? 'System & Backup' : 'Security'} 
-            description={isAdmin ? 'Database management and security' : 'Account security controls'}
+            title="Account Security" 
+            description="Manage authentication and account security controls"
           >
-            <div className="space-y-6">
-              <div className="p-4 border border-[var(--border)] rounded-lg bg-[var(--background)]">
-                <div className="flex items-center justify-between mb-2">
-                  <Typography variant="subtitle2" fontWeight="600">Two-Factor Authentication</Typography>
-                  <Button 
-                    variant={settingsForm.twoFactorEnabled ? 'primary' : 'outline'} 
-                    size="sm"
-                    onClick={handleToggleTwoFactor}
-                    disabled={savingSecurity}
-                  >
-                    {settingsForm.twoFactorEnabled ? 'Enabled' : 'Disabled'}
-                  </Button>
-                </div>
-                <Typography variant="caption" color="text.secondary">
-                  {isAdmin ? 'Require authenticator verification for admin dashboard sign-in.' : 'Require extra verification for your account sign-in.'}
-                </Typography>
+            <div className="p-4 border border-[var(--border)] rounded-lg bg-[var(--background)]">
+              <div className="flex items-center justify-between mb-2">
+                <Typography variant="subtitle2" fontWeight="600">Two-Factor Authentication</Typography>
+                <Button 
+                  variant={settingsForm.twoFactorEnabled ? 'primary' : 'outline'} 
+                  size="sm"
+                  onClick={handleToggleTwoFactor}
+                  disabled={savingSecurity}
+                >
+                  {settingsForm.twoFactorEnabled ? 'Enabled' : 'Disabled'}
+                </Button>
               </div>
-
-              {isAdmin ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Typography variant="subtitle2" fontWeight="600">Create Backup</Typography>
-                    <Typography variant="caption" color="text.secondary" display="block">
-                      Generate a JSON snapshot of current data.
-                    </Typography>
-                    <Button 
-                      onClick={handleCreateBackup} 
-                      disabled={backupState.running}
-                      variant="primary"
-                      fullWidth
-                      icon={backupState.running ? <RefreshCw className="animate-spin" /> : <Database />}
-                    >
-                      {backupState.running ? 'Backing up...' : 'Create Backup'}
-                    </Button>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Typography variant="subtitle2" fontWeight="600">Restore Data</Typography>
-                    <Typography variant="caption" color="text.secondary" display="block">
-                      Upload a JSON backup file to restore.
-                    </Typography>
-                    <input
-                      type="file"
-                      accept="application/json"
-                      onChange={(e) => setBackupFile(e.target.files?.[0] || null)}
-                      className="hidden"
-                      id="backup-upload"
-                    />
-                    <label htmlFor="backup-upload">
-                      <Button 
-                        component="span" 
-                        variant="outline" 
-                        fullWidth
-                        icon={<UploadCloud />}
-                      >
-                        {backupFile ? 'File Selected' : 'Select File'}
-                      </Button>
-                    </label>
-                    {backupFile && (
-                      <Button 
-                        onClick={handleRestoreBackup} 
-                        disabled={backupState.running}
-                        variant="danger"
-                        fullWidth
-                        size="sm"
-                      >
-                        Confirm Restore
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              ) : null}
+              <Typography variant="caption" color="text.secondary">
+                {isAdmin ? 'Require authenticator verification for admin dashboard sign-in.' : 'Require extra verification for your account sign-in.'}
+              </Typography>
             </div>
           </DashboardPanel>
+
+          {isAdmin && <BackupDatabaseTab />}
         </div>
       </TabPanel>
 
