@@ -74,6 +74,8 @@ export default function NewShipmentPage() {
 	const [uploadingFiles, setUploadingFiles] = useState<Set<string>>(new Set());
 	const [decodingVin, setDecodingVin] = useState(false);
 	const [fetchingLotData, setFetchingLotData] = useState(false);
+	const [lotFetchProgress, setLotFetchProgress] = useState(0);
+	const [lotFetchStage, setLotFetchStage] = useState('');
 	const [scannerOpen, setScannerOpen] = useState(false);
 	const [smartFillOpen, setSmartFillOpen] = useState(false);
 
@@ -325,6 +327,27 @@ export default function NewShipmentPage() {
 		}
 
 		setFetchingLotData(true);
+		setLotFetchProgress(15);
+		setLotFetchStage(`Connecting to ${targetAuction}...`);
+
+		const progressInterval = setInterval(() => {
+			setLotFetchProgress((prev) => {
+				if (prev < 35) {
+					setLotFetchStage(`Querying ${targetAuction} lot details & vehicle specifications...`);
+					return prev + 10;
+				}
+				if (prev < 65) {
+					setLotFetchStage('Extracting vehicle color, keys, title & damage...');
+					return prev + 8;
+				}
+				if (prev < 90) {
+					setLotFetchStage('Retrieving high-resolution photo gallery...');
+					return prev + 5;
+				}
+				return prev;
+			});
+		}, 800);
+
 		try {
 			const { lotData, lotSummary } = await (targetAuction === 'IAAI'
 				? fetchIaaiLotDataForShipment(cleanedLotNumber).then((data) => ({
@@ -335,6 +358,10 @@ export default function NewShipmentPage() {
 					lotData: data,
 					lotSummary: buildCopartLotSummary(data),
 				})));
+
+			clearInterval(progressInterval);
+			setLotFetchProgress(100);
+			setLotFetchStage('Vehicle data & photos loaded!');
 
 			const setFetchedValue = (field: Parameters<typeof setValue>[0], value: Parameters<typeof setValue>[1]) => {
 				setValue(field, value, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
@@ -372,12 +399,18 @@ export default function NewShipmentPage() {
 				description: lotSummary,
 			});
 		} catch (error) {
+			clearInterval(progressInterval);
 			console.error(`Error fetching ${targetAuction} lot data:`, error);
 			toast.error(`Failed to fetch ${targetAuction} lot data`, {
 				description: error instanceof Error ? error.message : 'Please verify the lot number and try again',
 			});
 		} finally {
-			setFetchingLotData(false);
+			clearInterval(progressInterval);
+			setTimeout(() => {
+				setFetchingLotData(false);
+				setLotFetchProgress(0);
+				setLotFetchStage('');
+			}, 500);
 		}
 	};
 
@@ -906,6 +939,51 @@ export default function NewShipmentPage() {
 										</Typography>
 									</Box>
 								</Box>
+
+								{/* Auction Lot Fetching Loading Bar */}
+								{fetchingLotData && (
+									<Box
+										sx={{
+											p: 2.25,
+											borderRadius: '16px',
+											backgroundColor: 'rgba(var(--accent-gold-rgb), 0.08)',
+											border: '1px solid rgba(var(--accent-gold-rgb), 0.35)',
+											display: 'flex',
+											flexDirection: 'column',
+											gap: 1.25,
+											animation: 'fadeIn 0.2s ease',
+										}}
+									>
+										<Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+											<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+												<Loader2 className="w-4 h-4 text-amber-400 animate-spin" />
+												<Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+													{lotFetchStage || `Fetching ${auctionNameValue || 'Auction'} Lot Data...`}
+												</Typography>
+											</Box>
+											<Typography sx={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--accent-gold)' }}>
+												{lotFetchProgress}%
+											</Typography>
+										</Box>
+										<LinearProgress
+											variant="determinate"
+											value={lotFetchProgress}
+											sx={{
+												height: 8,
+												borderRadius: 4,
+												backgroundColor: 'rgba(var(--border-rgb), 0.25)',
+												'& .MuiLinearProgress-bar': {
+													backgroundColor: 'var(--accent-gold)',
+													borderRadius: 4,
+													transition: 'transform 0.35s ease-out',
+												},
+											}}
+										/>
+										<Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+											Retrieving vehicle specifications, color, keys, damage, and high-resolution photo gallery
+										</Typography>
+									</Box>
+								)}
 
 								{/* Weight, Dimensions */}
 								<Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' }, gap: 2 }}>
