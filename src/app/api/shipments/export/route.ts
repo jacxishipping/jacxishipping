@@ -157,6 +157,8 @@ export async function GET(request: NextRequest) {
       where.OR = orConditions;
     }
 
+    const columnsParam = searchParams.get('columns');
+
     const shipments = await routeDeps.prisma.shipment.findMany({
       where,
       take: limit,
@@ -171,9 +173,13 @@ export async function GET(request: NextRequest) {
         vehicleColor: true,
         lotNumber: true,
         auctionName: true,
+        hasKey: true,
+        hasTitle: true,
+        titleStatus: true,
         status: true,
         createdAt: true,
         paymentStatus: true,
+        price: true,
         serviceType: true,
         purchasePrice: true,
         auditLogs: {
@@ -209,6 +215,7 @@ export async function GET(request: NextRequest) {
             containerNumber: true,
             loadingPort: true,
             destinationPort: true,
+            departureDate: true,
             estimatedArrival: true,
           },
         },
@@ -253,19 +260,39 @@ export async function GET(request: NextRequest) {
       );
     });
 
+    const baseHeaders = isCustomer ? CUSTOMER_SHIPMENT_EXPORT_HEADERS : SHIPMENT_EXPORT_HEADERS;
+    let exportHeaders = baseHeaders;
+
+    if (columnsParam) {
+      const requestedKeys = new Set(
+        columnsParam
+          .split(',')
+          .map((c) => c.trim())
+          .filter(Boolean)
+      );
+      const filtered = baseHeaders.filter((h) => requestedKeys.has(h.key));
+      if (filtered.length > 0) {
+        exportHeaders = filtered;
+      }
+    }
+
     if (format === 'json') {
-      const outputRows = isCustomer
-        ? formattedRows.map(sanitizeShipmentForCustomer)
-        : formattedRows;
+      const outputRows = formattedRows.map((row) => {
+        const item: Record<string, string> = {};
+        for (const h of exportHeaders) {
+          item[h.key] = row[h.key] ?? '';
+        }
+        return item;
+      });
 
       return NextResponse.json({
         count: outputRows.length,
         shipments: outputRows,
+        columns: exportHeaders.map((h) => h.key),
       });
     }
 
     // Generate CSV (with UTF-8 BOM so Excel displays correctly)
-    const exportHeaders = isCustomer ? CUSTOMER_SHIPMENT_EXPORT_HEADERS : SHIPMENT_EXPORT_HEADERS;
     const headerLine = exportHeaders.map((h) => h.label).join(',');
     const dataLines = formattedRows.map((row) =>
       exportHeaders.map((header) => {

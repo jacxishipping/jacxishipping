@@ -277,5 +277,74 @@ describe('Export Utilities', () => {
     assert.ok(!text.includes('INTERNAL-TR-1'), 'Transit ref should NOT be present');
     assert.ok(text.includes('2023 Tesla Model 3'), 'Vehicle info should be present');
   });
+
+  it('formatShipmentForExport should correctly populate tracking, keys, title and fares', async () => {
+    const { formatShipmentForExport } = await import('./export.ts');
+    const raw = {
+      id: 'shp-adv',
+      vehicleYear: 2024,
+      vehicleMake: 'Lexus',
+      vehicleModel: 'RX350',
+      vehicleVIN: '2T2BZMCA9',
+      hasKey: true,
+      hasTitle: true,
+      titleStatus: 'DELIVERED',
+      price: 1850,
+      container: {
+        containerNumber: 'OOLU9876543',
+        departureDate: new Date('2026-03-10'),
+        estimatedArrival: new Date('2026-04-05'),
+      },
+    };
+
+    const formattedCustomer = formatShipmentForExport(raw, true);
+    assert.strictEqual(formattedCustomer.hasKey, 'Yes');
+    assert.strictEqual(formattedCustomer.titleStatus, 'DELIVERED');
+    assert.strictEqual(formattedCustomer.shippingFare, '1850.00');
+    assert.ok(formattedCustomer.trackingUrl.includes('2T2BZMCA9'));
+    assert.ok(formattedCustomer.etd.length > 0);
+    assert.ok(formattedCustomer.eta.length > 0);
+  });
+
+  it('exportToPrintableManifest should generate print window html', async () => {
+    const { exportToPrintableManifest, formatShipmentForExport } = await import('./export.ts');
+    let openedUrl = '';
+    let writtenHtml = '';
+
+    global.window = {
+      location: { origin: 'http://localhost:3000' } as any,
+      open: (url: string) => {
+        openedUrl = url;
+        return {
+          document: {
+            open: () => {},
+            write: (html: string) => {
+              writtenHtml = html;
+            },
+            close: () => {},
+          },
+        } as any;
+      },
+    } as any;
+
+    const row = formatShipmentForExport({
+      id: 'shp-print-1',
+      vehicleYear: 2021,
+      vehicleMake: 'Ford',
+      vehicleModel: 'F-150',
+      vehicleVIN: '1FTFW1E84',
+    }, true);
+
+    exportToPrintableManifest({
+      title: 'Customer Vehicle Manifest',
+      rows: [row],
+      isCustomer: true,
+    });
+
+    assert.ok(writtenHtml.includes('Customer Vehicle Manifest'));
+    assert.ok(writtenHtml.includes('2021 Ford F-150'));
+    assert.ok(writtenHtml.includes('1FTFW1E84'));
+    assert.ok(writtenHtml.includes('window.print()'));
+  });
 });
 

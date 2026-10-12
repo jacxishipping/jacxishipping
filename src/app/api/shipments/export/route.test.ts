@@ -162,7 +162,7 @@ describe('Shipments Export API Route', () => {
 
       const text = await res.text();
       // Allowed columns
-      assert.ok(text.includes('Vehicle,VIN,Lot #,Auction,Vehicle Type,Color,Status,Yard Received,Container #,Loading Port,Destination Port,ETA,Payment Status,Created Date'));
+      assert.ok(text.includes('Vehicle,VIN,Lot #,Auction,Vehicle Type,Color,Status,Yard Received,Keys,Title Status,Container #,Loading Port,Destination Port,ETD (Departure),ETA (Arrival),Payment Status,Shipping Fare ($),Tracking Link,Created Date'));
       assert.ok(text.includes('2023 Toyota RAV4'));
       assert.ok(text.includes('2T3F1RFV7PW'));
       assert.ok(text.includes('TGHU1122334'));
@@ -228,6 +228,51 @@ describe('Shipments Export API Route', () => {
       assert.strictEqual(row.transit, undefined);
       assert.strictEqual(row.dispatch, undefined);
       assert.strictEqual(row.purchasePrice, undefined);
+    } finally {
+      routeDeps.auth = originalAuth;
+      routeDeps.prisma.shipment.findMany = originalFindMany;
+    }
+  });
+
+  it('filters columns based on columns query parameter while still restricting customer access', async () => {
+    const originalAuth = routeDeps.auth;
+    const originalFindMany = routeDeps.prisma.shipment.findMany;
+
+    try {
+      (routeDeps as any).auth = async () => ({
+        user: { id: 'usr-customer-42', role: 'user' },
+      } as any);
+
+      (routeDeps.prisma.shipment as any).findMany = async () => [
+        {
+          id: 'shp-cust-cols',
+          vehicleMake: 'Audi',
+          vehicleModel: 'Q5',
+          vehicleYear: 2022,
+          vehicleVIN: 'WA1BNAFY8N2',
+          hasKey: true,
+          titleStatus: 'DELIVERED',
+          status: 'ON_HAND',
+          createdAt: new Date('2026-02-15T09:00:00.000Z'),
+          purchasePrice: 28000,
+          auditLogs: [],
+          ledgerEntries: [],
+        },
+      ];
+
+      // Request vehicle, vin, hasKey, and attempt to sneak in forbidden purchasePrice
+      const req = new NextRequest('http://localhost:3000/api/shipments/export?format=csv&columns=vehicle,vin,hasKey,purchasePrice');
+      const res = await GET(req);
+
+      assert.strictEqual(res.status, 200);
+      const text = await res.text();
+
+      // Only allowed requested columns are included
+      assert.ok(text.includes('Vehicle,VIN,Keys'));
+      assert.ok(!text.includes('Purchase Price'));
+      assert.ok(text.includes('2022 Audi Q5'));
+      assert.ok(text.includes('WA1BNAFY8N2'));
+      assert.ok(text.includes('Yes'));
     } finally {
       routeDeps.auth = originalAuth;
       routeDeps.prisma.shipment.findMany = originalFindMany;
