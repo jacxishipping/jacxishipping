@@ -3,7 +3,12 @@ import { Prisma, ShipmentSimpleStatus } from '@prisma/client';
 import { routeDeps } from '@/lib/route-deps';
 import { sanitizeTrackNumber } from '@/lib/tracking-sanitize';
 import { buildShipmentWorkflowStageWhereInput, isShipmentWorkflowStage } from '@/lib/shipment-workflow-stage';
-import { SHIPMENT_EXPORT_HEADERS, formatShipmentForExport } from '@/lib/export';
+import {
+  SHIPMENT_EXPORT_HEADERS,
+  CUSTOMER_SHIPMENT_EXPORT_HEADERS,
+  formatShipmentForExport,
+  sanitizeShipmentForCustomer,
+} from '@/lib/export';
 
 const SUPPORTED_SHIPMENT_STATUSES = new Set<ShipmentSimpleStatus>([
   'ON_HAND',
@@ -40,11 +45,12 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(Math.max(1, limitParam), 10000);
 
     const canReadAll = (session.user?.role && routeDeps.hasPermission(session.user.role, 'shipments:read_all')) || session.user?.role === 'admin';
+    const isCustomer = !canReadAll;
 
     const where: Prisma.ShipmentWhereInput = {};
 
     // Permission enforcement: regular customers can only export their own shipments
-    if (!canReadAll) {
+    if (isCustomer) {
       where.userId = session.user.id;
     } else if (userId) {
       where.userId = userId;
@@ -55,6 +61,9 @@ export async function GET(request: NextRequest) {
       const idList = idsParam.split(',').map((id) => id.trim()).filter(Boolean);
       if (idList.length > 0) {
         where.id = { in: idList };
+        if (isCustomer) {
+          where.userId = session.user.id;
+        }
       }
     }
 
@@ -131,15 +140,15 @@ export async function GET(request: NextRequest) {
             ],
           },
         },
-        {
-          dispatch: {
-            referenceNumber: { contains: query, mode: 'insensitive' },
-          },
-        },
       ];
 
-      if (canReadAll) {
+      if (!isCustomer) {
         orConditions.push(
+          {
+            dispatch: {
+              referenceNumber: { contains: query, mode: 'insensitive' },
+            },
+          },
           { user: { name: { contains: query, mode: 'insensitive' } } },
           { user: { email: { contains: query, mode: 'insensitive' } } }
         );
@@ -177,20 +186,24 @@ export async function GET(request: NextRequest) {
           },
           take: 1,
         },
-        ledgerEntries: {
-          select: {
-            type: true,
-            amount: true,
-            transactionInfoType: true,
-          },
-        },
-        user: {
-          select: {
-            name: true,
-            email: true,
-            phone: true,
-          },
-        },
+        ledgerEntries: isCustomer
+          ? false
+          : {
+              select: {
+                type: true,
+                amount: true,
+                transactionInfoType: true,
+              },
+            },
+        user: isCustomer
+          ? false
+          : {
+              select: {
+                name: true,
+                email: true,
+                phone: true,
+              },
+            },
         container: {
           select: {
             containerNumber: true,
@@ -199,49 +212,63 @@ export async function GET(request: NextRequest) {
             estimatedArrival: true,
           },
         },
-        transit: {
-          select: {
-            referenceNumber: true,
-            origin: true,
-            destination: true,
-          },
-        },
-        dispatch: {
-          select: {
-            referenceNumber: true,
-            origin: true,
-            destination: true,
-          },
-        },
+        transit: isCustomer
+          ? false
+          : {
+              select: {
+                referenceNumber: true,
+                origin: true,
+                destination: true,
+              },
+            },
+        dispatch: isCustomer
+          ? false
+          : {
+              select: {
+                referenceNumber: true,
+                origin: true,
+                destination: true,
+              },
+            },
       },
     });
 
     const formattedRows = (shipments as Array<any>).map((s) => {
       let purchasePricePaid = 0;
-      for (const entry of (s.ledgerEntries || [])) {
-        if (entry.type === 'CREDIT' && entry.transactionInfoType === 'CAR_PAYMENT') {
-          purchasePricePaid += entry.amount;
+      if (!isCustomer) {
+        for (const entry of (s.ledgerEntries || [])) {
+          if (entry.type === 'CREDIT' && entry.transactionInfoType === 'CAR_PAYMENT') {
+            purchasePricePaid += entry.amount;
+          }
         }
       }
 
-      return formatShipmentForExport({
-        ...s,
-        purchasePricePaid,
-        yardReceived: Boolean(s.auditLogs && s.auditLogs.length > 0),
-      });
+      return formatShipmentForExport(
+        {
+          ...s,
+          purchasePricePaid,
+          yardReceived: Boolean(s.auditLogs && s.auditLogs.length > 0),
+        },
+        isCustomer
+      );
     });
 
     if (format === 'json') {
+      const outputRows = isCustomer
+        ? formattedRows.map(sanitizeShipmentForCustomer)
+        : formattedRows;
+
       return NextResponse.json({
-        count: formattedRows.length,
-        shipments: formattedRows,
+        count: outputRows.length,
+        shipments: outputRows,
       });
     }
 
     // Generate CSV (with UTF-8 BOM so Excel displays correctly)
-    const headerLine = SHIPMENT_EXPORT_HEADERS.map((h) => h.label).join(',');
+    const exportHeaders = isCustomer ? CUSTOMER_SHIPMENT_EXPORT_HEADERS : SHIPMENT_EXPORT_HEADERS;
+    const headerLine = exportHeaders.map((h) => h.label).join(',');
     const dataLines = formattedRows.map((row) =>
-      SHIPMENT_EXPORT_HEADERS.map((header) => {
+      exportHeaders.map((header) => {
         const val = row[header.key];
         if (val === null || val === undefined) return '';
         const str = String(val);
@@ -255,7 +282,7 @@ export async function GET(request: NextRequest) {
     const BOM = '\uFEFF';
     const csvContent = BOM + [headerLine, ...dataLines].join('\n');
     const dateStamp = new Date().toISOString().split('T')[0];
-    const filename = `shipments-export-${dateStamp}.csv`;
+    const filename = isCustomer ? `my-shipments-export-${dateStamp}.csv` : `shipments-export-${dateStamp}.csv`;
 
     return new NextResponse(csvContent, {
       status: 200,

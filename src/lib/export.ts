@@ -240,7 +240,39 @@ export const SHIPMENT_EXPORT_HEADERS: { key: keyof FormattedShipmentExportRow; l
   { key: 'createdAt', label: 'Created Date' },
 ];
 
-export function formatShipmentForExport(shipment: any): FormattedShipmentExportRow {
+/**
+ * Customer-allowed shipment export headers.
+ * Strictly excludes internal administrative columns:
+ * - Other customer contact details (name, email, phone)
+ * - Internal transit / dispatch booking references
+ * - Internal financial costs / ledger margins (purchase price, amount paid, balance)
+ */
+export const CUSTOMER_SHIPMENT_EXPORT_HEADERS: { key: keyof FormattedShipmentExportRow; label: string }[] = [
+  { key: 'vehicle', label: 'Vehicle' },
+  { key: 'vin', label: 'VIN' },
+  { key: 'lotNumber', label: 'Lot #' },
+  { key: 'auction', label: 'Auction' },
+  { key: 'vehicleType', label: 'Vehicle Type' },
+  { key: 'vehicleColor', label: 'Color' },
+  { key: 'status', label: 'Status' },
+  { key: 'yardReceived', label: 'Yard Received' },
+  { key: 'container', label: 'Container #' },
+  { key: 'loadingPort', label: 'Loading Port' },
+  { key: 'destinationPort', label: 'Destination Port' },
+  { key: 'eta', label: 'ETA' },
+  { key: 'paymentStatus', label: 'Payment Status' },
+  { key: 'createdAt', label: 'Created Date' },
+];
+
+export function sanitizeShipmentForCustomer(row: FormattedShipmentExportRow): Record<string, string> {
+  const sanitized: Record<string, string> = {};
+  for (const header of CUSTOMER_SHIPMENT_EXPORT_HEADERS) {
+    sanitized[header.key] = row[header.key] ?? '';
+  }
+  return sanitized;
+}
+
+export function formatShipmentForExport(shipment: any, isCustomer = false): FormattedShipmentExportRow {
   const vehicle = [shipment.vehicleYear, shipment.vehicleMake, shipment.vehicleModel]
     .filter(Boolean)
     .join(' ')
@@ -261,18 +293,18 @@ export function formatShipmentForExport(shipment: any): FormattedShipmentExportR
     status: (shipment.status || '').replace(/_/g, ' '),
     yardReceived: shipment.yardReceived ? 'Yes' : 'No',
     container: shipment.container?.containerNumber || (typeof shipment.container === 'string' ? shipment.container : ''),
-    transit: shipment.transit?.referenceNumber || '',
-    dispatch: shipment.dispatch?.referenceNumber || '',
+    transit: isCustomer ? '' : (shipment.transit?.referenceNumber || ''),
+    dispatch: isCustomer ? '' : (shipment.dispatch?.referenceNumber || ''),
     loadingPort: shipment.container?.loadingPort || shipment.dispatch?.origin || shipment.transit?.origin || '',
     destinationPort: shipment.container?.destinationPort || shipment.dispatch?.destination || shipment.transit?.destination || '',
     eta: shipment.container?.estimatedArrival ? new Date(shipment.container.estimatedArrival).toLocaleDateString() : '',
-    customerName: shipment.user?.name || shipment.customer || '',
-    customerEmail: shipment.user?.email || '',
-    customerPhone: shipment.user?.phone || '',
-    serviceType: shipment.serviceType ? (shipment.serviceType === 'PURCHASE_AND_SHIPPING' ? 'Purchase + Shipping' : 'Shipping Only') : '',
-    purchasePrice: purchasePrice > 0 ? purchasePrice.toFixed(2) : '',
-    purchasePricePaid: purchasePricePaid > 0 ? purchasePricePaid.toFixed(2) : '',
-    purchaseRemaining: remaining > 0 ? remaining.toFixed(2) : '',
+    customerName: isCustomer ? '' : (shipment.user?.name || shipment.customer || ''),
+    customerEmail: isCustomer ? '' : (shipment.user?.email || ''),
+    customerPhone: isCustomer ? '' : (shipment.user?.phone || ''),
+    serviceType: isCustomer ? '' : (shipment.serviceType ? (shipment.serviceType === 'PURCHASE_AND_SHIPPING' ? 'Purchase + Shipping' : 'Shipping Only') : ''),
+    purchasePrice: !isCustomer && purchasePrice > 0 ? purchasePrice.toFixed(2) : '',
+    purchasePricePaid: !isCustomer && purchasePricePaid > 0 ? purchasePricePaid.toFixed(2) : '',
+    purchaseRemaining: !isCustomer && remaining > 0 ? remaining.toFixed(2) : '',
     paymentStatus: shipment.paymentStatus || '',
     createdAt: shipment.createdAt ? new Date(shipment.createdAt).toLocaleDateString() : '',
   };
@@ -281,17 +313,21 @@ export function formatShipmentForExport(shipment: any): FormattedShipmentExportR
 export function exportShipments(
   shipments: any[],
   format: 'csv' | 'excel' = 'csv',
-  filename = 'shipments'
+  filename = 'shipments',
+  options?: { isCustomer?: boolean }
 ) {
   if (!shipments || shipments.length === 0) {
     throw new Error('No shipments to export');
   }
 
-  const formattedRows = shipments.map(formatShipmentForExport);
+  const isCustomer = Boolean(options?.isCustomer);
+  const headers = isCustomer ? CUSTOMER_SHIPMENT_EXPORT_HEADERS : SHIPMENT_EXPORT_HEADERS;
+  const formattedRows = shipments.map((s) => formatShipmentForExport(s, isCustomer));
 
   if (format === 'excel') {
-    exportToExcelWithHeaders(formattedRows, SHIPMENT_EXPORT_HEADERS, filename);
+    exportToExcelWithHeaders(formattedRows, headers, filename);
   } else {
-    exportToCSVWithHeaders(formattedRows, SHIPMENT_EXPORT_HEADERS, filename);
+    exportToCSVWithHeaders(formattedRows, headers, filename);
   }
 }
+

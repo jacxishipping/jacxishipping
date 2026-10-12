@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useSession } from 'next-auth/react';
 import { 
   Dialog, 
   DialogTitle, 
@@ -26,6 +27,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { Button, toast } from '@/components/design-system';
+import { hasPermission } from '@/lib/rbac';
 
 export interface ShipmentExportFilters {
   query?: string;
@@ -57,12 +59,16 @@ export function openUniversalShipmentExport(options?: UniversalShipmentExportOpt
 }
 
 export function UniversalShipmentExportModal() {
+  const { data: session } = useSession();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [options, setOptions] = useState<UniversalShipmentExportOptions>({});
   const [format, setFormat] = useState<'excel' | 'csv'>('excel');
   const [scope, setScope] = useState<'all' | 'filtered' | 'selected'>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('');
+
+  const isCustomer = session?.user?.role === 'user' || (session?.user?.role && !hasPermission(session.user.role, 'shipments:read_all'));
+
 
   const handleOpen = useCallback((event: Event) => {
     const customEvent = event as CustomEvent<UniversalShipmentExportOptions>;
@@ -205,10 +211,10 @@ export function UniversalShipmentExportModal() {
           </div>
           <div>
             <Typography variant="h6" sx={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>
-              {options.title || 'Export Shipments'}
+              {options.title || (isCustomer ? 'Export My Shipments' : 'Export Shipments')}
             </Typography>
             <Typography variant="caption" sx={{ color: 'var(--text-secondary)', display: 'block', mt: 0.2 }}>
-              {options.subtitle || 'Download shipments in Excel or CSV format from anywhere'}
+              {options.subtitle || (isCustomer ? 'Download your vehicle shipments in Excel or CSV format' : 'Download shipments in Excel or CSV format from anywhere')}
             </Typography>
           </div>
         </div>
@@ -238,8 +244,12 @@ export function UniversalShipmentExportModal() {
                   : 'border-[var(--border)] bg-[var(--background)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--accent-gold)]/40'
               }`}
             >
-              <span className="text-xs font-bold text-[var(--text-primary)] mb-0.5">All Shipments</span>
-              <span className="text-[11px] text-[var(--text-secondary)] leading-tight">Export the entire inventory</span>
+              <span className="text-xs font-bold text-[var(--text-primary)] mb-0.5">
+                {isCustomer ? 'All My Shipments' : 'All Shipments'}
+              </span>
+              <span className="text-[11px] text-[var(--text-secondary)] leading-tight">
+                {isCustomer ? 'Export all your shipments' : 'Export the entire inventory'}
+              </span>
             </button>
 
             {hasActiveFilters && (
@@ -351,8 +361,15 @@ export function UniversalShipmentExportModal() {
             Included Columns in Export
           </p>
           <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
-            Vehicle Year/Make/Model, VIN, Lot #, Auction, Status, Yard Received, Container #, Transit #, Dispatch #, Origin & Destination Ports, ETA, Customer details, Purchase Price, Amount Paid, and Balance.
+            {isCustomer
+              ? 'Vehicle (Year/Make/Model), VIN, Lot #, Auction, Vehicle Type, Color, Status, Yard Received, Container #, Origin & Destination Ports, ETA, Payment Status, and Created Date.'
+              : 'Vehicle Year/Make/Model, VIN, Lot #, Auction, Status, Yard Received, Container #, Transit #, Dispatch #, Origin & Destination Ports, ETA, Customer details, Purchase Price, Amount Paid, and Balance.'}
           </p>
+          {isCustomer && (
+            <p className="text-[10px] text-emerald-500 font-medium mt-1">
+              Customer View: Only your authorized vehicle and shipment tracking data is exported.
+            </p>
+          )}
         </div>
       </DialogContent>
 

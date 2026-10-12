@@ -199,5 +199,83 @@ describe('Export Utilities', () => {
     assert.strictEqual(formatted.container, 'MSKU1234567');
     assert.strictEqual(formatted.customerName, 'Ahmad Khan');
   });
+
+  it('formatShipmentForExport with isCustomer=true should redact internal admin/finance fields', async () => {
+    const { formatShipmentForExport, CUSTOMER_SHIPMENT_EXPORT_HEADERS, sanitizeShipmentForCustomer } = await import('./export.ts');
+    const raw = {
+      id: 'ship-123',
+      vehicleYear: 2022,
+      vehicleMake: 'Honda',
+      vehicleModel: 'Accord',
+      vehicleVIN: '1HGCV1F34',
+      status: 'ON_HAND',
+      purchasePrice: 15000,
+      purchasePricePaid: 5000,
+      user: { name: 'Ahmad Khan', email: 'ahmad@example.com', phone: '+123456789' },
+      container: { containerNumber: 'MSKU1234567', loadingPort: 'Savannah', destinationPort: 'Jebel Ali' },
+      transit: { referenceNumber: 'TRN-9988' },
+      dispatch: { referenceNumber: 'DISP-7766' },
+      yardReceived: true,
+    };
+
+    const formatted = formatShipmentForExport(raw, true);
+
+    // Customer-allowed fields are preserved
+    assert.strictEqual(formatted.vehicle, '2022 Honda Accord');
+    assert.strictEqual(formatted.vin, '1HGCV1F34');
+    assert.strictEqual(formatted.status, 'ON HAND');
+    assert.strictEqual(formatted.yardReceived, 'Yes');
+    assert.strictEqual(formatted.container, 'MSKU1234567');
+    assert.strictEqual(formatted.loadingPort, 'Savannah');
+    assert.strictEqual(formatted.destinationPort, 'Jebel Ali');
+
+    // Internal administrative fields are redacted
+    assert.strictEqual(formatted.customerName, '');
+    assert.strictEqual(formatted.customerEmail, '');
+    assert.strictEqual(formatted.customerPhone, '');
+    assert.strictEqual(formatted.transit, '');
+    assert.strictEqual(formatted.dispatch, '');
+    assert.strictEqual(formatted.purchasePrice, '');
+    assert.strictEqual(formatted.purchasePricePaid, '');
+    assert.strictEqual(formatted.purchaseRemaining, '');
+
+    // Sanitization retains only allowed headers
+    const sanitized = sanitizeShipmentForCustomer(formatted);
+    const keys = Object.keys(sanitized);
+    assert.ok(!keys.includes('customerName'));
+    assert.ok(!keys.includes('customerEmail'));
+    assert.ok(!keys.includes('transit'));
+    assert.ok(!keys.includes('dispatch'));
+    assert.ok(!keys.includes('purchasePrice'));
+    assert.strictEqual(keys.length, CUSTOMER_SHIPMENT_EXPORT_HEADERS.length);
+  });
+
+  it('exportShipments should support customer-safe export headers', async () => {
+    const { exportShipments } = await import('./export.ts');
+    const shipments = [
+      {
+        id: 'ship-customer',
+        vehicleYear: 2023,
+        vehicleMake: 'Tesla',
+        vehicleModel: 'Model 3',
+        vehicleVIN: '5YJ3E1EA8',
+        status: 'IN_TRANSIT',
+        purchasePrice: 35000,
+        user: { name: 'Secret User', email: 'secret@user.com' },
+        transit: { referenceNumber: 'INTERNAL-TR-1' },
+      },
+    ];
+
+    exportShipments(shipments, 'csv', 'my-shipments', { isCustomer: true });
+
+    const text = await createdBlob!.text();
+    assert.ok(text.includes('Vehicle,VIN,Lot #,Auction'), 'Allowed headers should be present');
+    assert.ok(!text.includes('Customer Email'), 'Customer Email header should NOT be present');
+    assert.ok(!text.includes('Transit #'), 'Transit # header should NOT be present');
+    assert.ok(!text.includes('Purchase Price'), 'Purchase Price header should NOT be present');
+    assert.ok(!text.includes('Secret User'), 'Customer name value should NOT be present');
+    assert.ok(!text.includes('INTERNAL-TR-1'), 'Transit ref should NOT be present');
+    assert.ok(text.includes('2023 Tesla Model 3'), 'Vehicle info should be present');
+  });
 });
 

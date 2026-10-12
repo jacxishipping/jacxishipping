@@ -111,4 +111,126 @@ describe('Shipments Export API Route', () => {
       routeDeps.prisma.shipment.findMany = originalFindMany;
     }
   });
+
+  it('restricts customer role to their own shipments and only allowed data columns', async () => {
+    const originalAuth = routeDeps.auth;
+    const originalFindMany = routeDeps.prisma.shipment.findMany;
+    let capturedWhere: any = null;
+
+    try {
+      (routeDeps as any).auth = async () => ({
+        user: { id: 'usr-customer-42', role: 'user' },
+      } as any);
+
+      (routeDeps.prisma.shipment as any).findMany = async (args: any) => {
+        capturedWhere = args.where;
+        return [
+          {
+            id: 'shp-cust-1',
+            vehicleType: 'SUV',
+            vehicleMake: 'Toyota',
+            vehicleModel: 'RAV4',
+            vehicleYear: 2023,
+            vehicleVIN: '2T3F1RFV7PW',
+            vehicleColor: 'Magnetic Gray',
+            lotNumber: '88776655',
+            auctionName: 'Manheim',
+            status: 'IN_TRANSIT',
+            createdAt: new Date('2026-03-01T08:00:00.000Z'),
+            paymentStatus: 'PAID',
+            serviceType: 'SHIPPING_ONLY',
+            purchasePrice: 24000,
+            user: { name: 'Customer John', email: 'john@cust.com', phone: '+1999888777' },
+            container: { containerNumber: 'TGHU1122334', loadingPort: 'Newark', destinationPort: 'Dubai', estimatedArrival: new Date('2026-04-15') },
+            transit: { referenceNumber: 'SECRET-TRANSIT-1' },
+            dispatch: { referenceNumber: 'SECRET-DISP-1' },
+            auditLogs: [],
+            ledgerEntries: [],
+          },
+        ];
+      };
+
+      // Even if customer attempts to query another customer's userId, server must force customer's own session user id
+      const req = new NextRequest('http://localhost:3000/api/shipments/export?format=csv&userId=usr-other-hacker');
+      const res = await GET(req);
+
+      assert.strictEqual(res.status, 200);
+      assert.strictEqual(capturedWhere.userId, 'usr-customer-42', 'Must enforce session user ID for customer');
+
+      const disposition = res.headers.get('content-disposition') || '';
+      assert.ok(disposition.includes('my-shipments-export-'), 'Filename should be customer specific');
+
+      const text = await res.text();
+      // Allowed columns
+      assert.ok(text.includes('Vehicle,VIN,Lot #,Auction,Vehicle Type,Color,Status,Yard Received,Container #,Loading Port,Destination Port,ETA,Payment Status,Created Date'));
+      assert.ok(text.includes('2023 Toyota RAV4'));
+      assert.ok(text.includes('2T3F1RFV7PW'));
+      assert.ok(text.includes('TGHU1122334'));
+      assert.ok(text.includes('Newark'));
+      assert.ok(text.includes('Dubai'));
+
+      // Disallowed administrative and financial columns must NOT be present
+      assert.ok(!text.includes('Customer Phone'));
+      assert.ok(!text.includes('Customer Email'));
+      assert.ok(!text.includes('Transit #'));
+      assert.ok(!text.includes('Dispatch #'));
+      assert.ok(!text.includes('Purchase Price'));
+      assert.ok(!text.includes('Balance Remaining'));
+      assert.ok(!text.includes('SECRET-TRANSIT-1'));
+      assert.ok(!text.includes('SECRET-DISP-1'));
+      assert.ok(!text.includes('john@cust.com'));
+      assert.ok(!text.includes('Customer John'));
+    } finally {
+      routeDeps.auth = originalAuth;
+      routeDeps.prisma.shipment.findMany = originalFindMany;
+    }
+  });
+
+  it('sanitizes customer JSON exports to only allowed data fields', async () => {
+    const originalAuth = routeDeps.auth;
+    const originalFindMany = routeDeps.prisma.shipment.findMany;
+
+    try {
+      (routeDeps as any).auth = async () => ({
+        user: { id: 'usr-customer-42', role: 'user' },
+      } as any);
+
+      (routeDeps.prisma.shipment as any).findMany = async () => [
+        {
+          id: 'shp-cust-2',
+          vehicleMake: 'Honda',
+          vehicleModel: 'CR-V',
+          vehicleYear: 2022,
+          vehicleVIN: '7FARW1H84NE',
+          status: 'ON_HAND',
+          createdAt: new Date('2026-02-15T09:00:00.000Z'),
+          purchasePrice: 21000,
+          user: { name: 'Sensitive Name', email: 'secret@email.com' },
+          transit: { referenceNumber: 'SECRET-TR' },
+          auditLogs: [],
+          ledgerEntries: [],
+        },
+      ];
+
+      const req = new NextRequest('http://localhost:3000/api/shipments/export?format=json');
+      const res = await GET(req);
+
+      assert.strictEqual(res.status, 200);
+      const data = await res.json();
+      assert.strictEqual(data.count, 1);
+      const row = data.shipments[0];
+
+      assert.strictEqual(row.vehicle, '2022 Honda CR-V');
+      assert.strictEqual(row.vin, '7FARW1H84NE');
+      // Verify no sensitive keys leaked
+      assert.strictEqual(row.customerName, undefined);
+      assert.strictEqual(row.customerEmail, undefined);
+      assert.strictEqual(row.transit, undefined);
+      assert.strictEqual(row.dispatch, undefined);
+      assert.strictEqual(row.purchasePrice, undefined);
+    } finally {
+      routeDeps.auth = originalAuth;
+      routeDeps.prisma.shipment.findMany = originalFindMany;
+    }
+  });
 });

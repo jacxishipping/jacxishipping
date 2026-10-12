@@ -382,7 +382,7 @@ export default function PortalShipmentsPage() {
                   ...a.shipment,
                   customer: a.partnerCustomer?.name || 'Unassigned',
                 }));
-                exportShipments(shipmentList, 'excel', `${portal?.name || 'portal'}-shipments`);
+                exportShipments(shipmentList, 'excel', `${portal?.name || 'portal'}-shipments`, { isCustomer: true });
                 toast.success('Shipments exported successfully');
               }}
             >
@@ -571,7 +571,7 @@ export default function PortalShipmentsPage() {
                         ...r.shipment,
                         customer: r.partnerCustomer?.name || 'Unassigned',
                       }));
-                      exportShipments(shipmentList, 'excel', `portal-shipments-${new Date().toISOString().slice(0, 10)}`);
+                      exportShipments(shipmentList, 'excel', `portal-shipments-${new Date().toISOString().slice(0, 10)}`, { isCustomer: true });
                     }}
                   />
                 )}
