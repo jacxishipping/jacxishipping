@@ -149,7 +149,7 @@ export class OceanCarrierSyncService {
             vesselName: ev.vesselName || snapshot.vesselName || undefined,
             description: `${snapshot.carrier.name} • ${ev.eventClassifierCode === 'ACT' ? 'Actual' : 'Estimated'} • Voyage ${ev.voyageNumber || snapshot.voyageNumber || 'N/A'}`,
             eventDate: new Date(ev.eventDateTime),
-            source: 'API',
+            source: snapshot.carrier?.name ? `Carrier API (${snapshot.carrier.name})` : 'Carrier API',
             completed: ev.completed,
           },
         });
