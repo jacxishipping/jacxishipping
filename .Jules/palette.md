@@ -7,3 +7,7 @@
 ## 2026-10-08 - Dynamic Tooltips and ARIA Labels for Interactive IconButtons
 **Learning:** IconButtons used for toggling states (e.g., showing/hiding email) or performing inline actions (e.g., copying to clipboard) lack critical screen-reader and visual context when relying solely on native HTML 'title' attributes. Furthermore, dynamic state changes, like transitioning from 'Copy' to 'Copied!' should be reflected in both the tooltip and ARIA label for complete accessibility.
 **Action:** Replace native 'title' attributes on IconButtons with MUI Tooltips. Ensure dynamic ARIA labels and Tooltip titles are synchronized with the component's state to provide accurate feedback across all modalities.
+
+## 2026-10-12 - Authentication State IconButtons Require Explicit Naming
+**Learning:** Interactive icon-only elements in authentication flows, such as password visibility toggles, frequently lack explicitly defined accessible names and tooltips. This oversight severely degrades the experience for screen reader users relying on clear context during login.
+**Action:** When working on authentication components, meticulously wrap every icon-only button with a Tooltip and provide a synchronized aria-label.
