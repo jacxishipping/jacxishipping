@@ -146,16 +146,22 @@ export function BackupDatabaseTab() {
 
   // Trigger browser file download of JSON payload
   const downloadJsonFile = (filename: string, content: string | object) => {
-    const jsonStr = typeof content === 'string' ? content : JSON.stringify(content, null, 2);
-    const blob = new Blob([jsonStr], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    URL.revokeObjectURL(url);
-    document.body.removeChild(a);
+    try {
+      const jsonStr = typeof content === 'string' ? content : JSON.stringify(content, null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }, 500);
+    } catch (err) {
+      console.error('Error triggering download:', err);
+    }
   };
 
   // Create Backup
@@ -181,12 +187,21 @@ export function BackupDatabaseTab() {
         throw new Error(data.message || 'Failed to create backup');
       }
 
-      toast.success(data.message || 'Backup created successfully!');
+      toast.success(data.message || 'Backup generated and downloaded to your PC!');
       setLastBackupAt(data.lastBackupAt);
 
-      // Automatically download the generated backup JSON
+      // Automatically download the generated backup JSON to user's PC
       if (data.backup) {
         downloadJsonFile(data.filename || `jacxi-backup-${new Date().toISOString()}.json`, data.backup);
+      } else {
+        // Fallback direct export stream
+        const params = catsToSend?.length ? `?categories=${catsToSend.join(',')}` : '';
+        const a = document.createElement('a');
+        a.href = `/api/settings/backup/export${params}`;
+        a.download = data.filename || 'jacxi-backup.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
       }
 
       await fetchBackupMetadata();
@@ -518,15 +533,25 @@ export function BackupDatabaseTab() {
               </div>
             )}
 
-            <Button
-              onClick={handleCreateBackup}
-              disabled={creatingBackup || (backupMode === 'custom' && selectedBackupCats.length === 0)}
-              variant="primary"
-              fullWidth
-              icon={creatingBackup ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-            >
-              {creatingBackup ? 'Creating Snapshot & Compiling...' : 'Create & Download Backup JSON'}
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-2 pt-1">
+              <Button
+                onClick={handleCreateBackup}
+                disabled={creatingBackup || (backupMode === 'custom' && selectedBackupCats.length === 0)}
+                variant="primary"
+                fullWidth
+                icon={creatingBackup ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+              >
+                {creatingBackup ? 'Compiling Snapshot...' : 'Create & Download to PC'}
+              </Button>
+              <Button
+                variant="outline"
+                href={`/api/settings/backup/export${backupMode === 'custom' && selectedBackupCats.length ? `?categories=${selectedBackupCats.join(',')}` : ''}`}
+                disabled={backupMode === 'custom' && selectedBackupCats.length === 0}
+                icon={<Download className="w-4 h-4 text-[var(--accent-gold)]" />}
+              >
+                Direct Download
+              </Button>
+            </div>
           </div>
         </DashboardPanel>
 

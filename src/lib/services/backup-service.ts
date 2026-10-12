@@ -6,6 +6,7 @@
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import os from 'node:os';
 import { prisma } from '@/lib/db';
 import { logger } from '@/lib/logger';
 
@@ -83,6 +84,47 @@ export const BACKUP_CATEGORIES: BackupCategory[] = [
 ];
 
 const BACKUP_DIR = path.join(process.cwd(), 'backups');
+
+function getBackupDirs(): string[] {
+  const dirs: string[] = [];
+  const primary = path.join(process.cwd(), 'backups');
+  dirs.push(primary);
+
+  try {
+    const tmpDir = path.join(os.tmpdir(), 'backups');
+    if (!dirs.includes(tmpDir)) {
+      dirs.push(tmpDir);
+    }
+  } catch {
+    // Ignore tmpdir error
+  }
+  return dirs;
+}
+
+async function getWritableBackupDir(): Promise<string | null> {
+  const isServerless = Boolean(
+    process.env.VERCEL ||
+    process.env.AWS_LAMBDA_FUNCTION_NAME ||
+    process.cwd().startsWith('/var/task')
+  );
+
+  const candidates = isServerless
+    ? [path.join(os.tmpdir(), 'backups'), path.join(process.cwd(), 'backups')]
+    : [path.join(process.cwd(), 'backups'), path.join(os.tmpdir(), 'backups')];
+
+  for (const dir of candidates) {
+    try {
+      await fs.mkdir(dir, { recursive: true });
+      const testFile = path.join(dir, `.write-test-${Date.now()}`);
+      await fs.writeFile(testFile, 'ok', 'utf-8');
+      await fs.unlink(testFile).catch(() => {});
+      return dir;
+    } catch {
+      // Directory is not writable, try next
+    }
+  }
+  return null;
+}
 
 export interface StoredBackupInfo {
   filename: string;
@@ -220,77 +262,77 @@ export class BackupService {
     lastBackupAt: string | null;
     backupPath: string;
   }> {
-    await this.ensureBackupDir();
-
-    let files: string[] = [];
-    try {
-      files = await fs.readdir(BACKUP_DIR);
-    } catch {
-      return { backups: [], lastBackupAt: null, backupPath: BACKUP_DIR };
-    }
-
-    const backupFiles = files.filter(
-      (f) => f.startsWith('jacxi-backup-') && f.endsWith('.json')
-    );
-
+    const backupDirs = getBackupDirs();
+    const seenFiles = new Set<string>();
     const backups: StoredBackupInfo[] = [];
+    let detectedPath = backupDirs[0] || 'Client Downloads';
 
-    for (const filename of backupFiles) {
+    for (const dir of backupDirs) {
       try {
-        const filePath = path.join(BACKUP_DIR, filename);
-        const stat = await fs.stat(filePath);
+        const files = await fs.readdir(dir);
+        const jsonFiles = files.filter(
+          (f) => f.startsWith('jacxi-backup-') && f.endsWith('.json') && !seenFiles.has(f)
+        );
 
-        // Read first 4KB to quickly extract metadata without parsing huge 100MB files
-        const handle = await fs.open(filePath, 'r');
-        const buffer = Buffer.alloc(Math.min(8192, stat.size));
-        await handle.read(buffer, 0, buffer.length, 0);
-        await handle.close();
+        for (const filename of jsonFiles) {
+          seenFiles.add(filename);
+          detectedPath = dir;
+          try {
+            const filePath = path.join(dir, filename);
+            const stat = await fs.stat(filePath);
 
-        const previewText = buffer.toString('utf-8');
-        let timestamp = stat.mtime.toISOString();
-        let version = '1.0.0';
-        let scope: 'full' | 'custom' = 'full';
-        let categories: string[] = ['all'];
-        let totalRecords = 0;
+            const handle = await fs.open(filePath, 'r');
+            const buffer = Buffer.alloc(Math.min(8192, stat.size));
+            await handle.read(buffer, 0, buffer.length, 0);
+            await handle.close();
 
-        try {
-          // If small, parse completely
-          if (stat.size < 500000) {
-            const fullContent = JSON.parse(await fs.readFile(filePath, 'utf-8'));
-            timestamp = fullContent.timestamp || timestamp;
-            version = fullContent.version || version;
-            scope = fullContent.scope || 'full';
-            categories = fullContent.selectedCategories || Object.keys(fullContent.data || {});
-            totalRecords = fullContent.totalRecords ||
-              (fullContent.data ? Object.values(fullContent.data).reduce((acc: number, arr: any) => acc + (Array.isArray(arr) ? arr.length : 0), 0) : 0);
-          } else {
-            // Regex parse metadata from start of file
-            const timeMatch = previewText.match(/"timestamp":\s*"([^"]+)"/);
-            if (timeMatch) timestamp = timeMatch[1];
-            const verMatch = previewText.match(/"version":\s*"([^"]+)"/);
-            if (verMatch) version = verMatch[1];
-            const scopeMatch = previewText.match(/"scope":\s*"([^"]+)"/);
-            if (scopeMatch) scope = scopeMatch[1] as any;
-            const recordsMatch = previewText.match(/"totalRecords":\s*(\d+)/);
-            if (recordsMatch) totalRecords = parseInt(recordsMatch[1], 10);
+            const previewText = buffer.toString('utf-8');
+            let timestamp = stat.mtime.toISOString();
+            let version = '1.0.0';
+            let scope: 'full' | 'custom' = 'full';
+            let categories: string[] = ['all'];
+            let totalRecords = 0;
+
+            try {
+              if (stat.size < 500000) {
+                const fullContent = JSON.parse(await fs.readFile(filePath, 'utf-8'));
+                timestamp = fullContent.timestamp || timestamp;
+                version = fullContent.version || version;
+                scope = fullContent.scope || 'full';
+                categories = fullContent.selectedCategories || Object.keys(fullContent.data || {});
+                totalRecords = fullContent.totalRecords ||
+                  (fullContent.data ? Object.values(fullContent.data).reduce((acc: number, arr: any) => acc + (Array.isArray(arr) ? arr.length : 0), 0) : 0);
+              } else {
+                const timeMatch = previewText.match(/"timestamp":\s*"([^"]+)"/);
+                if (timeMatch) timestamp = timeMatch[1];
+                const verMatch = previewText.match(/"version":\s*"([^"]+)"/);
+                if (verMatch) version = verMatch[1];
+                const scopeMatch = previewText.match(/"scope":\s*"([^"]+)"/);
+                if (scopeMatch) scope = scopeMatch[1] as any;
+                const recordsMatch = previewText.match(/"totalRecords":\s*(\d+)/);
+                if (recordsMatch) totalRecords = parseInt(recordsMatch[1], 10);
+              }
+            } catch {
+              // Fallback
+            }
+
+            backups.push({
+              filename,
+              sizeBytes: stat.size,
+              sizeFormatted: formatBytes(stat.size),
+              createdAt: stat.mtime.toISOString(),
+              timestamp,
+              version,
+              scope,
+              categories,
+              totalRecords,
+            });
+          } catch {
+            // Ignore single file error
           }
-        } catch {
-          // Fallback to stat
         }
-
-        backups.push({
-          filename,
-          sizeBytes: stat.size,
-          sizeFormatted: formatBytes(stat.size),
-          createdAt: stat.mtime.toISOString(),
-          timestamp,
-          version,
-          scope,
-          categories,
-          totalRecords,
-        });
-      } catch (err) {
-        logger.warn(`Failed reading backup metadata for ${filename}:`, err);
+      } catch {
+        // Ignore unreadable candidate directories
       }
     }
 
@@ -549,30 +591,39 @@ export class BackupService {
 
     const fileTimestamp = nowIso.replace(/[:.]/g, '-');
     const filename = `jacxi-backup-${fileTimestamp}.json`;
-    const filePath = path.join(BACKUP_DIR, filename);
+    let savedFilePath: string = filename;
 
-    await fs.writeFile(filePath, JSON.stringify(backupPayload, null, 2), 'utf-8');
-    logger.info(`Database backup created: ${filename} with ${totalRecords} records across ${Object.keys(data).length} tables.`);
-
-    // Clean up older backups (keep last 20)
+    // Best-effort disk caching; if running in a read-only serverless environment, NEVER fail!
     try {
-      const allFiles = (await fs.readdir(BACKUP_DIR))
-        .filter((f) => f.startsWith('jacxi-backup-') && f.endsWith('.json'))
-        .sort()
-        .reverse();
+      const writableDir = await getWritableBackupDir();
+      if (writableDir) {
+        savedFilePath = path.join(writableDir, filename);
+        await fs.writeFile(savedFilePath, JSON.stringify(backupPayload, null, 2), 'utf-8');
+        logger.info(`Database backup created and saved: ${savedFilePath}`);
 
-      if (allFiles.length > 20) {
-        const toDelete = allFiles.slice(20);
-        await Promise.all(toDelete.map((f) => fs.unlink(path.join(BACKUP_DIR, f))));
+        // Clean up older backups (keep last 20)
+        try {
+          const allFiles = (await fs.readdir(writableDir))
+            .filter((f) => f.startsWith('jacxi-backup-') && f.endsWith('.json'))
+            .sort()
+            .reverse();
+
+          if (allFiles.length > 20) {
+            const toDelete = allFiles.slice(20);
+            await Promise.all(toDelete.map((f) => fs.unlink(path.join(writableDir, f)).catch(() => {})));
+          }
+        } catch {
+          // Ignore rotation errors
+        }
       }
-    } catch {
-      // Ignore rotation errors
+    } catch (diskErr) {
+      logger.warn('Disk caching skipped for backup (read-only filesystem):', diskErr);
     }
 
     return {
       backup: backupPayload,
       filename,
-      filePath,
+      filePath: savedFilePath,
       lastBackupAt: nowIso,
     };
   }
@@ -852,9 +903,17 @@ export class BackupService {
       throw new Error('Can only delete valid jacxi-backup-*.json files');
     }
 
-    const filePath = path.join(BACKUP_DIR, filename);
-    await fs.unlink(filePath);
-    return true;
+    for (const dir of getBackupDirs()) {
+      try {
+        const filePath = path.join(dir, filename);
+        await fs.unlink(filePath);
+        return true;
+      } catch {
+        // Try next directory
+      }
+    }
+
+    return false;
   }
 
   /**
@@ -864,8 +923,17 @@ export class BackupService {
     if (!filename || filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
       throw new Error('Invalid filename');
     }
-    const filePath = path.join(BACKUP_DIR, filename);
-    return await fs.readFile(filePath, 'utf-8');
+
+    for (const dir of getBackupDirs()) {
+      try {
+        const filePath = path.join(dir, filename);
+        return await fs.readFile(filePath, 'utf-8');
+      } catch {
+        // Try next directory
+      }
+    }
+
+    throw new Error(`Backup file ${filename} not found on server`);
   }
 }
 
