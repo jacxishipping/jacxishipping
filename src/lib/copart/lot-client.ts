@@ -20,6 +20,7 @@ export function buildCopartLotSummary(data: CopartLotVehicleData) {
   const summaryParts = [
     [data.vehicleYear, data.vehicleMake, data.vehicleModel].filter(Boolean).join(' '),
     data.extracted.damage ? `Damage: ${data.extracted.damage}` : undefined,
+    data.extracted.odometer ? `Odometer: ${data.extracted.odometer}` : undefined,
     data.purchaseLocation,
     data.vehicleVIN?.includes('*') ? 'VIN is masked on the public Copart page' : undefined,
   ].filter(Boolean);

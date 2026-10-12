@@ -23,6 +23,9 @@ type OxylabsCopartParsedContent = {
   vehicle_type?: string;
   primary_damage?: string;
   estimated_retail_value?: number;
+  images?: string[];
+  photos?: string[];
+  vehicle_images?: string[];
 };
 
 type OxylabsCopartResult = {
@@ -81,6 +84,7 @@ export type CopartLotVehicleData = {
   extracted: {
     bodyStyle?: string;
     damage?: string;
+    odometer?: string;
     transmission?: string;
     engine?: string;
     cylinders?: string;
@@ -212,6 +216,7 @@ function buildInternalNotes(raw: CopartLotRawPayload) {
 function buildOxylabsLocation(notes?: string) {
   const normalized = normalizeValue(notes);
   if (!normalized) return undefined;
+  if (/no notes for this lot|n\/a|none|no notes/i.test(normalized)) return undefined;
 
   return normalizeValue(normalized.replace(/^located in\s+/i, '')) || normalized;
 }
@@ -374,6 +379,11 @@ function normalizeOxylabsCopartResult(lotNumber: string, fallbackUrl: string, re
     slugMeta.docType ? `Doc type: ${slugMeta.docType}` : undefined,
   ].filter(Boolean);
 
+  const rawPhotos = content.images || content.photos || content.vehicle_images;
+  const vehiclePhotos = Array.isArray(rawPhotos) && rawPhotos.length > 0
+    ? rawPhotos.filter((p): p is string => typeof p === 'string' && p.startsWith('http'))
+    : undefined;
+
   return {
     lotNumber: normalizeValue(content.lot_number) || lotNumber,
     auctionName: 'Copart',
@@ -384,15 +394,17 @@ function normalizeOxylabsCopartResult(lotNumber: string, fallbackUrl: string, re
     vehicleColor: normalizeValue(content.color),
     vehicleType: inferVehicleType(normalizeValue(content.body_style), normalizeValue(content.vehicle_type)),
     hasKey: typeof content.has_key === 'boolean' ? content.has_key : undefined,
-    hasTitle: slugMeta.docType?.toLowerCase().includes('clean') ? true : undefined,
+    hasTitle: slugMeta.docType ? !slugMeta.docType.toLowerCase().includes('bill of sale') : undefined,
     purchaseDate,
     purchaseLocation,
     internalNotes: notesParts.length > 0 ? notesParts.join(' | ') : undefined,
+    vehiclePhotos,
     copartUrl: resultUrl,
     source: 'copart-oxylabs-data-api',
     extracted: {
       bodyStyle: normalizeValue(content.body_style),
       damage: normalizeValue(content.primary_damage) || slugMeta.docType,
+      odometer: normalizeValue(content.odometer),
       transmission: typeof content.transmission === 'string' ? normalizeValue(content.transmission) : undefined,
       engine: normalizeValue(content.engine_type),
       cylinders: normalizeValue(content.cylinders),
@@ -440,7 +452,7 @@ async function waitForOxylabsCopartJob(jobId: string, authHeader: string) {
   throw new Error(buildOxylabsCopartErrorMessage('timed out waiting for the job to finish.'));
 }
 
-async function fetchCopartLotVehicleDataFromOxylabs(lotNumber: string, copartUrl: string): Promise<CopartLotVehicleData> {
+export async function fetchCopartLotVehicleDataFromOxylabs(lotNumber: string, copartUrl: string): Promise<CopartLotVehicleData> {
   const username = getOxylabsDataApiUsername();
   const password = getOxylabsDataApiPassword();
   if (!username || !password) {
@@ -526,24 +538,24 @@ export async function fetchCopartLotVehicleData(lotNumber: string): Promise<Copa
   }
 
   const copartUrl = `${COPART_LOT_URL}/${normalizedLotNumber}`;
-  let nativeEngineError: Error | undefined;
-
-  // 1. Primary In-House Engine: Stealth Headless Browser
-  try {
-    return await fetchCopartLotWithNativeBrowser(normalizedLotNumber);
-  } catch (error) {
-    nativeEngineError = error instanceof Error ? error : new Error(String(error));
-  }
-
   let oxylabsError: Error | undefined;
 
-  // 2. Secondary Provider (if configured in environment)
+  // 1. Primary Engine when configured: Dedicated Oxylabs Data API
+  // Produces rich full specs: unmasked/masked VIN, keys, damage, color, title, engine, cylinders, odometer, retail value
   if (hasOxylabsCopartProvider()) {
     try {
       return await fetchCopartLotVehicleDataFromOxylabs(normalizedLotNumber, copartUrl);
     } catch (error) {
       oxylabsError = error instanceof Error ? error : new Error(String(error));
     }
+  }
+
+  // 2. High-Performance Secondary Engine: Stealth Headless Browser
+  let nativeEngineError: Error | undefined;
+  try {
+    return await fetchCopartLotWithNativeBrowser(normalizedLotNumber);
+  } catch (error) {
+    nativeEngineError = error instanceof Error ? error : new Error(String(error));
   }
 
   // 3. Direct Fast HTTP / Proxy Fallback

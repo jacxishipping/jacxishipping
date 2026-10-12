@@ -376,21 +376,37 @@ export default function EditShipmentPage() {
     }
   };
 
-  const fetchAuctionLotData = async (lotNumber: string) => {
-    if (!lotNumber?.trim()) return;
+  const fetchAuctionLotData = async (rawLotNumber: string) => {
+    if (!rawLotNumber?.trim()) return;
 
-    const auctionNameValue = watch('auctionName');
-    const targetAuction = auctionNameValue === 'IAAI' ? 'IAAI' : 'Copart';
+    let cleanedLotNumber = rawLotNumber.trim();
+    let targetAuction: 'Copart' | 'IAAI' = watch('auctionName') === 'IAAI' ? 'IAAI' : 'Copart';
+
+    // Auto-detect and clean URLs
+    if (/copart\.com/i.test(cleanedLotNumber)) {
+      targetAuction = 'Copart';
+      const match = cleanedLotNumber.match(/copart\.com\/lot\/(\d+)/i);
+      if (match) cleanedLotNumber = match[1];
+    } else if (/iaai\.com/i.test(cleanedLotNumber)) {
+      targetAuction = 'IAAI';
+      const match = cleanedLotNumber.match(/iaai\.com\/VehicleDetail\/([a-zA-Z0-9~-]+)/i);
+      if (match) cleanedLotNumber = match[1];
+    } else {
+      // Strip common prefixes like #, Lot, Stock
+      cleanedLotNumber = cleanedLotNumber.replace(/^(lot|stock)\s*(#|number|no|:)?\s*/i, '').replace(/^#\s*/, '').trim();
+      if (cleanedLotNumber.includes('~') || /~[a-z]{2}$/i.test(cleanedLotNumber)) {
+        targetAuction = 'IAAI';
+      }
+    }
 
     setFetchingLotData(true);
     try {
-      const trimmedLotNumber = lotNumber.trim();
       const { lotData, lotSummary } = await (targetAuction === 'IAAI'
-        ? fetchIaaiLotDataForShipment(trimmedLotNumber).then((data) => ({
+        ? fetchIaaiLotDataForShipment(cleanedLotNumber).then((data) => ({
             lotData: data,
             lotSummary: buildIaaiLotSummary(data),
           }))
-        : fetchCopartLotDataForShipment(trimmedLotNumber).then((data) => ({
+        : fetchCopartLotDataForShipment(cleanedLotNumber).then((data) => ({
             lotData: data,
             lotSummary: buildCopartLotSummary(data),
           })));
@@ -408,6 +424,16 @@ export default function EditShipmentPage() {
       if (lotData.purchaseDate && !watch('purchaseDate')) setValue('purchaseDate', lotData.purchaseDate);
       if (lotData.purchaseLocation && !watch('purchaseLocation')) setValue('purchaseLocation', lotData.purchaseLocation);
       if (lotData.internalNotes && !watch('internalNotes')) setValue('internalNotes', lotData.internalNotes);
+
+      // If an unmasked 17-character VIN is present and weight is unset, decode weight in background
+      if (lotData.vehicleVIN && lotData.vehicleVIN.length === 17 && !lotData.vehicleVIN.includes('*') && !watch('weight')) {
+        decodeVINService(lotData.vehicleVIN)
+          .then((decoded) => {
+            const weightEst = getBestWeightEstimate(decoded);
+            if (weightEst) setValue('weight', weightEst.toString());
+          })
+          .catch(() => {});
+      }
 
       toast.success(`${targetAuction} lot data fetched`, {
         description: lotSummary,
