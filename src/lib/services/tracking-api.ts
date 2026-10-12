@@ -264,6 +264,144 @@ export class TrackingAPIService {
 	}
 
 	/**
+	 * Test Turkon Online Tracking service directly with diagnostic information
+	 */
+	public async testTurkonLookup(containerNumber: string): Promise<{
+		success: boolean;
+		httpStatus: number;
+		latencyMs: number;
+		snapshot: ContainerTrackingSnapshot | null;
+		rawData: any;
+		error?: string;
+	}> {
+		const start = Date.now();
+		const cleanNumber = containerNumber.trim().toUpperCase();
+		const url = `https://myturkonline.turkon.com/shipping-prod-service/tracking/getTrackingTopInformation/en/${encodeURIComponent(cleanNumber)}`;
+		try {
+			const res = await fetch(url, {
+				method: 'POST',
+				headers: {
+					'accept': 'application/json, text/plain, */*',
+					'accept-language': 'en-GB,en-US;q=0.9,en;q=0.8',
+					'content-type': 'application/json',
+					'priority': 'u=1, i',
+					'referrer': 'https://myturkonline.turkon.com/tracking',
+					'origin': 'https://myturkonline.turkon.com',
+					'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
+				},
+				body: JSON.stringify({ token: null, cookie: null }),
+				cache: 'no-store',
+			});
+
+			const latencyMs = Date.now() - start;
+			const resText = await res.text();
+			let json: any = null;
+			try {
+				json = JSON.parse(resText);
+			} catch {
+				json = { raw: resText };
+			}
+
+			if (!res.ok) {
+				return {
+					success: false,
+					httpStatus: res.status,
+					latencyMs,
+					snapshot: null,
+					rawData: json,
+					error: `HTTP ${res.status}: ${resText.slice(0, 200)}`,
+				};
+			}
+
+			const snapshot = this.buildSnapshotFromTurkonData(cleanNumber, json);
+			return {
+				success: Boolean(snapshot),
+				httpStatus: res.status,
+				latencyMs,
+				snapshot,
+				rawData: json,
+			};
+		} catch (err: any) {
+			return {
+				success: false,
+				httpStatus: 0,
+				latencyMs: Date.now() - start,
+				snapshot: null,
+				rawData: null,
+				error: err?.message || 'Turkon request failed',
+			};
+		}
+	}
+
+	/**
+	 * Test PGL Legacy Tracking service directly with diagnostic information
+	 */
+	public async testPGLLookup(containerNumber: string): Promise<{
+		success: boolean;
+		httpStatus: number;
+		latencyMs: number;
+		snapshot: ContainerTrackingSnapshot | null;
+		count: number;
+		rawData: any;
+		error?: string;
+	}> {
+		const start = Date.now();
+		const cleanNumber = containerNumber.trim().toUpperCase();
+		const url = `${PGL_TRACKING_ENDPOINT}?tracking_value=${encodeURIComponent(cleanNumber)}`;
+		try {
+			const res = await fetch(url, {
+				cache: 'no-store',
+				headers: {
+					Accept: 'application/json',
+				},
+			});
+
+			const latencyMs = Date.now() - start;
+			const resText = await res.text();
+			let payload: any = null;
+			try {
+				payload = JSON.parse(resText);
+			} catch {
+				payload = { raw: resText };
+			}
+
+			if (!res.ok) {
+				return {
+					success: false,
+					httpStatus: res.status,
+					latencyMs,
+					snapshot: null,
+					count: 0,
+					rawData: payload,
+					error: `HTTP ${res.status}: ${resText.slice(0, 200)}`,
+				};
+			}
+
+			const entries = Array.isArray(payload?.data) ? payload.data : [];
+			const snapshot = entries.length > 0 ? this.buildSnapshotFromPGLEntries(cleanNumber, entries) : null;
+
+			return {
+				success: entries.length > 0,
+				httpStatus: res.status,
+				latencyMs,
+				snapshot,
+				count: entries.length,
+				rawData: payload,
+			};
+		} catch (err: any) {
+			return {
+				success: false,
+				httpStatus: 0,
+				latencyMs: Date.now() - start,
+				snapshot: null,
+				count: 0,
+				rawData: null,
+				error: err?.message || 'PGL request failed',
+			};
+		}
+	}
+
+	/**
 	 * Directly query Turkon Online Tracking service for TRKU containers.
 	 */
 	private async fetchTurkonTrackingData(

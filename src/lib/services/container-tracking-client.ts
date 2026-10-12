@@ -5,6 +5,7 @@
  */
 
 import { logger } from '@/lib/logger';
+import { getStoredTrackingSettings, maskSecret } from '@/lib/tracking-settings';
 
 export interface SupabaseTrackingEvent {
   event_date: string;
@@ -62,20 +63,22 @@ class ContainerTrackingSupabaseClient {
   private subscriptionStatus: string;
 
   constructor() {
-    this.supabaseUrl = process.env.SUPABASE_TRACKING_URL || 'https://wdnqhocjcjolsmgthfjm.supabase.co';
-    this.anonKey = process.env.SUPABASE_TRACKING_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndkbnFob2NqY2pvbHNtZ3RoZmptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ1Mjk3MTAsImV4cCI6MjA2MDEwNTcxMH0.FnfHss745CusFG1HNluhARQIqgwjvBhGVAgLU_bi8uc';
-    this.accessToken = process.env.SUPABASE_TRACKING_ACCESS_TOKEN || 'eyJhbGciOiJIUzI1NiIsImtpZCI6Ik9DeUVoUTBoTWNxdGJNa2UiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL3dkbnFob2NqY2pvbHNtZ3RoZmptLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiI0NTA3ZGJlMi01YTNkLTQyZWItOWY1Ny05OTU2OWI1NmNmNWQiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzkwNTY4OTMzLCJpYXQiOjE3OTA1NjUzMzMsImVtYWlsIjoic2hrcmJhYmFyQGdtYWlsLmNvbSIsInBob25lIjoiIiwiYXBwX21ldGFkYXRhIjp7InByb3ZpZGVyIjoiZ29vZ2xlIiwicHJvdmlkZXJzIjpbImdvb2dsZSJdfSwidXNlcl9tZXRhZGF0YSI6eyJhdmF0YXJfdXJsIjoiaHR0cHM6Ly9saDMuZ29vZ2xldXNlcmNvbnRlbnQuY29tL2EvQUNnOG9jS082bzBQa2dWZGhkZjhYRDdJbE5CX3hMa0ppUkJ0WFhuOGt5UWNoVzJ6a3otNXdlST1zOTYtYyIsImVtYWlsIjoic2hrcmJhYmFyQGdtYWlsLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJmdWxsX25hbWUiOiJTaGFraXIgQmFiYXIiLCJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJuYW1lIjoiU2hha2lyIEJhYmFyIiwicGhvbmVfdmVyaWZpZWQiOmZhbHNlLCJwaWN0dXJlIjoiaHR0cHM6Ly9saDMuZ29vZ2xldXNlcmNvbnRlbnQuY29tL2EvQUNnOG9jS082bzBQa2dWZGhkZjhYRDdJbE5CX3hMa0ppUkJ0WFhuOGt5UWNoVzJ6a3otNXdlST1zOTYtYyIsInByb3ZpZGVyX2lkIjoiMTAyMjA0MDI3MTM3MDQ0MzU4NzI4Iiwic3ViIjoiMTAyMjA0MDI3MTM3MDQ0MzU4NzI4In0sInJvbGUiOiJhdXRoZW50aWNhdGVkIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoib2F1dGgiLCJ0aW1lc3RhbXAiOjE3OTAzNTMwOTN9XSwic2Vzc2lvbl9pZCI6IjYwMmMwNzMzLTBjNGMtNDc4Ny1hYmFmLTBjOTljMDNjZTYzNiIsImlzX2Fub255bW91cyI6ZmFsc2V9.LZLND3nqJ_9LjeXYMeODrohPzri9mUx6tl2aUD-FYR0';
-    this.refreshToken = process.env.SUPABASE_TRACKING_REFRESH_TOKEN || 'osl3x2ix7cr7';
-    this.userId = process.env.SUPABASE_TRACKING_USER_ID || '4507dbe2-5a3d-42eb-9f57-99569b56cf5d';
-    this.subscriptionStatus = process.env.SUBSCRIPTION_STATUS || 'pro';
+    const stored = getStoredTrackingSettings();
+    this.supabaseUrl = stored.supabaseUrl;
+    this.anonKey = stored.anonKey;
+    this.accessToken = stored.accessToken;
+    this.refreshToken = stored.refreshToken;
+    this.userId = stored.userId;
+    this.subscriptionStatus = stored.subscriptionStatus;
   }
 
   /**
-   * Decode expiration time from JWT
+   * Decode expiration time from JWT (seconds since epoch)
    */
-  private getTokenExpiry(jwt: string): number | null {
+  public getTokenExpiry(jwt?: string): number | null {
     try {
-      const parts = jwt.split('.');
+      const token = jwt || this.accessToken;
+      const parts = token.split('.');
       if (parts.length < 2) return null;
       const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf-8'));
       return typeof payload.exp === 'number' ? payload.exp : null;
@@ -85,10 +88,70 @@ class ContainerTrackingSupabaseClient {
   }
 
   /**
-   * Automatically exchange refresh token for a fresh JWT access token
+   * Return comprehensive diagnostics and status for the Supabase tracking integration
    */
-  private async refreshAccessToken(): Promise<boolean> {
-    if (!this.refreshToken) return false;
+  public getDiagnostics() {
+    const exp = this.getTokenExpiry(this.accessToken);
+    const nowEpoch = Math.floor(Date.now() / 1000);
+    const isExpired = exp !== null ? exp <= nowEpoch : false;
+    const secondsUntilExpiry = exp !== null ? exp - nowEpoch : null;
+
+    return {
+      supabaseUrl: this.supabaseUrl,
+      userId: this.userId,
+      subscriptionStatus: this.subscriptionStatus,
+      hasAnonKey: Boolean(this.anonKey),
+      hasAccessToken: Boolean(this.accessToken),
+      hasRefreshToken: Boolean(this.refreshToken),
+      maskedAnonKey: maskSecret(this.anonKey),
+      maskedAccessToken: maskSecret(this.accessToken),
+      maskedRefreshToken: maskSecret(this.refreshToken),
+      tokenExpiresAt: exp ? new Date(exp * 1000).toISOString() : null,
+      isTokenExpired: isExpired,
+      secondsUntilExpiry,
+    };
+  }
+
+  /**
+   * Update tracking client credentials in-memory
+   */
+  public updateConfig(updates: {
+    supabaseUrl?: string;
+    anonKey?: string;
+    accessToken?: string;
+    refreshToken?: string;
+    userId?: string;
+    subscriptionStatus?: string;
+  }) {
+    if (updates.supabaseUrl?.trim()) this.supabaseUrl = updates.supabaseUrl.trim();
+    if (updates.anonKey?.trim()) this.anonKey = updates.anonKey.trim();
+    if (updates.accessToken?.trim()) this.accessToken = updates.accessToken.trim();
+    if (updates.refreshToken?.trim()) this.refreshToken = updates.refreshToken.trim();
+    if (updates.userId?.trim()) this.userId = updates.userId.trim();
+    if (updates.subscriptionStatus?.trim()) this.subscriptionStatus = updates.subscriptionStatus.trim();
+  }
+
+  /**
+   * Test and renew Supabase OAuth access token using refresh_token grant
+   */
+  public async testTokenRenewal(): Promise<{
+    success: boolean;
+    httpStatus?: number;
+    error?: string;
+    tokenExpiresAt?: string | null;
+    secondsUntilExpiry?: number | null;
+    latencyMs: number;
+    renewedAt: string;
+  }> {
+    const start = Date.now();
+    if (!this.refreshToken) {
+      return {
+        success: false,
+        error: 'No refresh token configured',
+        latencyMs: Date.now() - start,
+        renewedAt: new Date().toISOString(),
+      };
+    }
 
     const url = `${this.supabaseUrl}/auth/v1/token?grant_type=refresh_token`;
     try {
@@ -101,24 +164,103 @@ class ContainerTrackingSupabaseClient {
         body: JSON.stringify({ refresh_token: this.refreshToken }),
       });
 
-      if (!res.ok) {
-        logger.warn(`Supabase tracking token refresh failed with HTTP ${res.status}`);
-        return false;
+      const latencyMs = Date.now() - start;
+      const resText = await res.text();
+      let body: any = null;
+      try {
+        body = JSON.parse(resText);
+      } catch {
+        body = { raw: resText };
       }
 
-      const body = await res.json();
-      if (body.access_token) {
+      if (!res.ok) {
+        const errorMsg = body?.msg || body?.error_description || body?.message || body?.error || `HTTP ${res.status}`;
+        logger.warn(`Supabase tracking token refresh failed with HTTP ${res.status}: ${errorMsg}`);
+        return {
+          success: false,
+          httpStatus: res.status,
+          error: errorMsg,
+          latencyMs,
+          renewedAt: new Date().toISOString(),
+        };
+      }
+
+      if (body?.access_token) {
         this.accessToken = body.access_token;
         if (body.refresh_token) {
           this.refreshToken = body.refresh_token;
         }
+        const exp = this.getTokenExpiry(this.accessToken);
+        const nowEpoch = Math.floor(Date.now() / 1000);
+
         logger.info('Supabase container tracking access token renewed successfully.');
-        return true;
+        return {
+          success: true,
+          httpStatus: res.status,
+          tokenExpiresAt: exp ? new Date(exp * 1000).toISOString() : null,
+          secondsUntilExpiry: exp ? exp - nowEpoch : null,
+          latencyMs,
+          renewedAt: new Date().toISOString(),
+        };
       }
-    } catch (err) {
-      logger.error('Error refreshing Supabase tracking token:', err);
+
+      return {
+        success: false,
+        httpStatus: res.status,
+        error: 'No access_token found in Supabase response',
+        latencyMs,
+        renewedAt: new Date().toISOString(),
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        error: err?.message || 'Network error during token renewal',
+        latencyMs: Date.now() - start,
+        renewedAt: new Date().toISOString(),
+      };
     }
-    return false;
+  }
+
+  /**
+   * Ping Supabase backend to verify connectivity and API key validity
+   */
+  public async testPing(): Promise<{
+    success: boolean;
+    httpStatus?: number;
+    latencyMs: number;
+    error?: string;
+  }> {
+    const start = Date.now();
+    try {
+      const res = await fetch(`${this.supabaseUrl}/rest/v1/`, {
+        method: 'GET',
+        headers: {
+          apikey: this.anonKey,
+          Accept: 'application/json',
+        },
+        cache: 'no-store',
+      });
+      return {
+        success: res.ok,
+        httpStatus: res.status,
+        latencyMs: Date.now() - start,
+        error: res.ok ? undefined : `HTTP ${res.status}`,
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        latencyMs: Date.now() - start,
+        error: err?.message || 'Connection failed',
+      };
+    }
+  }
+
+  /**
+   * Automatically exchange refresh token for a fresh JWT access token
+   */
+  private async refreshAccessToken(): Promise<boolean> {
+    const res = await this.testTokenRenewal();
+    return res.success;
   }
 
   /**

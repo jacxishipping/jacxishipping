@@ -63,6 +63,7 @@ import {
   US_STATES,
   type ShippingRateCalculatorConfig,
 } from '@/lib/shipping-rate-calculator';
+import { TrackingApisTab } from '@/components/dashboard/settings/TrackingApisTab';
 
 const DEFAULT_SETTINGS = {
   theme: 'light',
@@ -79,7 +80,7 @@ const DEFAULT_SETTINGS = {
 };
 
 const baseSettingsTabSlugs = ['profile', 'preferences', 'notifications', 'security'];
-const adminSettingsTabSlugs = ['ai', 'communications', 'call-agent', 'price-calculator'];
+const adminSettingsTabSlugs = ['ai', 'communications', 'call-agent', 'price-calculator', 'tracking-apis'];
 
 function TabPanel({ children, value, index }: { children: ReactNode; value: number; index: number }) {
   return (
@@ -994,6 +995,7 @@ export default function SettingsPage() {
         { label: 'Communications', icon: <Mail className="h-4 w-4" /> },
         { label: 'Call Agent', icon: <PhoneCall className="h-4 w-4" /> },
         { label: 'Price Calculator', icon: <DollarSign className="h-4 w-4" /> },
+        { label: 'Tracking APIs', icon: <Radio className="h-4 w-4" /> },
       );
     }
 
@@ -2379,6 +2381,11 @@ export default function SettingsPage() {
           </form>
         </DashboardPanel>
       ) : null}
+      </TabPanel>
+
+      {/* Tab 8: Tracking APIs */}
+      <TabPanel value={activeTab} index={8}>
+        {isAdmin ? <TrackingApisTab /> : null}
       </TabPanel>
     </DashboardSurface>
   );
