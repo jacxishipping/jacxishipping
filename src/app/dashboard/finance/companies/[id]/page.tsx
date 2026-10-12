@@ -10,19 +10,21 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Chip,
   IconButton,
   MenuItem,
   Tab,
   Tabs,
   TextField,
   Tooltip,
-} from '@mui/material';
-import { AlertTriangle, ArrowLeft, Building2, Car, CheckCircle2, DollarSign, Eye, GitCompareArrows, Landmark, Package, Pencil, Plus, ReceiptText, Trash2, Truck, Upload } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Building2, Car, CheckCircle2, DollarSign, Eye, GitCompareArrows, Landmark, Package, Pencil, Plus, Printer, ReceiptText, Search, Trash2, Truck, Upload } from 'lucide-react';
 import PermissionRoute from "@/components/auth/PermissionRoute";
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
 import { Breadcrumbs, Button, StatsCard, toast, TableSkeleton, PageHeader } from '@/components/design-system';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { normalizeShippingRateConfig, type AuctionRateEntry, type ShippingRateCalculatorConfig } from '@/lib/shipping-rate-calculator';
+import CompanyPriceListDrawer from '@/components/finance/CompanyPriceListDrawer';
+import { printCompanyPriceList } from '@/lib/price-list-print';
 
 type PriceListImportMode = 'replace' | 'merge' | 'add_new';
 
@@ -406,6 +408,9 @@ export default function CompanyLedgerDetailPage() {
   const [focusedEntry, setFocusedEntry] = useState<LedgerEntry | null>(null);
   const [focusedEntryLoading, setFocusedEntryLoading] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
+  const [openPriceListDrawer, setOpenPriceListDrawer] = useState(false);
+  const [inlineRateSearch, setInlineRateSearch] = useState('');
+  const [showInlineRateLookup, setShowInlineRateLookup] = useState(false);
 
   useEffect(() => {
     const tab = searchParams.get('tab');
@@ -454,6 +459,58 @@ export default function CompanyLedgerDetailPage() {
       normalizeShippingRateConfig(priceListVersionReview.config),
     );
   }, [company, priceListVersionReview]);
+
+  const { inlineMatchedRates, totalInlineMatches } = useMemo(() => {
+    const activeConfig = normalizeShippingRateConfig(activePriceList?.config || company?.priceListConfig);
+    const rates = activeConfig.auctionRates || [];
+    const q = inlineRateSearch.trim().toLowerCase();
+    if (!q) {
+      return { inlineMatchedRates: rates.slice(0, 6), totalInlineMatches: rates.length };
+    }
+    const matched = rates.filter((r) =>
+      [r.stateCode, r.branch, r.city, r.loadingPoint || '', String(r.total)]
+        .join(' ')
+        .toLowerCase()
+        .includes(q)
+    ).sort((a, b) => {
+      const aExact = a.city?.toLowerCase() === q || a.branch?.toLowerCase() === q || a.stateCode?.toLowerCase() === q;
+      const bExact = b.city?.toLowerCase() === q || b.branch?.toLowerCase() === q || b.stateCode?.toLowerCase() === q;
+      if (aExact && !bExact) return -1;
+      if (!aExact && bExact) return 1;
+      return 0;
+    });
+    return { inlineMatchedRates: matched.slice(0, 6), totalInlineMatches: matched.length };
+  }, [activePriceList?.config, company?.priceListConfig, inlineRateSearch]);
+
+  const handlePrintActivePriceList = () => {
+    if (!company) return;
+    const config = normalizeShippingRateConfig(activePriceList?.config || company.priceListConfig);
+    printCompanyPriceList({
+      companyName: company.name,
+      companyType: companyTypeLabel,
+      priceListName: activePriceList?.name || 'Active Price List',
+      destinationLabel: config.destinationLabel || 'Standard Destination',
+      sourceFileName: activePriceList?.sourceFileName || config.updatedFromPdfName,
+      effectiveDate: activePriceList?.effectiveFrom || config.updatedAt,
+      auctionRates: config.auctionRates,
+      stateRates: config.stateRates,
+    });
+  };
+
+  const handlePrintPriceListVersion = (list: CompanyPriceListSummary) => {
+    if (!company) return;
+    const config = normalizeShippingRateConfig(list.config || company.priceListConfig);
+    printCompanyPriceList({
+      companyName: company.name,
+      companyType: companyTypeLabel,
+      priceListName: list.name,
+      destinationLabel: list.destinationLabel || config.destinationLabel || 'Standard Destination',
+      sourceFileName: list.sourceFileName || config.updatedFromPdfName,
+      effectiveDate: list.effectiveFrom || config.updatedAt,
+      auctionRates: config.auctionRates,
+      stateRates: config.stateRates,
+    });
+  };
 
   const companyTabs = useMemo(() => [
     { label: 'Ledger', icon: <ReceiptText className="h-4 w-4" /> },
@@ -1058,34 +1115,69 @@ export default function CompanyLedgerDetailPage() {
         key: 'description',
         header: 'Description',
         sortable: true,
-        render: (_, row) => (
-          <Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-              <Box sx={{ fontWeight: 500 }}>{row.description}</Box>
-              {isBankImportedEntry(row) && (
-                <Box
-                  component="span"
-                  sx={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    px: 0.75,
-                    py: 0.25,
-                    borderRadius: 1,
-                    fontSize: '0.65rem',
-                    fontWeight: 700,
-                    letterSpacing: '0.05em',
-                    backgroundColor: 'rgba(59, 130, 246, 0.12)',
-                    color: '#2563eb',
-                    border: '1px solid rgba(59, 130, 246, 0.22)',
-                    textTransform: 'uppercase',
-                  }}
-                >
-                  Bank Import
-                </Box>
-              )}
-            </Box>
-            <Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-              {row.category || 'General'}{row.reference ? ` • Ref: ${row.reference}` : ''}
+        render: (_, row) => {
+          const metadata = (row.metadata || {}) as Record<string, unknown>;
+          const priceListName = (metadata.priceListName as string) || (typeof row.reference === 'string' && row.reference.startsWith('price-list') ? 'Price List' : null);
+
+          return (
+            <Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                <Box sx={{ fontWeight: 500 }}>{row.description}</Box>
+                {isBankImportedEntry(row) && (
+                  <Box
+                    component="span"
+                    sx={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      px: 0.75,
+                      py: 0.25,
+                      borderRadius: 1,
+                      fontSize: '0.65rem',
+                      fontWeight: 700,
+                      letterSpacing: '0.05em',
+                      backgroundColor: 'rgba(59, 130, 246, 0.12)',
+                      color: '#2563eb',
+                      border: '1px solid rgba(59, 130, 246, 0.22)',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    Bank Import
+                  </Box>
+                )}
+                {priceListName && (
+                  <Box
+                    component="button"
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setOpenPriceListDrawer(true);
+                    }}
+                    sx={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 0.5,
+                      px: 0.75,
+                      py: 0.2,
+                      borderRadius: 1,
+                      fontSize: '0.68rem',
+                      fontWeight: 700,
+                      backgroundColor: 'rgba(var(--accent-gold-rgb), 0.12)',
+                      color: 'var(--accent-gold)',
+                      border: '1px solid rgba(var(--accent-gold-rgb), 0.28)',
+                      cursor: 'pointer',
+                      '&:hover': {
+                        backgroundColor: 'rgba(var(--accent-gold-rgb), 0.22)',
+                      },
+                    }}
+                  >
+                    <ReceiptText className="w-3 h-3" />
+                    {priceListName}
+                  </Box>
+                )}
+              </Box>
+              <Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                {row.category || 'General'}{row.reference ? ` • Ref: ${row.reference}` : ''}
+              </Box>
             </Box>
             {(() => {
               const metadata = (row.metadata || {}) as Record<string, unknown>;
@@ -1139,7 +1231,8 @@ export default function CompanyLedgerDetailPage() {
               );
             })()}
           </Box>
-        ),
+        );
+      },
       },
       {
         key: 'type',
@@ -1409,6 +1502,13 @@ export default function CompanyLedgerDetailPage() {
                   Banking
                 </Button>
               </Link>
+              <Button
+                variant="outline"
+                icon={<ReceiptText className="w-4 h-4 text-[var(--accent-gold)]" />}
+                onClick={() => setOpenPriceListDrawer(true)}
+              >
+                Price List {activePriceList ? `(${activePriceListLaneCount})` : ''}
+              </Button>
               <Button variant="outline" icon={<DollarSign className="w-4 h-4" />} onClick={() => {
                 setIsPaymentMode(true);
                 setFormData((prev) => ({ ...prev, type: 'DEBIT', category: 'Payment', description: `Payment to ${company?.name || 'Company'}` }));
@@ -1509,7 +1609,241 @@ export default function CompanyLedgerDetailPage() {
         <DashboardPanel
           title="Company Ledger"
           description="Search, filter, and manage transactions for this company"
+          actions={
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              <Button
+                variant="outline"
+                size="sm"
+                icon={<ReceiptText className="w-4 h-4 text-[var(--accent-gold)]" />}
+                onClick={() => setOpenPriceListDrawer(true)}
+              >
+                {activePriceList ? `View Price List (${activePriceListLaneCount} rates)` : 'View Price List'}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                icon={<Upload className="w-4 h-4" />}
+                onClick={() => {
+                  setActiveTab(1);
+                  const nextParams = new URLSearchParams(searchParams.toString());
+                  nextParams.set('tab', 'price-list');
+                  router.replace(`?${nextParams.toString()}`, { scroll: false });
+                }}
+              >
+                Price List Tab
+              </Button>
+            </Box>
+          }
         >
+
+          {/* Active Price List Quick Glance & Rate Lookup */}
+          <Box
+            sx={{
+              mb: 2.5,
+              p: 2,
+              borderRadius: 2,
+              border: activePriceList
+                ? '1px solid rgba(var(--accent-gold-rgb), 0.35)'
+                : '1px solid var(--border)',
+              background: activePriceList
+                ? 'linear-gradient(to right, rgba(var(--accent-gold-rgb), 0.05), var(--panel))'
+                : 'var(--panel)',
+              boxShadow: '0 2px 10px rgba(0,0,0,0.03)',
+            }}
+          >
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: { xs: 'flex-start', sm: 'center' },
+                justifyContent: 'space-between',
+                gap: 1.5,
+                flexWrap: 'wrap',
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+                <Box
+                  sx={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 2,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: activePriceList ? 'rgba(var(--accent-gold-rgb), 0.15)' : 'var(--background)',
+                    color: activePriceList ? 'var(--accent-gold)' : 'var(--text-secondary)',
+                    border: '1px solid var(--border)',
+                  }}
+                >
+                  <ReceiptText className="w-5 h-5" />
+                </Box>
+                <Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                    <Box sx={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--text-primary)' }}>
+                      Company Price List
+                    </Box>
+                    {activePriceList ? (
+                      <Chip
+                        size="small"
+                        icon={<CheckCircle2 className="w-3 h-3 text-emerald-600" />}
+                        label={activePriceList.name}
+                        sx={{
+                          fontWeight: 750,
+                          fontSize: '0.72rem',
+                          backgroundColor: 'rgba(34, 197, 94, 0.12)',
+                          color: '#15803d',
+                          border: '1px solid rgba(34, 197, 94, 0.3)',
+                        }}
+                      />
+                    ) : (
+                      <Chip
+                        size="small"
+                        icon={<AlertTriangle className="w-3 h-3 text-amber-500" />}
+                        label="No Active Price List"
+                        sx={{
+                          fontWeight: 750,
+                          fontSize: '0.72rem',
+                          backgroundColor: 'rgba(234, 179, 8, 0.1)',
+                          color: 'var(--warning)',
+                          border: '1px solid rgba(234, 179, 8, 0.3)',
+                        }}
+                      />
+                    )}
+                  </Box>
+                  <Box sx={{ fontSize: '0.8rem', color: 'var(--text-secondary)', mt: 0.25 }}>
+                    {activePriceList
+                      ? `${company.priceListConfig?.destinationLabel || 'Standard Destination'} • ${activePriceListStateCount} States • ${activePriceListLaneCount} Auction Lanes • ${activePriceList.sourceFileName}`
+                      : 'No rate sheet uploaded yet for automated shipping pricing and rate lookup.'}
+                  </Box>
+                </Box>
+              </Box>
+
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+                {activePriceList && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      icon={<ReceiptText className="w-4 h-4 text-[var(--accent-gold)]" />}
+                      onClick={() => setOpenPriceListDrawer(true)}
+                    >
+                      View Full Rate Sheet ({activePriceListLaneCount})
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      icon={<Printer className="w-4 h-4" />}
+                      onClick={handlePrintActivePriceList}
+                    >
+                      Print Price List
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowInlineRateLookup(!showInlineRateLookup)}
+                    >
+                      {showInlineRateLookup ? 'Hide Rate Search' : 'Quick Rate Search'}
+                    </Button>
+                  </>
+                )}
+                {!activePriceList && (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    icon={<Upload className="w-4 h-4" />}
+                    onClick={() => {
+                      setActiveTab(1);
+                      const nextParams = new URLSearchParams(searchParams.toString());
+                      nextParams.set('tab', 'price-list');
+                      router.replace(`?${nextParams.toString()}`, { scroll: false });
+                    }}
+                  >
+                    Upload Price List
+                  </Button>
+                )}
+              </Box>
+            </Box>
+
+            {/* Inline Quick Rate Search when expanded */}
+            {activePriceList && showInlineRateLookup && (
+              <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid var(--border)', display: 'grid', gap: 1.5 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <TextField
+                    size="small"
+                    fullWidth
+                    placeholder="Look up rate by state, branch, or city (e.g. TX, Dallas, Atlanta, Copart)..."
+                    value={inlineRateSearch}
+                    onChange={(e) => setInlineRateSearch(e.target.value)}
+                    InputProps={{
+                      startAdornment: <Search className="w-4 h-4 mr-2 text-[var(--text-secondary)]" />,
+                    }}
+                  />
+                  {inlineRateSearch && (
+                    <Button variant="ghost" size="sm" onClick={() => setInlineRateSearch('')}>
+                      Clear
+                    </Button>
+                  )}
+                </Box>
+
+                {/* Instant matching preview */}
+                {inlineMatchedRates.length > 0 ? (
+                  <Box sx={{ border: '1px solid var(--border)', borderRadius: 1.5, overflow: 'hidden' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                      <thead>
+                        <tr style={{ background: 'var(--panel)', borderBottom: '1px solid var(--border)' }}>
+                          <th style={{ textAlign: 'left', padding: '6px 10px', minWidth: 60 }}>State</th>
+                          <th style={{ textAlign: 'left', padding: '6px 10px' }}>Branch</th>
+                          <th style={{ textAlign: 'left', padding: '6px 10px' }}>City</th>
+                          <th style={{ textAlign: 'left', padding: '6px 10px' }}>Loading Point</th>
+                          <th style={{ textAlign: 'right', padding: '6px 10px' }}>Exact Rate</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {inlineMatchedRates.map((row, idx) => (
+                          <tr key={`${row.stateCode}-${row.branch}-${row.city}-${idx}`} style={{ borderBottom: '1px solid var(--border)' }}>
+                            <td style={{ padding: '6px 10px', fontWeight: 750 }}>{row.stateCode}</td>
+                            <td style={{ padding: '6px 10px' }}>{row.branch || '-'}</td>
+                            <td style={{ padding: '6px 10px', color: 'var(--text-secondary)' }}>{row.city || '-'}</td>
+                            <td style={{ padding: '6px 10px', color: 'var(--text-secondary)' }}>{row.loadingPoint || '-'}</td>
+                            <td style={{ padding: '6px 10px', textAlign: 'right', fontWeight: 750, color: 'var(--text-primary)' }}>
+                              {formatCurrency(row.total)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {totalInlineMatches > 6 && (
+                      <Box
+                        sx={{
+                          p: 1,
+                          textAlign: 'center',
+                          background: 'var(--panel)',
+                          fontSize: '0.78rem',
+                          color: 'var(--text-secondary)',
+                          display: 'flex',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          gap: 1,
+                        }}
+                      >
+                        <span>Showing 6 of {totalInlineMatches} matching rates.</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setOpenPriceListDrawer(true)}
+                        >
+                          View all in Drawer →
+                        </Button>
+                      </Box>
+                    )}
+                  </Box>
+                ) : inlineRateSearch ? (
+                  <Box sx={{ p: 1.5, textAlign: 'center', fontSize: '0.82rem', color: 'var(--text-secondary)', borderRadius: 1.5, background: 'var(--panel)' }}>
+                    No rates matching &quot;{inlineRateSearch}&quot; in this company&apos;s active price list.
+                  </Box>
+                ) : null}
+              </Box>
+            )}
+          </Box>
 
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr) 160px 160px 220px' }, gap: 1.5, mb: 2 }}>
             <TextField
@@ -1607,7 +1941,19 @@ export default function CompanyLedgerDetailPage() {
                     <Box sx={{ mt: 1, color: 'var(--text-secondary)' }}>The selected entry could not be loaded.</Box>
                   )}
                 </Box>
-                <Button variant="outline" size="sm" onClick={clearFocusedEntry}>Clear Focus</Button>
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                  {activePriceList && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      icon={<ReceiptText className="w-3.5 h-3.5 text-[var(--accent-gold)]" />}
+                      onClick={() => setOpenPriceListDrawer(true)}
+                    >
+                      Check Price List
+                    </Button>
+                  )}
+                  <Button variant="outline" size="sm" onClick={clearFocusedEntry}>Clear Focus</Button>
+                </Box>
               </Box>
             </Box>
           )}
@@ -1704,9 +2050,20 @@ export default function CompanyLedgerDetailPage() {
           title="Company Price List"
           description="Upload and manage the rate sheet used by this company"
           actions={
-            <Button variant="outline" icon={<GitCompareArrows className="w-4 h-4" />} onClick={() => router.push('/dashboard/finance/price-comparison')}>
-              Compare Prices
-            </Button>
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+              {activePriceList && (
+                <Button
+                  variant="outline"
+                  icon={<Printer className="w-4 h-4" />}
+                  onClick={handlePrintActivePriceList}
+                >
+                  Print Price List
+                </Button>
+              )}
+              <Button variant="outline" icon={<GitCompareArrows className="w-4 h-4" />} onClick={() => router.push('/dashboard/finance/price-comparison')}>
+                Compare Prices
+              </Button>
+            </Box>
           }
         >
           <Box sx={{ display: 'grid', gap: 2.5 }}>
@@ -1751,6 +2108,16 @@ export default function CompanyLedgerDetailPage() {
             </Box>
 
             <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              {activePriceList && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  icon={<Printer className="w-3.5 h-3.5" />}
+                  onClick={handlePrintActivePriceList}
+                >
+                  Print Price List
+                </Button>
+              )}
               <Button variant="outline" size="sm" onClick={() => scrollToPriceListSection('price-list-upload-flow')}>Upload</Button>
               <Button variant="outline" size="sm" onClick={() => scrollToPriceListSection('price-list-rate-lookup')}>Rate Lookup</Button>
               <Button variant="outline" size="sm" onClick={() => scrollToPriceListSection('price-list-import-history')}>Import History</Button>
@@ -1993,7 +2360,42 @@ export default function CompanyLedgerDetailPage() {
             <Box id="price-list-rate-lookup" sx={{ scrollMarginTop: 96, display: 'grid', gap: 1.5 }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1.5, flexWrap: 'wrap', alignItems: 'center' }}>
                 <Box sx={{ fontWeight: 700 }}>Rate Lookup</Box>
-                <TextField size="small" placeholder="Search state, branch, city" value={priceListSearch} onChange={(event) => setPriceListSearch(event.target.value)} />
+                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+                  {activePriceList && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      icon={<Printer className="w-3.5 h-3.5" />}
+                      onClick={() => {
+                        if (!company) return;
+                        const config = normalizeShippingRateConfig(activePriceList?.config || company.priceListConfig);
+                        const q = priceListSearch.trim().toLowerCase();
+                        const filtered = q
+                          ? config.auctionRates.filter((row) =>
+                              [row.stateCode, row.branch, row.city, row.loadingPoint || '', String(row.total)]
+                                .join(' ')
+                                .toLowerCase()
+                                .includes(q)
+                            )
+                          : config.auctionRates;
+                        printCompanyPriceList({
+                          companyName: company.name,
+                          companyType: companyTypeLabel,
+                          priceListName: activePriceList?.name || 'Active Price List',
+                          destinationLabel: config.destinationLabel || 'Standard Destination',
+                          sourceFileName: activePriceList?.sourceFileName || config.updatedFromPdfName,
+                          effectiveDate: activePriceList?.effectiveFrom || config.updatedAt,
+                          auctionRates: filtered,
+                          stateRates: q ? {} : config.stateRates,
+                          filterInfo: q ? { searchQuery: priceListSearch.trim() } : undefined,
+                        });
+                      }}
+                    >
+                      {priceListSearch.trim() ? `Print Filtered (${activePriceListRows.length})` : 'Print Rate Sheet'}
+                    </Button>
+                  )}
+                  <TextField size="small" placeholder="Search state, branch, city" value={priceListSearch} onChange={(event) => setPriceListSearch(event.target.value)} />
+                </Box>
               </Box>
               <Box sx={{ border: '1px solid var(--border)', borderRadius: 2, overflow: 'hidden' }}>
                 <Box sx={{ maxHeight: 360, overflow: 'auto' }}>
@@ -2037,6 +2439,14 @@ export default function CompanyLedgerDetailPage() {
                       </Box>
                     </Box>
                     <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', justifyContent: { xs: 'flex-start', md: 'flex-end' } }}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        icon={<Printer className="w-3.5 h-3.5" />}
+                        onClick={() => handlePrintPriceListVersion(list)}
+                      >
+                        Print
+                      </Button>
                       <Button variant="outline" size="sm" onClick={() => setPriceListVersionReview(list)}>
                         Compare
                       </Button>
@@ -2590,6 +3000,15 @@ export default function CompanyLedgerDetailPage() {
             )}
           </DialogContent>
           <DialogActions>
+            {priceListVersionReview && (
+              <Button
+                variant="outline"
+                icon={<Printer className="w-4 h-4" />}
+                onClick={() => handlePrintPriceListVersion(priceListVersionReview)}
+              >
+                Print This Version
+              </Button>
+            )}
             <Button variant="outline" onClick={() => setPriceListVersionReview(null)} disabled={Boolean(activatingPriceListId)}>Close</Button>
             {priceListVersionReview && !priceListVersionReview.isActive && (
               <Button variant="primary" onClick={() => void handleActivatePriceList(priceListVersionReview.id)} disabled={activatingPriceListId === priceListVersionReview.id}>
@@ -2622,6 +3041,24 @@ export default function CompanyLedgerDetailPage() {
             <Button variant="primary" onClick={handleEditEntry} disabled={updating}>{updating ? 'Saving...' : 'Save Changes'}</Button>
           </DialogActions>
         </Dialog>
+
+        {/* Company Price List Slide-over Drawer */}
+        <CompanyPriceListDrawer
+          open={openPriceListDrawer}
+          onClose={() => setOpenPriceListDrawer(false)}
+          companyId={company.id}
+          companyName={company.name}
+          companyType={companyTypeLabel}
+          priceListConfig={company.priceListConfig}
+          priceLists={company.priceLists}
+          activePriceList={activePriceList}
+          onSwitchToManageTab={() => {
+            setActiveTab(1);
+            const nextParams = new URLSearchParams(searchParams.toString());
+            nextParams.set('tab', 'price-list');
+            router.replace(`?${nextParams.toString()}`, { scroll: false });
+          }}
+        />
       </DashboardSurface>
     </PermissionRoute>
   );

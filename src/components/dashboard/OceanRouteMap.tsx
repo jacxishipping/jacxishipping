@@ -98,14 +98,20 @@ export function OceanRouteMap({
     <div className={`w-full flex flex-col gap-2 ${className}`}>
       {/* Top Switcher Bar between Live AIS Radar and Vector Schematic */}
       <div className="flex items-center justify-end px-1">
-        <div className="inline-flex items-center bg-slate-900/90 border border-slate-800 rounded-xl p-0.5 text-xs shadow-sm">
+        <div 
+          className="inline-flex items-center border rounded-xl p-0.5 text-xs shadow-sm"
+          style={{
+            backgroundColor: 'var(--surface-subtle)',
+            borderColor: 'var(--border)',
+          }}
+        >
           <button
             type="button"
             onClick={() => setViewMode('live-radar')}
             className={`flex items-center gap-1.5 px-3 py-1 rounded-lg font-medium transition-all ${
               viewMode === 'live-radar'
-                ? 'bg-cyan-500 text-slate-950 font-bold shadow'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-cyan-500 text-slate-950 font-bold shadow-sm'
+                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
             }`}
           >
             <Radio className="w-3.5 h-3.5" />
@@ -116,8 +122,8 @@ export function OceanRouteMap({
             onClick={() => setViewMode('vector')}
             className={`flex items-center gap-1.5 px-3 py-1 rounded-lg font-medium transition-all ${
               viewMode === 'vector'
-                ? 'bg-slate-700 text-white font-bold shadow'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-[var(--panel)] text-[var(--text-primary)] font-bold shadow-sm border border-[var(--border)]'
+                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
             }`}
           >
             <Map className="w-3.5 h-3.5" />

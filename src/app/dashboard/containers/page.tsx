@@ -5,10 +5,10 @@ import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { Box, Typography, Menu, MenuItem, IconButton, Divider } from '@mui/material';
-import { Package, Ship, MapPin, TrendingUp, Calendar, FileText, DollarSign, Receipt, MoreVertical, Eye, Copy, Trash2, Download, PanelRightOpen, QrCode, Layers, Compass } from 'lucide-react';
+import { Package, Ship, MapPin, TrendingUp, Calendar, FileText, DollarSign, Receipt, MoreVertical, Eye, Copy, Trash2, Download, PanelRightOpen, QrCode, Layers, Compass, Clock, AlertTriangle, ShieldCheck } from 'lucide-react';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
-import { PageHeader, StatsCard, Button, EmptyState, FormField, Select, toast, SkeletonCard, DashboardPageSkeleton, CompactSkeleton, StatusBadge, CopyButton, StatusFilterPills } from '@/components/design-system';
+import { PageHeader, StatsCard, Button, EmptyState, FormField, Select, toast, SkeletonCard, DashboardPageSkeleton, CompactSkeleton, StatusBadge, CopyButton, StatusFilterPills, Tooltip } from '@/components/design-system';
 import ContainerQuickPeek from '@/components/dashboard/ContainerQuickPeek';
 import { QRCodeModal, type QRCodeData } from '@/components/dashboard/QRCodeModal';
 import { SavedFilterPresets } from '@/components/dashboard/SavedFilterPresets';
@@ -18,6 +18,7 @@ import { addWorkspaceItem } from '@/components/dashboard/WorkspaceTray';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { exportToCSVWithHeaders } from '@/lib/export';
 import { useConfirmAction } from '@/components/ui/ConfirmActionProvider';
+import { getContainerDemurrageInfo } from '@/lib/container-demurrage';
 
 interface Container {
   id: string;
@@ -30,6 +31,7 @@ interface Container {
   destinationPort: string | null;
   departureDate?: string | null;
   estimatedArrival: string | null;
+  actualArrival?: string | null;
   status: string;
   progress: number;
   currentCount: number;
@@ -131,7 +133,7 @@ export default function ContainersPage() {
         limit: '20',
       });
 
-      if (statusFilter !== 'all') {
+      if (statusFilter !== 'all' && statusFilter !== 'demurrage_risk') {
         params.append('status', statusFilter);
       }
 
@@ -330,10 +332,18 @@ export default function ContainersPage() {
     total: containers.length,
     inTransit: containers.filter(c => c.status === 'IN_TRANSIT').length,
     arrived: containers.filter(c => c.status === 'ARRIVED_PORT' || c.status === 'RELEASED').length,
+    demurrageRisk: containers.filter(c => {
+      const info = getContainerDemurrageInfo(c);
+      return info.level === 'critical' || info.level === 'warning';
+    }).length,
     avgCapacity: containers.length > 0 
       ? Math.round((containers.reduce((sum, c) => sum + (c.currentCount / c.maxCapacity * 100), 0) / containers.length))
       : 0,
   };
+
+  const displayedContainers = statusFilter === 'demurrage_risk'
+    ? containers.filter((c) => ['critical', 'warning'].includes(getContainerDemurrageInfo(c).level))
+    : containers;
 
   const containerStatusOptions = Object.entries(statusLabels).map(([value, label]) => ({
     value,
@@ -360,6 +370,30 @@ export default function ContainersPage() {
       key: 'status',
       header: 'Status',
       render: (value) => <StatusBadge status={String(value)} size="sm" />,
+    },
+    {
+      key: 'demurrage' as any,
+      header: 'Demurrage / Free Time',
+      render: (_value, row) => {
+        const demurrage = getContainerDemurrageInfo(row);
+        if (!demurrage.badgeLabel) {
+          return <span className="text-[var(--text-secondary)] text-xs">-</span>;
+        }
+        return (
+          <Tooltip title={demurrage.tooltipText}>
+            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] border font-medium ${demurrage.colorClass}`}>
+              {demurrage.level === 'critical' ? (
+                <AlertTriangle className="w-3 h-3 shrink-0" />
+              ) : demurrage.level === 'warning' ? (
+                <Clock className="w-3 h-3 shrink-0" />
+              ) : (
+                <ShieldCheck className="w-3 h-3 shrink-0" />
+              )}
+              <span>{demurrage.badgeLabel}</span>
+            </span>
+          </Tooltip>
+        );
+      },
     },
     {
       key: 'trackingNumber',
@@ -561,7 +595,7 @@ export default function ContainersPage() {
         })()}
 
         {/* Stats */}
-        <DashboardGrid className="grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+        <DashboardGrid className="grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
           <StatsCard
             icon={<Package style={{ fontSize: 18 }} />}
             title="Total Containers"
@@ -581,6 +615,13 @@ export default function ContainersPage() {
             title="Arrived"
             value={stats.arrived}
             variant="success"
+            size="md"
+          />
+          <StatsCard
+            icon={<AlertTriangle style={{ fontSize: 18 }} />}
+            title="Demurrage Risk"
+            value={stats.demurrageRisk}
+            variant={stats.demurrageRisk > 0 ? "error" : "default"}
             size="md"
           />
           <StatsCard
@@ -624,6 +665,7 @@ export default function ContainersPage() {
           <StatusFilterPills
             options={[
               { value: 'all', label: 'All Statuses' },
+              { value: 'demurrage_risk', label: stats.demurrageRisk > 0 ? `Demurrage Risk (${stats.demurrageRisk})` : 'Demurrage Risk', color: '#EF4444' },
               { value: 'CREATED', label: 'Created', color: '#6B7280' },
               { value: 'WAITING_FOR_LOADING', label: 'Waiting for Loading', color: '#F59E0B' },
               { value: 'LOADED', label: 'Loaded', color: '#3B82F6' },
@@ -642,7 +684,7 @@ export default function ContainersPage() {
         </div>
 
         {/* Container Grid */}
-        <DashboardPanel title={`All Containers (${containers.length})`} fullHeight>
+        <DashboardPanel title={`All Containers (${displayedContainers.length})`} fullHeight>
           {loading ? (
             <CompactSkeleton />
           ) : containers.length === 0 ? (
@@ -671,7 +713,7 @@ export default function ContainersPage() {
             />
           ) : showBulkTable ? (
             <DataTable
-              data={containers}
+              data={displayedContainers}
               columns={containerColumns}
               keyField="id"
               selectable={isAdmin}
@@ -686,7 +728,7 @@ export default function ContainersPage() {
           ) : (
             <>
               <DashboardGrid className="grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                {containers.map((container, index) => (
+                {displayedContainers.map((container, index) => (
                   <Box
                     key={container.id}
                     onClick={() => router.push(`/dashboard/containers/${container.id}`)}
@@ -833,6 +875,31 @@ export default function ContainersPage() {
                         />
                       </Box>
                     </Box>
+
+                    {/* Demurrage & Free-Time Risk Indicator */}
+                    {(() => {
+                      const demurrage = getContainerDemurrageInfo(container);
+                      if (!demurrage.badgeLabel) return null;
+
+                      return (
+                        <Box sx={{ mb: 1.5 }}>
+                          <Tooltip title={demurrage.tooltipText}>
+                            <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs border font-medium ${demurrage.colorClass}`}>
+                              {demurrage.level === 'critical' ? (
+                                <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                              ) : demurrage.level === 'warning' ? (
+                                <Clock className="w-3.5 h-3.5 shrink-0" />
+                              ) : demurrage.level === 'approaching' ? (
+                                <Compass className="w-3.5 h-3.5 shrink-0" />
+                              ) : (
+                                <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+                              )}
+                              <span>{demurrage.badgeLabel}</span>
+                            </div>
+                          </Tooltip>
+                        </Box>
+                      );
+                    })()}
 
                     {/* Details */}
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 2 }}>

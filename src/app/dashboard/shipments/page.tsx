@@ -512,6 +512,7 @@ export default function ShipmentsListPage() {
 					setSearchFilters({ query: '', type: 'shipments' });
 					setCurrentPage(1);
 				}}
+				onRefresh={fetchShipments}
 			/>
 
 			{/* Slide-over Quick Peek Drawer */}

@@ -6,7 +6,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { User, UserPlus, Eye, EyeOff, Copy, Check, Download, Users, Package, Mail, Key } from 'lucide-react';
 import ResetPasswordModal from '@/components/users/ResetPasswordModal';
-import { Box, Typography, IconButton } from '@mui/material';
+import { Box, Typography, IconButton, Tooltip } from '@mui/material';
 import { 
   PageHeader, 
   StatsCard, 
@@ -177,9 +177,11 @@ export default function CustomersPage() {
           <Typography sx={{ fontFamily: 'ui-monospace,SFMono-Regular,Menlo,monospace', fontSize: '0.8rem' }} noWrap>
             {showEmailsFor.has(row.id) ? row.email : maskEmail(row.email)}
           </Typography>
-          <IconButton size="small" onClick={(e) => { e.stopPropagation(); toggleEmailVisibility(row.id); }} title="Toggle email visibility">
-            {showEmailsFor.has(row.id) ? <EyeOff style={{ width: 15, height: 15 }} /> : <Eye style={{ width: 15, height: 15 }} />}
-          </IconButton>
+          <Tooltip title={showEmailsFor.has(row.id) ? 'Hide email' : 'Show email'}>
+            <IconButton size="small" onClick={(e) => { e.stopPropagation(); toggleEmailVisibility(row.id); }} aria-label={showEmailsFor.has(row.id) ? 'Hide email' : 'Show email'}>
+              {showEmailsFor.has(row.id) ? <EyeOff style={{ width: 15, height: 15 }} /> : <Eye style={{ width: 15, height: 15 }} />}
+            </IconButton>
+          </Tooltip>
           {showEmailsFor.has(row.id) && (
             <span onClick={(e) => e.stopPropagation()}>
               <CopyButton value={row.email} label="Email" />

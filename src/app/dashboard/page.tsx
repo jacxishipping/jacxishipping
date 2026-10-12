@@ -44,8 +44,14 @@ const formatShortDate = (value: Date | string | null | undefined) => {
     return new Date(value).toLocaleDateString();
 };
 
-type DashboardExceptionItem = {
+export type DashboardExceptionItem = {
     id: string;
+    shipmentId?: string;
+    containerId?: string;
+    transitId?: string;
+    dispatchId?: string;
+    vin?: string;
+    type: 'dispatch' | 'container' | 'released' | 'transit';
     title: string;
     subtitle: string;
     detail: string;
@@ -113,7 +119,7 @@ async function getDashboardKpiData(
     userId: string | undefined,
     options: DashboardDataOptions,
 ) {
-    const trendDays = 14;
+    const trendDays = 30;
     const today = new Date();
     const startDate = new Date(today);
     startDate.setDate(startDate.getDate() - (trendDays - 1));
@@ -258,15 +264,17 @@ async function getDashboardKpiData(
         inTransit: counts.inTransit,
     }));
 
-    const weekBoundary = new Date(startDate);
-    weekBoundary.setDate(startDate.getDate() + 7);
+    const fourteenDaysAgo = new Date(today);
+    fourteenDaysAgo.setDate(today.getDate() - 14);
+    const twentyEightDaysAgo = new Date(today);
+    twentyEightDaysAgo.setDate(today.getDate() - 28);
 
-    const priorCount = shipmentsInRange.filter((shipment) => shipment.createdAt < weekBoundary).length;
-    const currentCount = shipmentsInRange.filter((shipment) => shipment.createdAt >= weekBoundary).length;
+    const priorCount = shipmentsInRange.filter((shipment) => shipment.createdAt >= twentyEightDaysAgo && shipment.createdAt < fourteenDaysAgo).length;
+    const currentCount = shipmentsInRange.filter((shipment) => shipment.createdAt >= fourteenDaysAgo).length;
     const shipmentTrendValue = Math.round(((currentCount - priorCount) / Math.max(priorCount, 1)) * 100);
     const shipmentTrend = {
         value: shipmentTrendValue,
-        isPositive: currentCount > priorCount,
+        isPositive: currentCount >= priorCount,
     };
 
     return {
@@ -428,6 +436,10 @@ async function getDashboardWorkData(
 
             return {
                 id: `dispatch-${shipment.id}`,
+                shipmentId: shipment.id,
+                dispatchId: shipment.dispatch?.id,
+                vin: shipment.vehicleVIN || undefined,
+                type: 'dispatch' as const,
                 title: buildShipmentLabel(shipment),
                 subtitle: shipment.dispatch?.referenceNumber
                     ? `Dispatch ${shipment.dispatch.referenceNumber}`
@@ -449,6 +461,10 @@ async function getDashboardWorkData(
 
             return {
                 id: `container-${shipment.id}`,
+                shipmentId: shipment.id,
+                containerId: shipment.container?.id,
+                vin: shipment.vehicleVIN || undefined,
+                type: 'container' as const,
                 title: buildShipmentLabel(shipment),
                 subtitle: shipment.container?.containerNumber
                     ? `Container ${shipment.container.containerNumber}`
@@ -472,6 +488,10 @@ async function getDashboardWorkData(
 
             return {
                 id: `released-${shipment.id}`,
+                shipmentId: shipment.id,
+                containerId: shipment.container?.id,
+                vin: shipment.vehicleVIN || undefined,
+                type: 'released' as const,
                 title: buildShipmentLabel(shipment),
                 subtitle: shipment.container?.containerNumber
                     ? `Released from ${shipment.container.containerNumber}`
@@ -503,6 +523,10 @@ async function getDashboardWorkData(
             if (!existing || overdueDays > existing.ageDays) {
                 transitOverdueExceptionsByTransit.set(transit.id, {
                     id: `transit-${transit.id}`,
+                    transitId: transit.id,
+                    shipmentId: shipment.id,
+                    vin: shipment.vehicleVIN || undefined,
+                    type: 'transit' as const,
                     title: `Transit ${transit.referenceNumber}`,
                     subtitle: buildShipmentLabel(shipment),
                     detail: `Est. delivery ${formatShortDate(transit.estimatedDelivery)} missed by ${overdueDays} day${overdueDays === 1 ? '' : 's'}`,
