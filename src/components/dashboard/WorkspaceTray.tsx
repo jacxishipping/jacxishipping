@@ -12,8 +12,10 @@ import {
   FileText, 
   Users, 
   Clock, 
-  ExternalLink 
+  ExternalLink,
+  Download
 } from 'lucide-react';
+import { openUniversalShipmentExport } from '@/components/shipments/UniversalShipmentExportModal';
 
 export interface WorkspaceItem {
   id: string;
@@ -194,6 +196,21 @@ export function WorkspaceTray() {
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {expanded && (
+          <div className="p-2 border-t border-[var(--border)] bg-[var(--background)] flex items-center justify-between gap-2">
+            <button
+              onClick={() => {
+                const shipmentIds = items.filter(i => i.type === 'shipment').map(i => i.id);
+                openUniversalShipmentExport(shipmentIds.length > 0 ? { shipmentIds, title: 'Export Recent Shipments' } : {});
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl bg-[var(--accent-gold)] text-white hover:brightness-105 transition-all w-full justify-center shadow-xs"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Export Shipments (Excel / CSV)</span>
+            </button>
           </div>
         )}
       </div>

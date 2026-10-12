@@ -150,4 +150,54 @@ describe('Export Utilities', () => {
     const text = await createdBlob!.text();
     assert.ok(text.includes('"Hello, ""World"""'), 'Quotes and commas should be escaped');
   });
+
+  it('exportToExcelWithHeaders should format headers with BOM', async () => {
+    const { exportToExcelWithHeaders } = await import('./export.ts');
+    const data = [{ name: 'Toyota Camry', vin: '4T1BF1FK5' }];
+    exportToExcelWithHeaders(
+      data,
+      [
+        { key: 'name', label: 'Vehicle Title' },
+        { key: 'vin', label: 'VIN Code' },
+      ],
+      'shipments-excel'
+    );
+
+    const buffer = await createdBlob!.arrayBuffer();
+    const bytes = new Uint8Array(buffer);
+    assert.strictEqual(bytes[0], 0xEF);
+    assert.strictEqual(bytes[1], 0xBB);
+    assert.strictEqual(bytes[2], 0xBF);
+
+    const text = await createdBlob!.text();
+    assert.ok(text.includes('Vehicle Title,VIN Code'));
+    assert.ok(text.includes('Toyota Camry,4T1BF1FK5'));
+  });
+
+  it('formatShipmentForExport should properly normalize shipment records', async () => {
+    const { formatShipmentForExport } = await import('./export.ts');
+    const raw = {
+      id: 'ship-123',
+      vehicleYear: 2022,
+      vehicleMake: 'Honda',
+      vehicleModel: 'Accord',
+      vehicleVIN: '1HGCV1F34',
+      status: 'ON_HAND',
+      purchasePrice: 15000,
+      purchasePricePaid: 5000,
+      user: { name: 'Ahmad Khan', email: 'ahmad@example.com' },
+      container: { containerNumber: 'MSKU1234567' },
+    };
+
+    const formatted = formatShipmentForExport(raw);
+    assert.strictEqual(formatted.vehicle, '2022 Honda Accord');
+    assert.strictEqual(formatted.vin, '1HGCV1F34');
+    assert.strictEqual(formatted.status, 'ON HAND');
+    assert.strictEqual(formatted.purchasePrice, '15000.00');
+    assert.strictEqual(formatted.purchasePricePaid, '5000.00');
+    assert.strictEqual(formatted.purchaseRemaining, '10000.00');
+    assert.strictEqual(formatted.container, 'MSKU1234567');
+    assert.strictEqual(formatted.customerName, 'Ahmad Khan');
+  });
 });
+

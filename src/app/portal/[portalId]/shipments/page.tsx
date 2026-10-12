@@ -13,6 +13,8 @@ import { Box, MenuItem, TextField, Typography } from '@mui/material';
 import { DashboardSurface, DashboardPanel, DashboardGrid, DashboardHeader } from '@/components/dashboard/DashboardSurface';
 import { Button, ConfirmDialog, EmptyState, Skeleton, SkeletonParagraph, SkeletonTable, toast } from '@/components/design-system';
 import { DataTable, type Column } from '@/components/ui/DataTable';
+import { Download } from 'lucide-react';
+import { exportShipments } from '@/lib/export';
 
 type PortalCustomer = {
   id: string;
@@ -367,6 +369,25 @@ export default function PortalShipmentsPage() {
                 Updated {lastRefreshedAt.toLocaleTimeString()}
               </Typography>
             ) : null}
+            <Button
+              variant="outline"
+              size="sm"
+              icon={<Download className="w-4 h-4 text-emerald-500" />}
+              onClick={() => {
+                if (filteredAssignments.length === 0) {
+                  toast.error('No shipments to export');
+                  return;
+                }
+                const shipmentList = filteredAssignments.map((a) => ({
+                  ...a.shipment,
+                  customer: a.partnerCustomer?.name || 'Unassigned',
+                }));
+                exportShipments(shipmentList, 'excel', `${portal?.name || 'portal'}-shipments`);
+                toast.success('Shipments exported successfully');
+              }}
+            >
+              Export Shipments
+            </Button>
             <Button variant="outline" size="sm" onClick={() => void fetchData()} disabled={loading}>
               Refresh
             </Button>
@@ -546,23 +567,11 @@ export default function PortalShipmentsPage() {
                     onSelectionChange={setSelectedShipmentIds}
                     onDelete={handleBulkDelete}
                     onExport={(rows) => {
-                      const csv = [
-                        ['Vehicle', 'VIN', 'Status', 'Customer', 'Ready State'].join(','),
-                        ...rows.map((row) => [
-                          formatShipmentLabel(row.shipment),
-                          row.shipment.vehicleVIN || '',
-                          row.shipment.status,
-                          row.partnerCustomer?.name || 'Unassigned',
-                          getPortalReadiness(portal, row).label,
-                        ].map((value) => `"${String(value).replaceAll('"', '""')}"`).join(',')),
-                      ].join('\n');
-                      const blob = new Blob([csv], { type: 'text/csv' });
-                      const url = URL.createObjectURL(blob);
-                      const anchor = document.createElement('a');
-                      anchor.href = url;
-                      anchor.download = `portal-shipments-${new Date().toISOString().slice(0, 10)}.csv`;
-                      anchor.click();
-                      URL.revokeObjectURL(url);
+                      const shipmentList = rows.map((r) => ({
+                        ...r.shipment,
+                        customer: r.partnerCustomer?.name || 'Unassigned',
+                      }));
+                      exportShipments(shipmentList, 'excel', `portal-shipments-${new Date().toISOString().slice(0, 10)}`);
                     }}
                   />
                 )}

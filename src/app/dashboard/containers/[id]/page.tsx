@@ -85,6 +85,7 @@ import { OceanCarrierSyncCard } from '@/components/containers/OceanCarrierSyncCa
 import { CustomsDocumentPacketModal } from '@/components/containers/CustomsDocumentPacketModal';
 import { ContainerLoadPlanner } from '@/components/dashboard/ContainerLoadPlanner';
 import { hasAnyPermission, hasPermission } from '@/lib/rbac';
+import { openUniversalShipmentExport } from '@/components/shipments/UniversalShipmentExportModal';
 
 interface Shipment {
 	id: string;
@@ -938,6 +939,19 @@ export default function ContainerDetailPage() {
                                     Duplicate
                                 </Button>
                             )}
+							<Button 
+								variant="outline" 
+								size="sm" 
+								icon={<Download className="w-4 h-4 text-emerald-500" />}
+								onClick={() => openUniversalShipmentExport({
+									filters: { containerId: container.id },
+									title: `Export Container ${container.containerNumber} Shipments`,
+									subtitle: 'Download loaded vehicles manifest',
+								})}
+								className="no-print"
+							>
+								Export Shipments
+							</Button>
 							<Button 
 								variant="outline" 
 								size="sm" 

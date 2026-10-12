@@ -125,6 +125,49 @@ export function exportToExcel<T extends Record<string, any>>(data: T[], filename
   URL.revokeObjectURL(url);
 }
 
+// Export to Excel with custom headers (using CSV with UTF-8 BOM for Excel compatibility)
+export function exportToExcelWithHeaders<T extends Record<string, any>>(
+  data: T[],
+  headers: { key: keyof T & string; label: string }[],
+  filename: string
+) {
+  if (!data || data.length === 0) {
+    throw new Error('No data to export');
+  }
+
+  const csvContent = [
+    // Header row with custom labels
+    headers.map(h => h.label).join(','),
+    // Data rows
+    ...data.map(row =>
+      headers.map(header => {
+        const value = row[header.key];
+        if (value === null || value === undefined) return '';
+        const stringValue = String(value);
+        if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+          return `"${stringValue.replace(/"/g, '""')}"`;
+        }
+        return stringValue;
+      }).join(',')
+    )
+  ].join('\n');
+
+  const BOM = '\uFEFF';
+  const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+
+  link.setAttribute('href', url);
+  link.setAttribute('download', `${filename}-${new Date().toISOString().split('T')[0]}.csv`);
+  link.style.visibility = 'hidden';
+
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  URL.revokeObjectURL(url);
+}
+
 // Format data for export (clean up dates, booleans, etc.)
 export function formatDataForExport<T extends Record<string, any>>(data: T[]): Record<string, any>[] {
   return data.map(row => {
@@ -142,4 +185,113 @@ export function formatDataForExport<T extends Record<string, any>>(data: T[]): R
     }
     return formatted;
   });
+}
+
+export interface FormattedShipmentExportRow {
+  id: string;
+  vehicle: string;
+  vin: string;
+  lotNumber: string;
+  auction: string;
+  vehicleType: string;
+  vehicleColor: string;
+  status: string;
+  yardReceived: string;
+  container: string;
+  transit: string;
+  dispatch: string;
+  loadingPort: string;
+  destinationPort: string;
+  eta: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  serviceType: string;
+  purchasePrice: string;
+  purchasePricePaid: string;
+  purchaseRemaining: string;
+  paymentStatus: string;
+  createdAt: string;
+}
+
+export const SHIPMENT_EXPORT_HEADERS: { key: keyof FormattedShipmentExportRow; label: string }[] = [
+  { key: 'vehicle', label: 'Vehicle' },
+  { key: 'vin', label: 'VIN' },
+  { key: 'lotNumber', label: 'Lot #' },
+  { key: 'auction', label: 'Auction' },
+  { key: 'vehicleType', label: 'Vehicle Type' },
+  { key: 'vehicleColor', label: 'Color' },
+  { key: 'status', label: 'Status' },
+  { key: 'yardReceived', label: 'Yard Received' },
+  { key: 'customerName', label: 'Customer' },
+  { key: 'customerEmail', label: 'Customer Email' },
+  { key: 'customerPhone', label: 'Customer Phone' },
+  { key: 'container', label: 'Container #' },
+  { key: 'transit', label: 'Transit #' },
+  { key: 'dispatch', label: 'Dispatch #' },
+  { key: 'loadingPort', label: 'Loading Port' },
+  { key: 'destinationPort', label: 'Destination Port' },
+  { key: 'eta', label: 'ETA' },
+  { key: 'purchasePrice', label: 'Purchase Price ($)' },
+  { key: 'purchasePricePaid', label: 'Amount Paid ($)' },
+  { key: 'purchaseRemaining', label: 'Balance Remaining ($)' },
+  { key: 'paymentStatus', label: 'Payment Status' },
+  { key: 'serviceType', label: 'Service Type' },
+  { key: 'createdAt', label: 'Created Date' },
+];
+
+export function formatShipmentForExport(shipment: any): FormattedShipmentExportRow {
+  const vehicle = [shipment.vehicleYear, shipment.vehicleMake, shipment.vehicleModel]
+    .filter(Boolean)
+    .join(' ')
+    .trim() || shipment.vehicleType || 'Vehicle';
+
+  const purchasePrice = typeof shipment.purchasePrice === 'number' ? shipment.purchasePrice : 0;
+  const purchasePricePaid = typeof shipment.purchasePricePaid === 'number' ? shipment.purchasePricePaid : 0;
+  const remaining = Math.max(0, purchasePrice - purchasePricePaid);
+
+  return {
+    id: shipment.id || '',
+    vehicle,
+    vin: shipment.vehicleVIN || shipment.vin || '',
+    lotNumber: shipment.lotNumber || '',
+    auction: shipment.auctionName || '',
+    vehicleType: shipment.vehicleType || '',
+    vehicleColor: shipment.vehicleColor || '',
+    status: (shipment.status || '').replace(/_/g, ' '),
+    yardReceived: shipment.yardReceived ? 'Yes' : 'No',
+    container: shipment.container?.containerNumber || (typeof shipment.container === 'string' ? shipment.container : ''),
+    transit: shipment.transit?.referenceNumber || '',
+    dispatch: shipment.dispatch?.referenceNumber || '',
+    loadingPort: shipment.container?.loadingPort || shipment.dispatch?.origin || shipment.transit?.origin || '',
+    destinationPort: shipment.container?.destinationPort || shipment.dispatch?.destination || shipment.transit?.destination || '',
+    eta: shipment.container?.estimatedArrival ? new Date(shipment.container.estimatedArrival).toLocaleDateString() : '',
+    customerName: shipment.user?.name || shipment.customer || '',
+    customerEmail: shipment.user?.email || '',
+    customerPhone: shipment.user?.phone || '',
+    serviceType: shipment.serviceType ? (shipment.serviceType === 'PURCHASE_AND_SHIPPING' ? 'Purchase + Shipping' : 'Shipping Only') : '',
+    purchasePrice: purchasePrice > 0 ? purchasePrice.toFixed(2) : '',
+    purchasePricePaid: purchasePricePaid > 0 ? purchasePricePaid.toFixed(2) : '',
+    purchaseRemaining: remaining > 0 ? remaining.toFixed(2) : '',
+    paymentStatus: shipment.paymentStatus || '',
+    createdAt: shipment.createdAt ? new Date(shipment.createdAt).toLocaleDateString() : '',
+  };
+}
+
+export function exportShipments(
+  shipments: any[],
+  format: 'csv' | 'excel' = 'csv',
+  filename = 'shipments'
+) {
+  if (!shipments || shipments.length === 0) {
+    throw new Error('No shipments to export');
+  }
+
+  const formattedRows = shipments.map(formatShipmentForExport);
+
+  if (format === 'excel') {
+    exportToExcelWithHeaders(formattedRows, SHIPMENT_EXPORT_HEADERS, filename);
+  } else {
+    exportToCSVWithHeaders(formattedRows, SHIPMENT_EXPORT_HEADERS, filename);
+  }
 }

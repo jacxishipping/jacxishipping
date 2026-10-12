@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Download } from 'lucide-react';
 import Button from '@/components/design-system/Button';
-import { exportToCSV, exportToExcel, formatDataForExport } from '@/lib/export';
+import { exportToCSV, exportToExcel, exportToCSVWithHeaders, exportToExcelWithHeaders, formatDataForExport } from '@/lib/export';
 import { toast } from '@/lib/toast';
 
 interface ExportButtonProps {
@@ -42,10 +42,18 @@ export function ExportButton({
       const formattedData = formatDataForExport(data);
       
       // Export based on format
-      if (format === 'excel') {
-        exportToExcel(formattedData, filename);
+      if (headers && headers.length > 0) {
+        if (format === 'excel') {
+          exportToExcelWithHeaders(formattedData, headers, filename);
+        } else {
+          exportToCSVWithHeaders(formattedData, headers, filename);
+        }
       } else {
-        exportToCSV(formattedData, filename);
+        if (format === 'excel') {
+          exportToExcel(formattedData, filename);
+        } else {
+          exportToCSV(formattedData, filename);
+        }
       }
       
       toast.success('Export successful', `Data exported to ${format.toUpperCase()}`);
