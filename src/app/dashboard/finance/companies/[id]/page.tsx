@@ -17,7 +17,7 @@ import {
   TextField,
   Tooltip,
 } from '@mui/material';
-import { AlertTriangle, ArrowLeft, Building2, CheckCircle2, DollarSign, Eye, GitCompareArrows, Landmark, Pencil, Plus, ReceiptText, Trash2, Truck, Upload } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Building2, Car, CheckCircle2, DollarSign, Eye, GitCompareArrows, Landmark, Package, Pencil, Plus, ReceiptText, Trash2, Truck, Upload } from 'lucide-react';
 import PermissionRoute from "@/components/auth/PermissionRoute";
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
 import { Breadcrumbs, Button, StatsCard, toast, TableSkeleton, PageHeader } from '@/components/design-system';
@@ -26,7 +26,7 @@ import { normalizeShippingRateConfig, type AuctionRateEntry, type ShippingRateCa
 
 type PriceListImportMode = 'replace' | 'merge' | 'add_new';
 
-const companyTabSlugs = ['ledger', 'price-list', 'operations', 'reports'];
+const companyTabSlugs = ['ledger', 'shipments', 'operations', 'price-list', 'reports'];
 
 function TabPanel({ children, value, index }: { children: ReactNode; value: number; index: number }) {
   return (
@@ -41,6 +41,9 @@ interface Company {
   name: string;
   code: string | null;
   companyType: 'SHIPPING' | 'DISPATCH' | 'TRANSIT';
+  isShipping?: boolean;
+  isDispatch?: boolean;
+  isTransit?: boolean;
   email: string | null;
   phone: string | null;
   address: string | null;
@@ -54,6 +57,9 @@ interface Company {
     dispatches: number;
     containers: number;
     shipments: number;
+    dispatchedShipments?: number;
+    shippedShipments?: number;
+    transitedShipments?: number;
     transits: number;
   };
   dispatches?: Array<{
@@ -75,17 +81,7 @@ interface Company {
     maxCapacity: number;
     createdAt: string;
   }>;
-  shipments?: Array<{
-    id: string;
-    vehicleVIN: string | null;
-    vehicleMake: string | null;
-    vehicleModel: string | null;
-    status: string;
-    createdAt: string;
-    dispatchId?: string | null;
-    containerId?: string | null;
-    transitId: string | null;
-  }>;
+  shipments?: CompanyShipment[];
   transits?: Array<{
     id: string;
     referenceNumber: string;
@@ -97,6 +93,57 @@ interface Company {
       shipments: number;
     };
   }>;
+}
+
+export interface CompanyShipment {
+  id: string;
+  vehicleVIN: string | null;
+  vehicleMake: string | null;
+  vehicleModel: string | null;
+  vehicleYear?: number | null;
+  vehicleColor?: string | null;
+  lotNumber?: string | null;
+  status: string;
+  serviceType?: string;
+  price?: number | null;
+  companyShippingFare?: number | null;
+  damageCost?: number | null;
+  damageCredit?: number | null;
+  createdAt: string;
+  dispatchId?: string | null;
+  containerId?: string | null;
+  transitId?: string | null;
+  shippingCompanyId?: string | null;
+  isDispatched?: boolean;
+  isShipped?: boolean;
+  isTransited?: boolean;
+  roles?: Array<'DISPATCH' | 'SHIPPING' | 'TRANSIT'>;
+  dispatch?: {
+    id: string;
+    referenceNumber: string;
+    status: string;
+    origin?: string;
+    destination?: string;
+    dispatchDate?: string | null;
+  } | null;
+  container?: {
+    id: string;
+    containerNumber: string;
+    status: string;
+    trackingNumber?: string | null;
+  } | null;
+  transit?: {
+    id: string;
+    referenceNumber: string;
+    status: string;
+    origin?: string;
+    destination?: string;
+  } | null;
+  customer?: {
+    id: string;
+    name?: string | null;
+    email?: string | null;
+  } | null;
 }
 
 interface CompanySummary {
@@ -289,7 +336,46 @@ export default function CompanyLedgerDetailPage() {
     effectiveFrom: '',
     mode: 'merge' as PriceListImportMode,
   });
-  const [filters, setFilters] = useState({ search: '', type: '', source: '' });
+  const [filters, setFilters] = useState({ search: '', type: '', source: '', shipmentId: '' });
+  const [shipmentSearch, setShipmentSearch] = useState('');
+  const [shipmentRoleFilter, setShipmentRoleFilter] = useState<'ALL' | 'DISPATCH' | 'SHIPPING' | 'TRANSIT'>('ALL');
+  const [shipmentStatusFilter, setShipmentStatusFilter] = useState('ALL');
+
+  const filteredCompanyShipments = useMemo(() => {
+    const list = company?.shipments || [];
+    return list.filter((s) => {
+      if (shipmentRoleFilter === 'DISPATCH' && !s.isDispatched) return false;
+      if (shipmentRoleFilter === 'SHIPPING' && !s.isShipped) return false;
+      if (shipmentRoleFilter === 'TRANSIT' && !s.isTransited) return false;
+      if (shipmentStatusFilter !== 'ALL' && s.status !== shipmentStatusFilter) return false;
+
+      if (shipmentSearch.trim()) {
+        const query = shipmentSearch.trim().toLowerCase();
+        const matchesVin = s.vehicleVIN?.toLowerCase().includes(query);
+        const matchesMake = s.vehicleMake?.toLowerCase().includes(query);
+        const matchesModel = s.vehicleModel?.toLowerCase().includes(query);
+        const matchesLot = s.lotNumber?.toLowerCase().includes(query);
+        const matchesCustomer =
+          s.customer?.name?.toLowerCase().includes(query) ||
+          s.customer?.email?.toLowerCase().includes(query);
+        const matchesDispatch = s.dispatch?.referenceNumber?.toLowerCase().includes(query);
+        const matchesContainer = s.container?.containerNumber?.toLowerCase().includes(query);
+        const matchesTransit = s.transit?.referenceNumber?.toLowerCase().includes(query);
+        return Boolean(
+          matchesVin ||
+          matchesMake ||
+          matchesModel ||
+          matchesLot ||
+          matchesCustomer ||
+          matchesDispatch ||
+          matchesContainer ||
+          matchesTransit
+        );
+      }
+
+      return true;
+    });
+  }, [company?.shipments, shipmentSearch, shipmentRoleFilter, shipmentStatusFilter]);
   const [importForm, setImportForm] = useState({
     category: 'Bank Statement',
     statementEndingBalance: '',
@@ -371,17 +457,17 @@ export default function CompanyLedgerDetailPage() {
 
   const companyTabs = useMemo(() => [
     { label: 'Ledger', icon: <ReceiptText className="h-4 w-4" /> },
-    { label: 'Price List', icon: <Upload className="h-4 w-4" /> },
     {
-      label: companyTypeLabel === 'Shipping'
-        ? 'Shipping'
-        : companyTypeLabel === 'Dispatch'
-        ? 'Dispatch'
-        : 'Transit',
+      label: `Shipments${company?.shipments?.length ? ` (${company.shipments.length})` : ''}`,
+      icon: <Package className="h-4 w-4" />,
+    },
+    {
+      label: 'Operations',
       icon: <Truck className="h-4 w-4" />,
     },
+    { label: 'Price List', icon: <Upload className="h-4 w-4" /> },
     { label: 'Reports', icon: <DollarSign className="h-4 w-4" /> },
-  ], [companyTypeLabel]);
+  ], [company?.shipments?.length]);
 
   const isExpenseRecoveryEntry = (row: LedgerEntry) => {
     const category = (row.category || '').toLowerCase();
@@ -435,6 +521,7 @@ export default function CompanyLedgerDetailPage() {
     if (filters.search) params.append('search', filters.search);
     if (filters.type) params.append('type', filters.type);
     if (filters.source) params.append('source', filters.source);
+    if (filters.shipmentId) params.append('shipmentId', filters.shipmentId);
 
     const response = await fetch(`/api/finance/companies/${companyId}/ledger?${params}`);
     const data = await response.json();
@@ -481,7 +568,7 @@ export default function CompanyLedgerDetailPage() {
   useEffect(() => {
     if (!companyId) return;
     void fetchLedger();
-  }, [filters.search, filters.type, filters.source]);
+  }, [filters.search, filters.type, filters.source, filters.shipmentId]);
 
   useEffect(() => {
     if (!focusedEntryId) {
@@ -884,7 +971,7 @@ export default function CompanyLedgerDetailPage() {
         );
       }
 
-      setFilters({ search: '', type: '', source: 'BANK_IMPORT' });
+      setFilters({ search: '', type: '', source: 'BANK_IMPORT', shipmentId: '' });
       setOpenImportDialog(false);
       resetImportForm();
       await Promise.all([fetchCompany(), fetchLedger(), fetchReport()]);
@@ -1000,6 +1087,57 @@ export default function CompanyLedgerDetailPage() {
             <Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
               {row.category || 'General'}{row.reference ? ` • Ref: ${row.reference}` : ''}
             </Box>
+            {(() => {
+              const metadata = (row.metadata || {}) as Record<string, unknown>;
+              const metaShipmentId = typeof metadata.shipmentId === 'string' ? metadata.shipmentId : null;
+              const linked = metaShipmentId
+                ? (company?.shipments || []).find((s) => s.id === metaShipmentId)
+                : (company?.shipments || []).find(
+                    (s) =>
+                      Boolean(row.reference && s.id && row.reference.includes(s.id)) ||
+                      Boolean(s.vehicleVIN && row.description && row.description.toLowerCase().includes(s.vehicleVIN.toLowerCase()))
+                  );
+
+              if (!linked && !metaShipmentId) return null;
+
+              const label = linked
+                ? `${linked.vehicleVIN ? `${linked.vehicleVIN.slice(-8)} • ` : ''}${[linked.vehicleYear, linked.vehicleMake, linked.vehicleModel].filter(Boolean).join(' ') || 'Shipment'}`
+                : `Shipment #${metaShipmentId?.slice(-6)}`;
+
+              return (
+                <Box sx={{ mt: 0.5 }}>
+                  <Link
+                    href={`/dashboard/shipments/${linked?.id || metaShipmentId}`}
+                    style={{ textDecoration: 'none' }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Box
+                      component="span"
+                      sx={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 0.5,
+                        px: 1,
+                        py: 0.25,
+                        borderRadius: 1,
+                        fontSize: '0.7rem',
+                        fontWeight: 600,
+                        backgroundColor: 'rgba(var(--accent-gold-rgb), 0.12)',
+                        color: 'var(--accent-gold)',
+                        border: '1px solid rgba(var(--accent-gold-rgb), 0.28)',
+                        transition: 'all 0.15s ease',
+                        '&:hover': {
+                          backgroundColor: 'rgba(var(--accent-gold-rgb), 0.22)',
+                        },
+                      }}
+                    >
+                      <Car className="w-3 h-3" />
+                      <span>{label}</span>
+                    </Box>
+                  </Link>
+                </Box>
+              );
+            })()}
           </Box>
         ),
       },
@@ -1063,7 +1201,173 @@ export default function CompanyLedgerDetailPage() {
         ),
       },
     ],
-    []
+    [company?.shipments]
+  );
+
+  const shipmentColumns = useMemo<Column<CompanyShipment>[]>(
+    () => [
+      {
+        key: 'vehicleVIN',
+        header: 'Vehicle / VIN',
+        sortable: true,
+        render: (_, row) => (
+          <Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <span className="font-mono font-semibold tracking-wide text-xs text-[var(--text-primary)]">
+                {row.vehicleVIN || 'No VIN'}
+              </span>
+              {row.lotNumber && (
+                <span className="px-1.5 py-0.2 rounded text-[10px] font-medium bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                  Lot: {row.lotNumber}
+                </span>
+              )}
+            </Box>
+            <Box sx={{ fontSize: '0.8rem', color: 'var(--text-secondary)', mt: 0.25 }}>
+              {[row.vehicleYear, row.vehicleMake, row.vehicleModel].filter(Boolean).join(' ') || 'Unknown Vehicle'}
+            </Box>
+          </Box>
+        ),
+      },
+      {
+        key: 'roles',
+        header: 'Company Role',
+        align: 'center',
+        render: (_, row) => (
+          <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', justifyContent: 'center' }}>
+            {row.isDispatched && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30">
+                <Truck className="w-3 h-3" />
+                Dispatched
+              </span>
+            )}
+            {row.isShipped && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30">
+                <Building2 className="w-3 h-3" />
+                Shipped
+              </span>
+            )}
+            {row.isTransited && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                <GitCompareArrows className="w-3 h-3" />
+                Transited
+              </span>
+            )}
+            {!row.isDispatched && !row.isShipped && !row.isTransited && (
+              <span className="text-xs text-[var(--text-secondary)]">Associated</span>
+            )}
+          </Box>
+        ),
+      },
+      {
+        key: 'status',
+        header: 'Status',
+        sortable: true,
+        align: 'center',
+        render: (_, row) => (
+          <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-medium uppercase tracking-wider bg-[rgba(var(--text-primary-rgb),0.06)] text-[var(--text-primary)] border border-[var(--border)]">
+            {row.status.replace(/_/g, ' ')}
+          </span>
+        ),
+      },
+      {
+        key: 'operations',
+        header: 'Operations Link',
+        render: (_, row) => (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, fontSize: '0.75rem' }}>
+            {row.dispatch && (
+              <Link
+                href={`/dashboard/dispatches/${row.dispatch.id}`}
+                className="text-purple-600 dark:text-purple-400 hover:underline flex items-center gap-1"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Truck className="w-3 h-3 inline" />
+                Dispatch: #{row.dispatch.referenceNumber}
+              </Link>
+            )}
+            {row.container && (
+              <Link
+                href={`/dashboard/containers/${row.container.id}`}
+                className="text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Building2 className="w-3 h-3 inline" />
+                Container: {row.container.containerNumber}
+              </Link>
+            )}
+            {row.transit && (
+              <Link
+                href={`/dashboard/transits/${row.transit.id}`}
+                className="text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <GitCompareArrows className="w-3 h-3 inline" />
+                Transit: #{row.transit.referenceNumber}
+              </Link>
+            )}
+            {!row.dispatch && !row.container && !row.transit && (
+              <span className="text-[var(--text-secondary)]">-</span>
+            )}
+          </Box>
+        ),
+      },
+      {
+        key: 'customer',
+        header: 'Customer',
+        render: (_, row) => (
+          <Box sx={{ fontSize: '0.8rem' }}>
+            <Box sx={{ fontWeight: 500 }}>{row.customer?.name || 'N/A'}</Box>
+            {row.customer?.email && (
+              <Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{row.customer.email}</Box>
+            )}
+          </Box>
+        ),
+      },
+      {
+        key: 'createdAt',
+        header: 'Date Added',
+        sortable: true,
+        render: (_, row) => (
+          <span className="text-xs text-[var(--text-secondary)]">
+            {new Date(row.createdAt).toLocaleDateString()}
+          </span>
+        ),
+      },
+      {
+        key: 'actions',
+        header: 'Actions',
+        align: 'center',
+        render: (_, row) => (
+          <Box
+            sx={{ display: 'flex', gap: 0.75, justifyContent: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Button
+              variant="outline"
+              size="sm"
+              icon={<Eye className="w-3.5 h-3.5" />}
+              onClick={() => router.push(`/dashboard/shipments/${row.id}`)}
+            >
+              Shipment
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              icon={<ReceiptText className="w-3.5 h-3.5" />}
+              onClick={() => {
+                setFilters((prev) => ({ ...prev, shipmentId: row.id }));
+                setActiveTab(0);
+                const nextParams = new URLSearchParams(searchParams.toString());
+                nextParams.set('tab', 'ledger');
+                router.replace(`?${nextParams.toString()}`, { scroll: false });
+              }}
+            >
+              Ledger
+            </Button>
+          </Box>
+        ),
+      },
+    ],
+    [router, searchParams]
   );
 
   if (loading) {
@@ -1123,11 +1427,17 @@ export default function CompanyLedgerDetailPage() {
           }
         />
 
-        <DashboardGrid className="grid-cols-1 md:grid-cols-4 mb-4">
+        <DashboardGrid className="grid-cols-1 sm:grid-cols-2 md:grid-cols-5 mb-4">
           <StatsCard icon={<DollarSign className="w-5 h-5" />} title="Total Expenses" value={formatCurrency(summary.totalExpenseCharges)} variant="error" />
           <StatsCard icon={<DollarSign className="w-5 h-5" />} title="Total Paid" value={formatCurrency(summary.totalDebit)} variant="success" />
           <StatsCard icon={<Building2 className="w-5 h-5" />} title="Total Owed" value={formatCurrency(Math.abs(summary.currentBalance))} variant="info" />
           <StatsCard icon={<ReceiptText className="w-5 h-5" />} title="Total Transactions" value={report?.summary.transactionCount || entries.length} variant="default" />
+          <StatsCard
+            icon={<Package className="w-5 h-5" />}
+            title="Total Shipments"
+            value={company._count?.shipments ?? (company.shipments || []).length}
+            variant="default"
+          />
         </DashboardGrid>
 
         <Box
@@ -1201,7 +1511,7 @@ export default function CompanyLedgerDetailPage() {
           description="Search, filter, and manage transactions for this company"
         >
 
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr) 180px 180px' }, gap: 1.5, mb: 2 }}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr) 160px 160px 220px' }, gap: 1.5, mb: 2 }}>
             <TextField
               size="small"
               placeholder="Search description / category / notes"
@@ -1228,7 +1538,40 @@ export default function CompanyLedgerDetailPage() {
               <MenuItem value="BANK_IMPORT">Bank Imports</MenuItem>
               <MenuItem value="MANUAL">Manual Entries</MenuItem>
             </TextField>
+            <TextField
+              select
+              size="small"
+              value={filters.shipmentId}
+              onChange={(event) => setFilters((prev) => ({ ...prev, shipmentId: event.target.value }))}
+            >
+              <MenuItem value="">All Shipments ({company.shipments?.length || 0})</MenuItem>
+              {(company.shipments || []).map((s) => (
+                <MenuItem key={s.id} value={s.id}>
+                  {s.vehicleVIN ? `${s.vehicleVIN.slice(-8)} • ` : ''}{[s.vehicleMake, s.vehicleModel].filter(Boolean).join(' ') || 'Shipment'}
+                </MenuItem>
+              ))}
+            </TextField>
           </Box>
+
+          {filters.shipmentId && (
+            <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+              <span className="text-xs text-[var(--text-secondary)] font-medium">Filtered by shipment:</span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-[rgba(var(--accent-gold-rgb),0.12)] text-[var(--accent-gold)] border border-[rgba(var(--accent-gold-rgb),0.25)]">
+                <Car className="w-3.5 h-3.5" />
+                {(() => {
+                  const s = (company.shipments || []).find((c) => c.id === filters.shipmentId);
+                  return s ? `${s.vehicleVIN || 'Shipment'} • ${[s.vehicleMake, s.vehicleModel].filter(Boolean).join(' ')}` : `Shipment #${filters.shipmentId.slice(-6)}`;
+                })()}
+                <button
+                  type="button"
+                  onClick={() => setFilters((prev) => ({ ...prev, shipmentId: '' }))}
+                  className="ml-1 hover:opacity-75 font-bold cursor-pointer bg-transparent border-0 text-inherit p-0"
+                >
+                  ×
+                </button>
+              </span>
+            </Box>
+          )}
 
           {(focusedEntryId || focusedEntryLoading || focusedEntry) && (
             <Box
@@ -1283,6 +1626,80 @@ export default function CompanyLedgerDetailPage() {
         </TabPanel>
 
         <TabPanel value={activeTab} index={1}>
+          <DashboardPanel
+            title="Company Shipments"
+            description="All shipments handled by this company across dispatch, shipping, and transit operations"
+          >
+            <DashboardGrid className="grid-cols-1 sm:grid-cols-2 md:grid-cols-4 mb-4">
+              <StatsCard
+                icon={<Package className="w-5 h-5" />}
+                title="Total Shipments"
+                value={company._count?.shipments ?? (company.shipments || []).length}
+                variant="default"
+              />
+              <StatsCard
+                icon={<Truck className="w-5 h-5" />}
+                title="Dispatched"
+                value={company._count?.dispatchedShipments ?? (company.shipments || []).filter((s) => s.isDispatched).length}
+                variant="info"
+              />
+              <StatsCard
+                icon={<Building2 className="w-5 h-5" />}
+                title="Shipped"
+                value={company._count?.shippedShipments ?? (company.shipments || []).filter((s) => s.isShipped).length}
+                variant="success"
+              />
+              <StatsCard
+                icon={<GitCompareArrows className="w-5 h-5" />}
+                title="Transited"
+                value={company._count?.transitedShipments ?? (company.shipments || []).filter((s) => s.isTransited).length}
+                variant="warning"
+              />
+            </DashboardGrid>
+
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr) 200px 180px' }, gap: 1.5, mb: 2 }}>
+              <TextField
+                size="small"
+                placeholder="Search VIN / vehicle / customer / reference"
+                value={shipmentSearch}
+                onChange={(e) => setShipmentSearch(e.target.value)}
+              />
+              <TextField
+                select
+                size="small"
+                value={shipmentRoleFilter}
+                onChange={(e) => setShipmentRoleFilter(e.target.value as any)}
+              >
+                <MenuItem value="ALL">All Roles ({company.shipments?.length || 0})</MenuItem>
+                <MenuItem value="DISPATCH">Dispatched ({(company.shipments || []).filter((s) => s.isDispatched).length})</MenuItem>
+                <MenuItem value="SHIPPING">Shipped ({(company.shipments || []).filter((s) => s.isShipped).length})</MenuItem>
+                <MenuItem value="TRANSIT">Transited ({(company.shipments || []).filter((s) => s.isTransited).length})</MenuItem>
+              </TextField>
+              <TextField
+                select
+                size="small"
+                value={shipmentStatusFilter}
+                onChange={(e) => setShipmentStatusFilter(e.target.value)}
+              >
+                <MenuItem value="ALL">All Statuses</MenuItem>
+                {Array.from(new Set((company.shipments || []).map((s) => s.status))).filter(Boolean).map((st) => (
+                  <MenuItem key={st} value={st}>
+                    {st.replace(/_/g, ' ')}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Box>
+
+            <DataTable
+              data={filteredCompanyShipments}
+              columns={shipmentColumns}
+              keyField="id"
+              onRowClick={(row) => router.push(`/dashboard/shipments/${row.id}`)}
+            />
+          </DashboardPanel>
+        </TabPanel>
+
+        <TabPanel value={activeTab} index={3}>
         <DashboardPanel
           title="Company Price List"
           description="Upload and manage the rate sheet used by this company"
@@ -1636,14 +2053,14 @@ export default function CompanyLedgerDetailPage() {
         </TabPanel>
 
         <TabPanel value={activeTab} index={2}>
-        {company.companyType === 'SHIPPING' && (
+        {(company.companyType === 'SHIPPING' || company.isShipping || (company.containers && company.containers.length > 0)) && (
           <DashboardPanel
             title="Shipping Operations"
             description="Containers and shipments linked to this shipping company"
           >
             <DashboardGrid className="grid-cols-1 md:grid-cols-2 mb-4">
               <StatsCard icon={<Building2 className="w-5 h-5" />} title="Containers" value={company._count?.containers || 0} variant="default" />
-              <StatsCard icon={<ReceiptText className="w-5 h-5" />} title="Shipments" value={company._count?.shipments || 0} variant="info" />
+              <StatsCard icon={<Package className="w-5 h-5" />} title="Shipped Vehicles" value={(company.shipments || []).filter((s) => s.isShipped).length} variant="info" />
             </DashboardGrid>
 
             <Box sx={{ mb: 3 }}>
@@ -1668,17 +2085,64 @@ export default function CompanyLedgerDetailPage() {
               />
             </Box>
 
+            <Box>
+              <Box sx={{ fontWeight: 600, mb: 1 }}>Shipped Vehicles</Box>
+              <DataTable
+                data={(company.shipments || []).filter((s) => s.isShipped)}
+                keyField="id"
+                columns={[
+                  {
+                    key: 'vehicleVIN',
+                    header: 'Vehicle',
+                    render: (_, row) => row.vehicleVIN || [row.vehicleMake, row.vehicleModel].filter(Boolean).join(' ') || '-',
+                  },
+                  { key: 'status', header: 'Status', sortable: true },
+                  {
+                    key: 'createdAt',
+                    header: 'Created',
+                    render: (_, row) => new Date(row.createdAt).toLocaleDateString(),
+                  },
+                  {
+                    key: 'actions',
+                    header: 'Actions',
+                    align: 'center',
+                    render: (_, row) => (
+                      <Box sx={{ display: 'flex', gap: 0.75, justifyContent: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          icon={<Eye className="w-3.5 h-3.5" />}
+                          onClick={() => router.push(`/dashboard/shipments/${row.id}`)}
+                        >
+                          Shipment
+                        </Button>
+                        {row.containerId && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => router.push(`/dashboard/containers/${row.containerId}`)}
+                          >
+                            Container
+                          </Button>
+                        )}
+                      </Box>
+                    ),
+                  },
+                ]}
+              />
+            </Box>
+
           </DashboardPanel>
         )}
 
-        {company.companyType === 'DISPATCH' && (
+        {(company.companyType === 'DISPATCH' || company.isDispatch || (company.dispatches && company.dispatches.length > 0)) && (
           <DashboardPanel
             title="Dispatch Operations"
             description="Dispatch records and assigned shipments linked to this dispatch company"
           >
             <DashboardGrid className="grid-cols-1 md:grid-cols-2 mb-4">
               <StatsCard icon={<Truck className="w-5 h-5" />} title="Dispatches" value={company._count?.dispatches || 0} variant="default" />
-              <StatsCard icon={<ReceiptText className="w-5 h-5" />} title="Shipments" value={(company.shipments || []).filter((shipment) => Boolean(shipment.dispatchId)).length} variant="info" />
+              <StatsCard icon={<Package className="w-5 h-5" />} title="Dispatched Shipments" value={(company.shipments || []).filter((shipment) => shipment.isDispatched || Boolean(shipment.dispatchId)).length} variant="info" />
             </DashboardGrid>
 
             <Box sx={{ mb: 3 }}>
@@ -1722,7 +2186,7 @@ export default function CompanyLedgerDetailPage() {
             <Box>
               <Box sx={{ fontWeight: 600, mb: 1 }}>Assigned Shipments</Box>
               <DataTable
-                data={(company.shipments || []).filter((shipment) => Boolean(shipment.dispatchId))}
+                data={(company.shipments || []).filter((shipment) => shipment.isDispatched || Boolean(shipment.dispatchId))}
                 keyField="id"
                 columns={[
                   {
@@ -1768,14 +2232,14 @@ export default function CompanyLedgerDetailPage() {
           </DashboardPanel>
         )}
 
-        {company.companyType === 'TRANSIT' && (
+        {(company.companyType === 'TRANSIT' || company.isTransit || (company.transits && company.transits.length > 0)) && (
           <DashboardPanel
             title="Transit Operations"
             description="Transits and assigned shipments linked to this transit company"
           >
             <DashboardGrid className="grid-cols-1 md:grid-cols-2 mb-4">
-              <StatsCard icon={<Building2 className="w-5 h-5" />} title="Transits" value={company._count?.transits || 0} variant="default" />
-              <StatsCard icon={<ReceiptText className="w-5 h-5" />} title="Shipments" value={(company.shipments || []).filter((shipment) => Boolean(shipment.transitId)).length} variant="info" />
+              <StatsCard icon={<GitCompareArrows className="w-5 h-5" />} title="Transits" value={company._count?.transits || 0} variant="default" />
+              <StatsCard icon={<Package className="w-5 h-5" />} title="Transited Shipments" value={(company.shipments || []).filter((shipment) => shipment.isTransited || Boolean(shipment.transitId)).length} variant="info" />
             </DashboardGrid>
 
             <Box sx={{ mb: 3 }}>
@@ -1803,7 +2267,7 @@ export default function CompanyLedgerDetailPage() {
             <Box>
               <Box sx={{ fontWeight: 600, mb: 1 }}>Assigned Shipments</Box>
               <DataTable
-                data={(company.shipments || []).filter((shipment) => Boolean(shipment.transitId))}
+                data={(company.shipments || []).filter((shipment) => shipment.isTransited || Boolean(shipment.transitId))}
                 keyField="id"
                 columns={[
                   {
@@ -1851,7 +2315,7 @@ export default function CompanyLedgerDetailPage() {
         )}
         </TabPanel>
 
-        <TabPanel value={activeTab} index={3}>
+        <TabPanel value={activeTab} index={4}>
         {report && report.summary.transactionCount > 0 && (
           <DashboardPanel title="Monthly Report" description="Transaction breakdown by month">
             <Box sx={{ overflowX: 'auto' }}>
