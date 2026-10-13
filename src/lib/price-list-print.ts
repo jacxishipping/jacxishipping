@@ -15,6 +15,7 @@ export interface PrintCompanyPriceListOptions {
     selectedState?: string | null;
     searchQuery?: string | null;
   } | null;
+  logoUrl?: string | null;
 }
 
 interface CorridorConfig {
@@ -77,6 +78,19 @@ export function generatePriceListPrintHtml(options: PrintCompanyPriceListOptions
   const auctionRates = options.auctionRates || [];
   const stateRates = options.stateRates || {};
   const filterInfo = options.filterInfo || undefined;
+
+  const activeLogo = options.logoUrl || (typeof window !== 'undefined' ? (() => {
+    try {
+      const cached = localStorage.getItem('jacxi_site_branding_cache');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed.logoUrl) return parsed.logoUrl;
+      }
+    } catch {
+      // Ignore
+    }
+    return JACXI_LOGO_BASE64;
+  })() : JACXI_LOGO_BASE64);
 
   const currentYear = new Date().getFullYear();
   const tariffYear = effectiveDate.includes('202') ? (effectiveDate.match(/202\d/)?.[0] || String(currentYear)) : String(currentYear);
@@ -638,7 +652,7 @@ export function generatePriceListPrintHtml(options: PrintCompanyPriceListOptions
   <!-- Print Toolbar (Hidden during actual print) -->
   <div class="toolbar no-print">
     <div class="toolbar-title">
-      <img src="${JACXI_LOGO_BASE64}" alt="JACXI" style="height: 24px; filter: brightness(0) invert(1);" />
+      <img src="${activeLogo}" alt="JACXI" style="height: 24px; filter: brightness(0) invert(1);" />
       <span>${companyName} — Price List Rate Sheet (${destinationLabel})</span>
     </div>
     <div class="toolbar-actions">
@@ -657,7 +671,7 @@ export function generatePriceListPrintHtml(options: PrintCompanyPriceListOptions
 
     <div class="doc-header">
       <div>
-        <img src="${JACXI_LOGO_BASE64}" alt="${companyName}" class="doc-logo" />
+        <img src="${activeLogo}" alt="${companyName}" class="doc-logo" />
       </div>
       <div class="doc-header-right">
         <div class="doc-header-right-title">PRICE LIST</div>
@@ -784,7 +798,7 @@ export function generatePriceListPrintHtml(options: PrintCompanyPriceListOptions
 
     <div class="doc-header">
       <div>
-        <img src="${JACXI_LOGO_BASE64}" alt="${companyName}" class="doc-logo" />
+        <img src="${activeLogo}" alt="${companyName}" class="doc-logo" />
       </div>
       <div class="doc-header-right">
         <div class="doc-header-right-title">PRICE LIST</div>
@@ -852,7 +866,7 @@ export function generatePriceListPrintHtml(options: PrintCompanyPriceListOptions
 
     <div class="doc-header">
       <div>
-        <img src="${JACXI_LOGO_BASE64}" alt="${companyName}" class="doc-logo" />
+        <img src="${activeLogo}" alt="${companyName}" class="doc-logo" />
       </div>
       <div class="doc-header-right">
         <div class="doc-header-right-title">PRICE LIST</div>
