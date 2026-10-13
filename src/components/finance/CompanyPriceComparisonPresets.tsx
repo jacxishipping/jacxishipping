@@ -173,17 +173,17 @@ export default function CompanyPriceComparisonPresets({
                 </Box>
                 <Box sx={{ display: 'flex', gap: 0.25 }}>
                   <Tooltip title="Load preset">
-                    <IconButton size="small" onClick={() => onApply(preset.config)}>
+                    <IconButton size="small" aria-label="Load preset" onClick={() => onApply(preset.config)}>
                       <Bookmark className="w-4 h-4" />
                     </IconButton>
                   </Tooltip>
                   <Tooltip title="Rename / update preset">
-                    <IconButton size="small" onClick={() => handleOpenSaveDialog(preset)}>
+                    <IconButton size="small" aria-label="Rename preset" onClick={() => handleOpenSaveDialog(preset)}>
                       <Pencil className="w-4 h-4" />
                     </IconButton>
                   </Tooltip>
                   <Tooltip title="Delete preset">
-                    <IconButton size="small" color="error" onClick={() => handleDeletePreset(preset.id)}>
+                    <IconButton size="small" aria-label="Delete preset" color="error" onClick={() => handleDeletePreset(preset.id)}>
                       <Trash2 className="w-4 h-4" />
                     </IconButton>
                   </Tooltip>
