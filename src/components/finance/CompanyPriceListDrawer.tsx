@@ -28,6 +28,10 @@ import {
   ArrowRight,
   Filter,
   Printer,
+  Ship,
+  Truck,
+  ShieldCheck,
+  Navigation,
 } from 'lucide-react';
 import { Drawer, Button, StatsCard } from '@/components/design-system';
 import { formatMoney as formatCurrency } from '@/lib/format';
@@ -38,6 +42,12 @@ import {
   type AuctionRateEntry,
   type ShippingRateCalculatorConfig,
 } from '@/lib/shipping-rate-calculator';
+import {
+  detectPriceListCorridor,
+  isTransitPriceList,
+  CORRIDOR_DEFINITIONS,
+  type CorridorRouteCode,
+} from '@/lib/price-list-corridors';
 
 export interface CompanyPriceListSummary {
   id: string;
@@ -90,7 +100,7 @@ export default function CompanyPriceListDrawer({
   const [selectedVersionId, setSelectedVersionId] = useState<string>('active');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedState, setSelectedState] = useState('');
-  const [activeTab, setActiveTab] = useState<'auction' | 'states'>('auction');
+  const [activeTab, setActiveTab] = useState<'auction' | 'transit' | 'states'>('auction');
 
   // Fetch company data if config is not preloaded
   useEffect(() => {
@@ -122,7 +132,17 @@ export default function CompanyPriceListDrawer({
 
   // Consolidate effective config and lists
   const priceLists = initialPriceLists || fetchedPriceLists || [];
-  const activeListFromProps = initialActivePriceList || priceLists.find((l) => l.isActive) || null;
+
+  // Dual-leg recognition: Ocean (Leg 1) vs Overland Transit (Leg 2)
+  const activeOceanList = useMemo(() => {
+    return priceLists.find((l) => l.isActive && !isTransitPriceList(l)) || null;
+  }, [priceLists]);
+
+  const activeTransitList = useMemo(() => {
+    return priceLists.find((l) => l.isActive && isTransitPriceList(l)) || null;
+  }, [priceLists]);
+
+  const activeListFromProps = initialActivePriceList || activeOceanList || activeTransitList || priceLists.find((l) => l.isActive) || null;
 
   // Selected version calculation
   const currentVersion = useMemo(() => {
@@ -132,6 +152,20 @@ export default function CompanyPriceListDrawer({
     return priceLists.find((l) => l.id === selectedVersionId) || activeListFromProps;
   }, [selectedVersionId, priceLists, activeListFromProps]);
 
+  const isCurrentVersionTransit = useMemo(() => {
+    if (!currentVersion) return false;
+    return isTransitPriceList(currentVersion);
+  }, [currentVersion]);
+
+  // Auto-switch tab if user explicitly picked a transit version
+  useEffect(() => {
+    if (isCurrentVersionTransit) {
+      setActiveTab('transit');
+    } else if (activeTab === 'transit' && !activeTransitList && !isCurrentVersionTransit) {
+      setActiveTab('auction');
+    }
+  }, [isCurrentVersionTransit, activeTransitList]);
+
   const effectiveConfig = useMemo(() => {
     if (currentVersion?.config) {
       return normalizeShippingRateConfig(currentVersion.config);
@@ -140,6 +174,48 @@ export default function CompanyPriceListDrawer({
     if (fetchedConfig) return normalizeShippingRateConfig(fetchedConfig);
     return null;
   }, [currentVersion, initialConfig, fetchedConfig]);
+
+  // Extract structured transit details (Mersin/UAE -> Islam Qala)
+  const transitData = useMemo(() => {
+    if (currentVersion && isTransitPriceList(currentVersion)) {
+      const cfg = currentVersion.config as any;
+      return {
+        name: currentVersion.name,
+        origin: cfg?.origin || (currentVersion.name.toLowerCase().includes('uae') ? 'Dubai / Jebel Ali, UAE' : 'Mersin, Turkey'),
+        destination: cfg?.destination || currentVersion.destinationLabel || 'Islam Qala, Herat',
+        rates: cfg?.rates || cfg?.transitRates || { sedan: 2300, suv: 2400 },
+        terms: cfg?.terms || (cfg?.transitRates?.terms) || [
+          'Rates include customs clearance and transportation.',
+          'Applicable based on departure port shipping date.',
+          'Unforeseen port congestion or force majeure passed to client.',
+        ],
+        effectiveFrom: currentVersion.effectiveFrom || cfg?.effectiveFrom,
+        effectiveTo: cfg?.effectiveTo,
+      };
+    }
+
+    const rawCompanyTransit = (initialConfig as any)?.transit || (fetchedConfig as any)?.transit;
+    if (rawCompanyTransit) return rawCompanyTransit;
+
+    if (activeTransitList) {
+      const cfg = activeTransitList.config as any;
+      return {
+        name: activeTransitList.name,
+        origin: cfg?.origin || (activeTransitList.name.toLowerCase().includes('uae') ? 'Dubai / Jebel Ali, UAE' : 'Mersin, Turkey'),
+        destination: cfg?.destination || activeTransitList.destinationLabel || 'Islam Qala, Herat',
+        rates: cfg?.rates || cfg?.transitRates || { sedan: 2300, suv: 2400 },
+        terms: cfg?.terms || (cfg?.transitRates?.terms) || [
+          'Rates include customs clearance and transportation.',
+          'Applicable based on departure port shipping date.',
+          'Unforeseen port congestion or force majeure passed to client.',
+        ],
+        effectiveFrom: activeTransitList.effectiveFrom || cfg?.effectiveFrom,
+        effectiveTo: cfg?.effectiveTo,
+      };
+    }
+
+    return null;
+  }, [currentVersion, initialConfig, fetchedConfig, activeTransitList]);
 
   const auctionRates = effectiveConfig?.auctionRates || [];
   const stateRates = effectiveConfig?.stateRates || {};
@@ -427,19 +503,130 @@ export default function CompanyPriceListDrawer({
                   size="small"
                   value={selectedVersionId}
                   onChange={(e) => setSelectedVersionId(e.target.value)}
-                  sx={{ minWidth: 260 }}
+                  sx={{ minWidth: 280 }}
                 >
                   <MenuItem value="active">
                     Active Version {activeListFromProps?.name ? `(${activeListFromProps.name})` : ''}
                   </MenuItem>
-                  {priceLists.map((list) => (
-                    <MenuItem key={list.id} value={list.id}>
-                      {list.name} {list.isActive ? '• Active' : ''} ({new Date(list.createdAt).toLocaleDateString()})
-                    </MenuItem>
-                  ))}
+                  {priceLists.map((list) => {
+                    const corridor = detectPriceListCorridor({
+                      fileName: list.sourceFileName,
+                      destinationLabel: list.destinationLabel,
+                      name: list.name,
+                      config: list.config,
+                      auctionRateCount: list.importedAuctionRateCount,
+                    });
+                    const legPrefix = corridor.leg === 'TRANSIT' ? '🚚 [Transit]' : '🌊 [Ocean]';
+                    return (
+                      <MenuItem key={list.id} value={list.id}>
+                        {legPrefix} {corridor.shortLabel} — {list.name} {list.isActive ? '• Active' : ''} ({new Date(list.createdAt).toLocaleDateString()})
+                      </MenuItem>
+                    );
+                  })}
                 </TextField>
               </Box>
             )}
+
+            {/* Dual-Leg Corridors Status Bar */}
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 1.5 }}>
+              {/* Leg 1: Ocean Freight */}
+              <Box
+                sx={{
+                  p: 1.5,
+                  borderRadius: 2,
+                  border: activeOceanList ? '1px solid rgba(59, 130, 246, 0.4)' : '1px dashed var(--border)',
+                  background: activeOceanList ? 'rgba(59, 130, 246, 0.06)' : 'var(--panel)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 1.5,
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+                  <Box
+                    sx={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: 1.5,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: activeOceanList ? 'rgba(59, 130, 246, 0.18)' : 'var(--background)',
+                      color: activeOceanList ? '#2563eb' : 'var(--text-secondary)',
+                    }}
+                  >
+                    <Ship className="w-4 h-4" />
+                  </Box>
+                  <Box>
+                    <Box sx={{ fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 800, color: 'var(--text-secondary)' }}>
+                      Leg 1: Ocean Shipping
+                    </Box>
+                    <Box sx={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--text-primary)' }}>
+                      USA Auction Yards ➔ {activeOceanList ? activeOceanList.destinationLabel : 'Mersin / Jebel Ali'}
+                    </Box>
+                    <Box sx={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
+                      {activeOceanList ? `${auctionRates.length} auction lanes active` : 'No active ocean sheet'}
+                    </Box>
+                  </Box>
+                </Box>
+                {activeOceanList && (
+                  <Chip
+                    size="small"
+                    label="Active"
+                    sx={{ fontWeight: 800, height: 20, fontSize: '0.7rem', backgroundColor: 'rgba(59, 130, 246, 0.15)', color: '#1d4ed8' }}
+                  />
+                )}
+              </Box>
+
+              {/* Leg 2: Overland Transit */}
+              <Box
+                sx={{
+                  p: 1.5,
+                  borderRadius: 2,
+                  border: (activeTransitList || transitData) ? '1px solid rgba(16, 185, 129, 0.4)' : '1px dashed var(--border)',
+                  background: (activeTransitList || transitData) ? 'rgba(16, 185, 129, 0.06)' : 'var(--panel)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 1.5,
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+                  <Box
+                    sx={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: 1.5,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: (activeTransitList || transitData) ? 'rgba(16, 185, 129, 0.18)' : 'var(--background)',
+                      color: (activeTransitList || transitData) ? '#059669' : 'var(--text-secondary)',
+                    }}
+                  >
+                    <Truck className="w-4 h-4" />
+                  </Box>
+                  <Box>
+                    <Box sx={{ fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 800, color: 'var(--text-secondary)' }}>
+                      Leg 2: Overland Transit
+                    </Box>
+                    <Box sx={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--text-primary)' }}>
+                      {transitData ? `${transitData.origin} ➔ ${transitData.destination}` : 'Mersin/UAE ➔ Islam Qala'}
+                    </Box>
+                    <Box sx={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
+                      {transitData ? `Sedan: ${formatCurrency(transitData.rates.sedan)} • SUV: ${formatCurrency(transitData.rates.suv)} (Clearance incl.)` : 'No active transit sheet'}
+                    </Box>
+                  </Box>
+                </Box>
+                {(activeTransitList || transitData) && (
+                  <Chip
+                    size="small"
+                    label="Active"
+                    sx={{ fontWeight: 800, height: 20, fontSize: '0.7rem', backgroundColor: 'rgba(16, 185, 129, 0.15)', color: '#047857' }}
+                  />
+                )}
+              </Box>
+            </Box>
 
             {/* Quick Metrics Bar */}
             <Box
@@ -641,14 +828,20 @@ export default function CompanyPriceListDrawer({
               >
                 <Tab
                   value="auction"
-                  label={`Auction Lanes (${filteredAuctionRates.length}${filteredAuctionRates.length !== auctionRates.length ? ` of ${auctionRates.length}` : ''})`}
+                  label={`🌊 Ocean Auction Lanes (${filteredAuctionRates.length}${filteredAuctionRates.length !== auctionRates.length ? ` of ${auctionRates.length}` : ''})`}
                 />
+                {transitData && (
+                  <Tab
+                    value="transit"
+                    label="🚚 Overland Transit Tariffs (Islam Qala)"
+                  />
+                )}
                 <Tab
                   value="states"
-                  label={`State Flat Rates (${filteredStateRates.length})`}
+                  label={`🏛️ State Flat Rates (${filteredStateRates.length})`}
                 />
               </Tabs>
-              {(searchQuery || selectedState) && (
+              {activeTab === 'auction' && (searchQuery || selectedState) && (
                 <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
                   <Button
                     variant="ghost"
@@ -671,6 +864,190 @@ export default function CompanyPriceListDrawer({
                 </Box>
               )}
             </Box>
+
+            {/* Overland Transit Tariff Panel */}
+            {activeTab === 'transit' && transitData && (
+              <Box sx={{ display: 'grid', gap: 2 }}>
+                {/* Route Header */}
+                <Box
+                  sx={{
+                    p: 2,
+                    borderRadius: 2,
+                    border: '1px solid rgba(16, 185, 129, 0.3)',
+                    background: 'linear-gradient(145deg, rgba(16, 185, 129, 0.08), rgba(16, 185, 129, 0.02))',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 1.5,
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <Box
+                      sx={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 2,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: 'rgba(16, 185, 129, 0.18)',
+                        color: '#059669',
+                      }}
+                    >
+                      <Navigation className="w-5 h-5" />
+                    </Box>
+                    <Box>
+                      <Box sx={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
+                        Overland Route Tariff
+                      </Box>
+                      <Box sx={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--text-primary)' }}>
+                        {transitData.origin} ➔ {transitData.destination}
+                      </Box>
+                      <Box sx={{ fontSize: '0.78rem', color: 'var(--text-secondary)', mt: 0.25 }}>
+                        Second leg: Port transit handling + overland container/car carrier transit to Afghanistan border
+                      </Box>
+                    </Box>
+                  </Box>
+                  <Chip
+                    icon={<ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />}
+                    label="Customs Clearance Included"
+                    sx={{
+                      fontWeight: 800,
+                      fontSize: '0.75rem',
+                      backgroundColor: 'rgba(16, 185, 129, 0.15)',
+                      color: '#047857',
+                      border: '1px solid rgba(16, 185, 129, 0.3)',
+                    }}
+                  />
+                </Box>
+
+                {/* Rate Cards for Vehicle Types */}
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+                  {/* Sedan Rate Card */}
+                  <Box
+                    sx={{
+                      p: 2.5,
+                      borderRadius: 2.5,
+                      border: '1px solid var(--border)',
+                      background: 'var(--panel)',
+                      display: 'grid',
+                      gap: 1,
+                      position: 'relative',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <Box>
+                        <Box sx={{ fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 800, color: 'var(--text-secondary)', letterSpacing: '0.05em' }}>
+                          Standard Vehicle
+                        </Box>
+                        <Box sx={{ fontWeight: 800, fontSize: '1.2rem', color: 'var(--text-primary)' }}>
+                          SEDAN / SALOON
+                        </Box>
+                      </Box>
+                      <Chip
+                        size="small"
+                        label="Standard"
+                        sx={{ fontWeight: 700, height: 22, fontSize: '0.7rem' }}
+                      />
+                    </Box>
+                    <Box sx={{ my: 0.5 }}>
+                      <Box sx={{ fontSize: '2rem', fontWeight: 850, color: 'var(--text-primary)', lineHeight: 1 }}>
+                        {formatCurrency(transitData.rates.sedan)}
+                      </Box>
+                      <Box sx={{ fontSize: '0.78rem', color: 'var(--text-secondary)', mt: 0.5 }}>
+                        USD per vehicle • Mersin/UAE to Islam Qala
+                      </Box>
+                    </Box>
+                    <Box sx={{ pt: 1, borderTop: '1px solid var(--border)', fontSize: '0.78rem', color: '#15803d', display: 'flex', alignItems: 'center', gap: 0.75, fontWeight: 700 }}>
+                      <CheckCircle2 className="w-4 h-4 shrink-0" />
+                      Includes port customs clearance & transit
+                    </Box>
+                  </Box>
+
+                  {/* SUV Rate Card */}
+                  <Box
+                    sx={{
+                      p: 2.5,
+                      borderRadius: 2.5,
+                      border: '1px solid rgba(var(--accent-gold-rgb), 0.4)',
+                      background: 'linear-gradient(145deg, rgba(var(--accent-gold-rgb), 0.06), var(--panel))',
+                      display: 'grid',
+                      gap: 1,
+                      position: 'relative',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <Box>
+                        <Box sx={{ fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 800, color: 'var(--accent-gold)', letterSpacing: '0.05em' }}>
+                          Large Vehicle
+                        </Box>
+                        <Box sx={{ fontWeight: 800, fontSize: '1.2rem', color: 'var(--text-primary)' }}>
+                          SUV / 4X4 / TRUCK
+                        </Box>
+                      </Box>
+                      <Chip
+                        size="small"
+                        label="Heavy / Large"
+                        sx={{ fontWeight: 700, height: 22, fontSize: '0.7rem', bgcolor: 'rgba(var(--accent-gold-rgb), 0.15)', color: 'var(--accent-gold)' }}
+                      />
+                    </Box>
+                    <Box sx={{ my: 0.5 }}>
+                      <Box sx={{ fontSize: '2rem', fontWeight: 850, color: 'var(--accent-gold)', lineHeight: 1 }}>
+                        {formatCurrency(transitData.rates.suv)}
+                      </Box>
+                      <Box sx={{ fontSize: '0.78rem', color: 'var(--text-secondary)', mt: 0.5 }}>
+                        USD per vehicle • Mersin/UAE to Islam Qala
+                      </Box>
+                    </Box>
+                    <Box sx={{ pt: 1, borderTop: '1px solid var(--border)', fontSize: '0.78rem', color: '#15803d', display: 'flex', alignItems: 'center', gap: 0.75, fontWeight: 700 }}>
+                      <CheckCircle2 className="w-4 h-4 shrink-0" />
+                      Includes port customs clearance & transit
+                    </Box>
+                  </Box>
+                </Box>
+
+                {/* Terms and Conditions */}
+                {transitData.terms && transitData.terms.length > 0 && (
+                  <Box
+                    sx={{
+                      p: 2,
+                      borderRadius: 2,
+                      border: '1px solid var(--border)',
+                      background: 'var(--panel)',
+                    }}
+                  >
+                    <Box sx={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--text-primary)', mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <FileText className="w-4 h-4 text-[var(--accent-gold)]" />
+                      Tariff Terms & Conditions
+                    </Box>
+                    <Box sx={{ display: 'grid', gap: 0.75 }}>
+                      {transitData.terms.map((term: string, idx: number) => (
+                        <Box key={idx} sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                          <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'var(--accent-gold)', mt: 0.75, shrink: 0 }} />
+                          <Box>{term}</Box>
+                        </Box>
+                      ))}
+                    </Box>
+                  </Box>
+                )}
+
+                {/* Validity and Source Note */}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.76rem', color: 'var(--text-secondary)', px: 0.5 }}>
+                  <Box>
+                    Active version: <strong>{transitData.name || currentVersion?.name || 'Overland Tariff'}</strong>
+                  </Box>
+                  {transitData.effectiveFrom && (
+                    <Box>
+                      Effective: {new Date(transitData.effectiveFrom).toLocaleDateString()}
+                      {transitData.effectiveTo ? ` – ${new Date(transitData.effectiveTo).toLocaleDateString()}` : ''}
+                    </Box>
+                  )}
+                </Box>
+              </Box>
+            )}
 
             {/* Auction Lanes Table */}
             {activeTab === 'auction' && (
