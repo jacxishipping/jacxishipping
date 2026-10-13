@@ -8,6 +8,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import { prisma } from '@/lib/db';
+import { Prisma } from '@prisma/client';
 import { logger } from '@/lib/logger';
 
 export interface BackupCategory {
@@ -166,9 +167,141 @@ const SCALAR_ARRAY_FIELDS = new Set([
   'transshipmentPorts',
 ]);
 
+const MODEL_INFO = new Map<string, {
+  name: string;
+  fields: Map<string, any>;
+}>();
+
+const ENUM_VALUES = new Map<string, Set<string>>();
+
+try {
+  if (Prisma.dmmf?.datamodel?.enums) {
+    for (const e of Prisma.dmmf.datamodel.enums) {
+      ENUM_VALUES.set(e.name, new Set(e.values.map((v) => v.name)));
+    }
+  }
+
+  if (Prisma.dmmf?.datamodel?.models) {
+    for (const m of Prisma.dmmf.datamodel.models) {
+      const fields = new Map<string, any>();
+      for (const f of m.fields) {
+        if (f.kind === 'scalar' || f.kind === 'enum') {
+          fields.set(f.name, f);
+        }
+      }
+      MODEL_INFO.set(m.name, { name: m.name, fields });
+    }
+  }
+} catch {
+  // DMMF introspection fallback
+}
+
+const MODEL_NAME_MAP: Record<string, string> = {
+  users: 'User',
+  quotes: 'Quote',
+  testimonials: 'Testimonial',
+  blogPosts: 'BlogPost',
+  contacts: 'Contact',
+  newsletters: 'Newsletter',
+
+  companies: 'Company',
+  companyPriceLists: 'CompanyPriceList',
+  companyLedgerEntries: 'CompanyLedgerEntry',
+
+  containers: 'Container',
+  containerExpenses: 'ContainerExpense',
+  containerDamages: 'ContainerDamage',
+  containerInvoices: 'ContainerInvoice',
+  containerDocuments: 'ContainerDocument',
+  containerTrackingEvents: 'ContainerTrackingEvent',
+  containerAuditLogs: 'ContainerAuditLog',
+
+  dispatches: 'Dispatch',
+  dispatchEvents: 'DispatchEvent',
+  dispatchExpenses: 'DispatchExpense',
+  transits: 'Transit',
+  transitEvents: 'TransitEvent',
+  transitExpenses: 'TransitExpense',
+
+  shipments: 'Shipment',
+  shipmentCharges: 'ShipmentCharge',
+  shipmentAuditLogs: 'ShipmentAuditLog',
+
+  userInvoices: 'UserInvoice',
+  invoiceLineItems: 'InvoiceLineItem',
+  payments: 'Payment',
+  paymentAllocations: 'PaymentAllocation',
+  ledgerEntries: 'LedgerEntry',
+
+  partnerPortals: 'PartnerPortal',
+  partnerPortalMemberships: 'PartnerPortalMembership',
+  partnerCustomers: 'PartnerCustomer',
+  partnerShipmentAssignments: 'PartnerShipmentAssignment',
+  partnerPortalPaymentRecords: 'PartnerPortalPaymentRecord',
+  partnerPortalLedgerEntries: 'PartnerPortalLedgerEntry',
+
+  userSettings: 'UserSettings',
+  callAgentSettings: 'CallAgentSettings',
+  aiProviderSettings: 'AiProviderSettings',
+  communicationProviderSettings: 'CommunicationProviderSettings',
+};
+
+function getModelDelegate(modelKey: string): any {
+  switch (modelKey) {
+    case 'users': return prisma.user;
+    case 'quotes': return prisma.quote;
+    case 'testimonials': return prisma.testimonial;
+    case 'blogPosts': return prisma.blogPost;
+    case 'contacts': return prisma.contact;
+    case 'newsletters': return prisma.newsletter;
+
+    case 'companies': return prisma.company;
+    case 'companyPriceLists': return prisma.companyPriceList;
+    case 'companyLedgerEntries': return prisma.companyLedgerEntry;
+
+    case 'containers': return prisma.container;
+    case 'containerExpenses': return prisma.containerExpense;
+    case 'containerDamages': return prisma.containerDamage;
+    case 'containerInvoices': return prisma.containerInvoice;
+    case 'containerDocuments': return prisma.containerDocument;
+    case 'containerTrackingEvents': return prisma.containerTrackingEvent;
+    case 'containerAuditLogs': return prisma.containerAuditLog;
+
+    case 'dispatches': return prisma.dispatch;
+    case 'dispatchEvents': return prisma.dispatchEvent;
+    case 'dispatchExpenses': return prisma.dispatchExpense;
+    case 'transits': return prisma.transit;
+    case 'transitEvents': return prisma.transitEvent;
+    case 'transitExpenses': return prisma.transitExpense;
+
+    case 'shipments': return prisma.shipment;
+    case 'shipmentCharges': return prisma.shipmentCharge;
+    case 'shipmentAuditLogs': return prisma.shipmentAuditLog;
+
+    case 'userInvoices': return prisma.userInvoice;
+    case 'invoiceLineItems': return prisma.invoiceLineItem;
+    case 'payments': return prisma.payment;
+    case 'paymentAllocations': return prisma.paymentAllocation;
+    case 'ledgerEntries': return prisma.ledgerEntry;
+
+    case 'partnerPortals': return prisma.partnerPortal;
+    case 'partnerPortalMemberships': return prisma.partnerPortalMembership;
+    case 'partnerCustomers': return prisma.partnerCustomer;
+    case 'partnerShipmentAssignments': return prisma.partnerShipmentAssignment;
+    case 'partnerPortalPaymentRecords': return prisma.partnerPortalPaymentRecord;
+    case 'partnerPortalLedgerEntries': return prisma.partnerPortalLedgerEntry;
+
+    case 'userSettings': return prisma.userSettings;
+    case 'callAgentSettings': return prisma.callAgentSettings;
+    case 'aiProviderSettings': return prisma.aiProviderSettings;
+    case 'communicationProviderSettings': return prisma.communicationProviderSettings;
+
+    default: return (prisma as any)[modelKey];
+  }
+}
+
 /**
- * Sanitize a record before database upsert:
- * Strips nested relation objects and relation arrays so Prisma doesn't fail.
+ * Basic sanitize for plain JS object without DMMF
  */
 function sanitizeRecordData(record: Record<string, any>): Record<string, any> {
   const sanitized: Record<string, any> = {};
@@ -176,20 +309,16 @@ function sanitizeRecordData(record: Record<string, any>): Record<string, any> {
   for (const [key, value] of Object.entries(record)) {
     if (value === undefined) continue;
 
-    // Preserve scalar arrays like string[] photos
     if (Array.isArray(value)) {
       if (SCALAR_ARRAY_FIELDS.has(key)) {
         sanitized[key] = value;
       } else if (value.length > 0 && typeof value[0] !== 'object') {
         sanitized[key] = value;
       }
-      // Arrays of objects (relations) are skipped here and restored into their own tables
       continue;
     }
 
-    // Skip nested relation objects
     if (value !== null && typeof value === 'object' && !(value instanceof Date)) {
-      // Check if it's a plain object (relation) vs JSON field
       continue;
     }
 
@@ -197,6 +326,385 @@ function sanitizeRecordData(record: Record<string, any>): Record<string, any> {
   }
 
   return sanitized;
+}
+
+/**
+ * Smart clean record using Prisma DMMF:
+ * - Drops unknown/removed columns from older backup schemas
+ * - Converts ISO date strings to Date objects
+ * - Validates enums against current valid values
+ * - Provides sensible defaults for non-null required fields
+ */
+function cleanRecord(modelName: string, item: Record<string, any>): Record<string, any> {
+  const meta = MODEL_INFO.get(modelName);
+  if (!meta) {
+    return sanitizeRecordData(item);
+  }
+
+  const clean: Record<string, any> = {};
+
+  for (const [key, val] of Object.entries(item)) {
+    if (val === undefined) continue;
+    const f = meta.fields.get(key);
+    if (!f) continue; // Drop deprecated / unknown fields from older backups!
+
+    // Skip nested relation objects (unless explicitly typed Json)
+    if (val !== null && typeof val === 'object' && !Array.isArray(val) && !(val instanceof Date)) {
+      if (f.type !== 'Json') {
+        continue;
+      }
+    }
+
+    // Convert DateTime strings to Date
+    if (f.type === 'DateTime') {
+      if (val === null) {
+        clean[key] = null;
+      } else if (typeof val === 'string' || typeof val === 'number') {
+        const d = new Date(val);
+        if (!isNaN(d.getTime())) {
+          clean[key] = d;
+        }
+      } else if (val instanceof Date) {
+        clean[key] = val;
+      }
+      continue;
+    }
+
+    // Validate enum values
+    if (f.kind === 'enum') {
+      if (val === null) {
+        clean[key] = null;
+      } else if (typeof val === 'string') {
+        const validVals = ENUM_VALUES.get(f.type);
+        if (validVals && validVals.has(val)) {
+          clean[key] = val;
+        }
+      }
+      continue;
+    }
+
+    clean[key] = val;
+  }
+
+  // Supply safe fallbacks for required fields with no defaults that are missing/null
+  for (const [name, f] of meta.fields) {
+    if (f.isRequired && !f.hasDefaultValue && (clean[name] === undefined || clean[name] === null)) {
+      if (f.type === 'String') clean[name] = '';
+      else if (f.type === 'Int' || f.type === 'Float') clean[name] = 0;
+      else if (f.type === 'Boolean') clean[name] = false;
+      else if (f.type === 'DateTime') clean[name] = new Date();
+      else if (f.type === 'Json') clean[name] = {};
+    }
+  }
+
+  return clean;
+}
+
+/**
+ * Process items in concurrent batches for high restore performance and resilience
+ */
+async function processInBatches<T>(
+  items: T[],
+  batchSize: number,
+  processor: (item: T) => Promise<boolean>
+): Promise<{ successCount: number; errors: string[] }> {
+  let successCount = 0;
+  const errors: string[] = [];
+
+  for (let i = 0; i < items.length; i += batchSize) {
+    const chunk = items.slice(i, i + batchSize);
+    const results = await Promise.allSettled(chunk.map((item) => processor(item)));
+    for (let j = 0; j < results.length; j++) {
+      const res = results[j];
+      if (res.status === 'fulfilled' && res.value) {
+        successCount++;
+      } else if (res.status === 'rejected') {
+        const item: any = chunk[j];
+        const msg = res.reason?.message || 'Restore error';
+        errors.push(`[ID ${item?.id || 'unknown'}]: ${msg}`);
+      }
+    }
+  }
+
+  return { successCount, errors };
+}
+
+async function restoreUserRecord(item: Record<string, any>): Promise<boolean> {
+  const clean = cleanRecord('User', item);
+  if (!clean.id && !clean.email) return false;
+
+  let existing = await prisma.user.findFirst({
+    where: {
+      OR: [
+        clean.id ? { id: clean.id } : undefined,
+        clean.email ? { email: clean.email } : undefined,
+      ].filter(Boolean) as any,
+    },
+  });
+
+  if (existing) {
+    const { passwordHash, ...updateData } = clean;
+    const dataToUpdate = passwordHash ? clean : updateData;
+    await prisma.user.update({
+      where: { id: existing.id },
+      data: dataToUpdate as any,
+    });
+  } else {
+    if (!clean.passwordHash) {
+      clean.passwordHash = '$2a$12$e80yqZ0fQ3/p7tV567890eWxyzPlaceholderHash';
+    }
+    await prisma.user.create({
+      data: clean as any,
+    });
+  }
+  return true;
+}
+
+async function restoreShipmentRecord(item: Record<string, any>): Promise<boolean> {
+  const clean = cleanRecord('Shipment', item);
+  if (!clean.id) return false;
+
+  // Ensure valid userId
+  if (clean.userId) {
+    const userExists = await prisma.user.findUnique({ where: { id: clean.userId }, select: { id: true } });
+    if (!userExists) {
+      const anyUser = await prisma.user.findFirst({ select: { id: true } });
+      if (anyUser) clean.userId = anyUser.id;
+    }
+  } else {
+    const anyUser = await prisma.user.findFirst({ select: { id: true } });
+    if (anyUser) clean.userId = anyUser.id;
+  }
+
+  // Relations verification
+  if (clean.containerId) {
+    const cExists = await prisma.container.findUnique({ where: { id: clean.containerId }, select: { id: true } });
+    if (!cExists) clean.containerId = null;
+  }
+  if (clean.dispatchId) {
+    const dExists = await prisma.dispatch.findUnique({ where: { id: clean.dispatchId }, select: { id: true } });
+    if (!dExists) clean.dispatchId = null;
+  }
+  if (clean.shippingCompanyId) {
+    const compExists = await prisma.company.findUnique({ where: { id: clean.shippingCompanyId }, select: { id: true } });
+    if (!compExists) clean.shippingCompanyId = null;
+  }
+
+  // Find existing by ID or unique vehicleVIN
+  let existingShipment = await prisma.shipment.findUnique({ where: { id: clean.id } });
+  if (!existingShipment && clean.vehicleVIN) {
+    existingShipment = await prisma.shipment.findUnique({ where: { vehicleVIN: clean.vehicleVIN } });
+  }
+
+  // Enforce Postgres check constraint: Shipment_transit_workflow_check
+  // - If transitId is set, status MUST be IN_TRANSIT_TO_DESTINATION or DELIVERED.
+  // - If transitId is null, status CANNOT be IN_TRANSIT_TO_DESTINATION.
+  const effectiveTransitId = ('transitId' in clean && clean.transitId !== undefined)
+    ? clean.transitId
+    : existingShipment?.transitId;
+
+  if (effectiveTransitId) {
+    const transitExists = await prisma.transit.findUnique({
+      where: { id: effectiveTransitId },
+      select: { id: true },
+    });
+    if (!transitExists) {
+      clean.transitId = null;
+      if (clean.status === 'IN_TRANSIT_TO_DESTINATION') {
+        clean.status = 'IN_TRANSIT';
+      }
+    } else {
+      if (clean.status !== 'IN_TRANSIT_TO_DESTINATION' && clean.status !== 'DELIVERED') {
+        clean.status = 'IN_TRANSIT_TO_DESTINATION';
+      }
+    }
+  } else {
+    if (clean.status === 'IN_TRANSIT_TO_DESTINATION') {
+      clean.status = 'IN_TRANSIT';
+    }
+  }
+
+  if (existingShipment) {
+    await prisma.shipment.update({
+      where: { id: existingShipment.id },
+      data: clean as any,
+    });
+  } else {
+    await prisma.shipment.create({
+      data: clean as any,
+    });
+  }
+  return true;
+}
+
+async function restoreContainerRecord(item: Record<string, any>): Promise<boolean> {
+  const clean = cleanRecord('Container', item);
+  if (!clean.id) return false;
+
+  if (clean.companyId) {
+    const cExists = await prisma.company.findUnique({ where: { id: clean.companyId }, select: { id: true } });
+    if (!cExists) clean.companyId = null;
+  }
+
+  let existing = await prisma.container.findUnique({ where: { id: clean.id } });
+  if (!existing && clean.containerNumber) {
+    existing = await prisma.container.findUnique({ where: { containerNumber: clean.containerNumber } });
+  }
+
+  if (existing) {
+    await prisma.container.update({
+      where: { id: existing.id },
+      data: clean as any,
+    });
+  } else {
+    await prisma.container.create({
+      data: clean as any,
+    });
+  }
+  return true;
+}
+
+async function restoreCompanyRecord(item: Record<string, any>): Promise<boolean> {
+  const clean = cleanRecord('Company', item);
+  if (!clean.id) return false;
+
+  let existing = await prisma.company.findUnique({ where: { id: clean.id } });
+  if (!existing && clean.name) {
+    existing = await prisma.company.findFirst({ where: { name: clean.name } });
+  }
+
+  if (existing) {
+    await prisma.company.update({
+      where: { id: existing.id },
+      data: clean as any,
+    });
+  } else {
+    await prisma.company.create({
+      data: clean as any,
+    });
+  }
+  return true;
+}
+
+async function restoreQuoteRecord(item: Record<string, any>): Promise<boolean> {
+  const clean = cleanRecord('Quote', item);
+  if (!clean.id) return false;
+
+  await prisma.quote.upsert({
+    where: { id: clean.id },
+    create: clean as any,
+    update: clean as any,
+  });
+  return true;
+}
+
+async function restoreGenericRecord(modelKey: string, item: Record<string, any>): Promise<boolean> {
+  const prismaModelName = MODEL_NAME_MAP[modelKey];
+  const delegate = getModelDelegate(modelKey);
+  if (!prismaModelName || !delegate || !item?.id) return false;
+
+  const clean = cleanRecord(prismaModelName, item);
+
+  // Parent relational validation to avoid constraint errors
+  if (clean.userId) {
+    const uExists = await prisma.user.findUnique({ where: { id: clean.userId }, select: { id: true } });
+    if (!uExists) {
+      const anyUser = await prisma.user.findFirst({ select: { id: true } });
+      if (anyUser) clean.userId = anyUser.id;
+    }
+  }
+  if (clean.containerId) {
+    const cExists = await prisma.container.findUnique({ where: { id: clean.containerId }, select: { id: true } });
+    if (!cExists) clean.containerId = null;
+  }
+  if (clean.shipmentId) {
+    const sExists = await prisma.shipment.findUnique({ where: { id: clean.shipmentId }, select: { id: true } });
+    if (!sExists) clean.shipmentId = null;
+  }
+  if (clean.dispatchId) {
+    const dExists = await prisma.dispatch.findUnique({ where: { id: clean.dispatchId }, select: { id: true } });
+    if (!dExists) clean.dispatchId = null;
+  }
+  if (clean.transitId) {
+    const tExists = await prisma.transit.findUnique({ where: { id: clean.transitId }, select: { id: true } });
+    if (!tExists) clean.transitId = null;
+  }
+  if (clean.invoiceId) {
+    const iExists = await prisma.userInvoice.findUnique({ where: { id: clean.invoiceId }, select: { id: true } });
+    if (!iExists) clean.invoiceId = null;
+  }
+
+  // Handle unique constraints on specific models to avoid P2002 errors
+  if (modelKey === 'blogPosts' && clean.slug) {
+    const existing = await prisma.blogPost.findFirst({
+      where: {
+        OR: [
+          clean.id ? { id: clean.id } : undefined,
+          { slug: clean.slug },
+        ].filter(Boolean) as any,
+      },
+    });
+    if (existing) {
+      await prisma.blogPost.update({
+        where: { id: existing.id },
+        data: clean as any,
+      });
+      return true;
+    }
+  }
+
+  if (modelKey === 'newsletters' && clean.email) {
+    const existing = await prisma.newsletter.findFirst({
+      where: {
+        OR: [
+          clean.id ? { id: clean.id } : undefined,
+          { email: clean.email },
+        ].filter(Boolean) as any,
+      },
+    });
+    if (existing) {
+      await prisma.newsletter.update({
+        where: { id: existing.id },
+        data: clean as any,
+      });
+      return true;
+    }
+  }
+
+  await delegate.upsert({
+    where: { id: clean.id },
+    create: clean as any,
+    update: clean as any,
+  });
+  return true;
+}
+
+async function restoreModelRecords(
+  modelKey: string,
+  items: any[] | undefined
+): Promise<{ count: number; errors: string[] }> {
+  if (!Array.isArray(items) || items.length === 0) {
+    return { count: 0, errors: [] };
+  }
+
+  let processor: (item: any) => Promise<boolean>;
+
+  if (modelKey === 'users') {
+    processor = restoreUserRecord;
+  } else if (modelKey === 'shipments') {
+    processor = restoreShipmentRecord;
+  } else if (modelKey === 'containers') {
+    processor = restoreContainerRecord;
+  } else if (modelKey === 'companies') {
+    processor = restoreCompanyRecord;
+  } else if (modelKey === 'quotes') {
+    processor = restoreQuoteRecord;
+  } else {
+    processor = (item) => restoreGenericRecord(modelKey, item);
+  }
+
+  const { successCount, errors } = await processInBatches(items, 15, processor);
+  return { count: successCount, errors };
 }
 
 function formatBytes(bytes: number): string {
@@ -698,6 +1206,51 @@ export class BackupService {
   }
 
   /**
+   * Restore a single category with resilient batch processing and model dependency preservation
+   */
+  async restoreCategory(
+    categoryId: string,
+    categoryData: Record<string, any[]>
+  ): Promise<{
+    success: boolean;
+    totalRestored: number;
+    restoredCounts: Record<string, number>;
+    errorsCount: number;
+    errors: string[];
+    message: string;
+  }> {
+    const cat = BACKUP_CATEGORIES.find((c) => c.id === categoryId);
+    if (!cat) {
+      throw new Error(`Unknown backup category: ${categoryId}`);
+    }
+
+    const restoredCounts: Record<string, number> = {};
+    const allErrors: string[] = [];
+    let totalRestored = 0;
+
+    for (const modelKey of cat.models) {
+      const items = categoryData[modelKey];
+      if (Array.isArray(items) && items.length > 0) {
+        const { count, errors } = await restoreModelRecords(modelKey, items);
+        restoredCounts[modelKey] = count;
+        totalRestored += count;
+        if (errors.length > 0) {
+          allErrors.push(...errors);
+        }
+      }
+    }
+
+    return {
+      success: true,
+      totalRestored,
+      restoredCounts,
+      errorsCount: allErrors.length,
+      errors: allErrors.slice(0, 10),
+      message: `Category "${cat.name}" restored successfully (${totalRestored} records).`,
+    };
+  }
+
+  /**
    * Restore database from backup data with dependency order preservation
    */
   async restoreBackup(options: {
@@ -721,172 +1274,50 @@ export class BackupService {
       : options.backupContent;
 
     const data: Record<string, any[]> = parsed.data || {};
-    const selectedCategories = (options.selectedCategories && options.selectedCategories.length > 0 && !options.selectedCategories.includes('all'))
-      ? options.selectedCategories
-      : BACKUP_CATEGORIES.map((c) => c.id);
 
-    const allowedModels = new Set<string>();
-    for (const catId of selectedCategories) {
-      const cat = BACKUP_CATEGORIES.find((c) => c.id === catId);
-      if (cat) cat.models.forEach((m) => allowedModels.add(m));
-    }
+    // Strictly ordered by database foreign-key dependency hierarchy
+    const ORDERED_CATEGORY_IDS = [
+      'users',
+      'companies',
+      'settings',
+      'partners',
+      'containers',
+      'logistics',
+      'shipments',
+      'financials',
+    ];
+
+    const requestedCategories = new Set(
+      (options.selectedCategories && options.selectedCategories.length > 0 && !options.selectedCategories.includes('all'))
+        ? options.selectedCategories
+        : BACKUP_CATEGORIES.map((c) => c.id)
+    );
+
+    const categoriesToRun = ORDERED_CATEGORY_IDS.filter((id) => requestedCategories.has(id));
 
     const restoredCounts: Record<string, number> = {};
-    const errors: string[] = [];
+    const allErrors: string[] = [];
     let totalRestored = 0;
 
-    // Helper to safely upsert or create records for any model
-    const restoreModel = async (
-      modelName: string,
-      modelDelegate: any,
-      items: any[] | undefined,
-      customUpsert?: (item: any) => Promise<boolean>
-    ) => {
-      if (!allowedModels.has(modelName) || !Array.isArray(items) || items.length === 0) {
-        return;
+    logger.info(`Starting database restoration for categories: ${categoriesToRun.join(', ')}...`);
+
+    for (const catId of categoriesToRun) {
+      const res = await this.restoreCategory(catId, data);
+      Object.assign(restoredCounts, res.restoredCounts);
+      totalRestored += res.totalRestored;
+      if (res.errors && res.errors.length > 0) {
+        allErrors.push(...res.errors);
       }
-
-      let count = 0;
-      for (const item of items) {
-        if (!item || typeof item !== 'object' || !item.id) continue;
-        try {
-          if (customUpsert) {
-            const ok = await customUpsert(item);
-            if (ok) count++;
-          } else {
-            const clean = sanitizeRecordData(item);
-            await modelDelegate.upsert({
-              where: { id: item.id },
-              create: clean,
-              update: clean,
-            });
-            count++;
-          }
-        } catch (err: any) {
-          logger.warn(`Failed restoring ${modelName} item ${item.id}:`, err?.message);
-          errors.push(`[${modelName}] ID ${item.id}: ${err?.message}`);
-        }
-      }
-
-      restoredCounts[modelName] = count;
-      totalRestored += count;
-    };
-
-    logger.info(`Starting database restoration for categories: ${selectedCategories.join(', ')}...`);
-
-    // Level 1: Base Entities (Users, Companies, Portals, Settings, Quotes)
-    if (allowedModels.has('users')) {
-      await restoreModel('users', prisma.user, data.users, async (item) => {
-        const clean = sanitizeRecordData(item);
-        // Exclude passwordHash from update if not provided in backup to avoid wiping passwords
-        const existing = await prisma.user.findUnique({ where: { id: item.id } });
-        if (existing) {
-          const { passwordHash, ...updateData } = clean;
-          await prisma.user.update({
-            where: { id: item.id },
-            data: updateData as any,
-          });
-        } else {
-          await prisma.user.create({
-            data: clean as any,
-          });
-        }
-        return true;
-      });
     }
 
-    await restoreModel('companies', prisma.company, data.companies);
-    await restoreModel('companyPriceLists', prisma.companyPriceList, data.companyPriceLists);
-    await restoreModel('partnerPortals', prisma.partnerPortal, data.partnerPortals);
-    await restoreModel('partnerPortalMemberships', prisma.partnerPortalMembership, data.partnerPortalMemberships);
-    await restoreModel('partnerCustomers', prisma.partnerCustomer, data.partnerCustomers);
-
-    // Settings
-    await restoreModel('userSettings', prisma.userSettings, data.userSettings);
-    await restoreModel('callAgentSettings', prisma.callAgentSettings, data.callAgentSettings);
-    await restoreModel('aiProviderSettings', prisma.aiProviderSettings, data.aiProviderSettings);
-    await restoreModel('communicationProviderSettings', prisma.communicationProviderSettings, data.communicationProviderSettings);
-
-    // Level 2: Primary Containers, Dispatches, Transits
-    await restoreModel('containers', prisma.container, data.containers);
-    await restoreModel('dispatches', prisma.dispatch, data.dispatches);
-    await restoreModel('transits', prisma.transit, data.transits);
-
-    // Level 3: Shipments (depends on User, Container, Dispatch, Transit)
-    await restoreModel('shipments', prisma.shipment, data.shipments, async (item) => {
-      const clean = sanitizeRecordData(item);
-      // Ensure relations that don't exist in DB are set to null
-      if (clean.containerId) {
-        const containerExists = await prisma.container.findUnique({ where: { id: clean.containerId }, select: { id: true } });
-        if (!containerExists) clean.containerId = null;
-      }
-      if (clean.companyId) {
-        const compExists = await prisma.company.findUnique({ where: { id: clean.companyId }, select: { id: true } });
-        if (!compExists) clean.companyId = null;
-      }
-      if (clean.dispatchId) {
-        const dispExists = await prisma.dispatch.findUnique({ where: { id: clean.dispatchId }, select: { id: true } });
-        if (!dispExists) clean.dispatchId = null;
-      }
-      if (clean.transitId) {
-        const transExists = await prisma.transit.findUnique({ where: { id: clean.transitId }, select: { id: true } });
-        if (!transExists) clean.transitId = null;
-      }
-
-      await prisma.shipment.upsert({
-        where: { id: item.id },
-        create: clean as any,
-        update: clean as any,
-      });
-      return true;
-    });
-
-    // Level 4: Container Child Tables
-    await restoreModel('containerExpenses', prisma.containerExpense, data.containerExpenses);
-    await restoreModel('containerDamages', prisma.containerDamage, data.containerDamages);
-    await restoreModel('containerInvoices', prisma.containerInvoice, data.containerInvoices);
-    await restoreModel('containerDocuments', prisma.containerDocument, data.containerDocuments);
-    await restoreModel('containerTrackingEvents', prisma.containerTrackingEvent, data.containerTrackingEvents);
-    await restoreModel('containerAuditLogs', prisma.containerAuditLog, data.containerAuditLogs);
-
-    // Level 5: Dispatch & Transit Events / Expenses
-    await restoreModel('dispatchEvents', prisma.dispatchEvent, data.dispatchEvents);
-    await restoreModel('dispatchExpenses', prisma.dispatchExpense, data.dispatchExpenses);
-    await restoreModel('transitEvents', prisma.transitEvent, data.transitEvents);
-    await restoreModel('transitExpenses', prisma.transitExpense, data.transitExpenses);
-
-    // Level 6: Shipment Charges & Audits
-    await restoreModel('shipmentCharges', prisma.shipmentCharge, data.shipmentCharges);
-    await restoreModel('shipmentAuditLogs', prisma.shipmentAuditLog, data.shipmentAuditLogs);
-
-    // Level 7: Invoices & Accounting
-    await restoreModel('userInvoices', prisma.userInvoice, data.userInvoices);
-    await restoreModel('invoiceLineItems', prisma.invoiceLineItem, data.invoiceLineItems);
-    await restoreModel('payments', prisma.payment, data.payments);
-    await restoreModel('paymentAllocations', prisma.paymentAllocation, data.paymentAllocations);
-    await restoreModel('ledgerEntries', prisma.ledgerEntry, data.ledgerEntries);
-    await restoreModel('companyLedgerEntries', prisma.companyLedgerEntry, data.companyLedgerEntries);
-
-    // Level 8: Partner Portal Assignments & Ledgers
-    await restoreModel('partnerShipmentAssignments', prisma.partnerShipmentAssignment, data.partnerShipmentAssignments);
-    await restoreModel('partnerPortalPaymentRecords', prisma.partnerPortalPaymentRecord, data.partnerPortalPaymentRecords);
-    await restoreModel('partnerPortalLedgerEntries', prisma.partnerPortalLedgerEntry, data.partnerPortalLedgerEntries);
-
-    // Level 9: Content & Miscellaneous
-    await restoreModel('quotes', prisma.quote, data.quotes);
-    await restoreModel('testimonials', prisma.testimonial, data.testimonials);
-    await restoreModel('blogPosts', prisma.blogPost, data.blogPosts);
-    await restoreModel('contacts', prisma.contact, data.contacts);
-    await restoreModel('newsletters', prisma.newsletter, data.newsletters);
-
-    logger.info(`Restoration completed: ${totalRestored} records restored, ${errors.length} errors.`);
+    logger.info(`Restoration completed: ${totalRestored} records restored, ${allErrors.length} errors.`);
 
     return {
       success: true,
       totalRestored,
       restoredCounts,
-      errorsCount: errors.length,
-      errors: errors.slice(0, 10), // Return sample of errors if any
+      errorsCount: allErrors.length,
+      errors: allErrors.slice(0, 10),
       message: `Database restored successfully (${totalRestored} records processed across ${Object.keys(restoredCounts).length} models).`,
     };
   }

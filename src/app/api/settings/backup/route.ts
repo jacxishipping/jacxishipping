@@ -96,8 +96,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(preview);
     }
 
-    // 3. Restore Backup (Full or Custom)
+    // 3. Restore Category (Chunked / category-by-category restoration)
+    if (action === 'restore_category') {
+      const categoryId = body?.categoryId;
+      const records = body?.records;
+      if (!categoryId || !records || typeof records !== 'object') {
+        return NextResponse.json(
+          { message: 'Missing categoryId or records payload' },
+          { status: 400 }
+        );
+      }
+
+      const result = await backupService.restoreCategory(categoryId, records);
+      return NextResponse.json(result);
+    }
+
+    // 4. Restore Backup (Full or Custom via file/string)
     if (action === 'restore') {
+      if (body?.categoryId && body?.records) {
+        const result = await backupService.restoreCategory(body.categoryId, body.records);
+        return NextResponse.json(result);
+      }
+
       let content = body?.backupContent;
       if (!content && body?.filename) {
         content = await backupService.readBackupFile(body.filename);

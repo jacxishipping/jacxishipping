@@ -62,11 +62,12 @@ test('BackupService operations and validation', async (t) => {
     assert.ok(listResult.backupPath);
   });
 
-  await t.test('getDatabaseStats returns counts for primary models', async () => {
-    const stats = await backupService.getDatabaseStats();
-    assert.ok(typeof stats.shipments === 'number');
-    assert.ok(typeof stats.containers === 'number');
-    assert.ok(typeof stats.companies === 'number');
-    assert.ok(typeof stats.users === 'number');
+  await t.test('createBackup generates valid payload for custom categories', async () => {
+    const res = await backupService.createBackup({ categories: ['settings'], initiatedBy: 'tester' });
+    assert.ok(res.backup);
+    assert.equal(res.backup.version, '1.2.0');
+    assert.equal(res.backup.scope, 'custom');
+    assert.ok(Array.isArray(res.backup.selectedCategories));
+    assert.ok(res.filename.startsWith('jacxi-backup-'));
   });
 });

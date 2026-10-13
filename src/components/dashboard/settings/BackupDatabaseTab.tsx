@@ -78,12 +78,15 @@ interface PreviewData {
   error?: string;
   filename?: string;
   rawContent?: string;
+  parsedData?: Record<string, any[]>;
 }
 
 export function BackupDatabaseTab() {
   const [loading, setLoading] = useState(true);
   const [creatingBackup, setCreatingBackup] = useState(false);
   const [restoringBackup, setRestoringBackup] = useState(false);
+  const [restoreProgressText, setRestoreProgressText] = useState<string>('');
+  const [restoreProgressPercent, setRestoreProgressPercent] = useState<number>(0);
   const [deletingFilename, setDeletingFilename] = useState<string | null>(null);
 
   // Server state
@@ -221,25 +224,50 @@ export function BackupDatabaseTab() {
     try {
       toast.info(`Analyzing backup file: ${file.name}...`);
       const text = await file.text();
-
-      const res = await fetch('/api/settings/backup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'preview', backupContent: text }),
-      });
-
-      const preview = await res.json();
-      if (!preview.valid) {
-        toast.error(preview.error || 'Invalid backup file structure');
+      let parsed: any;
+      try {
+        parsed = JSON.parse(text);
+      } catch (jsonErr: any) {
+        toast.error(`Invalid JSON file: ${jsonErr.message}`);
         return;
       }
 
+      if (!parsed || typeof parsed !== 'object' || !parsed.data) {
+        toast.error('Invalid backup file structure: missing data payload');
+        return;
+      }
+
+      // Compute preview instantly client-side without hitting 4.5MB payload limits!
+      const modelsFound: Record<string, number> = {};
+      let totalRecords = 0;
+      for (const [m, recs] of Object.entries(parsed.data)) {
+        if (Array.isArray(recs)) {
+          modelsFound[m] = recs.length;
+          totalRecords += recs.length;
+        }
+      }
+
+      const categoriesAvailable: string[] = [];
+      for (const cat of categories) {
+        if (cat.models.some((m) => (modelsFound[m] || 0) > 0)) {
+          categoriesAvailable.push(cat.id);
+        }
+      }
+
       setPreviewData({
-        ...preview,
+        valid: true,
+        version: parsed.version || '1.0.0',
+        timestamp: parsed.timestamp || new Date().toISOString(),
+        scope: parsed.scope || (categoriesAvailable.length >= categories.length ? 'full' : 'custom'),
+        totalRecords: parsed.totalRecords || totalRecords,
+        categoriesAvailable,
+        modelsFound,
         filename: file.name,
-        rawContent: text,
+        parsedData: parsed.data,
       });
-      setSelectedRestoreCats(preview.categoriesAvailable || []);
+      setSelectedRestoreCats(categoriesAvailable);
+      setRestoreProgressPercent(0);
+      setRestoreProgressText('');
       setPreviewModalOpen(true);
     } catch (err: any) {
       console.error('File parsing error:', err);
@@ -270,6 +298,8 @@ export function BackupDatabaseTab() {
         filename: backup.filename,
       });
       setSelectedRestoreCats(preview.categoriesAvailable || []);
+      setRestoreProgressPercent(0);
+      setRestoreProgressText('');
       setPreviewModalOpen(true);
     } catch (err: any) {
       console.error('Preview error:', err);
@@ -285,33 +315,89 @@ export function BackupDatabaseTab() {
       return;
     }
 
+    const ORDER = [
+      'users',
+      'companies',
+      'settings',
+      'partners',
+      'containers',
+      'logistics',
+      'shipments',
+      'financials',
+    ];
+
+    const orderedCats = [...selectedRestoreCats].sort(
+      (a, b) => ORDER.indexOf(a) - ORDER.indexOf(b)
+    );
+
     try {
       setRestoringBackup(true);
-      toast.info('Restoring database records with dependency preservation...');
 
-      const payload: any = {
-        action: 'restore',
-        selectedCategories: selectedRestoreCats,
-      };
+      // If user uploaded a file, restore category by category to avoid 4.5MB Vercel serverless request limit & timeouts
+      if (previewData.parsedData) {
+        let totalRestored = 0;
 
-      if (previewData.rawContent) {
-        payload.backupContent = previewData.rawContent;
-      } else if (previewData.filename) {
-        payload.filename = previewData.filename;
+        for (let i = 0; i < orderedCats.length; i++) {
+          const catId = orderedCats[i];
+          const cat = categories.find((c) => c.id === catId);
+          const catName = cat?.name || catId;
+
+          setRestoreProgressText(`Restoring ${catName} (${i + 1}/${orderedCats.length})...`);
+          setRestoreProgressPercent(Math.round((i / orderedCats.length) * 100));
+
+          // Extract models for this category
+          const categoryRecords: Record<string, any[]> = {};
+          for (const m of cat?.models || []) {
+            if (previewData.parsedData[m]) {
+              categoryRecords[m] = previewData.parsedData[m];
+            }
+          }
+
+          const res = await fetch('/api/settings/backup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'restore_category',
+              categoryId: catId,
+              records: categoryRecords,
+            }),
+          });
+
+          const data = await res.json();
+          if (!res.ok || !data.success) {
+            throw new Error(data.message || `Failed to restore category ${catName}`);
+          }
+
+          totalRestored += data.totalRestored || 0;
+        }
+
+        setRestoreProgressPercent(100);
+        setRestoreProgressText('Restoration complete!');
+        toast.success(`Successfully restored ${totalRestored} records across ${orderedCats.length} categories!`);
+      } else {
+        // Restoring from stored server file
+        setRestoreProgressText('Restoring from server backup...');
+        setRestoreProgressPercent(25);
+
+        const res = await fetch('/api/settings/backup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'restore',
+            filename: previewData.filename,
+            selectedCategories: orderedCats,
+          }),
+        });
+
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          throw new Error(data.message || 'Restoration failed');
+        }
+
+        setRestoreProgressPercent(100);
+        toast.success(data.message || `Successfully restored ${data.totalRestored} records!`);
       }
 
-      const res = await fetch('/api/settings/backup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.message || 'Restoration failed');
-      }
-
-      toast.success(data.message || `Successfully restored ${data.totalRestored} records!`);
       setPreviewModalOpen(false);
       setPreviewData(null);
       await fetchBackupMetadata();
@@ -320,6 +406,8 @@ export function BackupDatabaseTab() {
       toast.error(err.message || 'Failed to restore database');
     } finally {
       setRestoringBackup(false);
+      setRestoreProgressPercent(0);
+      setRestoreProgressText('');
     }
   };
 
@@ -810,10 +898,14 @@ export function BackupDatabaseTab() {
               {restoringBackup && (
                 <div className="space-y-1.5 pt-2">
                   <div className="flex justify-between text-xs text-[var(--text-secondary)]">
-                    <span>Executing database restore...</span>
-                    <span>Please do not close this window</span>
+                    <span className="font-medium text-[var(--accent-gold)]">{restoreProgressText || 'Executing database restore...'}</span>
+                    <span>{restoreProgressPercent > 0 ? `${restoreProgressPercent}%` : 'Processing...'}</span>
                   </div>
-                  <LinearProgress sx={{ bgcolor: 'var(--background)', '& .MuiLinearProgress-bar': { bgcolor: 'var(--accent-gold)' } }} />
+                  <LinearProgress
+                    variant={restoreProgressPercent > 0 ? 'determinate' : 'indeterminate'}
+                    value={restoreProgressPercent}
+                    sx={{ bgcolor: 'var(--background)', '& .MuiLinearProgress-bar': { bgcolor: 'var(--accent-gold)' } }}
+                  />
                 </div>
               )}
             </div>
