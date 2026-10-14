@@ -16,6 +16,56 @@ export interface PrintCompanyPriceListOptions {
     searchQuery?: string | null;
   } | null;
   logoUrl?: string | null;
+  legType?: 'ocean' | 'transit';
+  rates?: {
+    sedan: number;
+    suv: number;
+    pickup?: number;
+    motorcycle?: number;
+    van?: number;
+  };
+  origin?: string | null;
+  destination?: string | null;
+  effectiveFrom?: string | null;
+  effectiveTo?: string | null;
+  terms?: string[] | null;
+  carrierInfo?: {
+    name?: string;
+    brand?: string;
+    phone?: string;
+    slogan?: string;
+    website?: string;
+  } | null;
+}
+
+export interface PrintTransitPriceListOptions {
+  companyName: string;
+  companyType?: string | null;
+  priceListName?: string | null;
+  origin?: string | null;
+  destination?: string | null;
+  destinationLabel?: string | null;
+  sourceFileName?: string | null;
+  effectiveDate?: string | null;
+  effectiveFrom?: string | null;
+  effectiveTo?: string | null;
+  rates: {
+    sedan: number;
+    suv: number;
+    pickup?: number;
+    motorcycle?: number;
+    van?: number;
+  };
+  terms?: string[] | null;
+  carrierInfo?: {
+    name?: string;
+    brand?: string;
+    phone?: string;
+    slogan?: string;
+    website?: string;
+  } | null;
+  logoUrl?: string | null;
+  legType?: 'transit';
 }
 
 interface CorridorConfig {
@@ -991,12 +1041,9 @@ export function generatePriceListPrintHtml(options: PrintCompanyPriceListOptions
 </html>`;
 }
 
-export function printCompanyPriceList(options: PrintCompanyPriceListOptions): void {
+export function openPrintDocument(html: string): void {
   if (typeof window === 'undefined') return;
 
-  const html = generatePriceListPrintHtml(options);
-
-  // Attempt window.open first
   const printWindow = window.open('', '_blank', 'width=1020,height=850,scrollbars=yes,resizable=yes');
   if (printWindow) {
     printWindow.document.open();
@@ -1006,7 +1053,6 @@ export function printCompanyPriceList(options: PrintCompanyPriceListOptions): vo
     return;
   }
 
-  // Fallback: use an invisible iframe if popups are blocked
   const iframe = document.createElement('iframe');
   iframe.style.position = 'fixed';
   iframe.style.right = '0';
@@ -1028,4 +1074,603 @@ export function printCompanyPriceList(options: PrintCompanyPriceListOptions): vo
       }
     }, 60000);
   }, 400);
+}
+
+export function generateTransitPriceListPrintHtml(options: PrintTransitPriceListOptions): string {
+  const companyName = options.companyName || 'JACXI SHIPPING';
+  const companyType = options.companyType || 'Shipping Carrier';
+  const priceListName = options.priceListName || 'Overland Transit Tariff';
+  const origin = options.origin || 'Mersin Port, Turkey';
+  const destination = options.destination || 'Islam Qala, Herat (Afghanistan)';
+  const destinationLabel = options.destinationLabel || 'Islam Qala, Herat';
+  const effectiveFrom = options.effectiveFrom || options.effectiveDate || '1 October 2026';
+  const effectiveTo = options.effectiveTo || '15 October 2026';
+  const rates = options.rates || { sedan: 2300, suv: 2400 };
+  const carrierInfo = options.carrierInfo || undefined;
+  const terms = options.terms && options.terms.length > 0 ? options.terms : [
+    'Rates include complete port customs clearance, transit declarations, and bonded overland transportation from port to Islam Qala border terminal.',
+    'Unforeseen Circumstances: Additional expenses from port congestion, force majeure, natural disasters, or state border closures beyond carrier control are billed at cost.',
+    'Rate Validity: Rates apply based on the vehicle departure/shipping date from origin port (Mersin, Turkey or Jebel Ali, UAE).',
+    'Standard Carrier Terms: All cargo is transported under standard international road freight transit terms and carrier insurance coverage.',
+  ];
+
+  const activeLogo = options.logoUrl || (typeof window !== 'undefined' ? (() => {
+    try {
+      const cached = localStorage.getItem('jacxi_site_branding_cache');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed.logoUrl) return parsed.logoUrl;
+      }
+    } catch {
+      // Ignore
+    }
+    return JACXI_LOGO_BASE64;
+  })() : JACXI_LOGO_BASE64);
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>${companyName} - Overland Transit Tariff (${origin} to ${destination})</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      color: #111827;
+      background: #f0f2f5;
+      padding: 0;
+      margin: 0;
+      font-size: 11px;
+      line-height: 1.45;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 9999;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #0f172a;
+      color: #ffffff;
+      padding: 12px 24px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+    }
+    .toolbar-title {
+      font-weight: 700;
+      font-size: 14px;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .toolbar-actions { display: flex; gap: 10px; align-items: center; }
+    .toolbar-btn {
+      background: #d4af37;
+      color: #111827;
+      border: none;
+      padding: 8px 18px;
+      font-size: 13px;
+      font-weight: 700;
+      border-radius: 6px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      text-decoration: none;
+      transition: background 0.15s ease;
+    }
+    .toolbar-btn:hover { background: #c59b27; }
+    .toolbar-btn-secondary {
+      background: rgba(255, 255, 255, 0.15);
+      color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+    }
+    .toolbar-btn-secondary:hover { background: rgba(255, 255, 255, 0.25); }
+    .doc-page {
+      position: relative;
+      width: 210mm;
+      min-height: 297mm;
+      margin: 20px auto;
+      padding: 38pt 34pt 32pt 34pt;
+      background: #ffffff;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      box-sizing: border-box;
+      overflow: hidden;
+    }
+    .top-bar-black {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 18px;
+      background: #000000;
+    }
+    .top-bar-gold {
+      position: absolute;
+      top: 18px;
+      left: 0;
+      right: 0;
+      height: 3.5px;
+      background: #d4af37;
+    }
+    .doc-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #d4af37;
+      padding-bottom: 12px;
+      margin-bottom: 20px;
+    }
+    .doc-logo { height: 38px; object-fit: contain; }
+    .doc-header-right { text-align: right; }
+    .doc-header-right-title {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #000000;
+    }
+    .doc-header-right-sub {
+      font-size: 8.5px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #c59b27;
+      margin-top: 2px;
+    }
+    .corridor-banner {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: #ffffff;
+      border-radius: 6px;
+      padding: 16px 20px;
+      margin-bottom: 18px;
+      border-left: 4px solid #d4af37;
+      position: relative;
+    }
+    .corridor-badge {
+      display: inline-block;
+      background: rgba(212, 175, 55, 0.2);
+      color: #d4af37;
+      border: 1px solid rgba(212, 175, 55, 0.4);
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 8.5px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .corridor-route-flow {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+      color: #ffffff;
+      margin-bottom: 6px;
+      flex-wrap: wrap;
+    }
+    .route-arrow {
+      color: #d4af37;
+      font-size: 18px;
+      font-weight: 900;
+    }
+    .corridor-desc {
+      font-size: 9px;
+      color: #cbd5e1;
+      line-height: 1.5;
+    }
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .meta-card {
+      border: 1px solid #e2e8f0;
+      border-top: 2.5px solid #d4af37;
+      background: #f8fafc;
+      border-radius: 4px;
+      padding: 10px 12px;
+    }
+    .meta-card-label {
+      font-size: 7.5px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #64748b;
+    }
+    .meta-card-val {
+      font-size: 10.5px;
+      font-weight: 800;
+      color: #0f172a;
+      margin-top: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .section-title {
+      font-size: 11px;
+      font-weight: 850;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #0f172a;
+      border-bottom: 1.5px solid #e2e8f0;
+      padding-bottom: 5px;
+      margin-bottom: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .rates-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    .rate-card {
+      border: 1.5px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 18px 20px;
+      background: #ffffff;
+      position: relative;
+    }
+    .rate-card-highlight {
+      border: 1.5px solid #d4af37;
+      background: #fffdf7;
+      box-shadow: 0 4px 12px rgba(212, 175, 55, 0.08);
+    }
+    .rate-card-pill {
+      display: inline-block;
+      font-size: 8px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 3px 8px;
+      border-radius: 3px;
+      margin-bottom: 8px;
+    }
+    .rate-card-pill-std {
+      background: #f1f5f9;
+      color: #475569;
+    }
+    .rate-card-pill-gold {
+      background: rgba(212, 175, 55, 0.15);
+      color: #996515;
+      border: 1px solid rgba(212, 175, 55, 0.35);
+    }
+    .rate-card-title {
+      font-size: 14px;
+      font-weight: 850;
+      color: #0f172a;
+      letter-spacing: -0.01em;
+    }
+    .rate-card-price {
+      font-size: 32px;
+      font-weight: 900;
+      color: #0f172a;
+      margin: 8px 0 4px 0;
+      line-height: 1;
+      letter-spacing: -0.02em;
+    }
+    .rate-card-price-gold {
+      color: #c59b27;
+    }
+    .rate-card-sub {
+      font-size: 8px;
+      font-weight: 600;
+      color: #64748b;
+      margin-bottom: 12px;
+    }
+    .rate-features {
+      list-style: none;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 10px;
+      margin-top: 10px;
+    }
+    .rate-features li {
+      font-size: 8.5px;
+      color: #334155;
+      padding: 3px 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .check-icon {
+      color: #059669;
+      font-weight: 900;
+      font-size: 10px;
+    }
+    .service-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .service-card {
+      border: 1px solid #e2e8f0;
+      border-radius: 4px;
+      padding: 12px;
+      background: #ffffff;
+    }
+    .service-card-title {
+      font-size: 9px;
+      font-weight: 800;
+      color: #0f172a;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .service-card-text {
+      font-size: 8px;
+      color: #64748b;
+      line-height: 1.45;
+    }
+    .terms-box {
+      border: 1px solid #e2e8f0;
+      background: #f8fafc;
+      border-radius: 4px;
+      padding: 12px 16px;
+      margin-bottom: 18px;
+    }
+    .terms-list {
+      list-style: none;
+    }
+    .terms-list li {
+      font-size: 8px;
+      color: #475569;
+      padding: 3px 0;
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+      line-height: 1.45;
+    }
+    .terms-bullet {
+      color: #d4af37;
+      font-weight: 900;
+      font-size: 10px;
+      line-height: 1;
+      margin-top: 2px;
+    }
+    .signature-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 14px;
+      margin-bottom: 18px;
+      padding-top: 12px;
+      border-top: 1px dashed #cbd5e1;
+    }
+    .signature-card {
+      border: 1px solid #e2e8f0;
+      border-radius: 4px;
+      padding: 10px 12px;
+      background: #ffffff;
+    }
+    .signature-card-title {
+      font-size: 8px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #475569;
+      margin-bottom: 22px;
+    }
+    .signature-line {
+      border-bottom: 1px solid #0f172a;
+      margin-bottom: 4px;
+    }
+    .signature-caption {
+      font-size: 7.5px;
+      color: #64748b;
+      display: flex;
+      justify-content: space-between;
+    }
+    .doc-footer {
+      border-top: 1px solid #d4af37;
+      padding-top: 10px;
+      margin-top: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 8px;
+      color: #64748b;
+    }
+    @media print {
+      .toolbar { display: none !important; }
+      body { background: #ffffff !important; }
+      .doc-page {
+        box-shadow: none !important;
+        margin: 0 !important;
+        width: 100% !important;
+        min-height: auto !important;
+        padding: 24pt 20pt 16pt 20pt !important;
+      }
+      @page {
+        size: A4 portrait;
+        margin: 8mm 10mm;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <div class="toolbar-title">
+      <span style="color: #d4af37; font-size: 16px;">🚚</span>
+      Jacxi Shipping — Overland Transit Tariff (${origin} ➔ ${destination})
+    </div>
+    <div class="toolbar-actions">
+      <button class="toolbar-btn" onclick="window.print()">Print Tariff Document</button>
+      <button class="toolbar-btn toolbar-btn-secondary" onclick="window.close()">Close Preview</button>
+    </div>
+  </div>
+
+  <div class="doc-page">
+    <div class="top-bar-black"></div>
+    <div class="top-bar-gold"></div>
+
+    <div class="doc-header">
+      <img src="${activeLogo}" alt="Jacxi Shipping" class="doc-logo" />
+      <div class="doc-header-right">
+        <div class="doc-header-right-title">JACXI FREIGHT NETWORK · OVERLAND TRANSIT LOGISTICS</div>
+        <div class="doc-header-right-sub">OFFICIAL FREIGHT TARIFF · SECOND LEG ROUTE</div>
+      </div>
+    </div>
+
+    <div class="corridor-banner">
+      <div class="corridor-badge">OVERLAND TRANSIT CORRIDOR · SECOND LEG</div>
+      <div class="corridor-route-flow">
+        <span>⚓ ${origin}</span>
+        <span class="route-arrow">➔</span>
+        <span>🏁 ${destination}</span>
+      </div>
+      <div class="corridor-desc">
+        Bonded overland transit service connecting Mediterranean/Gulf ports directly to Afghanistan's western customs terminal. All port handling, documentation, and port export/transit customs clearance are included in the published rates.
+      </div>
+    </div>
+
+    <div class="meta-grid">
+      <div class="meta-card">
+        <div class="meta-card-label">Shipping Carrier</div>
+        <div class="meta-card-val">${carrierInfo?.name || companyName}${carrierInfo?.brand ? ` (${carrierInfo.brand})` : ''}</div>
+      </div>
+      <div class="meta-card">
+        <div class="meta-card-label">Tariff Route</div>
+        <div class="meta-card-val">${origin.split(',')[0]} ➔ ${destinationLabel}</div>
+      </div>
+      <div class="meta-card">
+        <div class="meta-card-label">Validity Period</div>
+        <div class="meta-card-val">${effectiveFrom} – ${effectiveTo}</div>
+      </div>
+      <div class="meta-card">
+        <div class="meta-card-label">Customs Clearance</div>
+        <div class="meta-card-val" style="color: #047857;">✓ Included & Guaranteed</div>
+      </div>
+    </div>
+
+    <div class="section-title">
+      <span>Published Overland Vehicle Rates</span>
+      <span style="font-size: 8px; font-weight: 700; color: #047857; text-transform: none;">Port Customs Clearance & Transportation Included</span>
+    </div>
+
+    <div class="rates-container">
+      <!-- Sedan Rate Card -->
+      <div class="rate-card">
+        <div class="rate-card-pill rate-card-pill-std">Standard Passenger Vehicle</div>
+        <div class="rate-card-title">SEDAN / SALOON CAR</div>
+        <div class="rate-card-price">${formatCurrency(rates.sedan)}</div>
+        <div class="rate-card-sub">USD All-Inclusive per vehicle • Port to Islam Qala Border</div>
+        <ul class="rate-features">
+          <li><span class="check-icon">✓</span> Mersin / UAE port terminal reception & handling</li>
+          <li><span class="check-icon">✓</span> Full export transit customs clearance included</li>
+          <li><span class="check-icon">✓</span> Transport via multi-car carrier / sealed container</li>
+          <li><span class="check-icon">✓</span> Handover at Islam Qala Customs Compound, Herat</li>
+        </ul>
+      </div>
+
+      <!-- SUV Rate Card -->
+      <div class="rate-card rate-card-highlight">
+        <div class="rate-card-pill rate-card-pill-gold">Heavy & Large Vehicle</div>
+        <div class="rate-card-title">SUV / 4X4 / PICKUP TRUCK</div>
+        <div class="rate-card-price rate-card-price-gold">${formatCurrency(rates.suv)}</div>
+        <div class="rate-card-sub">USD All-Inclusive per vehicle • Port to Islam Qala Border</div>
+        <ul class="rate-features">
+          <li><span class="check-icon">✓</span> Mersin / UAE port terminal reception & handling</li>
+          <li><span class="check-icon">✓</span> Full export transit customs clearance included</li>
+          <li><span class="check-icon">✓</span> Heavy-duty carrier dispatch with 4WD securing</li>
+          <li><span class="check-icon">✓</span> Handover at Islam Qala Customs Compound, Herat</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section-title">
+      <span>Operational Guarantees & Handover Protocol</span>
+    </div>
+
+    <div class="service-grid">
+      <div class="service-card">
+        <div class="service-card-title">🛡️ Customs Clearance Included</div>
+        <div class="service-card-text">Port terminal exit fees, bonded road transit declarations, and port customs clearance are finalized prior to border convoy dispatch.</div>
+      </div>
+      <div class="service-card">
+        <div class="service-card-title">🚛 Dedicated Auto Carriers</div>
+        <div class="service-card-text">Specialized multi-car transporters and sealed shipping containers ensure complete vehicle protection and GPS convoy monitoring.</div>
+      </div>
+      <div class="service-card">
+        <div class="service-card-title">📍 Islam Qala Border Handover</div>
+        <div class="service-card-text">Vehicles received at Islam Qala Customs Yard with official vehicle condition inspection certificates and waybills.</div>
+      </div>
+    </div>
+
+    <div class="section-title">
+      <span>Carrier Terms, Policy & Conditions</span>
+    </div>
+
+    <div class="terms-box">
+      <ul class="terms-list">
+        ${terms.map((t) => `<li><span class="terms-bullet">◆</span><span>${t}</span></li>`).join('')}
+      </ul>
+    </div>
+
+    <div class="signature-grid">
+      <div class="signature-card">
+        <div class="signature-card-title">Authorized Dispatch & Logistics Carrier</div>
+        <div class="signature-line"></div>
+        <div class="signature-caption">
+          <span>Carrier Signature & Stamp</span>
+          <span>Date</span>
+        </div>
+      </div>
+      <div class="signature-card">
+        <div class="signature-card-title">Jacxi Shipping Freight Verification</div>
+        <div class="signature-line"></div>
+        <div class="signature-caption">
+          <span>Document Ref: ${priceListName.replace(/[^a-zA-Z0-9-]/g, '_').slice(0, 24)}</span>
+          <span>Verified Rate Schedule</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="doc-footer">
+      <span>Jacxi Shipping Network · Precision Freight Services</span>
+      <span>${origin} ➔ ${destination}</span>
+      <span>${companyName} Official Schedule</span>
+    </div>
+  </div>
+
+  <script>
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        window.print();
+      }, 350);
+    });
+  </script>
+</body>
+</html>`;
+}
+
+export function printTransitPriceList(options: PrintTransitPriceListOptions): void {
+  if (typeof window === 'undefined') return;
+  const html = generateTransitPriceListPrintHtml(options);
+  openPrintDocument(html);
+}
+
+export function printCompanyPriceList(options: PrintCompanyPriceListOptions | any): void {
+  if (typeof window === 'undefined') return;
+
+  // Auto-route to transit print if options represent a transit price list
+  if (
+    options.legType === 'transit' ||
+    options.corridorLeg === 'TRANSIT' ||
+    (!options.auctionRates?.length && options.rates?.sedan)
+  ) {
+    printTransitPriceList(options as PrintTransitPriceListOptions);
+    return;
+  }
+
+  const html = generatePriceListPrintHtml(options);
+  openPrintDocument(html);
 }

@@ -25,7 +25,7 @@ import { Breadcrumbs, Button, StatsCard, toast, TableSkeleton, PageHeader } from
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { normalizeShippingRateConfig, type AuctionRateEntry, type ShippingRateCalculatorConfig } from '@/lib/shipping-rate-calculator';
 import CompanyPriceListDrawer from '@/components/finance/CompanyPriceListDrawer';
-import { printCompanyPriceList } from '@/lib/price-list-print';
+import { printCompanyPriceList, printTransitPriceList } from '@/lib/price-list-print';
 import { openUniversalShipmentExport } from '@/components/shipments/UniversalShipmentExportModal';
 import { detectPriceListCorridor, isTransitPriceList, CORRIDOR_DEFINITIONS } from '@/lib/price-list-corridors';
 
@@ -522,21 +522,73 @@ export default function CompanyLedgerDetailPage() {
 
   const handlePrintActivePriceList = () => {
     if (!company) return;
-    const config = normalizeShippingRateConfig(activePriceList?.config || company.priceListConfig);
+    const config = normalizeShippingRateConfig(activeOceanPriceList?.config || company.priceListConfig);
     printCompanyPriceList({
       companyName: company.name,
       companyType: companyTypeLabel,
-      priceListName: activePriceList?.name || 'Active Price List',
+      priceListName: activeOceanPriceList?.name || 'Active Ocean Price List',
       destinationLabel: config.destinationLabel || 'Standard Destination',
-      sourceFileName: activePriceList?.sourceFileName || config.updatedFromPdfName,
-      effectiveDate: activePriceList?.effectiveFrom || config.updatedAt,
+      sourceFileName: activeOceanPriceList?.sourceFileName || config.updatedFromPdfName,
+      effectiveDate: activeOceanPriceList?.effectiveFrom || config.updatedAt,
       auctionRates: config.auctionRates,
       stateRates: config.stateRates,
     });
   };
 
+  const handlePrintTransitTariff = () => {
+    if (!company) return;
+    const transitConfig = activeTransitData;
+    if (!transitConfig) return;
+    printTransitPriceList({
+      companyName: company.name,
+      companyType: companyTypeLabel,
+      priceListName: activeTransitPriceList?.name || 'Overland Transit Tariff',
+      origin: transitConfig.origin,
+      destination: transitConfig.destination,
+      destinationLabel: transitConfig.destinationLabel || 'Islam Qala, Herat',
+      sourceFileName: activeTransitPriceList?.sourceFileName,
+      effectiveFrom: transitConfig.effectiveFrom,
+      effectiveTo: transitConfig.effectiveTo,
+      rates: transitConfig.rates,
+      terms: transitConfig.terms,
+      carrierInfo: transitConfig.company,
+    });
+  };
+
   const handlePrintPriceListVersion = (list: CompanyPriceListSummary) => {
     if (!company) return;
+    const corridor = detectPriceListCorridor({
+      fileName: list.sourceFileName,
+      destinationLabel: list.destinationLabel,
+      name: list.name,
+      config: list.config,
+      auctionRateCount: list.importedAuctionRateCount,
+    });
+
+    if (corridor.leg === 'TRANSIT') {
+      const cfg = list.config as any;
+      const transitObj = cfg?.transit || cfg;
+      const rates = transitObj?.rates || { sedan: 2300, suv: 2400 };
+      printTransitPriceList({
+        companyName: company.name,
+        companyType: companyTypeLabel,
+        priceListName: list.name,
+        origin: transitObj?.origin || corridor.origin,
+        destination: transitObj?.destination || corridor.destination,
+        destinationLabel: list.destinationLabel || corridor.destination,
+        sourceFileName: list.sourceFileName,
+        effectiveFrom: list.effectiveFrom ? new Date(list.effectiveFrom).toLocaleDateString() : undefined,
+        rates,
+        terms: transitObj?.terms || [
+          'Rates include port customs clearance, transit declarations, and overland transportation from port to Islam Qala border terminal.',
+          'Rate Validity: Rates are applicable based on the date the vehicle departs from origin port.',
+          'Standard Terms: All shipments are subject to carrier terms and conditions.',
+        ],
+        carrierInfo: transitObj?.company,
+      });
+      return;
+    }
+
     const config = normalizeShippingRateConfig(list.config || company.priceListConfig);
     printCompanyPriceList({
       companyName: company.name,
@@ -2349,6 +2401,16 @@ export default function CompanyLedgerDetailPage() {
                   Print Ocean Rate Sheet
                 </Button>
               )}
+              {activeTransitData && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  icon={<Printer className="w-3.5 h-3.5" />}
+                  onClick={handlePrintTransitTariff}
+                >
+                  Print Transit Tariff
+                </Button>
+              )}
               <Button variant="outline" size="sm" onClick={() => scrollToPriceListSection('price-list-upload-flow')}>Upload Rate Sheet</Button>
               <Button variant="outline" size="sm" onClick={() => scrollToPriceListSection('price-list-rate-lookup')}>Rate Lookup</Button>
               <Button variant="outline" size="sm" onClick={() => scrollToPriceListSection('price-list-import-history')}>Import History</Button>
@@ -2659,6 +2721,19 @@ export default function CompanyLedgerDetailPage() {
                     <TextField size="small" placeholder="Search state, branch, city" value={priceListSearch} onChange={(event) => setPriceListSearch(event.target.value)} />
                   </Box>
                 )}
+
+                {rateLookupLeg === 'transit' && activeTransitData && (
+                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      icon={<Printer className="w-3.5 h-3.5" />}
+                      onClick={handlePrintTransitTariff}
+                    >
+                      Print Transit Tariff
+                    </Button>
+                  </Box>
+                )}
               </Box>
 
               {/* Ocean Leg Table View */}
@@ -2708,11 +2783,21 @@ export default function CompanyLedgerDetailPage() {
                         Car-carrier / container transit with port customs clearance and border transport included.
                       </Box>
                     </Box>
-                    <Chip
-                      icon={<ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />}
-                      label="Customs Clearance Included"
-                      sx={{ fontWeight: 800, bgcolor: 'rgba(16, 185, 129, 0.15)', color: '#047857', border: '1px solid rgba(16, 185, 129, 0.3)' }}
-                    />
+                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+                      <Chip
+                        icon={<ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />}
+                        label="Customs Clearance Included"
+                        sx={{ fontWeight: 800, bgcolor: 'rgba(16, 185, 129, 0.15)', color: '#047857', border: '1px solid rgba(16, 185, 129, 0.3)' }}
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        icon={<Printer className="w-3.5 h-3.5" />}
+                        onClick={handlePrintTransitTariff}
+                      >
+                        Print Transit Tariff
+                      </Button>
+                    </Box>
                   </Box>
 
                   <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
