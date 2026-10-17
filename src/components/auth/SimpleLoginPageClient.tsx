@@ -207,6 +207,7 @@ export default function SimpleLoginPageClient({ portal }: SimpleLoginPageClientP
 																color: 'var(--accent-gold)',
 															},
 														}}
+														aria-label={showCode ? "Hide code" : "Show code"}
 													>
 														{showCode ? (
 															<VisibilityOff sx={{ fontSize: 20 }} />
@@ -434,6 +435,7 @@ export default function SimpleLoginPageClient({ portal }: SimpleLoginPageClientP
 													onClick={() => setShowCode(!showCode)}
 													edge="end"
 													sx={{ color: brand.accentColor }}
+													aria-label={showCode ? "Hide code" : "Show code"}
 												>
 													{showCode ? <VisibilityOff sx={{ fontSize: 24 }} /> : <Visibility sx={{ fontSize: 24 }} />}
 												</IconButton>

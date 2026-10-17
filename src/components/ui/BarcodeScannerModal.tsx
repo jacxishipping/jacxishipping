@@ -319,6 +319,7 @@ export function BarcodeScannerModal({
               size="small"
               sx={{ color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
               title="Switch camera"
+              aria-label="Switch camera"
             >
               <SwitchCamera className="w-4 h-4" />
             </IconButton>
@@ -334,6 +335,7 @@ export function BarcodeScannerModal({
                 bgcolor: torchOn ? 'rgba(234, 179, 8, 0.15)' : 'transparent',
               }}
               title="Toggle flashlight"
+              aria-label="Toggle flashlight"
             >
               <Flashlight className="w-4 h-4" />
             </IconButton>
