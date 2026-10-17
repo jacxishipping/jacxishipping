@@ -195,6 +195,7 @@ export default function ResetPasswordModal({
                     size="small"
                     onClick={() => setShowPassword((prev) => !prev)}
                     title={showPassword ? 'Hide password' : 'Show password'}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </IconButton>
