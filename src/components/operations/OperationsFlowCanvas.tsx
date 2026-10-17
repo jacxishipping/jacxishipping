@@ -604,7 +604,7 @@ export default function OperationsFlowCanvas({
       id: `node-${type}-${id}-${Date.now()}-${idx}`,
       type,
       entityId: id,
-      x: colX + (Math.random() * 20 - 10),
+      x: colX + ((crypto.getRandomValues(new Uint32Array(1))[0] / (0xffffffff + 1)) * 20 - 10),
       y: 40 + (existingCount + idx) * 160,
     }));
 
