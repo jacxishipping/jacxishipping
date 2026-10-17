@@ -25,3 +25,7 @@
 ## 2024-05-24 - Parallelizing Loop Dependencies using Promise.all
 **Learning:** Found sequential await statements inside loops in `src/app/api/operations/route.ts` that cause N+1 query bottlenecks. For example, updating containers dynamically while assigning shipments in a `for` loop caused unnecessary blocking where `await prisma.container.update` was executed sequentially.
 **Action:** Always extract loop logic that involves database calls into pre-computation phases. First, determine all required updates locally. Then, use `Promise.all` to batch dispatch `prisma.*.update` and `prisma.*.updateMany` calls in parallel, drastically reducing request latency.
+
+## 2026-10-17 - Array Iteration Chains
+**Learning:** Chaining `.filter().reduce()` or `.filter().length` causes multiple O(N) traversals and intermediate array allocations, impacting performance.
+**Action:** Replace these chains with single-pass `for...of` loops that perform both filtering and accumulation/counting in one O(N) sweep with O(1) memory overhead.

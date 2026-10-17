@@ -270,10 +270,18 @@ export async function GET(
       portalShipmentFinanceMap.set(entry.shipmentId, existing);
     }
 
+    // ⚡ Bolt: Consolidated multiple .filter().reduce() iterations into a single O(N) loop
+    let portalDebitAmount = 0;
+    let portalCreditAmount = 0;
+    for (const entry of portalLedgerEntries) {
+      if (entry.type === 'DEBIT') portalDebitAmount += entry.amount;
+      if (entry.type === 'CREDIT') portalCreditAmount += entry.amount;
+    }
+
     const portalLedgerSummary = {
       balance: portalLedgerEntries[0]?.balance || 0,
-      debitAmount: portalLedgerEntries.filter((entry) => entry.type === 'DEBIT').reduce((sum, entry) => sum + entry.amount, 0),
-      creditAmount: portalLedgerEntries.filter((entry) => entry.type === 'CREDIT').reduce((sum, entry) => sum + entry.amount, 0),
+      debitAmount: portalDebitAmount,
+      creditAmount: portalCreditAmount,
       paymentRecordCount: portalPaymentRecords.length,
       ledgerEntryCount: portalLedgerEntries.length,
     };
@@ -286,9 +294,17 @@ export async function GET(
       isWithinDateRange(payment.paymentDate, activityStartDate, activityEndDate)
     ));
 
+    // ⚡ Bolt: Consolidated multiple .filter().reduce() iterations into a single O(N) loop
+    let activityDebitAmount = 0;
+    let activityCreditAmount = 0;
+    for (const entry of filteredPortalLedgerEntries) {
+      if (entry.type === 'DEBIT') activityDebitAmount += entry.amount;
+      if (entry.type === 'CREDIT') activityCreditAmount += entry.amount;
+    }
+
     const activitySummary = {
-      debitAmount: filteredPortalLedgerEntries.filter((entry) => entry.type === 'DEBIT').reduce((sum, entry) => sum + entry.amount, 0),
-      creditAmount: filteredPortalLedgerEntries.filter((entry) => entry.type === 'CREDIT').reduce((sum, entry) => sum + entry.amount, 0),
+      debitAmount: activityDebitAmount,
+      creditAmount: activityCreditAmount,
       paymentRecordCount: filteredPortalPaymentRecords.length,
       ledgerEntryCount: filteredPortalLedgerEntries.length,
     };
@@ -357,15 +373,44 @@ export async function GET(
       }));
     });
 
+    // ⚡ Bolt: Consolidated multiple .filter().reduce() and .filter().length iterations into a single O(N) loop
+    let openInvoiceCount = 0;
+    let overdueInvoiceCount = 0;
+    let outstandingAmount = 0;
+    let overdueAmount = 0;
+    let paidAmount = 0;
+
+    for (const invoice of invoices) {
+      const isOutstanding = outstandingInvoiceStatuses.has(invoice.status);
+      const isOverdue = (invoice.daysOverdue ?? 0) > 0;
+
+      if (isOutstanding) {
+        openInvoiceCount++;
+        outstandingAmount += invoice.total;
+        if (isOverdue) {
+          overdueInvoiceCount++;
+          overdueAmount += invoice.total;
+        }
+      }
+      if (invoice.status === 'PAID') {
+        paidAmount += invoice.total;
+      }
+    }
+
+    let unbilledAmount = 0;
+    for (const charge of unbilledCharges) {
+      unbilledAmount += charge.totalAmount;
+    }
+
     const summary = {
       linkedShipmentCount: assignments.length,
       invoiceCount: invoices.length,
-      openInvoiceCount: invoices.filter((invoice) => outstandingInvoiceStatuses.has(invoice.status)).length,
-      overdueInvoiceCount: invoices.filter((invoice) => outstandingInvoiceStatuses.has(invoice.status) && (invoice.daysOverdue ?? 0) > 0).length,
-      outstandingAmount: invoices.filter((invoice) => outstandingInvoiceStatuses.has(invoice.status)).reduce((sum, invoice) => sum + invoice.total, 0),
-      overdueAmount: invoices.filter((invoice) => outstandingInvoiceStatuses.has(invoice.status) && (invoice.daysOverdue ?? 0) > 0).reduce((sum, invoice) => sum + invoice.total, 0),
-      paidAmount: invoices.filter((invoice) => invoice.status === 'PAID').reduce((sum, invoice) => sum + invoice.total, 0),
-      unbilledAmount: unbilledCharges.reduce((sum, charge) => sum + charge.totalAmount, 0),
+      openInvoiceCount,
+      overdueInvoiceCount,
+      outstandingAmount,
+      overdueAmount,
+      paidAmount,
+      unbilledAmount,
       unbilledChargeCount: unbilledCharges.length,
     };
 
