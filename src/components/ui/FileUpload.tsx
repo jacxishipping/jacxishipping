@@ -60,7 +60,7 @@ export function FileUpload({
     }
 
     const newFiles: UploadFile[] = fileArray.map((file) => ({
-      id: `${file.name}-${Date.now()}-${Math.random()}`,
+      id: `${file.name}-${Date.now()}-${crypto.randomUUID()}`,
       file,
       progress: 0,
       status: 'pending' as const,

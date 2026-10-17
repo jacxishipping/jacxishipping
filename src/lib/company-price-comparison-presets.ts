@@ -162,7 +162,7 @@ export function saveComparisonPreset(
   const presets = loadComparisonPresets(storage);
   const timestamp = new Date().toISOString();
   const preset: ComparisonPreset = {
-    id: `preset-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    id: `preset-${Date.now()}-${crypto.randomUUID().slice(0, 6)}`,
     name: trimmedName,
     createdAt: timestamp,
     updatedAt: timestamp,
