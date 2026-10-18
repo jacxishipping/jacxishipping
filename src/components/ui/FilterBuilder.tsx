@@ -60,7 +60,8 @@ export function FilterBuilder({ fields, onApply, onClear, className }: FilterBui
 
   const addCondition = () => {
     const newCondition: FilterCondition = {
-      id: `${Date.now()}-${Math.random()}`,
+      // Security: Replace Math.random() with cryptographically secure UUID
+      id: crypto.randomUUID(),
       field: fields[0]?.key || '',
       operator: 'equals',
       value: '',

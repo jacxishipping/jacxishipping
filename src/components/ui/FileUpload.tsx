@@ -60,7 +60,8 @@ export function FileUpload({
     }
 
     const newFiles: UploadFile[] = fileArray.map((file) => ({
-      id: `${file.name}-${Date.now()}-${Math.random()}`,
+      // Security: Replace Math.random() with cryptographically secure UUID
+      id: `${file.name}-${crypto.randomUUID()}`,
       file,
       progress: 0,
       status: 'pending' as const,
