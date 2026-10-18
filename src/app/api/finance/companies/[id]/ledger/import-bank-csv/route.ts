@@ -277,11 +277,12 @@ export async function POST(
     }
 
     const result = await prisma.$transaction(async (tx) => {
-      let importedCount = 0;
+      const importedCount = preview.importableRows.length;
 
-      for (const transaction of preview.importableRows) {
-        await tx.companyLedgerEntry.create({
-          data: {
+      // ⚡ Bolt: Bulk insert ledger entries using createMany to avoid N+1 queries during CSV import
+      if (importedCount > 0) {
+        await tx.companyLedgerEntry.createMany({
+          data: preview.importableRows.map(transaction => ({
             companyId: params.id,
             description: transaction.description,
             type: transaction.type,
@@ -300,12 +301,9 @@ export async function POST(
               rawRow: transaction.rawRow,
             } as Prisma.InputJsonValue,
             createdBy: session.user.id as string,
-          },
+          })),
         });
-        importedCount += 1;
-      }
 
-      if (importedCount > 0) {
         await recalculateCompanyLedgerBalances(tx, params.id);
       }
 
