@@ -240,7 +240,7 @@ export default function VehicleDamageInspectionModal({
       // Create new marker
       const newPinNumber = markers.length + 1;
       const newMarker: DamageMarker = {
-        id: `dmg_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        id: `dmg_${crypto.randomUUID()}`,
         pinNumber: newPinNumber,
         view: pinFormView,
         x: pinFormX,
@@ -323,9 +323,12 @@ export default function VehicleDamageInspectionModal({
   // Build the complete inspection payload
   const currentInspectionPayload: VehicleInspectionData = useMemo(() => {
     const cleanVin = (shipment.vehicleVIN || 'VEH').slice(-6);
+    // Security: Replace Math.random() with cryptographically secure Web Crypto API
+    const secureRandomArr = new Uint32Array(1);
+    crypto.getRandomValues(secureRandomArr);
     const reportNum =
       lastSavedInspection?.reportNumber ||
-      `JACXI-CR-${cleanVin}-${Math.floor(1000 + Math.random() * 9000)}`;
+      `JACXI-CR-${cleanVin}-${(secureRandomArr[0] % 9000) + 1000}`;
 
     return {
       shipmentId: shipment.id,
