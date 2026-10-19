@@ -1,22 +1,22 @@
-import { createHash } from 'node:crypto';
-import { NextRequest, NextResponse } from 'next/server';
-import { Prisma } from '@prisma/client';
-import { auth } from '@/lib/auth';
-import { createAuditLog } from '@/lib/audit';
-import { prisma } from '@/lib/db';
-import { parseBankOfAmericaCsv } from '@/lib/financial/bankOfAmericaCsv';
-import { recalculateCompanyLedgerBalances } from '@/lib/company-ledger';
-import { hasPermission } from '@/lib/rbac';
+import { createHash } from "node:crypto";
+import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
+import { auth } from "@/lib/auth";
+import { createAuditLog } from "@/lib/audit";
+import { prisma } from "@/lib/db";
+import { parseBankOfAmericaCsv } from "@/lib/financial/bankOfAmericaCsv";
+import { recalculateCompanyLedgerBalances } from "@/lib/company-ledger";
+import { hasPermission } from "@/lib/rbac";
 
 const MAX_CSV_SIZE_BYTES = 5 * 1024 * 1024;
 
-type DuplicateReason = 'ALREADY_IMPORTED' | 'DUPLICATE_IN_FILE';
+type DuplicateReason = "ALREADY_IMPORTED" | "DUPLICATE_IN_FILE";
 
 interface PreparedImportRow {
   transactionDate: string;
   description: string;
   amount: number;
-  type: 'DEBIT' | 'CREDIT';
+  type: "DEBIT" | "CREDIT";
   reference?: string;
   notes?: string;
   rawRow: Record<string, string>;
@@ -28,11 +28,11 @@ interface PreparedImportRow {
 
 function getFormText(formData: FormData, key: string) {
   const value = formData.get(key);
-  return typeof value === 'string' ? value.trim() : '';
+  return typeof value === "string" ? value.trim() : "";
 }
 
 function parseOptionalCurrencyAmount(value: string) {
-  const normalized = value.replace(/[\$,]/g, '').trim();
+  const normalized = value.replace(/[\$,]/g, "").trim();
 
   if (!normalized) {
     return null;
@@ -50,18 +50,20 @@ function getImportFingerprint(input: {
   transactionDate: string;
   description: string;
   amount: number;
-  type: 'DEBIT' | 'CREDIT';
+  type: "DEBIT" | "CREDIT";
   reference?: string;
 }) {
-  return createHash('sha256')
-    .update([
-      input.transactionDate,
-      input.type,
-      input.amount.toFixed(2),
-      input.description.trim().toLowerCase(),
-      input.reference?.trim().toLowerCase() || '',
-    ].join('|'))
-    .digest('hex');
+  return createHash("sha256")
+    .update(
+      [
+        input.transactionDate,
+        input.type,
+        input.amount.toFixed(2),
+        input.description.trim().toLowerCase(),
+        input.reference?.trim().toLowerCase() || "",
+      ].join("|"),
+    )
+    .digest("hex");
 }
 
 function getLedgerDate(transactionDate: string, offsetSeconds: number) {
@@ -83,11 +85,13 @@ function roundCurrency(amount: number) {
 }
 
 function isBankImportMetadata(metadata: unknown) {
-  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
     return false;
   }
 
-  return (metadata as Record<string, unknown>).importSource === 'BANK_OF_AMERICA_CSV';
+  return (
+    (metadata as Record<string, unknown>).importSource === "BANK_OF_AMERICA_CSV"
+  );
 }
 
 async function buildImportPreview(input: {
@@ -95,10 +99,12 @@ async function buildImportPreview(input: {
   csvText: string;
   statementEndingBalance: number | null;
 }) {
-  const parsedTransactions = parseBankOfAmericaCsv(input.csvText).map((transaction, index) => ({
-    ...transaction,
-    originalIndex: index,
-  }));
+  const parsedTransactions = parseBankOfAmericaCsv(input.csvText).map(
+    (transaction, index) => ({
+      ...transaction,
+      originalIndex: index,
+    }),
+  );
 
   const sortedTransactions = [...parsedTransactions].sort((left, right) => {
     if (left.transactionDate === right.transactionDate) {
@@ -108,12 +114,13 @@ async function buildImportPreview(input: {
   });
 
   const firstDate = sortedTransactions[0]?.transactionDate;
-  const lastDate = sortedTransactions[sortedTransactions.length - 1]?.transactionDate;
+  const lastDate =
+    sortedTransactions[sortedTransactions.length - 1]?.transactionDate;
 
   const [latestEntry, existingImports] = await Promise.all([
     prisma.companyLedgerEntry.findFirst({
       where: { companyId: input.companyId },
-      orderBy: [{ transactionDate: 'desc' }, { createdAt: 'desc' }],
+      orderBy: [{ transactionDate: "desc" }, { createdAt: "desc" }],
       select: { balance: true },
     }),
     firstDate && lastDate
@@ -140,40 +147,50 @@ async function buildImportPreview(input: {
         }
 
         const metadata = entry.metadata as Record<string, unknown>;
-        return typeof metadata.importFingerprint === 'string' ? metadata.importFingerprint : null;
+        return typeof metadata.importFingerprint === "string"
+          ? metadata.importFingerprint
+          : null;
       })
-      .filter((value): value is string => Boolean(value))
+      .filter((value): value is string => Boolean(value)),
   );
 
   const fileFingerprints = new Set<string>();
-  const rows: PreparedImportRow[] = sortedTransactions.map((transaction, offset) => {
-    const importFingerprint = getImportFingerprint(transaction);
-    const duplicateReason = existingFingerprints.has(importFingerprint)
-      ? 'ALREADY_IMPORTED'
-      : fileFingerprints.has(importFingerprint)
-      ? 'DUPLICATE_IN_FILE'
-      : null;
+  const rows: PreparedImportRow[] = sortedTransactions.map(
+    (transaction, offset) => {
+      const importFingerprint = getImportFingerprint(transaction);
+      const duplicateReason = existingFingerprints.has(importFingerprint)
+        ? "ALREADY_IMPORTED"
+        : fileFingerprints.has(importFingerprint)
+          ? "DUPLICATE_IN_FILE"
+          : null;
 
-    fileFingerprints.add(importFingerprint);
+      fileFingerprints.add(importFingerprint);
 
-    return {
-      ...transaction,
-      importFingerprint,
-      isDuplicate: duplicateReason !== null,
-      duplicateReason,
-      ledgerDate: getLedgerDate(transaction.transactionDate, offset),
-    };
-  });
+      return {
+        ...transaction,
+        importFingerprint,
+        isDuplicate: duplicateReason !== null,
+        duplicateReason,
+        ledgerDate: getLedgerDate(transaction.transactionDate, offset),
+      };
+    },
+  );
 
   const currentBalance = latestEntry?.balance || 0;
   const importableRows = rows.filter((row) => !row.isDuplicate);
   const importableNetChange = roundCurrency(
-    importableRows.reduce((sum, row) => sum + (row.type === 'DEBIT' ? row.amount : -row.amount), 0)
+    importableRows.reduce(
+      (sum, row) => sum + (row.type === "DEBIT" ? row.amount : -row.amount),
+      0,
+    ),
   );
-  const projectedEndingBalance = roundCurrency(currentBalance + importableNetChange);
-  const reconciliationDifference = input.statementEndingBalance === null
-    ? null
-    : roundCurrency(input.statementEndingBalance - projectedEndingBalance);
+  const projectedEndingBalance = roundCurrency(
+    currentBalance + importableNetChange,
+  );
+  const reconciliationDifference =
+    input.statementEndingBalance === null
+      ? null
+      : roundCurrency(input.statementEndingBalance - projectedEndingBalance);
 
   return {
     rows,
@@ -188,16 +205,16 @@ async function buildImportPreview(input: {
     reconciliationDifference,
     reconciliationStatus:
       input.statementEndingBalance === null
-        ? 'NOT_PROVIDED'
+        ? "NOT_PROVIDED"
         : Math.abs(reconciliationDifference || 0) < 0.005
-        ? 'MATCH'
-        : 'VARIANCE',
+          ? "MATCH"
+          : "VARIANCE",
   };
 }
 
 export async function POST(
   request: NextRequest,
-  props: { params: Promise<{ id: string }> }
+  props: { params: Promise<{ id: string }> },
 ) {
   const params = await props.params;
 
@@ -205,11 +222,11 @@ export async function POST(
     const session = await auth();
 
     if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (!hasPermission(session.user?.role, 'finance:manage')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (!hasPermission(session.user?.role, "finance:manage")) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const company = await prisma.company.findUnique({
@@ -218,27 +235,39 @@ export async function POST(
     });
 
     if (!company) {
-      return NextResponse.json({ error: 'Company not found' }, { status: 404 });
+      return NextResponse.json({ error: "Company not found" }, { status: 404 });
     }
 
     const formData = await request.formData();
-    const file = formData.get('file');
-    const action = getFormText(formData, 'action') || 'import';
-    const category = getFormText(formData, 'category') || 'Bank Statement';
-    const sourceLabel = getFormText(formData, 'sourceLabel') || 'Bank of America CSV';
-    const statementEndingBalance = parseOptionalCurrencyAmount(getFormText(formData, 'statementEndingBalance'));
+    const file = formData.get("file");
+    const action = getFormText(formData, "action") || "import";
+    const category = getFormText(formData, "category") || "Bank Statement";
+    const sourceLabel =
+      getFormText(formData, "sourceLabel") || "Bank of America CSV";
+    const statementEndingBalance = parseOptionalCurrencyAmount(
+      getFormText(formData, "statementEndingBalance"),
+    );
 
     if (!(file instanceof File)) {
-      return NextResponse.json({ error: 'A CSV file is required' }, { status: 400 });
+      return NextResponse.json(
+        { error: "A CSV file is required" },
+        { status: 400 },
+      );
     }
 
     const normalizedName = file.name.toLowerCase();
-    if (!normalizedName.endsWith('.csv')) {
-      return NextResponse.json({ error: 'Only CSV files are supported' }, { status: 400 });
+    if (!normalizedName.endsWith(".csv")) {
+      return NextResponse.json(
+        { error: "Only CSV files are supported" },
+        { status: 400 },
+      );
     }
 
     if (file.size > MAX_CSV_SIZE_BYTES) {
-      return NextResponse.json({ error: 'CSV file exceeds the 5MB size limit' }, { status: 400 });
+      return NextResponse.json(
+        { error: "CSV file exceeds the 5MB size limit" },
+        { status: 400 },
+      );
     }
 
     const csvText = await file.text();
@@ -248,7 +277,7 @@ export async function POST(
       statementEndingBalance,
     });
 
-    if (action === 'preview') {
+    if (action === "preview") {
       return NextResponse.json({
         preview: {
           totalCount: preview.totalCount,
@@ -279,9 +308,10 @@ export async function POST(
     const result = await prisma.$transaction(async (tx) => {
       let importedCount = 0;
 
-      for (const transaction of preview.importableRows) {
-        await tx.companyLedgerEntry.create({
-          data: {
+      if (preview.importableRows.length > 0) {
+        // ⚡ Bolt: Replace sequential O(N) database inserts with a single bulk createMany query to prevent N+1 bottlenecks
+        await tx.companyLedgerEntry.createMany({
+          data: preview.importableRows.map((transaction) => ({
             companyId: params.id,
             description: transaction.description,
             type: transaction.type,
@@ -292,7 +322,7 @@ export async function POST(
             reference: transaction.reference || null,
             notes: transaction.notes || null,
             metadata: {
-              importSource: 'BANK_OF_AMERICA_CSV',
+              importSource: "BANK_OF_AMERICA_CSV",
               importFingerprint: transaction.importFingerprint,
               importedAt: new Date().toISOString(),
               importedFileName: file.name,
@@ -300,9 +330,9 @@ export async function POST(
               rawRow: transaction.rawRow,
             } as Prisma.InputJsonValue,
             createdBy: session.user.id as string,
-          },
+          })),
         });
-        importedCount += 1;
+        importedCount = preview.importableRows.length;
       }
 
       if (importedCount > 0) {
@@ -317,12 +347,12 @@ export async function POST(
     });
 
     await createAuditLog(
-      'CompanyLedgerEntry',
+      "CompanyLedgerEntry",
       company.id,
-      'CREATE',
+      "CREATE",
       session.user.id as string,
       {
-        importType: 'BANK_OF_AMERICA_CSV',
+        importType: "BANK_OF_AMERICA_CSV",
         companyName: company.name,
         fileName: file.name,
         category,
@@ -332,7 +362,7 @@ export async function POST(
         reconciliationStatus: preview.reconciliationStatus,
         ...result,
       },
-      request
+      request,
     );
 
     return NextResponse.json({
@@ -346,10 +376,12 @@ export async function POST(
       reconciliationStatus: preview.reconciliationStatus,
     });
   } catch (error) {
-    console.error('Error importing Bank of America CSV:', error);
+    console.error("Error importing Bank of America CSV:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to import CSV' },
-      { status: 400 }
+      {
+        error: error instanceof Error ? error.message : "Failed to import CSV",
+      },
+      { status: 400 },
     );
   }
 }

@@ -35,7 +35,7 @@ import {
 } from 'lucide-react';
 import { Drawer, Button, StatsCard } from '@/components/design-system';
 import { formatMoney as formatCurrency } from '@/lib/format';
-import { printCompanyPriceList } from '@/lib/price-list-print';
+import { printCompanyPriceList, printTransitPriceList } from '@/lib/price-list-print';
 import {
   normalizeShippingRateConfig,
   US_STATES,
@@ -280,8 +280,40 @@ export default function CompanyPriceListDrawer({
     return Boolean(stateCode && row.stateCode.toUpperCase() === stateCode.toUpperCase() && !branch && !city);
   };
 
+  const handlePrintTransit = () => {
+    const activeTransitObj = transitData;
+    if (!activeTransitObj) return;
+    printTransitPriceList({
+      companyName,
+      companyType,
+      priceListName: activeTransitList?.name || 'Overland Transit Tariff',
+      origin: activeTransitObj.origin,
+      destination: activeTransitObj.destination,
+      destinationLabel: activeTransitObj.destinationLabel || destinationLabel,
+      sourceFileName: activeTransitList?.sourceFileName || effectiveConfig?.updatedFromPdfName,
+      effectiveFrom: activeTransitObj.effectiveFrom,
+      effectiveTo: activeTransitObj.effectiveTo,
+      rates: activeTransitObj.rates,
+      terms: activeTransitObj.terms,
+      carrierInfo: activeTransitObj.company,
+    });
+  };
+
   const handlePrint = (printAll = false) => {
     if (!effectiveConfig) return;
+    const isTransit = currentVersion && detectPriceListCorridor({
+      fileName: currentVersion.sourceFileName,
+      destinationLabel: currentVersion.destinationLabel,
+      name: currentVersion.name,
+      config: currentVersion.config,
+      auctionRateCount: currentVersion.importedAuctionRateCount,
+    }).leg === 'TRANSIT';
+
+    if (isTransit || activeTab === 'transit') {
+      handlePrintTransit();
+      return;
+    }
+
     const isFiltered = !printAll && (Boolean(selectedState) || Boolean(searchQuery.trim()));
     printCompanyPriceList({
       companyName,
@@ -366,17 +398,40 @@ export default function CompanyPriceListDrawer({
       actions={
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', gap: 1, flexWrap: 'wrap' }}>
           <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-            {hasPriceList && (
+            {activeTab === 'transit' && transitData ? (
               <Button
                 variant="primary"
                 size="sm"
                 icon={<Printer className="w-4 h-4" />}
-                onClick={() => handlePrint(false)}
+                onClick={handlePrintTransit}
               >
-                {filteredAuctionRates.length !== auctionRates.length
-                  ? `Print (${filteredAuctionRates.length} filtered)`
-                  : 'Print Price List'}
+                Print Transit Tariff
               </Button>
+            ) : (
+              <>
+                {hasPriceList && (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    icon={<Printer className="w-4 h-4" />}
+                    onClick={() => handlePrint(false)}
+                  >
+                    {filteredAuctionRates.length !== auctionRates.length
+                      ? `Print (${filteredAuctionRates.length} filtered)`
+                      : 'Print Ocean Rate Sheet'}
+                  </Button>
+                )}
+                {transitData && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    icon={<Printer className="w-4 h-4" />}
+                    onClick={handlePrintTransit}
+                  >
+                    Print Transit Tariff
+                  </Button>
+                )}
+              </>
             )}
             <Link href="/dashboard/finance/price-comparison" style={{ textDecoration: 'none' }}>
               <Button variant="outline" size="sm" icon={<GitCompareArrows className="w-4 h-4" />}>
@@ -909,17 +964,27 @@ export default function CompanyPriceListDrawer({
                       </Box>
                     </Box>
                   </Box>
-                  <Chip
-                    icon={<ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />}
-                    label="Customs Clearance Included"
-                    sx={{
-                      fontWeight: 800,
-                      fontSize: '0.75rem',
-                      backgroundColor: 'rgba(16, 185, 129, 0.15)',
-                      color: '#047857',
-                      border: '1px solid rgba(16, 185, 129, 0.3)',
-                    }}
-                  />
+                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <Chip
+                      icon={<ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />}
+                      label="Customs Clearance Included"
+                      sx={{
+                        fontWeight: 800,
+                        fontSize: '0.75rem',
+                        backgroundColor: 'rgba(16, 185, 129, 0.15)',
+                        color: '#047857',
+                        border: '1px solid rgba(16, 185, 129, 0.3)',
+                      }}
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      icon={<Printer className="w-3.5 h-3.5" />}
+                      onClick={handlePrintTransit}
+                    >
+                      Print Transit Tariff
+                    </Button>
+                  </Box>
                 </Box>
 
                 {/* Rate Cards for Vehicle Types */}

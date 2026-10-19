@@ -14,7 +14,8 @@ import {
     Chip
 } from '@mui/material';
 import { Button } from '@/components/design-system';
-import { Calculator, MapPin, Truck, ArrowRight, CheckCircle2, Ship, ShieldCheck, Navigation } from 'lucide-react';
+import { Calculator, MapPin, Truck, ArrowRight, CheckCircle2, Ship, ShieldCheck, Navigation, Printer } from 'lucide-react';
+import { printTransitPriceList } from '@/lib/price-list-print';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     type AuctionRateEntry,
@@ -616,6 +617,35 @@ export default function ShipmentCalculator() {
                                     <Typography variant="caption" sx={{ display: 'block', color: 'var(--text-secondary)', mt: 0.75 }}>
                                         Source: {calculationTrace.companyName} • {calculationTrace.priceListName} ({calculationTrace.isExactLocation ? 'Exact Auction Lane' : 'State Rate'})
                                     </Typography>
+                                )}
+
+                                {calculationTrace?.destinationScope === 'door_islam_qala' && (
+                                    <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            icon={<Printer size={14} />}
+                                            onClick={() => {
+                                                const matchedCompany = companies.find((c) => c.name === calculationTrace.companyName);
+                                                const transitData = (matchedCompany?.priceListConfig as any)?.transit;
+                                                printTransitPriceList({
+                                                    companyName: calculationTrace.companyName || 'JACXI SHIPPING',
+                                                    companyType: 'Shipping Carrier',
+                                                    priceListName: 'Overland Transit Tariff (Islam Qala)',
+                                                    origin: transitData?.origin || `${calculationTrace.portName} Port, Turkey`,
+                                                    destination: transitData?.destination || 'Islam Qala, Herat (Afghanistan)',
+                                                    destinationLabel: 'Islam Qala, Herat',
+                                                    effectiveFrom: transitData?.effectiveFrom || 'Current Active Tariff',
+                                                    effectiveTo: transitData?.effectiveTo,
+                                                    rates: transitData?.rates || { sedan: 2300, suv: 2400 },
+                                                    terms: transitData?.terms,
+                                                    carrierInfo: transitData?.company,
+                                                });
+                                            }}
+                                        >
+                                            Print Transit Tariff (Mersin ➔ Islam Qala)
+                                        </Button>
+                                    </Box>
                                 )}
                             </Box>
                         </motion.div>

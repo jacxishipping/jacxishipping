@@ -11,6 +11,7 @@ import {
   TextField,
   InputAdornment,
   IconButton,
+  Tooltip,
   Alert,
   CircularProgress,
   Box,
@@ -198,22 +199,25 @@ export default function SimpleLoginPageClient({ portal }: SimpleLoginPageClientP
 											),
 											endAdornment: (
 												<InputAdornment position="end">
-													<IconButton
-														onClick={() => setShowCode(!showCode)}
-														edge="end"
-														sx={{
-															color: 'var(--accent-gold)',
-															'&:hover': {
+													<Tooltip title={showCode ? 'Hide code' : 'Show code'}>
+														<IconButton
+															aria-label={showCode ? 'Hide code' : 'Show code'}
+															onClick={() => setShowCode(!showCode)}
+															edge="end"
+															sx={{
 																color: 'var(--accent-gold)',
-															},
-														}}
-													>
-														{showCode ? (
-															<VisibilityOff sx={{ fontSize: 20 }} />
-														) : (
-															<Visibility sx={{ fontSize: 20 }} />
-														)}
-													</IconButton>
+																'&:hover': {
+																	color: 'var(--accent-gold)',
+																},
+															}}
+														>
+															{showCode ? (
+																<VisibilityOff sx={{ fontSize: 20 }} />
+															) : (
+																<Visibility sx={{ fontSize: 20 }} />
+															)}
+														</IconButton>
+													</Tooltip>
 												</InputAdornment>
 											),
 										}}
@@ -430,13 +434,16 @@ export default function SimpleLoginPageClient({ portal }: SimpleLoginPageClientP
 										),
 										endAdornment: (
 											<InputAdornment position="end">
-												<IconButton
-													onClick={() => setShowCode(!showCode)}
-													edge="end"
-													sx={{ color: brand.accentColor }}
-												>
-													{showCode ? <VisibilityOff sx={{ fontSize: 24 }} /> : <Visibility sx={{ fontSize: 24 }} />}
-												</IconButton>
+												<Tooltip title={showCode ? 'Hide code' : 'Show code'}>
+													<IconButton
+														aria-label={showCode ? 'Hide code' : 'Show code'}
+														onClick={() => setShowCode(!showCode)}
+														edge="end"
+														sx={{ color: brand.accentColor }}
+													>
+														{showCode ? <VisibilityOff sx={{ fontSize: 24 }} /> : <Visibility sx={{ fontSize: 24 }} />}
+													</IconButton>
+												</Tooltip>
 											</InputAdornment>
 										),
 										sx: {

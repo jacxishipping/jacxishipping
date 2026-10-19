@@ -168,6 +168,19 @@ export async function createExpenseBudget(input: CreateBudgetInput) {
     throw new Error('Budget limit amount must be greater than zero');
   }
 
+  let validCreatedById: string | null = null;
+  if (createdById) {
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: createdById },
+        select: { id: true },
+      });
+      if (user) validCreatedById = user.id;
+    } catch {
+      // ignore
+    }
+  }
+
   const budget = await prisma.expenseBudget.create({
     data: {
       name: name.trim(),
@@ -180,12 +193,12 @@ export async function createExpenseBudget(input: CreateBudgetInput) {
       notifyOnWarning,
       notifyOnExceeded,
       notes: notes?.trim() || null,
-      createdById: createdById || null,
+      createdById: validCreatedById,
     },
   });
 
-  if (createdById) {
-    await createAuditLog('ExpenseBudget', budget.id, 'CREATE', createdById, {
+  if (validCreatedById) {
+    await createAuditLog('ExpenseBudget', budget.id, 'CREATE', validCreatedById, {
       name: budget.name,
       amount: budget.amount,
       category: budget.category,

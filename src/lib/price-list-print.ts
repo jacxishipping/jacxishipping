@@ -16,6 +16,56 @@ export interface PrintCompanyPriceListOptions {
     searchQuery?: string | null;
   } | null;
   logoUrl?: string | null;
+  legType?: 'ocean' | 'transit';
+  rates?: {
+    sedan: number;
+    suv: number;
+    pickup?: number;
+    motorcycle?: number;
+    van?: number;
+  };
+  origin?: string | null;
+  destination?: string | null;
+  effectiveFrom?: string | null;
+  effectiveTo?: string | null;
+  terms?: string[] | null;
+  carrierInfo?: {
+    name?: string;
+    brand?: string;
+    phone?: string;
+    slogan?: string;
+    website?: string;
+  } | null;
+}
+
+export interface PrintTransitPriceListOptions {
+  companyName: string;
+  companyType?: string | null;
+  priceListName?: string | null;
+  origin?: string | null;
+  destination?: string | null;
+  destinationLabel?: string | null;
+  sourceFileName?: string | null;
+  effectiveDate?: string | null;
+  effectiveFrom?: string | null;
+  effectiveTo?: string | null;
+  rates: {
+    sedan: number;
+    suv: number;
+    pickup?: number;
+    motorcycle?: number;
+    van?: number;
+  };
+  terms?: string[] | null;
+  carrierInfo?: {
+    name?: string;
+    brand?: string;
+    phone?: string;
+    slogan?: string;
+    website?: string;
+  } | null;
+  logoUrl?: string | null;
+  legType?: 'transit';
 }
 
 interface CorridorConfig {
@@ -991,12 +1041,9 @@ export function generatePriceListPrintHtml(options: PrintCompanyPriceListOptions
 </html>`;
 }
 
-export function printCompanyPriceList(options: PrintCompanyPriceListOptions): void {
+export function openPrintDocument(html: string): void {
   if (typeof window === 'undefined') return;
 
-  const html = generatePriceListPrintHtml(options);
-
-  // Attempt window.open first
   const printWindow = window.open('', '_blank', 'width=1020,height=850,scrollbars=yes,resizable=yes');
   if (printWindow) {
     printWindow.document.open();
@@ -1006,7 +1053,6 @@ export function printCompanyPriceList(options: PrintCompanyPriceListOptions): vo
     return;
   }
 
-  // Fallback: use an invisible iframe if popups are blocked
   const iframe = document.createElement('iframe');
   iframe.style.position = 'fixed';
   iframe.style.right = '0';
@@ -1028,4 +1074,829 @@ export function printCompanyPriceList(options: PrintCompanyPriceListOptions): vo
       }
     }, 60000);
   }, 400);
+}
+
+export function generateTransitPriceListPrintHtml(options: PrintTransitPriceListOptions): string {
+  const companyName = options.companyName || 'JACXI SHIPPING';
+  const destinationLabel = options.destinationLabel || 'Islam Qala (Herat)';
+  const origin = options.origin || 'Mersin, Turkey & Jebel Ali, UAE';
+  const effectiveDate = options.effectiveFrom || options.effectiveDate || '1 October 2026';
+  const rates = options.rates || { sedan: 2300, suv: 2400 };
+  const sedanRate = rates.sedan || 2300;
+  const suvRate = rates.suv || (sedanRate + 100);
+
+  const activeLogo = options.logoUrl || (typeof window !== 'undefined' ? (() => {
+    try {
+      const cached = localStorage.getItem('jacxi_site_branding_cache');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed.logoUrl) return parsed.logoUrl;
+      }
+    } catch {
+      // Ignore
+    }
+    return JACXI_LOGO_BASE64;
+  })() : JACXI_LOGO_BASE64);
+
+  const currentYear = new Date().getFullYear();
+  const tariffYear = effectiveDate.includes('202')
+    ? (effectiveDate.match(/202\d/)?.[0] || String(currentYear))
+    : String(currentYear);
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>${companyName} - Price List (${destinationLabel})</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      color: #1a1a1a;
+      background: #f0f2f5;
+      padding: 0;
+      margin: 0;
+      font-size: 11px;
+      line-height: 1.45;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    /* Print toolbar */
+    .toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 9999;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #1e293b;
+      color: #ffffff;
+      padding: 12px 24px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .toolbar-title {
+      font-weight: 700;
+      font-size: 14px;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .toolbar-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .toolbar-btn {
+      background: #d4af37;
+      color: #111827;
+      border: none;
+      padding: 8px 18px;
+      font-size: 13px;
+      font-weight: 700;
+      border-radius: 6px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      text-decoration: none;
+      transition: background 0.15s ease;
+    }
+    .toolbar-btn:hover {
+      background: #c59b27;
+    }
+    .toolbar-btn-secondary {
+      background: rgba(255, 255, 255, 0.15);
+      color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+    }
+    .toolbar-btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    /* Page container */
+    .doc-page {
+      position: relative;
+      width: 210mm;
+      min-height: 297mm;
+      margin: 20px auto;
+      padding: 42pt 34pt 32pt 34pt;
+      background: #ffffff;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      box-sizing: border-box;
+      overflow: hidden;
+    }
+
+    .page-break {
+      page-break-after: always;
+      break-after: page;
+    }
+
+    /* Top Accent Bars */
+    .top-bar-black {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 18px;
+      background: #000000;
+    }
+    .top-bar-gold {
+      position: absolute;
+      top: 18px;
+      left: 0;
+      right: 0;
+      height: 3.5px;
+      background: #d4af37;
+    }
+
+    /* Running Header */
+    .doc-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #d4af37;
+      padding-bottom: 10px;
+      margin-bottom: 18px;
+    }
+    .doc-logo {
+      height: 38px;
+      object-fit: contain;
+      display: block;
+    }
+    .doc-header-right {
+      text-align: right;
+    }
+    .doc-header-right-title {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #000000;
+    }
+    .doc-header-right-sub {
+      font-size: 8.5px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #c59b27;
+      margin-top: 2px;
+    }
+
+    /* Cover Page Elements */
+    .cover-hero {
+      margin-top: 4px;
+      margin-bottom: 22px;
+    }
+    .cover-title {
+      font-size: 26px;
+      font-weight: 800;
+      color: #1a1a1a;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+    }
+    .cover-desc {
+      font-size: 9.5px;
+      color: #4b5563;
+      margin-top: 8px;
+      line-height: 1.55;
+      max-width: 680px;
+    }
+
+    /* Corridor Matrix (4 columns) */
+    .corridor-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 22px;
+    }
+    .corridor-card {
+      border: 1px solid #e8dfce;
+      border-top: 3px solid #d4af37;
+      background: #ffffff;
+      border-radius: 3px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+    }
+    .corridor-card-header {
+      font-size: 7.5px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #888888;
+    }
+    .corridor-card-title {
+      font-size: 10px;
+      font-weight: 800;
+      color: #1a1a1a;
+      margin-top: 3px;
+    }
+    .corridor-card-price {
+      font-size: 18px;
+      font-weight: 850;
+      color: #c59b27;
+      margin-top: 8px;
+      letter-spacing: -0.01em;
+    }
+    .corridor-card-caption {
+      font-size: 7.5px;
+      font-weight: 600;
+      color: #5c5c5c;
+      margin-top: 3px;
+    }
+    .corridor-card-origins {
+      font-size: 7.2px;
+      color: #6b7280;
+      margin-top: 8px;
+      line-height: 1.4;
+      border-top: 1px solid #eeeeee;
+      padding-top: 6px;
+    }
+
+    /* Stats Bar (Solid Black Background matching PDF) */
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      background: #000000;
+      border-radius: 4px;
+      padding: 12px 16px;
+      margin-bottom: 22px;
+    }
+    .stat-item {
+      text-align: center;
+    }
+    .stat-value {
+      font-size: 18px;
+      font-weight: 850;
+      color: #c59b27;
+      letter-spacing: -0.01em;
+    }
+    .stat-label {
+      font-size: 7.5px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #ffffff;
+      margin-top: 4px;
+    }
+
+    /* Section Header */
+    .guide-section-title {
+      font-size: 8.5px;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #c59b27;
+      margin-bottom: 10px;
+    }
+
+    /* How to Read a Line (4 steps) */
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 22px;
+    }
+    .step-box {
+      border: 1px solid #e8dfce;
+      background: #ffffff;
+      border-radius: 3px;
+      padding: 10px 12px;
+    }
+    .step-num {
+      font-size: 12px;
+      font-weight: 850;
+      color: #c59b27;
+      margin-bottom: 2px;
+    }
+    .step-title {
+      font-size: 10px;
+      font-weight: 800;
+      color: #1a1a1a;
+      margin-bottom: 4px;
+    }
+    .step-desc {
+      font-size: 7.8px;
+      color: #5c5c5c;
+      line-height: 1.45;
+    }
+
+    /* Policy Inclusions / Exclusions */
+    .policy-section {
+      margin-bottom: 20px;
+    }
+    .policy-block {
+      margin-bottom: 14px;
+    }
+    .policy-block-title {
+      font-size: 8.5px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #c59b27;
+      margin-bottom: 6px;
+    }
+    .policy-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .policy-list li {
+      font-size: 8px;
+      color: #374151;
+      margin-bottom: 4px;
+      line-height: 1.45;
+      position: relative;
+      padding-left: 14px;
+    }
+    .policy-list li::before {
+      content: "•";
+      position: absolute;
+      left: 0;
+      color: #c59b27;
+      font-weight: bold;
+      font-size: 11px;
+      line-height: 1;
+    }
+
+    /* Page 2: Commercial Rules */
+    .rules-title {
+      font-size: 26px;
+      font-weight: 800;
+      color: #1a1a1a;
+      letter-spacing: -0.01em;
+      margin-top: 4px;
+      margin-bottom: 18px;
+    }
+    .rules-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .rule-card {
+      border: 1px solid #e8dfce;
+      border-left: 3.5px solid #c59b27;
+      background: #ffffff;
+      border-radius: 3px;
+      padding: 12px 16px;
+    }
+    .rule-card-title {
+      font-size: 10.5px;
+      font-weight: 800;
+      color: #1a1a1a;
+      letter-spacing: 0.02em;
+      margin-bottom: 4px;
+    }
+    .rule-card-text {
+      font-size: 8.5px;
+      color: #4b5563;
+      line-height: 1.6;
+    }
+
+    /* Running Footer */
+    .doc-footer {
+      border-top: 1px solid #e5e7eb;
+      padding-top: 10px;
+      margin-top: 20px;
+      font-size: 7.5px;
+      color: #6b7280;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      letter-spacing: 0.02em;
+    }
+    .doc-footer-brand {
+      color: #5c5c5c;
+    }
+    .doc-footer-center {
+      color: #1a1a1a;
+      font-weight: 600;
+    }
+
+    /* Table Styles */
+    .rates-table-container {
+      width: 100%;
+      margin-bottom: 16px;
+    }
+    table.rates-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 8px;
+      line-height: 1.35;
+    }
+    table.rates-table thead {
+      display: table-header-group;
+    }
+    table.rates-table th {
+      background: #000000;
+      color: #d4af37;
+      padding: 6px 8px;
+      text-align: left;
+      font-weight: 800;
+      font-size: 7.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border: none;
+    }
+    table.rates-table th.num-col {
+      text-align: right;
+    }
+    table.rates-table tr {
+      page-break-inside: avoid;
+    }
+    table.rates-table tbody tr:nth-child(even) {
+      background: #f6f1e3;
+    }
+    table.rates-table tbody tr:nth-child(odd) {
+      background: #ffffff;
+    }
+    table.rates-table td {
+      padding: 5.5px 8px;
+      border-bottom: 1px solid #e4e4e4;
+      color: #1a1a1a;
+      font-size: 7.8px;
+    }
+    table.rates-table td.num-col {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      font-family: inherit;
+    }
+    table.rates-table td.sedan-total {
+      font-weight: 850;
+      color: #1a1a1a;
+    }
+    table.rates-table td.suv-total {
+      font-weight: 850;
+      color: #c59b27;
+    }
+
+    /* State Banner Row (Solid Black matching PDF) */
+    .state-banner-row td {
+      background: #000000 !important;
+      border: none !important;
+      padding: 5px 8px !important;
+    }
+    .state-banner-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 8.5px;
+      font-weight: 850;
+      color: #d4af37;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .state-yard-badge {
+      font-size: 7.5px;
+      font-weight: 800;
+      color: #ffffff;
+      letter-spacing: 0.05em;
+    }
+
+    /* Print media optimization */
+    @media print {
+      body {
+        padding: 0;
+        margin: 0;
+        background: #ffffff;
+      }
+      .no-print {
+        display: none !important;
+      }
+      @page {
+        size: A4 portrait;
+        margin: 0;
+      }
+      .doc-page {
+        margin: 0;
+        padding: 42pt 34pt 32pt 34pt;
+        width: 210mm;
+        min-height: 297mm;
+        box-shadow: none;
+        page-break-after: always;
+        break-after: page;
+      }
+      .page-break {
+        page-break-after: always;
+        break-after: page;
+      }
+      table.rates-table thead {
+        display: table-header-group;
+      }
+      .state-banner-row {
+        page-break-after: avoid;
+        break-after: avoid;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Print Toolbar (Hidden during actual print) -->
+  <div class="toolbar no-print">
+    <div class="toolbar-title">
+      <img src="${activeLogo}" alt="JACXI" style="height: 24px; filter: brightness(0) invert(1);" />
+      <span>${companyName} — Price List Rate Sheet (${destinationLabel})</span>
+    </div>
+    <div class="toolbar-actions">
+      <button class="toolbar-btn toolbar-btn-secondary" onclick="window.close()">Close</button>
+      <button class="toolbar-btn" onclick="window.print()">🖨 Print Rate Sheet</button>
+    </div>
+  </div>
+
+  <!-- PAGE 1: COVER / CORRIDOR GUIDE -->
+  <div class="doc-page page-break">
+    <div class="top-bar-black"></div>
+    <div class="top-bar-gold"></div>
+
+    <div class="doc-header">
+      <div>
+        <img src="${activeLogo}" alt="${companyName}" class="doc-logo" />
+      </div>
+      <div class="doc-header-right">
+        <div class="doc-header-right-title">PRICE LIST</div>
+        <div class="doc-header-right-sub">${tariffYear} · ${destinationLabel.toUpperCase()} TARIFF</div>
+      </div>
+    </div>
+
+    <div class="cover-hero">
+      <h1 class="cover-title">Single-car rate schedule</h1>
+      <p class="cover-desc">
+        Port-to-${destinationLabel} overland transit guide rates for a running passenger vehicle. Each line is origin port terminal exit handling, plus full export transit customs clearance and bonded overland transport to ${destinationLabel}, Afghanistan. Effective ${effectiveDate}.
+      </p>
+    </div>
+
+    <!-- 4 Corridor Load Port Cards -->
+    <div class="corridor-grid">
+      <div class="corridor-card">
+        <div class="corridor-card-header">TURKEY LOAD</div>
+        <div class="corridor-card-title">Mersin corridor</div>
+        <div class="corridor-card-price">${formatCurrency(sedanRate)}</div>
+        <div class="corridor-card-caption">Transit + ${destinationLabel} clearance</div>
+        <div class="corridor-card-origins">Origin: Mersin Port (Turkey) to Islam Qala</div>
+      </div>
+      <div class="corridor-card">
+        <div class="corridor-card-header">GULF LOAD</div>
+        <div class="corridor-card-title">UAE corridor</div>
+        <div class="corridor-card-price">${formatCurrency(sedanRate)}</div>
+        <div class="corridor-card-caption">Transit + ${destinationLabel} clearance</div>
+        <div class="corridor-card-origins">Origin: Jebel Ali (UAE) to Islam Qala</div>
+      </div>
+      <div class="corridor-card">
+        <div class="corridor-card-header">HEAVY / 4X4</div>
+        <div class="corridor-card-title">SUV & 4x4 vehicles</div>
+        <div class="corridor-card-price">${formatCurrency(suvRate)}</div>
+        <div class="corridor-card-caption">Transit + ${destinationLabel} clearance</div>
+        <div class="corridor-card-origins">SUV rate: +$100 surcharge over sedan</div>
+      </div>
+      <div class="corridor-card">
+        <div class="corridor-card-header">CUSTOMS CLEARANCE</div>
+        <div class="corridor-card-title">Port export declarations</div>
+        <div class="corridor-card-price">INCLUDED</div>
+        <div class="corridor-card-caption">Bonded transit declarations</div>
+        <div class="corridor-card-origins">Origin port exit clearance & transit papers</div>
+      </div>
+    </div>
+
+    <!-- Key Stats Metrics Row (Solid Black Bar matching PDF) -->
+    <div class="stats-bar">
+      <div class="stat-item">
+        <div class="stat-value">2 CORRIDORS</div>
+        <div class="stat-label">ORIGIN PORTS</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value">ISLAM QALA</div>
+        <div class="stat-label">DESTINATION BORDER</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value">${formatCurrency(sedanRate)}</div>
+        <div class="stat-label">SEDAN ALL-IN</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value">${formatCurrency(suvRate)}</div>
+        <div class="stat-label">SUV / 4X4 ALL-IN</div>
+      </div>
+    </div>
+
+    <!-- How to Read a Line -->
+    <div class="guide-section-title">HOW TO READ A LINE</div>
+    <div class="steps-grid">
+      <div class="step-box">
+        <div class="step-num">01</div>
+        <div class="step-title">Origin Port</div>
+        <div class="step-desc">Mersin (Turkey) or Jebel Ali (UAE) arrival marine terminal.</div>
+      </div>
+      <div class="step-box">
+        <div class="step-num">02</div>
+        <div class="step-title">Transit Corridor</div>
+        <div class="step-desc">Bonded multi-car carrier or containerized road convoy.</div>
+      </div>
+      <div class="step-box">
+        <div class="step-num">03</div>
+        <div class="step-title">Clearance</div>
+        <div class="step-desc">Complete origin port export transit customs clearance.</div>
+      </div>
+      <div class="step-box">
+        <div class="step-num">04</div>
+        <div class="step-title">Total Sedan</div>
+        <div class="step-desc">Port handling + transit + clearance to Islam Qala. SUV add $100.</div>
+      </div>
+    </div>
+
+    <!-- Included / Not Included -->
+    <div class="policy-section">
+      <div class="policy-block">
+        <div class="policy-block-title">INCLUDED IN THE PRINTED TOTAL</div>
+        <ul class="policy-list">
+          <li>Origin port terminal exit handling and documentation at Mersin or Jebel Ali</li>
+          <li>Complete export transit customs clearance and bonded road transit declarations</li>
+          <li>Overland transportation directly to Islam Qala Customs Compound, Herat</li>
+          <li>Vehicle reception verification and condition inspection report at border terminal</li>
+        </ul>
+      </div>
+      <div class="policy-block">
+        <div class="policy-block-title">NOT IN THE PRINTED TOTAL</div>
+        <ul class="policy-list">
+          <li>SUV +$100 (standard SUV is ${formatCurrency(suvRate)}) · pickup / extra-large SUV / full-size truck +$50–$100</li>
+          <li>Afghan national import customs duties, tariffs, and vehicle license plate registration</li>
+          <li>Afghanistan inland transport beyond Islam Qala (Herat city, Kabul, Kandahar, etc.) — quoted on file</li>
+          <li>Terminal storage or demurrage resulting from consignee paperwork delays or force majeure border closures</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="doc-footer">
+      <span class="doc-footer-brand">Transparency  ·  Precision  ·  Reliability</span>
+      <span class="doc-footer-center">Mersin / UAE → ${destinationLabel}  ·  Effective ${effectiveDate}</span>
+      <span>1</span>
+    </div>
+  </div>
+
+  <!-- PAGE 2: COMMERCIAL RULES & PUBLISHED TARIFF -->
+  <div class="doc-page">
+    <div class="top-bar-black"></div>
+    <div class="top-bar-gold"></div>
+
+    <div class="doc-header">
+      <div>
+        <img src="${activeLogo}" alt="${companyName}" class="doc-logo" />
+      </div>
+      <div class="doc-header-right">
+        <div class="doc-header-right-title">PRICE LIST</div>
+        <div class="doc-header-right-sub">${tariffYear} · RULES & TARIFF SCHEDULE</div>
+      </div>
+    </div>
+
+    <h2 class="rules-title">Commercial rules</h2>
+
+    <div class="rules-grid">
+      <div class="rule-card">
+        <div class="rule-card-title">Vehicle class</div>
+        <div class="rule-card-text">
+          Printed rates are standard passenger sedan (${formatCurrency(sedanRate)}). Add USD 100 for an SUV / 4x4 (${formatCurrency(suvRate)}). Pickup trucks, extra-large SUVs, commercial vans, and full-size vehicles are quoted upon request based on dimensions.
+        </div>
+      </div>
+
+      <div class="rule-card">
+        <div class="rule-card-title">Port reception & clearance</div>
+        <div class="rule-card-text">
+          Rates apply for vehicles arriving at designated marine terminals in Mersin (Turkey) or Jebel Ali (UAE). Full export transit customs clearance, bonded transit documentation, and port exit formalities are packaged into the published price.
+        </div>
+      </div>
+
+      <div class="rule-card">
+        <div class="rule-card-title">Destination terminal</div>
+        <div class="rule-card-text">
+          Published rates deliver the vehicle directly to the Islam Qala Customs Terminal in Herat, Afghanistan. Official condition reports and waybills are issued upon handover at the customs compound.
+        </div>
+      </div>
+
+      <div class="rule-card">
+        <div class="rule-card-title">Beyond Islam Qala</div>
+        <div class="rule-card-text">
+          This tariff covers Port → Islam Qala border terminal. Onward transport from Islam Qala to Herat City, Kabul, Kandahar, Mazar-i-Sharif, and other Afghan provinces is quoted as a separate domestic delivery leg.
+        </div>
+      </div>
+
+      <div class="rule-card">
+        <div class="rule-card-title">Destination risk & border regulations</div>
+        <div class="rule-card-text">
+          Afghan domestic import customs duties, vehicle registration, and taxes sit with the consignee. Demurrage or unexpected border delays arising from regulatory changes or force majeure events beyond control are billed at cost.
+        </div>
+      </div>
+
+      <div class="rule-card">
+        <div class="rule-card-title">Validity & booking confirmation</div>
+        <div class="rule-card-text">
+          Figures reflect the ${effectiveDate} overland transit schedule. Bookings are formally secured upon ocean container discharge notice and submission of original vehicle titles and VIN declarations.
+        </div>
+      </div>
+    </div>
+
+    <!-- Published Rates Table -->
+    <div class="guide-section-title" style="margin-top: 14px;">PUBLISHED OVERLAND VEHICLE RATES</div>
+    <div class="rates-table-container">
+      <table class="rates-table">
+        <thead>
+          <tr>
+            <th style="width: 130px;">CORRIDOR</th>
+            <th>ORIGIN PORT</th>
+            <th>DESTINATION TERMINAL</th>
+            <th style="width: 140px;">TRANSIT MODE</th>
+            <th style="width: 85px; text-align: center;">CLEARANCE</th>
+            <th class="num-col" style="width: 95px;">SEDAN TOTAL</th>
+            <th class="num-col" style="width: 95px;">SUV TOTAL</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="state-banner-row">
+            <td colspan="7">
+              <div class="state-banner-content">
+                <span><strong>TRANSIT CORRIDOR</strong> &nbsp; OVERLAND ROUTES TO AFGHANISTAN</span>
+                <span class="state-yard-badge">ISLAM QALA, HERAT</span>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td style="font-weight: 750;">Mersin Corridor</td>
+            <td style="font-weight: 600;">Mersin Port, Turkey</td>
+            <td>Islam Qala Customs, Herat</td>
+            <td>Auto-Carrier / Bonded Road</td>
+            <td style="text-align: center; color: #047857; font-weight: 700;">Included</td>
+            <td class="num-col sedan-total">${formatCurrency(sedanRate)}</td>
+            <td class="num-col suv-total">${formatCurrency(suvRate)}</td>
+          </tr>
+          <tr>
+            <td style="font-weight: 750;">UAE Corridor</td>
+            <td style="font-weight: 600;">Jebel Ali / Dubai, UAE</td>
+            <td>Islam Qala Customs, Herat</td>
+            <td>Auto-Carrier / Bonded Road</td>
+            <td style="text-align: center; color: #047857; font-weight: 700;">Included</td>
+            <td class="num-col sedan-total">${formatCurrency(sedanRate)}</td>
+            <td class="num-col suv-total">${formatCurrency(suvRate)}</td>
+          </tr>
+          ${
+            rates.pickup || rates.van
+              ? `
+          <tr>
+            <td style="font-weight: 750;">Commercial / Pickup</td>
+            <td style="font-weight: 600;">Mersin or Jebel Ali</td>
+            <td>Islam Qala Customs, Herat</td>
+            <td>Heavy Transporter / Ro-Ro</td>
+            <td style="text-align: center; color: #047857; font-weight: 700;">Included</td>
+            <td class="num-col sedan-total">${formatCurrency(rates.pickup || rates.suv + 100)}</td>
+            <td class="num-col suv-total">${formatCurrency(rates.pickup || rates.suv + 100)}</td>
+          </tr>`
+              : ''
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <div class="doc-footer">
+      <span class="doc-footer-brand">Transparency  ·  Precision  ·  Reliability</span>
+      <span class="doc-footer-center">Mersin / UAE → ${destinationLabel}  ·  Effective ${effectiveDate}</span>
+      <span>${companyName} Official Rate Schedule</span>
+    </div>
+  </div>
+
+  <script>
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        window.print();
+      }, 350);
+    });
+  </script>
+</body>
+</html>`;
+}
+export function printTransitPriceList(options: PrintTransitPriceListOptions): void {
+  if (typeof window === 'undefined') return;
+  const html = generateTransitPriceListPrintHtml(options);
+  openPrintDocument(html);
+}
+
+export function printCompanyPriceList(options: PrintCompanyPriceListOptions | any): void {
+  if (typeof window === 'undefined') return;
+
+  // Auto-route to transit print if options represent a transit price list
+  if (
+    options.legType === 'transit' ||
+    options.corridorLeg === 'TRANSIT' ||
+    (!options.auctionRates?.length && options.rates?.sedan)
+  ) {
+    printTransitPriceList(options as PrintTransitPriceListOptions);
+    return;
+  }
+
+  const html = generatePriceListPrintHtml(options);
+  openPrintDocument(html);
 }
