@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Add, ChevronLeft, ChevronRight, Inventory2 } from '@mui/icons-material';
+import { LayoutGrid, Table2, Kanban, CheckSquare, Square, Download } from 'lucide-react';
 import { Box, Typography } from '@mui/material';
 import ShipmentRow from '@/components/dashboard/ShipmentRow';
 import { DashboardPanel } from '@/components/dashboard/DashboardSurface';
@@ -11,7 +12,12 @@ import { DataTable, Column } from '@/components/ui/DataTable';
 import { BatchActionsHUD, type BatchItem } from '@/components/dashboard/BatchActionsHUD';
 import { CustomerNotificationModal, type CustomerNotificationPayload } from '@/components/dashboard/CustomerNotificationModal';
 import { addWorkspaceItem } from '@/components/dashboard/WorkspaceTray';
+import { ShipmentKanbanBoard } from '@/components/shipments/ShipmentKanbanBoard';
+import { BatchAssignContainerModal } from '@/components/shipments/BatchAssignContainerModal';
+import { openUniversalShipmentExport } from '@/components/shipments/UniversalShipmentExportModal';
 import type { Shipment, ShipmentTableRow } from '@/components/shipments/shipment-list-types';
+
+export type ShipmentViewMode = 'cards' | 'table' | 'kanban';
 
 type BulkStatusOption = {
 	value: string;
@@ -42,6 +48,7 @@ type ShipmentsResultsPanelProps = {
 	onQuickPeek?: (id: string) => void;
 	onOpenQR?: (shipment: any) => void;
 	onClearFilters?: () => void;
+	onRefresh?: () => void;
 };
 
 export default function ShipmentsResultsPanel({
@@ -68,9 +75,30 @@ export default function ShipmentsResultsPanel({
 	onQuickPeek,
 	onOpenQR,
 	onClearFilters,
+	onRefresh,
 }: ShipmentsResultsPanelProps) {
 	const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 	const [notificationPayload, setNotificationPayload] = useState<CustomerNotificationPayload | null>(null);
+	const [assignContainerModalOpen, setAssignContainerModalOpen] = useState(false);
+	const [viewMode, setViewMode] = useState<ShipmentViewMode>(() => {
+		if (typeof window !== 'undefined') {
+			const saved = localStorage.getItem('jacxi.shipments_view_mode') as ShipmentViewMode | null;
+			if (saved === 'cards' || saved === 'table' || saved === 'kanban') return saved;
+		}
+		return showBulkTable ? 'table' : 'cards';
+	});
+
+	const handleViewModeChange = (mode: ShipmentViewMode) => {
+		setViewMode(mode);
+		if (typeof window !== 'undefined') {
+			localStorage.setItem('jacxi.shipments_view_mode', mode);
+		}
+		if (mode === 'table' && !showBulkTable) {
+			onToggleBulkMode();
+		} else if (mode !== 'table' && showBulkTable) {
+			onToggleBulkMode();
+		}
+	};
 
 	const selectedBatchItems: BatchItem[] = shipments
 		.filter((s) => selectedIds.has(s.id))
@@ -147,11 +175,71 @@ export default function ShipmentsResultsPanel({
 			bodyClassName="overflow-hidden"
 			actions={
 				<Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-					{canUseBulkMode ? (
-						<Button variant="outline" size="sm" onClick={onToggleBulkMode}>
-							{showBulkTable ? 'Card view' : 'Bulk mode'}
-						</Button>
-					) : null}
+					<Box
+						sx={{
+							display: 'inline-flex',
+							alignItems: 'center',
+							p: '3px',
+							borderRadius: '12px',
+							bgcolor: 'rgba(var(--text-primary-rgb), 0.04)',
+							border: '1px solid var(--border)',
+						}}
+					>
+						<button
+							type="button"
+							onClick={() => handleViewModeChange('cards')}
+							className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+								viewMode === 'cards'
+									? 'bg-[var(--accent-gold)] text-white shadow-sm'
+									: 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+							}`}
+							title="Card View"
+						>
+							<LayoutGrid className="w-3.5 h-3.5" />
+							<span className="hidden sm:inline">Cards</span>
+						</button>
+						<button
+							type="button"
+							onClick={() => handleViewModeChange('table')}
+							className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+								viewMode === 'table'
+									? 'bg-[var(--accent-gold)] text-white shadow-sm'
+									: 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+							}`}
+							title="Table / Bulk Mode"
+						>
+							<Table2 className="w-3.5 h-3.5" />
+							<span className="hidden sm:inline">Table</span>
+						</button>
+						<button
+							type="button"
+							onClick={() => handleViewModeChange('kanban')}
+							className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+								viewMode === 'kanban'
+									? 'bg-[var(--accent-gold)] text-white shadow-sm'
+									: 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+							}`}
+							title="Pipeline Kanban Board"
+						>
+							<Kanban className="w-3.5 h-3.5" />
+							<span className="hidden sm:inline">Kanban</span>
+						</button>
+					</Box>
+
+					{/* Quick Panel Export Button */}
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={() => openUniversalShipmentExport({
+							shipmentIds: selectedIds.size > 0 ? Array.from(selectedIds) : undefined,
+							filters: searchQuery ? { query: searchQuery } : undefined,
+							title: selectedIds.size > 0 ? `Export Selected (${selectedIds.size}) Shipments` : 'Export Shipments',
+						})}
+						icon={<Download className="w-3.5 h-3.5 text-emerald-500" />}
+						iconPosition="start"
+					>
+						Export
+					</Button>
 				</Box>
 			}
 		>
@@ -183,8 +271,8 @@ export default function ShipmentsResultsPanel({
 				/>
 			) : (
 				<>
-					{showBulkTable ? (
-						<Box sx={{ display: { xs: 'none', md: 'block' } }}>
+					{viewMode === 'table' && (
+						<Box sx={{ width: '100%', overflowX: 'auto' }}>
 							<DataTable
 								data={shipmentTableRows}
 								columns={shipmentColumns}
@@ -208,31 +296,105 @@ export default function ShipmentsResultsPanel({
 								totalPages={totalPages}
 							/>
 						</Box>
-					) : null}
+					)}
 
-					<Box
-						sx={{
-							display: showBulkTable ? { xs: 'flex', md: 'none' } : 'flex',
-							flexDirection: 'column',
-							gap: { xs: 1, sm: 1.15, md: 1.25 },
-							minWidth: 0,
-							width: '100%',
-							overflow: 'hidden',
-						}}
-					>
-						{shipments.map((shipment, index) => (
-							<ShipmentRow
-								key={shipment.id}
-								{...shipment}
-								purchasePrice={canViewFinance ? (shipment.purchasePrice ?? null) : null}
-								purchasePricePaid={canViewFinance ? (shipment.purchasePricePaid ?? null) : null}
-								showCustomer={isAdmin}
-								delay={index * 0.05}
+					{viewMode === 'kanban' && (
+						<Box sx={{ width: '100%', minWidth: 0, py: 1 }}>
+							<ShipmentKanbanBoard
+								shipments={shipments}
+								onMoveShipment={async (shipmentId, newStatus) => {
+									if (onBulkStatusChange) {
+										await onBulkStatusChange([shipmentId], newStatus);
+									} else {
+										try {
+											const res = await fetch(`/api/shipments/${shipmentId}`, {
+												method: 'PUT',
+												headers: { 'Content-Type': 'application/json' },
+												body: JSON.stringify({ status: newStatus }),
+											});
+											if (!res.ok) throw new Error('Status update failed');
+											toast.success(`Shipment updated to ${newStatus.replace(/_/g, ' ')}`);
+											if (onRefresh) onRefresh();
+										} catch {
+											toast.error('Failed to move shipment status');
+										}
+									}
+								}}
 								onQuickPeek={handleRowQuickPeek}
-								onOpenQR={onOpenQR}
+								canManageShipments={canManageShipments}
 							/>
-						))}
-					</Box>
+						</Box>
+					)}
+
+					{viewMode === 'cards' && (
+						<Box
+							sx={{
+								display: 'flex',
+								flexDirection: 'column',
+								gap: { xs: 1, sm: 1.15, md: 1.25 },
+								minWidth: 0,
+								width: '100%',
+								overflow: 'hidden',
+							}}
+						>
+							{/* Select All Quick Bar */}
+							{canUseBulkMode && shipments.length > 0 && (
+								<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 0.5, py: 0.25 }}>
+									<button
+										type="button"
+										onClick={() => {
+											if (selectedIds.size === shipments.length) {
+												setSelectedIds(new Set());
+											} else {
+												setSelectedIds(new Set(shipments.map((s) => s.id)));
+											}
+										}}
+										className="text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--accent-gold)] transition-colors inline-flex items-center gap-1.5"
+									>
+										{selectedIds.size === shipments.length ? (
+											<>
+												<CheckSquare className="w-3.5 h-3.5 text-[var(--accent-gold)]" />
+												<span>Deselect all ({shipments.length})</span>
+											</>
+										) : (
+											<>
+												<Square className="w-3.5 h-3.5" />
+												<span>Select all on page ({shipments.length})</span>
+											</>
+										)}
+									</button>
+									{selectedIds.size > 0 && (
+										<span className="text-xs font-bold text-[var(--accent-gold)]">
+											{selectedIds.size} selected
+										</span>
+									)}
+								</Box>
+							)}
+
+							{shipments.map((shipment, index) => (
+								<ShipmentRow
+									key={shipment.id}
+									{...shipment}
+									purchasePrice={canViewFinance ? (shipment.purchasePrice ?? null) : null}
+									purchasePricePaid={canViewFinance ? (shipment.purchasePricePaid ?? null) : null}
+									showCustomer={isAdmin}
+									delay={index * 0.05}
+									onQuickPeek={handleRowQuickPeek}
+									onOpenQR={onOpenQR}
+									selectable={canUseBulkMode}
+									selected={selectedIds.has(shipment.id)}
+									onToggleSelect={(id) => {
+										setSelectedIds((prev) => {
+											const next = new Set(prev);
+											if (next.has(id)) next.delete(id);
+											else next.add(id);
+											return next;
+										});
+									}}
+								/>
+							))}
+						</Box>
+					)}
 
 					{/* Floating Batch Actions HUD */}
 					<BatchActionsHUD
@@ -243,11 +405,23 @@ export default function ShipmentsResultsPanel({
 							window.print();
 							toast.success(`Printing batch thermal QR labels for ${selectedBatchItems.length} vehicles`);
 						}}
+						onBulkAssignContainer={canManageShipments ? () => setAssignContainerModalOpen(true) : undefined}
 						onBulkMessage={() => {
 							if (selectedBatchItems.length > 0) {
 								const first = shipments.find((s) => s.id === selectedBatchItems[0].id);
 								if (first) handleOpenNotification(first);
 							}
+						}}
+					/>
+
+					{/* Batch Container Assignment Modal */}
+					<BatchAssignContainerModal
+						open={assignContainerModalOpen}
+						onClose={() => setAssignContainerModalOpen(false)}
+						selectedShipmentIds={Array.from(selectedIds)}
+						onSuccess={() => {
+							setSelectedIds(new Set());
+							if (onRefresh) onRefresh();
 						}}
 					/>
 

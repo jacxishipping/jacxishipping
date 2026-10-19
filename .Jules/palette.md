@@ -4,3 +4,6 @@
 ## 2026-09-30 - Add Tooltips and ARIA labels to IconButtons
 **Learning:** Using IconButton without accessible names (like aria-label) combined with missing Tooltips for hover state reduces usability. Adding Tooltips and aria-labels solves both screen-reader accessibility and mouse hover UX issues.
 **Action:** When using IconButton components for actions, always verify they contain an aria-label (or text child) and wrap them with Tooltip for explicit interaction context.
+## 2026-10-08 - Dynamic Tooltips and ARIA Labels for Interactive IconButtons
+**Learning:** IconButtons used for toggling states (e.g., showing/hiding email) or performing inline actions (e.g., copying to clipboard) lack critical screen-reader and visual context when relying solely on native HTML 'title' attributes. Furthermore, dynamic state changes, like transitioning from 'Copy' to 'Copied!' should be reflected in both the tooltip and ARIA label for complete accessibility.
+**Action:** Replace native 'title' attributes on IconButtons with MUI Tooltips. Ensure dynamic ARIA labels and Tooltip titles are synchronized with the component's state to provide accurate feedback across all modalities.

@@ -144,8 +144,8 @@
     page-break-before: always;
   }
 
-  /* Print header - add company name/logo area */
-  body:before {
+  /* Print header for container reports */
+  body.container-report:before {
     content: "Container Details Report";
     display: block;
     font-size: 20pt;

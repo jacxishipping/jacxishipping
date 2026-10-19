@@ -1,8 +1,30 @@
 import { ProxyAgent, fetch as undiciFetch } from 'undici';
 
+const PLACEHOLDER_VALUES = new Set([
+  'your-proxy-username',
+  'your-proxy-password',
+  'your-oxylabs-username',
+  'your-oxylabs-password',
+  'your-secret-here',
+  'your-api-key-here',
+  'your-token-here',
+]);
+
+function isPlaceholder(val: string | undefined): boolean {
+  if (!val) return true;
+  const lower = val.trim().toLowerCase();
+  return (
+    PLACEHOLDER_VALUES.has(lower) ||
+    lower.startsWith('your-') ||
+    lower.startsWith('replace_with_') ||
+    lower === 'xxx'
+  );
+}
+
 function normalizeEnvValue(value: string | undefined) {
   const normalized = value?.trim();
-  return normalized ? normalized : undefined;
+  if (!normalized || isPlaceholder(normalized)) return undefined;
+  return normalized;
 }
 
 type LotFetchProxyMode = 'template' | 'connect';
@@ -64,11 +86,11 @@ function buildProxyRequestFailureMessage(mode: LotFetchProxyMode | undefined, er
   const reason = error instanceof Error ? error.message : String(error);
 
   if (mode === 'connect') {
-    return `Outbound proxy request failed. Check LOT_FETCH_PROXY_URL, LOT_FETCH_PROXY_USERNAME, and LOT_FETCH_PROXY_PASSWORD. ${reason}`;
+    return `Outbound proxy request failed. Check LOT_FETCH_PROXY_URL, LOT_FETCH_PROXY_USERNAME, and LOT_FETCH_PROXY_PASSWORD in your environment variables. ${reason}`;
   }
 
   if (mode === 'template') {
-    return `Template proxy request failed. Check LOT_FETCH_PROXY_URL and LOT_FETCH_PROXY_AUTH_TOKEN. ${reason}`;
+    return `Template proxy request failed. Check LOT_FETCH_PROXY_URL and LOT_FETCH_PROXY_AUTH_TOKEN in your environment variables. ${reason}`;
   }
 
   return `Lot fetch request failed. ${reason}`;
@@ -107,32 +129,55 @@ function buildProxyUrl(targetUrl: string) {
   return `${proxyUrl}${separator}url=${encodeURIComponent(targetUrl)}`;
 }
 
-function buildOutboundProxyUrl() {
-  const proxyUrl = normalizeEnvValue(getProxyUrlEnv());
-  if (!proxyUrl) {
-    throw new Error('LOT_FETCH_PROXY_URL is not configured.');
+function parseProxyDetails() {
+  const rawProxyUrl = normalizeEnvValue(getProxyUrlEnv());
+  if (!rawProxyUrl) return null;
+
+  let normalized = rawProxyUrl;
+  if (/^socks5h?:\/\//i.test(normalized)) {
+    normalized = normalized.replace(/^socks5h?:\/\//i, 'http://');
+  } else if (!/^[a-z]+:\/\//i.test(normalized)) {
+    normalized = `http://${normalized}`;
   }
 
-  const normalizedProxyUrl = /^[a-z]+:\/\//i.test(proxyUrl) ? proxyUrl : `http://${proxyUrl}`;
-  const url = new URL(normalizedProxyUrl);
+  try {
+    const url = new URL(normalized);
+    const explicitUsername = normalizeEnvValue(getProxyUsernameEnv());
+    const explicitPassword = normalizeEnvValue(getProxyPasswordEnv());
 
-  const username = normalizeEnvValue(getProxyUsernameEnv());
-  const password = normalizeEnvValue(getProxyPasswordEnv());
+    const username = explicitUsername || (url.username ? decodeURIComponent(url.username) : undefined);
+    const password = explicitPassword || (url.password ? decodeURIComponent(url.password) : undefined);
 
-  if (username) {
-    url.username = username;
+    return {
+      host: url.host,
+      hostname: url.hostname,
+      port: url.port || '7777',
+      username,
+      password,
+      uri: `http://${url.host}`,
+    };
+  } catch {
+    return null;
   }
-
-  if (password) {
-    url.password = password;
-  }
-
-  return url.toString();
 }
 
 function getProxyAgent() {
   if (!cachedProxyAgent) {
-    cachedProxyAgent = new ProxyAgent(buildOutboundProxyUrl());
+    const details = parseProxyDetails();
+    if (!details) {
+      throw new Error('LOT_FETCH_PROXY_URL is not configured or invalid.');
+    }
+
+    const proxyOptions: { uri: string; token?: string } = {
+      uri: details.uri,
+    };
+
+    if (details.username || details.password) {
+      const authString = `${details.username || ''}:${details.password || ''}`;
+      proxyOptions.token = `Basic ${Buffer.from(authString).toString('base64')}`;
+    }
+
+    cachedProxyAgent = new ProxyAgent(proxyOptions);
   }
 
   return cachedProxyAgent;

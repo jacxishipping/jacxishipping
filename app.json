@@ -1,0 +1,15 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "f9cccaeb-b579-4f07-a757-5244f0ccf045"
+      }
+    },
+    "ios": {
+      "bundleIdentifier": "com.jacxi.shipping",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    }
+  }
+}

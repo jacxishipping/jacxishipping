@@ -18,9 +18,10 @@ import ShipmentQuickPeek from '@/components/dashboard/ShipmentQuickPeek';
 import Link from 'next/link';
 import { QRCodeModal, type QRCodeData } from '@/components/dashboard/QRCodeModal';
 import { SavedFilterPresets } from '@/components/dashboard/SavedFilterPresets';
-import { QrCode, Eye, Trash2, PanelRightOpen, Plus } from 'lucide-react';
+import { QrCode, Eye, Trash2, PanelRightOpen, Plus, Download } from 'lucide-react';
 import { BarcodeScannerModal } from '@/components/ui/BarcodeScannerModal';
 import { sanitizeTrackNumber } from '@/lib/tracking-sanitize';
+import { openUniversalShipmentExport } from '@/components/shipments/UniversalShipmentExportModal';
 
 export default function ShipmentsListPage() {
 	const router = useRouter();
@@ -428,6 +429,18 @@ export default function ShipmentsListPage() {
 						<Button
 							variant="outline"
 							size="sm"
+							icon={<Download className="w-4 h-4 text-emerald-500" />}
+							onClick={() => openUniversalShipmentExport({
+								filters: searchFilters,
+								title: 'Export Shipments',
+								subtitle: searchFilters.query ? `Exporting search: "${searchFilters.query}"` : 'Export all or filtered shipments',
+							})}
+						>
+							Export
+						</Button>
+						<Button
+							variant="outline"
+							size="sm"
 							icon={<QrCode className="w-4 h-4 text-[var(--accent-gold)]" />}
 							onClick={() => setScannerOpen(true)}
 						>
@@ -512,6 +525,7 @@ export default function ShipmentsListPage() {
 					setSearchFilters({ query: '', type: 'shipments' });
 					setCurrentPage(1);
 				}}
+				onRefresh={fetchShipments}
 			/>
 
 			{/* Slide-over Quick Peek Drawer */}

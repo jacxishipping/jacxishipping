@@ -16,18 +16,22 @@ import {
   User, 
   CheckCircle,
   Save,
-  AlertCircle
+  AlertCircle,
+  Zap,
 } from 'lucide-react';
 import { Box, Typography, LinearProgress, Autocomplete, TextField } from '@mui/material';
 
 import { DashboardSurface, DashboardPanel } from '@/components/dashboard/DashboardSurface';
 import { PageHeader, Button, FormField, Breadcrumbs, toast, EmptyState, FormPageSkeleton } from '@/components/design-system';
 import ShipmentWorkflowStrip from '@/components/shipments/ShipmentWorkflowStrip';
+import AuctionSmartFillModal from '@/components/shipments/AuctionSmartFillModal';
+import type { ParsedAuctionData } from '@/lib/auction-smart-parser';
 import { shipmentSchema, type ShipmentFormData } from '@/lib/validations/shipment';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { compressImage, isValidImageFile, formatFileSize } from '@/lib/utils/image-compression';
 import { decodeVIN as decodeVINService, getBestWeightEstimate } from '@/lib/services/vin-decoder';
 import { buildCopartLotSummary, fetchCopartLotDataForShipment } from '@/lib/copart/lot-client';
+import { buildIaaiLotSummary, fetchIaaiLotDataForShipment } from '@/lib/iaai/lot-client';
 import { hasPermission } from '@/lib/rbac';
 interface UserOption {
   id: string;
@@ -42,6 +46,14 @@ interface ContainerOption {
   currentCount: number;
   maxCapacity: number;
   destinationPort: string | null;
+  trackingNumber?: string | null;
+  shippingLine?: string | null;
+  bookingNumber?: string | null;
+  company?: {
+    id: string;
+    name: string;
+    code: string;
+  } | null;
 }
 
 interface TransitWorkflowContext {
@@ -98,8 +110,35 @@ export default function EditShipmentPage() {
   const [uploadingFiles, setUploadingFiles] = useState<Set<string>>(new Set());
   const [decodingVin, setDecodingVin] = useState(false);
   const [fetchingLotData, setFetchingLotData] = useState(false);
+  const [lotFetchProgress, setLotFetchProgress] = useState(0);
+  const [lotFetchStage, setLotFetchStage] = useState('');
+  const [smartFillOpen, setSmartFillOpen] = useState(false);
   const [transitWorkflowContext, setTransitWorkflowContext] = useState<TransitWorkflowContext | null>(null);
   const [dispatchWorkflowContext, setDispatchWorkflowContext] = useState<DispatchWorkflowContext | null>(null);
+
+  const handleApplySmartParsedData = (data: ParsedAuctionData) => {
+    const setVal = (field: Parameters<typeof setValue>[0], val: Parameters<typeof setValue>[1]) => {
+      setValue(field, val, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
+    };
+
+    if (data.lotNumber) setVal('lotNumber', data.lotNumber);
+    if (data.auctionName) setVal('auctionName', data.auctionName);
+    if (data.vehicleMake) setVal('vehicleMake', data.vehicleMake);
+    if (data.vehicleModel) setVal('vehicleModel', data.vehicleModel);
+    if (data.vehicleYear) setVal('vehicleYear', data.vehicleYear);
+    if (data.vehicleColor) setVal('vehicleColor', data.vehicleColor);
+    if (data.vehicleType) setVal('vehicleType', data.vehicleType);
+    if (data.vehicleVIN) setVal('vehicleVIN', data.vehicleVIN);
+    if (typeof data.hasKey === 'boolean') setVal('hasKey', data.hasKey);
+    if (typeof data.hasTitle === 'boolean') setVal('hasTitle', data.hasTitle);
+    if (data.purchaseLocation && !watch('purchaseLocation')) setVal('purchaseLocation', data.purchaseLocation);
+    if (data.purchasePrice && !watch('purchasePrice')) setVal('purchasePrice', data.purchasePrice.toString());
+    if (data.internalNotes && !watch('internalNotes')) setVal('internalNotes', data.internalNotes);
+    if (Array.isArray(data.vehiclePhotos) && data.vehiclePhotos.length > 0) {
+      setVehiclePhotos(data.vehiclePhotos);
+      setVal('vehiclePhotos', data.vehiclePhotos);
+    }
+  };
 
   const canManageShipments = useMemo(() => hasPermission(session?.user?.role, 'shipments:manage'), [session]);
 
@@ -239,14 +278,31 @@ export default function EditShipmentPage() {
     fetchData();
   }, [params.id, canManageShipments, status, reset, router]);
 
-  const fetchContainers = async () => {
+  const [containerSearchInput, setContainerSearchInput] = useState('');
+
+  const fetchContainers = async (searchTerm = '') => {
     setLoadingContainers(true);
     try {
-      // Fetch all active containers by using a large limit
-      const response = await fetch('/api/containers?status=active&limit=1000', { cache: 'no-store' });
+      const query = new URLSearchParams({
+        limit: '1000',
+      });
+      if (searchTerm.trim()) {
+        query.set('search', searchTerm.trim());
+      } else {
+        query.set('status', 'active');
+      }
+      const response = await fetch(`/api/containers?${query.toString()}`, { cache: 'no-store' });
       if (response.ok) {
         const data = await response.json();
-        setContainers(data.containers);
+        const incoming = (data.containers || []) as ContainerOption[];
+        setContainers((prev) => {
+          const selectedId = watch('containerId');
+          const selectedContainer = prev.find((c) => c.id === selectedId);
+          if (selectedContainer && !incoming.some((c) => c.id === selectedId)) {
+            return [selectedContainer, ...incoming];
+          }
+          return incoming;
+        });
       }
     } catch (error) {
       console.error('Error fetching containers:', error);
@@ -257,10 +313,22 @@ export default function EditShipmentPage() {
 
   // Watch status changes to fetch containers if needed
   useEffect(() => {
-    if (statusValue === 'IN_TRANSIT' && containers.length === 0) {
-      fetchContainers();
+    if (statusValue === 'IN_TRANSIT') {
+      fetchContainers(containerSearchInput);
     }
-  }, [statusValue, containers.length]);
+  }, [statusValue]);
+
+  // Debounced search for containers when typing
+  useEffect(() => {
+    if (statusValue !== 'IN_TRANSIT') return;
+    if (!containerSearchInput.trim()) return;
+
+    const timer = setTimeout(() => {
+      void fetchContainers(containerSearchInput);
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [containerSearchInput, statusValue]);
 
   // VIN Decoder with enhanced data extraction
   const decodeVIN = async (vin: string) => {
@@ -314,15 +382,68 @@ export default function EditShipmentPage() {
     }
   };
 
-  const fetchCopartLotData = async (lotNumber: string) => {
-    if (!lotNumber?.trim()) return;
+  const fetchAuctionLotData = async (rawLotNumber: string) => {
+    if (!rawLotNumber?.trim()) return;
+
+    let cleanedLotNumber = rawLotNumber.trim();
+    let targetAuction: 'Copart' | 'IAAI' = watch('auctionName') === 'IAAI' ? 'IAAI' : 'Copart';
+
+    // Auto-detect and clean URLs
+    if (/copart\.com/i.test(cleanedLotNumber)) {
+      targetAuction = 'Copart';
+      const match = cleanedLotNumber.match(/copart\.com\/lot\/(\d+)/i);
+      if (match) cleanedLotNumber = match[1];
+    } else if (/iaai\.com/i.test(cleanedLotNumber)) {
+      targetAuction = 'IAAI';
+      const match = cleanedLotNumber.match(/iaai\.com\/VehicleDetail\/([a-zA-Z0-9~-]+)/i);
+      if (match) cleanedLotNumber = match[1];
+    } else {
+      // Strip common prefixes like #, Lot, Stock
+      cleanedLotNumber = cleanedLotNumber.replace(/^(lot|stock)\s*(#|number|no|:)?\s*/i, '').replace(/^#\s*/, '').trim();
+      if (cleanedLotNumber.includes('~') || /~[a-z]{2}$/i.test(cleanedLotNumber)) {
+        targetAuction = 'IAAI';
+      }
+    }
 
     setFetchingLotData(true);
+    setLotFetchProgress(15);
+    setLotFetchStage(`Connecting to ${targetAuction}...`);
+
+    const progressInterval = setInterval(() => {
+      setLotFetchProgress((prev) => {
+        if (prev < 35) {
+          setLotFetchStage(`Querying ${targetAuction} lot details & vehicle specifications...`);
+          return prev + 10;
+        }
+        if (prev < 65) {
+          setLotFetchStage('Extracting vehicle color, keys, title & damage...');
+          return prev + 8;
+        }
+        if (prev < 90) {
+          setLotFetchStage('Retrieving high-resolution photo gallery...');
+          return prev + 5;
+        }
+        return prev;
+      });
+    }, 800);
+
     try {
-      const lotData = await fetchCopartLotDataForShipment(lotNumber.trim());
+      const { lotData, lotSummary } = await (targetAuction === 'IAAI'
+        ? fetchIaaiLotDataForShipment(cleanedLotNumber).then((data) => ({
+            lotData: data,
+            lotSummary: buildIaaiLotSummary(data),
+          }))
+        : fetchCopartLotDataForShipment(cleanedLotNumber).then((data) => ({
+            lotData: data,
+            lotSummary: buildCopartLotSummary(data),
+          })));
+
+      clearInterval(progressInterval);
+      setLotFetchProgress(100);
+      setLotFetchStage('Vehicle data & photos loaded!');
 
       setValue('lotNumber', lotData.lotNumber);
-      setValue('auctionName', lotData.auctionName);
+      setValue('auctionName', lotData.auctionName || targetAuction);
       if (lotData.vehicleMake) setValue('vehicleMake', lotData.vehicleMake);
       if (lotData.vehicleModel) setValue('vehicleModel', lotData.vehicleModel);
       if (lotData.vehicleYear) setValue('vehicleYear', lotData.vehicleYear);
@@ -334,17 +455,37 @@ export default function EditShipmentPage() {
       if (lotData.purchaseDate && !watch('purchaseDate')) setValue('purchaseDate', lotData.purchaseDate);
       if (lotData.purchaseLocation && !watch('purchaseLocation')) setValue('purchaseLocation', lotData.purchaseLocation);
       if (lotData.internalNotes && !watch('internalNotes')) setValue('internalNotes', lotData.internalNotes);
+      if (Array.isArray(lotData.vehiclePhotos) && lotData.vehiclePhotos.length > 0) {
+        setVehiclePhotos(lotData.vehiclePhotos);
+        setValue('vehiclePhotos', lotData.vehiclePhotos, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
+      }
 
-      toast.success('Copart lot data fetched', {
-        description: buildCopartLotSummary(lotData),
+      // If an unmasked 17-character VIN is present and weight is unset, decode weight in background
+      if (lotData.vehicleVIN && lotData.vehicleVIN.length === 17 && !lotData.vehicleVIN.includes('*') && !watch('weight')) {
+        decodeVINService(lotData.vehicleVIN)
+          .then((decoded) => {
+            const weightEst = getBestWeightEstimate(decoded);
+            if (weightEst) setValue('weight', weightEst.toString());
+          })
+          .catch(() => {});
+      }
+
+      toast.success(`${targetAuction} lot data fetched`, {
+        description: lotSummary,
       });
     } catch (error) {
-      console.error('Error fetching Copart lot data:', error);
-      toast.error('Failed to fetch Copart lot data', {
+      clearInterval(progressInterval);
+      console.error(`Error fetching ${targetAuction} lot data:`, error);
+      toast.error(`Failed to fetch ${targetAuction} lot data`, {
         description: error instanceof Error ? error.message : 'Please verify the lot number and try again',
       });
     } finally {
-      setFetchingLotData(false);
+      clearInterval(progressInterval);
+      setTimeout(() => {
+        setFetchingLotData(false);
+        setLotFetchProgress(0);
+        setLotFetchStage('');
+      }, 500);
     }
   };
 
@@ -698,27 +839,85 @@ export default function EditShipmentPage() {
                 <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2 }}>
                   <FormField id="vehicleColor" label="Color" {...register('vehicleColor')} />
                   <Box>
-                    <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-end' }}>
-                      <Box sx={{ flex: 1 }}>
-                        <FormField id="lotNumber" label="Lot Number" placeholder="Copart lot #" {...register('lotNumber')} />
+                    <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-end', flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
+                      <Box sx={{ flex: 1, minWidth: { xs: '100%', sm: 0 } }}>
+                        <FormField id="lotNumber" label="Lot Number" placeholder="Auction lot #" {...register('lotNumber')} />
                       </Box>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => lotNumberValue && fetchCopartLotData(lotNumberValue)}
-                        disabled={!lotNumberValue || fetchingLotData}
-                        loading={fetchingLotData}
-                      >
-                        {fetchingLotData ? 'Fetching...' : 'Fetch Data'}
-                      </Button>
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSmartFillOpen(true)}
+                          className="shrink-0 text-xs bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20"
+                        >
+                          <Zap className="w-3.5 h-3.5 mr-1 fill-amber-400" />
+                          Smart Paste
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => lotNumberValue && fetchAuctionLotData(lotNumberValue)}
+                          disabled={!lotNumberValue || fetchingLotData}
+                          loading={fetchingLotData}
+                          className="shrink-0 text-xs"
+                        >
+                          {fetchingLotData ? 'Fetching...' : 'Fetch'}
+                        </Button>
+                      </Box>
                     </Box>
                     <Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)', mt: 0.75 }}>
-                      Enter a Copart lot number and use Fetch Data to auto-fill the vehicle details from the public lot page.
+                      Use <strong className="text-amber-400 font-semibold">Smart Paste</strong> for instant proxy-free fill, or enter a lot number.
                     </Typography>
                   </Box>
                   <FormField id="auctionName" label="Auction Name" {...register('auctionName')} />
                 </Box>
+
+                {/* Auction Lot Fetching Loading Bar */}
+                {fetchingLotData && (
+                  <Box
+                    sx={{
+                      p: 2.25,
+                      borderRadius: '16px',
+                      backgroundColor: 'rgba(var(--accent-gold-rgb), 0.08)',
+                      border: '1px solid rgba(var(--accent-gold-rgb), 0.35)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 1.25,
+                      animation: 'fadeIn 0.2s ease',
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+                        <Loader2 className="w-4 h-4 text-amber-400 animate-spin" />
+                        <Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                          {lotFetchStage || `Fetching ${watch('auctionName') || 'Auction'} Lot Data...`}
+                        </Typography>
+                      </Box>
+                      <Typography sx={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--accent-gold)' }}>
+                        {lotFetchProgress}%
+                      </Typography>
+                    </Box>
+                    <LinearProgress
+                      variant="determinate"
+                      value={lotFetchProgress}
+                      sx={{
+                        height: 8,
+                        borderRadius: 4,
+                        backgroundColor: 'rgba(var(--border-rgb), 0.25)',
+                        '& .MuiLinearProgress-bar': {
+                          backgroundColor: 'var(--accent-gold)',
+                          borderRadius: 4,
+                          transition: 'transform 0.35s ease-out',
+                        },
+                      }}
+                    />
+                    <Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                      Retrieving vehicle specifications, color, keys, damage, and high-resolution photo gallery
+                    </Typography>
+                  </Box>
+                )}
                 
                 <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' }, gap: 2 }}>
                     <FormField
@@ -996,59 +1195,102 @@ export default function EditShipmentPage() {
                     <Typography component="label" htmlFor="containerId" sx={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)', mb: 1 }}>
                       Container *
                     </Typography>
-                    {loadingContainers ? (
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                        <Loader2 className="animate-spin w-4 h-4" />
-                        <Typography variant="body2">Loading containers...</Typography>
-                      </Box>
-                    ) : (
-                      <Autocomplete
-                        options={containers}
-                        getOptionLabel={(option) => 
-                          `${option.containerNumber} - ${option.destinationPort || 'No destination'} (${option.currentCount}/${option.maxCapacity})`
+                    <Autocomplete
+                      options={containers}
+                      isOptionEqualToValue={(option, value) => option.id === value?.id}
+                      getOptionLabel={(option) => 
+                        typeof option === 'string' 
+                          ? option 
+                          : `${option.containerNumber || ''}${option.destinationPort ? ` - ${option.destinationPort}` : ''} (${option.currentCount ?? 0}/${option.maxCapacity ?? 0})`
+                      }
+                      filterOptions={(options, state) => {
+                        const query = (state.inputValue || '').toLowerCase().trim();
+                        if (!query) return options;
+                        return options.filter((c) => {
+                          const num = (c.containerNumber || '').toLowerCase();
+                          const dest = (c.destinationPort || '').toLowerCase();
+                          const track = (c.trackingNumber || '').toLowerCase();
+                          const line = (c.shippingLine || '').toLowerCase();
+                          const company = (c.company?.name || '').toLowerCase();
+                          const booking = (c.bookingNumber || '').toLowerCase();
+                          return num.includes(query) || dest.includes(query) || track.includes(query) || line.includes(query) || company.includes(query) || booking.includes(query);
+                        });
+                      }}
+                      inputValue={containerSearchInput}
+                      onInputChange={(_, newInputValue, reason) => {
+                        if (reason === 'input' || reason === 'clear') {
+                          setContainerSearchInput(newInputValue);
                         }
-                        value={containers.find(c => c.id === watch('containerId')) || null}
-                        onChange={(_, newValue) => {
-                          setValue('containerId', newValue?.id || '', { shouldValidate: true });
-                        }}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            placeholder="Select a container"
-                            error={!!errors.containerId}
-                            helperText={errors.containerId?.message}
-                            sx={{
-                              '& .MuiOutlinedInput-root': {
-                                borderRadius: '16px',
-                                backgroundColor: 'var(--background)',
-                                '& fieldset': {
-                                  borderColor: errors.containerId ? 'var(--error)' : 'rgba(var(--border-rgb), 0.9)',
-                                },
-                                '&:hover fieldset': {
-                                  borderColor: errors.containerId ? 'var(--error)' : 'var(--accent-gold)',
-                                },
-                                '&.Mui-focused fieldset': {
-                                  borderColor: errors.containerId ? 'var(--error)' : 'var(--accent-gold)',
-                                },
+                      }}
+                      value={containers.find(c => c.id === watch('containerId')) || null}
+                      onChange={(_, newValue) => {
+                        setValue('containerId', newValue?.id || '', { shouldValidate: true });
+                      }}
+                      renderOption={(props, option) => (
+                        <li {...props} key={option.id}>
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, py: 0.5, width: '100%' }}>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <Typography sx={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-primary)' }}>
+                                {option.containerNumber}
+                              </Typography>
+                              <Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                                {option.currentCount}/{option.maxCapacity} loaded
+                              </Typography>
+                            </Box>
+                            <Box sx={{ display: 'flex', gap: 1, fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                              {option.destinationPort && <span>Port: {option.destinationPort}</span>}
+                              {option.shippingLine && <span>• {option.shippingLine}</span>}
+                              {option.company?.name && <span>• {option.company.name}</span>}
+                            </Box>
+                          </Box>
+                        </li>
+                      )}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          placeholder="Search by container #, tracking #, line, or port..."
+                          error={!!errors.containerId}
+                          helperText={errors.containerId?.message}
+                          InputProps={{
+                            ...params.InputProps,
+                            endAdornment: (
+                              <>
+                                {loadingContainers ? <Loader2 className="animate-spin w-4 h-4 text-[var(--accent-gold)] mr-2" /> : null}
+                                {params.InputProps.endAdornment}
+                              </>
+                            ),
+                          }}
+                          sx={{
+                            '& .MuiOutlinedInput-root': {
+                              borderRadius: '16px',
+                              backgroundColor: 'var(--background)',
+                              '& fieldset': {
+                                borderColor: errors.containerId ? 'var(--error)' : 'rgba(var(--border-rgb), 0.9)',
                               },
-                              '& .MuiInputBase-input': {
-                                color: 'var(--text-primary)',
-                                fontSize: '0.875rem',
+                              '&:hover fieldset': {
+                                borderColor: errors.containerId ? 'var(--error)' : 'var(--accent-gold)',
                               },
-                              '& .MuiInputLabel-root': {
-                                color: 'var(--text-secondary)',
+                              '&.Mui-focused fieldset': {
+                                borderColor: errors.containerId ? 'var(--error)' : 'var(--accent-gold)',
                               },
-                            }}
-                          />
-                        )}
-                        sx={{
-                          '& .MuiAutocomplete-paper': {
-                            backgroundColor: 'var(--panel)',
-                            border: '1px solid var(--border)',
-                          },
-                        }}
-                      />
-                    )}
+                            },
+                            '& .MuiInputBase-input': {
+                              color: 'var(--text-primary)',
+                              fontSize: '0.875rem',
+                            },
+                            '& .MuiInputLabel-root': {
+                              color: 'var(--text-secondary)',
+                            },
+                          }}
+                        />
+                      )}
+                      sx={{
+                        '& .MuiAutocomplete-paper': {
+                          backgroundColor: 'var(--panel)',
+                          border: '1px solid var(--border)',
+                        },
+                      }}
+                    />
                   </Box>
                 )}
               </Box>
@@ -1282,6 +1524,14 @@ export default function EditShipmentPage() {
             </Box>
           </Box>
         </form>
+
+        <AuctionSmartFillModal
+          isOpen={smartFillOpen}
+          onClose={() => setSmartFillOpen(false)}
+          onApply={handleApplySmartParsedData}
+          initialLotNumber={watch('lotNumber')}
+          initialAuctionName={watch('auctionName')}
+        />
       </DashboardSurface>
     </ProtectedRoute>
   );

@@ -90,6 +90,7 @@ export async function GET(request: NextRequest) {
               sourceFileName: true,
               destinationLabel: true,
               createdAt: true,
+              config: true,
             },
           },
           ledgerEntries: {

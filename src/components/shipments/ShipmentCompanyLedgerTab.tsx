@@ -8,6 +8,8 @@ import { DashboardPanel } from '@/components/dashboard/DashboardSurface';
 import { Button, Modal, toast } from '@/components/design-system';
 import { formatMoney } from '@/lib/format';
 import type { Shipment } from '@/components/shipments/shipment-detail-types';
+import CompanyPriceListDrawer from '@/components/finance/CompanyPriceListDrawer';
+import { extractStateCode } from '@/lib/shipment-price-list-lifecycle';
 
 type ShipmentCompanyLedgerTabProps = {
   shipmentId: string;
@@ -16,6 +18,7 @@ type ShipmentCompanyLedgerTabProps = {
   paymentSummary: NonNullable<Shipment['companyPaymentSummary']>;
   canManageLedger: boolean;
   onTransactionCreated: () => void;
+  shipment?: Shipment;
 };
 
 type CompanyLedgerEntryRow = NonNullable<Shipment['companyLedgerEntries']>[number];
@@ -70,6 +73,7 @@ export default function ShipmentCompanyLedgerTab({
   paymentSummary,
   canManageLedger,
   onTransactionCreated,
+  shipment,
 }: ShipmentCompanyLedgerTabProps) {
   const [form, setForm] = useState<EntryForm>(emptyForm);
   const [isPayment, setIsPayment] = useState(false);
@@ -81,6 +85,7 @@ export default function ShipmentCompanyLedgerTab({
   const [editType, setEditType] = useState<'DEBIT' | 'CREDIT'>('CREDIT');
   const [editOpen, setEditOpen] = useState(false);
   const [updating, setUpdating] = useState(false);
+  const [openPriceListDrawer, setOpenPriceListDrawer] = useState(false);
   const company = companies.find((candidate) => candidate.id === selectedCompanyId) || companies[0] || null;
   const companyEntries = company ? entries.filter((entry) => entry.companyId === company.id) : [];
 
@@ -232,6 +237,14 @@ export default function ShipmentCompanyLedgerTab({
         description={`Transactions with ${company.name} for this shipment`}
         actions={
           <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              icon={<ReceiptText className="h-4 w-4 text-[var(--accent-gold)]" />}
+              onClick={() => setOpenPriceListDrawer(true)}
+            >
+              Price List
+            </Button>
             <Link href={`/dashboard/finance/companies/${company.id}`}>
               <Button variant="outline" size="sm" icon={<Building2 className="h-4 w-4" />}>Open Ledger</Button>
             </Link>
@@ -244,12 +257,22 @@ export default function ShipmentCompanyLedgerTab({
           </div>
         }
       >
-        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm">
-          <span className="text-[var(--text-secondary)]">Company payment:</span>
-          <span className={paymentSummary.status === 'PAID_TO_COMPANY' ? 'font-semibold text-emerald-600' : paymentSummary.status === 'PARTIAL' ? 'font-semibold text-[var(--warning)]' : 'font-semibold text-[var(--text-primary)]'}>
-            {paymentSummary.status === 'PAID_TO_COMPANY' ? 'Paid to company' : paymentSummary.status === 'PARTIAL' ? 'Partially paid to company' : paymentSummary.status === 'UNPAID' ? 'Unpaid to company' : 'No payment due'}
-          </span>
-          <span className="text-[var(--text-secondary)]">Paid {formatMoney(paymentSummary.paid)} of {formatMoney(paymentSummary.charged)}</span>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-[var(--text-secondary)]">Company payment:</span>
+            <span className={paymentSummary.status === 'PAID_TO_COMPANY' ? 'font-semibold text-emerald-600' : paymentSummary.status === 'PARTIAL' ? 'font-semibold text-[var(--warning)]' : 'font-semibold text-[var(--text-primary)]'}>
+              {paymentSummary.status === 'PAID_TO_COMPANY' ? 'Paid to company' : paymentSummary.status === 'PARTIAL' ? 'Partially paid to company' : paymentSummary.status === 'UNPAID' ? 'Unpaid to company' : 'No payment due'}
+            </span>
+            <span className="text-[var(--text-secondary)]">Paid {formatMoney(paymentSummary.paid)} of {formatMoney(paymentSummary.charged)}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setOpenPriceListDrawer(true)}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--accent-gold)] hover:underline cursor-pointer"
+          >
+            <ReceiptText className="h-3.5 w-3.5" />
+            View {company.name} Price List
+          </button>
         </div>
         {companies.length > 1 && (
           <Box sx={{ maxWidth: 360, mb: 2 }}>
@@ -375,6 +398,28 @@ export default function ShipmentCompanyLedgerTab({
           <TextField label="Notes" rows={3} multiline value={editForm.notes} onChange={(event) => setEditForm((current) => ({ ...current, notes: event.target.value }))} />
         </Box>
       </Modal>
+
+      {/* Company Price List Drawer */}
+      <CompanyPriceListDrawer
+        open={openPriceListDrawer}
+        onClose={() => setOpenPriceListDrawer(false)}
+        companyId={company.id}
+        companyName={company.name}
+        companyType={company.source}
+        highlightLane={
+          shipment
+            ? {
+                stateCode:
+                  shipment.priceListPricingSnapshot?.matchedLane?.stateCode ||
+                  extractStateCode(shipment.purchaseLocation) ||
+                  extractStateCode(shipment.auctionName),
+                branch: shipment.priceListPricingSnapshot?.matchedLane?.branch || shipment.auctionName,
+                city: shipment.priceListPricingSnapshot?.matchedLane?.city || shipment.purchaseLocation,
+                totalPrice: shipment.priceListPricingSnapshot?.totalPrice,
+              }
+            : null
+        }
+      />
     </>
   );
 }

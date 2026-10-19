@@ -26,6 +26,7 @@ import {
   Truck,
   Upload,
   User,
+  Download,
 } from 'lucide-react';
 import PermissionRoute from '@/components/auth/PermissionRoute';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
@@ -35,6 +36,7 @@ import AddShipmentExpenseModal from '@/components/shipments/AddShipmentExpenseMo
 import AddTransitExpenseModal from '@/components/transits/AddTransitExpenseModal';
 import { hasPermission } from '@/lib/rbac';
 import { formatMoney as formatCurrency } from '@/lib/format';
+import { openUniversalShipmentExport } from '@/components/shipments/UniversalShipmentExportModal';
 
 interface Company {
   id: string;
@@ -725,6 +727,18 @@ export default function TransitDetailPage() {
           actions={
             <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
               <CopyButton value={transit.referenceNumber} label="Transit #" />
+              <Button
+                variant="outline"
+                size="sm"
+                icon={<Download className="w-4 h-4 text-emerald-500" />}
+                onClick={() => openUniversalShipmentExport({
+                  filters: { transitId: transit.id },
+                  title: `Export Transit ${transit.referenceNumber} Shipments`,
+                  subtitle: `Export ${transit.shipments.length} shipment(s) in this transit`,
+                })}
+              >
+                Export Shipments
+              </Button>
               <Link href="/dashboard/transits" style={{ textDecoration: 'none' }}>
                 <Button variant="outline" size="sm" icon={<ArrowLeft className="w-4 h-4" />}>Back</Button>
               </Link>

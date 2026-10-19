@@ -52,9 +52,9 @@ export default function DashboardOperationsSection({
         <DashboardPanel title="Shipment Mix" description="Current workload by status.">
           <div className="grid grid-cols-2 gap-3">
             {shipmentStats.map((stat) => (
-              <div key={stat.status} className="flex flex-col rounded-lg border border-border bg-background p-3">
-                <span className="mb-1 truncate text-xs text-gray-500 capitalize">{stat.status.replace('_', ' ').toLowerCase()}</span>
-                <span className="text-lg font-bold text-primary">{stat._count}</span>
+              <div key={stat.status} className="flex flex-col rounded-lg border border-border bg-background p-3 shadow-sm">
+                <span className="mb-1 truncate text-xs text-muted-foreground capitalize">{stat.status.replace('_', ' ').toLowerCase()}</span>
+                <span className="mt-1 text-lg font-bold text-primary">{stat._count}</span>
               </div>
             ))}
           </div>
@@ -77,9 +77,9 @@ export default function DashboardOperationsSection({
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
                   {dispatchStats.map((stat) => (
-                    <div key={stat.status} className="flex flex-col rounded-lg border border-border bg-background p-3">
-                      <span className="mb-1 truncate text-xs text-gray-500">{stat.label}</span>
-                      <span className="text-lg font-bold text-primary">{stat.count}</span>
+                    <div key={stat.status} className="flex flex-col rounded-lg border border-border bg-background p-3 shadow-sm">
+                      <span className="mb-1 truncate text-xs text-muted-foreground">{stat.label}</span>
+                      <span className="mt-1 text-lg font-bold text-primary">{stat.count}</span>
                     </div>
                   ))}
                 </div>
@@ -100,7 +100,7 @@ export default function DashboardOperationsSection({
                         <Link
                           key={dispatch.id}
                           href={`/dashboard/dispatches/${dispatch.id}`}
-                          className="flex items-center justify-between rounded-lg border border-border bg-background px-3 py-2 transition-colors hover:bg-background/70"
+                          className="flex items-center justify-between rounded-lg border border-border bg-background px-3 py-2 transition-colors hover:bg-background/70 shadow-sm"
                         >
                           <div className="min-w-0">
                             <p className="truncate text-sm font-medium text-primary">{dispatch.referenceNumber}</p>

@@ -18,11 +18,12 @@ import {
   TextField,
   Tooltip,
 } from '@mui/material';
-import { Building2, GitCompareArrows, Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import { Building2, Download, GitCompareArrows, Pencil, Plus, ReceiptText, Search, Trash2 } from 'lucide-react';
 import PermissionRoute from '@/components/auth/PermissionRoute';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
 import { Breadcrumbs, Button, StatsCard, toast, PageHeader } from '@/components/design-system';
 import { DataTable, Column } from '@/components/ui/DataTable';
+import { openUniversalShipmentExport } from '@/components/shipments/UniversalShipmentExportModal';
 
 interface Company {
   id: string;
@@ -308,9 +309,48 @@ export default function CompanyFinancePage() {
         align: 'center',
         render: (_, row) => {
           const activeList = row.priceLists?.[0];
-          if (!activeList) return 'Not uploaded';
+          if (!activeList) {
+            return (
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                Not uploaded
+              </span>
+            );
+          }
           const rowCount = activeList.importedAuctionRateCount || activeList.importedStateRateCount;
-          return `${rowCount} rows`;
+          return (
+            <Tooltip title="View company price list inside ledger">
+              <Box
+                component="button"
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  router.push(`/dashboard/finance/companies/${row.id}?tab=price-list`);
+                }}
+                sx={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 0.5,
+                  px: 1,
+                  py: 0.35,
+                  borderRadius: 1.5,
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  backgroundColor: 'rgba(var(--accent-gold-rgb), 0.1)',
+                  color: 'var(--accent-gold)',
+                  border: '1px solid rgba(var(--accent-gold-rgb), 0.28)',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  '&:hover': {
+                    backgroundColor: 'rgba(var(--accent-gold-rgb), 0.2)',
+                    transform: 'translateY(-1px)',
+                  },
+                }}
+              >
+                <ReceiptText className="w-3.5 h-3.5" />
+                {rowCount} rates
+              </Box>
+            </Tooltip>
+          );
         },
       },
       {
@@ -381,6 +421,18 @@ export default function CompanyFinancePage() {
           description="Create and manage ledgers for partner companies"
           actions={
             <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              <Button
+                variant="outline"
+                icon={<Download className="w-4 h-4 text-emerald-500" />}
+                onClick={() =>
+                  openUniversalShipmentExport({
+                    title: 'Export Shipments Across Partner Companies',
+                    subtitle: 'All company dispatch, shipping, and transit records',
+                  })
+                }
+              >
+                Export Shipments
+              </Button>
               <Button variant="outline" icon={<GitCompareArrows className="w-4 h-4" />} onClick={() => router.push('/dashboard/finance/price-comparison')}>
                 Compare Prices
               </Button>

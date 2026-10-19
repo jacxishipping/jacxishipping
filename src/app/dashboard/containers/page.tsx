@@ -5,10 +5,10 @@ import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { Box, Typography, Menu, MenuItem, IconButton, Divider } from '@mui/material';
-import { Package, Ship, MapPin, TrendingUp, Calendar, FileText, DollarSign, Receipt, MoreVertical, Eye, Copy, Trash2, Download, PanelRightOpen, QrCode, Layers, Compass } from 'lucide-react';
+import { Package, Ship, MapPin, TrendingUp, Calendar, FileText, DollarSign, Receipt, MoreVertical, Eye, Copy, Trash2, Download, PanelRightOpen, QrCode, Layers, Compass, Clock, AlertTriangle, ShieldCheck, RefreshCw } from 'lucide-react';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
-import { PageHeader, StatsCard, Button, EmptyState, FormField, Select, toast, SkeletonCard, DashboardPageSkeleton, CompactSkeleton, StatusBadge, CopyButton, StatusFilterPills } from '@/components/design-system';
+import { PageHeader, StatsCard, Button, EmptyState, FormField, Select, toast, SkeletonCard, DashboardPageSkeleton, CompactSkeleton, StatusBadge, CopyButton, StatusFilterPills, Tooltip } from '@/components/design-system';
 import ContainerQuickPeek from '@/components/dashboard/ContainerQuickPeek';
 import { QRCodeModal, type QRCodeData } from '@/components/dashboard/QRCodeModal';
 import { SavedFilterPresets } from '@/components/dashboard/SavedFilterPresets';
@@ -18,6 +18,8 @@ import { addWorkspaceItem } from '@/components/dashboard/WorkspaceTray';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { exportToCSVWithHeaders } from '@/lib/export';
 import { useConfirmAction } from '@/components/ui/ConfirmActionProvider';
+import { getContainerDemurrageInfo } from '@/lib/container-demurrage';
+import { TrackingSourceBadge } from '@/components/tracking/TrackingSourceBadge';
 
 interface Container {
   id: string;
@@ -30,11 +32,18 @@ interface Container {
   destinationPort: string | null;
   departureDate?: string | null;
   estimatedArrival: string | null;
+  actualArrival?: string | null;
   status: string;
   progress: number;
   currentCount: number;
   maxCapacity: number;
   createdAt: string;
+  trackingEvents?: Array<{
+    id: string;
+    status: string;
+    eventDate: string;
+    source?: string | null;
+  }>;
   _count: {
     shipments: number;
     expenses: number;
@@ -59,8 +68,6 @@ export default function ContainersPage() {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [showBulkTable, setShowBulkTable] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedContainer, setSelectedContainer] = useState<Container | null>(null);
@@ -69,6 +76,7 @@ export default function ContainersPage() {
   const [plannerContainer, setPlannerContainer] = useState<Container | null>(null);
   const [showOceanTracker, setShowOceanTracker] = useState(false);
   const [activeOceanContainerId, setActiveOceanContainerId] = useState<string | null>(null);
+  const [refreshingTracking, setRefreshingTracking] = useState(false);
   const router = useRouter();
   const { data: session } = useSession();
   const isAdmin = session?.user?.role === 'admin';
@@ -99,7 +107,6 @@ export default function ContainersPage() {
   const handleClearFilters = () => {
     setStatusFilter('all');
     setSearchQuery('');
-    setPage(1);
   };
 
   const handleOpenQR = (container: Container, e?: React.MouseEvent) => {
@@ -121,17 +128,14 @@ export default function ContainersPage() {
   useEffect(() => {
     fetchContainers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, statusFilter, searchQuery]);
+  }, [statusFilter, searchQuery]);
 
   const fetchContainers = async () => {
     try {
       setLoading(true);
-      const params = new URLSearchParams({
-        page: page.toString(),
-        limit: '20',
-      });
+      const params = new URLSearchParams({ all: 'true' });
 
-      if (statusFilter !== 'all') {
+      if (statusFilter !== 'all' && statusFilter !== 'demurrage_risk') {
         params.append('status', statusFilter);
       }
 
@@ -144,7 +148,6 @@ export default function ContainersPage() {
 
       if (response.ok) {
         setContainers(data.containers);
-        setTotalPages(data.pagination.totalPages);
       }
     } catch (error) {
       console.error('Error fetching containers:', error);
@@ -155,7 +158,6 @@ export default function ContainersPage() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    setPage(1);
     fetchContainers();
   };
 
@@ -183,6 +185,31 @@ export default function ContainersPage() {
     } catch (error) {
       console.error('Export error:', error);
       toast.error('Failed to export containers');
+    }
+  };
+
+  const handleRefreshAllTracking = async () => {
+    try {
+      setRefreshingTracking(true);
+      toast.info('Refreshing live tracking data for all containers via tracking APIs...');
+      const res = await fetch('/api/containers/sync-tracking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to refresh tracking data');
+      }
+
+      toast.success(
+        data.message || `Successfully refreshed tracking (${data.synced} container(s) synced)!`
+      );
+      await fetchContainers();
+    } catch (err: any) {
+      console.error('Error refreshing tracking:', err);
+      toast.error(err.message || 'Error communicating with tracking APIs');
+    } finally {
+      setRefreshingTracking(false);
     }
   };
 
@@ -330,10 +357,18 @@ export default function ContainersPage() {
     total: containers.length,
     inTransit: containers.filter(c => c.status === 'IN_TRANSIT').length,
     arrived: containers.filter(c => c.status === 'ARRIVED_PORT' || c.status === 'RELEASED').length,
+    demurrageRisk: containers.filter(c => {
+      const info = getContainerDemurrageInfo(c);
+      return info.level === 'critical' || info.level === 'warning';
+    }).length,
     avgCapacity: containers.length > 0 
       ? Math.round((containers.reduce((sum, c) => sum + (c.currentCount / c.maxCapacity * 100), 0) / containers.length))
       : 0,
   };
+
+  const displayedContainers = statusFilter === 'demurrage_risk'
+    ? containers.filter((c) => ['critical', 'warning'].includes(getContainerDemurrageInfo(c).level))
+    : containers;
 
   const containerStatusOptions = Object.entries(statusLabels).map(([value, label]) => ({
     value,
@@ -362,6 +397,30 @@ export default function ContainersPage() {
       render: (value) => <StatusBadge status={String(value)} size="sm" />,
     },
     {
+      key: 'demurrage' as any,
+      header: 'Demurrage / Free Time',
+      render: (_value, row) => {
+        const demurrage = getContainerDemurrageInfo(row);
+        if (!demurrage.badgeLabel) {
+          return <span className="text-[var(--text-secondary)] text-xs">-</span>;
+        }
+        return (
+          <Tooltip title={demurrage.tooltipText}>
+            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] border font-medium ${demurrage.colorClass}`}>
+              {demurrage.level === 'critical' ? (
+                <AlertTriangle className="w-3 h-3 shrink-0" />
+              ) : demurrage.level === 'warning' ? (
+                <Clock className="w-3 h-3 shrink-0" />
+              ) : (
+                <ShieldCheck className="w-3 h-3 shrink-0" />
+              )}
+              <span>{demurrage.badgeLabel}</span>
+            </span>
+          </Tooltip>
+        );
+      },
+    },
+    {
       key: 'trackingNumber',
       header: 'Tracking',
       sortable: true,
@@ -374,6 +433,14 @@ export default function ContainersPage() {
         ) : (
           <span className="text-[var(--text-secondary)]">-</span>
         ),
+    },
+    {
+      key: 'trackingSource' as any,
+      header: 'Tracking API',
+      render: (_value, row) => {
+        const latestSource = row.trackingEvents?.[0]?.source;
+        return <TrackingSourceBadge source={latestSource} size="xs" />;
+      },
     },
     { key: 'vesselName', header: 'Vessel', sortable: true },
     { key: 'destinationPort', header: 'Destination', sortable: true },
@@ -509,6 +576,14 @@ export default function ContainersPage() {
                   {showBulkTable ? 'Card view' : 'Bulk mode'}
                 </Button>
               )}
+              <Button
+                variant="outline"
+                onClick={handleRefreshAllTracking}
+                disabled={refreshingTracking}
+                icon={<RefreshCw className={`w-4 h-4 ${refreshingTracking ? 'animate-spin text-[var(--accent-gold)]' : ''}`} />}
+              >
+                {refreshingTracking ? 'Syncing Tracking...' : 'Refresh Tracking'}
+              </Button>
               <Button 
                 variant="outline" 
                 onClick={handleExport}
@@ -561,7 +636,7 @@ export default function ContainersPage() {
         })()}
 
         {/* Stats */}
-        <DashboardGrid className="grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+        <DashboardGrid className="grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
           <StatsCard
             icon={<Package style={{ fontSize: 18 }} />}
             title="Total Containers"
@@ -581,6 +656,13 @@ export default function ContainersPage() {
             title="Arrived"
             value={stats.arrived}
             variant="success"
+            size="md"
+          />
+          <StatsCard
+            icon={<AlertTriangle style={{ fontSize: 18 }} />}
+            title="Demurrage Risk"
+            value={stats.demurrageRisk}
+            variant={stats.demurrageRisk > 0 ? "error" : "default"}
             size="md"
           />
           <StatsCard
@@ -613,7 +695,6 @@ export default function ContainersPage() {
               onApplyPreset={(filters) => {
                 if (filters.status) setStatusFilter(filters.status);
                 if (typeof filters.search === 'string') setSearchQuery(filters.search);
-                setPage(1);
               }}
             />
           </Box>
@@ -624,6 +705,7 @@ export default function ContainersPage() {
           <StatusFilterPills
             options={[
               { value: 'all', label: 'All Statuses' },
+              { value: 'demurrage_risk', label: stats.demurrageRisk > 0 ? `Demurrage Risk (${stats.demurrageRisk})` : 'Demurrage Risk', color: '#EF4444' },
               { value: 'CREATED', label: 'Created', color: '#6B7280' },
               { value: 'WAITING_FOR_LOADING', label: 'Waiting for Loading', color: '#F59E0B' },
               { value: 'LOADED', label: 'Loaded', color: '#3B82F6' },
@@ -636,13 +718,12 @@ export default function ContainersPage() {
             selectedValue={statusFilter}
             onSelect={(val) => {
               setStatusFilter(val);
-              setPage(1);
             }}
           />
         </div>
 
         {/* Container Grid */}
-        <DashboardPanel title={`All Containers (${containers.length})`} fullHeight>
+        <DashboardPanel title={`All Containers (${displayedContainers.length})`} fullHeight>
           {loading ? (
             <CompactSkeleton />
           ) : containers.length === 0 ? (
@@ -671,7 +752,7 @@ export default function ContainersPage() {
             />
           ) : showBulkTable ? (
             <DataTable
-              data={containers}
+              data={displayedContainers}
               columns={containerColumns}
               keyField="id"
               selectable={isAdmin}
@@ -680,13 +761,11 @@ export default function ContainersPage() {
               onExport={isAdmin ? handleBulkExport : undefined}
               bulkStatusOptions={containerStatusOptions}
               onBulkStatusChange={isAdmin ? handleBulkStatusUpdate : undefined}
-              currentPage={page}
-              totalPages={totalPages}
             />
           ) : (
             <>
               <DashboardGrid className="grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                {containers.map((container, index) => (
+                {displayedContainers.map((container, index) => (
                   <Box
                     key={container.id}
                     onClick={() => router.push(`/dashboard/containers/${container.id}`)}
@@ -724,6 +803,11 @@ export default function ContainersPage() {
                               <span onClick={(e) => e.stopPropagation()}>
                                 <CopyButton value={container.trackingNumber} label="Tracking #" />
                               </span>
+                            </Box>
+                          )}
+                          {container.trackingEvents?.[0]?.source && (
+                            <Box sx={{ mt: 0.75 }} onClick={(e) => e.stopPropagation()}>
+                              <TrackingSourceBadge source={container.trackingEvents[0].source} size="xs" />
                             </Box>
                           )}
                         </Box>
@@ -834,6 +918,31 @@ export default function ContainersPage() {
                       </Box>
                     </Box>
 
+                    {/* Demurrage & Free-Time Risk Indicator */}
+                    {(() => {
+                      const demurrage = getContainerDemurrageInfo(container);
+                      if (!demurrage.badgeLabel) return null;
+
+                      return (
+                        <Box sx={{ mb: 1.5 }}>
+                          <Tooltip title={demurrage.tooltipText}>
+                            <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs border font-medium ${demurrage.colorClass}`}>
+                              {demurrage.level === 'critical' ? (
+                                <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                              ) : demurrage.level === 'warning' ? (
+                                <Clock className="w-3.5 h-3.5 shrink-0" />
+                              ) : demurrage.level === 'approaching' ? (
+                                <Compass className="w-3.5 h-3.5 shrink-0" />
+                              ) : (
+                                <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+                              )}
+                              <span>{demurrage.badgeLabel}</span>
+                            </div>
+                          </Tooltip>
+                        </Box>
+                      );
+                    })()}
+
                     {/* Details */}
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 2 }}>
                       {container.vesselName && (
@@ -896,31 +1005,6 @@ export default function ContainersPage() {
                   </Box>
                 ))}
               </DashboardGrid>
-
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 2, mt: 3 }}>
-                  <Button
-                    variant="outline"
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    disabled={page === 1}
-                    size="sm"
-                  >
-                    Previous
-                  </Button>
-                  <Typography sx={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                    Page {page} of {totalPages}
-                  </Typography>
-                  <Button
-                    variant="outline"
-                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={page === totalPages}
-                    size="sm"
-                  >
-                    Next
-                  </Button>
-                </Box>
-              )}
             </>
           )}
         </DashboardPanel>
@@ -1019,6 +1103,44 @@ export default function ContainersPage() {
           >
             <Eye style={{ fontSize: 16, marginRight: 12 }} />
             Full Details
+          </MenuItem>
+          <MenuItem
+            onClick={async () => {
+              if (selectedContainer) {
+                const cid = selectedContainer.id;
+                const cnum = selectedContainer.containerNumber;
+                handleMenuClose();
+                try {
+                  toast.info(`Refreshing tracking for ${cnum}...`);
+                  const res = await fetch('/api/containers/sync-tracking', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ containerId: cid }),
+                  });
+                  const d = await res.json();
+                  if (d.success) {
+                    toast.success(d.message || 'Tracking refreshed successfully!');
+                    await fetchContainers();
+                  } else {
+                    toast.error(d.error || 'Tracking sync failed');
+                  }
+                } catch {
+                  toast.error('Failed to sync tracking');
+                }
+              }
+            }}
+            sx={{
+              fontSize: '0.875rem',
+              py: 1.5,
+              px: 2,
+              color: 'var(--text-primary)',
+              '&:hover': {
+                bgcolor: 'rgba(var(--accent-gold-rgb), 0.1)',
+              },
+            }}
+          >
+            <RefreshCw style={{ width: 16, height: 16, marginRight: 12 }} />
+            Refresh Tracking
           </MenuItem>
           <MenuItem
             onClick={() => {

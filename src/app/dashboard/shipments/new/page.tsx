@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowLeft, Upload, X, Loader2, Package, User, FileText, CheckCircle, ArrowRight, Camera } from 'lucide-react';
+import { ArrowLeft, Upload, X, Loader2, Package, User, FileText, CheckCircle, ArrowRight, Camera, Zap } from 'lucide-react';
 import { Box, Stepper, Step, StepLabel, Typography, LinearProgress, Autocomplete, TextField } from '@mui/material';
 import { DashboardSurface, DashboardPanel } from '@/components/dashboard/DashboardSurface';
 import { PageHeader, Button, FormField, Breadcrumbs, toast } from '@/components/design-system';
@@ -15,6 +15,8 @@ import { shipmentSchema, type ShipmentFormData } from '@/lib/validations/shipmen
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { BarcodeScannerModal } from '@/components/ui/BarcodeScannerModal';
 import { AiDocumentAutoFillDropzone, type ExtractedShipmentData } from '@/components/shipments/AiDocumentAutoFillDropzone';
+import AuctionSmartFillModal from '@/components/shipments/AuctionSmartFillModal';
+import type { ParsedAuctionData } from '@/lib/auction-smart-parser';
 import { compressImage, isValidImageFile, formatFileSize } from '@/lib/utils/image-compression';
 import { decodeVIN as decodeVINService, getBestWeightEstimate } from '@/lib/services/vin-decoder';
 import { buildCopartLotSummary, fetchCopartLotDataForShipment } from '@/lib/copart/lot-client';
@@ -34,6 +36,14 @@ interface ContainerOption {
 	currentCount: number;
 	maxCapacity: number;
 	destinationPort: string | null;
+	trackingNumber?: string | null;
+	shippingLine?: string | null;
+	bookingNumber?: string | null;
+	company?: {
+		id: string;
+		name: string;
+		code: string;
+	} | null;
 }
 
 interface CompanyOption {
@@ -64,7 +74,34 @@ export default function NewShipmentPage() {
 	const [uploadingFiles, setUploadingFiles] = useState<Set<string>>(new Set());
 	const [decodingVin, setDecodingVin] = useState(false);
 	const [fetchingLotData, setFetchingLotData] = useState(false);
+	const [lotFetchProgress, setLotFetchProgress] = useState(0);
+	const [lotFetchStage, setLotFetchStage] = useState('');
 	const [scannerOpen, setScannerOpen] = useState(false);
+	const [smartFillOpen, setSmartFillOpen] = useState(false);
+
+	const handleApplySmartParsedData = (data: ParsedAuctionData) => {
+		const setVal = (field: Parameters<typeof setValue>[0], val: Parameters<typeof setValue>[1]) => {
+			setValue(field, val, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
+		};
+
+		if (data.lotNumber) setVal('lotNumber', data.lotNumber);
+		if (data.auctionName) setVal('auctionName', data.auctionName);
+		if (data.vehicleMake) setVal('vehicleMake', data.vehicleMake);
+		if (data.vehicleModel) setVal('vehicleModel', data.vehicleModel);
+		if (data.vehicleYear) setVal('vehicleYear', data.vehicleYear);
+		if (data.vehicleColor) setVal('vehicleColor', data.vehicleColor);
+		if (data.vehicleType) setVal('vehicleType', data.vehicleType);
+		if (data.vehicleVIN) setVal('vehicleVIN', data.vehicleVIN);
+		if (typeof data.hasKey === 'boolean') setVal('hasKey', data.hasKey);
+		if (typeof data.hasTitle === 'boolean') setVal('hasTitle', data.hasTitle);
+		if (data.purchaseLocation && !formValues.purchaseLocation) setVal('purchaseLocation', data.purchaseLocation);
+		if (data.purchasePrice && !formValues.purchasePrice) setVal('purchasePrice', data.purchasePrice.toString());
+		if (data.internalNotes && !formValues.internalNotes) setVal('internalNotes', data.internalNotes);
+		if (Array.isArray(data.vehiclePhotos) && data.vehiclePhotos.length > 0) {
+			setVehiclePhotos(data.vehiclePhotos);
+			setVal('vehiclePhotos', data.vehiclePhotos);
+		}
+	};
 
 	const handleBarcodeScan = (scannedVin: string) => {
 		setValue('vehicleVIN', scannedVin, { shouldValidate: true });
@@ -160,28 +197,57 @@ export default function NewShipmentPage() {
 		void fetchUsers();
 	}, []);
 
+	const [containerSearchInput, setContainerSearchInput] = useState('');
+
+	const fetchContainers = async (searchTerm = '') => {
+		setLoadingContainers(true);
+		try {
+			const query = new URLSearchParams({
+				limit: '1000',
+			});
+			if (searchTerm.trim()) {
+				query.set('search', searchTerm.trim());
+			} else {
+				query.set('status', 'active');
+			}
+			const response = await fetch(`/api/containers?${query.toString()}`);
+			if (response.ok) {
+				const data = await response.json();
+				const incoming = (data.containers || []) as ContainerOption[];
+				setContainers((prev) => {
+					const selectedId = watch('containerId');
+					const selectedContainer = prev.find((c) => c.id === selectedId);
+					if (selectedContainer && !incoming.some((c) => c.id === selectedId)) {
+						return [selectedContainer, ...incoming];
+					}
+					return incoming;
+				});
+			}
+		} catch (error) {
+			console.error('Error fetching containers:', error);
+		} finally {
+			setLoadingContainers(false);
+		}
+	};
+
 	// Fetch containers when status changes to IN_TRANSIT
 	useEffect(() => {
 		if (statusValue === 'IN_TRANSIT') {
-			const fetchContainers = async () => {
-				setLoadingContainers(true);
-				try {
-					// Fetch all active containers by using a large limit
-					const response = await fetch('/api/containers?status=active&limit=1000');
-					if (response.ok) {
-						const data = await response.json();
-						setContainers(data.containers);
-					}
-				} catch (error) {
-					console.error('Error fetching containers:', error);
-				} finally {
-					setLoadingContainers(false);
-				}
-			};
-
-			void fetchContainers();
+			void fetchContainers(containerSearchInput);
 		}
 	}, [statusValue]);
+
+	// Debounced search for containers when typing
+	useEffect(() => {
+		if (statusValue !== 'IN_TRANSIT') return;
+		if (!containerSearchInput.trim()) return;
+
+		const timer = setTimeout(() => {
+			void fetchContainers(containerSearchInput);
+		}, 250);
+
+		return () => clearTimeout(timer);
+	}, [containerSearchInput, statusValue]);
 
 	// VIN Decoder with enhanced data extraction
 	const decodeVIN = async (vin: string) => {
@@ -237,43 +303,72 @@ export default function NewShipmentPage() {
 		}
 	};
 
-	const fetchAuctionLotData = async (lotNumber: string) => {
-		if (!lotNumber?.trim()) return;
+	const fetchAuctionLotData = async (rawLotNumber: string) => {
+		if (!rawLotNumber?.trim()) return;
 
-		if (serviceTypeValue !== 'PURCHASE_AND_SHIPPING') {
-			toast.error('Lot data fetch is only available for Purchase + Shipping shipments');
-			return;
-		}
+		let cleanedLotNumber = rawLotNumber.trim();
+		let targetAuction: 'Copart' | 'IAAI' = auctionNameValue === 'IAAI' ? 'IAAI' : 'Copart';
 
-		if (!auctionNameValue) {
-			toast.error('Select an auction before fetching lot data');
-			return;
-		}
-
-		if (auctionNameValue !== 'Copart' && auctionNameValue !== 'IAAI') {
-			toast.error('Automatic lot data fetch currently supports Copart and IAAI only');
-			return;
+		// Auto-detect and clean URLs
+		if (/copart\.com/i.test(cleanedLotNumber)) {
+			targetAuction = 'Copart';
+			const match = cleanedLotNumber.match(/copart\.com\/lot\/(\d+)/i);
+			if (match) cleanedLotNumber = match[1];
+		} else if (/iaai\.com/i.test(cleanedLotNumber)) {
+			targetAuction = 'IAAI';
+			const match = cleanedLotNumber.match(/iaai\.com\/VehicleDetail\/([a-zA-Z0-9~-]+)/i);
+			if (match) cleanedLotNumber = match[1];
+		} else {
+			// Strip common prefixes like #, Lot, Stock
+			cleanedLotNumber = cleanedLotNumber.replace(/^(lot|stock)\s*(#|number|no|:)?\s*/i, '').replace(/^#\s*/, '').trim();
+			if (cleanedLotNumber.includes('~') || /~[a-z]{2}$/i.test(cleanedLotNumber)) {
+				targetAuction = 'IAAI';
+			}
 		}
 
 		setFetchingLotData(true);
+		setLotFetchProgress(15);
+		setLotFetchStage(`Connecting to ${targetAuction}...`);
+
+		const progressInterval = setInterval(() => {
+			setLotFetchProgress((prev) => {
+				if (prev < 35) {
+					setLotFetchStage(`Querying ${targetAuction} lot details & vehicle specifications...`);
+					return prev + 10;
+				}
+				if (prev < 65) {
+					setLotFetchStage('Extracting vehicle color, keys, title & damage...');
+					return prev + 8;
+				}
+				if (prev < 90) {
+					setLotFetchStage('Retrieving high-resolution photo gallery...');
+					return prev + 5;
+				}
+				return prev;
+			});
+		}, 800);
+
 		try {
-			const trimmedLotNumber = lotNumber.trim();
-			const { lotData, lotSummary } = await (auctionNameValue === 'IAAI'
-				? fetchIaaiLotDataForShipment(trimmedLotNumber).then((data) => ({
+			const { lotData, lotSummary } = await (targetAuction === 'IAAI'
+				? fetchIaaiLotDataForShipment(cleanedLotNumber).then((data) => ({
 					lotData: data,
 					lotSummary: buildIaaiLotSummary(data),
 				}))
-				: fetchCopartLotDataForShipment(trimmedLotNumber).then((data) => ({
+				: fetchCopartLotDataForShipment(cleanedLotNumber).then((data) => ({
 					lotData: data,
 					lotSummary: buildCopartLotSummary(data),
 				})));
+
+			clearInterval(progressInterval);
+			setLotFetchProgress(100);
+			setLotFetchStage('Vehicle data & photos loaded!');
 
 			const setFetchedValue = (field: Parameters<typeof setValue>[0], value: Parameters<typeof setValue>[1]) => {
 				setValue(field, value, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
 			};
 
 			setFetchedValue('lotNumber', lotData.lotNumber);
-			setFetchedValue('auctionName', lotData.auctionName);
+			setFetchedValue('auctionName', lotData.auctionName || targetAuction);
 			if (lotData.vehicleMake) setFetchedValue('vehicleMake', lotData.vehicleMake);
 			if (lotData.vehicleModel) setFetchedValue('vehicleModel', lotData.vehicleModel);
 			if (lotData.vehicleYear) setFetchedValue('vehicleYear', lotData.vehicleYear);
@@ -285,17 +380,37 @@ export default function NewShipmentPage() {
 			if (lotData.purchaseDate && !formValues.purchaseDate) setFetchedValue('purchaseDate', lotData.purchaseDate);
 			if (lotData.purchaseLocation && !formValues.purchaseLocation) setFetchedValue('purchaseLocation', lotData.purchaseLocation);
 			if (lotData.internalNotes && !formValues.internalNotes) setFetchedValue('internalNotes', lotData.internalNotes);
+			if (Array.isArray(lotData.vehiclePhotos) && lotData.vehiclePhotos.length > 0) {
+				setVehiclePhotos(lotData.vehiclePhotos);
+				setValue('vehiclePhotos', lotData.vehiclePhotos, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
+			}
 
-			toast.success(`${auctionNameValue} lot data fetched`, {
+			// If an unmasked 17-character VIN is present and weight is unset, decode weight in background
+			if (lotData.vehicleVIN && lotData.vehicleVIN.length === 17 && !lotData.vehicleVIN.includes('*') && !formValues.weight) {
+				decodeVINService(lotData.vehicleVIN)
+					.then((decoded) => {
+						const weightEst = getBestWeightEstimate(decoded);
+						if (weightEst) setFetchedValue('weight', weightEst.toString());
+					})
+					.catch(() => {});
+			}
+
+			toast.success(`${targetAuction} lot data fetched`, {
 				description: lotSummary,
 			});
 		} catch (error) {
-			console.error(`Error fetching ${auctionNameValue} lot data:`, error);
-			toast.error(`Failed to fetch ${auctionNameValue || 'auction'} lot data`, {
+			clearInterval(progressInterval);
+			console.error(`Error fetching ${targetAuction} lot data:`, error);
+			toast.error(`Failed to fetch ${targetAuction} lot data`, {
 				description: error instanceof Error ? error.message : 'Please verify the lot number and try again',
 			});
 		} finally {
-			setFetchingLotData(false);
+			clearInterval(progressInterval);
+			setTimeout(() => {
+				setFetchingLotData(false);
+				setLotFetchProgress(0);
+				setLotFetchStage('');
+			}, 500);
 		}
 	};
 
@@ -786,8 +901,8 @@ export default function NewShipmentPage() {
 										</select>
 									</Box>
 									<Box>
-										<Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-end' }}>
-											<Box sx={{ flex: 1 }}>
+										<Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-end', flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
+											<Box sx={{ flex: 1, minWidth: { xs: '100%', sm: 0 } }}>
 												<FormField
 													id="lotNumber"
 													label="Lot Number"
@@ -795,32 +910,80 @@ export default function NewShipmentPage() {
 													{...register('lotNumber')}
 												/>
 											</Box>
-											{serviceTypeValue === 'PURCHASE_AND_SHIPPING' && (
+											<Box sx={{ display: 'flex', gap: 1 }}>
+												<Button
+													type="button"
+													variant="outline"
+													size="sm"
+													onClick={() => setSmartFillOpen(true)}
+													className="shrink-0 text-xs bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20"
+												>
+													<Zap className="w-3.5 h-3.5 mr-1 fill-amber-400" />
+													Smart Paste
+												</Button>
 												<Button
 													type="button"
 													variant="outline"
 													size="sm"
 													onClick={() => lotNumberValue && fetchAuctionLotData(lotNumberValue)}
-													disabled={!lotNumberValue || !auctionNameValue || auctionNameValue === 'Other' || fetchingLotData}
+													disabled={!lotNumberValue || fetchingLotData}
 													loading={fetchingLotData}
+													className="shrink-0 text-xs"
 												>
-													{fetchingLotData ? 'Fetching...' : 'Fetch Data'}
+													{fetchingLotData ? 'Fetching...' : 'Fetch'}
 												</Button>
-											)}
+											</Box>
 										</Box>
 										<Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)', mt: 0.75 }}>
-											{serviceTypeValue === 'PURCHASE_AND_SHIPPING'
-												? auctionNameValue === 'Copart'
-													? 'Enter a Copart lot number and use Fetch Data to auto-fill vehicle details.'
-													: auctionNameValue
-														? auctionNameValue === 'IAAI'
-															? 'Enter an IAAI stock number and use Fetch Data to auto-fill vehicle details.'
-															: 'Save the auction and lot number manually. Automatic fetch supports Copart and IAAI only.'
-														: 'Select an auction before fetching lot data.'
-												: 'Lot data fetch is available only for Purchase + Shipping shipments.'}
+											Use <strong className="text-amber-400 font-semibold">Smart Paste</strong> to auto-fill without proxies or Oxylabs, or enter a lot number to fetch.
 										</Typography>
 									</Box>
 								</Box>
+
+								{/* Auction Lot Fetching Loading Bar */}
+								{fetchingLotData && (
+									<Box
+										sx={{
+											p: 2.25,
+											borderRadius: '16px',
+											backgroundColor: 'rgba(var(--accent-gold-rgb), 0.08)',
+											border: '1px solid rgba(var(--accent-gold-rgb), 0.35)',
+											display: 'flex',
+											flexDirection: 'column',
+											gap: 1.25,
+											animation: 'fadeIn 0.2s ease',
+										}}
+									>
+										<Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+											<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+												<Loader2 className="w-4 h-4 text-amber-400 animate-spin" />
+												<Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+													{lotFetchStage || `Fetching ${auctionNameValue || 'Auction'} Lot Data...`}
+												</Typography>
+											</Box>
+											<Typography sx={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--accent-gold)' }}>
+												{lotFetchProgress}%
+											</Typography>
+										</Box>
+										<LinearProgress
+											variant="determinate"
+											value={lotFetchProgress}
+											sx={{
+												height: 8,
+												borderRadius: 4,
+												backgroundColor: 'rgba(var(--border-rgb), 0.25)',
+												'& .MuiLinearProgress-bar': {
+													backgroundColor: 'var(--accent-gold)',
+													borderRadius: 4,
+													transition: 'transform 0.35s ease-out',
+												},
+											}}
+										/>
+										<Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+											Retrieving vehicle specifications, color, keys, damage, and high-resolution photo gallery
+										</Typography>
+									</Box>
+								)}
 
 								{/* Weight, Dimensions */}
 								<Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' }, gap: 2 }}>
@@ -1027,6 +1190,100 @@ export default function NewShipmentPage() {
 											/>
 										</Box>
 									</>
+								)}
+
+								{/* Vehicle Photos Quick Preview (when fetched from auction or uploaded) */}
+								{vehiclePhotos.length > 0 && (
+									<Box
+										sx={{
+											mt: 3,
+											p: 2.5,
+											borderRadius: '16px',
+											backgroundColor: 'rgba(var(--accent-gold-rgb), 0.05)',
+											border: '1px solid rgba(var(--accent-gold-rgb), 0.25)',
+										}}
+									>
+										<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5, flexWrap: 'wrap', gap: 1 }}>
+											<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+												<Camera className="w-5 h-5 text-amber-400" />
+												<Typography sx={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+													Vehicle Photos ({vehiclePhotos.length} loaded from {auctionNameValue || 'Auction'})
+												</Typography>
+											</Box>
+											<Button
+												type="button"
+												variant="outline"
+												size="sm"
+												onClick={() => setActiveStep(1)}
+												className="text-xs border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
+											>
+												Manage in Photos Step &rarr;
+											</Button>
+										</Box>
+										<Box
+											sx={{
+												display: 'flex',
+												gap: 1.5,
+												overflowX: 'auto',
+												pb: 1,
+												pt: 0.5,
+											}}
+										>
+											{vehiclePhotos.slice(0, 10).map((photo, index) => (
+												<Box
+													key={index}
+													sx={{
+														position: 'relative',
+														width: 88,
+														height: 88,
+														flexShrink: 0,
+														borderRadius: '12px',
+														overflow: 'hidden',
+														border: '1px solid rgba(var(--border-rgb), 0.8)',
+														backgroundColor: 'var(--background)',
+													}}
+												>
+													<Image
+														src={photo}
+														alt={`Vehicle photo ${index + 1}`}
+														fill
+														className="object-cover"
+														unoptimized
+													/>
+												</Box>
+											))}
+											{vehiclePhotos.length > 10 && (
+												<Box
+													onClick={() => setActiveStep(1)}
+													sx={{
+														width: 88,
+														height: 88,
+														flexShrink: 0,
+														borderRadius: '12px',
+														border: '1px dashed rgba(var(--accent-gold-rgb), 0.4)',
+														display: 'flex',
+														flexDirection: 'column',
+														alignItems: 'center',
+														justifyContent: 'center',
+														cursor: 'pointer',
+														backgroundColor: 'rgba(var(--accent-gold-rgb), 0.05)',
+														transition: 'all 0.2s ease',
+														'&:hover': {
+															backgroundColor: 'rgba(var(--accent-gold-rgb), 0.1)',
+															borderColor: 'var(--accent-gold)',
+														},
+													}}
+												>
+													<Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--accent-gold)' }}>
+														+{vehiclePhotos.length - 10}
+													</Typography>
+													<Typography sx={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>
+														more
+													</Typography>
+												</Box>
+											)}
+										</Box>
+									</Box>
 								)}
 							</Box>
 						</DashboardPanel>
@@ -1250,19 +1507,69 @@ export default function NewShipmentPage() {
 											<>
 												<Autocomplete
 													options={containers}
+													isOptionEqualToValue={(option, value) => option.id === value?.id}
 													getOptionLabel={(option) => 
-														`${option.containerNumber} - ${option.destinationPort || 'No destination'} (${option.currentCount}/${option.maxCapacity})`
+														typeof option === 'string' 
+															? option 
+															: `${option.containerNumber || ''}${option.destinationPort ? ` - ${option.destinationPort}` : ''} (${option.currentCount ?? 0}/${option.maxCapacity ?? 0})`
 													}
+													filterOptions={(options, state) => {
+														const query = (state.inputValue || '').toLowerCase().trim();
+														if (!query) return options;
+														return options.filter((c) => {
+															const num = (c.containerNumber || '').toLowerCase();
+															const dest = (c.destinationPort || '').toLowerCase();
+															const track = (c.trackingNumber || '').toLowerCase();
+															const line = (c.shippingLine || '').toLowerCase();
+															const company = (c.company?.name || '').toLowerCase();
+															const booking = (c.bookingNumber || '').toLowerCase();
+															return num.includes(query) || dest.includes(query) || track.includes(query) || line.includes(query) || company.includes(query) || booking.includes(query);
+														});
+													}}
+													inputValue={containerSearchInput}
+													onInputChange={(_, newInputValue, reason) => {
+														if (reason === 'input' || reason === 'clear') {
+															setContainerSearchInput(newInputValue);
+														}
+													}}
 													value={containers.find(c => c.id === watch('containerId')) || null}
 													onChange={(_, newValue) => {
 														setValue('containerId', newValue?.id || '', { shouldValidate: true });
 													}}
+													renderOption={(props, option) => (
+														<li {...props} key={option.id}>
+															<Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, py: 0.5, width: '100%' }}>
+																<Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+																	<Typography sx={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-primary)' }}>
+																		{option.containerNumber}
+																	</Typography>
+																	<Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+																		{option.currentCount}/{option.maxCapacity} loaded
+																	</Typography>
+																</Box>
+																<Box sx={{ display: 'flex', gap: 1, fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+																	{option.destinationPort && <span>Port: {option.destinationPort}</span>}
+																	{option.shippingLine && <span>• {option.shippingLine}</span>}
+																	{option.company?.name && <span>• {option.company.name}</span>}
+																</Box>
+															</Box>
+														</li>
+													)}
 													renderInput={(params) => (
 														<TextField
 															{...params}
-															placeholder="Select a container"
+															placeholder="Search by container #, tracking #, line, or port..."
 															error={!!errors.containerId}
 															helperText={errors.containerId?.message}
+															InputProps={{
+																...params.InputProps,
+																endAdornment: (
+																	<>
+																		{loadingContainers ? <Loader2 className="animate-spin w-4 h-4 text-[var(--accent-gold)] mr-2" /> : null}
+																		{params.InputProps.endAdornment}
+																	</>
+																),
+															}}
 															sx={{
 																'& .MuiOutlinedInput-root': {
 																	borderRadius: '16px',
@@ -1672,6 +1979,14 @@ export default function NewShipmentPage() {
 					onScan={handleBarcodeScan}
 					title="Scan Vehicle VIN Barcode"
 					description="Point your camera at the VIN barcode on the door jamb, title, or windshield"
+				/>
+
+				<AuctionSmartFillModal
+					isOpen={smartFillOpen}
+					onClose={() => setSmartFillOpen(false)}
+					onApply={handleApplySmartParsedData}
+					initialLotNumber={lotNumberValue}
+					initialAuctionName={auctionNameValue}
 				/>
 			</DashboardSurface>
 		</ProtectedRoute>

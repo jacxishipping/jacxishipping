@@ -29,10 +29,12 @@ import {
   Ship,
   AlertTriangle,
   Radio,
+  Download,
 } from 'lucide-react';
 import { Tabs, Tab, Box, Menu, MenuItem } from '@mui/material';
 import { MoreVertical } from 'lucide-react';
 import { Breadcrumbs, CopyButton, toast, Tooltip } from '@/components/design-system';
+import { openUniversalShipmentExport } from '@/components/shipments/UniversalShipmentExportModal';
 import ShipmentMilestoneStepper from '@/components/shipments/ShipmentMilestoneStepper';
 import ShipmentLiveMapPanel from '@/components/shipments/ShipmentLiveMapPanel';
 
@@ -1090,6 +1092,19 @@ export default function ShipmentDetailPage() {
                       <Radio className="mr-1.5 h-3.5 w-3.5 animate-pulse text-cyan-500 dark:text-cyan-400" />
                       Live Map
                     </Button>
+                    <Tooltip title="Export shipment record as Excel or CSV">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openUniversalShipmentExport({
+                          shipmentIds: [shipment.id],
+                          title: `Export Shipment (${shipment.vehicleVIN || vehicleLabel})`,
+                        })}
+                      >
+                        <Download className="mr-1.5 h-3.5 w-3.5 text-emerald-500" />
+                        Export
+                      </Button>
+                    </Tooltip>
                     <Tooltip title="Download a PDF receipt for this shipment. For official invoices, use the Billing tab on this shipment.">
                       <Button variant="outline" size="sm" onClick={handleDownloadReceipt}>
                         <FileText className="mr-1.5 h-3.5 w-3.5" />
@@ -1382,6 +1397,7 @@ export default function ShipmentDetailPage() {
             onDownloadAll={downloadAllPhotos}
             onUploadArrivalPhotos={handleArrivalPhotosUpload}
             onRemoveArrivalPhoto={removeArrivalPhoto}
+            onOpenAiDamageScan={() => openShipmentTab(7)}
           />
         </TabPanel>
 
@@ -1522,6 +1538,7 @@ export default function ShipmentDetailPage() {
               entries={companyLedgerEntries}
               paymentSummary={shipment.companyPaymentSummary || { charged: 0, paid: 0, remaining: 0, status: 'NOT_DUE' }}
               canManageLedger={canManageCompanyLedger}
+              shipment={shipment}
               onTransactionCreated={() => {
                 void refreshShipmentPage();
               }}

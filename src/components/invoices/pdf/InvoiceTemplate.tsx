@@ -1,8 +1,52 @@
 import { formatMoney as formatCurrency } from '@/lib/format';
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
+import fs from 'node:fs';
+import path from 'node:path';
 
-const INVOICE_LOGO_PATH = `${process.cwd()}/public/main-logo.png`;
+function resolveInvoiceLogo(customLogo?: string): string {
+  if (customLogo) {
+    if (customLogo.startsWith('http') || customLogo.startsWith('data:')) {
+      return customLogo;
+    }
+    const local = path.join(process.cwd(), 'public', customLogo.replace(/^\//, ''));
+    if (fs.existsSync(local)) return local;
+  }
+
+  try {
+    const configPath = path.join(process.cwd(), 'public', 'site-branding.json');
+    if (fs.existsSync(configPath)) {
+      const parsed = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      const candidate = parsed.logoUrl || parsed.headerLogoUrl;
+      if (candidate) {
+        if (candidate.startsWith('http') || candidate.startsWith('data:')) {
+          return candidate;
+        }
+        const candidatePath = path.join(process.cwd(), 'public', candidate.replace(/^\//, ''));
+        if (fs.existsSync(candidatePath)) {
+          return candidatePath;
+        }
+      }
+    }
+  } catch {
+    // Fallback to default
+  }
+
+  const defaultPath = path.join(process.cwd(), 'public', 'main-logo.png');
+  return fs.existsSync(defaultPath) ? defaultPath : `${process.cwd()}/public/main-logo.png`;
+}
+
+function resolveInvoiceCompanyName(customName?: string): string {
+  if (customName?.trim()) return customName.trim();
+  try {
+    const configPath = path.join(process.cwd(), 'public', 'site-branding.json');
+    if (fs.existsSync(configPath)) {
+      const parsed = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      if (parsed.companyName?.trim()) return parsed.companyName.trim();
+    }
+  } catch {}
+  return 'JACXI SHIPPING';
+}
 
 // Register a standard font (optional, using standard Helvetica by default)
 // Font.register({ family: 'Roboto', src: '...' });
@@ -328,6 +372,8 @@ interface InvoiceTemplateProps {
       amount: number;
     }>;
   };
+  logoUrl?: string;
+  companyName?: string;
 }
 
 const getLineItemTypeLabel = (type: string, description: string, expenseSource?: string | null): string => {
@@ -368,7 +414,7 @@ const formatDate = (date: Date | string | null) => {
   });
 };
 
-const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice }) => {
+const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, logoUrl, companyName }) => {
   // Determine status color using design system
   const statusColor = 
     invoice.status === 'PAID' ? '#10B981' :     // success
@@ -376,6 +422,8 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice }) => {
     invoice.status === 'SENT' ? '#3B82F6' :     // info
     invoice.status === 'PENDING' ? '#F59E0B' :  // warning
     '#5F6368';  // textSecondary
+
+  const logoSrc = resolveInvoiceLogo(logoUrl);
 
   return (
     <Document>
@@ -387,7 +435,7 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice }) => {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <Image src={INVOICE_LOGO_PATH} style={styles.logo} />
+            <Image src={logoSrc} style={styles.logo} />
           </View>
           <View style={styles.headerRight}>
             <Text style={styles.title}>INVOICE</Text>
