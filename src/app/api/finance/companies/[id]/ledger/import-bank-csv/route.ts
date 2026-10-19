@@ -279,30 +279,35 @@ export async function POST(
     const result = await prisma.$transaction(async (tx) => {
       let importedCount = 0;
 
-      for (const transaction of preview.importableRows) {
-        await tx.companyLedgerEntry.create({
-          data: {
-            companyId: params.id,
-            description: transaction.description,
-            type: transaction.type,
-            amount: transaction.amount,
-            balance: 0,
-            transactionDate: transaction.ledgerDate,
-            category,
-            reference: transaction.reference || null,
-            notes: transaction.notes || null,
-            metadata: {
-              importSource: 'BANK_OF_AMERICA_CSV',
-              importFingerprint: transaction.importFingerprint,
-              importedAt: new Date().toISOString(),
-              importedFileName: file.name,
-              sourceLabel,
-              rawRow: transaction.rawRow,
-            } as Prisma.InputJsonValue,
-            createdBy: session.user.id as string,
-          },
+      // ⚡ Bolt: Replaced sequential O(N) database insertion loop with a single createMany operation
+      // to eliminate N+1 latency during CSV imports.
+      if (preview.importableRows.length > 0) {
+        const createData = preview.importableRows.map((transaction) => ({
+          companyId: params.id,
+          description: transaction.description,
+          type: transaction.type,
+          amount: transaction.amount,
+          balance: 0,
+          transactionDate: transaction.ledgerDate,
+          category,
+          reference: transaction.reference || null,
+          notes: transaction.notes || null,
+          metadata: {
+            importSource: 'BANK_OF_AMERICA_CSV',
+            importFingerprint: transaction.importFingerprint,
+            importedAt: new Date().toISOString(),
+            importedFileName: file.name,
+            sourceLabel,
+            rawRow: transaction.rawRow,
+          } as Prisma.InputJsonValue,
+          createdBy: session.user.id as string,
+        }));
+
+        await tx.companyLedgerEntry.createMany({
+          data: createData,
         });
-        importedCount += 1;
+
+        importedCount = preview.importableRows.length;
       }
 
       if (importedCount > 0) {

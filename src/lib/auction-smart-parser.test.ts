@@ -12,7 +12,8 @@ describe('Auction Smart Parser (Zero-Proxy / Free)', () => {
     assert.equal(parsed.auctionName, 'Copart');
     assert.equal(parsed.vehicleYear, '2022');
     assert.equal(parsed.vehicleMake, 'TOYOTA');
-    assert.equal(parsed.vehicleModel, 'CAMRY TX DALLAS');
+    assert.equal(parsed.vehicleModel, 'CAMRY');
+    assert.equal(parsed.purchaseLocation, 'Dallas, TX');
   });
 
   it('parses IAAI URLs accurately', () => {

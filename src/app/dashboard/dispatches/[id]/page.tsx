@@ -18,7 +18,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { ArrowLeft, DollarSign, History, Package, Pencil, Plus, Trash2, Truck, User } from 'lucide-react';
+import { ArrowLeft, DollarSign, History, Package, Pencil, Plus, Trash2, Truck, User, Download } from 'lucide-react';
 import PermissionRoute from '@/components/auth/PermissionRoute';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
 import { Breadcrumbs, Button, EmptyState, StatsCard, TableSkeleton, toast, CopyButton, PageHeader, MilestoneStepper, StatusBadge } from '@/components/design-system';
@@ -27,6 +27,7 @@ import { DISPATCH_STATUS_COLORS, DISPATCH_STATUS_OPTIONS, getDispatchStatusLabel
 import DispatchExpenseModal, { type EditableDispatchExpense } from '@/components/dispatches/DispatchExpenseModal';
 import { getDispatchExpenseCategoryLabel, getDispatchExpenseTypeLabel } from '@/lib/dispatch-expenses';
 import { hasPermission } from '@/lib/rbac';
+import { openUniversalShipmentExport } from '@/components/shipments/UniversalShipmentExportModal';
 
 interface Company {
   id: string;
@@ -671,6 +672,18 @@ export default function DispatchDetailPage() {
           actions={
             <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
               <CopyButton value={dispatch.referenceNumber} label="Dispatch #" />
+              <Button
+                variant="outline"
+                size="sm"
+                icon={<Download className="w-4 h-4 text-emerald-500" />}
+                onClick={() => openUniversalShipmentExport({
+                  filters: { dispatchId: dispatch.id },
+                  title: `Export Dispatch ${dispatch.referenceNumber} Shipments`,
+                  subtitle: `Export ${dispatch.shipments.length} shipment(s) in this dispatch`,
+                })}
+              >
+                Export Shipments
+              </Button>
               <Button variant="outline" size="sm" icon={<Truck className="w-4 h-4" />} onClick={() => void handleReceiveToYard()} disabled={!canReceiveToYard || receivingToYard}>{receivingToYard ? 'Receiving...' : 'Receive to Yard'}</Button>
               {canManageWorkflow ? (
                 <Button

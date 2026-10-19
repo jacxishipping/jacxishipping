@@ -28,14 +28,21 @@ export default function TrackingRouteMap({
 
   if (isUnassigned) {
     return (
-      <div className="relative w-full rounded-2xl bg-slate-900 border border-amber-500/30 p-6 text-white shadow-xl">
+      <div 
+        className="relative w-full rounded-2xl border p-6 shadow-sm"
+        style={{
+          backgroundColor: 'var(--panel)',
+          borderColor: 'var(--border)',
+          color: 'var(--text-primary)',
+        }}
+      >
         <div className="flex items-start gap-3.5">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-500/15 text-amber-400 border border-amber-500/30">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-500 border border-amber-500/30">
             <Package className="h-6 w-6" />
           </div>
           <div>
-            <h4 className="text-base font-bold text-white">Awaiting Container Assignment & Loading</h4>
-            <p className="mt-1 text-xs text-slate-300 leading-relaxed">
+            <h4 className="text-base font-bold text-[var(--text-primary)]">Awaiting Container Assignment & Loading</h4>
+            <p className="mt-1 text-xs text-[var(--text-secondary)] leading-relaxed">
               This vehicle is currently staged at the yard / in domestic dispatch. Live transatlantic AIS vessel radar and oceanic route tracking will automatically activate once this vehicle is loaded into an export container and departs the port.
             </p>
           </div>
@@ -79,14 +86,20 @@ export default function TrackingRouteMap({
     <div className="w-full flex flex-col gap-2">
       {/* View Switcher Controls */}
       <div className="flex items-center justify-end px-1">
-        <div className="inline-flex items-center bg-slate-900 border border-slate-800 rounded-xl p-0.5 text-xs shadow-sm">
+        <div 
+          className="inline-flex items-center border rounded-xl p-0.5 text-xs shadow-sm"
+          style={{
+            backgroundColor: 'var(--surface-subtle)',
+            borderColor: 'var(--border)',
+          }}
+        >
           <button
             type="button"
             onClick={() => setActiveView('ais-radar')}
             className={`flex items-center gap-1.5 px-3 py-1 rounded-lg font-medium transition-all ${
               activeView === 'ais-radar'
-                ? 'bg-cyan-500 text-slate-950 font-bold shadow'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-cyan-500 text-slate-950 font-bold shadow-sm'
+                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
             }`}
           >
             <Radio className="w-3.5 h-3.5" />
@@ -97,8 +110,8 @@ export default function TrackingRouteMap({
             onClick={() => setActiveView('multimodal')}
             className={`flex items-center gap-1.5 px-3 py-1 rounded-lg font-medium transition-all ${
               activeView === 'multimodal'
-                ? 'bg-slate-700 text-white font-bold shadow'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-[var(--panel)] text-[var(--text-primary)] font-bold shadow-sm border border-[var(--border)]'
+                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
             }`}
           >
             <Map className="w-3.5 h-3.5" />
@@ -118,12 +131,18 @@ export default function TrackingRouteMap({
           status="In Ocean Transit"
         />
       ) : (
-        <div className="relative w-full rounded-2xl bg-slate-900 border border-slate-800 shadow-xl overflow-hidden aspect-[16/9] md:aspect-[21/9]">
+        <div 
+          className="relative w-full rounded-2xl border shadow-sm overflow-hidden aspect-[16/9] md:aspect-[21/9]"
+          style={{
+            backgroundColor: 'var(--panel)',
+            borderColor: 'var(--border)',
+          }}
+        >
           {/* Map Background SVG Image */}
-          <div className="absolute inset-0 flex items-center justify-center opacity-30 mix-blend-screen">
+          <div className="absolute inset-0 flex items-center justify-center opacity-15">
             <div 
               className="w-full h-full max-w-[1200px] bg-no-repeat bg-center bg-contain" 
-              style={{ backgroundImage: "url('/world-map.svg')", filter: "invert(1) brightness(0.6)" }} 
+              style={{ backgroundImage: "url('/world-map.svg')" }} 
             />
           </div>
 
@@ -153,7 +172,7 @@ export default function TrackingRouteMap({
                   key={`track-ghost-${i}`}
                   d={seg.path}
                   fill="none"
-                  stroke="rgba(255,255,255,0.15)"
+                  stroke="rgba(148, 163, 184, 0.35)"
                   strokeWidth="3"
                   strokeLinecap="round"
                   strokeDasharray="4 4"
@@ -205,8 +224,8 @@ export default function TrackingRouteMap({
                     <g transform="translate(-16, -16) scale(0.9)">
                        <path 
                         d="M32 18H29V14C29 12.8954 28.1046 12 27 12H13C11.8954 12 11 12.8954 11 14V18H8C6.67157 18 5.43432 18.7369 4.81977 19.897L2.1795 24.8841C1.94248 25.3318 2.26873 25.8696 2.77663 25.8696H37.2234C37.7313 25.8696 38.0575 25.3318 37.8205 24.8841L35.1802 19.897C34.5657 18.7369 33.3284 18 32 18Z" 
-                        fill="#1e293b"
-                        stroke="white"
+                        fill="#0891b2"
+                        stroke="#ffffff"
                         strokeWidth="1.5"
                        />
                     </g>
@@ -215,8 +234,8 @@ export default function TrackingRouteMap({
                     <g transform="translate(-16, -16) scale(0.8)">
                        <path 
                          d="M8 10H24V26H8V10ZM24 14H30C32.2091 14 34 15.7909 34 18V26H24V14ZM6 26C6 28.2091 7.79086 30 10 30C12.2091 30 14 28.2091 14 26H26C26 28.2091 27.7909 30 30 30C32.2091 30 34 28.2091 34 26H38V22H34V18H38V14H36C36 10.6863 33.3137 8 30 8H22C22 5.79086 20.2091 4 18 4H10C7.79086 4 6 5.79086 6 8V26Z" 
-                         fill="#1e293b"
-                         stroke="white"
+                         fill="#d97706"
+                         stroke="#ffffff"
                          strokeWidth="1.5"
                        />
                     </g>
@@ -237,14 +256,14 @@ export default function TrackingRouteMap({
                     cx={node.x}
                     cy={node.y}
                     r={isReached ? "6" : "4"}
-                    fill={isReached ? "var(--accent-gold)" : "#64748b"}
-                    stroke="#1e293b"
+                    fill={isReached ? "var(--accent-gold)" : "#94a3b8"}
+                    stroke="var(--panel)"
                     strokeWidth="2"
                   />
                   <motion.text
                     x={node.x}
                     y={node.y - 12}
-                    fill={isReached ? "#FFFFFF" : "#94a3b8"}
+                    fill={isReached ? "var(--text-primary)" : "var(--text-secondary)"}
                     className="text-xs font-bold tracking-wider"
                     textAnchor="middle"
                   >
@@ -254,8 +273,8 @@ export default function TrackingRouteMap({
               );
             })}
           </svg>
-          {/* Vignette edge blending */}
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_30%,rgba(15,23,42,0.8)_100%)] pointer-events-none" />
+          {/* Subtle Vignette edge blending */}
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_60%,rgba(0,0,0,0.06)_100%)] pointer-events-none" />
         </div>
       )}
     </div>

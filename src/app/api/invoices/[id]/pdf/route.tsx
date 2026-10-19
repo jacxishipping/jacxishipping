@@ -33,10 +33,13 @@ export async function GET(
         // @ts-ignore - renderToStream types can be tricky with NextResponse
         const stream = await renderToStream(<InvoiceTemplate invoice={invoice} />);
         
+        const isDownload = request.nextUrl.searchParams.get('download') === '1';
+        const disposition = isDownload ? 'attachment' : 'inline';
+
         return new NextResponse(stream as unknown as BodyInit, {
             headers: {
                 'Content-Type': 'application/pdf',
-                'Content-Disposition': `attachment; filename="Invoice-${invoice.invoiceNumber}.pdf"`,
+                'Content-Disposition': `${disposition}; filename="Invoice-${invoice.invoiceNumber}.pdf"`,
             },
         });
     } catch (error) {

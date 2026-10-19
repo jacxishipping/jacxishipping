@@ -74,6 +74,23 @@ function renderSummaryTable(rows: Array<{ label: string; value: string; emphasiz
   `;
 }
 
+function getEmailLogoUrl(): string {
+  try {
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const configPath = path.join(process.cwd(), 'public', 'site-branding.json');
+    if (fs.existsSync(configPath)) {
+      const parsed = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      if (parsed.logoUrl) {
+        return toAbsoluteUrl(parsed.logoUrl);
+      }
+    }
+  } catch {
+    // Fall back to default
+  }
+  return toAbsoluteUrl(siteBrandAssets.mainLogo);
+}
+
 function renderEmailLayout({
   preheader,
   eyebrow,
@@ -96,7 +113,7 @@ function renderEmailLayout({
   tone?: EmailTone;
 }) {
   const accent = toneColor(tone);
-  const logoUrl = toAbsoluteUrl(siteBrandAssets.mainLogo);
+  const logoUrl = getEmailLogoUrl();
   const safeCtaUrl = ctaUrl ? escapeHtml(toAbsoluteUrl(ctaUrl)) : '';
 
   return `

@@ -25,6 +25,7 @@ export class TrackingSyncService {
 			const container = await prisma.container.findUnique({
 				where: { id: containerId },
 				select: {
+					containerNumber: true,
 					trackingNumber: true,
 					shippingLine: true,
 					estimatedArrival: true,
@@ -41,14 +42,16 @@ export class TrackingSyncService {
 				return { success: false, newEvents: 0, updatedETA: false, error: 'Auto-tracking is disabled for this container' };
 			}
 
-			if (!container.trackingNumber) {
-				return { success: false, newEvents: 0, updatedETA: false, error: 'Container has no tracking number' };
+			const trackingNum = container.trackingNumber || container.containerNumber;
+			if (!trackingNum) {
+				return { success: false, newEvents: 0, updatedETA: false, error: 'Container has no tracking or container number' };
 			}
 
 			// Fetch tracking data from external API
 			const externalEvents = await trackingAPI.fetchTrackingData(
-				container.trackingNumber,
-				container.shippingLine || undefined
+				trackingNum,
+				container.shippingLine || undefined,
+				{ forceRefresh: options?.force }
 			);
 
 			if (externalEvents.length === 0) {
@@ -83,7 +86,7 @@ export class TrackingSyncService {
 							vesselName: event.vesselName || undefined,
 							description: event.description || undefined,
 							eventDate: new Date(event.timestamp),
-							source: 'API',
+							source: event.source || 'API',
 							completed: this.isCompletedStatus(event.status),
 							latitude: event.latitude || undefined,
 							longitude: event.longitude || undefined,
@@ -97,7 +100,7 @@ export class TrackingSyncService {
 
 			// Update estimated arrival if available
 			let updatedETA = false;
-			const eta = await trackingAPI.getEstimatedArrival(container.trackingNumber);
+			const eta = await trackingAPI.getEstimatedArrival(trackingNum);
 			if (eta && (!container.estimatedArrival || eta.getTime() !== container.estimatedArrival.getTime())) {
 				await prisma.container.update({
 					where: { id: containerId },

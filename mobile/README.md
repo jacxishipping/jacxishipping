@@ -198,12 +198,16 @@ The app connects to the backend API at `EXPO_PUBLIC_API_URL`. All API calls:
 
 ### iOS
 ```bash
-eas build --platform ios
+eas build --platform ios --profile production
+# or using npm script:
+npm run eas:build:ios
 ```
 
 ### Android
 ```bash
-eas build --platform android
+eas build --platform android --profile production
+# or using npm script:
+npm run eas:build:android
 ```
 
 ## License

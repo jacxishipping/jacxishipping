@@ -73,6 +73,7 @@ import AddExpenseModal from '@/components/containers/AddExpenseModal';
 import AddDamageModal from '@/components/containers/AddDamageModal';
 import AddInvoiceModal from '@/components/containers/AddInvoiceModal';
 import AddTrackingEventModal from '@/components/containers/AddTrackingEventModal';
+import { TrackingSourceBadge } from '@/components/tracking/TrackingSourceBadge';
 import AddShipmentExpenseModal from '@/components/shipments/AddShipmentExpenseModal';
 import { Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { DocumentManager } from '@/components/dashboard/DocumentManager';
@@ -85,6 +86,7 @@ import { OceanCarrierSyncCard } from '@/components/containers/OceanCarrierSyncCa
 import { CustomsDocumentPacketModal } from '@/components/containers/CustomsDocumentPacketModal';
 import { ContainerLoadPlanner } from '@/components/dashboard/ContainerLoadPlanner';
 import { hasAnyPermission, hasPermission } from '@/lib/rbac';
+import { openUniversalShipmentExport } from '@/components/shipments/UniversalShipmentExportModal';
 
 interface Shipment {
 	id: string;
@@ -466,7 +468,7 @@ export default function ContainerDetailPage() {
         
         setRefreshingTracking(true);
         try {
-            const response = await fetch('/api/cron/sync-tracking', {
+            const response = await fetch('/api/containers/sync-tracking', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ containerId: container.id }),
@@ -475,10 +477,10 @@ export default function ContainerDetailPage() {
             const data = await response.json();
 
             if (response.ok && data.success) {
-                const newEvents = data.stats?.newEvents || 0;
+                const newEvents = data.newEvents || 0;
                 if (newEvents > 0) {
-                    toast.success(`Tracking updated: ${newEvents} new event(s)`);
-                } else if (data.stats?.updatedETA) {
+                    toast.success(data.message || `Tracking updated: ${newEvents} new event(s)`);
+                } else if (data.updatedEta) {
                     toast.success('Estimated arrival date updated');
                 } else {
                     toast.info('Tracking is up to date');
@@ -938,6 +940,19 @@ export default function ContainerDetailPage() {
                                     Duplicate
                                 </Button>
                             )}
+							<Button 
+								variant="outline" 
+								size="sm" 
+								icon={<Download className="w-4 h-4 text-emerald-500" />}
+								onClick={() => openUniversalShipmentExport({
+									filters: { containerId: container.id },
+									title: `Export Container ${container.containerNumber} Shipments`,
+									subtitle: 'Download loaded vehicles manifest',
+								})}
+								className="no-print"
+							>
+								Export Shipments
+							</Button>
 							<Button 
 								variant="outline" 
 								size="sm" 
@@ -2167,7 +2182,7 @@ export default function ContainerDetailPage() {
 							>
 
 							<Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mb: 2 }}>
-								{canManageWorkflow && container.trackingNumber && (
+								{canManageWorkflow && (container.trackingNumber || container.containerNumber) && (
                                     <Button
                                         variant="outline"
                                         size="sm"
@@ -2263,8 +2278,8 @@ export default function ContainerDetailPage() {
 												</Box>
 											)}
 											{(event as any).source && (
-												<Box sx={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', fontStyle: 'italic' }}>
-													Source: {(event as any).source}
+												<Box sx={{ mt: 1 }}>
+													<TrackingSourceBadge source={(event as any).source} size="sm" />
 												</Box>
 											)}
 										</Box>

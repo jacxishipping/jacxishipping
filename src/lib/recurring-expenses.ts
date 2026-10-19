@@ -92,6 +92,19 @@ export async function createRecurringExpense(input: CreateRecurringExpenseInput)
   let nextDue = new Date(start);
   nextDue.setHours(0, 0, 0, 0);
 
+  let validCreatedById: string | null = null;
+  if (createdById) {
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: createdById },
+        select: { id: true },
+      });
+      if (user) validCreatedById = user.id;
+    } catch {
+      // ignore
+    }
+  }
+
   const recurring = await prisma.recurringExpense.create({
     data: {
       title: title.trim(),
@@ -109,16 +122,16 @@ export async function createRecurringExpense(input: CreateRecurringExpenseInput)
       isActive: true,
       autoCreatePaid,
       nextDueDate: nextDue,
-      createdById: createdById || null,
+      createdById: validCreatedById,
     },
   });
 
-  if (createdById) {
+  if (validCreatedById) {
     await createAuditLog(
       'RecurringExpense',
       recurring.id,
       'CREATE',
-      createdById,
+      validCreatedById,
       { title: recurring.title, amount: recurring.amount, frequency: recurring.frequency }
     );
   }
@@ -149,6 +162,20 @@ export async function processDueRecurringExpenses(triggeredById?: string) {
       : `REC-${template.category.slice(0, 4)}-${dateStr}`;
 
     const createdExpense = await prisma.$transaction(async (tx) => {
+      let validRecordedById: string | null = null;
+      const candidateId = triggeredById || template.createdById;
+      if (candidateId) {
+        try {
+          const user = await tx.user.findUnique({
+            where: { id: candidateId },
+            select: { id: true },
+          });
+          if (user) validRecordedById = user.id;
+        } catch {
+          // ignore
+        }
+      }
+
       // 1. Create Office Expense
       const expense = await tx.officeExpense.create({
         data: {
@@ -165,7 +192,7 @@ export async function processDueRecurringExpenses(triggeredById?: string) {
             : 'Auto-generated from recurring schedule',
           status: template.autoCreatePaid ? ExpensePaymentStatus.PAID : ExpensePaymentStatus.PENDING,
           recurringExpenseId: template.id,
-          recordedById: triggeredById || template.createdById || null,
+          recordedById: validRecordedById,
         },
       });
 

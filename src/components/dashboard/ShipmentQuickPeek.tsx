@@ -15,7 +15,8 @@ import {
   User,
   CreditCard,
   Truck,
-  CheckCircle2
+  CheckCircle2,
+  Download
 } from 'lucide-react';
 import { 
   Drawer, 
@@ -26,6 +27,7 @@ import {
   type MilestoneStep,
   Skeleton
 } from '@/components/design-system';
+import { openUniversalShipmentExport } from '@/components/shipments/UniversalShipmentExportModal';
 import { formatMoney as formatCurrency } from '@/lib/format';
 
 interface ShipmentQuickPeekProps {
@@ -155,6 +157,17 @@ export default function ShipmentQuickPeek({
               Close
             </Button>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => openUniversalShipmentExport({
+                  shipmentIds: [shipment.id],
+                  title: `Export Shipment (${shipment.vehicleVIN || shipment.id})`,
+                })}
+                icon={<Download className="w-4 h-4 text-emerald-500" />}
+              >
+                Export
+              </Button>
               <Button
                 href={`/tracking?vin=${encodeURIComponent(shipment.vehicleVIN && shipment.vehicleVIN !== '-' ? shipment.vehicleVIN : shipment.id)}`}
                 variant="outline"

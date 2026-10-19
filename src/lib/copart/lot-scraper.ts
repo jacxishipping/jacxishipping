@@ -23,6 +23,9 @@ type OxylabsCopartParsedContent = {
   vehicle_type?: string;
   primary_damage?: string;
   estimated_retail_value?: number;
+  images?: string[];
+  photos?: string[];
+  vehicle_images?: string[];
 };
 
 type OxylabsCopartResult = {
@@ -58,6 +61,7 @@ export type CopartLotRawPayload = {
   hk?: string;
   htsmn?: string;
   brand?: string;
+  tims?: string;
   dynamicLotDetails?: CopartDynamicLotDetails;
 };
 
@@ -81,6 +85,7 @@ export type CopartLotVehicleData = {
   extracted: {
     bodyStyle?: string;
     damage?: string;
+    odometer?: string;
     transmission?: string;
     engine?: string;
     cylinders?: string;
@@ -212,6 +217,7 @@ function buildInternalNotes(raw: CopartLotRawPayload) {
 function buildOxylabsLocation(notes?: string) {
   const normalized = normalizeValue(notes);
   if (!normalized) return undefined;
+  if (/no notes for this lot|n\/a|none|no notes/i.test(normalized)) return undefined;
 
   return normalizeValue(normalized.replace(/^located in\s+/i, '')) || normalized;
 }
@@ -354,7 +360,13 @@ export function parseCopartSlug(slug: string) {
   };
 }
 
-function normalizeOxylabsCopartResult(lotNumber: string, fallbackUrl: string, result: OxylabsCopartResult): CopartLotVehicleData {
+function normalizeOxylabsCopartResult(
+  lotNumber: string,
+  fallbackUrl: string,
+  result: OxylabsCopartResult,
+  raw?: CopartLotRawPayload,
+  galleryPhotos?: string[],
+): CopartLotVehicleData {
   const content = result.content || {};
   const titleParts = parseOxylabsTitle(content.title);
   const resultUrl = normalizeValue(result.url) || fallbackUrl;
@@ -363,40 +375,62 @@ function normalizeOxylabsCopartResult(lotNumber: string, fallbackUrl: string, re
   const slugMatch = resultUrl.match(/copart\.com\/lot\/\d+\/([a-zA-Z0-9_-]+)/i);
   const slugMeta = slugMatch ? parseCopartSlug(slugMatch[1]) : {};
 
-  const vehicleYear = titleParts.vehicleYear || slugMeta.year;
-  const vehicleMake = titleParts.vehicleMake || slugMeta.make;
-  const vehicleModel = titleParts.vehicleModel || slugMeta.model;
-  const purchaseLocation = buildOxylabsLocation(content.notes) || slugMeta.purchaseLocation;
+  const vehicleYear = (raw?.lcy ? String(raw.lcy) : undefined) || titleParts.vehicleYear || slugMeta.year;
+  const vehicleMake = normalizeValue(raw?.mkn) || titleParts.vehicleMake || slugMeta.make;
+  const vehicleModel = normalizeValue(raw?.lm) || normalizeValue(raw?.lmg) || titleParts.vehicleModel || slugMeta.model;
+  const purchaseLocation = buildLocation(raw || {}) || buildOxylabsLocation(content.notes) || slugMeta.purchaseLocation;
   const purchaseDate = parseCopartSaleDateToPurchaseDate(content.sale_date);
 
   const notesParts = [
     buildOxylabsInternalNotes(content),
+    raw ? buildInternalNotes(raw) : undefined,
     slugMeta.docType ? `Doc type: ${slugMeta.docType}` : undefined,
   ].filter(Boolean);
 
+  const rawPhotos = content.images || content.photos || content.vehicle_images;
+  let vehiclePhotos = Array.isArray(galleryPhotos) && galleryPhotos.length > 0
+    ? galleryPhotos
+    : (Array.isArray(rawPhotos) && rawPhotos.length > 0
+      ? rawPhotos.filter((p): p is string => typeof p === 'string' && p.startsWith('http'))
+      : undefined);
+
+  if (!vehiclePhotos && raw?.tims) {
+    vehiclePhotos = [raw.tims.replace('_thb.jpg', '_ful.jpg'), raw.tims];
+  }
+
+  const hasKey = typeof content.has_key === 'boolean'
+    ? content.has_key
+    : parseYesNo(raw?.hk);
+
+  const hasTitle = typeof raw?.htsmn === 'string'
+    ? parseYesNo(raw.htsmn)
+    : (slugMeta.docType ? !slugMeta.docType.toLowerCase().includes('bill of sale') : undefined);
+
   return {
-    lotNumber: normalizeValue(content.lot_number) || lotNumber,
+    lotNumber: normalizeValue(content.lot_number) || normalizeValue(raw?.lotNumberStr) || lotNumber,
     auctionName: 'Copart',
     vehicleMake,
     vehicleModel,
     vehicleYear,
-    vehicleVIN: normalizeValue(content.vin),
-    vehicleColor: normalizeValue(content.color),
-    vehicleType: inferVehicleType(normalizeValue(content.body_style), normalizeValue(content.vehicle_type)),
-    hasKey: typeof content.has_key === 'boolean' ? content.has_key : undefined,
-    hasTitle: slugMeta.docType?.toLowerCase().includes('clean') ? true : undefined,
+    vehicleVIN: normalizeValue(content.vin) || normalizeValue(raw?.fv),
+    vehicleColor: normalizeValue(content.color) || normalizeValue(raw?.clr),
+    vehicleType: inferVehicleType(normalizeValue(content.body_style) || normalizeValue(raw?.bstl), normalizeValue(content.vehicle_type) || normalizeValue(raw?.vehTypDesc)),
+    hasKey,
+    hasTitle,
     purchaseDate,
     purchaseLocation,
-    internalNotes: notesParts.length > 0 ? notesParts.join(' | ') : undefined,
+    internalNotes: notesParts.length > 0 ? Array.from(new Set(notesParts)).join(' | ') : undefined,
+    vehiclePhotos,
     copartUrl: resultUrl,
     source: 'copart-oxylabs-data-api',
     extracted: {
-      bodyStyle: normalizeValue(content.body_style),
-      damage: normalizeValue(content.primary_damage) || slugMeta.docType,
-      transmission: typeof content.transmission === 'string' ? normalizeValue(content.transmission) : undefined,
-      engine: normalizeValue(content.engine_type),
-      cylinders: normalizeValue(content.cylinders),
-      saleStatus: undefined,
+      bodyStyle: normalizeValue(content.body_style) || normalizeValue(raw?.bstl),
+      damage: normalizeValue(content.primary_damage) || normalizeValue(raw?.dd) || slugMeta.docType,
+      odometer: normalizeValue(content.odometer),
+      transmission: typeof content.transmission === 'string' ? normalizeValue(content.transmission) : normalizeValue(raw?.tmtp),
+      engine: normalizeValue(content.engine_type) || normalizeValue(raw?.egn),
+      cylinders: normalizeValue(content.cylinders) || normalizeValue(raw?.cy),
+      saleStatus: normalizeValue(raw?.dynamicLotDetails?.saleStatus),
       yardName: purchaseLocation,
     },
   };
@@ -440,7 +474,7 @@ async function waitForOxylabsCopartJob(jobId: string, authHeader: string) {
   throw new Error(buildOxylabsCopartErrorMessage('timed out waiting for the job to finish.'));
 }
 
-async function fetchCopartLotVehicleDataFromOxylabs(lotNumber: string, copartUrl: string): Promise<CopartLotVehicleData> {
+export async function fetchCopartLotVehicleDataFromOxylabs(lotNumber: string, copartUrl: string): Promise<CopartLotVehicleData> {
   const username = getOxylabsDataApiUsername();
   const password = getOxylabsDataApiPassword();
   if (!username || !password) {
@@ -448,6 +482,10 @@ async function fetchCopartLotVehicleDataFromOxylabs(lotNumber: string, copartUrl
   }
 
   const authHeader = `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`;
+  
+  // Concurrently fetch high-res gallery images from Copart's lotImages API endpoint via Oxylabs
+  const imagesPromise = fetchCopartLotImagesFromOxylabs(lotNumber, authHeader);
+
   const createBody = {
     source: 'universal',
     url: copartUrl,
@@ -473,7 +511,8 @@ async function fetchCopartLotVehicleDataFromOxylabs(lotNumber: string, copartUrl
 
   const immediateResult = createPayload.results?.[0];
   if (createResponse.ok && immediateResult?.content) {
-    return normalizeOxylabsCopartResult(lotNumber, copartUrl, immediateResult);
+    const galleryPhotos = await imagesPromise.catch(() => []);
+    return normalizeOxylabsCopartResult(lotNumber, copartUrl, immediateResult, undefined, galleryPhotos);
   }
 
   const jobId = normalizeValue(createPayload.id);
@@ -483,22 +522,97 @@ async function fetchCopartLotVehicleDataFromOxylabs(lotNumber: string, copartUrl
 
   await waitForOxylabsCopartJob(jobId, authHeader);
 
-  const { response: resultsResponse, payload: resultsPayload } = await fetchOxylabsJson<OxylabsCopartJobPayload>(
-    `${OXYLABS_DATA_API_URL}/${jobId}/results`,
-    {
-      headers: {
-        Authorization: authHeader,
+  // Fetch parsed content, raw rendered HTML, and gallery photos in parallel to extract all data points
+  const [parsedRes, rawRes, galleryPhotos] = await Promise.all([
+    fetchOxylabsJson<OxylabsCopartJobPayload>(
+      `${OXYLABS_DATA_API_URL}/${jobId}/results`,
+      {
+        headers: {
+          Authorization: authHeader,
+        },
+        cache: 'no-store',
       },
-      cache: 'no-store',
-    },
-  );
+    ),
+    fetchOxylabsJson<OxylabsCopartJobPayload>(
+      `${OXYLABS_DATA_API_URL}/${jobId}/results?type=raw`,
+      {
+        headers: {
+          Authorization: authHeader,
+        },
+        cache: 'no-store',
+      },
+    ).catch(() => ({ response: { ok: false } as Response, payload: {} as OxylabsCopartJobPayload })),
+    imagesPromise,
+  ]);
 
-  const result = resultsPayload.results?.[0];
-  if (result) {
-    return normalizeOxylabsCopartResult(lotNumber, copartUrl, result);
+  const result = parsedRes.payload.results?.[0];
+  const rawHtml = rawRes.payload.results?.[0]?.content;
+  const rawSolr = typeof rawHtml === 'string' ? tryExtractLotPayload(rawHtml) : undefined;
+
+  if (result || rawSolr) {
+    return normalizeOxylabsCopartResult(lotNumber, copartUrl, result || {}, rawSolr, galleryPhotos);
   }
 
-  throw new Error(buildOxylabsCopartErrorMessage(`results endpoint returned status ${resultsResponse.status} without content.`));
+  throw new Error(buildOxylabsCopartErrorMessage(`results endpoint returned status ${parsedRes.response.status} without content.`));
+}
+
+interface CopartImagesApiResponse {
+  returnCode?: number;
+  data?: {
+    imagesList?: {
+      content?: Array<{
+        fullUrl?: string;
+        highResUrl?: string;
+        thumbnailUrl?: string;
+      }>;
+    };
+  };
+}
+
+async function fetchCopartLotImagesFromOxylabs(lotNumber: string, authHeader: string): Promise<string[]> {
+  try {
+    const { response, payload } = await fetchOxylabsJson<OxylabsCopartJobPayload>(
+      OXYLABS_DATA_API_URL,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: authHeader,
+        },
+        body: JSON.stringify({
+          source: 'universal',
+          url: `https://www.copart.com/public/data/lotdetails/solr/lotImages/${lotNumber}/USA`,
+          render: 'html',
+        }),
+        cache: 'no-store',
+      },
+    );
+
+    const jobId = normalizeValue(payload.id);
+    if (!response.ok || !jobId) return [];
+
+    await waitForOxylabsCopartJob(jobId, authHeader);
+
+    const { payload: rawPayload } = await fetchOxylabsJson<OxylabsCopartJobPayload>(
+      `${OXYLABS_DATA_API_URL}/${jobId}/results?type=raw`,
+      {
+        headers: { Authorization: authHeader },
+        cache: 'no-store',
+      },
+    );
+
+    const contentStr = rawPayload.results?.[0]?.content;
+    if (typeof contentStr !== 'string') return [];
+
+    const parsed = JSON.parse(contentStr) as CopartImagesApiResponse;
+    const items = parsed.data?.imagesList?.content || [];
+    const urls = items
+      .map((img) => img.fullUrl || img.highResUrl || img.thumbnailUrl)
+      .filter((u): u is string => Boolean(u && u.startsWith('http')));
+    return Array.from(new Set(urls));
+  } catch {
+    return [];
+  }
 }
 
 function extractLotPayload(html: string) {
@@ -526,24 +640,24 @@ export async function fetchCopartLotVehicleData(lotNumber: string): Promise<Copa
   }
 
   const copartUrl = `${COPART_LOT_URL}/${normalizedLotNumber}`;
-  let nativeEngineError: Error | undefined;
-
-  // 1. Primary In-House Engine: Stealth Headless Browser
-  try {
-    return await fetchCopartLotWithNativeBrowser(normalizedLotNumber);
-  } catch (error) {
-    nativeEngineError = error instanceof Error ? error : new Error(String(error));
-  }
-
   let oxylabsError: Error | undefined;
 
-  // 2. Secondary Provider (if configured in environment)
+  // 1. Primary Engine when configured: Dedicated Oxylabs Data API
+  // Produces rich full specs: unmasked/masked VIN, keys, damage, color, title, engine, cylinders, odometer, retail value
   if (hasOxylabsCopartProvider()) {
     try {
       return await fetchCopartLotVehicleDataFromOxylabs(normalizedLotNumber, copartUrl);
     } catch (error) {
       oxylabsError = error instanceof Error ? error : new Error(String(error));
     }
+  }
+
+  // 2. High-Performance Secondary Engine: Stealth Headless Browser
+  let nativeEngineError: Error | undefined;
+  try {
+    return await fetchCopartLotWithNativeBrowser(normalizedLotNumber);
+  } catch (error) {
+    nativeEngineError = error instanceof Error ? error : new Error(String(error));
   }
 
   // 3. Direct Fast HTTP / Proxy Fallback
@@ -594,6 +708,7 @@ export async function fetchCopartLotVehicleData(lotNumber: string): Promise<Copa
     hasTitle: parseYesNo(raw.htsmn),
     purchaseLocation: buildLocation(raw),
     internalNotes: buildInternalNotes(raw),
+    vehiclePhotos: raw.tims ? [raw.tims.replace('_thb.jpg', '_ful.jpg'), raw.tims] : undefined,
     copartUrl,
     source: 'copart-public-page',
     extracted: {

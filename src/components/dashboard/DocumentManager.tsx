@@ -24,12 +24,14 @@ import {
   Upload, 
   Download, 
   Trash2, 
-  Image as ImageIcon,
+  Image as ImageIcon, 
   AlertTriangle,
+  Eye,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Modal, FormField, Select } from '@/components/design-system';
 import { FileUpload } from '@/components/ui/FileUpload';
+import DocumentPreviewModal from '@/components/documents/DocumentPreviewModal';
 
 interface Document {
   id: string;
@@ -94,6 +96,17 @@ export function DocumentManager({
   const [isCompanyDocument, setIsCompanyDocument] = useState(false);
   const [statusEditor, setStatusEditor] = useState<EditingStatusDocument | null>(null);
   const [savingStatus, setSavingStatus] = useState(false);
+  const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
+
+  const previewDocIndex = previewDoc ? documents.findIndex((d) => d.id === previewDoc.id) : -1;
+  const hasPrevDoc = previewDocIndex > 0;
+  const hasNextDoc = previewDocIndex >= 0 && previewDocIndex < documents.length - 1;
+  const handlePrevDoc = () => {
+    if (hasPrevDoc) setPreviewDoc(documents[previewDocIndex - 1]);
+  };
+  const handleNextDoc = () => {
+    if (hasNextDoc) setPreviewDoc(documents[previewDocIndex + 1]);
+  };
 
   useEffect(() => {
     setDocuments(initialDocs);
@@ -395,6 +408,15 @@ export function DocumentManager({
                       </Typography>
                     </IconButton>
                   )}
+                  <IconButton 
+                    edge="end" 
+                    aria-label="preview" 
+                    sx={{ mr: 1, color: 'var(--accent-gold)' }} 
+                    onClick={() => setPreviewDoc(doc)}
+                    title="Preview document"
+                  >
+                    <Eye className="w-4 h-4" />
+                  </IconButton>
                   <IconButton edge="end" aria-label="download" sx={{ mr: 1 }} href={doc.fileUrl} target="_blank">
                     <Download className="w-4 h-4" />
                   </IconButton>
@@ -687,6 +709,26 @@ export function DocumentManager({
           </Box>
         )}
       </Modal>
+
+      {/* In-app Document Preview Modal */}
+      <DocumentPreviewModal
+        open={Boolean(previewDoc)}
+        document={previewDoc ? {
+          id: previewDoc.id,
+          name: previewDoc.name,
+          fileUrl: previewDoc.fileUrl,
+          fileType: previewDoc.fileType || previewDoc.type || '',
+          fileSize: previewDoc.fileSize || previewDoc.size || 0,
+          category: previewDoc.category,
+          uploadedBy: previewDoc.uploadedBy,
+          createdAt: previewDoc.createdAt,
+        } : null}
+        onClose={() => setPreviewDoc(null)}
+        hasPrev={hasPrevDoc}
+        hasNext={hasNextDoc}
+        onNavigatePrev={handlePrevDoc}
+        onNavigateNext={handleNextDoc}
+      />
     </Box>
   );
 }

@@ -72,6 +72,66 @@ const formatDate = (dateString: string): string => {
   });
 };
 
+async function loadReceiptLogo(): Promise<string | null> {
+  try {
+    let targetUrl: string | undefined;
+
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('jacxi_site_branding_cache');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed.logoUrl) targetUrl = parsed.logoUrl;
+        }
+      } catch {
+        // Ignore cache parse failure
+      }
+    }
+
+    if (!targetUrl) {
+      try {
+        const brandingRes = await fetch('/api/settings/branding');
+        if (brandingRes.ok) {
+          const data = await brandingRes.json();
+          if (data.branding?.logoUrl) {
+            targetUrl = data.branding.logoUrl;
+          }
+        }
+      } catch {
+        // Fall back to default
+      }
+    }
+
+    const fetchUrl = targetUrl || '/main-logo.png';
+    const response = await fetch(fetchUrl);
+    if (!response.ok) {
+      if (fetchUrl !== '/main-logo.png') {
+        const fallbackRes = await fetch('/main-logo.png');
+        if (!fallbackRes.ok) return null;
+        const blob = await fallbackRes.blob();
+        return await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(typeof reader.result === 'string' ? reader.result : null);
+          reader.onerror = () => reject(reader.error);
+          reader.readAsDataURL(blob);
+        });
+      }
+      return null;
+    }
+
+    const blob = await response.blob();
+    return await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(typeof reader.result === 'string' ? reader.result : null);
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(blob);
+    });
+  } catch (error) {
+    console.error('Unable to load receipt logo:', error);
+    return null;
+  }
+}
+
 /**
  * Generate and download a PDF receipt for a single shipment
  * 
@@ -90,9 +150,10 @@ const formatDate = (dateString: string): string => {
  * - This creates UserInvoice records in the database
  * 
  * @param data - Shipment invoice data including shipment details and expenses
+ * @param logo - Optional preloaded base64 logo data URL
  * @returns jsPDF document (auto-downloads)
  */
-export const generateShipmentInvoicePDF = (data: ShipmentInvoiceData) => {
+export const generateShipmentInvoicePDF = (data: ShipmentInvoiceData, logo?: string | null) => {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -101,9 +162,17 @@ export const generateShipmentInvoicePDF = (data: ShipmentInvoiceData) => {
   // Header
   doc.setFillColor(...COLORS.dark);
   doc.rect(0, 0, pageWidth, 45, 'F');
+
+  if (logo) {
+    try {
+      doc.addImage(logo, 'PNG', pageWidth - 55, 6, 38, 34);
+    } catch {
+      // Fallback silently if image format mismatch in jsPDF
+    }
+  }
   
   doc.setTextColor(...COLORS.white);
-  doc.setFontSize(28);
+  doc.setFontSize(26);
   doc.setFont('helvetica', 'bold');
   doc.text('SHIPMENT RECEIPT', 20, 20); // Changed from INVOICE to RECEIPT
   
@@ -115,7 +184,7 @@ export const generateShipmentInvoicePDF = (data: ShipmentInvoiceData) => {
   // Add watermark/note that this is not an official invoice
   doc.setFontSize(8);
   doc.setTextColor(200, 200, 200);
-  doc.text('For reference only - Not an official invoice', pageWidth - 20, 20, { align: 'right' });
+  doc.text('For reference only - Not an official invoice', pageWidth - 60, 42, { align: 'right' });
 
   yPos = 55;
 
@@ -264,8 +333,9 @@ export const generateShipmentInvoicePDF = (data: ShipmentInvoiceData) => {
   return doc;
 };
 
-export const downloadShipmentInvoicePDF = (data: ShipmentInvoiceData) => {
-  const doc = generateShipmentInvoicePDF(data);
-  const fileName = `Invoice_${data.shipment.vehicleVIN || 'Shipment'}_${new Date().toISOString().split('T')[0]}.pdf`;
+export const downloadShipmentInvoicePDF = async (data: ShipmentInvoiceData) => {
+  const logo = await loadReceiptLogo();
+  const doc = generateShipmentInvoicePDF(data, logo);
+  const fileName = `Receipt_${data.shipment.vehicleVIN || 'Shipment'}_${new Date().toISOString().split('T')[0]}.pdf`;
   doc.save(fileName);
 };

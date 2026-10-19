@@ -14,6 +14,7 @@ import { LenisWrapperProvider, useLenisWrapper } from '@/components/providers/Le
 import { ConfirmActionProvider } from '@/components/ui/ConfirmActionProvider';
 import { KeyboardShortcutsModal } from '@/components/dashboard/KeyboardShortcutsModal';
 import { WorkspaceTray } from '@/components/dashboard/WorkspaceTray';
+import { UniversalShipmentExportModal } from '@/components/shipments/UniversalShipmentExportModal';
 
 // Inner component that uses the Lenis wrapper
 function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
@@ -116,6 +117,9 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
 
       {/* Global Keyboard Shortcuts Cheat Sheet - Press ? key */}
       <KeyboardShortcutsModal />
+
+      {/* Universal Shipment Export Modal - Callable anywhere */}
+      <UniversalShipmentExportModal />
     </Box>
   );
 }

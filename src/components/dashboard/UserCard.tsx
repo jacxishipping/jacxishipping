@@ -35,7 +35,7 @@ const formatRole = (role: string) => {
 };
 
 const maskEmail = (email: string) => {
-  const [username, domain] = email.split('@');
+  const [username, domain] = email.split("@");
   if (username.length <= 3) {
     return `${username[0]}***@${domain}`;
   }
@@ -66,37 +66,47 @@ export default function UserCard({
         sx={{
           p: { xs: 1.5, md: 2 },
           borderRadius: 2,
-          background: 'var(--panel)',
+          background: "var(--panel)",
           boxShadow: highlighted
-            ? '0 36px 48px rgba(56,189,248,0.12)'
-            : '0 18px 32px rgba(var(--text-primary-rgb), 0.08)',
-          border: highlighted ? '1px solid rgba(56,189,248,0.14)' : 'none',
-          transition: 'transform 200ms ease, box-shadow 200ms ease, border 200ms ease',
-          '&:hover': {
-            transform: 'translateY(-6px)',
+            ? "0 36px 48px rgba(56,189,248,0.12)"
+            : "0 18px 32px rgba(var(--text-primary-rgb), 0.08)",
+          border: highlighted ? "1px solid rgba(56,189,248,0.14)" : "none",
+          transition:
+            "transform 200ms ease, box-shadow 200ms ease, border 200ms ease",
+          "&:hover": {
+            transform: "translateY(-6px)",
             boxShadow: highlighted
-              ? '0 46px 58px rgba(56,189,248,0.16)'
-              : '0 28px 48px rgba(var(--text-primary-rgb), 0.12)',
+              ? "0 46px 58px rgba(56,189,248,0.16)"
+              : "0 28px 48px rgba(var(--text-primary-rgb), 0.12)",
           },
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 1 }}>
           <Box
             sx={{
               width: 40,
               height: 40,
-              borderRadius: '50%',
-              bgcolor: 'rgba(6,182,212,0.06)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
+              borderRadius: "50%",
+              bgcolor: "rgba(6,182,212,0.06)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
             }}
           >
-            <User style={{ width: 20, height: 20, color: 'var(--accent-gold)' }} />
+            <User
+              style={{ width: 20, height: 20, color: "var(--accent-gold)" }}
+            />
           </Box>
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography sx={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }} noWrap>
-              {user.name || 'Unnamed User'}
+            <Typography
+              sx={{
+                fontWeight: 700,
+                fontSize: "0.9rem",
+                color: "var(--text-primary)",
+              }}
+              noWrap
+            >
+              {user.name || "Unnamed User"}
             </Typography>
             <Typography variant="caption" color="text.secondary" noWrap>
               {formatRole(user.role)}
@@ -119,12 +129,19 @@ export default function UserCard({
           </Box>
         </Box>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-          <Typography variant="caption" color="text.secondary" sx={{ minWidth: 90 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ minWidth: 90 }}
+          >
             Email
           </Typography>
-          <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography sx={{ fontFamily: 'ui-monospace,SFMono-Regular,Menlo,monospace' }} noWrap>
+          <Box sx={{ flex: 1, display: "flex", alignItems: "center", gap: 1 }}>
+            <Typography
+              sx={{ fontFamily: "ui-monospace,SFMono-Regular,Menlo,monospace" }}
+              noWrap
+            >
               {showEmail ? user.email : maskEmail(user.email)}
             </Typography>
             {showEmail && (
@@ -144,12 +161,18 @@ export default function UserCard({
             )}
           </Box>
         </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-          <Typography variant="caption" color="text.secondary" sx={{ minWidth: 90 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ minWidth: 90 }}
+          >
             Shipments
           </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-            <Package style={{ width: 14, height: 14, color: 'var(--text-secondary)' }} />
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+            <Package
+              style={{ width: 14, height: 14, color: "var(--text-secondary)" }}
+            />
             <Typography variant="body2" color="text.primary" fontWeight="600">
               {user._count?.shipments ?? 0}
             </Typography>
@@ -157,20 +180,24 @@ export default function UserCard({
         </Box>
 
         {user.createdAt && (
-          <Box sx={{ mt: 1, pt: 1, borderTop: '1px solid rgba(255,255,255,0.03)' }}>
+          <Box
+            sx={{ mt: 1, pt: 1, borderTop: "1px solid rgba(255,255,255,0.03)" }}
+          >
             <Typography variant="caption" color="text.secondary">
               Joined {new Date(user.createdAt).toLocaleDateString()}
             </Typography>
           </Box>
         )}
 
-        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end', mt: 1 }}>
+        <Box
+          sx={{ display: "flex", gap: 1, justifyContent: "flex-end", mt: 1 }}
+        >
           <Button
             href={`/dashboard/users/${user.id}`}
             variant="outline"
             size="sm"
             icon={<VisibilityIcon />}
-            sx={{ textTransform: 'none', fontSize: '0.7rem' }}
+            sx={{ textTransform: "none", fontSize: "0.7rem" }}
           >
             View
           </Button>
@@ -180,7 +207,7 @@ export default function UserCard({
               size="sm"
               icon={<Key style={{ width: 14, height: 14 }} />}
               onClick={() => onResetPassword(user)}
-              sx={{ textTransform: 'none', fontSize: '0.7rem' }}
+              sx={{ textTransform: "none", fontSize: "0.7rem" }}
             >
               Password
             </Button>
@@ -190,7 +217,7 @@ export default function UserCard({
             variant="ghost"
             size="sm"
             icon={<EditIcon />}
-            sx={{ textTransform: 'none', fontSize: '0.7rem' }}
+            sx={{ textTransform: "none", fontSize: "0.7rem" }}
           >
             Edit
           </Button>
@@ -199,7 +226,7 @@ export default function UserCard({
             size="sm"
             icon={<DeleteIcon />}
             onClick={() => onDelete(user.id)}
-            sx={{ color: 'var(--error)' }}
+            sx={{ color: "var(--error)" }}
           >
             Delete
           </Button>

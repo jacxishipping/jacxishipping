@@ -52,6 +52,7 @@ import { exportToCSVWithHeaders } from '@/lib/export';
 import { hasPermission } from '@/lib/rbac';
 import { downloadCustomerStatementPDF } from '@/lib/utils/generateCustomerStatementPDF';
 import { addWorkspaceItem } from '@/components/dashboard/WorkspaceTray';
+import { openUniversalShipmentExport } from '@/components/shipments/UniversalShipmentExportModal';
 
 interface UserDetail {
   id: string;
@@ -378,6 +379,20 @@ export default function UserViewPage({ params }: { params: Promise<{ id: string 
                   Download Statement
                 </Button>
               </>
+            )}
+            {isCustomer && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                icon={<Download className="w-4 h-4 text-emerald-500" />} 
+                onClick={() => openUniversalShipmentExport({
+                  filters: { userId: user.id },
+                  title: `Export ${user.name || 'Customer'}'s Shipments`,
+                  subtitle: `Export shipments for ${user.email}`,
+                })}
+              >
+                Export Shipments
+              </Button>
             )}
             {canManageUsers && (
               <>
