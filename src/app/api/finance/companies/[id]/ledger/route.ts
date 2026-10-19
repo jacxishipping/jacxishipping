@@ -105,17 +105,9 @@ export async function GET(
     const search = searchParams.get('search') || '';
     const type = searchParams.get('type') || '';
     const source = searchParams.get('source') || '';
+    const shipmentId = searchParams.get('shipmentId') || '';
 
-    const where: {
-      companyId: string;
-      type?: 'DEBIT' | 'CREDIT';
-      OR?: Array<{
-        description?: { contains: string; mode: 'insensitive' };
-        category?: { contains: string; mode: 'insensitive' };
-        notes?: { contains: string; mode: 'insensitive' };
-        reference?: { contains: string; mode: 'insensitive' };
-      }>;
-    } = { companyId: params.id };
+    const where: Prisma.CompanyLedgerEntryWhereInput = { companyId: params.id };
 
     if (type === 'DEBIT' || type === 'CREDIT') {
       where.type = type;
@@ -128,6 +120,22 @@ export async function GET(
         { notes: { contains: search, mode: 'insensitive' } },
         { reference: { contains: search, mode: 'insensitive' } },
       ];
+    }
+
+    if (shipmentId) {
+      const shipmentFilter: Prisma.CompanyLedgerEntryWhereInput[] = [
+        { metadata: { path: ['shipmentId'], equals: shipmentId } },
+        { reference: { contains: shipmentId } },
+      ];
+      if (where.OR) {
+        where.AND = [
+          { OR: where.OR },
+          { OR: shipmentFilter },
+        ];
+        delete where.OR;
+      } else {
+        where.OR = shipmentFilter;
+      }
     }
 
     // ⚡ Bolt: Consolidated separate debit and credit aggregate queries into a single groupBy query

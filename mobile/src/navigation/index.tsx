@@ -16,8 +16,21 @@ export type RootLinkingParamList = {
   Notifications: undefined;
 };
 
+function getLinkingPrefixes(): string[] {
+  const prefixes = ['jacxi://', 'https://www.jacxishipping.com'];
+  try {
+    const expoUrl = Linking.createURL('/');
+    if (expoUrl && !prefixes.includes(expoUrl)) {
+      prefixes.unshift(expoUrl);
+    }
+  } catch (error) {
+    console.warn('Could not generate linking prefix:', error);
+  }
+  return prefixes;
+}
+
 const linking: LinkingOptions<RootLinkingParamList> = {
-  prefixes: [Linking.createURL('/'), 'jacxi://'],
+  prefixes: getLinkingPrefixes(),
   config: {
     screens: {
       // Both navigators expose the same leaf names, so a link like

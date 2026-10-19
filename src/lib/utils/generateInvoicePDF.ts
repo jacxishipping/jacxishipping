@@ -132,10 +132,50 @@ const formatStatus = (status: string): string => {
   return status.replace('_', ' ').toUpperCase();
 };
 
-async function loadInvoiceLogo(): Promise<string | null> {
+async function loadInvoiceLogo(customLogoUrl?: string): Promise<string | null> {
   try {
-    const response = await fetch('/main-logo.png');
+    let targetUrl = customLogoUrl;
+
+    if (!targetUrl && typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('jacxi_site_branding_cache');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed.logoUrl) targetUrl = parsed.logoUrl;
+        }
+      } catch {
+        // Ignore cache parse failure
+      }
+    }
+
+    if (!targetUrl) {
+      try {
+        const brandingRes = await fetch('/api/settings/branding');
+        if (brandingRes.ok) {
+          const data = await brandingRes.json();
+          if (data.branding?.logoUrl) {
+            targetUrl = data.branding.logoUrl;
+          }
+        }
+      } catch {
+        // Fall back to default
+      }
+    }
+
+    const fetchUrl = targetUrl || '/main-logo.png';
+    const response = await fetch(fetchUrl);
     if (!response.ok) {
+      if (fetchUrl !== '/main-logo.png') {
+        const fallbackRes = await fetch('/main-logo.png');
+        if (!fallbackRes.ok) return null;
+        const blob = await fallbackRes.blob();
+        return await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(typeof reader.result === 'string' ? reader.result : null);
+          reader.onerror = () => reject(reader.error);
+          reader.readAsDataURL(blob);
+        });
+      }
       return null;
     }
 

@@ -18,18 +18,20 @@ import {
   TextField,
   Tooltip,
 } from '@mui/material';
-import { AlertTriangle, ArrowLeft, Building2, CheckCircle2, DollarSign, Eye, GitCompareArrows, Landmark, Pencil, Plus, Printer, ReceiptText, Search, Trash2, Truck, Upload } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Building2, Car, CheckCircle2, DollarSign, Download, Eye, GitCompareArrows, Landmark, Navigation, Package, Pencil, Plus, Printer, ReceiptText, Search, ShieldCheck, Ship, Trash2, Truck, Upload } from 'lucide-react';
 import PermissionRoute from "@/components/auth/PermissionRoute";
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
 import { Breadcrumbs, Button, StatsCard, toast, TableSkeleton, PageHeader } from '@/components/design-system';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { normalizeShippingRateConfig, type AuctionRateEntry, type ShippingRateCalculatorConfig } from '@/lib/shipping-rate-calculator';
 import CompanyPriceListDrawer from '@/components/finance/CompanyPriceListDrawer';
-import { printCompanyPriceList } from '@/lib/price-list-print';
+import { printCompanyPriceList, printTransitPriceList } from '@/lib/price-list-print';
+import { openUniversalShipmentExport } from '@/components/shipments/UniversalShipmentExportModal';
+import { detectPriceListCorridor, isTransitPriceList, CORRIDOR_DEFINITIONS } from '@/lib/price-list-corridors';
 
 type PriceListImportMode = 'replace' | 'merge' | 'add_new';
 
-const companyTabSlugs = ['ledger', 'price-list', 'operations', 'reports'];
+const companyTabSlugs = ['ledger', 'shipments', 'operations', 'price-list', 'reports'];
 
 function TabPanel({ children, value, index }: { children: ReactNode; value: number; index: number }) {
   return (
@@ -44,6 +46,9 @@ interface Company {
   name: string;
   code: string | null;
   companyType: 'SHIPPING' | 'DISPATCH' | 'TRANSIT';
+  isShipping?: boolean;
+  isDispatch?: boolean;
+  isTransit?: boolean;
   email: string | null;
   phone: string | null;
   address: string | null;
@@ -57,6 +62,9 @@ interface Company {
     dispatches: number;
     containers: number;
     shipments: number;
+    dispatchedShipments?: number;
+    shippedShipments?: number;
+    transitedShipments?: number;
     transits: number;
   };
   dispatches?: Array<{
@@ -78,17 +86,7 @@ interface Company {
     maxCapacity: number;
     createdAt: string;
   }>;
-  shipments?: Array<{
-    id: string;
-    vehicleVIN: string | null;
-    vehicleMake: string | null;
-    vehicleModel: string | null;
-    status: string;
-    createdAt: string;
-    dispatchId?: string | null;
-    containerId?: string | null;
-    transitId: string | null;
-  }>;
+  shipments?: CompanyShipment[];
   transits?: Array<{
     id: string;
     referenceNumber: string;
@@ -100,6 +98,57 @@ interface Company {
       shipments: number;
     };
   }>;
+}
+
+export interface CompanyShipment {
+  id: string;
+  vehicleVIN: string | null;
+  vehicleMake: string | null;
+  vehicleModel: string | null;
+  vehicleYear?: number | null;
+  vehicleColor?: string | null;
+  lotNumber?: string | null;
+  status: string;
+  serviceType?: string;
+  price?: number | null;
+  companyShippingFare?: number | null;
+  damageCost?: number | null;
+  damageCredit?: number | null;
+  createdAt: string;
+  dispatchId?: string | null;
+  containerId?: string | null;
+  transitId?: string | null;
+  shippingCompanyId?: string | null;
+  isDispatched?: boolean;
+  isShipped?: boolean;
+  isTransited?: boolean;
+  roles?: Array<'DISPATCH' | 'SHIPPING' | 'TRANSIT'>;
+  dispatch?: {
+    id: string;
+    referenceNumber: string;
+    status: string;
+    origin?: string;
+    destination?: string;
+    dispatchDate?: string | null;
+  } | null;
+  container?: {
+    id: string;
+    containerNumber: string;
+    status: string;
+    trackingNumber?: string | null;
+  } | null;
+  transit?: {
+    id: string;
+    referenceNumber: string;
+    status: string;
+    origin?: string;
+    destination?: string;
+  } | null;
+  customer?: {
+    id: string;
+    name?: string | null;
+    email?: string | null;
+  } | null;
 }
 
 interface CompanySummary {
@@ -292,7 +341,46 @@ export default function CompanyLedgerDetailPage() {
     effectiveFrom: '',
     mode: 'merge' as PriceListImportMode,
   });
-  const [filters, setFilters] = useState({ search: '', type: '', source: '' });
+  const [filters, setFilters] = useState({ search: '', type: '', source: '', shipmentId: '' });
+  const [shipmentSearch, setShipmentSearch] = useState('');
+  const [shipmentRoleFilter, setShipmentRoleFilter] = useState<'ALL' | 'DISPATCH' | 'SHIPPING' | 'TRANSIT'>('ALL');
+  const [shipmentStatusFilter, setShipmentStatusFilter] = useState('ALL');
+
+  const filteredCompanyShipments = useMemo(() => {
+    const list = company?.shipments || [];
+    return list.filter((s) => {
+      if (shipmentRoleFilter === 'DISPATCH' && !s.isDispatched) return false;
+      if (shipmentRoleFilter === 'SHIPPING' && !s.isShipped) return false;
+      if (shipmentRoleFilter === 'TRANSIT' && !s.isTransited) return false;
+      if (shipmentStatusFilter !== 'ALL' && s.status !== shipmentStatusFilter) return false;
+
+      if (shipmentSearch.trim()) {
+        const query = shipmentSearch.trim().toLowerCase();
+        const matchesVin = s.vehicleVIN?.toLowerCase().includes(query);
+        const matchesMake = s.vehicleMake?.toLowerCase().includes(query);
+        const matchesModel = s.vehicleModel?.toLowerCase().includes(query);
+        const matchesLot = s.lotNumber?.toLowerCase().includes(query);
+        const matchesCustomer =
+          s.customer?.name?.toLowerCase().includes(query) ||
+          s.customer?.email?.toLowerCase().includes(query);
+        const matchesDispatch = s.dispatch?.referenceNumber?.toLowerCase().includes(query);
+        const matchesContainer = s.container?.containerNumber?.toLowerCase().includes(query);
+        const matchesTransit = s.transit?.referenceNumber?.toLowerCase().includes(query);
+        return Boolean(
+          matchesVin ||
+          matchesMake ||
+          matchesModel ||
+          matchesLot ||
+          matchesCustomer ||
+          matchesDispatch ||
+          matchesContainer ||
+          matchesTransit
+        );
+      }
+
+      return true;
+    });
+  }, [company?.shipments, shipmentSearch, shipmentRoleFilter, shipmentStatusFilter]);
   const [importForm, setImportForm] = useState({
     category: 'Bank Statement',
     statementEndingBalance: '',
@@ -356,11 +444,46 @@ export default function CompanyLedgerDetailPage() {
       .slice(0, 200);
   }, [company?.priceListConfig?.auctionRates, priceListSearch]);
 
+  const [rateLookupLeg, setRateLookupLeg] = useState<'ocean' | 'transit'>('ocean');
+
   const activePriceListWarnings = useMemo(() => {
     const activeList = company?.priceLists?.find((list) => list.isActive);
     return Array.isArray(activeList?.warnings) ? activeList.warnings : [];
   }, [company?.priceLists]);
-  const activePriceList = useMemo(() => company?.priceLists?.find((list) => list.isActive) || null, [company?.priceLists]);
+
+  // Dual-leg recognition: Ocean (Leg 1) vs Overland Transit (Leg 2)
+  const activeOceanPriceList = useMemo(() => {
+    return company?.priceLists?.find((l) => l.isActive && !isTransitPriceList(l)) || null;
+  }, [company?.priceLists]);
+
+  const activeTransitPriceList = useMemo(() => {
+    return company?.priceLists?.find((l) => l.isActive && isTransitPriceList(l)) || null;
+  }, [company?.priceLists]);
+
+  // Active Price List fallback
+  const activePriceList = activeOceanPriceList || activeTransitPriceList;
+
+  // Overland transit data structured
+  const activeTransitData = useMemo(() => {
+    const cfgTransit = (company?.priceListConfig as any)?.transit;
+    if (cfgTransit) return cfgTransit;
+    if (activeTransitPriceList) {
+      const cfg = activeTransitPriceList.config as any;
+      return {
+        name: activeTransitPriceList.name,
+        origin: cfg?.origin || (activeTransitPriceList.name.toLowerCase().includes('uae') ? 'Dubai / Jebel Ali, UAE' : 'Mersin, Turkey'),
+        destination: cfg?.destination || activeTransitPriceList.destinationLabel || 'Islam Qala, Herat',
+        rates: cfg?.rates || cfg?.transitRates || { sedan: 2300, suv: 2400 },
+        terms: cfg?.terms || (cfg?.transitRates?.terms) || [
+          'Rates include customs clearance and transportation.',
+          'Applicable based on departure port shipping date.',
+        ],
+        effectiveFrom: activeTransitPriceList.effectiveFrom || cfg?.effectiveFrom,
+      };
+    }
+    return null;
+  }, [company?.priceListConfig, activeTransitPriceList]);
+
   const activePriceListStateCount = useMemo(() => Object.keys(company?.priceListConfig?.stateRates || {}).length, [company?.priceListConfig?.stateRates]);
   const activePriceListLaneCount = company?.priceListConfig?.auctionRates?.length || 0;
   const priceListHistoryCount = company?.priceLists?.length || 0;
@@ -399,21 +522,73 @@ export default function CompanyLedgerDetailPage() {
 
   const handlePrintActivePriceList = () => {
     if (!company) return;
-    const config = normalizeShippingRateConfig(activePriceList?.config || company.priceListConfig);
+    const config = normalizeShippingRateConfig(activeOceanPriceList?.config || company.priceListConfig);
     printCompanyPriceList({
       companyName: company.name,
       companyType: companyTypeLabel,
-      priceListName: activePriceList?.name || 'Active Price List',
+      priceListName: activeOceanPriceList?.name || 'Active Ocean Price List',
       destinationLabel: config.destinationLabel || 'Standard Destination',
-      sourceFileName: activePriceList?.sourceFileName || config.updatedFromPdfName,
-      effectiveDate: activePriceList?.effectiveFrom || config.updatedAt,
+      sourceFileName: activeOceanPriceList?.sourceFileName || config.updatedFromPdfName,
+      effectiveDate: activeOceanPriceList?.effectiveFrom || config.updatedAt,
       auctionRates: config.auctionRates,
       stateRates: config.stateRates,
     });
   };
 
+  const handlePrintTransitTariff = () => {
+    if (!company) return;
+    const transitConfig = activeTransitData;
+    if (!transitConfig) return;
+    printTransitPriceList({
+      companyName: company.name,
+      companyType: companyTypeLabel,
+      priceListName: activeTransitPriceList?.name || 'Overland Transit Tariff',
+      origin: transitConfig.origin,
+      destination: transitConfig.destination,
+      destinationLabel: transitConfig.destinationLabel || 'Islam Qala, Herat',
+      sourceFileName: activeTransitPriceList?.sourceFileName,
+      effectiveFrom: transitConfig.effectiveFrom,
+      effectiveTo: transitConfig.effectiveTo,
+      rates: transitConfig.rates,
+      terms: transitConfig.terms,
+      carrierInfo: transitConfig.company,
+    });
+  };
+
   const handlePrintPriceListVersion = (list: CompanyPriceListSummary) => {
     if (!company) return;
+    const corridor = detectPriceListCorridor({
+      fileName: list.sourceFileName,
+      destinationLabel: list.destinationLabel,
+      name: list.name,
+      config: list.config,
+      auctionRateCount: list.importedAuctionRateCount,
+    });
+
+    if (corridor.leg === 'TRANSIT') {
+      const cfg = list.config as any;
+      const transitObj = cfg?.transit || cfg;
+      const rates = transitObj?.rates || { sedan: 2300, suv: 2400 };
+      printTransitPriceList({
+        companyName: company.name,
+        companyType: companyTypeLabel,
+        priceListName: list.name,
+        origin: transitObj?.origin || corridor.origin,
+        destination: transitObj?.destination || corridor.destination,
+        destinationLabel: list.destinationLabel || corridor.destination,
+        sourceFileName: list.sourceFileName,
+        effectiveFrom: list.effectiveFrom ? new Date(list.effectiveFrom).toLocaleDateString() : undefined,
+        rates,
+        terms: transitObj?.terms || [
+          'Rates include port customs clearance, transit declarations, and overland transportation from port to Islam Qala border terminal.',
+          'Rate Validity: Rates are applicable based on the date the vehicle departs from origin port.',
+          'Standard Terms: All shipments are subject to carrier terms and conditions.',
+        ],
+        carrierInfo: transitObj?.company,
+      });
+      return;
+    }
+
     const config = normalizeShippingRateConfig(list.config || company.priceListConfig);
     printCompanyPriceList({
       companyName: company.name,
@@ -429,17 +604,17 @@ export default function CompanyLedgerDetailPage() {
 
   const companyTabs = useMemo(() => [
     { label: 'Ledger', icon: <ReceiptText className="h-4 w-4" /> },
-    { label: 'Price List', icon: <Upload className="h-4 w-4" /> },
     {
-      label: companyTypeLabel === 'Shipping'
-        ? 'Shipping'
-        : companyTypeLabel === 'Dispatch'
-        ? 'Dispatch'
-        : 'Transit',
+      label: `Shipments${company?.shipments?.length ? ` (${company.shipments.length})` : ''}`,
+      icon: <Package className="h-4 w-4" />,
+    },
+    {
+      label: 'Operations',
       icon: <Truck className="h-4 w-4" />,
     },
+    { label: 'Price List', icon: <Upload className="h-4 w-4" /> },
     { label: 'Reports', icon: <DollarSign className="h-4 w-4" /> },
-  ], [companyTypeLabel]);
+  ], [company?.shipments?.length]);
 
   const isExpenseRecoveryEntry = (row: LedgerEntry) => {
     const category = (row.category || '').toLowerCase();
@@ -493,6 +668,7 @@ export default function CompanyLedgerDetailPage() {
     if (filters.search) params.append('search', filters.search);
     if (filters.type) params.append('type', filters.type);
     if (filters.source) params.append('source', filters.source);
+    if (filters.shipmentId) params.append('shipmentId', filters.shipmentId);
 
     const response = await fetch(`/api/finance/companies/${companyId}/ledger?${params}`);
     const data = await response.json();
@@ -539,7 +715,7 @@ export default function CompanyLedgerDetailPage() {
   useEffect(() => {
     if (!companyId) return;
     void fetchLedger();
-  }, [filters.search, filters.type, filters.source]);
+  }, [filters.search, filters.type, filters.source, filters.shipmentId]);
 
   useEffect(() => {
     if (!focusedEntryId) {
@@ -942,7 +1118,7 @@ export default function CompanyLedgerDetailPage() {
         );
       }
 
-      setFilters({ search: '', type: '', source: 'BANK_IMPORT' });
+      setFilters({ search: '', type: '', source: 'BANK_IMPORT', shipmentId: '' });
       setOpenImportDialog(false);
       resetImportForm();
       await Promise.all([fetchCompany(), fetchLedger(), fetchReport()]);
@@ -1092,12 +1268,63 @@ export default function CompanyLedgerDetailPage() {
               <Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
                 {row.category || 'General'}{row.reference ? ` • Ref: ${row.reference}` : ''}
               </Box>
-            </Box>
-          );
-        },
+            {(() => {
+              const metadata = (row.metadata || {}) as Record<string, unknown>;
+              const metaShipmentId = typeof metadata.shipmentId === 'string' ? metadata.shipmentId : null;
+              const linked = metaShipmentId
+                ? (company?.shipments || []).find((s) => s.id === metaShipmentId)
+                : (company?.shipments || []).find(
+                    (s) =>
+                      Boolean(row.reference && s.id && row.reference.includes(s.id)) ||
+                      Boolean(s.vehicleVIN && row.description && row.description.toLowerCase().includes(s.vehicleVIN.toLowerCase()))
+                  );
+
+              if (!linked && !metaShipmentId) return null;
+
+              const label = linked
+                ? `${linked.vehicleVIN ? `${linked.vehicleVIN.slice(-8)} • ` : ''}${[linked.vehicleYear, linked.vehicleMake, linked.vehicleModel].filter(Boolean).join(' ') || 'Shipment'}`
+                : `Shipment #${metaShipmentId?.slice(-6)}`;
+
+              return (
+                <Box sx={{ mt: 0.5 }}>
+                  <Link
+                    href={`/dashboard/shipments/${linked?.id || metaShipmentId}`}
+                    style={{ textDecoration: 'none' }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Box
+                      component="span"
+                      sx={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 0.5,
+                        px: 1,
+                        py: 0.25,
+                        borderRadius: 1,
+                        fontSize: '0.7rem',
+                        fontWeight: 600,
+                        backgroundColor: 'rgba(var(--accent-gold-rgb), 0.12)',
+                        color: 'var(--accent-gold)',
+                        border: '1px solid rgba(var(--accent-gold-rgb), 0.28)',
+                        transition: 'all 0.15s ease',
+                        '&:hover': {
+                          backgroundColor: 'rgba(var(--accent-gold-rgb), 0.22)',
+                        },
+                      }}
+                    >
+                      <Car className="w-3 h-3" />
+                      <span>{label}</span>
+                    </Box>
+                  </Link>
+                </Box>
+              );
+            })()}
+          </Box>
+        );
       },
-      {
-        key: 'type',
+    },
+    {
+      key: 'type',
         header: 'Type',
         align: 'center',
         render: (_, row) => {
@@ -1156,7 +1383,187 @@ export default function CompanyLedgerDetailPage() {
         ),
       },
     ],
-    []
+    [company?.shipments]
+  );
+
+  const shipmentColumns = useMemo<Column<CompanyShipment>[]>(
+    () => [
+      {
+        key: 'vehicleVIN',
+        header: 'Vehicle / VIN',
+        sortable: true,
+        render: (_, row) => (
+          <Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <span className="font-mono font-semibold tracking-wide text-xs text-[var(--text-primary)]">
+                {row.vehicleVIN || 'No VIN'}
+              </span>
+              {row.lotNumber && (
+                <span className="px-1.5 py-0.2 rounded text-[10px] font-medium bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                  Lot: {row.lotNumber}
+                </span>
+              )}
+            </Box>
+            <Box sx={{ fontSize: '0.8rem', color: 'var(--text-secondary)', mt: 0.25 }}>
+              {[row.vehicleYear, row.vehicleMake, row.vehicleModel].filter(Boolean).join(' ') || 'Unknown Vehicle'}
+            </Box>
+          </Box>
+        ),
+      },
+      {
+        key: 'roles',
+        header: 'Company Role',
+        align: 'center',
+        render: (_, row) => (
+          <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', justifyContent: 'center' }}>
+            {row.isDispatched && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30">
+                <Truck className="w-3 h-3" />
+                Dispatched
+              </span>
+            )}
+            {row.isShipped && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30">
+                <Building2 className="w-3 h-3" />
+                Shipped
+              </span>
+            )}
+            {row.isTransited && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                <GitCompareArrows className="w-3 h-3" />
+                Transited
+              </span>
+            )}
+            {!row.isDispatched && !row.isShipped && !row.isTransited && (
+              <span className="text-xs text-[var(--text-secondary)]">Associated</span>
+            )}
+          </Box>
+        ),
+      },
+      {
+        key: 'status',
+        header: 'Status',
+        sortable: true,
+        align: 'center',
+        render: (_, row) => (
+          <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-medium uppercase tracking-wider bg-[rgba(var(--text-primary-rgb),0.06)] text-[var(--text-primary)] border border-[var(--border)]">
+            {row.status.replace(/_/g, ' ')}
+          </span>
+        ),
+      },
+      {
+        key: 'operations',
+        header: 'Operations Link',
+        render: (_, row) => (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, fontSize: '0.75rem' }}>
+            {row.dispatch && (
+              <Link
+                href={`/dashboard/dispatches/${row.dispatch.id}`}
+                className="text-purple-600 dark:text-purple-400 hover:underline flex items-center gap-1"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Truck className="w-3 h-3 inline" />
+                Dispatch: #{row.dispatch.referenceNumber}
+              </Link>
+            )}
+            {row.container && (
+              <Link
+                href={`/dashboard/containers/${row.container.id}`}
+                className="text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Building2 className="w-3 h-3 inline" />
+                Container: {row.container.containerNumber}
+              </Link>
+            )}
+            {row.transit && (
+              <Link
+                href={`/dashboard/transits/${row.transit.id}`}
+                className="text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <GitCompareArrows className="w-3 h-3 inline" />
+                Transit: #{row.transit.referenceNumber}
+              </Link>
+            )}
+            {!row.dispatch && !row.container && !row.transit && (
+              <span className="text-[var(--text-secondary)]">-</span>
+            )}
+          </Box>
+        ),
+      },
+      {
+        key: 'customer',
+        header: 'Customer',
+        render: (_, row) => (
+          <Box sx={{ fontSize: '0.8rem' }}>
+            <Box sx={{ fontWeight: 500 }}>{row.customer?.name || 'N/A'}</Box>
+            {row.customer?.email && (
+              <Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{row.customer.email}</Box>
+            )}
+          </Box>
+        ),
+      },
+      {
+        key: 'createdAt',
+        header: 'Date Added',
+        sortable: true,
+        render: (_, row) => (
+          <span className="text-xs text-[var(--text-secondary)]">
+            {new Date(row.createdAt).toLocaleDateString()}
+          </span>
+        ),
+      },
+      {
+        key: 'actions',
+        header: 'Actions',
+        align: 'center',
+        render: (_, row) => (
+          <Box
+            sx={{ display: 'flex', gap: 0.75, justifyContent: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Button
+              variant="outline"
+              size="sm"
+              icon={<Download className="w-3.5 h-3.5 text-emerald-500" />}
+              onClick={() =>
+                openUniversalShipmentExport({
+                  shipmentIds: [row.id],
+                  title: `Export Shipment ${row.vehicleVIN || row.id}`,
+                  subtitle: `${row.vehicleMake || ''} ${row.vehicleModel || ''}`.trim(),
+                })
+              }
+            >
+              Export
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              icon={<Eye className="w-3.5 h-3.5" />}
+              onClick={() => router.push(`/dashboard/shipments/${row.id}`)}
+            >
+              Shipment
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              icon={<ReceiptText className="w-3.5 h-3.5" />}
+              onClick={() => {
+                setFilters((prev) => ({ ...prev, shipmentId: row.id }));
+                setActiveTab(0);
+                const nextParams = new URLSearchParams(searchParams.toString());
+                nextParams.set('tab', 'ledger');
+                router.replace(`?${nextParams.toString()}`, { scroll: false });
+              }}
+            >
+              Ledger
+            </Button>
+          </Box>
+        ),
+      },
+    ],
+    [router, searchParams]
   );
 
   if (loading) {
@@ -1200,6 +1607,21 @@ export default function CompanyLedgerDetailPage() {
               </Link>
               <Button
                 variant="outline"
+                icon={<Download className="w-4 h-4 text-emerald-500" />}
+                onClick={() => {
+                  const sIds = (company.shipments || []).map((s) => s.id);
+                  openUniversalShipmentExport({
+                    shipmentIds: sIds.length > 0 ? sIds : undefined,
+                    filters: { companyId: company.id },
+                    title: `Export ${company.name} Shipments`,
+                    subtitle: `${company.name} Ledger • ${company.shipments?.length || 0} associated shipments`,
+                  });
+                }}
+              >
+                Export Shipments
+              </Button>
+              <Button
+                variant="outline"
                 icon={<ReceiptText className="w-4 h-4 text-[var(--accent-gold)]" />}
                 onClick={() => setOpenPriceListDrawer(true)}
               >
@@ -1223,11 +1645,17 @@ export default function CompanyLedgerDetailPage() {
           }
         />
 
-        <DashboardGrid className="grid-cols-1 md:grid-cols-4 mb-4">
+        <DashboardGrid className="grid-cols-1 sm:grid-cols-2 md:grid-cols-5 mb-4">
           <StatsCard icon={<DollarSign className="w-5 h-5" />} title="Total Expenses" value={formatCurrency(summary.totalExpenseCharges)} variant="error" />
           <StatsCard icon={<DollarSign className="w-5 h-5" />} title="Total Paid" value={formatCurrency(summary.totalDebit)} variant="success" />
           <StatsCard icon={<Building2 className="w-5 h-5" />} title="Total Owed" value={formatCurrency(Math.abs(summary.currentBalance))} variant="info" />
           <StatsCard icon={<ReceiptText className="w-5 h-5" />} title="Total Transactions" value={report?.summary.transactionCount || entries.length} variant="default" />
+          <StatsCard
+            icon={<Package className="w-5 h-5" />}
+            title="Total Shipments"
+            value={company._count?.shipments ?? (company.shipments || []).length}
+            variant="default"
+          />
         </DashboardGrid>
 
         <Box
@@ -1304,6 +1732,22 @@ export default function CompanyLedgerDetailPage() {
               <Button
                 variant="outline"
                 size="sm"
+                icon={<Download className="w-4 h-4 text-emerald-500" />}
+                onClick={() => {
+                  const sIds = (company.shipments || []).map((s) => s.id);
+                  openUniversalShipmentExport({
+                    shipmentIds: sIds.length > 0 ? sIds : undefined,
+                    filters: { companyId: company.id },
+                    title: `Export ${company.name} Shipments`,
+                    subtitle: `${company.name} Ledger • ${company.shipments?.length || 0} associated shipments`,
+                  });
+                }}
+              >
+                Export Shipments ({company.shipments?.length || 0})
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
                 icon={<ReceiptText className="w-4 h-4 text-[var(--accent-gold)]" />}
                 onClick={() => setOpenPriceListDrawer(true)}
               >
@@ -1314,7 +1758,7 @@ export default function CompanyLedgerDetailPage() {
                 size="sm"
                 icon={<Upload className="w-4 h-4" />}
                 onClick={() => {
-                  setActiveTab(1);
+                  setActiveTab(3);
                   const nextParams = new URLSearchParams(searchParams.toString());
                   nextParams.set('tab', 'price-list');
                   router.replace(`?${nextParams.toString()}`, { scroll: false });
@@ -1367,15 +1811,29 @@ export default function CompanyLedgerDetailPage() {
                   <ReceiptText className="w-5 h-5" />
                 </Box>
                 <Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
                     <Box sx={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--text-primary)' }}>
-                      Company Price List
+                      Company Price Lists
                     </Box>
-                    {activePriceList ? (
+                    {activeOceanPriceList && (
                       <Chip
                         size="small"
-                        icon={<CheckCircle2 className="w-3 h-3 text-emerald-600" />}
-                        label={activePriceList.name}
+                        icon={<Ship className="w-3 h-3 text-blue-600" />}
+                        label={`Ocean: USA ➔ ${activeOceanPriceList.destinationLabel || 'Port'} (${activePriceListLaneCount} rates)`}
+                        sx={{
+                          fontWeight: 750,
+                          fontSize: '0.72rem',
+                          backgroundColor: 'rgba(59, 130, 246, 0.12)',
+                          color: '#1d4ed8',
+                          border: '1px solid rgba(59, 130, 246, 0.3)',
+                        }}
+                      />
+                    )}
+                    {(activeTransitPriceList || activeTransitData) && (
+                      <Chip
+                        size="small"
+                        icon={<Truck className="w-3 h-3 text-emerald-600" />}
+                        label={`Transit: ${activeTransitData ? `${activeTransitData.origin.split(',')[0]} ➔ Islam Qala ($${activeTransitData.rates?.sedan}/$${activeTransitData.rates?.suv})` : 'Overland Transit Active'}`}
                         sx={{
                           fontWeight: 750,
                           fontSize: '0.72rem',
@@ -1384,11 +1842,12 @@ export default function CompanyLedgerDetailPage() {
                           border: '1px solid rgba(34, 197, 94, 0.3)',
                         }}
                       />
-                    ) : (
+                    )}
+                    {!activeOceanPriceList && !activeTransitPriceList && (
                       <Chip
                         size="small"
                         icon={<AlertTriangle className="w-3 h-3 text-amber-500" />}
-                        label="No Active Price List"
+                        label="No Active Price Lists"
                         sx={{
                           fontWeight: 750,
                           fontSize: '0.72rem',
@@ -1400,9 +1859,12 @@ export default function CompanyLedgerDetailPage() {
                     )}
                   </Box>
                   <Box sx={{ fontSize: '0.8rem', color: 'var(--text-secondary)', mt: 0.25 }}>
-                    {activePriceList
-                      ? `${company.priceListConfig?.destinationLabel || 'Standard Destination'} • ${activePriceListStateCount} States • ${activePriceListLaneCount} Auction Lanes • ${activePriceList.sourceFileName}`
-                      : 'No rate sheet uploaded yet for automated shipping pricing and rate lookup.'}
+                    {activeOceanPriceList || activeTransitPriceList
+                      ? [
+                          activeOceanPriceList ? `🌊 Leg 1 Ocean: USA to ${activeOceanPriceList.destinationLabel} (${activePriceListLaneCount} lanes)` : null,
+                          activeTransitData ? `🚚 Leg 2 Transit: ${activeTransitData.origin} to ${activeTransitData.destination} (Sedan ${formatCurrency(activeTransitData.rates?.sedan || 2300)}, SUV ${formatCurrency(activeTransitData.rates?.suv || 2400)} incl. clearance)` : null,
+                        ].filter(Boolean).join(' • ')
+                      : 'No rate sheets uploaded yet for automated shipping pricing and rate lookup.'}
                   </Box>
                 </Box>
               </Box>
@@ -1535,7 +1997,7 @@ export default function CompanyLedgerDetailPage() {
             )}
           </Box>
 
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr) 180px 180px' }, gap: 1.5, mb: 2 }}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr) 160px 160px 220px' }, gap: 1.5, mb: 2 }}>
             <TextField
               size="small"
               placeholder="Search description / category / notes"
@@ -1562,7 +2024,40 @@ export default function CompanyLedgerDetailPage() {
               <MenuItem value="BANK_IMPORT">Bank Imports</MenuItem>
               <MenuItem value="MANUAL">Manual Entries</MenuItem>
             </TextField>
+            <TextField
+              select
+              size="small"
+              value={filters.shipmentId}
+              onChange={(event) => setFilters((prev) => ({ ...prev, shipmentId: event.target.value }))}
+            >
+              <MenuItem value="">All Shipments ({company.shipments?.length || 0})</MenuItem>
+              {(company.shipments || []).map((s) => (
+                <MenuItem key={s.id} value={s.id}>
+                  {s.vehicleVIN ? `${s.vehicleVIN.slice(-8)} • ` : ''}{[s.vehicleMake, s.vehicleModel].filter(Boolean).join(' ') || 'Shipment'}
+                </MenuItem>
+              ))}
+            </TextField>
           </Box>
+
+          {filters.shipmentId && (
+            <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+              <span className="text-xs text-[var(--text-secondary)] font-medium">Filtered by shipment:</span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-[rgba(var(--accent-gold-rgb),0.12)] text-[var(--accent-gold)] border border-[rgba(var(--accent-gold-rgb),0.25)]">
+                <Car className="w-3.5 h-3.5" />
+                {(() => {
+                  const s = (company.shipments || []).find((c) => c.id === filters.shipmentId);
+                  return s ? `${s.vehicleVIN || 'Shipment'} • ${[s.vehicleMake, s.vehicleModel].filter(Boolean).join(' ')}` : `Shipment #${filters.shipmentId.slice(-6)}`;
+                })()}
+                <button
+                  type="button"
+                  onClick={() => setFilters((prev) => ({ ...prev, shipmentId: '' }))}
+                  className="ml-1 hover:opacity-75 font-bold cursor-pointer bg-transparent border-0 text-inherit p-0"
+                >
+                  ×
+                </button>
+              </span>
+            </Box>
+          )}
 
           {(focusedEntryId || focusedEntryLoading || focusedEntry) && (
             <Box
@@ -1629,6 +2124,108 @@ export default function CompanyLedgerDetailPage() {
         </TabPanel>
 
         <TabPanel value={activeTab} index={1}>
+          <DashboardPanel
+            title="Company Shipments"
+            description="All shipments handled by this company across dispatch, shipping, and transit operations"
+            actions={
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  icon={<Download className="w-4 h-4 text-emerald-500" />}
+                  onClick={() => {
+                    const sIds = filteredCompanyShipments.map((s) => s.id);
+                    openUniversalShipmentExport({
+                      shipmentIds: sIds.length > 0 ? sIds : undefined,
+                      filters: { companyId: company.id },
+                      title: `Export ${company.name} Shipments`,
+                      subtitle: `${filteredCompanyShipments.length} filtered shipment record(s)`,
+                    });
+                  }}
+                >
+                  Export Shipments ({filteredCompanyShipments.length})
+                </Button>
+              </Box>
+            }
+          >
+            <DashboardGrid className="grid-cols-1 sm:grid-cols-2 md:grid-cols-4 mb-4">
+              <StatsCard
+                icon={<Package className="w-5 h-5" />}
+                title="Total Shipments"
+                value={company._count?.shipments ?? (company.shipments || []).length}
+                variant="default"
+              />
+              <StatsCard
+                icon={<Truck className="w-5 h-5" />}
+                title="Dispatched"
+                value={company._count?.dispatchedShipments ?? (company.shipments || []).filter((s) => s.isDispatched).length}
+                variant="info"
+              />
+              <StatsCard
+                icon={<Building2 className="w-5 h-5" />}
+                title="Shipped"
+                value={company._count?.shippedShipments ?? (company.shipments || []).filter((s) => s.isShipped).length}
+                variant="success"
+              />
+              <StatsCard
+                icon={<GitCompareArrows className="w-5 h-5" />}
+                title="Transited"
+                value={company._count?.transitedShipments ?? (company.shipments || []).filter((s) => s.isTransited).length}
+                variant="warning"
+              />
+            </DashboardGrid>
+
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr) 200px 180px' }, gap: 1.5, mb: 2 }}>
+              <TextField
+                size="small"
+                placeholder="Search VIN / vehicle / customer / reference"
+                value={shipmentSearch}
+                onChange={(e) => setShipmentSearch(e.target.value)}
+              />
+              <TextField
+                select
+                size="small"
+                value={shipmentRoleFilter}
+                onChange={(e) => setShipmentRoleFilter(e.target.value as any)}
+              >
+                <MenuItem value="ALL">All Roles ({company.shipments?.length || 0})</MenuItem>
+                <MenuItem value="DISPATCH">Dispatched ({(company.shipments || []).filter((s) => s.isDispatched).length})</MenuItem>
+                <MenuItem value="SHIPPING">Shipped ({(company.shipments || []).filter((s) => s.isShipped).length})</MenuItem>
+                <MenuItem value="TRANSIT">Transited ({(company.shipments || []).filter((s) => s.isTransited).length})</MenuItem>
+              </TextField>
+              <TextField
+                select
+                size="small"
+                value={shipmentStatusFilter}
+                onChange={(e) => setShipmentStatusFilter(e.target.value)}
+              >
+                <MenuItem value="ALL">All Statuses</MenuItem>
+                {Array.from(new Set((company.shipments || []).map((s) => s.status))).filter(Boolean).map((st) => (
+                  <MenuItem key={st} value={st}>
+                    {st.replace(/_/g, ' ')}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Box>
+
+            <DataTable
+              data={filteredCompanyShipments}
+              columns={shipmentColumns}
+              keyField="id"
+              selectable
+              onExport={(selectedRows) =>
+                openUniversalShipmentExport({
+                  shipmentIds: selectedRows.map((r) => r.id),
+                  title: `Export Selected (${selectedRows.length}) Shipments`,
+                  subtitle: `${company.name} Ledger • Selected vehicles`,
+                })
+              }
+              onRowClick={(row) => router.push(`/dashboard/shipments/${row.id}`)}
+            />
+          </DashboardPanel>
+        </TabPanel>
+
+        <TabPanel value={activeTab} index={3}>
         <DashboardPanel
           title="Company Price List"
           description="Upload and manage the rate sheet used by this company"
@@ -1650,58 +2247,171 @@ export default function CompanyLedgerDetailPage() {
           }
         >
           <Box sx={{ display: 'grid', gap: 2.5 }}>
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1.4fr 1fr' }, gap: 1.5 }}>
-              <Box sx={{ p: 2, borderRadius: 2, border: activePriceList ? '1px solid rgba(34, 197, 94, 0.34)' : '1px solid rgba(var(--warning-rgb), 0.34)', background: activePriceList ? 'rgba(34, 197, 94, 0.08)' : 'rgba(var(--warning-rgb), 0.08)' }}>
+            {/* Dual-Leg Active Price Lists Banner */}
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' }, gap: 1.5 }}>
+              {/* Card 1: Leg 1 Ocean Shipping */}
+              <Box
+                sx={{
+                  p: 2,
+                  borderRadius: 2,
+                  border: activeOceanPriceList ? '1px solid rgba(59, 130, 246, 0.4)' : '1px dashed var(--border)',
+                  background: activeOceanPriceList ? 'rgba(59, 130, 246, 0.06)' : 'var(--panel)',
+                }}
+              >
                 <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1.5, flexWrap: 'wrap' }}>
                   <Box sx={{ display: 'flex', gap: 1.25, alignItems: 'flex-start' }}>
-                    <Box sx={{ mt: 0.25, width: 34, height: 34, borderRadius: 1.5, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'var(--panel)', color: activePriceList ? '#15803d' : 'var(--warning)', border: '1px solid var(--border)' }}>
-                      {activePriceList ? <CheckCircle2 className="h-5 w-5" /> : <AlertTriangle className="h-5 w-5" />}
+                    <Box
+                      sx={{
+                        mt: 0.25,
+                        width: 36,
+                        height: 36,
+                        borderRadius: 1.5,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: activeOceanPriceList ? 'rgba(59, 130, 246, 0.16)' : 'var(--background)',
+                        color: activeOceanPriceList ? '#2563eb' : 'var(--text-secondary)',
+                        border: '1px solid var(--border)',
+                      }}
+                    >
+                      <Ship className="h-5 w-5" />
                     </Box>
                     <Box>
-                      <Box sx={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.08em' }}>Price List Status</Box>
-                      <Box sx={{ mt: 0.35, fontWeight: 800, color: 'var(--text-primary)' }}>
-                        {activePriceList ? activePriceList.name : 'No active price list'}
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box sx={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.08em' }}>
+                          Leg 1: Ocean Freight
+                        </Box>
+                        {activeOceanPriceList ? (
+                          <Chip size="small" label="Active" sx={{ fontWeight: 800, height: 18, fontSize: '0.68rem', bgcolor: 'rgba(59, 130, 246, 0.15)', color: '#1d4ed8' }} />
+                        ) : (
+                          <Chip size="small" label="Not Active" sx={{ fontWeight: 800, height: 18, fontSize: '0.68rem', bgcolor: 'rgba(234, 179, 8, 0.15)', color: 'var(--warning)' }} />
+                        )}
                       </Box>
-                      <Box sx={{ mt: 0.35, fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                        {activePriceList
-                          ? `${activePriceList.sourceFileName} • ${activePriceList.destinationLabel} • active since ${new Date(activePriceList.createdAt).toLocaleDateString()}`
-                          : 'Upload and import a PDF, CSV, TXT, or XLSX rate sheet to activate company pricing.'}
+                      <Box sx={{ mt: 0.35, fontWeight: 800, fontSize: '0.98rem', color: 'var(--text-primary)' }}>
+                        {activeOceanPriceList ? activeOceanPriceList.name : 'USA to Mersin / Jebel Ali Ocean Sheet'}
+                      </Box>
+                      <Box sx={{ mt: 0.35, fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                        {activeOceanPriceList
+                          ? `Destination: ${activeOceanPriceList.destinationLabel} • ${activePriceListLaneCount} Auction Lanes • ${activePriceListStateCount} States • ${activeOceanPriceList.sourceFileName}`
+                          : 'Upload a USA auction rate sheet (Copart/IAAI) to activate Leg 1 port shipping rates.'}
                       </Box>
                     </Box>
                   </Box>
-                  <Button variant="outline" size="sm" onClick={() => router.push('/dashboard/finance/price-comparison')}>
-                    Test / Compare
-                  </Button>
+                  {activeOceanPriceList && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      icon={<Printer className="w-3.5 h-3.5" />}
+                      onClick={handlePrintActivePriceList}
+                    >
+                      Print Ocean
+                    </Button>
+                  )}
                 </Box>
               </Box>
 
-              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 1 }}>
-                {[
-                  { label: 'State Rates', value: activePriceListStateCount },
-                  { label: 'Lane Rows', value: activePriceListLaneCount },
-                  { label: 'Warnings', value: activePriceListWarnings.length },
-                  { label: 'Versions', value: priceListHistoryCount },
-                ].map((item) => (
-                  <Box key={item.label} sx={{ p: 1.25, borderRadius: 1.5, border: '1px solid var(--border)', background: 'var(--background)' }}>
-                    <Box sx={{ fontSize: '0.68rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 800 }}>{item.label}</Box>
-                    <Box sx={{ mt: 0.25, fontSize: '1.15rem', fontWeight: 800, color: item.label === 'Warnings' && item.value > 0 ? 'var(--warning)' : 'var(--text-primary)' }}>{item.value}</Box>
+              {/* Card 2: Leg 2 Overland Transit */}
+              <Box
+                sx={{
+                  p: 2,
+                  borderRadius: 2,
+                  border: (activeTransitPriceList || activeTransitData) ? '1px solid rgba(16, 185, 129, 0.4)' : '1px dashed var(--border)',
+                  background: (activeTransitPriceList || activeTransitData) ? 'rgba(16, 185, 129, 0.06)' : 'var(--panel)',
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1.5, flexWrap: 'wrap' }}>
+                  <Box sx={{ display: 'flex', gap: 1.25, alignItems: 'flex-start' }}>
+                    <Box
+                      sx={{
+                        mt: 0.25,
+                        width: 36,
+                        height: 36,
+                        borderRadius: 1.5,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: (activeTransitPriceList || activeTransitData) ? 'rgba(16, 185, 129, 0.16)' : 'var(--background)',
+                        color: (activeTransitPriceList || activeTransitData) ? '#059669' : 'var(--text-secondary)',
+                        border: '1px solid var(--border)',
+                      }}
+                    >
+                      <Truck className="h-5 w-5" />
+                    </Box>
+                    <Box>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box sx={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.08em' }}>
+                          Leg 2: Overland Transit
+                        </Box>
+                        {(activeTransitPriceList || activeTransitData) ? (
+                          <Chip size="small" label="Active" sx={{ fontWeight: 800, height: 18, fontSize: '0.68rem', bgcolor: 'rgba(16, 185, 129, 0.15)', color: '#047857' }} />
+                        ) : (
+                          <Chip size="small" label="Not Active" sx={{ fontWeight: 800, height: 18, fontSize: '0.68rem', bgcolor: 'rgba(234, 179, 8, 0.15)', color: 'var(--warning)' }} />
+                        )}
+                      </Box>
+                      <Box sx={{ mt: 0.35, fontWeight: 800, fontSize: '0.98rem', color: 'var(--text-primary)' }}>
+                        {activeTransitData ? `${activeTransitData.origin} ➔ ${activeTransitData.destination}` : 'Port to Islam Qala Transit Tariff'}
+                      </Box>
+                      <Box sx={{ mt: 0.35, fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                        {activeTransitData
+                          ? `Sedan: ${formatCurrency(activeTransitData.rates?.sedan || 2300)} • SUV: ${formatCurrency(activeTransitData.rates?.suv || 2400)} • Customs clearance included • ${activeTransitPriceList?.name || 'Overland Tariff'}`
+                          : 'Upload a Mersin or UAE to Islam Qala rate sheet to activate overland delivery tariffs.'}
+                      </Box>
+                    </Box>
                   </Box>
-                ))}
+                  {(activeTransitPriceList || activeTransitData) && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      icon={<ReceiptText className="w-3.5 h-3.5" />}
+                      onClick={() => {
+                        setRateLookupLeg('transit');
+                        scrollToPriceListSection('price-list-rate-lookup');
+                      }}
+                    >
+                      View Tariff
+                    </Button>
+                  )}
+                </Box>
               </Box>
             </Box>
 
+            {/* Quick Metrics */}
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(4, 1fr)' }, gap: 1 }}>
+              {[
+                { label: 'Ocean Lanes', value: `${activePriceListLaneCount} rows` },
+                { label: 'State Rates', value: `${activePriceListStateCount} states` },
+                { label: 'Transit Sedan', value: activeTransitData ? formatCurrency(activeTransitData.rates?.sedan || 2300) : 'None' },
+                { label: 'Transit SUV', value: activeTransitData ? formatCurrency(activeTransitData.rates?.suv || 2400) : 'None' },
+              ].map((item) => (
+                <Box key={item.label} sx={{ p: 1.25, borderRadius: 1.5, border: '1px solid var(--border)', background: 'var(--background)' }}>
+                  <Box sx={{ fontSize: '0.68rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 800 }}>{item.label}</Box>
+                  <Box sx={{ mt: 0.25, fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)' }}>{item.value}</Box>
+                </Box>
+              ))}
+            </Box>
+
             <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-              {activePriceList && (
+              {activeOceanPriceList && (
                 <Button
                   variant="outline"
                   size="sm"
                   icon={<Printer className="w-3.5 h-3.5" />}
                   onClick={handlePrintActivePriceList}
                 >
-                  Print Price List
+                  Print Ocean Rate Sheet
                 </Button>
               )}
-              <Button variant="outline" size="sm" onClick={() => scrollToPriceListSection('price-list-upload-flow')}>Upload</Button>
+              {activeTransitData && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  icon={<Printer className="w-3.5 h-3.5" />}
+                  onClick={handlePrintTransitTariff}
+                >
+                  Print Transit Tariff
+                </Button>
+              )}
+              <Button variant="outline" size="sm" onClick={() => scrollToPriceListSection('price-list-upload-flow')}>Upload Rate Sheet</Button>
               <Button variant="outline" size="sm" onClick={() => scrollToPriceListSection('price-list-rate-lookup')}>Rate Lookup</Button>
               <Button variant="outline" size="sm" onClick={() => scrollToPriceListSection('price-list-import-history')}>Import History</Button>
               {activePriceListWarnings.length > 0 && (
@@ -1709,10 +2419,19 @@ export default function CompanyLedgerDetailPage() {
               )}
             </Box>
 
-            <Box sx={{ p: 1.5, borderRadius: 2, border: '1px solid rgba(var(--accent-gold-rgb), 0.32)', background: 'rgba(var(--accent-gold-rgb), 0.08)' }}>
-              <Box sx={{ fontWeight: 700, color: 'var(--text-primary)' }}>How to upload</Box>
-              <Box sx={{ mt: 0.5, fontSize: '0.84rem', color: 'var(--text-secondary)', lineHeight: 1.7 }}>
-                Upload a PDF, CSV, TXT, or XLSX rate sheet with state, branch/city, and total price columns. Preview first, edit or delete rows if needed, then import to create a new active version. Older versions stay in Import History and can be restored.
+            <Box sx={{ p: 2, borderRadius: 2, border: '1px solid rgba(var(--accent-gold-rgb), 0.32)', background: 'rgba(var(--accent-gold-rgb), 0.08)' }}>
+              <Box sx={{ fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Navigation className="w-4 h-4 text-[var(--accent-gold)]" />
+                Dual-Leg Pricing Architecture (USA ➔ Port ➔ Islam Qala)
+              </Box>
+              <Box sx={{ mt: 0.75, fontSize: '0.84rem', color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+                Jacxi supports <strong>two concurrent price lists</strong> for every shipping company:
+                <br />
+                • <strong>Leg 1 (Ocean Freight)</strong>: USA auction yards (Copart & IAAI across 50 states) to Mersin, Turkey or Jebel Ali, UAE.
+                <br />
+                • <strong>Leg 2 (Overland Transit)</strong>: Port customs clearance and overland car-carrier transport from Mersin or UAE to Islam Qala, Herat border.
+                <br />
+                The system automatically detects whether an uploaded document is Leg 1 or Leg 2 from its destination and text content. Activating an overland transit list <strong>never</strong> overwrites or deactivates your ocean auction rates, and vice versa!
               </Box>
             </Box>
             <Box id="price-list-upload-flow" sx={{ scrollMarginTop: 96, display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(4, 1fr)' }, gap: 1 }}>
@@ -1942,103 +2661,235 @@ export default function CompanyLedgerDetailPage() {
 
             <Box id="price-list-rate-lookup" sx={{ scrollMarginTop: 96, display: 'grid', gap: 1.5 }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1.5, flexWrap: 'wrap', alignItems: 'center' }}>
-                <Box sx={{ fontWeight: 700 }}>Rate Lookup</Box>
                 <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
-                  {activePriceList && (
+                  <Box sx={{ fontWeight: 700, mr: 0.5 }}>Rate Lookup</Box>
+                  <Box sx={{ display: 'inline-flex', p: 0.5, borderRadius: 1.5, bgcolor: 'var(--panel)', border: '1px solid var(--border)', gap: 0.5 }}>
                     <Button
-                      variant="outline"
+                      variant={rateLookupLeg === 'ocean' ? 'primary' : 'ghost'}
                       size="sm"
-                      icon={<Printer className="w-3.5 h-3.5" />}
-                      onClick={() => {
-                        if (!company) return;
-                        const config = normalizeShippingRateConfig(activePriceList?.config || company.priceListConfig);
-                        const q = priceListSearch.trim().toLowerCase();
-                        const filtered = q
-                          ? config.auctionRates.filter((row) =>
-                              [row.stateCode, row.branch, row.city, row.loadingPoint || '', String(row.total)]
-                                .join(' ')
-                                .toLowerCase()
-                                .includes(q)
-                            )
-                          : config.auctionRates;
-                        printCompanyPriceList({
-                          companyName: company.name,
-                          companyType: companyTypeLabel,
-                          priceListName: activePriceList?.name || 'Active Price List',
-                          destinationLabel: config.destinationLabel || 'Standard Destination',
-                          sourceFileName: activePriceList?.sourceFileName || config.updatedFromPdfName,
-                          effectiveDate: activePriceList?.effectiveFrom || config.updatedAt,
-                          auctionRates: filtered,
-                          stateRates: q ? {} : config.stateRates,
-                          filterInfo: q ? { searchQuery: priceListSearch.trim() } : undefined,
-                        });
-                      }}
+                      icon={<Ship className="w-3.5 h-3.5" />}
+                      onClick={() => setRateLookupLeg('ocean')}
                     >
-                      {priceListSearch.trim() ? `Print Filtered (${activePriceListRows.length})` : 'Print Rate Sheet'}
+                      Ocean Rates ({activePriceListLaneCount})
                     </Button>
-                  )}
-                  <TextField size="small" placeholder="Search state, branch, city" value={priceListSearch} onChange={(event) => setPriceListSearch(event.target.value)} />
+                    <Button
+                      variant={rateLookupLeg === 'transit' ? 'primary' : 'ghost'}
+                      size="sm"
+                      icon={<Truck className="w-3.5 h-3.5" />}
+                      onClick={() => setRateLookupLeg('transit')}
+                    >
+                      Overland Transit (Islam Qala)
+                    </Button>
+                  </Box>
                 </Box>
-              </Box>
-              <Box sx={{ border: '1px solid var(--border)', borderRadius: 2, overflow: 'hidden' }}>
-                <Box sx={{ maxHeight: 360, overflow: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-                    <thead>
-                      <tr style={{ background: 'var(--panel)', borderBottom: '1px solid var(--border)' }}>
-                        <th style={{ textAlign: 'left', padding: '10px 12px' }}>State</th>
-                        <th style={{ textAlign: 'left', padding: '10px 12px' }}>Branch</th>
-                        <th style={{ textAlign: 'left', padding: '10px 12px' }}>City</th>
-                        <th style={{ textAlign: 'left', padding: '10px 12px' }}>Loading Point</th>
-                        <th style={{ textAlign: 'right', padding: '10px 12px' }}>Total</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {activePriceListRows.length > 0 ? activePriceListRows.map((row, index) => (
-                        <tr key={`${row.stateCode}-${row.branch}-${row.city}-${index}`} style={{ borderBottom: '1px solid var(--border)' }}>
-                          <td style={{ padding: '10px 12px', fontWeight: 700 }}>{row.stateCode}</td>
-                          <td style={{ padding: '10px 12px' }}>{row.branch || '-'}</td>
-                          <td style={{ padding: '10px 12px' }}>{row.city || '-'}</td>
-                          <td style={{ padding: '10px 12px' }}>{row.loadingPoint || '-'}</td>
-                          <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700 }}>{formatCurrency(row.total)}</td>
-                        </tr>
-                      )) : (
-                        <tr><td colSpan={5} style={{ padding: '16px 12px', textAlign: 'center', color: 'var(--text-secondary)' }}>No imported auction rows to display.</td></tr>
-                      )}
-                    </tbody>
-                  </table>
-                </Box>
-              </Box>
-            </Box>
 
-            {company.priceLists && company.priceLists.length > 0 && (
-              <Box id="price-list-import-history" sx={{ scrollMarginTop: 96, display: 'grid', gap: 1 }}>
-                <Box sx={{ fontWeight: 700 }}>Import History</Box>
-                {company.priceLists.map((list) => (
-                  <Box key={list.id} sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr) auto' }, gap: 1.5, alignItems: 'center', p: 1.5, border: '1px solid var(--border)', borderRadius: 2, background: list.isActive ? 'rgba(34, 197, 94, 0.08)' : 'var(--panel)' }}>
-                    <Box>
-                      <Box sx={{ fontWeight: 700 }}>{list.name}{list.isActive ? ' • Active' : ''}</Box>
-                      <Box sx={{ fontSize: '0.82rem', color: 'var(--text-secondary)', mt: 0.25 }}>
-                        {list.sourceFileName} • {list.destinationLabel} • {list.importedAuctionRateCount || list.importedStateRateCount} rows • {new Date(list.createdAt).toLocaleString()}
-                      </Box>
-                    </Box>
-                    <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', justifyContent: { xs: 'flex-start', md: 'flex-end' } }}>
+                {rateLookupLeg === 'ocean' && (
+                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+                    {activeOceanPriceList && (
                       <Button
                         variant="outline"
                         size="sm"
                         icon={<Printer className="w-3.5 h-3.5" />}
-                        onClick={() => handlePrintPriceListVersion(list)}
+                        onClick={() => {
+                          if (!company) return;
+                          const config = normalizeShippingRateConfig(activeOceanPriceList?.config || company.priceListConfig);
+                          const q = priceListSearch.trim().toLowerCase();
+                          const filtered = q
+                            ? config.auctionRates.filter((row) =>
+                                [row.stateCode, row.branch, row.city, row.loadingPoint || '', String(row.total)]
+                                  .join(' ')
+                                  .toLowerCase()
+                                  .includes(q)
+                              )
+                            : config.auctionRates;
+                          printCompanyPriceList({
+                            companyName: company.name,
+                            companyType: companyTypeLabel,
+                            priceListName: activeOceanPriceList?.name || 'Ocean Rate Sheet',
+                            destinationLabel: config.destinationLabel || 'Mersin / Jebel Ali',
+                            sourceFileName: activeOceanPriceList?.sourceFileName || config.updatedFromPdfName,
+                            effectiveDate: activeOceanPriceList?.effectiveFrom || config.updatedAt,
+                            auctionRates: filtered,
+                            stateRates: q ? {} : config.stateRates,
+                            filterInfo: q ? { searchQuery: priceListSearch.trim() } : undefined,
+                          });
+                        }}
                       >
-                        Print
+                        {priceListSearch.trim() ? `Print Filtered (${activePriceListRows.length})` : 'Print Ocean Rates'}
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => setPriceListVersionReview(list)}>
-                        Compare
-                      </Button>
-                      <Button variant="outline" size="sm" disabled={list.isActive || activatingPriceListId === list.id} onClick={() => setPriceListVersionReview(list)}>
-                        {activatingPriceListId === list.id ? 'Restoring...' : list.isActive ? 'Active' : 'Restore'}
+                    )}
+                    <TextField size="small" placeholder="Search state, branch, city" value={priceListSearch} onChange={(event) => setPriceListSearch(event.target.value)} />
+                  </Box>
+                )}
+
+                {rateLookupLeg === 'transit' && activeTransitData && (
+                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      icon={<Printer className="w-3.5 h-3.5" />}
+                      onClick={handlePrintTransitTariff}
+                    >
+                      Print Transit Tariff
+                    </Button>
+                  </Box>
+                )}
+              </Box>
+
+              {/* Ocean Leg Table View */}
+              {rateLookupLeg === 'ocean' && (
+                <Box sx={{ border: '1px solid var(--border)', borderRadius: 2, overflow: 'hidden' }}>
+                  <Box sx={{ maxHeight: 380, overflow: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                      <thead>
+                        <tr style={{ background: 'var(--panel)', borderBottom: '1px solid var(--border)' }}>
+                          <th style={{ textAlign: 'left', padding: '10px 12px' }}>State</th>
+                          <th style={{ textAlign: 'left', padding: '10px 12px' }}>Branch</th>
+                          <th style={{ textAlign: 'left', padding: '10px 12px' }}>City</th>
+                          <th style={{ textAlign: 'left', padding: '10px 12px' }}>Loading Point</th>
+                          <th style={{ textAlign: 'right', padding: '10px 12px' }}>Total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {activePriceListRows.length > 0 ? activePriceListRows.map((row, index) => (
+                          <tr key={`${row.stateCode}-${row.branch}-${row.city}-${index}`} style={{ borderBottom: '1px solid var(--border)' }}>
+                            <td style={{ padding: '10px 12px', fontWeight: 700 }}>{row.stateCode}</td>
+                            <td style={{ padding: '10px 12px' }}>{row.branch || '-'}</td>
+                            <td style={{ padding: '10px 12px' }}>{row.city || '-'}</td>
+                            <td style={{ padding: '10px 12px' }}>{row.loadingPoint || '-'}</td>
+                            <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700 }}>{formatCurrency(row.total)}</td>
+                          </tr>
+                        )) : (
+                          <tr><td colSpan={5} style={{ padding: '16px 12px', textAlign: 'center', color: 'var(--text-secondary)' }}>No imported auction rows to display.</td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </Box>
+                </Box>
+              )}
+
+              {/* Overland Transit Tariff View */}
+              {rateLookupLeg === 'transit' && (
+                <Box sx={{ display: 'grid', gap: 2, p: 2, border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: 2, background: 'rgba(16, 185, 129, 0.04)' }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1.5 }}>
+                    <Box>
+                      <Box sx={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
+                        Overland Transit Corridor (Second Leg)
+                      </Box>
+                      <Box sx={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--text-primary)' }}>
+                        {activeTransitData ? `${activeTransitData.origin} ➔ ${activeTransitData.destination}` : 'Mersin/UAE Port ➔ Islam Qala, Herat (Afghanistan)'}
+                      </Box>
+                      <Box sx={{ fontSize: '0.8rem', color: 'var(--text-secondary)', mt: 0.25 }}>
+                        Car-carrier / container transit with port customs clearance and border transport included.
+                      </Box>
+                    </Box>
+                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+                      <Chip
+                        icon={<ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />}
+                        label="Customs Clearance Included"
+                        sx={{ fontWeight: 800, bgcolor: 'rgba(16, 185, 129, 0.15)', color: '#047857', border: '1px solid rgba(16, 185, 129, 0.3)' }}
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        icon={<Printer className="w-3.5 h-3.5" />}
+                        onClick={handlePrintTransitTariff}
+                      >
+                        Print Transit Tariff
                       </Button>
                     </Box>
                   </Box>
-                ))}
+
+                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+                    <Box sx={{ p: 2, borderRadius: 2, border: '1px solid var(--border)', background: 'var(--panel)', display: 'grid', gap: 0.5 }}>
+                      <Box sx={{ fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 800, color: 'var(--text-secondary)' }}>Sedan / Saloon</Box>
+                      <Box sx={{ fontSize: '1.8rem', fontWeight: 850, color: 'var(--text-primary)' }}>
+                        {formatCurrency(activeTransitData?.rates?.sedan || 2300)}
+                      </Box>
+                      <Box sx={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Standard passenger car to Islam Qala border</Box>
+                    </Box>
+
+                    <Box sx={{ p: 2, borderRadius: 2, border: '1px solid rgba(var(--accent-gold-rgb), 0.4)', background: 'linear-gradient(145deg, rgba(var(--accent-gold-rgb), 0.08), var(--panel))', display: 'grid', gap: 0.5 }}>
+                      <Box sx={{ fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 800, color: 'var(--accent-gold)' }}>SUV / 4X4 / Truck</Box>
+                      <Box sx={{ fontSize: '1.8rem', fontWeight: 850, color: 'var(--accent-gold)' }}>
+                        {formatCurrency(activeTransitData?.rates?.suv || 2400)}
+                      </Box>
+                      <Box sx={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Large / heavy vehicle to Islam Qala border</Box>
+                    </Box>
+                  </Box>
+
+                  {activeTransitData?.terms && activeTransitData.terms.length > 0 && (
+                    <Box sx={{ p: 1.5, borderRadius: 1.5, border: '1px solid var(--border)', background: 'var(--panel)' }}>
+                      <Box sx={{ fontWeight: 800, fontSize: '0.82rem', mb: 0.75 }}>Transit Terms & Policy:</Box>
+                      <Box sx={{ display: 'grid', gap: 0.5 }}>
+                        {activeTransitData.terms.map((term: string, idx: number) => (
+                          <Box key={idx} sx={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'flex-start', gap: 0.75 }}>
+                            <Box sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: 'var(--accent-gold)', mt: 0.75, shrink: 0 }} />
+                            <Box>{term}</Box>
+                          </Box>
+                        ))}
+                      </Box>
+                    </Box>
+                  )}
+                </Box>
+              )}
+            </Box>
+
+            {company.priceLists && company.priceLists.length > 0 && (
+              <Box id="price-list-import-history" sx={{ scrollMarginTop: 96, display: 'grid', gap: 1 }}>
+                <Box sx={{ fontWeight: 700 }}>Import History & Multi-Leg Versions</Box>
+                {company.priceLists.map((list) => {
+                  const corridor = detectPriceListCorridor({
+                    fileName: list.sourceFileName,
+                    destinationLabel: list.destinationLabel,
+                    name: list.name,
+                    config: list.config,
+                    auctionRateCount: list.importedAuctionRateCount,
+                  });
+                  const isTransit = corridor.leg === 'TRANSIT';
+                  return (
+                    <Box key={list.id} sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr) auto' }, gap: 1.5, alignItems: 'center', p: 1.5, border: '1px solid var(--border)', borderRadius: 2, background: list.isActive ? (isTransit ? 'rgba(16, 185, 129, 0.08)' : 'rgba(59, 130, 246, 0.08)') : 'var(--panel)' }}>
+                      <Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                          <Chip
+                            size="small"
+                            icon={isTransit ? <Truck className="w-3 h-3 text-emerald-600" /> : <Ship className="w-3 h-3 text-blue-600" />}
+                            label={corridor.shortLabel}
+                            sx={{ fontWeight: 800, height: 20, fontSize: '0.7rem', bgcolor: isTransit ? 'rgba(16, 185, 129, 0.15)' : 'rgba(59, 130, 246, 0.15)', color: isTransit ? '#047857' : '#1d4ed8' }}
+                          />
+                          <Box sx={{ fontWeight: 700 }}>{list.name}</Box>
+                          {list.isActive && (
+                            <Chip size="small" label="Active" sx={{ fontWeight: 800, height: 18, fontSize: '0.68rem', bgcolor: 'rgba(34, 197, 94, 0.2)', color: '#15803d' }} />
+                          )}
+                        </Box>
+                        <Box sx={{ fontSize: '0.82rem', color: 'var(--text-secondary)', mt: 0.5 }}>
+                          {list.sourceFileName} • {list.destinationLabel} • {isTransit ? 'Overland Tariff' : `${list.importedAuctionRateCount || list.importedStateRateCount} rows`} • {new Date(list.createdAt).toLocaleString()}
+                        </Box>
+                      </Box>
+                      <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', justifyContent: { xs: 'flex-start', md: 'flex-end' } }}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          icon={<Printer className="w-3.5 h-3.5" />}
+                          onClick={() => handlePrintPriceListVersion(list)}
+                        >
+                          Print
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => setPriceListVersionReview(list)}>
+                          Compare
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={list.isActive || activatingPriceListId === list.id}
+                          onClick={() => setPriceListVersionReview(list)}
+                        >
+                          {activatingPriceListId === list.id ? 'Restoring...' : list.isActive ? 'Active' : `Restore (${isTransit ? 'Transit Leg' : 'Ocean Leg'})`}
+                        </Button>
+                      </Box>
+                    </Box>
+                  );
+                })}
               </Box>
             )}
           </Box>
@@ -2046,14 +2897,14 @@ export default function CompanyLedgerDetailPage() {
         </TabPanel>
 
         <TabPanel value={activeTab} index={2}>
-        {company.companyType === 'SHIPPING' && (
+        {(company.companyType === 'SHIPPING' || company.isShipping || (company.containers && company.containers.length > 0)) && (
           <DashboardPanel
             title="Shipping Operations"
             description="Containers and shipments linked to this shipping company"
           >
             <DashboardGrid className="grid-cols-1 md:grid-cols-2 mb-4">
               <StatsCard icon={<Building2 className="w-5 h-5" />} title="Containers" value={company._count?.containers || 0} variant="default" />
-              <StatsCard icon={<ReceiptText className="w-5 h-5" />} title="Shipments" value={company._count?.shipments || 0} variant="info" />
+              <StatsCard icon={<Package className="w-5 h-5" />} title="Shipped Vehicles" value={(company.shipments || []).filter((s) => s.isShipped).length} variant="info" />
             </DashboardGrid>
 
             <Box sx={{ mb: 3 }}>
@@ -2078,17 +2929,105 @@ export default function CompanyLedgerDetailPage() {
               />
             </Box>
 
+            <Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                <Box sx={{ fontWeight: 600 }}>Shipped Vehicles</Box>
+                {((company.shipments || []).filter((s) => s.isShipped).length > 0) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    icon={<Download className="w-3.5 h-3.5 text-emerald-500" />}
+                    onClick={() => {
+                      const shippedVehicles = (company.shipments || []).filter((s) => s.isShipped);
+                      openUniversalShipmentExport({
+                        shipmentIds: shippedVehicles.map((s) => s.id),
+                        title: `Export Shipped Vehicles - ${company.name}`,
+                        subtitle: `${shippedVehicles.length} vehicles linked to shipping operations`,
+                      });
+                    }}
+                  >
+                    Export Shipped Vehicles
+                  </Button>
+                )}
+              </Box>
+              <DataTable
+                data={(company.shipments || []).filter((s) => s.isShipped)}
+                keyField="id"
+                selectable
+                onExport={(selectedRows) =>
+                  openUniversalShipmentExport({
+                    shipmentIds: selectedRows.map((r) => r.id),
+                    title: `Export Selected Shipped Vehicles (${selectedRows.length})`,
+                    subtitle: `${company.name} • Shipped vehicles`,
+                  })
+                }
+                columns={[
+                  {
+                    key: 'vehicleVIN',
+                    header: 'Vehicle',
+                    render: (_, row) => row.vehicleVIN || [row.vehicleMake, row.vehicleModel].filter(Boolean).join(' ') || '-',
+                  },
+                  { key: 'status', header: 'Status', sortable: true },
+                  {
+                    key: 'createdAt',
+                    header: 'Created',
+                    render: (_, row) => new Date(row.createdAt).toLocaleDateString(),
+                  },
+                  {
+                    key: 'actions',
+                    header: 'Actions',
+                    align: 'center',
+                    render: (_, row) => (
+                      <Box sx={{ display: 'flex', gap: 0.75, justifyContent: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          icon={<Download className="w-3.5 h-3.5 text-emerald-500" />}
+                          onClick={() =>
+                            openUniversalShipmentExport({
+                              shipmentIds: [row.id],
+                              title: `Export Vehicle ${row.vehicleVIN || row.id}`,
+                              subtitle: `${row.vehicleMake || ''} ${row.vehicleModel || ''}`.trim(),
+                            })
+                          }
+                        >
+                          Export
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          icon={<Eye className="w-3.5 h-3.5" />}
+                          onClick={() => router.push(`/dashboard/shipments/${row.id}`)}
+                        >
+                          Shipment
+                        </Button>
+                        {row.containerId && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => router.push(`/dashboard/containers/${row.containerId}`)}
+                          >
+                            Container
+                          </Button>
+                        )}
+                      </Box>
+                    ),
+                  },
+                ]}
+              />
+            </Box>
+
           </DashboardPanel>
         )}
 
-        {company.companyType === 'DISPATCH' && (
+        {(company.companyType === 'DISPATCH' || company.isDispatch || (company.dispatches && company.dispatches.length > 0)) && (
           <DashboardPanel
             title="Dispatch Operations"
             description="Dispatch records and assigned shipments linked to this dispatch company"
           >
             <DashboardGrid className="grid-cols-1 md:grid-cols-2 mb-4">
               <StatsCard icon={<Truck className="w-5 h-5" />} title="Dispatches" value={company._count?.dispatches || 0} variant="default" />
-              <StatsCard icon={<ReceiptText className="w-5 h-5" />} title="Shipments" value={(company.shipments || []).filter((shipment) => Boolean(shipment.dispatchId)).length} variant="info" />
+              <StatsCard icon={<Package className="w-5 h-5" />} title="Dispatched Shipments" value={(company.shipments || []).filter((shipment) => shipment.isDispatched || Boolean(shipment.dispatchId)).length} variant="info" />
             </DashboardGrid>
 
             <Box sx={{ mb: 3 }}>
@@ -2132,7 +3071,7 @@ export default function CompanyLedgerDetailPage() {
             <Box>
               <Box sx={{ fontWeight: 600, mb: 1 }}>Assigned Shipments</Box>
               <DataTable
-                data={(company.shipments || []).filter((shipment) => Boolean(shipment.dispatchId))}
+                data={(company.shipments || []).filter((shipment) => shipment.isDispatched || Boolean(shipment.dispatchId))}
                 keyField="id"
                 columns={[
                   {
@@ -2178,14 +3117,14 @@ export default function CompanyLedgerDetailPage() {
           </DashboardPanel>
         )}
 
-        {company.companyType === 'TRANSIT' && (
+        {(company.companyType === 'TRANSIT' || company.isTransit || (company.transits && company.transits.length > 0)) && (
           <DashboardPanel
             title="Transit Operations"
             description="Transits and assigned shipments linked to this transit company"
           >
             <DashboardGrid className="grid-cols-1 md:grid-cols-2 mb-4">
-              <StatsCard icon={<Building2 className="w-5 h-5" />} title="Transits" value={company._count?.transits || 0} variant="default" />
-              <StatsCard icon={<ReceiptText className="w-5 h-5" />} title="Shipments" value={(company.shipments || []).filter((shipment) => Boolean(shipment.transitId)).length} variant="info" />
+              <StatsCard icon={<GitCompareArrows className="w-5 h-5" />} title="Transits" value={company._count?.transits || 0} variant="default" />
+              <StatsCard icon={<Package className="w-5 h-5" />} title="Transited Shipments" value={(company.shipments || []).filter((shipment) => shipment.isTransited || Boolean(shipment.transitId)).length} variant="info" />
             </DashboardGrid>
 
             <Box sx={{ mb: 3 }}>
@@ -2213,7 +3152,7 @@ export default function CompanyLedgerDetailPage() {
             <Box>
               <Box sx={{ fontWeight: 600, mb: 1 }}>Assigned Shipments</Box>
               <DataTable
-                data={(company.shipments || []).filter((shipment) => Boolean(shipment.transitId))}
+                data={(company.shipments || []).filter((shipment) => shipment.isTransited || Boolean(shipment.transitId))}
                 keyField="id"
                 columns={[
                   {
@@ -2261,7 +3200,7 @@ export default function CompanyLedgerDetailPage() {
         )}
         </TabPanel>
 
-        <TabPanel value={activeTab} index={3}>
+        <TabPanel value={activeTab} index={4}>
         {report && report.summary.transactionCount > 0 && (
           <DashboardPanel title="Monthly Report" description="Transaction breakdown by month">
             <Box sx={{ overflowX: 'auto' }}>

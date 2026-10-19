@@ -22,6 +22,7 @@ export interface ParsedAuctionData {
   transmission?: string;
   drivetrain?: string;
   internalNotes?: string;
+  vehiclePhotos?: string[];
   copartUrl?: string;
   iaaiUrl?: string;
   source: 'url' | 'page-text' | 'vin' | 'invoice';

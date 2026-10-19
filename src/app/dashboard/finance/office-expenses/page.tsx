@@ -279,11 +279,20 @@ export default function OfficeExpensesPage() {
   const handleOpenModal = (expense?: OfficeExpenseItem) => {
     if (expense) {
       setEditingExpense(expense);
+      let dateStr = new Date().toISOString().slice(0, 10);
+      try {
+        const d = new Date(expense.expenseDate);
+        if (!isNaN(d.getTime())) {
+          dateStr = d.toISOString().slice(0, 10);
+        }
+      } catch {
+        // fallback
+      }
       setFormData({
         title: expense.title,
         category: expense.category,
         amount: String(expense.amount),
-        expenseDate: new Date(expense.expenseDate).toISOString().slice(0, 10),
+        expenseDate: dateStr,
         paymentMethod: expense.paymentMethod || 'CASH',
         vendor: expense.vendor || '',
         referenceNumber: expense.referenceNumber || '',
@@ -317,7 +326,8 @@ export default function OfficeExpensesPage() {
       toast.error('Please enter an expense title');
       return;
     }
-    const amt = parseFloat(formData.amount);
+    const cleanAmt = String(formData.amount || '').replace(/[^\d.-]/g, '');
+    const amt = parseFloat(cleanAmt);
     if (isNaN(amt) || amt <= 0) {
       toast.error('Please enter a valid amount');
       return;
@@ -339,7 +349,7 @@ export default function OfficeExpensesPage() {
         }),
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.success) {
         throw new Error(data.error || 'Failed to save expense');
       }

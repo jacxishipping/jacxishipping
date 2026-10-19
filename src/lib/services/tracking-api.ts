@@ -23,6 +23,7 @@ export interface ExternalTrackingEvent {
 	latitude?: number;
 	longitude?: number;
 	completed?: boolean;
+	source?: string;
 }
 
 export interface ContainerTrackingSnapshot {
@@ -46,7 +47,7 @@ export interface ContainerTrackingSnapshot {
 		description?: string;
 		eventDate: string;
 		completed: boolean;
-		source: 'API';
+		source: string;
 	}>;
 	progress: number;
 	currentLocation?: string;
@@ -96,10 +97,11 @@ export class TrackingAPIService {
 	 */
 	async fetchTrackingData(
 		trackingNumber: string,
-		_shippingLine?: string
+		_shippingLine?: string,
+		options?: { forceRefresh?: boolean }
 	): Promise<ExternalTrackingEvent[]> {
 		try {
-			const snapshot = await this.fetchContainerTrackingData(trackingNumber);
+			const snapshot = await this.fetchContainerTrackingData(trackingNumber, options);
 			if (!snapshot) {
 				return [];
 			}
@@ -112,6 +114,7 @@ export class TrackingAPIService {
 				vesselName: ev.vesselName || snapshot.vesselName,
 				voyageNumber: snapshot.voyageNumber,
 				completed: ev.completed,
+				source: ev.source || 'API',
 			}));
 		} catch (error) {
 			logger.error('Error fetching tracking data:', error);
@@ -126,15 +129,20 @@ export class TrackingAPIService {
 	 * 2. If no data / error, fallback to legacy PGL API.
 	 */
 	async fetchContainerTrackingData(
-		containerNumber: string
+		containerNumber: string,
+		options?: { forceRefresh?: boolean }
 	): Promise<ContainerTrackingSnapshot | null> {
 		try {
 			const normalizedContainerNumber = containerNumber.trim().toUpperCase();
 
-			// Check in-memory cache
-			const cached = trackingCache.get(normalizedContainerNumber);
-			if (cached && cached.expiresAt > Date.now()) {
-				return cached.snapshot;
+			// Check in-memory cache unless force refresh requested
+			if (!options?.forceRefresh) {
+				const cached = trackingCache.get(normalizedContainerNumber);
+				if (cached && cached.expiresAt > Date.now()) {
+					return cached.snapshot;
+				}
+			} else {
+				trackingCache.delete(normalizedContainerNumber);
 			}
 
 			// 0. Dedicated Turkon Line Integration (for TRKU containers)
@@ -232,7 +240,7 @@ export class TrackingAPIService {
 				description: ev.event_type === 'expected' ? 'Estimated Milestone' : 'Actual Carrier Event',
 				eventDate: ev.event_date ? new Date(ev.event_date).toISOString() : new Date().toISOString(),
 				completed: ev.event_type === 'actual',
-				source: 'API' as const,
+				source: 'Supabase Tracking API',
 			};
 		});
 
@@ -261,6 +269,144 @@ export class TrackingAPIService {
 			progress: isCompleted ? 100 : this.calculateProgressFromStatus(latestStatus),
 			currentLocation: latestEvent?.location || loadingPort || destinationPort || undefined,
 		};
+	}
+
+	/**
+	 * Test Turkon Online Tracking service directly with diagnostic information
+	 */
+	public async testTurkonLookup(containerNumber: string): Promise<{
+		success: boolean;
+		httpStatus: number;
+		latencyMs: number;
+		snapshot: ContainerTrackingSnapshot | null;
+		rawData: any;
+		error?: string;
+	}> {
+		const start = Date.now();
+		const cleanNumber = containerNumber.trim().toUpperCase();
+		const url = `https://myturkonline.turkon.com/shipping-prod-service/tracking/getTrackingTopInformation/en/${encodeURIComponent(cleanNumber)}`;
+		try {
+			const res = await fetch(url, {
+				method: 'POST',
+				headers: {
+					'accept': 'application/json, text/plain, */*',
+					'accept-language': 'en-GB,en-US;q=0.9,en;q=0.8',
+					'content-type': 'application/json',
+					'priority': 'u=1, i',
+					'referrer': 'https://myturkonline.turkon.com/tracking',
+					'origin': 'https://myturkonline.turkon.com',
+					'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
+				},
+				body: JSON.stringify({ token: null, cookie: null }),
+				cache: 'no-store',
+			});
+
+			const latencyMs = Date.now() - start;
+			const resText = await res.text();
+			let json: any = null;
+			try {
+				json = JSON.parse(resText);
+			} catch {
+				json = { raw: resText };
+			}
+
+			if (!res.ok) {
+				return {
+					success: false,
+					httpStatus: res.status,
+					latencyMs,
+					snapshot: null,
+					rawData: json,
+					error: `HTTP ${res.status}: ${resText.slice(0, 200)}`,
+				};
+			}
+
+			const snapshot = this.buildSnapshotFromTurkonData(cleanNumber, json);
+			return {
+				success: Boolean(snapshot),
+				httpStatus: res.status,
+				latencyMs,
+				snapshot,
+				rawData: json,
+			};
+		} catch (err: any) {
+			return {
+				success: false,
+				httpStatus: 0,
+				latencyMs: Date.now() - start,
+				snapshot: null,
+				rawData: null,
+				error: err?.message || 'Turkon request failed',
+			};
+		}
+	}
+
+	/**
+	 * Test PGL Legacy Tracking service directly with diagnostic information
+	 */
+	public async testPGLLookup(containerNumber: string): Promise<{
+		success: boolean;
+		httpStatus: number;
+		latencyMs: number;
+		snapshot: ContainerTrackingSnapshot | null;
+		count: number;
+		rawData: any;
+		error?: string;
+	}> {
+		const start = Date.now();
+		const cleanNumber = containerNumber.trim().toUpperCase();
+		const url = `${PGL_TRACKING_ENDPOINT}?tracking_value=${encodeURIComponent(cleanNumber)}`;
+		try {
+			const res = await fetch(url, {
+				cache: 'no-store',
+				headers: {
+					Accept: 'application/json',
+				},
+			});
+
+			const latencyMs = Date.now() - start;
+			const resText = await res.text();
+			let payload: any = null;
+			try {
+				payload = JSON.parse(resText);
+			} catch {
+				payload = { raw: resText };
+			}
+
+			if (!res.ok) {
+				return {
+					success: false,
+					httpStatus: res.status,
+					latencyMs,
+					snapshot: null,
+					count: 0,
+					rawData: payload,
+					error: `HTTP ${res.status}: ${resText.slice(0, 200)}`,
+				};
+			}
+
+			const entries = Array.isArray(payload?.data) ? payload.data : [];
+			const snapshot = entries.length > 0 ? this.buildSnapshotFromPGLEntries(cleanNumber, entries) : null;
+
+			return {
+				success: entries.length > 0,
+				httpStatus: res.status,
+				latencyMs,
+				snapshot,
+				count: entries.length,
+				rawData: payload,
+			};
+		} catch (err: any) {
+			return {
+				success: false,
+				httpStatus: 0,
+				latencyMs: Date.now() - start,
+				snapshot: null,
+				count: 0,
+				rawData: null,
+				error: err?.message || 'PGL request failed',
+			};
+		}
 	}
 
 	/**
@@ -343,7 +489,7 @@ export class TrackingAPIService {
 					description: evDesc,
 					eventDate: new Date(evDate).toISOString(),
 					completed: Boolean(isDone),
-					source: 'API' as const,
+					source: 'Turkon Online API',
 				};
 			});
 		} else {
@@ -355,7 +501,7 @@ export class TrackingAPIService {
 					description: `Loaded on Turkon Line Vessel (${vesselName})`,
 					eventDate: departureDate,
 					completed: true,
-					source: 'API' as const,
+					source: 'Turkon Online API',
 				},
 				{
 					status: 'In Transit',
@@ -364,7 +510,7 @@ export class TrackingAPIService {
 					description: 'Vessel in Transit along Turkon Line Corridor',
 					eventDate: new Date().toISOString(),
 					completed: true,
-					source: 'API' as const,
+					source: 'Turkon Online API',
 				},
 				{
 					status: 'Arrived at Port of Discharge',
@@ -373,7 +519,7 @@ export class TrackingAPIService {
 					description: `Estimated Arrival at ${destinationPort}`,
 					eventDate: estimatedArrival,
 					completed: false,
-					source: 'API' as const,
+					source: 'Turkon Online API',
 				},
 			];
 		}
@@ -469,7 +615,7 @@ export class TrackingAPIService {
 			description: event.description || undefined,
 			eventDate: event.timestamp,
 			completed: Boolean(event.completed),
-			source: 'API' as const,
+			source: 'PGL System API',
 		}));
 
 		const latestEntry = entries[0];

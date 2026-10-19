@@ -8,6 +8,7 @@ import { getDevSeededTransitSummary } from '@/lib/dev-seeded-transit';
 import { hasPermission } from '@/lib/rbac';
 
 const createTransitSchema = z.object({
+  companyId: z.string().optional(),
   origin: z.string().min(1).default('Dubai, UAE'),
   destination: z.string().min(1).default('Kabul, Afghanistan'),
   dispatchDate: z.string().optional(),
@@ -40,29 +41,34 @@ export async function GET(request: NextRequest) {
     const companyId = searchParams.get('companyId');
     const search = searchParams.get('search') || '';
 
-    const where: {
-      status?: TransitStatus;
-      events?: { some: { companyId: string } };
-      OR?: Array<{ referenceNumber?: { contains: string; mode: 'insensitive' }; notes?: { contains: string; mode: 'insensitive' } }>;
-    } = {};
+    const where: any = {};
 
     if (status && Object.values(TransitStatus).includes(status as TransitStatus)) where.status = status as TransitStatus;
-    if (companyId) where.events = { some: { companyId } };
+    if (companyId) {
+      where.OR = [
+        { companyId },
+        { events: { some: { companyId } } },
+      ];
+    }
     if (search) {
       where.OR = [
+        ...(where.OR || []),
         { referenceNumber: { contains: search, mode: 'insensitive' } },
         { notes: { contains: search, mode: 'insensitive' } },
+        { origin: { contains: search, mode: 'insensitive' } },
+        { destination: { contains: search, mode: 'insensitive' } },
       ];
     }
 
     const transits = await prisma.transit.findMany({
       where,
       include: {
+        company: { select: { id: true, name: true, code: true, phone: true } },
         events: {
           orderBy: [{ eventDate: 'desc' }, { createdAt: 'desc' }],
           take: 1,
           include: {
-            company: { select: { id: true, name: true, code: true } },
+            company: { select: { id: true, name: true, code: true, phone: true } },
           },
         },
         _count: { select: { shipments: true, events: true, expenses: true } },
@@ -82,7 +88,7 @@ export async function GET(request: NextRequest) {
       transits: transits.map((transit) => ({
         ...transit,
         currentEvent: transit.events[0] ?? null,
-        currentCompany: transit.events[0]?.company ?? null,
+        currentCompany: transit.company ?? transit.events[0]?.company ?? null,
       })),
     });
   } catch (error) {
@@ -156,6 +162,7 @@ export async function POST(request: NextRequest) {
       const created = await tx.transit.create({
         data: {
           referenceNumber,
+          companyId: validatedData.companyId || null,
           origin: validatedData.origin,
           destination: validatedData.destination,
           dispatchDate: validatedData.dispatchDate ? new Date(validatedData.dispatchDate) : null,
@@ -165,15 +172,31 @@ export async function POST(request: NextRequest) {
           createdBy: session.user!.id as string,
         },
         include: {
+          company: { select: { id: true, name: true, code: true, phone: true } },
           events: {
             orderBy: [{ eventDate: 'desc' }, { createdAt: 'desc' }],
             take: 1,
             include: {
-              company: { select: { id: true, name: true, code: true } },
+              company: { select: { id: true, name: true, code: true, phone: true } },
             },
           },
         },
       });
+
+      // If companyId is provided, also create initial transit event
+      if (validatedData.companyId) {
+        await tx.transitEvent.create({
+          data: {
+            transitId: created.id,
+            companyId: validatedData.companyId,
+            origin: validatedData.origin,
+            destination: validatedData.destination,
+            status: 'PENDING',
+            description: `Transit initialized with carrier`,
+            createdBy: session.user!.id as string,
+          },
+        });
+      }
 
       // Assign shipments if provided
       if (validatedData.shipmentIds?.length) {
