@@ -25,7 +25,6 @@
 ## 2024-05-24 - Parallelizing Loop Dependencies using Promise.all
 **Learning:** Found sequential await statements inside loops in `src/app/api/operations/route.ts` that cause N+1 query bottlenecks. For example, updating containers dynamically while assigning shipments in a `for` loop caused unnecessary blocking where `await prisma.container.update` was executed sequentially.
 **Action:** Always extract loop logic that involves database calls into pre-computation phases. First, determine all required updates locally. Then, use `Promise.all` to batch dispatch `prisma.*.update` and `prisma.*.updateMany` calls in parallel, drastically reducing request latency.
-
-## 2026-10-17 - Array Iteration Chains
-**Learning:** Chaining `.filter().reduce()` or `.filter().length` causes multiple O(N) traversals and intermediate array allocations, impacting performance.
-**Action:** Replace these chains with single-pass `for...of` loops that perform both filtering and accumulation/counting in one O(N) sweep with O(1) memory overhead.
+## 2024-10-24 - Prisma Interactive Transactions & Promise.all()
+**Learning:** Using `Promise.all()` to parallelize database updates inside a Prisma interactive transaction (`prisma.$transaction(async (tx) => { ... })`) is a false optimization. Prisma interactive transactions strictly hold a single database connection. Attempting concurrent operations across that single connection forces them to serialize anyway, while introducing severe risks of transaction deadlocks depending on the interleaved execution order.
+**Action:** Never use `Promise.all()` to execute concurrent operations *inside* a Prisma interactive transaction. Instead, resolve N+1 patterns inside transactions by aggregating data and using bulk functions like `updateMany` and `createMany`.

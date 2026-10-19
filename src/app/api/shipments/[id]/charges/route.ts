@@ -382,46 +382,62 @@ export async function PATCH(
 
     const actorId = session.user.id;
     await prisma.$transaction(async (tx) => {
-      for (const charge of charges) {
-        const linkedInvoice = charge.invoiceId ? linkedInvoiceMap.get(charge.invoiceId) : undefined;
+      // ⚡ Bolt: Replace N+1 sequential update/create queries with bulk updateMany/createMany
+      const chargesToRelease = charges.filter(c => c.invoiceId && linkedInvoiceMap.has(c.invoiceId));
+      const chargesToKeep = charges.filter(c => !(c.invoiceId && linkedInvoiceMap.has(c.invoiceId)));
 
-        await tx.shipmentCharge.update({
-          where: { id: charge.id },
+      if (chargesToRelease.length > 0) {
+        await tx.shipmentCharge.updateMany({
+          where: { id: { in: chargesToRelease.map(c => c.id) } },
           data: {
             status: body.status,
             approvedAt: body.status === 'APPROVED' ? new Date() : null,
             approvedBy: body.status === 'APPROVED' ? actorId : null,
             notes: trimmedNote,
-            // Release the charge from a not-yet-issued invoice; the next invoice
-            // generation rebuilds the draft from approved charges.
-            ...(linkedInvoice
-              ? { invoiceId: null, invoicedAt: null }
-              : {}),
-          },
-        });
-
-        await tx.shipmentChargeAuditLog.create({
-          data: {
-            chargeId: charge.id,
-            action: body.status === 'APPROVED' ? 'BULK_APPROVAL' : 'BULK_DISPUTE',
-            description:
-              body.status === 'APPROVED'
-                ? `Shipment charge approved in bulk: ${charge.description}`
-                : `Shipment charge disputed in bulk: ${charge.description}`,
-            performedBy: actorId,
-            oldValue: charge.status,
-            newValue: body.status,
-            metadata: {
-              mode: 'bulk',
-              chargeIds: uniqueChargeIds,
-              ...(trimmedNote ? { note: trimmedNote } : {}),
-              ...(linkedInvoice
-                ? { releasedFromInvoice: linkedInvoice.invoiceNumber, releasedFromInvoiceStatus: linkedInvoice.status }
-                : {}),
-            },
-          },
+            invoiceId: null,
+            invoicedAt: null,
+          }
         });
       }
+
+      if (chargesToKeep.length > 0) {
+        await tx.shipmentCharge.updateMany({
+          where: { id: { in: chargesToKeep.map(c => c.id) } },
+          data: {
+            status: body.status,
+            approvedAt: body.status === 'APPROVED' ? new Date() : null,
+            approvedBy: body.status === 'APPROVED' ? actorId : null,
+            notes: trimmedNote,
+          }
+        });
+      }
+
+      const auditLogsData = charges.map(charge => {
+        const linkedInvoice = charge.invoiceId ? linkedInvoiceMap.get(charge.invoiceId) : undefined;
+        return {
+          chargeId: charge.id,
+          action: body.status === 'APPROVED' ? 'BULK_APPROVAL' : 'BULK_DISPUTE',
+          description:
+            body.status === 'APPROVED'
+              ? `Shipment charge approved in bulk: ${charge.description}`
+              : `Shipment charge disputed in bulk: ${charge.description}`,
+          performedBy: actorId,
+          oldValue: charge.status,
+          newValue: body.status,
+          metadata: {
+            mode: 'bulk',
+            chargeIds: uniqueChargeIds,
+            ...(trimmedNote ? { note: trimmedNote } : {}),
+            ...(linkedInvoice
+              ? { releasedFromInvoice: linkedInvoice.invoiceNumber, releasedFromInvoiceStatus: linkedInvoice.status }
+              : {}),
+          },
+        };
+      });
+
+      await tx.shipmentChargeAuditLog.createMany({
+        data: auditLogsData
+      });
     });
 
     return NextResponse.json({ success: true, updated: uniqueChargeIds.length });
