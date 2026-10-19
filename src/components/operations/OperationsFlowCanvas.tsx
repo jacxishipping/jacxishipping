@@ -600,13 +600,19 @@ export default function OperationsFlowCanvas({
 
     const existingCount = nodes.filter((n) => n.type === type).length;
 
-    const newCanvasNodes: CanvasNode[] = selectedToAdd.map((id, idx) => ({
-      id: `node-${type}-${id}-${Date.now()}-${idx}`,
-      type,
-      entityId: id,
-      x: colX + (Math.random() * 20 - 10),
-      y: 40 + (existingCount + idx) * 160,
-    }));
+    const newCanvasNodes: CanvasNode[] = selectedToAdd.map((id, idx) => {
+      const randomArray = new Uint32Array(1);
+      crypto.getRandomValues(randomArray);
+      const randomOffset = (randomArray[0] % 20000) / 1000 - 10;
+
+      return {
+        id: `node-${type}-${id}-${crypto.randomUUID()}-${idx}`,
+        type,
+        entityId: id,
+        x: colX + randomOffset,
+        y: 40 + (existingCount + idx) * 160,
+      };
+    });
 
     setNodes((prev) => [...prev, ...newCanvasNodes]);
     setSelectedToAdd([]);
