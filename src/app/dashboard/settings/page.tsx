@@ -65,6 +65,7 @@ import {
 } from '@/lib/shipping-rate-calculator';
 import { TrackingApisTab } from '@/components/dashboard/settings/TrackingApisTab';
 import { BackupDatabaseTab } from '@/components/dashboard/settings/BackupDatabaseTab';
+import { BrandingSettingsCard } from '@/components/dashboard/settings/BrandingSettingsCard';
 
 const DEFAULT_SETTINGS = {
   theme: 'light',
@@ -403,7 +404,8 @@ export default function SettingsPage() {
   useEffect(() => {
     const slugs = isAdmin ? [...baseSettingsTabSlugs, ...adminSettingsTabSlugs] : baseSettingsTabSlugs;
     const tab = searchParams.get('tab');
-    const index = tab ? slugs.indexOf(tab) : -1;
+    const resolvedTab = tab === 'branding' || tab === 'logo' ? 'preferences' : tab;
+    const index = resolvedTab ? slugs.indexOf(resolvedTab) : -1;
     if (index >= 0 && index !== activeTab) setActiveTab(index);
   }, [activeTab, isAdmin, searchParams]);
 
@@ -1172,6 +1174,8 @@ export default function SettingsPage() {
       {/* Tab 1: Preferences */}
       <TabPanel value={activeTab} index={1}>
         <div className="max-w-4xl space-y-6">
+          <BrandingSettingsCard canEdit={isAdmin} />
+
           {/* Live Interactive Visual Preview Studio */}
           <DashboardPanel
             title={

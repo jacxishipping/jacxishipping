@@ -15,6 +15,7 @@ interface Company {
   id: string;
   name: string;
   code: string | null;
+  phone?: string | null;
 }
 
 interface TransitEventSummary {
@@ -29,6 +30,8 @@ interface TransitEventSummary {
 interface Transit {
   id: string;
   referenceNumber: string;
+  companyId?: string | null;
+  company?: Company | null;
   origin: string;
   destination: string;
   status: string;
@@ -47,6 +50,14 @@ interface Transit {
   };
 }
 
+const ROUTE_PRESETS = [
+  { value: 'mersin-islamqala', label: '🇹🇷 Mersin, Turkey ➔ 🇦🇫 Islam Qala, Herat (AFG Corridor)' },
+  { value: 'dubai-kabul', label: '🇦🇪 Dubai, UAE ➔ 🇦🇫 Kabul, Afghanistan' },
+  { value: 'dubai-islamqala', label: '🇦🇪 Dubai, UAE ➔ 🇦🇫 Islam Qala, Herat' },
+  { value: 'islamqala-herat', label: '🇦🇫 Islam Qala ➔ 🇦🇫 Herat' },
+  { value: 'custom', label: '🌐 Custom Origin & Destination' },
+];
+
 const editableStatusOptions = [
   { value: 'PENDING', label: 'Pending' },
   { value: 'DISPATCHED', label: 'Dispatched' },
@@ -59,6 +70,7 @@ export default function TransitsPage() {
   const router = useRouter();
   const confirmAction = useConfirmAction();
   const [transits, setTransits] = useState<Transit[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
   const [isShiftPressed, setIsShiftPressed] = useState(false);
   const [search, setSearch] = useState('');
@@ -70,14 +82,18 @@ export default function TransitsPage() {
   const [editingTransitId, setEditingTransitId] = useState<string | null>(null);
   const [deletingTransitId, setDeletingTransitId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
-    origin: 'Dubai, UAE',
-    destination: 'Kabul, Afghanistan',
+    companyId: '',
+    routePreset: 'mersin-islamqala',
+    vehicleType: 'sedan',
+    origin: 'Mersin, Turkey',
+    destination: 'Islam Qala, Herat',
     dispatchDate: '',
     estimatedDelivery: '',
-    cost: '',
-    notes: '',
+    cost: '2300',
+    notes: 'Includes customs clearance and transportation. Port congestion and unforeseen circumstances passed to client. (AFG Oct 1-15, 2026 Tariff)',
   });
   const [editFormData, setEditFormData] = useState({
+    companyId: '',
     origin: '',
     destination: '',
     status: 'PENDING',
@@ -111,6 +127,80 @@ export default function TransitsPage() {
   }, [search, statusFilter]);
 
   useEffect(() => {
+    fetch('/api/finance/companies?active=true&companyType=TRANSIT')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.companies) {
+          setCompanies(data.companies);
+          const afg = data.companies.find((c: Company) => c.code === '0101' || c.name.toLowerCase().includes('afg'));
+          if (afg) {
+            setFormData((prev) => ({
+              ...prev,
+              companyId: prev.companyId || afg.id,
+            }));
+          }
+        }
+      })
+      .catch((err) => console.error('Failed to load transit companies:', err));
+  }, []);
+
+  const handleRoutePresetChange = (preset: string) => {
+    const afg = companies.find((c) => c.code === '0101' || c.name.toLowerCase().includes('afg'));
+    if (preset === 'mersin-islamqala') {
+      const isSuv = formData.vehicleType === 'suv';
+      setFormData((prev) => ({
+        ...prev,
+        routePreset: preset,
+        origin: 'Mersin, Turkey',
+        destination: 'Islam Qala, Herat',
+        companyId: afg ? afg.id : prev.companyId,
+        cost: isSuv ? '2400' : '2300',
+        notes: 'Includes customs clearance and transportation. Port congestion and unforeseen circumstances passed to client. (AFG Oct 1-15, 2026 Tariff)',
+      }));
+    } else if (preset === 'dubai-kabul') {
+      setFormData((prev) => ({
+        ...prev,
+        routePreset: preset,
+        origin: 'Dubai, UAE',
+        destination: 'Kabul, Afghanistan',
+        notes: '',
+      }));
+    } else if (preset === 'dubai-islamqala') {
+      setFormData((prev) => ({
+        ...prev,
+        routePreset: preset,
+        origin: 'Dubai, UAE',
+        destination: 'Islam Qala, Herat',
+        notes: '',
+      }));
+    } else if (preset === 'islamqala-herat') {
+      setFormData((prev) => ({
+        ...prev,
+        routePreset: preset,
+        origin: 'Islam Qala',
+        destination: 'Herat',
+        notes: '',
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        routePreset: preset,
+      }));
+    }
+  };
+
+  const handleVehicleTypeChange = (type: string) => {
+    setFormData((prev) => {
+      const isMersinRoute = prev.routePreset === 'mersin-islamqala' || (prev.origin.toLowerCase().includes('mersin') && prev.destination.toLowerCase().includes('islam qala'));
+      return {
+        ...prev,
+        vehicleType: type,
+        cost: isMersinRoute ? (type === 'suv' ? '2400' : '2300') : prev.cost,
+      };
+    });
+  };
+
+  useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Shift') setIsShiftPressed(true);
     };
@@ -135,6 +225,7 @@ export default function TransitsPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          companyId: formData.companyId || undefined,
           origin: formData.origin,
           destination: formData.destination,
           dispatchDate: formData.dispatchDate || undefined,
@@ -149,7 +240,17 @@ export default function TransitsPage() {
 
       toast.success(`Transit ${data.transit.referenceNumber} created`);
       setOpenCreate(false);
-      setFormData({ origin: 'Dubai, UAE', destination: 'Kabul, Afghanistan', dispatchDate: '', estimatedDelivery: '', cost: '', notes: '' });
+      setFormData({
+        companyId: companies.find((c) => c.code === '0101')?.id || '',
+        routePreset: 'mersin-islamqala',
+        vehicleType: 'sedan',
+        origin: 'Mersin, Turkey',
+        destination: 'Islam Qala, Herat',
+        dispatchDate: '',
+        estimatedDelivery: '',
+        cost: '2300',
+        notes: 'Includes customs clearance and transportation. Port congestion and unforeseen circumstances passed to client. (AFG Oct 1-15, 2026 Tariff)',
+      });
       await fetchTransits();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to create transit');
@@ -190,6 +291,7 @@ export default function TransitsPage() {
     }
     setEditingTransitId(transit.id);
     setEditFormData({
+      companyId: transit.companyId || transit.currentCompany?.id || '',
       origin: transit.origin,
       destination: transit.destination,
       status: transit.status,
@@ -211,6 +313,7 @@ export default function TransitsPage() {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          companyId: editFormData.companyId || null,
           origin: editFormData.origin,
           destination: editFormData.destination,
           status: editFormData.status,
@@ -255,7 +358,15 @@ export default function TransitsPage() {
             <span style={{ fontWeight: 600, fontFamily: 'monospace' }}>{row.referenceNumber}</span>
             <CopyButton value={row.referenceNumber} label="Transit #" />
           </Box>
-          <Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{row.currentCompany?.name || 'No current event company'}</Box>
+          <Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+            {row.currentCompany?.name ? (
+              <span className="inline-flex items-center gap-1 font-medium text-emerald-600 dark:text-emerald-400">
+                🚚 {row.currentCompany.name} {row.currentCompany.code ? `(${row.currentCompany.code})` : ''}
+              </span>
+            ) : (
+              'Unassigned Carrier'
+            )}
+          </Box>
         </Box>
       ),
     },
@@ -354,7 +465,7 @@ export default function TransitsPage() {
         <PageHeader
           showBreadcrumbs
           title="Transits"
-          description="Manage overland transits from UAE to Afghanistan"
+          description="Manage overland vehicle transits from Turkey (Mersin) and UAE to Afghanistan"
           actions={
             <Button variant="primary" icon={<Plus className="w-4 h-4" />} onClick={() => setOpenCreate(true)}>
               New Transit
@@ -422,9 +533,9 @@ export default function TransitsPage() {
         <Modal
           open={openCreate}
           onClose={() => !creating && setOpenCreate(false)}
-          title="Create New Transit"
-          description="Transit companies are assigned per event. Create the transit first, then add route legs."
-          size="md"
+          title="Create Overland Transit"
+          description="Initialize an overland vehicle transit corridor (e.g. Mersin, Turkey or Dubai, UAE to Afghanistan)."
+          size="lg"
           actions={
             <>
               <Button variant="outline" onClick={() => setOpenCreate(false)} disabled={creating}>Cancel</Button>
@@ -436,17 +547,91 @@ export default function TransitsPage() {
         >
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Select
+                label="Route Preset"
+                value={formData.routePreset}
+                onChange={(val) => handleRoutePresetChange(String(val))}
+                options={ROUTE_PRESETS}
+              />
+              <Select
+                label="Transit Carrier / Company"
+                value={formData.companyId}
+                onChange={(val) => setFormData(prev => ({ ...prev, companyId: String(val) }))}
+                options={[
+                  { value: '', label: 'Select Carrier (Optional)' },
+                  ...companies.map(c => ({
+                    value: c.id,
+                    label: `${c.name} ${c.code ? `(${c.code})` : ''}`,
+                  })),
+                ]}
+              />
+            </div>
+
+            {/* Quick Vehicle Type switcher for Mersin -> Islam Qala */}
+            {(formData.routePreset === 'mersin-islamqala' ||
+              (formData.origin.toLowerCase().includes('mersin') && formData.destination.toLowerCase().includes('islam qala'))) && (
+              <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 space-y-3 dark:bg-emerald-950/20">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">🚢</span>
+                    <div>
+                      <div className="font-semibold text-sm text-emerald-900 dark:text-emerald-100">
+                        AFG (The American Freight Group) — Mersin to Islam Qala Corridor
+                      </div>
+                      <div className="text-xs text-emerald-700 dark:text-emerald-300">
+                        Official Tariff (Effective Oct 1st–15th, 2026) • Customs clearance & transportation included
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 rounded-lg bg-background p-1 border border-border">
+                    <button
+                      type="button"
+                      onClick={() => handleVehicleTypeChange('sedan')}
+                      className={`px-3 py-1 rounded text-xs font-semibold transition-all ${
+                        formData.vehicleType === 'sedan'
+                          ? 'bg-emerald-600 text-white shadow-sm'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      Sedan ($2,300)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleVehicleTypeChange('suv')}
+                      className={`px-3 py-1 rounded text-xs font-semibold transition-all ${
+                        formData.vehicleType === 'suv'
+                          ? 'bg-emerald-600 text-white shadow-sm'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      SUV ($2,400)
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-muted-foreground border-t border-emerald-500/20 pt-2">
+                  <div>
+                    <span className="font-medium text-foreground">Terms:</span> Port congestion, force majeure & unforeseen costs passed to client.
+                  </div>
+                  <div className="text-right md:text-right">
+                    <span className="font-medium text-foreground">Carrier:</span> +1 862 237 7066 • afgshipping.com
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 label="Origin"
                 value={formData.origin}
                 onChange={(e) => setFormData(prev => ({ ...prev, origin: e.target.value }))}
-                placeholder="Dubai, UAE"
+                placeholder="Mersin, Turkey"
               />
               <FormField
                 label="Destination"
                 value={formData.destination}
                 onChange={(e) => setFormData(prev => ({ ...prev, destination: e.target.value }))}
-                placeholder="Kabul, Afghanistan"
+                placeholder="Islam Qala, Herat"
               />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -474,7 +659,7 @@ export default function TransitsPage() {
               label="Notes"
               value={formData.notes}
               onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-              placeholder="Optional notes..."
+              placeholder="Optional notes or contractual terms..."
             />
           </div>
         </Modal>
@@ -484,8 +669,8 @@ export default function TransitsPage() {
           open={openEdit}
           onClose={() => !editing && setOpenEdit(false)}
           title="Edit Transit"
-          description="Update transit parameters and status."
-          size="md"
+          description="Update transit parameters, carrier, and status."
+          size="lg"
           actions={
             <>
               <Button variant="outline" onClick={() => setOpenEdit(false)} disabled={editing}>Cancel</Button>
@@ -496,6 +681,27 @@ export default function TransitsPage() {
           }
         >
           <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Select
+                label="Transit Carrier / Company"
+                value={editFormData.companyId}
+                onChange={(val) => setEditFormData(prev => ({ ...prev, companyId: String(val) }))}
+                options={[
+                  { value: '', label: 'Unassigned Carrier' },
+                  ...companies.map(c => ({
+                    value: c.id,
+                    label: `${c.name} ${c.code ? `(${c.code})` : ''}`,
+                  })),
+                ]}
+              />
+              <Select
+                label="Status"
+                value={editFormData.status}
+                onChange={(val) => setEditFormData(prev => ({ ...prev, status: String(val) }))}
+                options={editableStatusOptions}
+              />
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 label="Origin"
@@ -508,12 +714,6 @@ export default function TransitsPage() {
                 onChange={(e) => setEditFormData(prev => ({ ...prev, destination: e.target.value }))}
               />
             </div>
-            <Select
-              label="Status"
-              value={editFormData.status}
-              onChange={(val) => setEditFormData(prev => ({ ...prev, status: String(val) }))}
-              options={editableStatusOptions}
-            />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 label="Dispatch Date"

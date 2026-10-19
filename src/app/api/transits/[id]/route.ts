@@ -5,6 +5,7 @@ import { routeDeps } from '@/lib/route-deps';
 import { ensureWorkflowMoveAllowed, isClosedStageOverrideAllowed } from '@/lib/workflow-access';
 
 const updateTransitSchema = z.object({
+  companyId: z.string().nullable().optional(),
   origin: z.string().optional(),
   destination: z.string().optional(),
   status: z.enum(['PENDING', 'DISPATCHED', 'IN_TRANSIT', 'ARRIVED', 'DELIVERED', 'CANCELLED']).optional(),
@@ -35,6 +36,7 @@ export async function GET(
     const transit = await routeDeps.prisma.transit.findUnique({
       where: { id: params.id },
       include: {
+        company: { select: { id: true, name: true, code: true, phone: true, email: true } },
         shipments: {
           include: {
             user: { select: { id: true, name: true, email: true, phone: true } },
@@ -140,7 +142,7 @@ export async function GET(
       transit: {
         ...transit,
         currentEvent: transit.events?.[0] ?? null,
-        currentCompany: transit.events?.[0]?.company ?? null,
+        currentCompany: transit.company ?? transit.events?.[0]?.company ?? null,
         expenses: allExpenses,
         _count: {
           ...transit._count,
@@ -195,6 +197,7 @@ export async function PATCH(
       const updated = await tx.transit.update({
         where: { id: params.id },
         data: {
+          ...(validatedData.companyId !== undefined ? { companyId: validatedData.companyId } : {}),
           ...(validatedData.origin !== undefined ? { origin: validatedData.origin } : {}),
           ...(validatedData.destination !== undefined ? { destination: validatedData.destination } : {}),
           ...(validatedData.status !== undefined ? { status: validatedData.status } : {}),

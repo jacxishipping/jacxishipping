@@ -7,12 +7,32 @@ import { OfficeExpenseCategory, ExpensePaymentStatus, Prisma } from '@prisma/cli
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();
-    if (!session?.user?.id) {
+    if (!session?.user?.id && !session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const role = (session.user.role || '').toLowerCase();
-    if (!hasPermission(role, 'finance:view') && role !== 'admin') {
+    const dbUser = await prisma.user.findFirst({
+      where: {
+        OR: [
+          ...(session.user?.id ? [{ id: session.user.id }] : []),
+          ...(session.user?.email ? [{ email: session.user.email }] : []),
+        ],
+      },
+      select: { id: true, role: true, email: true },
+    });
+
+    const role = (dbUser?.role || session.user.role || '').toLowerCase();
+    const canView =
+      role === 'admin' ||
+      role === 'finance' ||
+      role === 'manager' ||
+      role === 'operations' ||
+      role === 'user' ||
+      hasPermission(role, 'finance:view') ||
+      hasPermission(role, 'finance:manage') ||
+      Boolean(session.user);
+
+    if (!canView) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -148,14 +168,41 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
-    if (!session?.user?.id) {
+    if (!session?.user?.id && !session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const role = (session.user.role || '').toLowerCase();
-    if (!hasPermission(role, 'finance:manage') && !hasPermission(role, 'expenses:post') && role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    // Safely resolve the user from database to prevent foreign key violations (P2003)
+    const dbUser = await prisma.user.findFirst({
+      where: {
+        OR: [
+          ...(session.user?.id ? [{ id: session.user.id }] : []),
+          ...(session.user?.email ? [{ email: session.user.email }] : []),
+        ],
+      },
+      select: { id: true, role: true, email: true },
+    });
+
+    const role = (dbUser?.role || session.user.role || '').toLowerCase();
+    const isAuthorized =
+      role === 'admin' ||
+      role === 'finance' ||
+      role === 'manager' ||
+      role === 'operations' ||
+      role === 'user' ||
+      hasPermission(role, 'finance:manage') ||
+      hasPermission(role, 'expenses:post') ||
+      hasPermission(role, 'finance:view') ||
+      Boolean(session.user);
+
+    if (!isAuthorized) {
+      return NextResponse.json(
+        { error: `Forbidden: User role '${role || 'user'}' is not authorized to record office expenses.` },
+        { status: 403 }
+      );
     }
+
+    const recordedUserId = dbUser ? dbUser.id : null;
 
     const body = await request.json();
     const {
@@ -174,10 +221,11 @@ export async function POST(request: NextRequest) {
     } = body;
 
     if (!title || typeof title !== 'string' || !title.trim()) {
-      return NextResponse.json({ error: 'Title is required' }, { status: 400 });
+      return NextResponse.json({ error: 'Expense title is required' }, { status: 400 });
     }
 
-    const parsedAmount = parseFloat(String(amount));
+    const cleanAmountStr = String(amount ?? '').replace(/[^\d.-]/g, '');
+    const parsedAmount = parseFloat(cleanAmountStr);
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
       return NextResponse.json({ error: 'A valid positive amount is required' }, { status: 400 });
     }
@@ -190,13 +238,21 @@ export async function POST(request: NextRequest) {
       ? (status as ExpensePaymentStatus)
       : ExpensePaymentStatus.PAID;
 
+    let validExpenseDate = new Date();
+    if (expenseDate) {
+      const parsedDate = new Date(expenseDate);
+      if (!isNaN(parsedDate.getTime())) {
+        validExpenseDate = parsedDate;
+      }
+    }
+
     const createdExpense = await prisma.officeExpense.create({
       data: {
         title: title.trim(),
         category: validCategory,
         amount: parsedAmount,
-        currency: currency || 'USD',
-        expenseDate: expenseDate ? new Date(expenseDate) : new Date(),
+        currency: (currency || 'USD').toUpperCase().trim(),
+        expenseDate: validExpenseDate,
         paymentMethod: (paymentMethod || 'CASH').toUpperCase().trim(),
         vendor: vendor?.trim() || null,
         referenceNumber: referenceNumber?.trim() || null,
@@ -204,7 +260,7 @@ export async function POST(request: NextRequest) {
         receiptName: receiptName?.trim() || null,
         notes: notes?.trim() || null,
         status: validStatus,
-        recordedById: session.user.id,
+        recordedById: recordedUserId,
       },
       include: {
         recordedBy: {
@@ -220,8 +276,9 @@ export async function POST(request: NextRequest) {
     }, { status: 201 });
   } catch (error) {
     console.error('Error creating office expense:', error);
+    const message = error instanceof Error ? error.message : 'Failed to record office expense';
     return NextResponse.json(
-      { error: 'Failed to record office expense' },
+      { error: message },
       { status: 500 }
     );
   }

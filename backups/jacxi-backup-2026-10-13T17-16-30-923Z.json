@@ -1,0 +1,72 @@
+{
+  "version": "1.2.0",
+  "timestamp": "2026-10-13T17:16:30.923Z",
+  "initiatedBy": "tester",
+  "scope": "custom",
+  "selectedCategories": [
+    "settings"
+  ],
+  "stats": {
+    "userSettings": 0,
+    "callAgentSettings": 1,
+    "aiProviderSettings": 1,
+    "communicationProviderSettings": 1
+  },
+  "totalRecords": 3,
+  "data": {
+    "userSettings": [],
+    "callAgentSettings": [
+      {
+        "id": "cmp7rbumo00004adhova3p8ue",
+        "scope": "default",
+        "twilioAccountSid": "AC4f943dad320bf9068f6ff9ccf2629b41",
+        "twilioAuthToken": "dce0c369b9ca2298e64a543797192857",
+        "twilioApiKey": "SK88b4cd1c121a600e59fbf60f575249b0",
+        "twilioApiSecret": "YWRUU2SY7JOROt2IsNowqV3z2nqIZrHc",
+        "twilioPhoneNumber": "+14344488601",
+        "twilioPhoneNumberSid": "PN945d847f29d6c16e946986f148824564",
+        "geminiApiKey": "AIzaSyBWSwQYCmE0dVL1cpE2qeRhbroFPNOB7zA",
+        "geminiLiveApiKey": "AIzaSyBWSwQYCmE0dVL1cpE2qeRhbroFPNOB7zA",
+        "geminiVoiceModel": "gemini-flash-latest",
+        "geminiLiveModel": "gemini-flash-latest",
+        "createdAt": "2026-05-16T02:58:54.288Z",
+        "updatedAt": "2026-05-16T04:08:36.582Z"
+      }
+    ],
+    "aiProviderSettings": [
+      {
+        "id": "cmr32dfoz0017x0cll54c0nbc",
+        "scope": "default",
+        "enabled": true,
+        "provider": "venice",
+        "apiKey": "enc:v1:4fV3zfIlLacXpW_8hNJJhW219ipKXuJgWcz47woY1VW4sIyJFv3Jw36bIg318N6CyLnLebbPG0gfUA7RiYEFXVZYB2DjvAi5JKeCW90g",
+        "chatCompletionsUrl": "https://api.meta.ai/v1/responses",
+        "modelsUrl": "https://api.meta.ai/v1/models",
+        "model": "muse-spark-1.3-contributor",
+        "maxTokens": 4000,
+        "temperature": 1,
+        "createdAt": "2026-07-02T05:28:37.811Z",
+        "updatedAt": "2026-10-09T04:57:38.142Z"
+      }
+    ],
+    "communicationProviderSettings": [
+      {
+        "id": "cmrh6oh85001gztf775ymkzps",
+        "scope": "default",
+        "emailEnabled": true,
+        "emailProvider": "resend",
+        "emailApiKey": "enc:v1:DfKUUFIgxWiQObYslRkYEuQjaj3FMgZE-huJRwfcZVAJNfIb8vsIGgouvfOnYz202dPoOXJxaSqkcJ-AVKUUhi",
+        "emailFromAddress": "notifications@jacxishipping.com",
+        "emailReplyToAddress": "support@jacxishipping.com",
+        "smsEnabled": false,
+        "smsProvider": "twilio",
+        "smsAccountSid": null,
+        "smsAuthToken": null,
+        "smsFromNumber": null,
+        "smsMessagingServiceSid": null,
+        "createdAt": "2026-07-12T02:37:57.941Z",
+        "updatedAt": "2026-10-12T16:35:14.188Z"
+      }
+    ]
+  }
+}

@@ -6,7 +6,7 @@
       }
     },
     "ios": {
-      "bundleIdentifier": "com.jacxishipping.jacxishipping",
+      "bundleIdentifier": "com.jacxi.shipping",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }

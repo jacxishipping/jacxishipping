@@ -11,6 +11,7 @@ import {
   TextField,
   InputAdornment,
   IconButton,
+  Tooltip,
   Alert,
   CircularProgress,
   Box,
@@ -18,6 +19,7 @@ import {
   Paper,
 } from '@mui/material';
 import { getPortalBrandIdentity } from '@/lib/partner-portal-branding';
+import { useSiteBranding } from '@/hooks/useSiteBranding';
 
 type PortalLoginBranding = {
   id: string;
@@ -34,11 +36,13 @@ type SimpleLoginPageClientProps = {
 export default function SimpleLoginPageClient({ portal }: SimpleLoginPageClientProps) {
 	const router = useRouter();
 	const searchParams = useSearchParams();
+	const { branding } = useSiteBranding();
 	const [loginCode, setLoginCode] = useState('');
 	const [showCode, setShowCode] = useState(false);
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState('');
 	const brand = useMemo(() => getPortalBrandIdentity(portal), [portal]);
+	const activeLogoUrl = brand.logoUrl || branding.logoUrl;
 	const callbackUrl = searchParams.get('callbackUrl');
 	const redirectTarget = callbackUrl || (portal?.id ? `/portal/${portal.id}` : '/dashboard');
 	const staffLoginHref = useMemo(() => {
@@ -195,22 +199,25 @@ export default function SimpleLoginPageClient({ portal }: SimpleLoginPageClientP
 											),
 											endAdornment: (
 												<InputAdornment position="end">
-													<IconButton
-														onClick={() => setShowCode(!showCode)}
-														edge="end"
-														sx={{
-															color: 'var(--accent-gold)',
-															'&:hover': {
+													<Tooltip title={showCode ? 'Hide code' : 'Show code'}>
+														<IconButton
+															aria-label={showCode ? 'Hide code' : 'Show code'}
+															onClick={() => setShowCode(!showCode)}
+															edge="end"
+															sx={{
 																color: 'var(--accent-gold)',
-															},
-														}}
-													>
-														{showCode ? (
-															<VisibilityOff sx={{ fontSize: 20 }} />
-														) : (
-															<Visibility sx={{ fontSize: 20 }} />
-														)}
-													</IconButton>
+																'&:hover': {
+																	color: 'var(--accent-gold)',
+																},
+															}}
+														>
+															{showCode ? (
+																<VisibilityOff sx={{ fontSize: 20 }} />
+															) : (
+																<Visibility sx={{ fontSize: 20 }} />
+															)}
+														</IconButton>
+													</Tooltip>
 												</InputAdornment>
 											),
 										}}
@@ -346,8 +353,8 @@ export default function SimpleLoginPageClient({ portal }: SimpleLoginPageClientP
 					<Box sx={{ position: 'relative', zIndex: 1 }}>
 						<Box sx={{ textAlign: 'center', mb: 4.5, display: 'grid', gap: 1.4 }}>
 							<Box sx={{ display: 'flex', justifyContent: 'center' }}>
-								{brand.logoUrl ? (
-									<Box component="img" src={brand.logoUrl} alt={`${brand.companyLabel} logo`} sx={{ width: 84, height: 84, borderRadius: 4, objectFit: 'cover', bgcolor: 'rgba(255,255,255,0.92)', border: '1px solid rgba(15,23,42,0.08)', boxShadow: '0 18px 34px rgba(15,23,42,0.12)' }} />
+								{activeLogoUrl ? (
+									<Box component="img" src={activeLogoUrl} alt={`${brand.companyLabel || branding.companyName || 'Jacxi'} logo`} sx={{ width: 84, height: 84, borderRadius: 4, objectFit: 'contain', bgcolor: 'rgba(255,255,255,0.92)', border: '1px solid rgba(15,23,42,0.08)', boxShadow: '0 18px 34px rgba(15,23,42,0.12)' }} />
 								) : (
 									<Box sx={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 84, height: 84, borderRadius: 4, bgcolor: `rgba(${brand.accentRgb}, 0.14)`, color: brand.accentColor, boxShadow: `0 16px 32px rgba(${brand.accentRgb},0.16)` }}>
 										<VpnKey sx={{ fontSize: 40, color: brand.accentColor }} />
@@ -427,13 +434,16 @@ export default function SimpleLoginPageClient({ portal }: SimpleLoginPageClientP
 										),
 										endAdornment: (
 											<InputAdornment position="end">
-												<IconButton
-													onClick={() => setShowCode(!showCode)}
-													edge="end"
-													sx={{ color: brand.accentColor }}
-												>
-													{showCode ? <VisibilityOff sx={{ fontSize: 24 }} /> : <Visibility sx={{ fontSize: 24 }} />}
-												</IconButton>
+												<Tooltip title={showCode ? 'Hide code' : 'Show code'}>
+													<IconButton
+														aria-label={showCode ? 'Hide code' : 'Show code'}
+														onClick={() => setShowCode(!showCode)}
+														edge="end"
+														sx={{ color: brand.accentColor }}
+													>
+														{showCode ? <VisibilityOff sx={{ fontSize: 24 }} /> : <Visibility sx={{ fontSize: 24 }} />}
+													</IconButton>
+												</Tooltip>
 											</InputAdornment>
 										),
 										sx: {

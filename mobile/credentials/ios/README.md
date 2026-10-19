@@ -30,9 +30,9 @@ Create a `credentials.json` file at the root of `mobile/` (refer to `credentials
 To build with EAS CLI using your local credentials without uploading them to Expo servers:
 
 ```bash
-npx eas build --platform ios --local
+npx eas build --platform ios --profile production --local
 # or with your credentials.json:
-npx eas build --platform ios
+npx eas build --platform ios --profile production
 ```
 
 > **Security Note**: This directory's certificates (`*.p12`, `*.p8`, `*.mobileprovision`) and `credentials.json` are ignored by `.gitignore` to prevent secret leakage.
