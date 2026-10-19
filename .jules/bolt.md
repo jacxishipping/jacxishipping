@@ -25,7 +25,6 @@
 ## 2024-05-24 - Parallelizing Loop Dependencies using Promise.all
 **Learning:** Found sequential await statements inside loops in `src/app/api/operations/route.ts` that cause N+1 query bottlenecks. For example, updating containers dynamically while assigning shipments in a `for` loop caused unnecessary blocking where `await prisma.container.update` was executed sequentially.
 **Action:** Always extract loop logic that involves database calls into pre-computation phases. First, determine all required updates locally. Then, use `Promise.all` to batch dispatch `prisma.*.update` and `prisma.*.updateMany` calls in parallel, drastically reducing request latency.
-
-## 2024-05-24 - Bulk Insert with createMany Instead of Loop
-**Learning:** Found an N+1 query issue in `src/app/api/finance/companies/[id]/ledger/import-bank-csv/route.ts` where the code used a `for` loop to iteratively `await tx.companyLedgerEntry.create()` on each row of an uploaded CSV file. This pattern forces sequential query execution over a network connection, dramatically increasing database load and response times during bulk operations.
-**Action:** When inserting multiple records into a database in an API route (e.g., CSV imports), always use a single `createMany` query passing an array of data objects to perform a single bulk insert roundtrip rather than iterating sequential inserts inside a transaction.
+## 2026-10-14 - Replace O(n²) nested array iteration with O(n) hash map pre-calculation
+**Learning:** Found an $O(N \times M)$ nested iteration bottleneck in `src/app/api/ledger/payment/route.ts` where the code used `reduce` on all `shipmentLedgerEntries` multiple times within a loop over `shipments`. This pattern becomes exponentially slower as the number of ledger entries and shipments grows.
+**Action:** Before looping through records that require aggregate data from another collection, loop through the collection once in $O(N)$ to pre-calculate and group the required metrics into a `Map` (Hash Map dictionary). Inside the primary loop, use $O(1)$ lookups on this dictionary.
