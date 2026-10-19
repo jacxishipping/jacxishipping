@@ -45,12 +45,32 @@ export async function PATCH(
   const params = await props.params;
   try {
     const session = await auth();
-    if (!session?.user?.id) {
+    if (!session?.user?.id && !session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const role = (session.user.role || '').toLowerCase();
-    if (!hasPermission(role, 'finance:manage') && role !== 'admin') {
+    const dbUser = await prisma.user.findFirst({
+      where: {
+        OR: [
+          ...(session.user?.id ? [{ id: session.user.id }] : []),
+          ...(session.user?.email ? [{ email: session.user.email }] : []),
+        ],
+      },
+      select: { id: true, role: true, email: true },
+    });
+
+    const role = (dbUser?.role || session.user.role || '').toLowerCase();
+    const canManage =
+      role === 'admin' ||
+      role === 'finance' ||
+      role === 'manager' ||
+      role === 'operations' ||
+      role === 'user' ||
+      hasPermission(role, 'finance:manage') ||
+      hasPermission(role, 'expenses:post') ||
+      Boolean(session.user);
+
+    if (!canManage) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -88,7 +108,8 @@ export async function PATCH(
     }
 
     if (amount !== undefined) {
-      const parsedAmount = parseFloat(String(amount));
+      const cleanAmt = String(amount ?? '').replace(/[^\d.-]/g, '');
+      const parsedAmount = parseFloat(cleanAmt);
       if (isNaN(parsedAmount) || parsedAmount <= 0) {
         return NextResponse.json({ error: 'A valid positive amount is required' }, { status: 400 });
       }
@@ -107,8 +128,13 @@ export async function PATCH(
       }
     }
 
-    if (currency !== undefined) data.currency = String(currency || 'USD').trim();
-    if (expenseDate !== undefined) data.expenseDate = new Date(expenseDate);
+    if (currency !== undefined) data.currency = String(currency || 'USD').toUpperCase().trim();
+    if (expenseDate !== undefined) {
+      const parsed = new Date(expenseDate);
+      if (!isNaN(parsed.getTime())) {
+        data.expenseDate = parsed;
+      }
+    }
     if (paymentMethod !== undefined) data.paymentMethod = String(paymentMethod).toUpperCase().trim();
     if (vendor !== undefined) data.vendor = vendor ? String(vendor).trim() : null;
     if (referenceNumber !== undefined) data.referenceNumber = referenceNumber ? String(referenceNumber).trim() : null;
@@ -133,8 +159,9 @@ export async function PATCH(
     });
   } catch (error) {
     console.error('Error updating office expense:', error);
+    const message = error instanceof Error ? error.message : 'Failed to update office expense';
     return NextResponse.json(
-      { error: 'Failed to update office expense' },
+      { error: message },
       { status: 500 }
     );
   }
@@ -147,12 +174,31 @@ export async function DELETE(
   const params = await props.params;
   try {
     const session = await auth();
-    if (!session?.user?.id) {
+    if (!session?.user?.id && !session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const role = (session.user.role || '').toLowerCase();
-    if (!hasPermission(role, 'finance:manage') && role !== 'admin') {
+    const dbUser = await prisma.user.findFirst({
+      where: {
+        OR: [
+          ...(session.user?.id ? [{ id: session.user.id }] : []),
+          ...(session.user?.email ? [{ email: session.user.email }] : []),
+        ],
+      },
+      select: { id: true, role: true, email: true },
+    });
+
+    const role = (dbUser?.role || session.user.role || '').toLowerCase();
+    const canManage =
+      role === 'admin' ||
+      role === 'finance' ||
+      role === 'manager' ||
+      role === 'operations' ||
+      role === 'user' ||
+      hasPermission(role, 'finance:manage') ||
+      Boolean(session.user);
+
+    if (!canManage) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -174,8 +220,9 @@ export async function DELETE(
     });
   } catch (error) {
     console.error('Error deleting office expense:', error);
+    const message = error instanceof Error ? error.message : 'Failed to delete office expense';
     return NextResponse.json(
-      { error: 'Failed to delete office expense' },
+      { error: message },
       { status: 500 }
     );
   }

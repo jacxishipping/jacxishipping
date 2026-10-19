@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
-import Link from "next/link";
-import { User, Eye, EyeOff, Copy, Check, Package, Key } from "lucide-react";
-import { Box, Typography, IconButton, Slide, Tooltip } from "@mui/material";
-import { Button } from "@/components/design-system";
-import VisibilityIcon from "@mui/icons-material/Visibility";
-import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { User, Eye, EyeOff, Copy, Check, Package, Key } from 'lucide-react';
+import { Box, Typography, IconButton, Slide, Tooltip } from '@mui/material';
+import { Button } from '@/components/design-system';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
 
 interface UserData {
   id: string;
@@ -113,11 +113,11 @@ export default function UserCard({
             </Typography>
           </Box>
           <Box>
-            <Tooltip title="Toggle email visibility">
+            <Tooltip title={showEmail ? "Hide email" : "Show email"}>
               <IconButton
                 size="small"
                 onClick={() => onToggleEmail(user.id)}
-                aria-label="Toggle email visibility"
+                aria-label={showEmail ? "Hide email" : "Show email"}
               >
                 {showEmail ? (
                   <EyeOff style={{ width: 16, height: 16 }} />
@@ -145,22 +145,16 @@ export default function UserCard({
               {showEmail ? user.email : maskEmail(user.email)}
             </Typography>
             {showEmail && (
-              <Tooltip title="Copy email">
+              <Tooltip title={copiedEmail === user.id ? "Email copied" : "Copy email"}>
                 <IconButton
                   size="small"
                   onClick={() => onCopyEmail(user.email, user.id)}
-                  aria-label="Copy email"
+                  aria-label={copiedEmail === user.id ? "Email copied" : "Copy email"}
                 >
                   {copiedEmail === user.id ? (
-                    <Check style={{ color: "green", width: 16, height: 16 }} />
+                    <Check style={{ color: 'green', width: 16, height: 16 }} />
                   ) : (
-                    <Copy
-                      style={{
-                        color: "var(--accent-gold)",
-                        width: 16,
-                        height: 16,
-                      }}
-                    />
+                    <Copy style={{ color: 'var(--accent-gold)', width: 16, height: 16 }} />
                   )}
                 </IconButton>
               </Tooltip>

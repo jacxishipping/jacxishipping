@@ -28,10 +28,13 @@ import {
   Moon,
   Maximize2,
   Minimize2,
+  Download,
+  FileSpreadsheet,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { StatusBadge } from '@/components/design-system';
 import { setGlobalTheme, setGlobalDensity } from '@/hooks/useTheme';
+import { openUniversalShipmentExport } from '@/components/shipments/UniversalShipmentExportModal';
 
 interface ShipmentSearchHit {
   id: string;
@@ -192,6 +195,17 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 
           {/* Quick Actions (Always visible or when > typed) */}
           <Command.Group heading="Quick Actions" className="px-2 py-1.5 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">
+            <Command.Item
+              onSelect={() => runCommand(() => openUniversalShipmentExport())}
+              className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer hover:bg-[var(--background)] data-[selected=true]:bg-[var(--background)]"
+            >
+              <FileSpreadsheet className="w-4 h-4 text-emerald-500" />
+              <div className="flex items-center justify-between w-full">
+                <span className="font-medium text-sm">Export Shipments (Excel / CSV)</span>
+                <span className="text-[10px] uppercase font-bold text-emerald-500">Universal Export</span>
+              </div>
+            </Command.Item>
+
             <Command.Item
               onSelect={() => runCommand(() => router.push('/dashboard/shipments/new'))}
               className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer hover:bg-[var(--background)] data-[selected=true]:bg-[var(--background)]"

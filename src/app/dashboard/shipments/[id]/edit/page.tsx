@@ -110,6 +110,8 @@ export default function EditShipmentPage() {
   const [uploadingFiles, setUploadingFiles] = useState<Set<string>>(new Set());
   const [decodingVin, setDecodingVin] = useState(false);
   const [fetchingLotData, setFetchingLotData] = useState(false);
+  const [lotFetchProgress, setLotFetchProgress] = useState(0);
+  const [lotFetchStage, setLotFetchStage] = useState('');
   const [smartFillOpen, setSmartFillOpen] = useState(false);
   const [transitWorkflowContext, setTransitWorkflowContext] = useState<TransitWorkflowContext | null>(null);
   const [dispatchWorkflowContext, setDispatchWorkflowContext] = useState<DispatchWorkflowContext | null>(null);
@@ -132,6 +134,10 @@ export default function EditShipmentPage() {
     if (data.purchaseLocation && !watch('purchaseLocation')) setVal('purchaseLocation', data.purchaseLocation);
     if (data.purchasePrice && !watch('purchasePrice')) setVal('purchasePrice', data.purchasePrice.toString());
     if (data.internalNotes && !watch('internalNotes')) setVal('internalNotes', data.internalNotes);
+    if (Array.isArray(data.vehiclePhotos) && data.vehiclePhotos.length > 0) {
+      setVehiclePhotos(data.vehiclePhotos);
+      setVal('vehiclePhotos', data.vehiclePhotos);
+    }
   };
 
   const canManageShipments = useMemo(() => hasPermission(session?.user?.role, 'shipments:manage'), [session]);
@@ -376,24 +382,65 @@ export default function EditShipmentPage() {
     }
   };
 
-  const fetchAuctionLotData = async (lotNumber: string) => {
-    if (!lotNumber?.trim()) return;
+  const fetchAuctionLotData = async (rawLotNumber: string) => {
+    if (!rawLotNumber?.trim()) return;
 
-    const auctionNameValue = watch('auctionName');
-    const targetAuction = auctionNameValue === 'IAAI' ? 'IAAI' : 'Copart';
+    let cleanedLotNumber = rawLotNumber.trim();
+    let targetAuction: 'Copart' | 'IAAI' = watch('auctionName') === 'IAAI' ? 'IAAI' : 'Copart';
+
+    // Auto-detect and clean URLs
+    if (/copart\.com/i.test(cleanedLotNumber)) {
+      targetAuction = 'Copart';
+      const match = cleanedLotNumber.match(/copart\.com\/lot\/(\d+)/i);
+      if (match) cleanedLotNumber = match[1];
+    } else if (/iaai\.com/i.test(cleanedLotNumber)) {
+      targetAuction = 'IAAI';
+      const match = cleanedLotNumber.match(/iaai\.com\/VehicleDetail\/([a-zA-Z0-9~-]+)/i);
+      if (match) cleanedLotNumber = match[1];
+    } else {
+      // Strip common prefixes like #, Lot, Stock
+      cleanedLotNumber = cleanedLotNumber.replace(/^(lot|stock)\s*(#|number|no|:)?\s*/i, '').replace(/^#\s*/, '').trim();
+      if (cleanedLotNumber.includes('~') || /~[a-z]{2}$/i.test(cleanedLotNumber)) {
+        targetAuction = 'IAAI';
+      }
+    }
 
     setFetchingLotData(true);
+    setLotFetchProgress(15);
+    setLotFetchStage(`Connecting to ${targetAuction}...`);
+
+    const progressInterval = setInterval(() => {
+      setLotFetchProgress((prev) => {
+        if (prev < 35) {
+          setLotFetchStage(`Querying ${targetAuction} lot details & vehicle specifications...`);
+          return prev + 10;
+        }
+        if (prev < 65) {
+          setLotFetchStage('Extracting vehicle color, keys, title & damage...');
+          return prev + 8;
+        }
+        if (prev < 90) {
+          setLotFetchStage('Retrieving high-resolution photo gallery...');
+          return prev + 5;
+        }
+        return prev;
+      });
+    }, 800);
+
     try {
-      const trimmedLotNumber = lotNumber.trim();
       const { lotData, lotSummary } = await (targetAuction === 'IAAI'
-        ? fetchIaaiLotDataForShipment(trimmedLotNumber).then((data) => ({
+        ? fetchIaaiLotDataForShipment(cleanedLotNumber).then((data) => ({
             lotData: data,
             lotSummary: buildIaaiLotSummary(data),
           }))
-        : fetchCopartLotDataForShipment(trimmedLotNumber).then((data) => ({
+        : fetchCopartLotDataForShipment(cleanedLotNumber).then((data) => ({
             lotData: data,
             lotSummary: buildCopartLotSummary(data),
           })));
+
+      clearInterval(progressInterval);
+      setLotFetchProgress(100);
+      setLotFetchStage('Vehicle data & photos loaded!');
 
       setValue('lotNumber', lotData.lotNumber);
       setValue('auctionName', lotData.auctionName || targetAuction);
@@ -408,17 +455,37 @@ export default function EditShipmentPage() {
       if (lotData.purchaseDate && !watch('purchaseDate')) setValue('purchaseDate', lotData.purchaseDate);
       if (lotData.purchaseLocation && !watch('purchaseLocation')) setValue('purchaseLocation', lotData.purchaseLocation);
       if (lotData.internalNotes && !watch('internalNotes')) setValue('internalNotes', lotData.internalNotes);
+      if (Array.isArray(lotData.vehiclePhotos) && lotData.vehiclePhotos.length > 0) {
+        setVehiclePhotos(lotData.vehiclePhotos);
+        setValue('vehiclePhotos', lotData.vehiclePhotos, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
+      }
+
+      // If an unmasked 17-character VIN is present and weight is unset, decode weight in background
+      if (lotData.vehicleVIN && lotData.vehicleVIN.length === 17 && !lotData.vehicleVIN.includes('*') && !watch('weight')) {
+        decodeVINService(lotData.vehicleVIN)
+          .then((decoded) => {
+            const weightEst = getBestWeightEstimate(decoded);
+            if (weightEst) setValue('weight', weightEst.toString());
+          })
+          .catch(() => {});
+      }
 
       toast.success(`${targetAuction} lot data fetched`, {
         description: lotSummary,
       });
     } catch (error) {
+      clearInterval(progressInterval);
       console.error(`Error fetching ${targetAuction} lot data:`, error);
       toast.error(`Failed to fetch ${targetAuction} lot data`, {
         description: error instanceof Error ? error.message : 'Please verify the lot number and try again',
       });
     } finally {
-      setFetchingLotData(false);
+      clearInterval(progressInterval);
+      setTimeout(() => {
+        setFetchingLotData(false);
+        setLotFetchProgress(0);
+        setLotFetchStage('');
+      }, 500);
     }
   };
 
@@ -806,6 +873,51 @@ export default function EditShipmentPage() {
                   </Box>
                   <FormField id="auctionName" label="Auction Name" {...register('auctionName')} />
                 </Box>
+
+                {/* Auction Lot Fetching Loading Bar */}
+                {fetchingLotData && (
+                  <Box
+                    sx={{
+                      p: 2.25,
+                      borderRadius: '16px',
+                      backgroundColor: 'rgba(var(--accent-gold-rgb), 0.08)',
+                      border: '1px solid rgba(var(--accent-gold-rgb), 0.35)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 1.25,
+                      animation: 'fadeIn 0.2s ease',
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+                        <Loader2 className="w-4 h-4 text-amber-400 animate-spin" />
+                        <Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                          {lotFetchStage || `Fetching ${watch('auctionName') || 'Auction'} Lot Data...`}
+                        </Typography>
+                      </Box>
+                      <Typography sx={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--accent-gold)' }}>
+                        {lotFetchProgress}%
+                      </Typography>
+                    </Box>
+                    <LinearProgress
+                      variant="determinate"
+                      value={lotFetchProgress}
+                      sx={{
+                        height: 8,
+                        borderRadius: 4,
+                        backgroundColor: 'rgba(var(--border-rgb), 0.25)',
+                        '& .MuiLinearProgress-bar': {
+                          backgroundColor: 'var(--accent-gold)',
+                          borderRadius: 4,
+                          transition: 'transform 0.35s ease-out',
+                        },
+                      }}
+                    />
+                    <Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                      Retrieving vehicle specifications, color, keys, damage, and high-resolution photo gallery
+                    </Typography>
+                  </Box>
+                )}
                 
                 <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' }, gap: 2 }}>
                     <FormField

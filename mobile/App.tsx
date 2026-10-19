@@ -1,3 +1,5 @@
+import 'react-native-gesture-handler';
+import 'react-native-reanimated';
 import React, { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -6,7 +8,6 @@ import { useAuth } from './src/hooks/useAuth';
 import { ThemePreferenceProvider, useThemePreference } from './src/contexts/ThemePreferenceContext';
 import { RootNavigator } from './src/navigation';
 import { ErrorBoundary } from './src/components/shared/ErrorBoundary';
-import 'react-native-reanimated';
 
 const queryClient = new QueryClient({
   defaultOptions: {

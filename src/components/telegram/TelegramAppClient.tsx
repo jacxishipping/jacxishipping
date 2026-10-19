@@ -405,6 +405,7 @@ export function TelegramAppClient() {
                   >
                     <IconButton
                       size="small"
+                      aria-label="Close help"
                       onClick={() => setShowCodeHelp(false)}
                       sx={{ position: 'absolute', top: 6, right: 6, color: '#94a3b8' }}
                     >

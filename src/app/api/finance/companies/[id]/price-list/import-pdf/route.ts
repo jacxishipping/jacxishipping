@@ -16,6 +16,11 @@ import {
   US_STATES,
 } from '@/lib/shipping-rate-calculator';
 import { extractAuctionRatesFromPdf, getImportedRatesFromPdfText, type PriceListParserStats } from '@/lib/shipping-rate-pdf-import';
+import {
+  detectPriceListCorridor,
+  parseTransitRatesFromText,
+  isTransitPriceList,
+} from '@/lib/price-list-corridors';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -484,7 +489,7 @@ export async function POST(
     const aiExtraction = shouldRunAiFallback
       ? await extractPriceListRowsWithAi(extractedText)
       : { rows: [] as AuctionRateEntry[], notes: [] as string[] };
-    const auctionRates = overrideRows ?? mergeParsedAuctionRates(extracted.entries, aiExtraction.rows);
+    let auctionRates = overrideRows ?? mergeParsedAuctionRates(extracted.entries, aiExtraction.rows);
     const parserStats = buildFinalParserStats(
       extracted.parserStats,
       extracted.entries,
@@ -495,40 +500,94 @@ export async function POST(
     );
     parserStats.aiRows = auctionRates.filter((rate) => rate.source === 'ai').length;
     const rowSourceSummary = summarizeRateSources(auctionRates);
+    const corridor = detectPriceListCorridor({
+      text: extractedText,
+      fileName: file.name,
+      destinationLabel: String(formData.get('destinationLabel') || ''),
+      name: String(formData.get('name') || ''),
+      auctionRateCount: auctionRates.length,
+    });
+    const parsedTransitRates = parseTransitRatesFromText(extractedText);
+    const isTransitDoc = corridor.leg === 'TRANSIT' || Boolean(parsedTransitRates);
+
+    if (isTransitDoc && auctionRates.length === 0 && parsedTransitRates) {
+      auctionRates = [
+        {
+          branch: `${corridor.origin} (Sedan)`,
+          city: corridor.origin,
+          stateCode: 'TR',
+          loadingPoint: corridor.destination,
+          total: parsedTransitRates.sedan,
+          source: 'imported',
+          confidence: 'high',
+          sourceNote: `Sedan rate: $${parsedTransitRates.sedan}. Customs clearance & transport included.`,
+        },
+        {
+          branch: `${corridor.origin} (SUV)`,
+          city: corridor.origin,
+          stateCode: 'TR',
+          loadingPoint: corridor.destination,
+          total: parsedTransitRates.suv,
+          source: 'imported',
+          confidence: 'high',
+          sourceNote: `SUV rate: $${parsedTransitRates.suv}. Customs clearance & transport included.`,
+        },
+      ];
+    }
+
     const importedRates = overrideRows
       ? buildStateRatesFromAuctionRates(overrideRows)
       : getImportedRatesFromPdfText(auctionRates, extractedText);
     const fallbackStateRates = parseShippingRatesFromText(extractedText);
-    const finalImportedRates = Object.keys(importedRates).length ? importedRates : fallbackStateRates;
+    let finalImportedRates = Object.keys(importedRates).length ? importedRates : fallbackStateRates;
 
-    if (Object.keys(finalImportedRates).length === 0) {
+    if (Object.keys(finalImportedRates).length === 0 && parsedTransitRates) {
+      finalImportedRates = { TR: parsedTransitRates.sedan };
+    }
+
+    if (Object.keys(finalImportedRates).length === 0 && auctionRates.length === 0) {
       return NextResponse.json({
-        error: 'No rates were found in the file. Expected branch/city/total rows or state rows like "CA $1300".',
+        error: 'No rates were found in the file. Expected auction/state rates (USA to Mersin/Jebel Ali) or overland vehicle rates (Mersin/UAE to Islam Qala).',
       }, { status: 422 });
     }
 
     const warnings = buildWarnings(finalImportedRates, auctionRates);
-    const destinationLabel = String(formData.get('destinationLabel') || '').trim()
-      || (file.name.toLowerCase().includes('islam qala') ? 'Islam Qala, Afghanistan' : existingConfig.destinationLabel);
-    const listName = String(formData.get('name') || '').trim()
-      || `${company.name} price list`;
+    const userDestination = String(formData.get('destinationLabel') || '').trim();
+    const destinationLabel = userDestination || corridor.destination || existingConfig.destinationLabel;
+    const defaultListName = `${company.name} ${corridor.shortLabel} Price List`;
+    const listName = String(formData.get('name') || '').trim() || defaultListName;
     const effectiveFromRaw = String(formData.get('effectiveFrom') || '').trim();
     const effectiveFrom = effectiveFromRaw ? new Date(`${effectiveFromRaw}T00:00:00`) : null;
 
-    const config = normalizeShippingRateConfig({
+    const configData: any = {
       ...existingConfig,
+      kind: corridor.leg,
+      routeCode: corridor.routeCode,
+      origin: corridor.origin,
+      destination: corridor.destination,
       destinationLabel,
       stateRates: buildStateRates(existingConfig.stateRates, finalImportedRates, mode),
       auctionRates: mergeAuctionRates(existingConfig.auctionRates, auctionRates, mode),
       updatedFromPdfName: file.name,
       updatedAt: new Date().toISOString(),
-    });
+    };
+
+    if (isTransitDoc && parsedTransitRates) {
+      configData.transitRates = parsedTransitRates;
+      configData.rates = { sedan: parsedTransitRates.sedan, suv: parsedTransitRates.suv };
+      if (parsedTransitRates.terms) configData.terms = parsedTransitRates.terms;
+    }
+
+    const config = normalizeShippingRateConfig(configData);
 
     const preview = {
       fileName: file.name,
       mode,
       listName,
       destinationLabel,
+      corridor,
+      isTransitDoc,
+      transitRates: parsedTransitRates,
       importedCount: Object.keys(finalImportedRates).length,
       importedAuctionRateCount: auctionRates.length,
       totalStateRateCount: Object.keys(config.stateRates).length,
@@ -547,11 +606,13 @@ export async function POST(
         entityType: 'COMPANY',
         entityId: company.id,
         actorUserId: session.user.id as string,
-        summary: `Previewed price list ${file.name} for ${company.name}`,
+        summary: `Previewed price list ${file.name} for ${company.name} (${corridor.label})`,
         metadata: {
           companyId: company.id,
           fileName: file.name,
           mode,
+          corridorRoute: corridor.routeCode,
+          leg: corridor.leg,
           importedStateRateCount: Object.keys(finalImportedRates).length,
           importedAuctionRateCount: auctionRates.length,
           parserStats,
@@ -563,39 +624,84 @@ export async function POST(
       return NextResponse.json({ preview, config });
     }
 
-    const [, priceList, updatedCompany] = await prisma.$transaction([
-      prisma.companyPriceList.updateMany({
-        where: { companyId: company.id, isActive: true },
-        data: { isActive: false },
-      }),
-      prisma.companyPriceList.create({
-        data: {
-          companyId: company.id,
+    // Identify active price lists of the SAME leg type to deactivate (leaving the other leg intact)
+    const activePriceLists = await prisma.companyPriceList.findMany({
+      where: { companyId: company.id, isActive: true },
+    });
+    const toDeactivate = activePriceLists
+      .filter((p) => isTransitPriceList(p) === isTransitDoc)
+      .map((p) => p.id);
+
+    // Merge company priceListConfig so both ocean rates and transit leg coexist
+    const currentCompanyConfig = (company.priceListConfig as Record<string, any>) || {};
+    let updatedCompanyConfig: Record<string, any>;
+
+    if (isTransitDoc) {
+      const transitRates = parsedTransitRates || { sedan: 2300, suv: 2400 };
+      updatedCompanyConfig = {
+        ...currentCompanyConfig,
+        transit: {
           name: listName,
           destinationLabel,
-          sourceFileName: file.name,
-          importMode: mode,
-          config: config as unknown as Prisma.InputJsonValue,
-          importedStateRateCount: Object.keys(finalImportedRates).length,
-          importedAuctionRateCount: auctionRates.length,
-          warnings: warnings as unknown as Prisma.InputJsonValue,
-          isActive: true,
-          effectiveFrom: effectiveFrom && Number.isFinite(effectiveFrom.getTime()) ? effectiveFrom : null,
-          importedBy: session.user.id as string,
+          origin: corridor.origin,
+          destination: corridor.destination,
+          rates: { sedan: transitRates.sedan, suv: transitRates.suv },
+          terms: transitRates.terms || [],
+          effectiveFrom,
         },
-      }),
-      prisma.company.update({
-        where: { id: company.id },
-        data: {
-          priceListConfig: config as unknown as Prisma.InputJsonValue,
-        },
-        select: {
-          id: true,
-          name: true,
-          priceListConfig: true,
-        },
-      }),
-    ]);
+      };
+    } else {
+      updatedCompanyConfig = {
+        ...config,
+        ...(currentCompanyConfig.transit ? { transit: currentCompanyConfig.transit } : {}),
+      };
+    }
+
+    const createPriceListOp = prisma.companyPriceList.create({
+      data: {
+        companyId: company.id,
+        name: listName,
+        destinationLabel,
+        sourceFileName: file.name,
+        importMode: mode,
+        config: configData as unknown as Prisma.InputJsonValue,
+        importedStateRateCount: Object.keys(finalImportedRates).length,
+        importedAuctionRateCount: auctionRates.length,
+        warnings: warnings as unknown as Prisma.InputJsonValue,
+        isActive: true,
+        effectiveFrom: effectiveFrom && Number.isFinite(effectiveFrom.getTime()) ? effectiveFrom : null,
+        importedBy: session.user.id as string,
+      },
+    });
+
+    const updateCompanyOp = prisma.company.update({
+      where: { id: company.id },
+      data: {
+        priceListConfig: updatedCompanyConfig as unknown as Prisma.InputJsonValue,
+      },
+      select: {
+        id: true,
+        name: true,
+        priceListConfig: true,
+      },
+    });
+
+    const txOps = [
+      ...(toDeactivate.length > 0
+        ? [
+            prisma.companyPriceList.updateMany({
+              where: { id: { in: toDeactivate } },
+              data: { isActive: false },
+            }),
+          ]
+        : []),
+      createPriceListOp,
+      updateCompanyOp,
+    ];
+
+    const txResults = await prisma.$transaction(txOps);
+    const priceList = (toDeactivate.length > 0 ? txResults[1] : txResults[0]) as Awaited<typeof createPriceListOp>;
+    const updatedCompany = (toDeactivate.length > 0 ? txResults[2] : txResults[1]) as Awaited<typeof updateCompanyOp>;
 
     await createSystemAuditLog({
       action: 'price-list-import',

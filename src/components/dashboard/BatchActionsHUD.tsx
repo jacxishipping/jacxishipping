@@ -16,6 +16,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { toast } from '@/components/design-system';
+import { openUniversalShipmentExport } from '@/components/shipments/UniversalShipmentExportModal';
 
 export interface BatchItem {
   id: string;
@@ -62,6 +63,15 @@ export function BatchActionsHUD({
   };
 
   const handleExportManifest = () => {
+    if (entityName === 'Shipments') {
+      openUniversalShipmentExport({
+        shipmentIds: selectedItems.map((item) => item.id),
+        title: `Export Selected (${selectedItems.length}) Shipments`,
+        subtitle: 'Export chosen shipments in Excel or CSV format',
+      });
+      return;
+    }
+
     const csvHeader = 'ID,Title,Subtitle,Status,VIN,Consignee\n';
     const csvRows = selectedItems.map(
       (item) => `"${item.id}","${item.title}","${item.subtitle || ''}","${item.status || ''}","${item.vin || ''}","${item.consignee || ''}"`

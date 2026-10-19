@@ -14,7 +14,8 @@ import {
     Chip
 } from '@mui/material';
 import { Button } from '@/components/design-system';
-import { Calculator, MapPin, Truck, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Calculator, MapPin, Truck, ArrowRight, CheckCircle2, Ship, ShieldCheck, Navigation, Printer } from 'lucide-react';
+import { printTransitPriceList } from '@/lib/price-list-print';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     type AuctionRateEntry,
@@ -59,12 +60,20 @@ type CalculationTrace = {
     laneLabel: string;
     isExactLocation: boolean;
     locationName?: string;
+    // Dual-leg details
+    destinationScope: 'door_islam_qala' | 'port_only';
+    oceanCost: number;
+    transitCost: number;
+    portName: string;
+    transitOrigin: string;
+    transitDestination: string;
 };
 
 export default function ShipmentCalculator() {
     const [origin, setOrigin] = useState('');
     const [pickupLocation, setPickupLocation] = useState('');
     const [vehicleType, setVehicleType] = useState('sedan');
+    const [destinationScope, setDestinationScope] = useState<'door_islam_qala' | 'port_only'>('door_islam_qala');
     const [pickupCity, setPickupCity] = useState('');
     const [pickupBranch, setPickupBranch] = useState('');
     const [estimatedCost, setEstimatedCost] = useState<number | null>(null);
@@ -202,8 +211,22 @@ export default function ShipmentCalculator() {
         const isExactLocation = Boolean(selectedAuctionRate);
         const baseRate = selectedAuctionRate ? selectedAuctionRate.total : (config.stateRates[origin] || config.fallbackRate);
         const multiplier = config.vehicleTypes.find(v => v.id === vehicleType)?.multiplier || 1;
+        const oceanCost = Math.round(baseRate * multiplier);
 
-        setEstimatedCost(Math.round(baseRate * multiplier));
+        // Transit lookup: Check company active transit configuration
+        const activeTransit = (selectedCompany?.priceListConfig as any)?.transit;
+        const portName = (config.destinationLabel?.toLowerCase().includes('uae') || config.destinationLabel?.toLowerCase().includes('jebel'))
+            ? 'Jebel Ali / Dubai, UAE'
+            : 'Mersin Port, Turkey';
+
+        const isSuvOrHeavy = vehicleType === 'suv' || vehicleType === 'pickup' || vehicleType === 'van' || vehicleType === 'heavy';
+        const transitCost = destinationScope === 'door_islam_qala'
+            ? (isSuvOrHeavy ? (activeTransit?.rates?.suv || 2400) : (activeTransit?.rates?.sedan || 2300))
+            : 0;
+
+        const totalCost = oceanCost + transitCost;
+
+        setEstimatedCost(totalCost);
         setCalculationTrace({
             companyName: selectedAuctionRate?.companyName || selectedCompany?.name || 'Shipping Rate Sheet',
             priceListName: selectedAuctionRate?.priceListName || activeCompanyPriceList?.name || 'Default rate settings',
@@ -220,6 +243,12 @@ export default function ShipmentCalculator() {
             locationName: selectedAuctionRate
                 ? [selectedAuctionRate.branch, selectedAuctionRate.city].filter(Boolean).join(' - ')
                 : undefined,
+            destinationScope,
+            oceanCost,
+            transitCost,
+            portName,
+            transitOrigin: activeTransit?.origin || portName,
+            transitDestination: activeTransit?.destination || 'Islam Qala, Herat (Afghanistan)',
         });
     };
 
@@ -269,6 +298,42 @@ export default function ShipmentCalculator() {
 
             <Box sx={{ p: 3, flex: 1, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
                 
+                {/* Destination Corridor Scope Selector */}
+                <Box sx={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    gap: 1,
+                    p: 0.5,
+                    bgcolor: 'var(--background)',
+                    borderRadius: 2,
+                    border: '1px solid var(--border)',
+                }}>
+                    <Button
+                        variant={destinationScope === 'door_islam_qala' ? 'primary' : 'ghost'}
+                        size="sm"
+                        icon={<Truck size={14} />}
+                        onClick={() => {
+                            setDestinationScope('door_islam_qala');
+                            setEstimatedCost(null);
+                            setCalculationTrace(null);
+                        }}
+                    >
+                        Door to Islam Qala (2 Legs)
+                    </Button>
+                    <Button
+                        variant={destinationScope === 'port_only' ? 'primary' : 'ghost'}
+                        size="sm"
+                        icon={<Ship size={14} />}
+                        onClick={() => {
+                            setDestinationScope('port_only');
+                            setEstimatedCost(null);
+                            setCalculationTrace(null);
+                        }}
+                    >
+                        Port Only ({config.destinationLabel?.split(',')[0] || 'Mersin/UAE'})
+                    </Button>
+                </Box>
+
                 {/* Route Visual */}
                 <Box sx={{
                     display: 'flex',
@@ -282,7 +347,7 @@ export default function ShipmentCalculator() {
                 }}>
                     <Box sx={{ display: 'flex', flexDirection: 'column' }}>
                         <Typography variant="caption" sx={{ color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: 1 }}>
-                            From
+                            From (Auction)
                         </Typography>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <MapPin size={16} className="text-red-500" />
@@ -294,12 +359,12 @@ export default function ShipmentCalculator() {
                     <ArrowRight size={16} style={{ color: 'var(--text-secondary)' }} />
                     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
                         <Typography variant="caption" sx={{ color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: 1 }}>
-                            To
+                            {destinationScope === 'door_islam_qala' ? 'Final Destination' : 'Port of Arrival'}
                         </Typography>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <MapPin size={16} className="text-green-500" />
                             <Typography variant="caption" sx={{ fontWeight: 600, color: 'var(--text-primary)' }}>
-                                {config.destinationLabel}
+                                {destinationScope === 'door_islam_qala' ? 'Islam Qala, Herat (Afghanistan)' : (config.destinationLabel || 'Port of Arrival')}
                             </Typography>
                         </Box>
                     </Box>
@@ -323,13 +388,14 @@ export default function ShipmentCalculator() {
                         >
                             <MenuItem value="">All Companies (Exact Location Rates)</MenuItem>
                             {companies.map((company) => {
+                                const hasTransit = Boolean((company.priceListConfig as any)?.transit || company.priceLists?.some((p) => p.destinationLabel?.toLowerCase().includes('islam')));
                                 const activeList = company.priceLists?.[0];
                                 const rowCount = activeList
                                     ? activeList.importedAuctionRateCount || activeList.importedStateRateCount
                                     : company.priceListConfig?.auctionRates?.length || 0;
                                 return (
                                     <MenuItem key={company.id} value={company.id}>
-                                        {company.name}{rowCount ? ` (${rowCount} rates)` : ' (no uploaded list)'}
+                                        {company.name}{rowCount ? ` (${rowCount} ocean lanes)` : ''}{hasTransit ? ' • Overland Transit Active' : ''}
                                     </MenuItem>
                                 );
                             })}
@@ -469,9 +535,9 @@ export default function ShipmentCalculator() {
                             <Box sx={{ 
                                 mt: 2, 
                                 p: 2.5, 
-                                borderRadius: 2, 
-                                bgcolor: calculationTrace?.isExactLocation ? 'rgba(34, 197, 94, 0.08)' : 'rgba(var(--accent-gold-rgb), 0.12)', 
-                                border: calculationTrace?.isExactLocation ? '1px solid rgba(34, 197, 94, 0.4)' : '1px solid rgba(var(--accent-gold-rgb), 0.6)',
+                                borderRadius: 2.5, 
+                                bgcolor: calculationTrace?.isExactLocation ? 'rgba(34, 197, 94, 0.08)' : 'rgba(var(--accent-gold-rgb), 0.1)', 
+                                border: calculationTrace?.isExactLocation ? '1px solid rgba(34, 197, 94, 0.4)' : '1px solid rgba(var(--accent-gold-rgb), 0.5)',
                                 textAlign: 'center'
                             }}>
                                 <Box sx={{
@@ -481,31 +547,105 @@ export default function ShipmentCalculator() {
                                     px: 1.25,
                                     py: 0.35,
                                     borderRadius: 1.5,
-                                    bgcolor: calculationTrace?.isExactLocation ? 'rgba(34, 197, 94, 0.15)' : 'rgba(var(--accent-gold-rgb), 0.18)',
-                                    color: calculationTrace?.isExactLocation ? '#15803d' : 'var(--accent-gold)',
+                                    bgcolor: calculationTrace?.destinationScope === 'door_islam_qala' ? 'rgba(16, 185, 129, 0.18)' : 'rgba(59, 130, 246, 0.18)',
+                                    color: calculationTrace?.destinationScope === 'door_islam_qala' ? '#047857' : '#1d4ed8',
                                     fontWeight: 800,
                                     fontSize: '0.75rem',
                                     mb: 1,
                                     letterSpacing: '0.05em'
                                 }}>
-                                    {calculationTrace?.isExactLocation ? <CheckCircle2 size={14} /> : <MapPin size={14} />}
-                                    {calculationTrace?.isExactLocation ? 'EXACT LOCATION RATE' : 'STATE FLAT RATE'}
+                                    {calculationTrace?.destinationScope === 'door_islam_qala' ? <Truck size={14} /> : <Ship size={14} />}
+                                    {calculationTrace?.destinationScope === 'door_islam_qala' ? 'DOOR-TO-ISLAM QALA, HERAT (2-LEG QUOTE)' : 'PORT OCEAN FREIGHT'}
                                 </Box>
-                                <Typography variant="h3" sx={{ fontWeight: 800, color: 'var(--text-primary)', my: 0.5 }}>
+
+                                <Typography variant="h3" sx={{ fontWeight: 850, color: 'var(--text-primary)', my: 0.5 }}>
                                     {formatCurrency(estimatedCost)}
                                 </Typography>
+
                                 <Typography variant="body2" sx={{ color: 'var(--text-secondary)', fontWeight: 600 }}>
-                                    {calculationTrace?.isExactLocation 
-                                        ? `Exact price for ${calculationTrace?.laneLabel} (${calculationTrace?.companyName})`
-                                        : `State rate for ${origin}. Select a pickup location above for the exact auction price.`}
+                                    {calculationTrace?.destinationScope === 'door_islam_qala'
+                                        ? `Total door-to-border landed price from ${calculationTrace?.laneLabel} to Islam Qala, Afghanistan`
+                                        : `Port ocean freight for ${calculationTrace?.laneLabel} ➔ ${calculationTrace?.portName}`}
                                 </Typography>
-                                <Typography variant="caption" sx={{ display: 'block', color: 'var(--text-secondary)', fontStyle: 'italic', mt: 0.5 }}>
-                                    *Rates include ocean freight & standard handling to {config.destinationLabel}.
+
+                                {/* Two-Leg Breakdown Cards (Door-to-Islam Qala) */}
+                                {calculationTrace?.destinationScope === 'door_islam_qala' && (
+                                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5, mt: 2, textAlign: 'left' }}>
+                                        {/* Leg 1 Breakdown */}
+                                        <Box sx={{ p: 1.5, borderRadius: 2, border: '1px solid var(--border)', bgcolor: 'var(--panel)' }}>
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                                                <Ship size={14} className="text-blue-600" />
+                                                Leg 1: Ocean Freight
+                                            </Box>
+                                            <Box sx={{ fontSize: '1.25rem', fontWeight: 850, color: 'var(--text-primary)', mt: 0.5 }}>
+                                                {formatCurrency(calculationTrace.oceanCost)}
+                                            </Box>
+                                            <Box sx={{ fontSize: '0.74rem', color: 'var(--text-secondary)', mt: 0.25 }}>
+                                                US Auction Yard ➔ {calculationTrace.portName}
+                                            </Box>
+                                            <Box sx={{ fontSize: '0.7rem', color: 'var(--text-secondary)', mt: 0.25 }}>
+                                                Base {formatCurrency(calculationTrace.baseRate)} × {calculationTrace.multiplier} ({calculationTrace.rowSource})
+                                            </Box>
+                                        </Box>
+
+                                        {/* Leg 2 Breakdown */}
+                                        <Box sx={{ p: 1.5, borderRadius: 2, border: '1px solid rgba(16, 185, 129, 0.4)', bgcolor: 'rgba(16, 185, 129, 0.06)' }}>
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, fontSize: '0.72rem', fontWeight: 800, color: '#047857', textTransform: 'uppercase' }}>
+                                                <Truck size={14} className="text-emerald-600" />
+                                                Leg 2: Overland Transit
+                                            </Box>
+                                            <Box sx={{ fontSize: '1.25rem', fontWeight: 850, color: 'var(--text-primary)', mt: 0.5 }}>
+                                                {formatCurrency(calculationTrace.transitCost)}
+                                            </Box>
+                                            <Box sx={{ fontSize: '0.74rem', color: 'var(--text-secondary)', mt: 0.25 }}>
+                                                {calculationTrace.portName} ➔ Islam Qala Border
+                                            </Box>
+                                            <Box sx={{ fontSize: '0.7rem', color: '#15803d', mt: 0.25, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                                <ShieldCheck size={12} />
+                                                Customs clearance included
+                                            </Box>
+                                        </Box>
+                                    </Box>
+                                )}
+
+                                <Typography variant="caption" sx={{ display: 'block', color: 'var(--text-secondary)', fontStyle: 'italic', mt: 1.5 }}>
+                                    {calculationTrace?.destinationScope === 'door_islam_qala'
+                                        ? `*Quote covers US towing, ocean container shipping to ${calculationTrace?.portName}, port customs clearance, and overland transit to Islam Qala.`
+                                        : `*Quote covers ocean freight and standard terminal handling to ${config.destinationLabel}.`}
                                 </Typography>
                                 {calculationTrace && (
-                                    <Typography variant="caption" sx={{ display: 'block', color: 'var(--text-secondary)', mt: 1 }}>
-                                        Source: {calculationTrace.companyName} • {calculationTrace.priceListName} • Base {formatCurrency(calculationTrace.baseRate)} x {calculationTrace.multiplier} ({calculationTrace.rowSource})
+                                    <Typography variant="caption" sx={{ display: 'block', color: 'var(--text-secondary)', mt: 0.75 }}>
+                                        Source: {calculationTrace.companyName} • {calculationTrace.priceListName} ({calculationTrace.isExactLocation ? 'Exact Auction Lane' : 'State Rate'})
                                     </Typography>
+                                )}
+
+                                {calculationTrace?.destinationScope === 'door_islam_qala' && (
+                                    <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            icon={<Printer size={14} />}
+                                            onClick={() => {
+                                                const matchedCompany = companies.find((c) => c.name === calculationTrace.companyName);
+                                                const transitData = (matchedCompany?.priceListConfig as any)?.transit;
+                                                printTransitPriceList({
+                                                    companyName: calculationTrace.companyName || 'JACXI SHIPPING',
+                                                    companyType: 'Shipping Carrier',
+                                                    priceListName: 'Overland Transit Tariff (Islam Qala)',
+                                                    origin: transitData?.origin || `${calculationTrace.portName} Port, Turkey`,
+                                                    destination: transitData?.destination || 'Islam Qala, Herat (Afghanistan)',
+                                                    destinationLabel: 'Islam Qala, Herat',
+                                                    effectiveFrom: transitData?.effectiveFrom || 'Current Active Tariff',
+                                                    effectiveTo: transitData?.effectiveTo,
+                                                    rates: transitData?.rates || { sedan: 2300, suv: 2400 },
+                                                    terms: transitData?.terms,
+                                                    carrierInfo: transitData?.company,
+                                                });
+                                            }}
+                                        >
+                                            Print Transit Tariff (Mersin ➔ Islam Qala)
+                                        </Button>
+                                    </Box>
                                 )}
                             </Box>
                         </motion.div>

@@ -18,11 +18,12 @@ import {
   TextField,
   Tooltip,
 } from '@mui/material';
-import { Building2, GitCompareArrows, Pencil, Plus, ReceiptText, Search, Trash2 } from 'lucide-react';
+import { Building2, Download, GitCompareArrows, Pencil, Plus, ReceiptText, Search, Trash2 } from 'lucide-react';
 import PermissionRoute from '@/components/auth/PermissionRoute';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
 import { Breadcrumbs, Button, StatsCard, toast, PageHeader } from '@/components/design-system';
 import { DataTable, Column } from '@/components/ui/DataTable';
+import { openUniversalShipmentExport } from '@/components/shipments/UniversalShipmentExportModal';
 
 interface Company {
   id: string;
@@ -420,6 +421,18 @@ export default function CompanyFinancePage() {
           description="Create and manage ledgers for partner companies"
           actions={
             <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              <Button
+                variant="outline"
+                icon={<Download className="w-4 h-4 text-emerald-500" />}
+                onClick={() =>
+                  openUniversalShipmentExport({
+                    title: 'Export Shipments Across Partner Companies',
+                    subtitle: 'All company dispatch, shipping, and transit records',
+                  })
+                }
+              >
+                Export Shipments
+              </Button>
               <Button variant="outline" icon={<GitCompareArrows className="w-4 h-4" />} onClick={() => router.push('/dashboard/finance/price-comparison')}>
                 Compare Prices
               </Button>

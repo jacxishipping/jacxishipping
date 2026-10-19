@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Add, ChevronLeft, ChevronRight, Inventory2 } from '@mui/icons-material';
-import { LayoutGrid, Table2, Kanban, CheckSquare, Square } from 'lucide-react';
+import { LayoutGrid, Table2, Kanban, CheckSquare, Square, Download } from 'lucide-react';
 import { Box, Typography } from '@mui/material';
 import ShipmentRow from '@/components/dashboard/ShipmentRow';
 import { DashboardPanel } from '@/components/dashboard/DashboardSurface';
@@ -14,6 +14,7 @@ import { CustomerNotificationModal, type CustomerNotificationPayload } from '@/c
 import { addWorkspaceItem } from '@/components/dashboard/WorkspaceTray';
 import { ShipmentKanbanBoard } from '@/components/shipments/ShipmentKanbanBoard';
 import { BatchAssignContainerModal } from '@/components/shipments/BatchAssignContainerModal';
+import { openUniversalShipmentExport } from '@/components/shipments/UniversalShipmentExportModal';
 import type { Shipment, ShipmentTableRow } from '@/components/shipments/shipment-list-types';
 
 export type ShipmentViewMode = 'cards' | 'table' | 'kanban';
@@ -224,6 +225,21 @@ export default function ShipmentsResultsPanel({
 							<span className="hidden sm:inline">Kanban</span>
 						</button>
 					</Box>
+
+					{/* Quick Panel Export Button */}
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={() => openUniversalShipmentExport({
+							shipmentIds: selectedIds.size > 0 ? Array.from(selectedIds) : undefined,
+							filters: searchQuery ? { query: searchQuery } : undefined,
+							title: selectedIds.size > 0 ? `Export Selected (${selectedIds.size}) Shipments` : 'Export Shipments',
+						})}
+						icon={<Download className="w-3.5 h-3.5 text-emerald-500" />}
+						iconPosition="start"
+					>
+						Export
+					</Button>
 				</Box>
 			}
 		>

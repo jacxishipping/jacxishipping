@@ -40,8 +40,9 @@ export async function GET(request: NextRequest) {
     const shippingLine = searchParams.get('shippingLine');
     const destinationPort = searchParams.get('destinationPort');
     const search = searchParams.get('search');
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '20');
+    const isAll = searchParams.get('all') === 'true' || searchParams.get('limit') === 'all';
+    const page = isAll ? 1 : Math.max(1, parseInt(searchParams.get('page') || '1'));
+    const limit = isAll ? undefined : Math.max(1, parseInt(searchParams.get('limit') || '20'));
 
     // Build where clause
     const where: any = {};
@@ -114,12 +115,26 @@ export async function GET(request: NextRequest) {
               documents: true,
             },
           },
+          trackingEvents: {
+            take: 1,
+            orderBy: {
+              eventDate: 'desc',
+            },
+            select: {
+              id: true,
+              status: true,
+              eventDate: true,
+              source: true,
+            },
+          },
         },
         orderBy: {
           createdAt: 'desc',
         },
-        skip: (page - 1) * limit,
-        take: limit,
+        ...(limit !== undefined ? {
+          skip: (page - 1) * limit,
+          take: limit,
+        } : {}),
       }),
     ]);
 
@@ -133,9 +148,9 @@ export async function GET(request: NextRequest) {
       containers: filteredContainers,
       pagination: {
         page,
-        limit,
+        limit: limit ?? (status === 'active' ? filteredContainers.length : totalCount),
         totalCount: status === 'active' ? filteredContainers.length : totalCount,
-        totalPages: Math.ceil((status === 'active' ? filteredContainers.length : totalCount) / limit),
+        totalPages: limit ? Math.ceil((status === 'active' ? filteredContainers.length : totalCount) / limit) : 1,
       },
     });
   } catch (error) {

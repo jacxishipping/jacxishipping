@@ -26,7 +26,7 @@ import {
   Keyboard as KeyboardIcon,
   Search as SearchIcon,
 } from "@mui/icons-material";
-import { Ship, Package, FileText } from "lucide-react";
+import { Ship, Package, FileText, Download, FileSpreadsheet } from "lucide-react";
 import { signOut } from "next-auth/react";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/design-system";
@@ -35,6 +35,7 @@ import { NotificationCenter } from "@/components/ui/NotificationCenter";
 import GlobalSearch from "@/components/dashboard/GlobalSearch";
 import { hasPermission, type Permission } from "@/lib/rbac";
 import { useTheme } from "@/hooks/useTheme";
+import { openUniversalShipmentExport } from "@/components/shipments/UniversalShipmentExportModal";
 
 interface HeaderProps {
   onMenuClick?: () => void;
@@ -250,6 +251,7 @@ export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
             <Tooltip title="Quick Actions">
               <IconButton
                 onClick={handleQuickActionOpen}
+                aria-label="Quick Actions"
                 sx={{
                   color: "var(--accent-gold)",
                   p: 0.75,
@@ -265,10 +267,30 @@ export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
             </Tooltip>
           )}
 
+          {/* Quick Universal Export Shipments Button */}
+          <Tooltip title="Export Shipments (Excel/CSV)">
+            <IconButton
+              onClick={() => openUniversalShipmentExport()}
+              sx={{
+                color: "var(--text-secondary)",
+                p: 0.75,
+                mr: 0.25,
+                "&:hover": {
+                  color: "var(--accent-gold)",
+                  bgcolor: "rgba(var(--accent-gold-rgb), 0.1)",
+                },
+              }}
+              aria-label="Export Shipments"
+            >
+              <Download style={{ width: 20, height: 20 }} />
+            </IconButton>
+          </Tooltip>
+
           {/* Keyboard Shortcuts */}
           <Tooltip title="Keyboard Shortcuts (?)">
             <IconButton
               onClick={toggleKeyboardShortcuts}
+              aria-label="Keyboard Shortcuts"
               sx={{
                 color: "var(--text-secondary)",
                 p: 0.75,
@@ -293,6 +315,7 @@ export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
           <Tooltip title="Settings">
             <Link href="/dashboard/settings" style={{ textDecoration: "none" }}>
               <IconButton
+                aria-label="Settings"
                 sx={{
                   color: "var(--text-secondary)",
                   p: 0.75,
@@ -311,6 +334,7 @@ export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
           <Tooltip title="Account">
             <IconButton
               onClick={handleProfileMenuOpen}
+              aria-label="Account profile"
               sx={{
                 ml: 0.5,
                 p: 0.5,
@@ -496,6 +520,36 @@ export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
                 />
               </MenuItem>
             ))}
+            <Divider sx={{ my: 0.5, borderColor: "var(--border)" }} />
+            <MenuItem
+              onClick={() => {
+                handleQuickActionClose();
+                openUniversalShipmentExport();
+              }}
+              sx={{
+                py: 1.5,
+                color: "var(--text-primary)",
+                "&:hover": {
+                  bgcolor: "rgba(var(--border-rgb), 0.4)",
+                },
+              }}
+            >
+              <ListItemIcon sx={{ color: "var(--accent-gold)", minWidth: 36 }}>
+                <FileSpreadsheet style={{ width: 20, height: 20 }} />
+              </ListItemIcon>
+              <ListItemText
+                primary="Export Shipments"
+                secondary="Excel / CSV download"
+                primaryTypographyProps={{
+                  fontSize: "0.875rem",
+                  fontWeight: 500,
+                }}
+                secondaryTypographyProps={{
+                  fontSize: "0.72rem",
+                  color: "var(--text-secondary)",
+                }}
+              />
+            </MenuItem>
           </Menu>
         )}
       </Toolbar>

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { Box, Typography, Menu, MenuItem, IconButton, Divider } from '@mui/material';
-import { Package, Ship, MapPin, TrendingUp, Calendar, FileText, DollarSign, Receipt, MoreVertical, Eye, Copy, Trash2, Download, PanelRightOpen, QrCode, Layers, Compass, Clock, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { Package, Ship, MapPin, TrendingUp, Calendar, FileText, DollarSign, Receipt, MoreVertical, Eye, Copy, Trash2, Download, PanelRightOpen, QrCode, Layers, Compass, Clock, AlertTriangle, ShieldCheck, RefreshCw } from 'lucide-react';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
 import { PageHeader, StatsCard, Button, EmptyState, FormField, Select, toast, SkeletonCard, DashboardPageSkeleton, CompactSkeleton, StatusBadge, CopyButton, StatusFilterPills, Tooltip } from '@/components/design-system';
@@ -19,6 +19,7 @@ import { DataTable, Column } from '@/components/ui/DataTable';
 import { exportToCSVWithHeaders } from '@/lib/export';
 import { useConfirmAction } from '@/components/ui/ConfirmActionProvider';
 import { getContainerDemurrageInfo } from '@/lib/container-demurrage';
+import { TrackingSourceBadge } from '@/components/tracking/TrackingSourceBadge';
 
 interface Container {
   id: string;
@@ -37,6 +38,12 @@ interface Container {
   currentCount: number;
   maxCapacity: number;
   createdAt: string;
+  trackingEvents?: Array<{
+    id: string;
+    status: string;
+    eventDate: string;
+    source?: string | null;
+  }>;
   _count: {
     shipments: number;
     expenses: number;
@@ -61,8 +68,6 @@ export default function ContainersPage() {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [showBulkTable, setShowBulkTable] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedContainer, setSelectedContainer] = useState<Container | null>(null);
@@ -71,6 +76,7 @@ export default function ContainersPage() {
   const [plannerContainer, setPlannerContainer] = useState<Container | null>(null);
   const [showOceanTracker, setShowOceanTracker] = useState(false);
   const [activeOceanContainerId, setActiveOceanContainerId] = useState<string | null>(null);
+  const [refreshingTracking, setRefreshingTracking] = useState(false);
   const router = useRouter();
   const { data: session } = useSession();
   const isAdmin = session?.user?.role === 'admin';
@@ -101,7 +107,6 @@ export default function ContainersPage() {
   const handleClearFilters = () => {
     setStatusFilter('all');
     setSearchQuery('');
-    setPage(1);
   };
 
   const handleOpenQR = (container: Container, e?: React.MouseEvent) => {
@@ -123,15 +128,12 @@ export default function ContainersPage() {
   useEffect(() => {
     fetchContainers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, statusFilter, searchQuery]);
+  }, [statusFilter, searchQuery]);
 
   const fetchContainers = async () => {
     try {
       setLoading(true);
-      const params = new URLSearchParams({
-        page: page.toString(),
-        limit: '20',
-      });
+      const params = new URLSearchParams({ all: 'true' });
 
       if (statusFilter !== 'all' && statusFilter !== 'demurrage_risk') {
         params.append('status', statusFilter);
@@ -146,7 +148,6 @@ export default function ContainersPage() {
 
       if (response.ok) {
         setContainers(data.containers);
-        setTotalPages(data.pagination.totalPages);
       }
     } catch (error) {
       console.error('Error fetching containers:', error);
@@ -157,7 +158,6 @@ export default function ContainersPage() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    setPage(1);
     fetchContainers();
   };
 
@@ -185,6 +185,31 @@ export default function ContainersPage() {
     } catch (error) {
       console.error('Export error:', error);
       toast.error('Failed to export containers');
+    }
+  };
+
+  const handleRefreshAllTracking = async () => {
+    try {
+      setRefreshingTracking(true);
+      toast.info('Refreshing live tracking data for all containers via tracking APIs...');
+      const res = await fetch('/api/containers/sync-tracking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to refresh tracking data');
+      }
+
+      toast.success(
+        data.message || `Successfully refreshed tracking (${data.synced} container(s) synced)!`
+      );
+      await fetchContainers();
+    } catch (err: any) {
+      console.error('Error refreshing tracking:', err);
+      toast.error(err.message || 'Error communicating with tracking APIs');
+    } finally {
+      setRefreshingTracking(false);
     }
   };
 
@@ -409,6 +434,14 @@ export default function ContainersPage() {
           <span className="text-[var(--text-secondary)]">-</span>
         ),
     },
+    {
+      key: 'trackingSource' as any,
+      header: 'Tracking API',
+      render: (_value, row) => {
+        const latestSource = row.trackingEvents?.[0]?.source;
+        return <TrackingSourceBadge source={latestSource} size="xs" />;
+      },
+    },
     { key: 'vesselName', header: 'Vessel', sortable: true },
     { key: 'destinationPort', header: 'Destination', sortable: true },
     {
@@ -543,6 +576,14 @@ export default function ContainersPage() {
                   {showBulkTable ? 'Card view' : 'Bulk mode'}
                 </Button>
               )}
+              <Button
+                variant="outline"
+                onClick={handleRefreshAllTracking}
+                disabled={refreshingTracking}
+                icon={<RefreshCw className={`w-4 h-4 ${refreshingTracking ? 'animate-spin text-[var(--accent-gold)]' : ''}`} />}
+              >
+                {refreshingTracking ? 'Syncing Tracking...' : 'Refresh Tracking'}
+              </Button>
               <Button 
                 variant="outline" 
                 onClick={handleExport}
@@ -654,7 +695,6 @@ export default function ContainersPage() {
               onApplyPreset={(filters) => {
                 if (filters.status) setStatusFilter(filters.status);
                 if (typeof filters.search === 'string') setSearchQuery(filters.search);
-                setPage(1);
               }}
             />
           </Box>
@@ -678,7 +718,6 @@ export default function ContainersPage() {
             selectedValue={statusFilter}
             onSelect={(val) => {
               setStatusFilter(val);
-              setPage(1);
             }}
           />
         </div>
@@ -722,8 +761,6 @@ export default function ContainersPage() {
               onExport={isAdmin ? handleBulkExport : undefined}
               bulkStatusOptions={containerStatusOptions}
               onBulkStatusChange={isAdmin ? handleBulkStatusUpdate : undefined}
-              currentPage={page}
-              totalPages={totalPages}
             />
           ) : (
             <>
@@ -766,6 +803,11 @@ export default function ContainersPage() {
                               <span onClick={(e) => e.stopPropagation()}>
                                 <CopyButton value={container.trackingNumber} label="Tracking #" />
                               </span>
+                            </Box>
+                          )}
+                          {container.trackingEvents?.[0]?.source && (
+                            <Box sx={{ mt: 0.75 }} onClick={(e) => e.stopPropagation()}>
+                              <TrackingSourceBadge source={container.trackingEvents[0].source} size="xs" />
                             </Box>
                           )}
                         </Box>
@@ -963,31 +1005,6 @@ export default function ContainersPage() {
                   </Box>
                 ))}
               </DashboardGrid>
-
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 2, mt: 3 }}>
-                  <Button
-                    variant="outline"
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    disabled={page === 1}
-                    size="sm"
-                  >
-                    Previous
-                  </Button>
-                  <Typography sx={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                    Page {page} of {totalPages}
-                  </Typography>
-                  <Button
-                    variant="outline"
-                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={page === totalPages}
-                    size="sm"
-                  >
-                    Next
-                  </Button>
-                </Box>
-              )}
             </>
           )}
         </DashboardPanel>
@@ -1086,6 +1103,44 @@ export default function ContainersPage() {
           >
             <Eye style={{ fontSize: 16, marginRight: 12 }} />
             Full Details
+          </MenuItem>
+          <MenuItem
+            onClick={async () => {
+              if (selectedContainer) {
+                const cid = selectedContainer.id;
+                const cnum = selectedContainer.containerNumber;
+                handleMenuClose();
+                try {
+                  toast.info(`Refreshing tracking for ${cnum}...`);
+                  const res = await fetch('/api/containers/sync-tracking', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ containerId: cid }),
+                  });
+                  const d = await res.json();
+                  if (d.success) {
+                    toast.success(d.message || 'Tracking refreshed successfully!');
+                    await fetchContainers();
+                  } else {
+                    toast.error(d.error || 'Tracking sync failed');
+                  }
+                } catch {
+                  toast.error('Failed to sync tracking');
+                }
+              }
+            }}
+            sx={{
+              fontSize: '0.875rem',
+              py: 1.5,
+              px: 2,
+              color: 'var(--text-primary)',
+              '&:hover': {
+                bgcolor: 'rgba(var(--accent-gold-rgb), 0.1)',
+              },
+            }}
+          >
+            <RefreshCw style={{ width: 16, height: 16, marginRight: 12 }} />
+            Refresh Tracking
           </MenuItem>
           <MenuItem
             onClick={() => {

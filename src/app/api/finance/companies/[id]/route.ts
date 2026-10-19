@@ -171,48 +171,89 @@ export async function GET(
       return NextResponse.json({ error: 'Company not found' }, { status: 404 });
     }
 
-    const transitShipmentsPromise = company.companyType === 'TRANSIT'
-      ? prisma.shipment.findMany({
-          where: { transit: { companyId: company.id } },
+    // Unified query: fetch all shipments this company dispatched, shipped, or transited
+    const shipmentsPromise = prisma.shipment.findMany({
+      where: {
+        OR: [
+          // Dispatched by this company
+          { dispatch: { companyId: company.id } },
+          // Shipped by this company (directly or via container)
+          { shippingCompanyId: company.id },
+          { container: { companyId: company.id } },
+          // Transited by this company (directly or via transit event)
+          { transit: { companyId: company.id } },
+          { transit: { events: { some: { companyId: company.id } } } },
+        ],
+      },
+      select: {
+        id: true,
+        vehicleVIN: true,
+        vehicleMake: true,
+        vehicleModel: true,
+        vehicleYear: true,
+        vehicleColor: true,
+        lotNumber: true,
+        status: true,
+        serviceType: true,
+        price: true,
+        companyShippingFare: true,
+        damageCost: true,
+        damageCredit: true,
+        createdAt: true,
+        dispatchId: true,
+        containerId: true,
+        transitId: true,
+        shippingCompanyId: true,
+        dispatch: {
           select: {
             id: true,
-            vehicleVIN: true,
-            vehicleMake: true,
-            vehicleModel: true,
+            referenceNumber: true,
             status: true,
-            createdAt: true,
-            transitId: true,
-            containerId: true,
+            origin: true,
+            destination: true,
+            dispatchDate: true,
+            companyId: true,
           },
-          orderBy: { createdAt: 'desc' },
-          take: 200,
-        })
-      : Promise.resolve([]);
-
-    const dispatchShipmentsPromise = company.companyType === 'DISPATCH'
-      ? prisma.shipment.findMany({
-          where: { dispatch: { companyId: company.id } },
+        },
+        container: {
           select: {
             id: true,
-            vehicleVIN: true,
-            vehicleMake: true,
-            vehicleModel: true,
+            containerNumber: true,
             status: true,
-            createdAt: true,
-            dispatchId: true,
-            containerId: true,
-            transitId: true,
+            trackingNumber: true,
+            companyId: true,
           },
-          orderBy: { createdAt: 'desc' },
-          take: 200,
-        })
-      : Promise.resolve([]);
+        },
+        transit: {
+          select: {
+            id: true,
+            referenceNumber: true,
+            status: true,
+            origin: true,
+            destination: true,
+            companyId: true,
+            events: {
+              where: { companyId: company.id },
+              select: { id: true, companyId: true },
+              take: 1,
+            },
+          },
+        },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 500,
+    });
 
-    // ⚡ Bolt: Consolidated separate debit and credit aggregate queries into a single groupBy query
-    // and parallelized with transit and dispatch shipment queries to reduce overall latency
-    const [transitShipments, dispatchShipments, groupedSums, latestEntry, expenseEntries] = await Promise.all([
-      transitShipmentsPromise,
-      dispatchShipmentsPromise,
+    // ⚡ Bolt: Consolidated aggregates and parallelized with shipments query
+    const [rawShipments, groupedSums, latestEntry, expenseEntries] = await Promise.all([
+      shipmentsPromise,
       prisma.companyLedgerEntry.groupBy({
         by: ['type'],
         where: { companyId: company.id, type: { in: ['DEBIT', 'CREDIT'] } },
@@ -233,25 +274,90 @@ export async function GET(
       return isCompanyExpenseLedgerEntry(entry) ? sum + entry.amount : sum;
     }, 0);
 
-    const responseCompany = company.companyType === 'TRANSIT'
-      ? {
-          ...company,
-          shipments: transitShipments,
-          _count: {
-            ...company._count,
-            shipments: transitShipments.length,
-          },
-        }
-      : company.companyType === 'DISPATCH'
-      ? {
-          ...company,
-          shipments: dispatchShipments,
-          _count: {
-            ...company._count,
-            shipments: dispatchShipments.length,
-          },
-        }
-      : company;
+    const enrichedShipments = rawShipments.map((s) => {
+      const isDispatched = Boolean(s.dispatch?.companyId === company.id);
+      const isShipped = Boolean(s.shippingCompanyId === company.id || s.container?.companyId === company.id);
+      const isTransited = Boolean(s.transit?.companyId === company.id || (s.transit?.events && s.transit.events.length > 0));
+      const roles: Array<'DISPATCH' | 'SHIPPING' | 'TRANSIT'> = [];
+      if (isDispatched) roles.push('DISPATCH');
+      if (isShipped) roles.push('SHIPPING');
+      if (isTransited) roles.push('TRANSIT');
+
+      return {
+        id: s.id,
+        vehicleVIN: s.vehicleVIN,
+        vehicleMake: s.vehicleMake,
+        vehicleModel: s.vehicleModel,
+        vehicleYear: s.vehicleYear,
+        vehicleColor: s.vehicleColor,
+        lotNumber: s.lotNumber,
+        status: s.status,
+        serviceType: s.serviceType,
+        price: s.price,
+        companyShippingFare: s.companyShippingFare,
+        damageCost: s.damageCost,
+        damageCredit: s.damageCredit,
+        createdAt: s.createdAt,
+        dispatchId: s.dispatchId,
+        containerId: s.containerId,
+        transitId: s.transitId,
+        shippingCompanyId: s.shippingCompanyId,
+        isDispatched,
+        isShipped,
+        isTransited,
+        roles,
+        dispatch: s.dispatch
+          ? {
+              id: s.dispatch.id,
+              referenceNumber: s.dispatch.referenceNumber,
+              status: s.dispatch.status,
+              origin: s.dispatch.origin,
+              destination: s.dispatch.destination,
+              dispatchDate: s.dispatch.dispatchDate,
+            }
+          : null,
+        container: s.container
+          ? {
+              id: s.container.id,
+              containerNumber: s.container.containerNumber,
+              status: s.container.status,
+              trackingNumber: s.container.trackingNumber,
+            }
+          : null,
+        transit: s.transit
+          ? {
+              id: s.transit.id,
+              referenceNumber: s.transit.referenceNumber,
+              status: s.transit.status,
+              origin: s.transit.origin,
+              destination: s.transit.destination,
+            }
+          : null,
+        customer: s.user
+          ? {
+              id: s.user.id,
+              name: s.user.name,
+              email: s.user.email,
+            }
+          : null,
+      };
+    });
+
+    const dispatchedCount = enrichedShipments.filter((s) => s.isDispatched).length;
+    const shippedCount = enrichedShipments.filter((s) => s.isShipped).length;
+    const transitedCount = enrichedShipments.filter((s) => s.isTransited).length;
+
+    const responseCompany = {
+      ...company,
+      shipments: enrichedShipments,
+      _count: {
+        ...company._count,
+        shipments: enrichedShipments.length,
+        dispatchedShipments: dispatchedCount,
+        shippedShipments: shippedCount,
+        transitedShipments: transitedCount,
+      },
+    };
 
     return NextResponse.json({
       company: responseCompany,

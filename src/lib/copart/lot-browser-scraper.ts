@@ -166,6 +166,7 @@ export function normalizeRawSolrPayload(
     hasTitle: parseYesNo(raw.htsmn),
     purchaseLocation: buildLocation(raw),
     internalNotes: buildInternalNotes(raw),
+    vehiclePhotos: raw.tims ? [raw.tims.replace('_thb.jpg', '_ful.jpg'), raw.tims] : undefined,
     copartUrl,
     source,
     extracted: {
