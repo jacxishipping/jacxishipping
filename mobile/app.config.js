@@ -41,6 +41,7 @@ module.exports = {
         backgroundColor: '#0A0A0A',
       },
       package: 'com.jacxi.shipping',
+      versionCode: 2,
       // READ/WRITE_EXTERNAL_STORAGE are legacy; keep the camera + notification
       // permissions actually used by uploads and push.
       permissions: ['CAMERA', 'NOTIFICATIONS'],

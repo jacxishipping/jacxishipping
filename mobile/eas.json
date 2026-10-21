@@ -42,10 +42,10 @@
     "production": {
       "distribution": "store",
       "channel": "production",
+      "autoIncrement": true,
       "ios": {
         "buildConfiguration": "Release",
-        "image": "macos-sequoia-15.6-xcode-26.0",
-        "autoIncrement": true
+        "image": "macos-sequoia-15.6-xcode-26.0"
       },
       "android": {
         "buildType": "app-bundle"
@@ -63,7 +63,7 @@
         "ascAppId": "6775710176"
       },
       "android": {
-        "serviceAccountKeyPath": "./google-service-account.json",
+        "serviceAccountKeyPath": "./credentials/android/gen-lang-client-0112539052-4af606a93e78.json",
         "track": "production"
       }
     }
