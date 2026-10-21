@@ -8,7 +8,7 @@ module.exports = {
   expo: {
     name: 'Jacxi Shipping',
     slug: 'jacxi-shipping',
-    version: '1.1.0',
+    version: '1.2.0',
     scheme: 'jacxi',
     orientation: 'portrait',
     icon: './assets/icon.png',
