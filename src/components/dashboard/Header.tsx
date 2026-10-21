@@ -251,6 +251,7 @@ export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
             <Tooltip title="Quick Actions">
               <IconButton
                 onClick={handleQuickActionOpen}
+                aria-label="Quick Actions"
                 sx={{
                   color: "var(--accent-gold)",
                   p: 0.75,
@@ -289,6 +290,7 @@ export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
           <Tooltip title="Keyboard Shortcuts (?)">
             <IconButton
               onClick={toggleKeyboardShortcuts}
+              aria-label="Keyboard Shortcuts"
               sx={{
                 color: "var(--text-secondary)",
                 p: 0.75,
@@ -313,6 +315,7 @@ export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
           <Tooltip title="Settings">
             <Link href="/dashboard/settings" style={{ textDecoration: "none" }}>
               <IconButton
+                aria-label="Settings"
                 sx={{
                   color: "var(--text-secondary)",
                   p: 0.75,
@@ -331,6 +334,7 @@ export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
           <Tooltip title="Account">
             <IconButton
               onClick={handleProfileMenuOpen}
+              aria-label="Account profile"
               sx={{
                 ml: 0.5,
                 p: 0.5,

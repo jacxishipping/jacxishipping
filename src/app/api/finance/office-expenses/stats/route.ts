@@ -88,23 +88,28 @@ export async function GET(request: NextRequest) {
       }),
     ]);
 
-    // Build 12-month array
+    // ⚡ Bolt: Iterate through the year's expenses exactly once (O(N)) instead of nesting
+    // .filter and .reduce inside a .map loop (O(N*M)) to build the monthly trend.
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const monthlyTrend = monthNames.map((month, idx) => {
-      const monthExpenses = allExpensesForYear.filter(
-        (e) => new Date(e.expenseDate).getMonth() === idx
-      );
-      const total = monthExpenses.reduce((sum, e) => sum + e.amount, 0);
-      const count = monthExpenses.length;
-      return {
-        month,
-        monthIndex: idx + 1,
-        total,
-        count,
-      };
-    });
 
-    const totalYearAmount = allExpensesForYear.reduce((sum, e) => sum + e.amount, 0);
+    // Initialize buckets for each month
+    const monthlyData = Array.from({ length: 12 }, () => ({ total: 0, count: 0 }));
+    let totalYearAmount = 0;
+
+    for (const e of allExpensesForYear) {
+      const monthIdx = new Date(e.expenseDate).getMonth();
+      monthlyData[monthIdx].total += e.amount;
+      monthlyData[monthIdx].count += 1;
+      totalYearAmount += e.amount;
+    }
+
+    const monthlyTrend = monthNames.map((month, idx) => ({
+      month,
+      monthIndex: idx + 1,
+      total: monthlyData[idx].total,
+      count: monthlyData[idx].count,
+    }));
+
     const totalYearCount = allExpensesForYear.length;
     const averageMonthly = totalYearAmount / 12;
 
