@@ -1,0 +1,22 @@
+{
+  "version": "1.2.0",
+  "timestamp": "2026-10-21T11:21:44.069Z",
+  "initiatedBy": "tester",
+  "scope": "custom",
+  "selectedCategories": [
+    "settings"
+  ],
+  "stats": {
+    "userSettings": 0,
+    "callAgentSettings": 0,
+    "aiProviderSettings": 0,
+    "communicationProviderSettings": 0
+  },
+  "totalRecords": 0,
+  "data": {
+    "userSettings": [],
+    "callAgentSettings": [],
+    "aiProviderSettings": [],
+    "communicationProviderSettings": []
+  }
+}
