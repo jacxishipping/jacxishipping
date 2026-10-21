@@ -15,6 +15,7 @@ import {
   ListItemText,
   ListItemSecondaryAction,
   IconButton,
+  Tooltip,
   Divider,
   Chip,
   TextField,
@@ -408,27 +409,32 @@ export function DocumentManager({
                       </Typography>
                     </IconButton>
                   )}
-                  <IconButton 
-                    edge="end" 
-                    aria-label="preview" 
-                    sx={{ mr: 1, color: 'var(--accent-gold)' }} 
-                    onClick={() => setPreviewDoc(doc)}
-                    title="Preview document"
-                  >
-                    <Eye className="w-4 h-4" />
-                  </IconButton>
-                  <IconButton edge="end" aria-label="download" sx={{ mr: 1 }} href={doc.fileUrl} target="_blank">
-                    <Download className="w-4 h-4" />
-                  </IconButton>
-                  {!readOnly && (
+                  <Tooltip title="Preview document">
                     <IconButton 
-                        edge="end" 
-                        aria-label="delete" 
-                        color="error"
-                        onClick={() => handleDelete(doc.id)}
+                      edge="end"
+                      aria-label="preview document"
+                      sx={{ mr: 1, color: 'var(--accent-gold)' }}
+                      onClick={() => setPreviewDoc(doc)}
                     >
-                        <Trash2 className="w-4 h-4" />
+                      <Eye className="w-4 h-4" />
                     </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Download document">
+                    <IconButton edge="end" aria-label="download document" sx={{ mr: 1 }} href={doc.fileUrl} target="_blank">
+                      <Download className="w-4 h-4" />
+                    </IconButton>
+                  </Tooltip>
+                  {!readOnly && (
+                    <Tooltip title="Delete document">
+                      <IconButton
+                          edge="end"
+                          aria-label="delete document"
+                          color="error"
+                          onClick={() => handleDelete(doc.id)}
+                      >
+                          <Trash2 className="w-4 h-4" />
+                      </IconButton>
+                    </Tooltip>
                   )}
                 </ListItemSecondaryAction>
               </ListItem>
