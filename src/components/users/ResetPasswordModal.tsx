@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
+import { useState } from "react";
 import {
   Box,
   Typography,
@@ -8,9 +8,9 @@ import {
   InputAdornment,
   IconButton,
   Alert,
-} from '@mui/material';
-import { Key, Eye, EyeOff, Copy, Sparkles, Check } from 'lucide-react';
-import { Button, Modal, toast } from '@/components/design-system';
+} from "@mui/material";
+import { Key, Eye, EyeOff, Copy, Sparkles, Check } from "lucide-react";
+import { Button, Modal, toast, Tooltip } from "@/components/design-system";
 
 interface ResetPasswordModalProps {
   open: boolean;
@@ -22,10 +22,11 @@ interface ResetPasswordModalProps {
 }
 
 function generateSecurePassword(length = 12): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%&*';
+  const chars =
+    "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%&*";
   const array = new Uint32Array(length);
   crypto.getRandomValues(array);
-  return Array.from(array, (x) => chars[x % chars.length]).join('');
+  return Array.from(array, (x) => chars[x % chars.length]).join("");
 }
 
 export default function ResetPasswordModal({
@@ -36,7 +37,7 @@ export default function ResetPasswordModal({
   userEmail,
   onSuccess,
 }: ResetPasswordModalProps) {
-  const [password, setPassword] = useState('');
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -46,7 +47,7 @@ export default function ResetPasswordModal({
     setPassword(newPwd);
     setShowPassword(true);
     setCopied(false);
-    toast.info('Secure password generated');
+    toast.info("Secure password generated");
   };
 
   const handleCopy = async () => {
@@ -54,16 +55,16 @@ export default function ResetPasswordModal({
     try {
       await navigator.clipboard.writeText(password);
       setCopied(true);
-      toast.success('Password copied to clipboard');
+      toast.success("Password copied to clipboard");
       setTimeout(() => setCopied(false), 2500);
     } catch (err) {
-      console.error('Failed to copy password:', err);
+      console.error("Failed to copy password:", err);
     }
   };
 
   const handleClose = () => {
     if (submitting) return;
-    setPassword('');
+    setPassword("");
     setShowPassword(false);
     setCopied(false);
     onClose();
@@ -74,40 +75,42 @@ export default function ResetPasswordModal({
 
     const trimmedPassword = password.trim();
     if (!trimmedPassword) {
-      toast.error('Please enter or generate a password');
+      toast.error("Please enter or generate a password");
       return;
     }
 
     if (trimmedPassword.length < 6) {
-      toast.error('Password must be at least 6 characters long');
+      toast.error("Password must be at least 6 characters long");
       return;
     }
 
     setSubmitting(true);
     try {
       const response = await fetch(`/api/users/${userId}/password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password: trimmedPassword }),
       });
 
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(data.message || 'Failed to update password');
+        throw new Error(data.message || "Failed to update password");
       }
 
-      toast.success(data.message || 'Password updated successfully');
+      toast.success(data.message || "Password updated successfully");
       handleClose();
       if (onSuccess) onSuccess();
     } catch (error) {
-      console.error('Error updating password:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to update password');
+      console.error("Error updating password:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to update password",
+      );
     } finally {
       setSubmitting(false);
     }
   };
 
-  const formId = 'reset-password-form';
+  const formId = "reset-password-form";
 
   return (
     <Modal
@@ -115,8 +118,8 @@ export default function ResetPasswordModal({
       onClose={handleClose}
       size="sm"
       title={
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Key style={{ fontSize: 22, color: 'var(--accent-gold)' }} />
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <Key style={{ fontSize: 22, color: "var(--accent-gold)" }} />
           <span>Reset Customer Password</span>
         </Box>
       }
@@ -128,8 +131,13 @@ export default function ResetPasswordModal({
           <Button variant="outline" onClick={handleClose} disabled={submitting}>
             Cancel
           </Button>
-          <Button type="submit" form={formId} variant="primary" disabled={submitting || !password.trim()}>
-            {submitting ? 'Saving...' : 'Update Password'}
+          <Button
+            type="submit"
+            form={formId}
+            variant="primary"
+            disabled={submitting || !password.trim()}
+          >
+            {submitting ? "Saving..." : "Update Password"}
           </Button>
         </>
       }
@@ -138,23 +146,54 @@ export default function ResetPasswordModal({
         component="form"
         id={formId}
         onSubmit={handleSubmit}
-        sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 1 }}
+        sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 1 }}
       >
-        <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'var(--panel)', border: '1px solid var(--border)' }}>
-          <Typography variant="caption" sx={{ color: 'var(--text-secondary)', display: 'block', mb: 0.5 }}>
+        <Box
+          sx={{
+            p: 2,
+            borderRadius: 2,
+            bgcolor: "var(--panel)",
+            border: "1px solid var(--border)",
+          }}
+        >
+          <Typography
+            variant="caption"
+            sx={{ color: "var(--text-secondary)", display: "block", mb: 0.5 }}
+          >
             Target Customer Account
           </Typography>
-          <Typography sx={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
-            {userName || 'Customer'}
+          <Typography
+            sx={{
+              fontWeight: 600,
+              fontSize: "0.9rem",
+              color: "var(--text-primary)",
+            }}
+          >
+            {userName || "Customer"}
           </Typography>
-          <Typography sx={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
+          <Typography
+            sx={{
+              fontSize: "0.8rem",
+              color: "var(--text-secondary)",
+              fontFamily: "monospace",
+            }}
+          >
             {userEmail}
           </Typography>
         </Box>
 
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: '0.85rem' }}>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <Typography
+              variant="subtitle2"
+              sx={{ fontWeight: 600, fontSize: "0.85rem" }}
+            >
               New Password *
             </Typography>
             <Button
@@ -172,7 +211,7 @@ export default function ResetPasswordModal({
           <TextField
             fullWidth
             size="small"
-            type={showPassword ? 'text' : 'password'}
+            type={showPassword ? "text" : "password"}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Enter new password (min. 6 chars)"
@@ -182,22 +221,42 @@ export default function ResetPasswordModal({
               endAdornment: (
                 <InputAdornment position="end">
                   {password && (
+                    <Tooltip
+                      title={copied ? "Password copied" : "Copy password"}
+                    >
+                      <IconButton
+                        size="small"
+                        onClick={handleCopy}
+                        aria-label={
+                          copied ? "Password copied" : "Copy password"
+                        }
+                        sx={{ mr: 0.5 }}
+                      >
+                        {copied ? (
+                          <Check className="w-4 h-4 text-emerald-500" />
+                        ) : (
+                          <Copy className="w-4 h-4" />
+                        )}
+                      </IconButton>
+                    </Tooltip>
+                  )}
+                  <Tooltip
+                    title={showPassword ? "Hide password" : "Show password"}
+                  >
                     <IconButton
                       size="small"
-                      onClick={handleCopy}
-                      title="Copy password"
-                      sx={{ mr: 0.5 }}
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      aria-label={
+                        showPassword ? "Hide password" : "Show password"
+                      }
                     >
-                      {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+                      {showPassword ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
                     </IconButton>
-                  )}
-                  <IconButton
-                    size="small"
-                    onClick={() => setShowPassword((prev) => !prev)}
-                    title={showPassword ? 'Hide password' : 'Show password'}
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </IconButton>
+                  </Tooltip>
                 </InputAdornment>
               ),
             }}
@@ -205,8 +264,10 @@ export default function ResetPasswordModal({
         </Box>
 
         {password && (
-          <Alert severity="info" sx={{ fontSize: '0.8rem', py: 0.5 }}>
-            Remember to copy or share this password with the customer securely. They will use this password alongside their email ({userEmail}) to log in.
+          <Alert severity="info" sx={{ fontSize: "0.8rem", py: 0.5 }}>
+            Remember to copy or share this password with the customer securely.
+            They will use this password alongside their email ({userEmail}) to
+            log in.
           </Alert>
         )}
       </Box>
