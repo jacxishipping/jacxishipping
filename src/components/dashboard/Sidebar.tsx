@@ -612,20 +612,22 @@ function CollapsibleAdminSection({
 					{SectionIcon && <SectionIcon sx={{ fontSize: 12 }} />}
 					Admin
 				</Typography>
-				<IconButton
-					size="small"
-					onClick={(event) => {
-						event.stopPropagation();
-						onToggleCollapsed();
-					}}
-					sx={{
-						p: 0.25,
-						color: 'var(--text-secondary)',
-					}}
-					aria-label={collapsed ? 'Expand admin navigation' : 'Collapse admin navigation'}
-				>
-					{collapsed ? <ExpandMore sx={{ fontSize: 14 }} /> : <ExpandLess sx={{ fontSize: 14 }} />}
-				</IconButton>
+				<Tooltip title={collapsed ? 'Expand admin navigation' : 'Collapse admin navigation'} placement="top">
+					<IconButton
+						size="small"
+						onClick={(event) => {
+							event.stopPropagation();
+							onToggleCollapsed();
+						}}
+						sx={{
+							p: 0.25,
+							color: 'var(--text-secondary)',
+						}}
+						aria-label={collapsed ? 'Expand admin navigation' : 'Collapse admin navigation'}
+					>
+						{collapsed ? <ExpandMore sx={{ fontSize: 14 }} /> : <ExpandLess sx={{ fontSize: 14 }} />}
+					</IconButton>
+				</Tooltip>
 			</Box>
 			<Collapse in={!collapsed}>
 				<List sx={{ py: 0 }}>
@@ -734,21 +736,23 @@ function SidebarContent({
 					}}
 				>
 					<SiteLogo variant="dashboard" className="w-[84px]" priority />
-					<IconButton
-						onClick={onNavClick}
-						size="small"
-						aria-label="Close menu"
-						sx={{
-							color: 'var(--text-secondary)',
-							p: 0.75,
-							'&:hover': {
-								color: 'var(--text-primary)',
-								bgcolor: 'rgba(var(--border-rgb), 0.3)',
-							},
-						}}
-					>
-						<Close sx={{ fontSize: 20 }} />
-					</IconButton>
+					<Tooltip title="Close menu">
+						<IconButton
+							onClick={onNavClick}
+							size="small"
+							aria-label="Close menu"
+							sx={{
+								color: 'var(--text-secondary)',
+								p: 0.75,
+								'&:hover': {
+									color: 'var(--text-primary)',
+									bgcolor: 'rgba(var(--border-rgb), 0.3)',
+								},
+							}}
+						>
+							<Close sx={{ fontSize: 20 }} />
+						</IconButton>
+					</Tooltip>
 				</Box>
 			)}
 

@@ -163,20 +163,22 @@ export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
         }}
       >
         {/* Mobile Menu Button */}
-        <IconButton
-          edge="start"
-          color="inherit"
-          aria-label="Open mobile menu"
-          onClick={onMenuClick}
-          sx={{
-            mr: 1,
-            display: { xs: "flex", lg: "none" },
-            color: "var(--text-primary)",
-            p: 0.75,
-          }}
-        >
-          <MenuIcon sx={{ fontSize: 22 }} />
-        </IconButton>
+        <Tooltip title="Open mobile menu">
+          <IconButton
+            edge="start"
+            color="inherit"
+            aria-label="Open mobile menu"
+            onClick={onMenuClick}
+            sx={{
+              mr: 1,
+              display: { xs: "flex", lg: "none" },
+              color: "var(--text-primary)",
+              p: 0.75,
+            }}
+          >
+            <MenuIcon sx={{ fontSize: 22 }} />
+          </IconButton>
+        </Tooltip>
 
         {/* Logo/Title */}
         <Box sx={{ display: "flex", alignItems: "center", flexGrow: 1 }}>
