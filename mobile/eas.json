@@ -64,7 +64,9 @@
       },
       "android": {
         "serviceAccountKeyPath": "./credentials/android/gen-lang-client-0112539052-4af606a93e78.json",
-        "track": "production"
+        "track": "internal",
+        "releaseStatus": "draft",
+        "changesNotSentForReview": true
       }
     }
   }
