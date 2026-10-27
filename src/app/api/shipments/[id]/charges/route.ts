@@ -198,6 +198,8 @@ export async function GET(
             id: true,
             invoiceNumber: true,
             status: true,
+            containerId: true,
+            shipmentId: true,
           },
         },
         auditLogs: {

@@ -356,12 +356,21 @@ interface InvoiceTemplateProps {
       country: string | null;
       phone: string | null;
     };
-    container: {
+    container?: {
       containerNumber: string;
       vesselName: string | null;
       loadingPort: string | null;
       destinationPort: string | null;
-    };
+    } | null;
+    shipment?: {
+      id?: string;
+      vehicleType?: string | null;
+      vehicleMake?: string | null;
+      vehicleModel?: string | null;
+      vehicleYear?: number | null;
+      vehicleVIN?: string | null;
+      vehicleColor?: string | null;
+    } | null;
     lineItems: Array<{
       id: string;
       description: string;
@@ -370,6 +379,12 @@ interface InvoiceTemplateProps {
       quantity: number;
       unitPrice: number;
       amount: number;
+      shipment?: {
+        vehicleYear?: number | null;
+        vehicleMake?: string | null;
+        vehicleModel?: string | null;
+        vehicleVIN?: string | null;
+      } | null;
     }>;
   };
   logoUrl?: string;
@@ -475,11 +490,35 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, logoUrl, com
               <Text style={styles.detailLabel}>Due Date</Text>
               <Text style={styles.detailValue}>{formatDate(invoice.dueDate)}</Text>
             </View>
-            <View style={[styles.detailRow, { marginTop: 6 }]}>
-              <Text style={styles.detailLabel}>Container #</Text>
-              <Text style={styles.detailValue}>{invoice.container.containerNumber}</Text>
-            </View>
-            {invoice.container.vesselName && (
+            {invoice.shipment && (
+              <>
+                <View style={[styles.detailRow, { marginTop: 6 }]}>
+                  <Text style={styles.detailLabel}>Vehicle</Text>
+                  <Text style={styles.detailValue}>
+                    {[invoice.shipment.vehicleYear, invoice.shipment.vehicleMake, invoice.shipment.vehicleModel].filter(Boolean).join(' ') || invoice.shipment.vehicleType || 'Vehicle'}
+                  </Text>
+                </View>
+                {invoice.shipment.vehicleVIN && (
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>VIN</Text>
+                    <Text style={styles.detailValue}>{invoice.shipment.vehicleVIN}</Text>
+                  </View>
+                )}
+                {invoice.shipment.vehicleColor && (
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Color</Text>
+                    <Text style={styles.detailValue}>{invoice.shipment.vehicleColor}</Text>
+                  </View>
+                )}
+              </>
+            )}
+            {invoice.container?.containerNumber && (
+              <View style={[styles.detailRow, !invoice.shipment ? { marginTop: 6 } : {}]}>
+                <Text style={styles.detailLabel}>Container #</Text>
+                <Text style={styles.detailValue}>{invoice.container.containerNumber}</Text>
+              </View>
+            )}
+            {invoice.container?.vesselName && (
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>Vessel</Text>
                 <Text style={styles.detailValue}>{invoice.container.vesselName}</Text>
@@ -489,13 +528,13 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, logoUrl, com
         </View>
 
         {/* Shipping Details Box */}
-        {(invoice.container.vesselName || invoice.container.loadingPort || invoice.container.destinationPort) && (
+        {Boolean(invoice.container && (invoice.container.vesselName || invoice.container.loadingPort || invoice.container.destinationPort)) && (
           <View style={styles.shippingBox}>
             <Text style={styles.shippingTitle}>SHIPPING DETAILS</Text>
             <Text style={styles.shippingText}>
-              {invoice.container.vesselName && `Vessel: ${invoice.container.vesselName}`}
-              {invoice.container.loadingPort && ` • From: ${invoice.container.loadingPort}`}
-              {invoice.container.destinationPort && ` • To: ${invoice.container.destinationPort}`}
+              {invoice.container?.vesselName && `Vessel: ${invoice.container.vesselName}`}
+              {invoice.container?.loadingPort && ` • From: ${invoice.container.loadingPort}`}
+              {invoice.container?.destinationPort && ` • To: ${invoice.container.destinationPort}`}
             </Text>
           </View>
         )}

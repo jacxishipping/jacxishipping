@@ -275,26 +275,14 @@ export async function POST(req: NextRequest) {
               status: {
                 not: 'CANCELLED',
               },
-              OR: [
-                {
-                  shipmentId: {
-                    in: shipmentScopeIds,
-                  },
-                },
-                {
-                  shipmentCharges: {
-                    some: {
-                      shipmentId: {
-                        in: shipmentScopeIds,
-                      },
-                    },
-                  },
-                },
-              ],
+              shipmentId: {
+                in: shipmentScopeIds,
+              },
             }
           : {
               userId,
               containerId,
+              shipmentId: null,
               status: {
                 not: 'CANCELLED',
               },

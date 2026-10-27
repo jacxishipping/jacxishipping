@@ -29,6 +29,8 @@ type ShipmentCharge = {
     id: string;
     invoiceNumber: string;
     status: string;
+    containerId?: string | null;
+    shipmentId?: string | null;
   } | null;
   auditLogs: Array<{
     id: string;
@@ -535,6 +537,14 @@ export default function ShipmentBillingTab({ shipmentId, refreshKey, purchasePri
       latestIssuedInvoiceStatus: null,
       description: null,
     };
+  const linkedInvoices = Array.from(
+    new Map(
+      charges
+        .filter((charge) => charge.invoice && charge.invoice.status !== 'CANCELLED')
+        .map((charge) => [charge.invoice!.id, charge.invoice!]),
+    ).values(),
+  );
+  const activeShipmentInvoice = linkedInvoices.find((inv) => inv.shipmentId === shipmentId) || linkedInvoices[0] || null;
 
   return (
     <DashboardPanel
@@ -542,6 +552,17 @@ export default function ShipmentBillingTab({ shipmentId, refreshKey, purchasePri
       description="Approved shipment charges are the source of truth for invoice generation and settlement."
       actions={
         <div className="flex flex-wrap items-center justify-end gap-2">
+          {activeShipmentInvoice && (
+            <Button
+              variant="outline"
+              size="sm"
+              icon={<Download className="h-3.5 w-3.5" />}
+              onClick={() => void downloadInvoice(activeShipmentInvoice.id)}
+              disabled={downloadingInvoiceId === activeShipmentInvoice.id}
+            >
+              {downloadingInvoiceId === activeShipmentInvoice.id ? 'Downloading...' : `Download ${activeShipmentInvoice.invoiceNumber}`}
+            </Button>
+          )}
           {canGenerateInvoices && (
             <Button
               size="sm"
@@ -801,11 +822,22 @@ export default function ShipmentBillingTab({ shipmentId, refreshKey, purchasePri
                   </div>
                   <div className="col-span-2 text-xs">
                     {charge.invoice ? (
-                      <div className="flex flex-col items-start gap-2">
-                        <Link href={`/dashboard/invoices/${charge.invoice.id}`} className="inline-flex items-center gap-1 font-semibold text-[var(--accent-gold)] hover:underline">
-                          <FileText className="h-3.5 w-3.5" />
-                          {charge.invoice.invoiceNumber}
-                        </Link>
+                      <div className="flex flex-col items-start gap-1.5">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <Link href={`/dashboard/invoices/${charge.invoice.id}`} className="inline-flex items-center gap-1 font-semibold text-[var(--accent-gold)] hover:underline">
+                            <FileText className="h-3.5 w-3.5" />
+                            {charge.invoice.invoiceNumber}
+                          </Link>
+                          {charge.invoice.shipmentId === shipmentId ? (
+                            <span className="rounded bg-[rgba(29,78,216,0.12)] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-[rgb(29,78,216)]">
+                              Shipment
+                            </span>
+                          ) : charge.invoice.containerId ? (
+                            <span className="rounded bg-[rgba(217,119,6,0.12)] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-[rgb(180,83,9)]">
+                              Container
+                            </span>
+                          ) : null}
+                        </div>
                         <Button
                           variant="outline"
                           size="sm"
