@@ -168,7 +168,7 @@ function isActionableCharge(charge: ShipmentCharge) {
     return false;
   }
 
-  if (['PAID', 'VOID'].includes(charge.status)) {
+  if (charge.status === 'PAID') {
     return false;
   }
 
@@ -176,7 +176,7 @@ function isActionableCharge(charge: ShipmentCharge) {
     return Boolean(charge.invoice && ['DRAFT', 'PENDING'].includes(charge.invoice.status));
   }
 
-  return ['DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'DISPUTED'].includes(charge.status);
+  return ['DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'DISPUTED', 'VOID'].includes(charge.status);
 }
 
 function canDisputeCharge(charge: ShipmentCharge) {
@@ -862,7 +862,11 @@ export default function ShipmentBillingTab({ shipmentId, refreshKey, purchasePri
                           onClick={() => void updateChargeStatus(charge.id, 'APPROVED')}
                           disabled={updatingChargeId === charge.id || bulkUpdating}
                         >
-                          {updatingChargeId === charge.id ? '...' : 'Approve'}
+                          {updatingChargeId === charge.id
+                            ? '...'
+                            : charge.status === 'VOID'
+                            ? 'Restore'
+                            : 'Approve'}
                         </Button>
                       )
                     ) : canGenerateInvoices &&

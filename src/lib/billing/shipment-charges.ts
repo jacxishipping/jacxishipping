@@ -140,11 +140,11 @@ function shouldSyncFromLedgerEntry(input: LedgerChargeSyncInput) {
     return false;
   }
 
-  if (metadata.paymentType === 'invoice_payment') {
-    return false;
-  }
-
-  if (typeof metadata.invoiceId === 'string' || typeof metadata.invoiceNumber === 'string') {
+  if (
+    metadata.paymentType === 'invoice_payment' ||
+    metadata.paymentType === 'invoice_charge' ||
+    metadata.paymentType === 'payment_received'
+  ) {
     return false;
   }
 
@@ -168,6 +168,13 @@ async function reopenShipmentPaymentStatusIfNeeded(
   if (chargeStatus === ShipmentChargeStatus.PAID || chargeStatus === ShipmentChargeStatus.VOID) {
     return;
   }
+
+  await db.shipmentCharge.findFirst({
+    where: {
+      sourceType: 'LEDGER_ENTRY',
+      sourceId: shipmentId,
+    },
+  }).catch(() => null);
 
   await db.shipment.updateMany({
     where: {
@@ -198,11 +205,16 @@ export async function syncShipmentChargeFromLedgerEntry(
       id: true,
       status: true,
       invoiceId: true,
+      voidedAt: true,
     },
   });
 
   if (!shouldSyncFromLedgerEntry(input)) {
-    if (existingCharge && existingCharge.status !== ShipmentChargeStatus.PAID) {
+    if (
+      existingCharge &&
+      existingCharge.status !== ShipmentChargeStatus.PAID &&
+      existingCharge.status !== ShipmentChargeStatus.INVOICED
+    ) {
       await db.shipmentCharge.update({
         where: { id: existingCharge.id },
         data: {
@@ -280,6 +292,7 @@ export async function syncShipmentChargeFromLedgerEntry(
       data: {
         ...chargeData,
         status: nextStatus,
+        voidedAt: null,
       },
     });
 

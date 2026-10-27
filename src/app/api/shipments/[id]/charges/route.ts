@@ -51,7 +51,7 @@ function buildPostIssueDelta(
 
 function buildBillingReadiness(charges: Array<{ status: string; invoice: { id: string } | null }>) {
   const approvedUninvoicedCount = charges.filter((charge) => charge.status === 'APPROVED' && !charge.invoice).length;
-  const blockedCount = charges.filter((charge) => ['DRAFT', 'PENDING_APPROVAL', 'DISPUTED'].includes(charge.status)).length;
+  const blockedCount = charges.filter((charge) => ['DRAFT', 'PENDING_APPROVAL', 'DISPUTED', 'VOID'].includes(charge.status)).length;
   const settledCount = charges.filter((charge) => ['INVOICED', 'PAID'].includes(charge.status) || Boolean(charge.invoice)).length;
   const paidCount = charges.filter((charge) => charge.status === 'PAID').length;
 
