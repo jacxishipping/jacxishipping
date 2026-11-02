@@ -1,0 +1,21 @@
+{
+  "name": "@jacxishipping/mcp-server",
+  "version": "1.0.0",
+  "description": "Model Context Protocol (MCP) server for Jacxi Shipping web app — search VINs, ocean containers, and live tracking.",
+  "main": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "test": "tsx test-client.ts"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "jacxishipping",
+    "vin-search",
+    "container-tracking"
+  ],
+  "author": "Jacxi Shipping Team",
+  "license": "UNLICENSED"
+}
+

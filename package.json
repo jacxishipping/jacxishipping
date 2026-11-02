@@ -31,6 +31,9 @@
     "test": "tsx --test \"src/**/*.test.ts\"",
     "test:routes": "tsx --test src/app/api/workflow-routes.test.ts",
     "test:e2e": "playwright test",
+    "mcp:server": "tsx mcps/jacxishipping/src/index.ts",
+    "mcp:http": "tsx mcps/jacxishipping/src/http-server.ts",
+    "mcp:test": "tsx mcps/jacxishipping/test-client.ts",
     "postinstall": "prisma generate && node scripts/fix-tanstack-react-query-types.js"
   },
   "dependencies": {
@@ -40,6 +43,7 @@
     "@headlessui/react": "^2.2.9",
     "@heroicons/react": "^2.2.0",
     "@hookform/resolvers": "^5.2.2",
+    "@modelcontextprotocol/sdk": "^1.32.2",
     "@mui/icons-material": "^7.3.5",
     "@mui/material": "^7.3.5",
     "@napi-rs/canvas": "^0.1.80",
