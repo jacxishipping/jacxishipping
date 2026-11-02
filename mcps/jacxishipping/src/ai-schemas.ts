@@ -1,4 +1,5 @@
-export function getOpenApiSpec(baseUrl = 'http://localhost:3333') {
+export function getOpenApiSpec(baseUrl?: string) {
+  const host = baseUrl || process.env.NEXT_PUBLIC_APP_URL || 'https://jacxishipping.com';
   return {
     openapi: '3.1.0',
     info: {
@@ -9,12 +10,12 @@ export function getOpenApiSpec(baseUrl = 'http://localhost:3333') {
     },
     servers: [
       {
-        url: baseUrl,
-        description: 'Jacxi Shipping API Server',
+        url: host.replace(/\/$/, ''),
+        description: 'Jacxi Shipping Production Server',
       },
     ],
     paths: {
-      '/api/search-vin': {
+      '/api/ai/search-vin': {
         get: {
           operationId: 'searchVin',
           summary: 'Search vehicle by VIN or lot number',
@@ -55,7 +56,7 @@ export function getOpenApiSpec(baseUrl = 'http://localhost:3333') {
           },
         },
       },
-      '/api/search-container': {
+      '/api/ai/search-container': {
         get: {
           operationId: 'searchContainer',
           summary: 'Search ocean container by number or booking',
@@ -96,7 +97,7 @@ export function getOpenApiSpec(baseUrl = 'http://localhost:3333') {
           },
         },
       },
-      '/api/track': {
+      '/api/ai/track': {
         get: {
           operationId: 'universalTrack',
           summary: 'Universal live tracking for VIN or container',
@@ -129,7 +130,7 @@ export function getOpenApiSpec(baseUrl = 'http://localhost:3333') {
           },
         },
       },
-      '/api/overview': {
+      '/api/ai/overview': {
         get: {
           operationId: 'getShippingOverview',
           summary: 'Get logistics operational overview stats',
