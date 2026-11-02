@@ -232,7 +232,7 @@ export async function POST(request: NextRequest) {
             status: args.status || undefined,
             destinationPort: args.destinationPort || undefined,
             search: args.search || undefined,
-            limit: Number(args.limit || 15),
+            limit: args.limit ? Number(args.limit) : undefined,
           });
           summary = `Listed ${result.length} container(s)`;
           break;
@@ -242,7 +242,7 @@ export async function POST(request: NextRequest) {
             status: args.status || undefined,
             search: args.search || undefined,
             containerNumber: args.containerNumber || undefined,
-            limit: Number(args.limit || 15),
+            limit: args.limit ? Number(args.limit) : undefined,
           });
           summary = `Listed ${result.length} shipment(s)`;
           break;
@@ -253,8 +253,8 @@ export async function POST(request: NextRequest) {
           break;
         }
         case 'search_customer': {
-          const q = String(args.query || '').trim();
-          result = await provider.searchCustomers(q, Number(args.limit || 10));
+          const q = String(args.query || 'all').trim();
+          result = await provider.searchCustomers(q, args.limit ? Number(args.limit) : undefined);
           summary = `Found ${result.length} customer(s) matching "${q}"`;
           break;
         }
@@ -262,7 +262,7 @@ export async function POST(request: NextRequest) {
           result = await provider.listDispatches({
             status: args.status || undefined,
             search: args.search || undefined,
-            limit: Number(args.limit || 15),
+            limit: args.limit ? Number(args.limit) : undefined,
           });
           summary = `Listed ${result.length} inland dispatch(es)`;
           break;

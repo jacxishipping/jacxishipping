@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
     } else if (toolName === 'list_shipments') {
       result = await provider.listShipments(args);
     } else if (toolName === 'search_customer') {
-      result = await provider.searchCustomers(args.query || '', args.limit || 10);
+      result = await provider.searchCustomers(args.query || 'all', args.limit ? Number(args.limit) : undefined);
     } else if (toolName === 'list_dispatches') {
       result = await provider.listDispatches(args);
     } else if (toolName === 'get_container_manifest') {

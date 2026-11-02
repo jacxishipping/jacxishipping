@@ -198,7 +198,6 @@ export class JacxiDataProvider {
               take: 1,
             },
           },
-          take: 10,
         });
 
         if (shipments && shipments.length > 0) {
@@ -252,7 +251,6 @@ export class JacxiDataProvider {
               },
             },
           },
-          take: 10,
         });
 
         if (containers && containers.length > 0) {
@@ -416,13 +414,13 @@ export class JacxiDataProvider {
     search?: string;
     limit?: number;
   }): Promise<ContainerSearchResult[]> {
-    const limit = Math.min(options.limit || 20, 50);
+    const limit = options.limit && options.limit > 0 ? options.limit : undefined;
 
     const prisma = await this.getPrisma();
     if (prisma) {
       try {
         const where: any = {};
-        if (options.status) {
+        if (options.status && options.status.toLowerCase() !== 'all') {
           if (options.status === 'active') {
             where.status = { in: ['CREATED', 'WAITING_FOR_LOADING', 'LOADED', 'IN_TRANSIT'] };
           } else {
@@ -432,7 +430,7 @@ export class JacxiDataProvider {
         if (options.destinationPort) {
           where.destinationPort = { contains: options.destinationPort, mode: 'insensitive' };
         }
-        if (options.search) {
+        if (options.search && options.search.toLowerCase() !== 'all' && options.search !== '*') {
           where.OR = [
             { containerNumber: { contains: options.search, mode: 'insensitive' } },
             { bookingNumber: { contains: options.search, mode: 'insensitive' } },
@@ -450,7 +448,7 @@ export class JacxiDataProvider {
             },
           },
           orderBy: { createdAt: 'desc' },
-          take: limit,
+          ...(limit ? { take: limit } : {}),
         });
 
         if (containers.length > 0) {
@@ -464,7 +462,7 @@ export class JacxiDataProvider {
     // Snapshot fallback
     if (this.snapshotData?.containers) {
       let list = [...this.snapshotData.containers];
-      if (options.status) {
+      if (options.status && options.status.toLowerCase() !== 'all') {
         if (options.status === 'active') {
           list = list.filter((c) =>
             ['CREATED', 'WAITING_FOR_LOADING', 'LOADED', 'IN_TRANSIT'].includes(c.status)
@@ -477,7 +475,7 @@ export class JacxiDataProvider {
         const dp = options.destinationPort.toLowerCase();
         list = list.filter((c) => (c.destinationPort || '').toLowerCase().includes(dp));
       }
-      if (options.search) {
+      if (options.search && options.search.toLowerCase() !== 'all' && options.search !== '*') {
         const q = options.search.toLowerCase();
         list = list.filter(
           (c) =>
@@ -487,7 +485,8 @@ export class JacxiDataProvider {
         );
       }
 
-      return list.slice(0, limit).map((c) => this.mapSnapshotContainer(c, true));
+      const sliced = limit ? list.slice(0, limit) : list;
+      return sliced.map((c) => this.mapSnapshotContainer(c, true));
     }
 
     return [];
@@ -503,13 +502,13 @@ export class JacxiDataProvider {
     containerNumber?: string;
     limit?: number;
   }): Promise<VinSearchResult[]> {
-    const limit = Math.min(options.limit || 20, 50);
+    const limit = options.limit && options.limit > 0 ? options.limit : undefined;
 
     const prisma = await this.getPrisma();
     if (prisma) {
       try {
         const where: any = {};
-        if (options.status) {
+        if (options.status && options.status.toLowerCase() !== 'all') {
           where.status = options.status;
         }
         if (options.containerNumber) {
@@ -517,7 +516,7 @@ export class JacxiDataProvider {
             containerNumber: { contains: options.containerNumber, mode: 'insensitive' },
           };
         }
-        if (options.search) {
+        if (options.search && options.search.toLowerCase() !== 'all' && options.search !== '*') {
           const q = options.search;
           where.OR = [
             { vehicleVIN: { contains: q, mode: 'insensitive' } },
@@ -536,7 +535,7 @@ export class JacxiDataProvider {
             user: { select: { id: true, name: true, email: true } },
           },
           orderBy: { createdAt: 'desc' },
-          take: limit,
+          ...(limit ? { take: limit } : {}),
         });
 
         if (shipments.length > 0) {
@@ -550,10 +549,10 @@ export class JacxiDataProvider {
     // Snapshot fallback
     if (this.snapshotData?.shipments) {
       let list = [...this.snapshotData.shipments];
-      if (options.status) {
+      if (options.status && options.status.toLowerCase() !== 'all') {
         list = list.filter((s) => s.status === options.status);
       }
-      if (options.search) {
+      if (options.search && options.search.toLowerCase() !== 'all' && options.search !== '*') {
         const q = options.search.toLowerCase();
         list = list.filter(
           (s) =>
@@ -572,7 +571,8 @@ export class JacxiDataProvider {
         list = list.filter((s) => s.containerId && containerIds.has(s.containerId));
       }
 
-      return list.slice(0, limit).map((s) => this.mapSnapshotShipment(s, false));
+      const sliced = limit ? list.slice(0, limit) : list;
+      return sliced.map((s) => this.mapSnapshotShipment(s, false));
     }
 
     return [];
@@ -889,7 +889,7 @@ export class JacxiDataProvider {
       return vin.includes(q) || lot.includes(q) || id === q;
     });
 
-    return matches.slice(0, 10).map((s: any) => this.mapSnapshotShipment(s, includeTracking));
+    return matches.map((s: any) => this.mapSnapshotShipment(s, includeTracking));
   }
 
   private searchSnapshotContainer(query: string, includeShipments: boolean): ContainerSearchResult[] {
@@ -904,7 +904,7 @@ export class JacxiDataProvider {
       return num.includes(q) || booking.includes(q) || tracking.includes(q) || id === q;
     });
 
-    return matches.slice(0, 10).map((c: any) => this.mapSnapshotContainer(c, includeShipments));
+    return matches.map((c: any) => this.mapSnapshotContainer(c, includeShipments));
   }
 
   private mapSnapshotShipment(s: any, includeTracking: boolean): VinSearchResult {
@@ -1108,13 +1108,15 @@ export class JacxiDataProvider {
   // CUSTOMER SEARCH
   // =========================================================================
 
-  async searchCustomers(query: string, limit = 10): Promise<CustomerSearchResult[]> {
-    const clean = query.trim();
+  async searchCustomers(query?: string, limit?: number): Promise<CustomerSearchResult[]> {
+    const clean = (query || '').trim();
+    const isAll = !clean || clean.toLowerCase() === 'all' || clean === '*';
+    const maxLimit = limit && limit > 0 ? limit : undefined;
     const prisma = await this.getPrisma();
 
     if (prisma) {
       try {
-        const where: any = clean
+        const where: any = !isAll
           ? {
               OR: [
                 { name: { contains: clean, mode: 'insensitive' } },
@@ -1131,10 +1133,11 @@ export class JacxiDataProvider {
           include: {
             shipments: {
               include: { container: { select: { containerNumber: true } } },
-              take: 15,
+              orderBy: { createdAt: 'desc' },
             },
           },
-          take: Math.min(limit, 30),
+          orderBy: { createdAt: 'desc' },
+          ...(maxLimit ? { take: maxLimit } : {}),
         });
 
         if (users.length > 0) {
@@ -1167,7 +1170,7 @@ export class JacxiDataProvider {
     if (this.snapshotData?.users) {
       const q = clean.toLowerCase();
       const matched = this.snapshotData.users.filter((u: any) => {
-        if (!q) return true;
+        if (isAll) return true;
         return (
           (u.name || '').toLowerCase().includes(q) ||
           (u.email || '').toLowerCase().includes(q) ||
@@ -1177,7 +1180,8 @@ export class JacxiDataProvider {
         );
       });
 
-      return matched.slice(0, limit).map((u: any) => {
+      const sliced = maxLimit ? matched.slice(0, maxLimit) : matched;
+      return sliced.map((u: any) => {
         const userShipments = (this.snapshotData.shipments || []).filter(
           (s: any) => s.userId === u.id
         );
@@ -1191,7 +1195,7 @@ export class JacxiDataProvider {
           loginCode: u.loginCode || null,
           role: u.role || 'user',
           shipmentCount: userShipments.length,
-          shipments: userShipments.slice(0, 15).map((s: any) => {
+          shipments: userShipments.map((s: any) => {
             const c = s.containerId
               ? (this.snapshotData.containers || []).find((x: any) => x.id === s.containerId)
               : null;
@@ -1220,14 +1224,14 @@ export class JacxiDataProvider {
     search?: string;
     limit?: number;
   }): Promise<DispatchSearchResult[]> {
-    const limit = Math.min(options.limit || 15, 50);
+    const limit = options.limit && options.limit > 0 ? options.limit : undefined;
     const prisma = await this.getPrisma();
 
     if (prisma) {
       try {
         const where: any = {};
-        if (options.status) where.status = options.status;
-        if (options.search) {
+        if (options.status && options.status.toLowerCase() !== 'all') where.status = options.status;
+        if (options.search && options.search.toLowerCase() !== 'all' && options.search !== '*') {
           const q = options.search;
           where.OR = [
             { referenceNumber: { contains: q, mode: 'insensitive' } },
@@ -1243,7 +1247,7 @@ export class JacxiDataProvider {
             shipments: true,
           },
           orderBy: { createdAt: 'desc' },
-          take: limit,
+          ...(limit ? { take: limit } : {}),
         });
 
         if (dispatches.length > 0) {
@@ -1275,10 +1279,10 @@ export class JacxiDataProvider {
     // Snapshot fallback
     if (this.snapshotData?.dispatches) {
       let list = [...this.snapshotData.dispatches];
-      if (options.status) {
+      if (options.status && options.status.toLowerCase() !== 'all') {
         list = list.filter((d) => d.status === options.status);
       }
-      if (options.search) {
+      if (options.search && options.search.toLowerCase() !== 'all' && options.search !== '*') {
         const q = options.search.toLowerCase();
         list = list.filter(
           (d) =>
@@ -1288,7 +1292,8 @@ export class JacxiDataProvider {
         );
       }
 
-      return list.slice(0, limit).map((d: any) => {
+      const sliced = limit ? list.slice(0, limit) : list;
+      return sliced.map((d: any) => {
         const company = d.companyId
           ? (this.snapshotData.companies || []).find((c: any) => c.id === d.companyId)
           : null;
@@ -2159,11 +2164,10 @@ export class JacxiDataProvider {
             },
             events: {
               orderBy: { eventDate: 'desc' },
-              take: 10,
             },
           },
           orderBy: { createdAt: 'desc' },
-          take: Math.min(input.limit || 15, 50),
+          ...(input.limit && input.limit > 0 ? { take: input.limit } : {}),
         });
 
         return {
@@ -2209,7 +2213,10 @@ export class JacxiDataProvider {
     }
 
     const snap = this.snapshotData;
-    const list = (snap?.transits || []).slice(0, input.limit || 15).map((t: any) => ({
+    const rawTransits = snap?.transits || [];
+    const slicedTransits =
+      input.limit && input.limit > 0 ? rawTransits.slice(0, input.limit) : rawTransits;
+    const list = slicedTransits.map((t: any) => ({
       id: t.id,
       referenceNumber: t.referenceNumber,
       status: t.status,
@@ -2346,11 +2353,9 @@ export class JacxiDataProvider {
             ledgerEntries: {
               include: { shipment: { select: { vehicleVIN: true } } },
               orderBy: { transactionDate: 'desc' },
-              take: 25,
             },
             invoices: {
               orderBy: { issueDate: 'desc' },
-              take: 20,
             },
           },
         });
@@ -2446,7 +2451,7 @@ export class JacxiDataProvider {
       totalCredits,
       unpaidInvoicesCount: 0,
       unpaidInvoicesAmount: 0,
-      recentEntries: entries.slice(0, 20).map((e: any) => ({
+      recentEntries: entries.map((e: any) => ({
         id: e.id,
         transactionDate: e.transactionDate,
         description: e.description,
@@ -2465,13 +2470,13 @@ export class JacxiDataProvider {
     limit?: number;
   }): Promise<InvoiceSearchResult[]> {
     const prisma = await this.getPrisma();
-    const limit = Math.min(input.limit || 15, 50);
+    const limit = input.limit && input.limit > 0 ? input.limit : undefined;
 
     if (prisma) {
       try {
         const where: any = {};
-        if (input.status) where.status = input.status;
-        if (input.query) {
+        if (input.status && input.status.toLowerCase() !== 'all') where.status = input.status;
+        if (input.query && input.query.toLowerCase() !== 'all' && input.query !== '*') {
           const q = input.query.trim();
           where.OR = [
             { invoiceNumber: { contains: q, mode: 'insensitive' } },
@@ -2491,7 +2496,7 @@ export class JacxiDataProvider {
             lineItems: true,
           },
           orderBy: { issueDate: 'desc' },
-          take: limit,
+          ...(limit ? { take: limit } : {}),
         });
 
         return invoices.map((inv: any) => ({
@@ -2527,7 +2532,9 @@ export class JacxiDataProvider {
     }
 
     const snap = this.snapshotData;
-    return (snap?.userInvoices || []).slice(0, limit).map((inv: any) => ({
+    const rawInvoices = snap?.userInvoices || [];
+    const slicedInvoices = limit ? rawInvoices.slice(0, limit) : rawInvoices;
+    return slicedInvoices.map((inv: any) => ({
       id: inv.id,
       invoiceNumber: inv.invoiceNumber,
       status: inv.status,
@@ -2599,7 +2606,7 @@ export class JacxiDataProvider {
               container: { select: { containerNumber: true } },
             },
             orderBy: { date: 'desc' },
-            take: Math.min(input?.limit || 15, 40),
+            ...(input?.limit && input.limit > 0 ? { take: input.limit } : {}),
           }),
         ]);
 
@@ -2662,7 +2669,8 @@ export class JacxiDataProvider {
         dispatchExpensesCount: (snap?.dispatchExpenses || []).length,
         dispatchExpensesTotalUsd: 0,
       },
-      recentContainerExpenses: expenses.slice(0, 10),
+      recentContainerExpenses:
+        input?.limit && input.limit > 0 ? expenses.slice(0, input.limit) : expenses,
       dataSource: 'snapshot',
     };
   }
@@ -2819,9 +2827,11 @@ export class JacxiDataProvider {
     if (prisma) {
       try {
         const q = (input.query || '').trim();
+        const isAll = !q || q.toLowerCase() === 'all' || q === '*';
+        const limit = input.limit && input.limit > 0 ? input.limit : undefined;
         const [shipmentDocs, containerDocs] = await Promise.all([
           prisma.document.findMany({
-            where: q
+            where: !isAll
               ? {
                   OR: [
                     { name: { contains: q, mode: 'insensitive' } },
@@ -2835,10 +2845,10 @@ export class JacxiDataProvider {
               : undefined,
             include: { shipment: { select: { vehicleVIN: true } } },
             orderBy: { createdAt: 'desc' },
-            take: Math.min(input.limit || 15, 40),
+            ...(limit ? { take: limit } : {}),
           }),
           prisma.containerDocument.findMany({
-            where: q
+            where: !isAll
               ? {
                   OR: [
                     { name: { contains: q, mode: 'insensitive' } },
@@ -2852,7 +2862,7 @@ export class JacxiDataProvider {
               : undefined,
             include: { container: { select: { containerNumber: true } } },
             orderBy: { uploadedAt: 'desc' },
-            take: Math.min(input.limit || 15, 40),
+            ...(limit ? { take: limit } : {}),
           }),
         ]);
 
@@ -2883,7 +2893,7 @@ export class JacxiDataProvider {
 
         return {
           action: 'list',
-          documents: combined.slice(0, input.limit || 20),
+          documents: limit ? combined.slice(0, limit) : combined,
         };
       } catch {
         // Fallback

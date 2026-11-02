@@ -99,13 +99,11 @@ export function getMcpToolsCatalog(): McpToolMetadata[] {
           name: 'limit',
           type: 'number',
           required: false,
-          description: 'Maximum results to return (default 15)',
-          defaultValue: '15',
+          description: 'Optional maximum results to return (omit to return all containers)',
         },
       ],
       sampleArgs: {
         status: 'active',
-        limit: 10,
       },
     },
     {
@@ -136,13 +134,11 @@ export function getMcpToolsCatalog(): McpToolMetadata[] {
           name: 'limit',
           type: 'number',
           required: false,
-          description: 'Maximum results to return (default 15)',
-          defaultValue: '15',
+          description: 'Optional maximum results to return (omit to return all shipments)',
         },
       ],
       sampleArgs: {
         status: 'IN_TRANSIT',
-        limit: 10,
       },
     },
     {
@@ -157,25 +153,23 @@ export function getMcpToolsCatalog(): McpToolMetadata[] {
       name: 'search_customer',
       category: 'Search',
       description:
-        'Search customers by name, email, phone, or 8-character login code and list their vehicle shipments.',
+        'Search or list all customers by name, email, phone, or 8-character login code and list all their vehicle shipments.',
       parameters: [
         {
           name: 'query',
           type: 'string',
-          required: true,
-          description: 'Customer name, email, phone number, or login code',
+          required: false,
+          description: 'Customer name, email, phone number, login code, or "all" to list every customer',
         },
         {
           name: 'limit',
           type: 'number',
           required: false,
-          description: 'Maximum customers to return (default 10)',
-          defaultValue: '10',
+          description: 'Optional maximum customers to return (omit to return all matching customers)',
         },
       ],
       sampleArgs: {
-        query: 'Aziz',
-        limit: 5,
+        query: 'all',
       },
     },
     {
@@ -200,13 +194,10 @@ export function getMcpToolsCatalog(): McpToolMetadata[] {
           name: 'limit',
           type: 'number',
           required: false,
-          description: 'Maximum dispatches to return (default 15)',
-          defaultValue: '15',
+          description: 'Optional maximum dispatches to return (omit to return all dispatches)',
         },
       ],
-      sampleArgs: {
-        limit: 10,
-      },
+      sampleArgs: {},
     },
     {
       name: 'get_container_manifest',
@@ -377,7 +368,6 @@ export function getMcpToolsCatalog(): McpToolMetadata[] {
       ],
       sampleArgs: {
         action: 'list',
-        limit: 10,
       },
     },
     {
@@ -419,11 +409,9 @@ export function getMcpToolsCatalog(): McpToolMetadata[] {
       parameters: [
         { name: 'query', type: 'string', required: false, description: 'Invoice number (INV-...), customer name, VIN, or container #' },
         { name: 'status', type: 'string', required: false, description: 'DRAFT, PENDING, SENT, PAID, OVERDUE, CANCELLED' },
-        { name: 'limit', type: 'number', required: false, description: 'Max invoices to return (default 15)' },
+        { name: 'limit', type: 'number', required: false, description: 'Optional max invoices to return (omit to return all)' },
       ],
-      sampleArgs: {
-        limit: 10,
-      },
+      sampleArgs: {},
     },
     {
       name: 'get_financial_and_expense_summary',
@@ -432,11 +420,9 @@ export function getMcpToolsCatalog(): McpToolMetadata[] {
         'Get company-wide billing totals, collected payments, outstanding receivables, and container/dispatch operational expenses.',
       parameters: [
         { name: 'containerNumber', type: 'string', required: false, description: 'Optional container number to filter container expenses' },
-        { name: 'limit', type: 'number', required: false, description: 'Max recent expenses to return (default 15)' },
+        { name: 'limit', type: 'number', required: false, description: 'Optional max expenses to return (omit to return all)' },
       ],
-      sampleArgs: {
-        limit: 10,
-      },
+      sampleArgs: {},
     },
     {
       name: 'fetch_auction_lot',
@@ -470,11 +456,10 @@ export function getMcpToolsCatalog(): McpToolMetadata[] {
       parameters: [
         { name: 'action', type: 'string', required: false, description: "'list' (default) or 'generate_gate_pass'" },
         { name: 'query', type: 'string', required: false, description: 'VIN, container number, or document name' },
-        { name: 'limit', type: 'number', required: false, description: 'Max documents to return (default 15)' },
+        { name: 'limit', type: 'number', required: false, description: 'Optional max documents to return (omit to return all)' },
       ],
       sampleArgs: {
         action: 'list',
-        limit: 10,
       },
     },
     {
@@ -795,8 +780,7 @@ export function registerJacxiTools(server: any, provider: JacxiDataProvider) {
       limit: z
         .number()
         .optional()
-        .default(15)
-        .describe('Maximum number of containers to return (default 15, max 50)'),
+        .describe('Optional maximum number of containers to return (omit to return all containers)'),
     },
     async (args: {
       status?: string;
@@ -866,8 +850,7 @@ export function registerJacxiTools(server: any, provider: JacxiDataProvider) {
       limit: z
         .number()
         .optional()
-        .default(15)
-        .describe('Maximum number of shipments to return (default 15, max 50)'),
+        .describe('Optional maximum number of shipments to return (omit to return all shipments)'),
     },
     async (args: {
       status?: string;
@@ -971,19 +954,26 @@ export function registerJacxiTools(server: any, provider: JacxiDataProvider) {
   // =========================================================================
   server.tool(
     'search_customer',
-    'Search customers by name, email, phone, or 8-character login code and list their vehicle shipments.',
+    'Search or list all customers by name, email, phone, or 8-character login code and list all their vehicle shipments.',
     {
-      query: z.string().min(1).describe('Customer name, email, phone number, or login code'),
-      limit: z.number().optional().default(10).describe('Max customers to return (default 10)'),
+      query: z
+        .string()
+        .optional()
+        .default('all')
+        .describe('Customer name, email, phone number, login code, or "all" to list every customer'),
+      limit: z
+        .number()
+        .optional()
+        .describe('Optional maximum customers to return (omit to return all matching customers)'),
     },
-    async ({ query, limit }: { query: string; limit: number }) => {
+    async ({ query, limit }: { query?: string; limit?: number }) => {
       try {
-        const customers = await provider.searchCustomers(query, limit);
+        const customers = await provider.searchCustomers(query || 'all', limit);
         await provider.logMcpActivity({
           tool: 'search_customer',
-          query,
+          query: query || 'all',
           entityType: 'CUSTOMER',
-          entityId: query,
+          entityId: query || 'all',
           responseSummary: `Found ${customers.length} customer(s)`,
           requestPayload: { query, limit },
         });
@@ -1033,7 +1023,7 @@ export function registerJacxiTools(server: any, provider: JacxiDataProvider) {
     {
       status: z.string().optional().describe('Filter by dispatch status'),
       search: z.string().optional().describe('Search by reference number, origin, or destination'),
-      limit: z.number().optional().default(15).describe('Max dispatches to return'),
+      limit: z.number().optional().describe('Optional max dispatches to return (omit to return all)'),
     },
     async (args: { status?: string; search?: string; limit?: number }) => {
       try {
@@ -1368,7 +1358,7 @@ export function registerJacxiTools(server: any, provider: JacxiDataProvider) {
       eventLocation: z.string().optional().describe('Border crossing or city when action=add_event (e.g. Dogubayazit, Islam Qala)'),
       eventDescription: z.string().optional().describe('Event description when action=add_event'),
       vins: z.array(z.string()).optional().describe('Vehicle VINs to assign when action=create'),
-      limit: z.number().optional().default(15),
+      limit: z.number().optional().describe('Optional max transits to return (omit to return all)'),
     },
     async (args: any) => {
       try {
@@ -1489,7 +1479,7 @@ export function registerJacxiTools(server: any, provider: JacxiDataProvider) {
     {
       query: z.string().optional().describe('Invoice number (e.g. INV-...), customer name, VIN, or container number'),
       status: z.string().optional().describe('DRAFT, PENDING, SENT, PAID, OVERDUE, CANCELLED'),
-      limit: z.number().optional().default(15),
+      limit: z.number().optional().describe('Optional max invoices to return (omit to return all)'),
     },
     async (args: any) => {
       try {
@@ -1520,7 +1510,7 @@ export function registerJacxiTools(server: any, provider: JacxiDataProvider) {
     'Get company-wide billing totals, collected payments, outstanding receivables, and container/dispatch operational expenses.',
     {
       containerNumber: z.string().optional().describe('Optional container number to filter expenses'),
-      limit: z.number().optional().default(15),
+      limit: z.number().optional().describe('Optional max expenses to return (omit to return all)'),
     },
     async (args: any) => {
       try {
@@ -1614,7 +1604,7 @@ export function registerJacxiTools(server: any, provider: JacxiDataProvider) {
     {
       action: z.enum(['list', 'generate_gate_pass']).optional().default('list'),
       query: z.string().optional().describe('VIN, container number, lot number, or document name'),
-      limit: z.number().optional().default(15),
+      limit: z.number().optional().describe('Optional max documents to return (omit to return all)'),
     },
     async (args: any) => {
       try {
@@ -1693,7 +1683,7 @@ export function registerJacxiTools(server: any, provider: JacxiDataProvider) {
       'active-containers',
       'jacxi://containers/active',
       async (uri: URL) => {
-        const containers = await provider.listContainers({ status: 'active', limit: 25 });
+        const containers = await provider.listContainers({ status: 'active' });
         return {
           contents: [
             {
