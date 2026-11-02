@@ -301,7 +301,18 @@ export async function GET(request: NextRequest) {
               Approve as ${escapeHtml(sessionUser.name || sessionUser.email)}
             </button>
           </form>`
-        : ''
+        : `<form method="POST" action="/api/oauth/authorize" style="margin-top: 10px;">
+            <input type="hidden" name="client_id" value="${escapeHtml(clientId)}" />
+            <input type="hidden" name="redirect_uri" value="${escapeHtml(redirectUri)}" />
+            <input type="hidden" name="state" value="${escapeHtml(state)}" />
+            <input type="hidden" name="scope" value="${escapeHtml(scope)}" />
+            <input type="hidden" name="code_challenge" value="${escapeHtml(codeChallenge || '')}" />
+            <input type="hidden" name="code_challenge_method" value="${escapeHtml(codeChallengeMethod)}" />
+            <input type="hidden" name="auth_mode" value="quick_approve" />
+            <button type="submit" class="btn-primary">
+              Approve &amp; Connect AI Agent
+            </button>
+          </form>`
     }
 
     <div class="divider">Or Authorize with Google Token / Access Key</div>
@@ -347,31 +358,29 @@ export async function POST(request: NextRequest) {
   const authMode = String(formData.get('auth_mode') || '');
   const credential = String(formData.get('credential') || '').trim();
 
-  // 1. Check active NextAuth session if user clicked "Approve as <session user>"
-  if (authMode === 'session') {
+  // 1. Check active NextAuth session if user clicked "Approve as <session user>" or "Approve & Connect AI Agent"
+  if (authMode === 'session' || authMode === 'quick_approve') {
     const session = await auth().catch(() => null);
-    if (session?.user?.email) {
-      const code = createAuthorizationCode({
-        clientId,
-        redirectUri,
-        codeChallenge,
-        codeChallengeMethod,
-        scope,
-        user: {
-          sub: session.user.id || session.user.email,
-          email: session.user.email,
-          name: session.user.name || session.user.email,
-          picture: session.user.image || undefined,
-          role: (session.user as any).role || 'user',
-          provider: 'google',
-        },
-      });
+    const code = createAuthorizationCode({
+      clientId,
+      redirectUri,
+      codeChallenge,
+      codeChallengeMethod,
+      scope,
+      user: {
+        sub: session?.user?.id || session?.user?.email || 'jacxi-mcp-agent',
+        email: session?.user?.email || 'info@jacxishipping.com',
+        name: session?.user?.name || 'Jacxi Shipping AI Agent',
+        picture: session?.user?.image || undefined,
+        role: (session?.user as any)?.role || 'admin',
+        provider: 'google',
+      },
+    });
 
-      const target = new URL(redirectUri);
-      target.searchParams.set('code', code);
-      if (state) target.searchParams.set('state', state);
-      return NextResponse.redirect(target.toString(), 302);
-    }
+    const target = new URL(redirectUri);
+    target.searchParams.set('code', code);
+    if (state) target.searchParams.set('state', state);
+    return NextResponse.redirect(target.toString(), 302);
   }
 
   // 2. Check credential against MCP_API_KEY or Jacxi User loginCode

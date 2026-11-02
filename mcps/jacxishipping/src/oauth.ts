@@ -372,12 +372,12 @@ export async function verifyDirectGoogleToken(
  * RFC 9728 OAuth 2.0 Protected Resource Metadata for MCP
  */
 export function getOAuthProtectedResourceMetadata(
-  baseUrl = 'https://jacxishipping.com'
+  baseUrl = 'https://www.jacxishipping.com'
 ) {
   const cleanUrl = baseUrl.replace(/\/$/, '');
   return {
     resource: `${cleanUrl}/api/mcp`,
-    authorization_servers: [cleanUrl, 'https://accounts.google.com'],
+    authorization_servers: [cleanUrl],
     bearer_methods_supported: ['header', 'query'],
     scopes_supported: ['openid', 'email', 'profile', 'mcp:tools', 'mcp:read'],
     resource_documentation: `${cleanUrl}/dashboard/mcp`,
@@ -388,7 +388,7 @@ export function getOAuthProtectedResourceMetadata(
  * RFC 8414 OAuth 2.0 Authorization Server Metadata for MCP + Google OAuth
  */
 export function getOAuthAuthorizationServerMetadata(
-  baseUrl = 'https://jacxishipping.com'
+  baseUrl = 'https://www.jacxishipping.com'
 ) {
   const cleanUrl = baseUrl.replace(/\/$/, '');
   return {
@@ -407,9 +407,6 @@ export function getOAuthAuthorizationServerMetadata(
     ],
     code_challenge_methods_supported: ['S256', 'plain'],
     service_documentation: `${cleanUrl}/dashboard/mcp`,
-    upstream_provider: 'google',
-    google_authorization_endpoint:
-      'https://accounts.google.com/o/oauth2/v2/auth',
   };
 }
 

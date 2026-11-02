@@ -1,5 +1,5 @@
 export function getOpenApiSpec(baseUrl?: string) {
-  const host = baseUrl || process.env.NEXT_PUBLIC_APP_URL || 'https://jacxishipping.com';
+  const host = baseUrl || process.env.NEXT_PUBLIC_APP_URL || 'https://www.jacxishipping.com';
   return {
     openapi: '3.1.0',
     info: {
@@ -199,7 +199,7 @@ export function getOpenApiSpec(baseUrl?: string) {
  * Official ChatGPT Plugin Manifest (.well-known/ai-plugin.json)
  */
 export function getChatGPTPluginManifest(baseUrl?: string) {
-  const host = (baseUrl || process.env.NEXT_PUBLIC_APP_URL || 'https://jacxishipping.com').replace(/\/$/, '');
+  const host = (baseUrl || process.env.NEXT_PUBLIC_APP_URL || 'https://www.jacxishipping.com').replace(/\/$/, '');
 
   return {
     schema_version: 'v1',

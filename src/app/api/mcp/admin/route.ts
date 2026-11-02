@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
 
     const url = new URL(request.url);
     const currentOrigin = `${url.protocol}//${url.host}`;
-    const prodOrigin = 'https://jacxishipping.com';
+    const prodOrigin = 'https://www.jacxishipping.com';
 
     const [settings, stats, logs] = await Promise.all([
       provider.getMcpGatewaySettings(),

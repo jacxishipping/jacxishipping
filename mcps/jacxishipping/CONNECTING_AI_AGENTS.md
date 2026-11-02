@@ -1,10 +1,12 @@
 # Connecting Jacxi Shipping to AI Agents & Chatbots
 
-Deployed on Vercel at **`https://jacxishipping.com`**, your application natively exposes:
+> **Important (Canonical Domain)**: Always use **`https://www.jacxishipping.com/api/mcp`** (with **`www.`**) when connecting MCP clients, ChatGPT, or Claude. On Vercel, `https://jacxishipping.com` (without `www.`) issues a `308 Permanent Redirect` to `https://www.jacxishipping.com`, and MCP clients reject cross-origin `308` redirects on `POST` requests.
+
+Deployed on Vercel at **`https://www.jacxishipping.com`**, your application natively exposes:
 1. **Google OAuth 2.0 & MCP OAuth 2.1 Authentication**: Standard RFC 9728 / RFC 8414 OAuth 2.1 discovery (`/.well-known/oauth-protected-resource`, `/.well-known/oauth-authorization-server`), Dynamic Client Registration (`/api/oauth/register`), and Google OAuth 2.0 login (`/api/oauth/authorize` & `/api/oauth/token`).
 2. **ChatGPT Plugin & Custom Actions**: Direct OAuth & Bearer integration via `/.well-known/ai-plugin.json` and `/openapi.json`.
 3. **Simple Gemini Gateway**: Dedicated `/api/gemini` endpoint for Google GenAI / Gemini API function calling.
-4. **Model Context Protocol (MCP)**: Streamable HTTP transport at `/api/mcp` with Google OAuth 2.0 support for Antigravity, Claude, and Cursor.
+4. **Model Context Protocol (MCP)**: Streamable HTTP transport at `https://www.jacxishipping.com/api/mcp` with Google OAuth 2.0 support for Antigravity, Claude, ChatGPT, and Cursor.
 
 ---
 
@@ -15,39 +17,40 @@ All MCP and AI endpoints support **Google OAuth 2.0** alongside Bearer keys and 
 ### 1. Google OAuth 2.0 Endpoints
 | Endpoint | URL | Description |
 | :--- | :--- | :--- |
-| **OAuth Authorization** | `https://jacxishipping.com/api/oauth/authorize` | Launches Google OAuth 2.0 Sign-In & AI Agent consent screen |
-| **OAuth Token Exchange** | `https://jacxishipping.com/api/oauth/token` | Exchanges authorization code (with PKCE `S256`) or refresh token for a Bearer token |
-| **Google OAuth Callback** | `https://jacxishipping.com/api/oauth/callback/google` | Authorized Redirect URI for Google Cloud Console OAuth 2.0 Client |
-| **Dynamic Registration** | `https://jacxishipping.com/api/oauth/register` | RFC 7591 Dynamic Client Registration for MCP clients |
-| **Protected Resource Metadata** | `https://jacxishipping.com/.well-known/oauth-protected-resource` | RFC 9728 MCP OAuth discovery |
-| **Auth Server Metadata** | `https://jacxishipping.com/.well-known/oauth-authorization-server` | RFC 8414 OAuth 2.0 server metadata |
+| **MCP Streamable HTTP** | `https://www.jacxishipping.com/api/mcp` | Primary MCP Server endpoint |
+| **OAuth Authorization** | `https://www.jacxishipping.com/api/oauth/authorize` | Launches Google OAuth 2.0 Sign-In & AI Agent consent screen |
+| **OAuth Token Exchange** | `https://www.jacxishipping.com/api/oauth/token` | Exchanges authorization code (with PKCE `S256`) or refresh token for a Bearer token |
+| **Google OAuth Callback** | `https://www.jacxishipping.com/api/oauth/callback/google` | Authorized Redirect URI for Google Cloud Console OAuth 2.0 Client |
+| **Dynamic Registration** | `https://www.jacxishipping.com/api/oauth/register` | RFC 7591 Dynamic Client Registration for MCP clients |
+| **Protected Resource Metadata** | `https://www.jacxishipping.com/.well-known/oauth-protected-resource` | RFC 9728 MCP OAuth discovery |
+| **Auth Server Metadata** | `https://www.jacxishipping.com/.well-known/oauth-authorization-server` | RFC 8414 OAuth 2.0 server metadata |
 
 ### 2. Google Cloud Console Setup
 In [Google Cloud Console -> Credentials](https://console.cloud.google.com/apis/credentials):
 1. Create or edit your **OAuth 2.0 Client ID** (Web application).
 2. Add the Authorized Redirect URI:
    ```
-   https://jacxishipping.com/api/oauth/callback/google
+   https://www.jacxishipping.com/api/oauth/callback/google
    ```
 3. Configure `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` in Vercel environment variables or directly inside **`/dashboard/mcp` -> API Keys & Security -> Google OAuth 2.0**.
 
 ---
 
-## 🖥️ 1. Full Remote MCP Clients with Google OAuth (Antigravity, Cursor, Claude)
+## 🖥️ 1. Full Remote MCP Clients with Google OAuth (Antigravity, Cursor, Claude, ChatGPT)
 
 ### Option A: Automatic MCP Google OAuth 2.0 Flow (Recommended)
-MCP clients that support Streamable HTTP (`https://jacxishipping.com/api/mcp`) automatically discover Google OAuth via `/.well-known/oauth-protected-resource` and open the Google Sign-In prompt in your browser:
+MCP clients that support Streamable HTTP (`https://www.jacxishipping.com/api/mcp`) automatically connect or discover Google OAuth via `/.well-known/oauth-protected-resource`:
 
 ```json
 {
   "mcpServers": {
     "jacxishipping": {
-      "url": "https://jacxishipping.com/api/mcp",
+      "url": "https://www.jacxishipping.com/api/mcp",
       "auth": {
         "type": "oauth",
         "provider": "google",
-        "authorizationUrl": "https://jacxishipping.com/api/oauth/authorize",
-        "tokenUrl": "https://jacxishipping.com/api/oauth/token",
+        "authorizationUrl": "https://www.jacxishipping.com/api/oauth/authorize",
+        "tokenUrl": "https://www.jacxishipping.com/api/oauth/token",
         "scopes": ["openid", "email", "profile", "mcp:tools"]
       }
     }
@@ -55,12 +58,12 @@ MCP clients that support Streamable HTTP (`https://jacxishipping.com/api/mcp`) a
 }
 ```
 
-Or simply point `url` to the endpoint (the server's `WWW-Authenticate` header automatically triggers OAuth 2.1 discovery):
+Or simply point `url` to the endpoint:
 ```json
 {
   "mcpServers": {
     "jacxishipping": {
-      "url": "https://jacxishipping.com/api/mcp"
+      "url": "https://www.jacxishipping.com/api/mcp"
     }
   }
 }
@@ -72,7 +75,7 @@ You can also pass a Google OAuth 2.0 Access Token (`ya29....`), a Google OpenID 
 {
   "mcpServers": {
     "jacxishipping": {
-      "url": "https://jacxishipping.com/api/mcp",
+      "url": "https://www.jacxishipping.com/api/mcp",
       "headers": {
         "Authorization": "Bearer YOUR_GOOGLE_OAUTH_TOKEN"
       }
