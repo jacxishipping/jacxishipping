@@ -127,6 +127,7 @@ export default function ShipmentsResultsPanel({
 
 	const handleOpenNotification = (shipment: Shipment) => {
 		setNotificationPayload({
+			shipmentId: shipment.id,
 			customerName: shipment.user?.name || 'Customer',
 			customerEmail: shipment.user?.email || '',
 			vehicleDetails: `${shipment.vehicleYear || ''} ${shipment.vehicleMake || ''} ${shipment.vehicleModel || ''}`.trim() || 'Vehicle',
@@ -381,6 +382,10 @@ export default function ShipmentsResultsPanel({
 									delay={index * 0.05}
 									onQuickPeek={handleRowQuickPeek}
 									onOpenQR={onOpenQR}
+									onNotify={(id) => {
+										const target = shipments.find((s) => s.id === id);
+										if (target) handleOpenNotification(target);
+									}}
 									selectable={canUseBulkMode}
 									selected={selectedIds.has(shipment.id)}
 									onToggleSelect={(id) => {
@@ -408,8 +413,27 @@ export default function ShipmentsResultsPanel({
 						onBulkAssignContainer={canManageShipments ? () => setAssignContainerModalOpen(true) : undefined}
 						onBulkMessage={() => {
 							if (selectedBatchItems.length > 0) {
-								const first = shipments.find((s) => s.id === selectedBatchItems[0].id);
-								if (first) handleOpenNotification(first);
+								const batchPayloads = selectedBatchItems
+									.map((item) => shipments.find((s) => s.id === item.id))
+									.filter(Boolean)
+									.map((shipment) => ({
+										shipmentId: shipment!.id,
+										customerName: shipment!.user?.name || 'Customer',
+										customerEmail: shipment!.user?.email || '',
+										vehicleDetails: `${shipment!.vehicleYear || ''} ${shipment!.vehicleMake || ''} ${shipment!.vehicleModel || ''}`.trim() || 'Vehicle',
+										vin: shipment!.vehicleVIN || 'N/A',
+										containerNumber: shipment!.container?.containerNumber || 'PENDING',
+										portOfOrigin: shipment!.dispatch?.origin || 'US Export Yard',
+										destinationPort: shipment!.container?.currentLocation || 'Destination Port',
+										trackingLink: `${typeof window !== 'undefined' ? window.location.origin : ''}/tracking?vin=${shipment!.vehicleVIN || shipment!.id}`,
+										eta: shipment!.estimatedDelivery ? new Date(shipment!.estimatedDelivery).toLocaleDateString() : 'On Schedule',
+									}));
+								if (batchPayloads.length > 0) {
+									setNotificationPayload({
+										...batchPayloads[0],
+										batchRecipients: batchPayloads,
+									});
+								}
 							}
 						}}
 					/>

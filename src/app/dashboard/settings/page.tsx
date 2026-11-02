@@ -204,6 +204,19 @@ type CommunicationSettingsData = {
   smsFromNumber: string;
   smsMessagingServiceSid: string;
   smsConfigured: boolean;
+  whatsappEnabled: boolean;
+  whatsappProvider: 'meta_cloud' | 'twilio' | 'wa_me';
+  whatsappPhoneNumberId: string;
+  whatsappBusinessAccountId: string;
+  whatsappAccessToken: string;
+  whatsappAccessTokenConfigured: boolean;
+  whatsappAccessTokenMasked: string;
+  whatsappFromNumber: string;
+  whatsappDefaultCountryCode: string;
+  whatsappBusinessName: string;
+  whatsappTemplateName: string;
+  whatsappVerifiedBadge: boolean;
+  whatsappConfigured: boolean;
 };
 
 type CallAgentSettingsData = {
@@ -288,6 +301,19 @@ const DEFAULT_COMMUNICATION_SETTINGS: CommunicationSettingsData = {
   smsFromNumber: '',
   smsMessagingServiceSid: '',
   smsConfigured: false,
+  whatsappEnabled: true,
+  whatsappProvider: 'wa_me',
+  whatsappPhoneNumberId: '',
+  whatsappBusinessAccountId: '',
+  whatsappAccessToken: '',
+  whatsappAccessTokenConfigured: false,
+  whatsappAccessTokenMasked: '',
+  whatsappFromNumber: '+93704117413',
+  whatsappDefaultCountryCode: '+93',
+  whatsappBusinessName: 'JACXI Shipping & Logistics',
+  whatsappTemplateName: '',
+  whatsappVerifiedBadge: true,
+  whatsappConfigured: true,
 };
 
 const DEFAULT_AI_PROVIDER_SETTINGS: AiProviderSettingsData = {
@@ -361,7 +387,7 @@ export default function SettingsPage() {
   const [aiConnectivity, setAiConnectivity] = useState<AiConnectivityStatus | null>(null);
   const [aiProviderSettings, setAiProviderSettings] = useState<AiProviderSettingsData>(DEFAULT_AI_PROVIDER_SETTINGS);
   const [communicationSettings, setCommunicationSettings] = useState<CommunicationSettingsData>(DEFAULT_COMMUNICATION_SETTINGS);
-  const [communicationTestTarget, setCommunicationTestTarget] = useState({ email: '', sms: '' });
+  const [communicationTestTarget, setCommunicationTestTarget] = useState({ email: '', sms: '', whatsapp: '+93704117413' });
   const [callAgentConfig, setCallAgentConfig] = useState<CallAgentConfig | null>(null);
   const [callAgentSettings, setCallAgentSettings] = useState<CallAgentSettingsData>(DEFAULT_CALL_AGENT_SETTINGS);
   const [aiTestResult, setAiTestResult] = useState<{
@@ -382,7 +408,7 @@ export default function SettingsPage() {
   const [testingAiConnectivity, setTestingAiConnectivity] = useState(false);
   const [savingAiProviderSettings, setSavingAiProviderSettings] = useState(false);
   const [savingCommunicationSettings, setSavingCommunicationSettings] = useState(false);
-  const [testingCommunicationChannel, setTestingCommunicationChannel] = useState<'email' | 'sms' | null>(null);
+  const [testingCommunicationChannel, setTestingCommunicationChannel] = useState<'email' | 'sms' | 'whatsapp' | null>(null);
   const [savingCallAgentSettings, setSavingCallAgentSettings] = useState(false);
 
   // Milestone Alerts State
@@ -840,6 +866,16 @@ export default function SettingsPage() {
           smsAuthToken: communicationSettings.smsAuthToken,
           smsFromNumber: communicationSettings.smsFromNumber,
           smsMessagingServiceSid: communicationSettings.smsMessagingServiceSid,
+          whatsappEnabled: communicationSettings.whatsappEnabled,
+          whatsappProvider: communicationSettings.whatsappProvider,
+          whatsappPhoneNumberId: communicationSettings.whatsappPhoneNumberId,
+          whatsappBusinessAccountId: communicationSettings.whatsappBusinessAccountId,
+          whatsappAccessToken: communicationSettings.whatsappAccessToken,
+          whatsappFromNumber: communicationSettings.whatsappFromNumber,
+          whatsappDefaultCountryCode: communicationSettings.whatsappDefaultCountryCode,
+          whatsappBusinessName: communicationSettings.whatsappBusinessName,
+          whatsappTemplateName: communicationSettings.whatsappTemplateName,
+          whatsappVerifiedBadge: communicationSettings.whatsappVerifiedBadge,
         }),
       });
       const data = await parseJsonResponse(response);
@@ -853,7 +889,7 @@ export default function SettingsPage() {
     }
   };
 
-  const handleTestCommunication = async (channel: 'email' | 'sms') => {
+  const handleTestCommunication = async (channel: 'email' | 'sms' | 'whatsapp') => {
     const to = communicationTestTarget[channel].trim();
     if (!to) {
       toast.error(channel === 'email' ? 'Enter a test email address' : 'Enter a test phone number');
@@ -869,7 +905,12 @@ export default function SettingsPage() {
       });
       const data = await parseJsonResponse(response);
       if (!response.ok) throw new Error(data?.message || 'Communication test failed');
-      toast.success(`${channel === 'email' ? 'Email' : 'SMS'} test sent`);
+      if (channel === 'whatsapp' && data.deliveryMode === 'wa_me_deep_link' && data.waMeUrl) {
+        window.open(data.waMeUrl, '_blank', 'noopener,noreferrer');
+        toast.success('Opened WhatsApp Business test message');
+      } else {
+        toast.success(`${channel === 'whatsapp' ? 'WhatsApp Business' : channel === 'email' ? 'Email' : 'SMS'} test sent`);
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Communication test failed');
     } finally {
@@ -1813,10 +1854,20 @@ export default function SettingsPage() {
       <TabPanel value={activeTab} index={5}>
       {isAdmin ? (
         <DashboardPanel
-          title="Communications"
-          description="Configure email and SMS/message providers for invoices, reminders, and customer notifications."
+          title="Communications & WhatsApp Business Hub"
+          description="Configure official WhatsApp Business (Meta Cloud API / Twilio / Direct wa.me), Email, and SMS providers for customer notifications."
           actions={
             <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              <Button
+                variant="outline"
+                size="sm"
+                icon={<MessageSquare className="w-4 h-4 text-emerald-500" />}
+                onClick={() => void handleTestCommunication('whatsapp')}
+                loading={testingCommunicationChannel === 'whatsapp'}
+                disabled={!communicationSettings.whatsappEnabled}
+              >
+                Test WhatsApp
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -1830,7 +1881,7 @@ export default function SettingsPage() {
               <Button
                 variant="outline"
                 size="sm"
-                icon={<MessageSquare className="w-4 h-4" />}
+                icon={<Smartphone className="w-4 h-4" />}
                 onClick={() => void handleTestCommunication('sms')}
                 loading={testingCommunicationChannel === 'sms'}
                 disabled={!communicationSettings.smsConfigured}
@@ -1841,7 +1892,15 @@ export default function SettingsPage() {
           }
         >
           <Box component="form" onSubmit={handleSaveCommunicationSettings} sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            <DashboardGrid className="grid-cols-1 md:grid-cols-2">
+            <DashboardGrid className="grid-cols-1 md:grid-cols-3">
+              <StatsCard
+                icon={communicationSettings.whatsappConfigured ? <CheckCircle2 style={{ fontSize: 18 }} /> : <XCircle style={{ fontSize: 18 }} />}
+                title="WhatsApp Business"
+                value={communicationSettings.whatsappEnabled ? (communicationSettings.whatsappProvider === 'meta_cloud' ? 'Meta Cloud API' : communicationSettings.whatsappProvider === 'twilio' ? 'Twilio WhatsApp' : 'Direct wa.me Hub') : 'Disabled'}
+                subtitle={communicationSettings.whatsappFromNumber || '+93 70 411 7413'}
+                variant={communicationSettings.whatsappConfigured ? 'success' : 'warning'}
+                size="md"
+              />
               <StatsCard
                 icon={communicationSettings.emailConfigured ? <CheckCircle2 style={{ fontSize: 18 }} /> : <XCircle style={{ fontSize: 18 }} />}
                 title="Email Provider"
@@ -1859,6 +1918,148 @@ export default function SettingsPage() {
                 size="md"
               />
             </DashboardGrid>
+
+            {/* WhatsApp Business Hub Configuration Card */}
+            <Box sx={{ p: 2.5, border: '1px solid rgba(16, 185, 129, 0.35)', borderRadius: 2, bgcolor: 'var(--background)' }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, alignItems: { xs: 'flex-start', md: 'center' }, flexDirection: { xs: 'column', md: 'row' }, mb: 2 }}>
+                <Box>
+                  <Typography sx={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <MessageSquare className="w-4 h-4 text-emerald-500" />
+                    WhatsApp Business Integration
+                  </Typography>
+                  <Typography sx={{ fontSize: '0.82rem', color: 'var(--text-secondary)', mt: 0.5 }}>
+                    Powers the multi-lingual WhatsApp Business Studio, signed PDF document sharing, and automated milestone dispatches.
+                  </Typography>
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography sx={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                    {communicationSettings.whatsappEnabled ? 'Enabled' : 'Disabled'}
+                  </Typography>
+                  <Switch
+                    checked={communicationSettings.whatsappEnabled}
+                    onChange={(event) => handleCommunicationFieldChange('whatsappEnabled', event.target.checked)}
+                    disabled={savingCommunicationSettings}
+                  />
+                </Box>
+              </Box>
+
+              {/* Provider Mode Selector */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-4">
+                {[
+                  {
+                    id: 'wa_me',
+                    title: 'Direct WhatsApp App / Web (wa.me)',
+                    desc: 'Instant 1-click launch into WhatsApp Business Desktop or Mobile with E.164 formatting',
+                  },
+                  {
+                    id: 'meta_cloud',
+                    title: 'Meta WhatsApp Cloud API (v21.0)',
+                    desc: 'Official Graph API server-side dispatch using your Meta WABA & Phone Number ID',
+                  },
+                  {
+                    id: 'twilio',
+                    title: 'Twilio WhatsApp Business API',
+                    desc: 'Automated server-side WhatsApp messaging using your Twilio WhatsApp sender',
+                  },
+                ].map((mode) => {
+                  const isSel = communicationSettings.whatsappProvider === mode.id;
+                  return (
+                    <button
+                      key={mode.id}
+                      type="button"
+                      onClick={() => handleCommunicationFieldChange('whatsappProvider', mode.id as any)}
+                      className={`text-left p-3 rounded-xl border transition-all ${
+                        isSel
+                          ? 'border-emerald-500 bg-emerald-500/10 shadow-xs'
+                          : 'border-[var(--border)] bg-[var(--panel)] hover:border-emerald-500/40'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-bold text-[var(--text-primary)]">{mode.title}</span>
+                        {isSel && <Check className="w-3.5 h-3.5 text-emerald-500" />}
+                      </div>
+                      <p className="text-[11px] text-[var(--text-secondary)] leading-snug">{mode.desc}</p>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, minmax(0, 1fr))' }, gap: 2 }}>
+                <TextField
+                  size="small"
+                  label="Business Display Name"
+                  value={communicationSettings.whatsappBusinessName}
+                  onChange={(event) => handleCommunicationFieldChange('whatsappBusinessName', event.target.value)}
+                  placeholder="JACXI Shipping & Logistics"
+                  disabled={savingCommunicationSettings}
+                />
+                <TextField
+                  size="small"
+                  label="WhatsApp Business Sender Number"
+                  value={communicationSettings.whatsappFromNumber}
+                  onChange={(event) => handleCommunicationFieldChange('whatsappFromNumber', event.target.value)}
+                  placeholder="+93704117413"
+                  disabled={savingCommunicationSettings}
+                />
+                <TextField
+                  size="small"
+                  label="Default Country Code (E.164)"
+                  value={communicationSettings.whatsappDefaultCountryCode}
+                  onChange={(event) => handleCommunicationFieldChange('whatsappDefaultCountryCode', event.target.value)}
+                  placeholder="+93"
+                  helperText="Used when normalizing local numbers (e.g. +93, +971, +1)"
+                  disabled={savingCommunicationSettings}
+                />
+
+                {communicationSettings.whatsappProvider === 'meta_cloud' && (
+                  <>
+                    <TextField
+                      size="small"
+                      label="Meta Phone Number ID"
+                      value={communicationSettings.whatsappPhoneNumberId}
+                      onChange={(event) => handleCommunicationFieldChange('whatsappPhoneNumberId', event.target.value)}
+                      placeholder="109283746510293"
+                      disabled={savingCommunicationSettings}
+                    />
+                    <TextField
+                      size="small"
+                      label="WhatsApp Business Account ID (WABA)"
+                      value={communicationSettings.whatsappBusinessAccountId}
+                      onChange={(event) => handleCommunicationFieldChange('whatsappBusinessAccountId', event.target.value)}
+                      placeholder="203948576192834"
+                      disabled={savingCommunicationSettings}
+                    />
+                    <TextField
+                      size="small"
+                      label="Meta Permanent Access Token"
+                      type="password"
+                      value={communicationSettings.whatsappAccessToken}
+                      onChange={(event) => handleCommunicationFieldChange('whatsappAccessToken', event.target.value)}
+                      placeholder={
+                        communicationSettings.whatsappAccessTokenConfigured
+                          ? `Saved: ${communicationSettings.whatsappAccessTokenMasked}`
+                          : 'EAA...'
+                      }
+                      helperText={
+                        communicationSettings.whatsappAccessTokenConfigured
+                          ? 'Leave blank to keep encrypted token.'
+                          : 'Encrypted at rest using app secret.'
+                      }
+                      disabled={savingCommunicationSettings}
+                    />
+                  </>
+                )}
+
+                <TextField
+                  size="small"
+                  label="Test WhatsApp Recipient Phone"
+                  value={communicationTestTarget.whatsapp}
+                  onChange={(event) => setCommunicationTestTarget((prev) => ({ ...prev, whatsapp: event.target.value }))}
+                  placeholder="+93704117413"
+                  sx={{ gridColumn: { xs: '1', md: '1 / -1' } }}
+                />
+              </Box>
+            </Box>
 
             <Box sx={{ p: 2, border: '1px solid var(--border)', borderRadius: 2, bgcolor: 'var(--background)' }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, alignItems: { xs: 'flex-start', md: 'center' }, flexDirection: { xs: 'column', md: 'row' }, mb: 2 }}>
@@ -1906,11 +2107,11 @@ export default function SettingsPage() {
               <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, alignItems: { xs: 'flex-start', md: 'center' }, flexDirection: { xs: 'column', md: 'row' }, mb: 2 }}>
                 <Box>
                   <Typography sx={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <MessageSquare className="w-4 h-4" />
-                    SMS / Number Messages
+                    <Smartphone className="w-4 h-4" />
+                    SMS / Cellular Messages
                   </Typography>
                   <Typography sx={{ fontSize: '0.82rem', color: 'var(--text-secondary)', mt: 0.5 }}>
-                    Used for critical alerts and future customer number-message workflows.
+                    Used for critical alerts and Twilio WhatsApp fallback credentials.
                   </Typography>
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -1983,7 +2184,7 @@ export default function SettingsPage() {
                     />
                   </Box>
                   <Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                    Direct WhatsApp notifications via Twilio / Meta API.
+                    Direct WhatsApp notifications via Meta Cloud API / Twilio.
                   </Typography>
                 </Box>
 
@@ -2052,11 +2253,11 @@ export default function SettingsPage() {
 
               {/* Milestone Template Cards */}
               <Box sx={{ spaceY: 3 }}>
-                <Typography sx={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', mb: 1 }}>
+                <Typography sx={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', mb: 0.5 }}>
                   Configurable Milestone Message Templates
                 </Typography>
                 <Typography sx={{ fontSize: '0.78rem', color: 'var(--text-secondary)', mb: 2 }}>
-                  Variables: {'{customerName}'}, {'{vehicle}'}, {'{vin}'}, {'{lotNumber}'}, {'{containerNumber}'}, {'{vesselName}'}, {'{originPort}'}, {'{destinationPort}'}, {'{etaDate}'}, {'{trackingUrl}'}
+                  Click any variable token inside a card to insert it into the WhatsApp/SMS template.
                 </Typography>
 
                 <div className="space-y-3">
@@ -2070,22 +2271,74 @@ export default function SettingsPage() {
                     const currentVal = milestoneConfig.customTemplates[m.key] || defaultMilestoneTemplates[m.key]?.defaultTemplate || '';
                     return (
                       <Box key={m.key} sx={{ p: 2, border: '1px solid var(--border)', borderRadius: 2, bgcolor: 'var(--background)' }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1, flexWrap: 'wrap', gap: 1 }}>
                           <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>
                             {m.label}
                           </Typography>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            className="text-xs"
-                            icon={<Send className="w-3.5 h-3.5" />}
-                            onClick={() => handleTestMilestoneTrigger(m.key)}
-                            loading={testingMilestone === m.key}
-                          >
-                            Send Test
-                          </Button>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            {milestoneConfig.customTemplates[m.key] && (
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                className="text-xs"
+                                onClick={() =>
+                                  setMilestoneConfig((prev) => {
+                                    const nextCustom = { ...prev.customTemplates };
+                                    delete nextCustom[m.key];
+                                    return { ...prev, customTemplates: nextCustom };
+                                  })
+                                }
+                              >
+                                Reset Default
+                              </Button>
+                            )}
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="text-xs"
+                              icon={<Send className="w-3.5 h-3.5" />}
+                              onClick={() => handleTestMilestoneTrigger(m.key, communicationTestTarget.whatsapp)}
+                              loading={testingMilestone === m.key}
+                            >
+                              Send Test
+                            </Button>
+                          </Box>
                         </Box>
+
+                        <div className="flex flex-wrap gap-1 mb-2">
+                          {[
+                            '{customerName}',
+                            '{vehicle}',
+                            '{vin}',
+                            '{lotNumber}',
+                            '{containerNumber}',
+                            '{vesselName}',
+                            '{originPort}',
+                            '{destinationPort}',
+                            '{etaDate}',
+                            '{trackingUrl}',
+                          ].map((token) => (
+                            <button
+                              key={token}
+                              type="button"
+                              onClick={() =>
+                                setMilestoneConfig((prev) => ({
+                                  ...prev,
+                                  customTemplates: {
+                                    ...prev.customTemplates,
+                                    [m.key]: `${currentVal} ${token}`,
+                                  },
+                                }))
+                              }
+                              className="px-2 py-0.5 text-[10px] font-mono rounded bg-[var(--panel)] border border-[var(--border)] text-[var(--text-secondary)] hover:border-emerald-500 hover:text-emerald-600 transition-colors"
+                            >
+                              + {token}
+                            </button>
+                          ))}
+                        </div>
+
                         <TextField
                           fullWidth
                           multiline

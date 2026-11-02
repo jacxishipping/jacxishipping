@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Edit, LocalShipping, CreditCard, LocationOn, CalendarToday } from '@mui/icons-material';
-import { PanelRightOpen, QrCode } from 'lucide-react';
+import { PanelRightOpen, QrCode, MessageSquare } from 'lucide-react';
 import { Box, Typography, LinearProgress, Chip } from '@mui/material';
 import { StatusBadge, Button } from '@/components/design-system';
 
@@ -57,6 +57,7 @@ interface ShipmentRowProps {
 	delay?: number;
 	onQuickPeek?: (id: string) => void;
 	onOpenQR?: (shipment: any) => void;
+	onNotify?: (id: string) => void;
 	selectable?: boolean;
 	selected?: boolean;
 	onToggleSelect?: (id: string) => void;
@@ -90,6 +91,7 @@ export default function ShipmentRow({
 	delay = 0,
 	onQuickPeek,
 	onOpenQR,
+	onNotify,
 	selectable = false,
 	selected = false,
 	onToggleSelect,
@@ -518,6 +520,24 @@ export default function ShipmentRow({
 								borderRadius: '999px',
 								minWidth: 'auto',
 								px: 1,
+							}}
+						/>
+					)}
+					{onNotify && (
+						<Button
+							variant="outline"
+							size="sm"
+							icon={<MessageSquare className="w-3.5 h-3.5 text-emerald-500" />}
+							onClick={(event) => {
+								event.stopPropagation();
+								onNotify(id);
+							}}
+							title="WhatsApp Business & Customer Notification Studio"
+							sx={{
+								borderRadius: '999px',
+								minWidth: 'auto',
+								px: 1,
+								borderColor: 'rgba(16, 185, 129, 0.35)',
 							}}
 						/>
 					)}

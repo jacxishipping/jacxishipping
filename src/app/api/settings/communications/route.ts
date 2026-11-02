@@ -6,10 +6,12 @@ import {
   getStoredCommunicationSettings,
   isEmailConfigured,
   isSmsConfigured,
+  isWhatsAppApiConfigured,
   maskCommunicationSecret,
   saveStoredCommunicationSettings,
   sendConfiguredEmail,
   sendConfiguredSms,
+  sendConfiguredWhatsApp,
   type CommunicationProviderSettingsValues,
 } from '@/lib/communication-settings';
 
@@ -27,10 +29,21 @@ const communicationSettingsSchema = z.object({
   smsAuthToken: z.string().optional(),
   smsFromNumber: z.string().trim().optional(),
   smsMessagingServiceSid: z.string().trim().optional(),
+  // WhatsApp Business settings
+  whatsappEnabled: z.boolean().optional(),
+  whatsappProvider: z.enum(['meta_cloud', 'twilio', 'wa_me']).optional(),
+  whatsappPhoneNumberId: z.string().trim().optional(),
+  whatsappBusinessAccountId: z.string().trim().optional(),
+  whatsappAccessToken: z.string().optional(),
+  whatsappFromNumber: z.string().trim().optional(),
+  whatsappDefaultCountryCode: z.string().trim().optional(),
+  whatsappBusinessName: z.string().trim().optional(),
+  whatsappTemplateName: z.string().trim().optional(),
+  whatsappVerifiedBadge: z.boolean().optional(),
 });
 
 const testSchema = z.object({
-  channel: z.enum(['email', 'sms']),
+  channel: z.enum(['email', 'sms', 'whatsapp']),
   to: z.string().trim().min(1),
 });
 
@@ -45,12 +58,16 @@ function toClientSettings(settings: CommunicationProviderSettingsValues) {
     ...settings,
     emailApiKey: '',
     smsAuthToken: '',
+    whatsappAccessToken: '',
     emailApiKeyConfigured: Boolean(settings.emailApiKey),
     smsAuthTokenConfigured: Boolean(settings.smsAuthToken),
+    whatsappAccessTokenConfigured: Boolean(settings.whatsappAccessToken),
     emailApiKeyMasked: maskCommunicationSecret(settings.emailApiKey),
     smsAuthTokenMasked: maskCommunicationSecret(settings.smsAuthToken),
+    whatsappAccessTokenMasked: maskCommunicationSecret(settings.whatsappAccessToken),
     emailConfigured: isEmailConfigured(settings),
     smsConfigured: isSmsConfigured(settings),
+    whatsappConfigured: isWhatsAppApiConfigured(settings),
   };
 }
 
@@ -76,6 +93,7 @@ export async function PATCH(request: NextRequest) {
     const partial = { ...payload } satisfies Partial<CommunicationProviderSettingsValues>;
     if (payload.emailApiKey === '') delete partial.emailApiKey;
     if (payload.smsAuthToken === '') delete partial.smsAuthToken;
+    if (payload.whatsappAccessToken === '') delete partial.whatsappAccessToken;
 
     const settings = await saveStoredCommunicationSettings(partial);
     await createAuditLog(
@@ -85,9 +103,13 @@ export async function PATCH(request: NextRequest) {
       session.user.id as string,
       {
         summary: `Updated communication settings fields: ${Object.keys(payload).join(', ')}`,
-        updatedFields: Object.keys(payload).filter((key) => !['emailApiKey', 'smsAuthToken'].includes(key)),
+        updatedFields: Object.keys(payload).filter(
+          (key) => !['emailApiKey', 'smsAuthToken', 'whatsappAccessToken'].includes(key),
+        ),
         emailSecretUpdated: Object.prototype.hasOwnProperty.call(payload, 'emailApiKey') && Boolean(payload.emailApiKey),
         smsSecretUpdated: Object.prototype.hasOwnProperty.call(payload, 'smsAuthToken') && Boolean(payload.smsAuthToken),
+        whatsappSecretUpdated:
+          Object.prototype.hasOwnProperty.call(payload, 'whatsappAccessToken') && Boolean(payload.whatsappAccessToken),
       },
       request,
     );
@@ -112,6 +134,36 @@ export async function POST(request: NextRequest) {
 
     const payload = testSchema.parse(await request.json());
     const startedAt = Date.now();
+
+    if (payload.channel === 'whatsapp') {
+      const waResult = await sendConfiguredWhatsApp({
+        to: payload.to,
+        body: '✅ *JACXI Shipping & Logistics*\n\nYour WhatsApp Business communication channel is active and verified.\n\n🌐 https://www.jacxishipping.com/tracking',
+      });
+
+      if (!waResult.success) {
+        return NextResponse.json(
+          {
+            message: String(waResult.error || 'WhatsApp test failed.'),
+            waMeUrl: waResult.waMeUrl,
+            deliveryMode: waResult.deliveryMode,
+          },
+          { status: 400 },
+        );
+      }
+
+      return NextResponse.json({
+        ok: true,
+        channel: 'whatsapp',
+        provider: waResult.provider,
+        deliveryMode: waResult.deliveryMode,
+        messageId: waResult.messageId,
+        waMeUrl: waResult.waMeUrl,
+        normalizedPhone: waResult.normalizedPhone,
+        latencyMs: Date.now() - startedAt,
+      });
+    }
+
     const result = payload.channel === 'email'
       ? await sendConfiguredEmail({
           to: payload.to,

@@ -1,13 +1,18 @@
 /**
  * Automated Milestone Alerts Engine
- * Sends automated multi-channel notifications (WhatsApp, Telegram, Twilio SMS, Webhooks)
+ * Sends automated multi-channel notifications (WhatsApp Business Cloud API / Twilio, Telegram, Twilio SMS, Webhooks)
  * when shipments and containers transition through key shipping milestones.
  */
 
 import { prisma } from '@/lib/db';
-import { getStoredCommunicationSettings, sendConfiguredSms, type CommunicationProviderSettingsValues } from '@/lib/communication-settings';
+import {
+  getStoredCommunicationSettings,
+  sendConfiguredSms,
+  sendConfiguredWhatsApp,
+  type CommunicationProviderSettingsValues,
+} from '@/lib/communication-settings';
 
-export type MilestoneType = 
+export type MilestoneType =
   | 'VEHICLE_PICKED_UP'
   | 'CONTAINER_LOADED'
   | 'VESSEL_DEPARTED'
@@ -45,31 +50,36 @@ export const DEFAULT_MILESTONE_TEMPLATES: Record<MilestoneType, MilestoneTemplat
     milestone: 'VEHICLE_PICKED_UP',
     label: 'Vehicle Picked Up',
     description: 'Triggered when carrier picks up vehicle from auction (Copart/IAAI/Manheim) or dealer.',
-    defaultTemplate: '🚗 Jacxi Shipping: Hello {customerName}, your {vehicle} (VIN: {vin}, Lot #{lotNumber}) has been safely picked up from {originPort} and is en route to our warehouse. Track live: {trackingUrl}',
+    defaultTemplate:
+      '🚗 *JACXI Shipping*: Hello {customerName}, your *{vehicle}* (VIN: `{vin}`, Lot #{lotNumber}) has been safely picked up from {originPort} and is en route to our warehouse.\n\n🌐 Track live: {trackingUrl}',
   },
   CONTAINER_LOADED: {
     milestone: 'CONTAINER_LOADED',
     label: 'Container Loaded',
     description: 'Triggered when vehicle is loaded and secured into shipping container.',
-    defaultTemplate: '📦 Jacxi Shipping: Your {vehicle} (VIN: {vin}) has been loaded into Container {containerNumber} and secured for export. Track status: {trackingUrl}',
+    defaultTemplate:
+      '📦 *JACXI Shipping*: Your *{vehicle}* (VIN: `{vin}`) has been loaded into Container *{containerNumber}* and secured for ocean export.\n\n🌐 Track status: {trackingUrl}',
   },
   VESSEL_DEPARTED: {
     milestone: 'VESSEL_DEPARTED',
     label: 'Vessel Departed (Ocean Transit)',
     description: 'Triggered when cargo vessel leaves port of loading.',
-    defaultTemplate: '🚢 Jacxi Shipping: Vessel {vesselName} carrying container {containerNumber} has departed {originPort}. Estimated arrival at {destinationPort}: {etaDate}. Track live AIS position: {trackingUrl}',
+    defaultTemplate:
+      '🚢 *JACXI Shipping*: Vessel *{vesselName}* carrying container *{containerNumber}* has departed {originPort}. Estimated arrival at {destinationPort}: *{etaDate}*.\n\n🌐 Track live AIS position: {trackingUrl}',
   },
   ARRIVED_AT_PORT: {
     milestone: 'ARRIVED_AT_PORT',
     label: 'Arrived at Destination Port',
     description: 'Triggered when vessel docks at destination container terminal.',
-    defaultTemplate: '⚓ Jacxi Shipping: Container {containerNumber} carrying your {vehicle} has arrived safely at {destinationPort}. Port offloading underway. View details: {trackingUrl}',
+    defaultTemplate:
+      '⚓ *JACXI Shipping*: Container *{containerNumber}* carrying your *{vehicle}* has arrived safely at {destinationPort}. Port offloading underway.\n\n🌐 View details: {trackingUrl}',
   },
   CUSTOMS_CLEARED: {
     milestone: 'CUSTOMS_CLEARED',
     label: 'Customs Cleared & Ready for Release',
     description: 'Triggered when container and vehicles clear customs inspection.',
-    defaultTemplate: '✅ Jacxi Shipping: Customs clearance complete for your {vehicle} (VIN: {vin}) at {destinationPort}. Your shipment is ready for handover / gatepass pickup! View documents: {trackingUrl}',
+    defaultTemplate:
+      '✅ *JACXI Shipping*: Customs clearance complete for your *{vehicle}* (VIN: `{vin}`) at {destinationPort}. Your shipment is ready for handover / gatepass pickup!\n\n🌐 View documents: {trackingUrl}',
   },
 };
 
@@ -85,7 +95,7 @@ export interface MilestoneAlertConfig {
   customTemplates: Partial<Record<MilestoneType, string>>;
 }
 
-const SETTINGS_KEY = 'milestone_alerts_config';
+const MILESTONE_SETTINGS_SCOPE = 'milestone_alerts';
 
 /**
  * Get configured milestone templates and settings.
@@ -98,21 +108,20 @@ export async function getMilestoneAlertConfig(): Promise<MilestoneAlertConfig> {
     enableSms: true,
     telegramBotToken: process.env.TELEGRAM_BOT_TOKEN || '',
     telegramChatId: process.env.TELEGRAM_CHAT_ID || '',
-    whatsAppPhoneNumber: process.env.WHATSAPP_PHONE_NUMBER || '',
+    whatsAppPhoneNumber: process.env.WHATSAPP_PHONE_NUMBER || '+93704117413',
     webhookUrl: process.env.MILESTONE_WEBHOOK_URL || '',
     customTemplates: {},
   };
 
   try {
-    const record = await prisma.userSettings.findFirst({
-      where: { userId: 'system_milestones' },
-      select: { calculatorConfig: true },
+    const record = await prisma.communicationProviderSettings.findUnique({
+      where: { scope: MILESTONE_SETTINGS_SCOPE },
     });
 
-    if (record?.calculatorConfig && typeof record.calculatorConfig === 'object') {
-      const config = record.calculatorConfig as any;
-      if (config[SETTINGS_KEY]) {
-        return { ...fallbackConfig, ...config[SETTINGS_KEY] };
+    if (record?.emailApiKey) {
+      const parsed = JSON.parse(record.emailApiKey);
+      if (parsed && typeof parsed === 'object') {
+        return { ...fallbackConfig, ...parsed };
       }
     }
   } catch {
@@ -130,14 +139,21 @@ export async function saveMilestoneAlertConfig(newConfig: Partial<MilestoneAlert
   const merged = { ...current, ...newConfig };
 
   try {
-    await prisma.userSettings.upsert({
-      where: { userId: 'system_milestones' },
+    const serialized = JSON.stringify(merged);
+    await prisma.communicationProviderSettings.upsert({
+      where: { scope: MILESTONE_SETTINGS_SCOPE },
       create: {
-        userId: 'system_milestones',
-        calculatorConfig: { [SETTINGS_KEY]: merged } as any,
+        scope: MILESTONE_SETTINGS_SCOPE,
+        emailEnabled: merged.enabled,
+        emailProvider: 'milestone_alerts',
+        emailApiKey: serialized,
+        smsEnabled: merged.enableWhatsApp,
+        smsProvider: 'whatsapp',
       },
       update: {
-        calculatorConfig: { [SETTINGS_KEY]: merged } as any,
+        emailEnabled: merged.enabled,
+        emailApiKey: serialized,
+        smsEnabled: merged.enableWhatsApp,
       },
     });
   } catch (error) {
@@ -161,13 +177,17 @@ export function formatMilestoneMessage(template: string, data: MilestoneEventDat
     .replace(/\{originPort\}/g, data.originPort || 'Port of Origin')
     .replace(/\{destinationPort\}/g, data.destinationPort || 'Destination Port')
     .replace(/\{etaDate\}/g, data.etaDate || 'Pending Schedule')
-    .replace(/\{trackingUrl\}/g, data.trackingUrl || 'https://jacxishipping.com/tracking');
+    .replace(/\{trackingUrl\}/g, data.trackingUrl || 'https://www.jacxishipping.com/tracking');
 }
 
 /**
  * Send Telegram Message via Bot API
  */
-export async function sendTelegramMessage(botToken: string, chatId: string, message: string): Promise<{ success: boolean; error?: string }> {
+export async function sendTelegramMessage(
+  botToken: string,
+  chatId: string,
+  message: string,
+): Promise<{ success: boolean; error?: string }> {
   try {
     const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
     const res = await fetch(url, {
@@ -191,86 +211,74 @@ export async function sendTelegramMessage(botToken: string, chatId: string, mess
 }
 
 /**
- * Send WhatsApp Message via Twilio WhatsApp API
+ * Send WhatsApp Message via configured WhatsApp Business Provider (Meta Cloud API / Twilio / wa.me)
  */
 export async function sendWhatsAppMessage(
-  commSettings: CommunicationProviderSettingsValues,
+  _commSettings: CommunicationProviderSettingsValues,
   recipientPhone: string,
-  message: string
-): Promise<{ success: boolean; error?: string }> {
-  if (!commSettings.smsAccountSid || !commSettings.smsAuthToken) {
-    return { success: false, error: 'Twilio credentials not configured for WhatsApp.' };
-  }
-
-  try {
-    const formattedTo = recipientPhone.startsWith('whatsapp:') ? recipientPhone : `whatsapp:${recipientPhone.replace(/[^\d+]/g, '')}`;
-    const formattedFrom = commSettings.smsFromNumber.startsWith('whatsapp:') 
-      ? commSettings.smsFromNumber 
-      : `whatsapp:${commSettings.smsFromNumber.replace(/[^\d+]/g, '')}`;
-
-    const body = new URLSearchParams({
-      To: formattedTo,
-      From: formattedFrom,
-      Body: message,
-    });
-
-    const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${commSettings.smsAccountSid}/Messages.json`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Basic ${Buffer.from(`${commSettings.smsAccountSid}:${commSettings.smsAuthToken}`).toString('base64')}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body,
-      cache: 'no-store',
-    });
-
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      return { success: false, error: data?.message || `WhatsApp dispatch failed with status ${res.status}` };
-    }
-
-    return { success: true };
-  } catch (err: any) {
-    return { success: false, error: err.message || 'WhatsApp network failed' };
-  }
+  message: string,
+): Promise<{ success: boolean; error?: string; waMeUrl?: string; deliveryMode?: string }> {
+  const res = await sendConfiguredWhatsApp({
+    to: recipientPhone,
+    body: message,
+  });
+  return {
+    success: res.success,
+    error: res.error,
+    waMeUrl: res.waMeUrl,
+    deliveryMode: res.deliveryMode,
+  };
 }
 
 /**
  * Dispatch milestone alert to all configured channels (SMS, WhatsApp, Telegram, Webhook).
  */
 export async function dispatchMilestoneAlert(
-  data: MilestoneEventData
+  data: MilestoneEventData,
 ): Promise<{
   success: boolean;
-  dispatches: { channel: string; success: boolean; error?: string }[];
+  dispatches: { channel: string; success: boolean; error?: string; waMeUrl?: string; deliveryMode?: string }[];
 }> {
   const config = await getMilestoneAlertConfig();
   if (!config.enabled) {
-    return { success: false, dispatches: [{ channel: 'engine', success: false, error: 'Milestone alerts are disabled.' }] };
+    return {
+      success: false,
+      dispatches: [{ channel: 'engine', success: false, error: 'Milestone alerts are disabled.' }],
+    };
   }
 
-  const rawTemplate = config.customTemplates[data.milestone] || DEFAULT_MILESTONE_TEMPLATES[data.milestone]?.defaultTemplate;
+  const rawTemplate =
+    config.customTemplates[data.milestone] || DEFAULT_MILESTONE_TEMPLATES[data.milestone]?.defaultTemplate;
   if (!rawTemplate) {
-    return { success: false, dispatches: [{ channel: 'template', success: false, error: `No template for milestone ${data.milestone}` }] };
+    return {
+      success: false,
+      dispatches: [{ channel: 'template', success: false, error: `No template for milestone ${data.milestone}` }],
+    };
   }
 
   const message = formatMilestoneMessage(rawTemplate, data);
   const commSettings = await getStoredCommunicationSettings();
-  const dispatches: { channel: string; success: boolean; error?: string }[] = [];
+  const dispatches: { channel: string; success: boolean; error?: string; waMeUrl?: string; deliveryMode?: string }[] = [];
 
-  // 1. Twilio SMS Dispatch
+  // 1. WhatsApp Business Dispatch
+  if (config.enableWhatsApp && data.customerPhone && commSettings.whatsappEnabled) {
+    const waRes = await sendWhatsAppMessage(commSettings, data.customerPhone, message);
+    dispatches.push({
+      channel: 'whatsapp',
+      success: waRes.success,
+      error: waRes.error,
+      waMeUrl: waRes.waMeUrl,
+      deliveryMode: waRes.deliveryMode,
+    });
+  }
+
+  // 2. Twilio SMS Dispatch
   if (config.enableSms && data.customerPhone && commSettings.smsEnabled) {
     const smsRes = await sendConfiguredSms({
       to: data.customerPhone,
       body: message,
     });
     dispatches.push({ channel: 'sms', success: smsRes.success, error: smsRes.error });
-  }
-
-  // 2. WhatsApp Dispatch
-  if (config.enableWhatsApp && data.customerPhone && commSettings.smsEnabled) {
-    const waRes = await sendWhatsAppMessage(commSettings, data.customerPhone, message);
-    dispatches.push({ channel: 'whatsapp', success: waRes.success, error: waRes.error });
   }
 
   // 3. Telegram Bot Dispatch
@@ -293,12 +301,16 @@ export async function dispatchMilestoneAlert(
           timestamp: new Date().toISOString(),
         }),
       });
-      dispatches.push({ channel: 'webhook', success: webhookRes.ok, error: webhookRes.ok ? undefined : `Status ${webhookRes.status}` });
+      dispatches.push({
+        channel: 'webhook',
+        success: webhookRes.ok,
+        error: webhookRes.ok ? undefined : `Status ${webhookRes.status}`,
+      });
     } catch (err: any) {
       dispatches.push({ channel: 'webhook', success: false, error: err.message });
     }
   }
 
-  const overallSuccess = dispatches.some(d => d.success);
+  const overallSuccess = dispatches.some((d) => d.success);
   return { success: overallSuccess, dispatches };
 }
