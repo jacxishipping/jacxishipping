@@ -15,6 +15,11 @@ import {
   Send,
   Globe,
   ShieldCheck,
+  Webhook,
+  Copy,
+  Check,
+  PhoneIncoming,
+  PhoneOutgoing,
 } from 'lucide-react';
 import { toast } from '@/components/design-system';
 
@@ -54,17 +59,37 @@ export function GoogleVoiceLiveCallPanel({
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
+  const [dispatchingTwilioCall, setDispatchingTwilioCall] = useState(false);
   const [mutedSpeaker, setMutedSpeaker] = useState(false);
   const [language, setLanguage] = useState<'en' | 'ps' | 'fa' | 'ar'>(defaultLanguage);
   const [callSeconds, setCallSeconds] = useState(0);
   const [phoneInput, setPhoneInput] = useState(context.customerPhone || '+93704117413');
   const [manualInput, setManualInput] = useState('');
   const [turns, setTurns] = useState<CallTurn[]>([]);
+  const [showWebhooks, setShowWebhooks] = useState(!compact);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
   const [sessionMeta, setSessionMeta] = useState<{
     geminiLiveReady: boolean;
     geminiStandardReady: boolean;
     liveModel: string;
     googleVoiceNumber: string;
+  } | null>(null);
+
+  const [twilioWebhookData, setTwilioWebhookData] = useState<{
+    webhooks: {
+      receiveWebhookUrl: string;
+      sentWebhookUrl: string;
+      statusWebhookUrl: string;
+      classicIvrWebhookUrl: string;
+    };
+    recentCalls: Array<{
+      id: string;
+      callSid: string;
+      action: string;
+      summary: string;
+      createdAt: string;
+    }>;
   } | null>(null);
 
   const recognitionRef = useRef<any>(null);
@@ -85,7 +110,23 @@ export function GoogleVoiceLiveCallPanel({
     mutedSpeakerRef.current = mutedSpeaker;
   }, [mutedSpeaker]);
 
-  // Load session readiness on mount
+  const loadWebhookAndStatusLogs = useCallback(async () => {
+    try {
+      const res = await fetch('/api/voice/status', { cache: 'no-store' });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.ok) {
+        setTwilioWebhookData({
+          webhooks: data.webhooks,
+          recentCalls: data.recentCalls || [],
+        });
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  // Load session readiness and Twilio webhooks on mount
   useEffect(() => {
     let cancelled = false;
     async function loadMeta() {
@@ -109,10 +150,11 @@ export function GoogleVoiceLiveCallPanel({
       }
     }
     loadMeta();
+    void loadWebhookAndStatusLogs();
     return () => {
       cancelled = true;
     };
-  }, [context.shipmentId, context.vin]);
+  }, [context.shipmentId, context.vin, loadWebhookAndStatusLogs]);
 
   // Call duration timer
   useEffect(() => {
@@ -328,6 +370,48 @@ export function GoogleVoiceLiveCallPanel({
     toast.success('Message copied & opened Google Voice Messages');
   };
 
+  const handleSendTwilioOutboundCall = async () => {
+    const cleanPhone = (phoneInput || '').trim();
+    if (!cleanPhone) {
+      toast.error('Enter a phone number to call');
+      return;
+    }
+
+    setDispatchingTwilioCall(true);
+    try {
+      const res = await fetch('/api/voice/sent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: cleanPhone,
+          message:
+            context.messagePreview ||
+            `Hello ${context.customerName || 'Valued Customer'}, this is JACXI Shipping and Logistics calling with a live status update on your vehicle ${context.vehicleDetails || ''}.`,
+          customerName: context.customerName,
+          vin: context.vin,
+          shipmentId: context.shipmentId,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        throw new Error(data.message || 'Twilio outbound call failed');
+      }
+      toast.success(`Outbound Twilio AI Call sent to ${data.to} (SID: ${data.callSid})`);
+      void loadWebhookAndStatusLogs();
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to dispatch Twilio call');
+    } finally {
+      setDispatchingTwilioCall(false);
+    }
+  };
+
+  const handleCopyUrl = (key: string, value: string) => {
+    navigator.clipboard.writeText(value);
+    setCopiedKey(key);
+    toast.success('Webhook URL copied to clipboard');
+    setTimeout(() => setCopiedKey(null), 2000);
+  };
+
   return (
     <div className="rounded-2xl border border-[var(--border)] bg-[var(--background)] overflow-hidden flex flex-col">
       {/* Top Bar: Google Voice & Gemini Live Status */}
@@ -343,22 +427,30 @@ export function GoogleVoiceLiveCallPanel({
           <div>
             <div className="flex items-center gap-1.5">
               <span className="text-xs font-bold text-[var(--text-primary)]">
-                Google Voice & Gemini Live Call Hub
+                Google Voice, Twilio Call Webhooks & Gemini Live Hub
               </span>
               <span className="px-2 py-0.5 text-[9px] font-bold rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/25">
-                Twilio-Free Ready
+                Inbound + Outbound Ready
               </span>
             </div>
             <p className="text-[10px] text-[var(--text-secondary)]">
               {sessionMeta?.geminiLiveReady
-                ? `Gemini Live (${sessionMeta.liveModel}) Active`
-                : 'Browser WebRTC Voice + Google Voice Dialer Active'}
+                ? `Gemini Live (${sessionMeta.liveModel}) + Twilio Call Receive/Sent Webhooks Active`
+                : 'Browser WebRTC Voice + Google Voice Dialer + Twilio Call Webhooks Active'}
             </p>
           </div>
         </div>
 
-        {/* Voice Language Selector */}
-        <div className="flex items-center gap-1">
+        {/* Voice Language Selector + Webhooks Toggle */}
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => setShowWebhooks((s) => !s)}
+            className="px-2.5 py-1 rounded-lg text-[10px] font-bold border border-[var(--border)] bg-[var(--background)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center gap-1"
+          >
+            <Webhook className="w-3 h-3 text-[var(--accent-gold)]" />
+            {showWebhooks ? 'Hide Webhooks' : 'Twilio Webhooks'}
+          </button>
           {[
             { id: 'en', label: 'EN' },
             { id: 'ps', label: 'پښتو' },
@@ -383,16 +475,16 @@ export function GoogleVoiceLiveCallPanel({
 
       {/* Main Body */}
       <div className={`p-4 space-y-4 ${compact ? '' : 'sm:p-5'}`}>
-        {/* Section 1: Outbound Google Voice (voice.google.com) Dialer */}
+        {/* Section 1: Outbound Google Voice & Twilio Call Sent Dialer */}
         <div className="p-3.5 rounded-xl border border-[var(--border)] bg-[var(--panel)] space-y-2.5">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-[var(--text-primary)] flex items-center gap-1.5">
               <Globe className="w-3.5 h-3.5 text-blue-500" />
-              Direct Google Voice PSTN Dialer & SMS (`voice.google.com`)
+              Outbound Call Dispatch (Google Voice Dialer + Twilio Automated AI Call)
             </span>
             <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
               <ShieldCheck className="w-3 h-3" />
-              No Twilio Needed
+              E.164 Ready
             </span>
           </div>
 
@@ -406,20 +498,30 @@ export function GoogleVoiceLiveCallPanel({
             />
             <button
               type="button"
+              disabled={dispatchingTwilioCall}
+              onClick={handleSendTwilioOutboundCall}
+              className="flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition-colors shadow-xs shrink-0 disabled:opacity-50"
+              title="Triggers POST /api/voice/sent to dial customer via Twilio and speak the live update"
+            >
+              <PhoneOutgoing className="w-3.5 h-3.5" />
+              {dispatchingTwilioCall ? 'Calling...' : 'Send Twilio AI Call'}
+            </button>
+            <button
+              type="button"
               onClick={handleLaunchGoogleVoiceCall}
               className="flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition-colors shadow-xs shrink-0"
             >
               <PhoneCall className="w-3.5 h-3.5" />
-              Call in Google Voice
+              Google Voice
               <ExternalLink className="w-3 h-3 opacity-80" />
             </button>
             <button
               type="button"
               onClick={handleLaunchGoogleVoiceSms}
-              className="flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl border border-blue-500/40 bg-blue-500/10 text-blue-600 dark:text-blue-400 text-xs font-bold hover:bg-blue-500/20 transition-colors shrink-0"
+              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-blue-500/40 bg-blue-500/10 text-blue-600 dark:text-blue-400 text-xs font-bold hover:bg-blue-500/20 transition-colors shrink-0"
             >
               <MessageSquare className="w-3.5 h-3.5" />
-              Google Voice SMS
+              GV SMS
             </button>
           </div>
         </div>
@@ -472,7 +574,11 @@ export function GoogleVoiceLiveCallPanel({
                     className="p-1.5 rounded-xl border border-[var(--border)] bg-[var(--panel)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                     title={mutedSpeaker ? 'Unmute Voice Output' : 'Mute Voice Output'}
                   >
-                    {mutedSpeaker ? <VolumeX className="w-4 h-4 text-red-500" /> : <Volume2 className="w-4 h-4 text-emerald-500" />}
+                    {mutedSpeaker ? (
+                      <VolumeX className="w-4 h-4 text-red-500" />
+                    ) : (
+                      <Volume2 className="w-4 h-4 text-emerald-500" />
+                    )}
                   </button>
 
                   <button
@@ -597,8 +703,92 @@ export function GoogleVoiceLiveCallPanel({
             </button>
           </div>
         </div>
+
+        {/* Section 3: Twilio Call Receive & Call Sent Webhooks + Recent Call Log */}
+        {showWebhooks && twilioWebhookData && (
+          <div className="p-3.5 rounded-xl border border-[var(--border)] bg-[var(--panel)] space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-[var(--text-primary)] flex items-center gap-1.5">
+                <Webhook className="w-3.5 h-3.5 text-[var(--accent-gold)]" />
+                Twilio Call Receive & Call Sent Webhooks (`POST`)
+              </span>
+              <span className="text-[10px] text-[var(--text-secondary)]">
+                Paste into Twilio Console → Phone Numbers → Voice Configuration
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+              {[
+                {
+                  key: 'receive',
+                  label: '1. Call Receive Webhook (Inbound VoiceUrl)',
+                  url: twilioWebhookData.webhooks.receiveWebhookUrl,
+                  icon: PhoneIncoming,
+                },
+                {
+                  key: 'sent',
+                  label: '2. Call Sent Webhook (Outbound TwiML & API)',
+                  url: twilioWebhookData.webhooks.sentWebhookUrl,
+                  icon: PhoneOutgoing,
+                },
+                {
+                  key: 'status',
+                  label: '3. Call Status Callback Webhook',
+                  url: twilioWebhookData.webhooks.statusWebhookUrl,
+                  icon: Radio,
+                },
+              ].map((item) => {
+                const Icon = item.icon;
+                return (
+                  <div
+                    key={item.key}
+                    className="p-2.5 rounded-xl border border-[var(--border)] bg-[var(--background)] flex flex-col justify-between gap-1.5"
+                  >
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="text-[10px] font-bold text-[var(--text-primary)] flex items-center gap-1">
+                        <Icon className="w-3 h-3 text-emerald-500" />
+                        {item.label}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyUrl(item.key, item.url)}
+                        className="text-[10px] font-semibold text-[var(--accent-gold)] hover:underline flex items-center gap-0.5"
+                      >
+                        {copiedKey === item.key ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                        {copiedKey === item.key ? 'Copied' : 'Copy'}
+                      </button>
+                    </div>
+                    <code className="text-[10px] font-mono text-[var(--text-secondary)] break-all">
+                      {item.url}
+                    </code>
+                  </div>
+                );
+              })}
+            </div>
+
+            {twilioWebhookData.recentCalls.length > 0 && (
+              <div className="pt-2 border-t border-[var(--border)]">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)] block mb-1.5">
+                  Recent Inbound & Outbound Twilio Calls
+                </span>
+                <div className="space-y-1 max-h-28 overflow-y-auto">
+                  {twilioWebhookData.recentCalls.slice(0, 5).map((call) => (
+                    <div
+                      key={call.id}
+                      className="flex items-center justify-between gap-2 text-[11px] px-2.5 py-1.5 rounded-lg bg-[var(--background)] border border-[var(--border)]"
+                    >
+                      <span className="truncate text-[var(--text-primary)] font-medium">{call.summary}</span>
+                      <span className="text-[10px] text-[var(--text-secondary)] shrink-0">
+                        {new Date(call.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
 }
-
