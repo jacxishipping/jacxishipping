@@ -163,9 +163,28 @@ export function getOpenApiSpec(baseUrl?: string) {
           name: 'X-API-Key',
           description: 'Custom API Key header',
         },
+        GoogleOAuth2: {
+          type: 'oauth2',
+          description: 'Google OAuth 2.0 authentication via Jacxi Shipping MCP Gateway',
+          flows: {
+            authorizationCode: {
+              authorizationUrl: `${host.replace(/\/$/, '')}/api/oauth/authorize`,
+              tokenUrl: `${host.replace(/\/$/, '')}/api/oauth/token`,
+              scopes: {
+                openid: 'OpenID Connect identity',
+                email: 'Google account email address',
+                profile: 'Google user profile',
+                'mcp:tools': 'Execute Jacxi Shipping MCP tools (VIN, container, tracking)',
+              },
+            },
+          },
+        },
       },
     },
     security: [
+      {
+        GoogleOAuth2: ['openid', 'email', 'profile', 'mcp:tools'],
+      },
       {
         BearerAuth: [],
       },
@@ -181,7 +200,6 @@ export function getOpenApiSpec(baseUrl?: string) {
  */
 export function getChatGPTPluginManifest(baseUrl?: string) {
   const host = (baseUrl || process.env.NEXT_PUBLIC_APP_URL || 'https://jacxishipping.com').replace(/\/$/, '');
-  const hasKey = Boolean(process.env.MCP_API_KEY || process.env.JACXI_API_KEY);
 
   return {
     schema_version: 'v1',
@@ -191,19 +209,18 @@ export function getChatGPTPluginManifest(baseUrl?: string) {
       'Search vehicle shipments by VIN or lot number and track ocean freight containers with Jacxi Shipping.',
     description_for_model:
       'Plugin for Jacxi Shipping web app. Allows searching vehicle shipments by VIN, lot number, or shipment ID; searching ocean containers by container number, booking number, or tracking number; and obtaining real-time tracking milestones.',
-    auth: hasKey
-      ? {
-          type: 'service_http',
-          authorization_type: 'bearer',
-          verification_tokens: {},
-        }
-      : {
-          type: 'none',
-        },
+    auth: {
+      type: 'oauth',
+      client_url: `${host}/api/oauth/authorize`,
+      scope: 'openid email profile mcp:tools',
+      authorization_url: `${host}/api/oauth/token`,
+      authorization_content_type: 'application/x-www-form-urlencoded',
+      verification_tokens: {},
+    },
     api: {
       type: 'openapi',
       url: `${host}/openapi.json`,
-      is_user_authenticated: false,
+      is_user_authenticated: true,
     },
     logo_url: `${host}/favicon.png`,
     contact_email: 'support@jacxishipping.com',

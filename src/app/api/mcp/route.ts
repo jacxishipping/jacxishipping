@@ -3,25 +3,27 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js';
 import { JacxiDataProvider } from '../../../../mcps/jacxishipping/src/data-provider';
 import { registerJacxiTools } from '../../../../mcps/jacxishipping/src/tools';
-import { verifyAuth } from '../../../../mcps/jacxishipping/src/auth';
+import { getWwwAuthenticateHeader, verifyAuth } from '../../../../mcps/jacxishipping/src/auth';
 
 const provider = new JacxiDataProvider();
 
 export async function POST(request: NextRequest) {
-  // Verify authentication if configured
+  // Verify Google OAuth 2.0 / Bearer authentication
   const auth = await verifyAuth(request);
   if (!auth.authenticated) {
     return NextResponse.json(
       {
         jsonrpc: '2.0',
-        error: { code: -32000, message: auth.error || 'Authentication required' },
+        error: { code: -32000, message: auth.error || 'Google OAuth authentication required' },
         id: null,
       },
       {
         status: 401,
         headers: {
+          'WWW-Authenticate': getWwwAuthenticateHeader(request),
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-API-Key',
+          'Access-Control-Expose-Headers': 'WWW-Authenticate',
         },
       }
     );
@@ -86,12 +88,14 @@ export async function GET(request: NextRequest) {
   const auth = await verifyAuth(request);
   if (!auth.authenticated) {
     return NextResponse.json(
-      { error: auth.error || 'Authentication required' },
+      { error: auth.error || 'Google OAuth authentication required' },
       {
         status: 401,
         headers: {
+          'WWW-Authenticate': getWwwAuthenticateHeader(request),
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-API-Key',
+          'Access-Control-Expose-Headers': 'WWW-Authenticate',
         },
       }
     );

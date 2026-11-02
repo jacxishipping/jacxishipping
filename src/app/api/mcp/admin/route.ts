@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { hasPermission } from '@/lib/rbac';
 import { JacxiDataProvider } from '../../../../../mcps/jacxishipping/src/data-provider';
+import { createOAuthTokens } from '../../../../../mcps/jacxishipping/src/oauth';
 import { getMcpToolsCatalog } from '../../../../../mcps/jacxishipping/src/tools';
 
 const provider = new JacxiDataProvider();
@@ -68,14 +69,31 @@ export async function GET(request: NextRequest) {
       },
     ];
 
+    // Generate a live Google OAuth 2.1 token for the current authenticated user
+    const userOAuthTokens = createOAuthTokens({
+      clientId: 'jacxi-dashboard-mcp',
+      scope: 'openid email profile mcp:tools',
+      user: {
+        sub: session.user.id || session.user.email || 'admin',
+        email: session.user.email || 'admin@jacxishipping.com',
+        name: session.user.name || 'Jacxi Admin',
+        picture: session.user.image || undefined,
+        role: session.user.role || 'admin',
+        provider: 'google',
+      },
+    });
+
     return NextResponse.json({
       serverInfo: {
         name: 'jacxishipping-mcp',
         version: '1.0.0',
         protocolVersion: '2025-03-26',
-        transports: ['Streamable HTTP (/api/mcp)', 'SSE (/sse)', 'Stdio (Local CLI)', 'OpenAPI 3.1 (/openapi.json)'],
+        transports: ['Streamable HTTP (/api/mcp)', 'Google OAuth 2.1 (/api/oauth/authorize)', 'OpenAPI 3.1 (/openapi.json)'],
       },
-      settings,
+      settings: {
+        ...settings,
+        oauthAccessToken: userOAuthTokens.access_token,
+      },
       stats,
       tools,
       resources,
@@ -85,6 +103,12 @@ export async function GET(request: NextRequest) {
         production: {
           baseUrl: prodOrigin,
           mcpStreamableHttp: `${prodOrigin}/api/mcp`,
+          oauthAuthorize: `${prodOrigin}/api/oauth/authorize`,
+          oauthToken: `${prodOrigin}/api/oauth/token`,
+          oauthRegister: `${prodOrigin}/api/oauth/register`,
+          oauthGoogleCallback: `${prodOrigin}/api/oauth/callback/google`,
+          oauthProtectedResource: `${prodOrigin}/.well-known/oauth-protected-resource`,
+          oauthServerMetadata: `${prodOrigin}/.well-known/oauth-authorization-server`,
           openApiSpec: `${prodOrigin}/openapi.json`,
           chatGptPluginManifest: `${prodOrigin}/.well-known/ai-plugin.json`,
           simpleGeminiGateway: `${prodOrigin}/api/gemini`,
@@ -96,6 +120,9 @@ export async function GET(request: NextRequest) {
         current: {
           baseUrl: currentOrigin,
           mcpStreamableHttp: `${currentOrigin}/api/mcp`,
+          oauthAuthorize: `${currentOrigin}/api/oauth/authorize`,
+          oauthToken: `${currentOrigin}/api/oauth/token`,
+          oauthGoogleCallback: `${currentOrigin}/api/oauth/callback/google`,
           openApiSpec: `${currentOrigin}/openapi.json`,
           chatGptPluginManifest: `${currentOrigin}/.well-known/ai-plugin.json`,
           simpleGeminiGateway: `${currentOrigin}/api/gemini`,
@@ -145,22 +172,27 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 2. Update Gateway Settings
+    // 2. Update Gateway & Google OAuth Settings
     if (action === 'update_settings') {
       const updated = await provider.saveMcpGatewaySettings({
         enabled: body.enabled,
         apiKey: body.apiKey,
         authMode: body.authMode,
+        googleOAuthEnabled: body.googleOAuthEnabled,
+        googleClientId: body.googleClientId,
+        googleClientSecret: body.googleClientSecret,
+        allowedGoogleDomains: body.allowedGoogleDomains,
+        requireExistingUser: body.requireExistingUser,
       });
       await provider.logMcpActivity({
         tool: 'update_settings',
-        query: `enabled=${updated.enabled}, authMode=${updated.authMode}`,
+        query: `enabled=${updated.enabled}, authMode=${updated.authMode}, googleOAuth=${updated.googleOAuthEnabled}`,
         provider: 'dashboard-admin',
         entityType: 'SETTINGS',
-        responseSummary: 'Updated MCP Gateway configuration',
+        responseSummary: 'Updated MCP Gateway & Google OAuth configuration',
       });
       return NextResponse.json({
-        message: 'MCP Gateway settings updated.',
+        message: 'MCP Gateway & Google OAuth settings updated.',
         settings: updated,
       });
     }

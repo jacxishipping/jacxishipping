@@ -1,67 +1,117 @@
 # Connecting Jacxi Shipping to AI Agents & Chatbots
 
 Deployed on Vercel at **`https://jacxishipping.com`**, your application natively exposes:
-1. **Authentication System**: API Key protection via Bearer tokens, headers, or query parameters.
-2. **ChatGPT Plugin & Custom Actions**: Direct integration via `/.well-known/ai-plugin.json` and `/openapi.json`.
+1. **Google OAuth 2.0 & MCP OAuth 2.1 Authentication**: Standard RFC 9728 / RFC 8414 OAuth 2.1 discovery (`/.well-known/oauth-protected-resource`, `/.well-known/oauth-authorization-server`), Dynamic Client Registration (`/api/oauth/register`), and Google OAuth 2.0 login (`/api/oauth/authorize` & `/api/oauth/token`).
+2. **ChatGPT Plugin & Custom Actions**: Direct OAuth & Bearer integration via `/.well-known/ai-plugin.json` and `/openapi.json`.
 3. **Simple Gemini Gateway**: Dedicated `/api/gemini` endpoint for Google GenAI / Gemini API function calling.
-4. **Model Context Protocol (MCP)**: Streamable HTTP transport at `/api/mcp` for desktop/cloud MCP agents.
+4. **Model Context Protocol (MCP)**: Streamable HTTP transport at `/api/mcp` with Google OAuth 2.0 support for Antigravity, Claude, and Cursor.
 
 ---
 
-## 🔐 Authentication System
+## 🔐 Google OAuth 2.0 & Authentication System
 
-All endpoints support authentication using the master key or a user's Jacxi login code:
+All MCP and AI endpoints support **Google OAuth 2.0** alongside Bearer keys and customer login codes:
 
-### How to Configure the Master Key
-In your **Vercel Project Dashboard** (or local `.env`), add:
-```env
-MCP_API_KEY="your-secret-key-here"
+### 1. Google OAuth 2.0 Endpoints
+| Endpoint | URL | Description |
+| :--- | :--- | :--- |
+| **OAuth Authorization** | `https://jacxishipping.com/api/oauth/authorize` | Launches Google OAuth 2.0 Sign-In & AI Agent consent screen |
+| **OAuth Token Exchange** | `https://jacxishipping.com/api/oauth/token` | Exchanges authorization code (with PKCE `S256`) or refresh token for a Bearer token |
+| **Google OAuth Callback** | `https://jacxishipping.com/api/oauth/callback/google` | Authorized Redirect URI for Google Cloud Console OAuth 2.0 Client |
+| **Dynamic Registration** | `https://jacxishipping.com/api/oauth/register` | RFC 7591 Dynamic Client Registration for MCP clients |
+| **Protected Resource Metadata** | `https://jacxishipping.com/.well-known/oauth-protected-resource` | RFC 9728 MCP OAuth discovery |
+| **Auth Server Metadata** | `https://jacxishipping.com/.well-known/oauth-authorization-server` | RFC 8414 OAuth 2.0 server metadata |
+
+### 2. Google Cloud Console Setup
+In [Google Cloud Console -> Credentials](https://console.cloud.google.com/apis/credentials):
+1. Create or edit your **OAuth 2.0 Client ID** (Web application).
+2. Add the Authorized Redirect URI:
+   ```
+   https://jacxishipping.com/api/oauth/callback/google
+   ```
+3. Configure `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` in Vercel environment variables or directly inside **`/dashboard/mcp` -> API Keys & Security -> Google OAuth 2.0**.
+
+---
+
+## 🖥️ 1. Full Remote MCP Clients with Google OAuth (Antigravity, Cursor, Claude)
+
+### Option A: Automatic MCP Google OAuth 2.0 Flow (Recommended)
+MCP clients that support Streamable HTTP (`https://jacxishipping.com/api/mcp`) automatically discover Google OAuth via `/.well-known/oauth-protected-resource` and open the Google Sign-In prompt in your browser:
+
+```json
+{
+  "mcpServers": {
+    "jacxishipping": {
+      "url": "https://jacxishipping.com/api/mcp",
+      "auth": {
+        "type": "oauth",
+        "provider": "google",
+        "authorizationUrl": "https://jacxishipping.com/api/oauth/authorize",
+        "tokenUrl": "https://jacxishipping.com/api/oauth/token",
+        "scopes": ["openid", "email", "profile", "mcp:tools"]
+      }
+    }
+  }
+}
 ```
 
-### How Clients Can Authenticate
-Clients can provide the key using any of these methods:
-- **HTTP Bearer Token**: `Authorization: Bearer <MCP_API_KEY>`
-- **Custom Header**: `X-API-Key: <MCP_API_KEY>`
-- **Query Parameter**: `?key=<MCP_API_KEY>` (e.g. `https://jacxishipping.com/api/ai/track?query=CAAU5189072&key=your-secret-key-here`)
-- **User Login Code**: Users can also authenticate with their personal 8-character Jacxi `loginCode`.
+Or simply point `url` to the endpoint (the server's `WWW-Authenticate` header automatically triggers OAuth 2.1 discovery):
+```json
+{
+  "mcpServers": {
+    "jacxishipping": {
+      "url": "https://jacxishipping.com/api/mcp"
+    }
+  }
+}
+```
 
-*(If `MCP_API_KEY` is not set, the endpoints run in open development mode).*
+### Option B: Direct Google OAuth Bearer Token (`ya29.*` or `jx_oauth.*`)
+You can also pass a Google OAuth 2.0 Access Token (`ya29....`), a Google OpenID Token, or a signed Jacxi Google OAuth Token (`jx_oauth....` from `/dashboard/mcp`) in the `Authorization` header:
+```json
+{
+  "mcpServers": {
+    "jacxishipping": {
+      "url": "https://jacxishipping.com/api/mcp",
+      "headers": {
+        "Authorization": "Bearer YOUR_GOOGLE_OAUTH_TOKEN"
+      }
+    }
+  }
+}
+```
 
 ---
 
-## 🤖 1. Connecting as a ChatGPT Plugin / Custom GPT
+## 🤖 2. Connecting as a ChatGPT Plugin / Custom GPT (with Google OAuth)
 
-### Method A: ChatGPT Custom GPT Action (Recommended)
+### Method A: ChatGPT Custom GPT Action with OAuth
 1. In [ChatGPT](https://chatgpt.com), click **Explore GPTs** → **Create a GPT** → **Configure**.
 2. Name it **Jacxi Shipping Assistant**.
-3. Under **Actions**, click **Create new action**.
-4. In **Import from URL**, enter:
+3. Under **Actions**, click **Create new action** and import from URL:
    ```
    https://jacxishipping.com/openapi.json
    ```
-5. Click **Import**.
-6. Under **Authentication**:
-   - Choose **API Key**.
-   - Auth Type: **Bearer**.
-   - Enter your `MCP_API_KEY`.
-7. You are ready! In ChatGPT preview, test:
-   > *"Track container CAAU5189072 and list the vehicles inside."*
-   > *"Look up vehicle VIN JTEBU5JR4A5011946."*
+4. Under **Authentication**, choose **OAuth**:
+   - **Client ID**: *(your Google Client ID or leave auto-registered)*
+   - **Client Secret**: *(your Google Client Secret)*
+   - **Authorization URL**: `https://jacxishipping.com/api/oauth/authorize`
+   - **Token URL**: `https://jacxishipping.com/api/oauth/token`
+   - **Scope**: `openid email profile mcp:tools`
+   - **Token Exchange Method**: `Default (POST request)`
 
 ### Method B: ChatGPT Plugin Manifest (`/.well-known/ai-plugin.json`)
-Your application automatically hosts the official ChatGPT Plugin manifest at:
+Your application hosts the official ChatGPT Plugin manifest pre-configured with OAuth at:
 ```
 https://jacxishipping.com/.well-known/ai-plugin.json
 ```
-Plugin systems (ChatGPT Plugin store, LibreChat, Dify, LangChain, Flowise) will automatically discover the plugin, icon, metadata, and OpenAPI endpoints.
 
 ---
 
-## ♊ 2. Connecting with Simple Gemini (Google GenAI)
+## ♊ 3. Connecting with Simple Gemini (Google GenAI)
 
-You can connect Google Gemini in just 5 lines of code using the dedicated `/api/gemini` gateway:
+You can authenticate `/api/gemini` using a Google OAuth Bearer token (`ya29....` or `jx_oauth....`) or your MCP API Key:
 
-### Python Example (`google-genai` / `google.generativeai`)
 ```python
 import google.generativeai as genai
 import requests
@@ -69,7 +119,7 @@ import requests
 genai.configure(api_key="YOUR_GEMINI_API_KEY")
 
 API_URL = "https://jacxishipping.com/api/gemini"
-HEADERS = {"Authorization": "Bearer YOUR_MCP_API_KEY"}
+HEADERS = {"Authorization": "Bearer YOUR_GOOGLE_OAUTH_TOKEN"}
 
 def search_vin(vin: str, includeTracking: bool = True):
     """Search for a vehicle shipment by VIN or lot number in Jacxi Shipping."""
@@ -92,7 +142,6 @@ def track(query: str):
         "args": {"query": query}
     }).json()
 
-# Initialize Gemini with the Jacxi tools
 model = genai.GenerativeModel("gemini-1.5-pro", tools=[search_vin, search_container, track])
 chat = model.start_chat(enable_automatic_function_calling=True)
 
@@ -100,14 +149,9 @@ response = chat.send_message("Where is container CAAU5189072 and what car is in 
 print(response.text)
 ```
 
-### Simple HTTP GET Test for Gemini or Browser
-```bash
-curl "https://jacxishipping.com/api/gemini?action=search_vin&vin=JTEBU5JR4A5011946&key=jx_mcp_e123d9017e0693f76939ee0b6bb2ea7f8f5d920d348f9f42"
-```
-
 ---
 
-## ⚡ 3. Connecting xAI Grok
+## ⚡ 4. Connecting xAI Grok
 
 ```python
 import os, requests
@@ -122,22 +166,4 @@ response = client.chat.completions.create(
     tools=tools,
     tool_choice="auto"
 )
-```
-
----
-
-## 🖥️ 4. Full Remote MCP Clients (Antigravity, Cursor, Claude)
-
-In `mcp_config.json`:
-```json
-{
-  "mcpServers": {
-    "jacxishipping": {
-      "url": "https://jacxishipping.com/api/mcp",
-      "headers": {
-        "Authorization": "Bearer YOUR_MCP_API_KEY"
-      }
-    }
-  }
-}
 ```

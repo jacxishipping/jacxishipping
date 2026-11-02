@@ -97,6 +97,12 @@ type McpAdminPayload = {
     apiKey: string;
     authMode: 'required' | 'optional';
     dataSource: 'database' | 'snapshot';
+    googleOAuthEnabled: boolean;
+    googleClientId: string;
+    googleClientSecret: string;
+    allowedGoogleDomains: string;
+    requireExistingUser: boolean;
+    oauthAccessToken?: string;
   };
   stats: {
     totalShipments: number;
@@ -160,11 +166,14 @@ export default function McpDashboardPage() {
     result: any;
   } | null>(null);
 
-  // Security state
+  // Security & Google OAuth state
   const [showApiKey, setShowApiKey] = useState(false);
   const [rotatingKey, setRotatingKey] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [googleClientIdInput, setGoogleClientIdInput] = useState('');
+  const [googleClientSecretInput, setGoogleClientSecretInput] = useState('');
+  const [allowedDomainsInput, setAllowedDomainsInput] = useState('*');
 
   const canAccessMcp =
     session?.user?.role === 'admin' ||
@@ -179,6 +188,11 @@ export default function McpDashboardPage() {
         throw new Error(json.error || 'Failed to load MCP server state');
       }
       setData(json);
+      if (json.settings) {
+        setGoogleClientIdInput(json.settings.googleClientId || '');
+        setGoogleClientSecretInput(json.settings.googleClientSecret || '');
+        setAllowedDomainsInput(json.settings.allowedGoogleDomains || '*');
+      }
     } catch (err: any) {
       toast.error(err?.message || 'Failed to load MCP dashboard');
     } finally {
@@ -264,6 +278,11 @@ export default function McpDashboardPage() {
   const handleUpdateSettings = async (updates: {
     enabled?: boolean;
     authMode?: 'required' | 'optional';
+    googleOAuthEnabled?: boolean;
+    googleClientId?: string;
+    googleClientSecret?: string;
+    allowedGoogleDomains?: string;
+    requireExistingUser?: boolean;
   }) => {
     try {
       setSavingSettings(true);
@@ -925,50 +944,87 @@ response = client.chat.completions.create(
           {/* 4. CLAUDE / CURSOR / ANTIGRAVITY NATIVE MCP */}
           {selectedPlatform === 'claude' && (
             <DashboardPanel
-              title="Native MCP Configuration (Claude Desktop, Antigravity, Cursor)"
-              description="Connect via Remote Streamable HTTP on Vercel or Local Stdio CLI."
+              title="Native MCP Configuration with Google OAuth 2.0 (Antigravity, Claude, Cursor)"
+              description="Connect via Remote Streamable HTTP on Vercel using Google OAuth 2.0 discovery or your signed Google OAuth token."
               actions={
-                <Button
-                  variant="outline"
-                  size="sm"
-                  icon={<Copy className="h-3.5 w-3.5" />}
-                  onClick={() =>
-                    copyToClipboard(
-                      JSON.stringify(
-                        {
-                          mcpServers: {
-                            jacxishipping: {
-                              url: `${prodUrl}/api/mcp`,
-                              headers: {
-                                Authorization: `Bearer ${apiKey}`,
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    icon={<Copy className="h-3.5 w-3.5" />}
+                    onClick={() =>
+                      copyToClipboard(
+                        JSON.stringify(
+                          {
+                            mcpServers: {
+                              jacxishipping: {
+                                url: `${prodUrl}/api/mcp`,
+                                auth: {
+                                  type: 'oauth',
+                                  provider: 'google',
+                                  authorizationUrl: `${prodUrl}/api/oauth/authorize`,
+                                  tokenUrl: `${prodUrl}/api/oauth/token`,
+                                  scopes: ['openid', 'email', 'profile', 'mcp:tools'],
+                                },
                               },
                             },
                           },
-                        },
-                        null,
-                        2
-                      ),
-                      'mcp-remote-json',
-                      'Copied mcp_config.json'
-                    )
-                  }
-                >
-                  Copy Remote Config
-                </Button>
+                          null,
+                          2
+                        ),
+                        'mcp-oauth-json',
+                        'Copied Google OAuth mcp_config.json'
+                      )
+                    }
+                  >
+                    Copy Google OAuth Config
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    icon={<Copy className="h-3.5 w-3.5" />}
+                    onClick={() =>
+                      copyToClipboard(
+                        JSON.stringify(
+                          {
+                            mcpServers: {
+                              jacxishipping: {
+                                url: `${prodUrl}/api/mcp`,
+                                headers: {
+                                  Authorization: `Bearer ${data.settings.oauthAccessToken || apiKey}`,
+                                },
+                              },
+                            },
+                          },
+                          null,
+                          2
+                        ),
+                        'mcp-token-json',
+                        'Copied Google OAuth Token Config'
+                      )
+                    }
+                  >
+                    Copy Google OAuth Bearer Config
+                  </Button>
+                </div>
               }
             >
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <div className="text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)]">
-                    Remote Vercel Streamable HTTP (mcp_config.json)
+                    Option A: Google OAuth 2.0 Flow (mcp_config.json)
                   </div>
                   <pre className="overflow-auto rounded-xl border border-[var(--border)] bg-[#141619] p-4 font-mono text-xs text-emerald-300 leading-relaxed">
 {`{
   "mcpServers": {
     "jacxishipping": {
       "url": "${prodUrl}/api/mcp",
-      "headers": {
-        "Authorization": "Bearer ${showApiKey ? apiKey : maskedKey}"
+      "auth": {
+        "type": "oauth",
+        "provider": "google",
+        "authorizationUrl": "${prodUrl}/api/oauth/authorize",
+        "tokenUrl": "${prodUrl}/api/oauth/token",
+        "scopes": ["openid", "email", "profile", "mcp:tools"]
       }
     }
   }
@@ -978,16 +1034,19 @@ response = client.chat.completions.create(
 
                 <div className="space-y-2">
                   <div className="text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)]">
-                    Local Stdio Transport (Desktop CLI)
+                    Option B: Signed Google OAuth Bearer Token (mcp_config.json)
                   </div>
                   <pre className="overflow-auto rounded-xl border border-[var(--border)] bg-[#141619] p-4 font-mono text-xs text-emerald-300 leading-relaxed">
 {`{
   "mcpServers": {
-    "jacxishipping-local": {
-      "command": "npm",
-      "args": ["run", "mcp:server"],
-      "env": {
-        "MCP_API_KEY": "${showApiKey ? apiKey : maskedKey}"
+    "jacxishipping": {
+      "url": "${prodUrl}/api/mcp",
+      "headers": {
+        "Authorization": "Bearer ${
+          showApiKey
+            ? data.settings.oauthAccessToken || apiKey
+            : 'jx_oauth.eyJ1c2VyIjp7InByb3ZpZGVyIjoiZ29vZ2xlIn19••••••'
+        }"
       }
     }
   }
@@ -1001,14 +1060,123 @@ response = client.chat.completions.create(
       )}
 
       {/* =================================================================== */}
-      {/* TAB 3: API KEYS & AUTHENTICATION                                    */}
+      {/* TAB 3: API KEYS & GOOGLE OAUTH 2.0 SECURITY                         */}
       {/* =================================================================== */}
       {activeTab === 'security' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <div className="lg:col-span-7 space-y-6">
             <DashboardPanel
-              title="Master MCP API Key (MCP_API_KEY)"
-              description="Used by ChatGPT Actions, Gemini, Grok, and remote MCP clients to authenticate requests."
+              title="Google OAuth 2.0 & MCP OAuth 2.1 Provider"
+              description="Allow MCP clients (Antigravity, Claude, Cursor, ChatGPT, Gemini) to authenticate via Google Sign-In (/api/oauth/authorize) or Google OAuth Bearer tokens."
+              actions={
+                <div className="flex items-center gap-2">
+                  <StatusBadge
+                    status={data.settings.googleOAuthEnabled ? 'success' : 'warning'}
+                    label={data.settings.googleOAuthEnabled ? 'GOOGLE OAUTH ENABLED' : 'DISABLED'}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    icon={<ExternalLink className="h-3.5 w-3.5" />}
+                    onClick={() => window.open('/api/oauth/authorize?client_id=jacxi-mcp-test', '_blank')}
+                  >
+                    Test Google Login Screen
+                  </Button>
+                </div>
+              }
+            >
+              <div className="space-y-4">
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--background)] p-4 space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-secondary)]">
+                        Google Cloud Console — Authorized Redirect URI
+                      </div>
+                      <code className="font-mono text-xs font-semibold text-[var(--text-primary)] break-all">
+                        {prodUrl}/api/oauth/callback/google
+                      </code>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      icon={<Copy className="h-3.5 w-3.5" />}
+                      onClick={() =>
+                        copyToClipboard(
+                          `${prodUrl}/api/oauth/callback/google`,
+                          'google-cb',
+                          'Copied Google Redirect URI'
+                        )
+                      }
+                    >
+                      Copy Redirect URI
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="block text-xs font-semibold text-[var(--text-primary)]">
+                      Google Client ID (GOOGLE_CLIENT_ID)
+                    </label>
+                    <input
+                      type="text"
+                      value={googleClientIdInput}
+                      onChange={(e) => setGoogleClientIdInput(e.target.value)}
+                      placeholder="xxxx.apps.googleusercontent.com"
+                      className="w-full rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs font-mono text-[var(--text-primary)] focus:border-[var(--accent-gold)] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="block text-xs font-semibold text-[var(--text-primary)]">
+                      Google Client Secret (GOOGLE_CLIENT_SECRET)
+                    </label>
+                    <input
+                      type="password"
+                      value={googleClientSecretInput}
+                      onChange={(e) => setGoogleClientSecretInput(e.target.value)}
+                      placeholder="GOCSPX-••••••••••••••••"
+                      className="w-full rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs font-mono text-[var(--text-primary)] focus:border-[var(--accent-gold)] focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
+                  <div className="space-y-1">
+                    <label className="block text-xs font-semibold text-[var(--text-primary)]">
+                      Allowed Google Domains / Emails
+                    </label>
+                    <input
+                      type="text"
+                      value={allowedDomainsInput}
+                      onChange={(e) => setAllowedDomainsInput(e.target.value)}
+                      placeholder="* or jacxishipping.com, gmail.com"
+                      className="w-full rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs font-mono text-[var(--text-primary)] focus:border-[var(--accent-gold)] focus:outline-none"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      disabled={savingSettings}
+                      onClick={() =>
+                        handleUpdateSettings({
+                          googleOAuthEnabled: true,
+                          googleClientId: googleClientIdInput,
+                          googleClientSecret: googleClientSecretInput,
+                          allowedGoogleDomains: allowedDomainsInput,
+                        })
+                      }
+                    >
+                      {savingSettings ? 'Saving...' : 'Save Google OAuth Config'}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </DashboardPanel>
+
+            <DashboardPanel
+              title="Master MCP API Key (Fallback & Server-to-Server)"
+              description="Used alongside Google OAuth for automated scripts, webhooks, and server-to-server requests."
             >
               <div className="space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--background)] p-4">
@@ -1130,45 +1298,68 @@ response = client.chat.completions.create(
 
           <div className="lg:col-span-5">
             <DashboardPanel
-              title="Supported Authentication Methods"
-              description="Clients can pass the API key using any of these 4 standard methods:"
+              title="Google OAuth & Supported Auth Methods"
+              description="MCP clients & AI agents can authenticate using Google OAuth 2.0 or any of these methods:"
             >
               <div className="space-y-3 text-xs">
+                <div className="rounded-xl border border-[var(--accent-gold)]/40 bg-[rgba(var(--accent-gold-rgb),0.06)] p-3 space-y-1.5">
+                  <div className="font-semibold text-[var(--text-primary)]">
+                    1. Google OAuth 2.0 / MCP OAuth 2.1 Discovery (Recommended)
+                  </div>
+                  <div className="text-[var(--text-secondary)]">
+                    Auth URL: <code className="font-mono">{prodUrl}/api/oauth/authorize</code>
+                  </div>
+                  <div className="text-[var(--text-secondary)]">
+                    Token URL: <code className="font-mono">{prodUrl}/api/oauth/token</code>
+                  </div>
+                  <div className="text-[var(--text-secondary)]">
+                    Discovery: <code className="font-mono">{prodUrl}/.well-known/oauth-authorization-server</code>
+                  </div>
+                </div>
+
+                {data.settings.oauthAccessToken && (
+                  <div className="rounded-xl border border-[var(--border)] bg-[var(--background)] p-3 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="font-semibold text-[var(--text-primary)]">
+                        2. Your Active Google OAuth Bearer Token
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        icon={<Copy className="h-3 w-3" />}
+                        onClick={() =>
+                          copyToClipboard(
+                            data.settings.oauthAccessToken || '',
+                            'oauth-token-copy',
+                            'Copied Google OAuth Access Token'
+                          )
+                        }
+                      >
+                        Copy OAuth Token
+                      </Button>
+                    </div>
+                    <code className="block font-mono text-[var(--text-secondary)] truncate">
+                      Authorization: Bearer {data.settings.oauthAccessToken.slice(0, 32)}••••••
+                    </code>
+                  </div>
+                )}
+
                 <div className="rounded-xl border border-[var(--border)] bg-[var(--background)] p-3 space-y-1">
                   <div className="font-semibold text-[var(--text-primary)]">
-                    1. HTTP Bearer Header (Standard for ChatGPT & MCP)
+                    3. Direct Google Access / ID Token (ya29.* / JWT)
+                  </div>
+                  <p className="text-[var(--text-secondary)]">
+                    Pass any Google OAuth 2.0 access token (<code className="font-mono">ya29.*</code>) or OpenID token in <code className="font-mono">Authorization: Bearer</code>; verified live via Google OAuth2 API.
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--background)] p-3 space-y-1">
+                  <div className="font-semibold text-[var(--text-primary)]">
+                    4. Master API Key & Customer 8-Character Login Code
                   </div>
                   <code className="block font-mono text-[var(--text-secondary)]">
                     Authorization: Bearer {maskedKey}
                   </code>
-                </div>
-
-                <div className="rounded-xl border border-[var(--border)] bg-[var(--background)] p-3 space-y-1">
-                  <div className="font-semibold text-[var(--text-primary)]">
-                    2. X-API-Key Header
-                  </div>
-                  <code className="block font-mono text-[var(--text-secondary)]">
-                    X-API-Key: {maskedKey}
-                  </code>
-                </div>
-
-                <div className="rounded-xl border border-[var(--border)] bg-[var(--background)] p-3 space-y-1">
-                  <div className="font-semibold text-[var(--text-primary)]">
-                    3. URL Query Parameter (Simple Webhooks & cURL)
-                  </div>
-                  <code className="block font-mono text-[var(--text-secondary)]">
-                    ?key={maskedKey}
-                  </code>
-                </div>
-
-                <div className="rounded-xl border border-[var(--border)] bg-[var(--background)] p-3 space-y-1">
-                  <div className="font-semibold text-[var(--text-primary)]">
-                    4. Customer 8-Character Login Code
-                  </div>
-                  <p className="text-[var(--text-secondary)]">
-                    Customers can authenticate using their personal 8-character Jacxi{' '}
-                    <code>loginCode</code>.
-                  </p>
                 </div>
               </div>
             </DashboardPanel>

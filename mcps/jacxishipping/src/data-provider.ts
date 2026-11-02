@@ -1375,11 +1375,18 @@ export class JacxiDataProvider {
     apiKey: string;
     authMode: 'required' | 'optional';
     dataSource: 'database' | 'snapshot';
+    googleOAuthEnabled: boolean;
+    googleClientId: string;
+    googleClientSecret: string;
+    allowedGoogleDomains: string;
+    requireExistingUser: boolean;
   }> {
     const defaultKey =
       process.env.MCP_API_KEY ||
       process.env.JACXI_API_KEY ||
       'jx_mcp_e123d9017e0693f76939ee0b6bb2ea7f8f5d920d348f9f42';
+    const envGoogleClientId = process.env.GOOGLE_CLIENT_ID || '';
+    const envGoogleClientSecret = process.env.GOOGLE_CLIENT_SECRET || '';
 
     const prisma = await this.getPrisma();
     if (prisma) {
@@ -1388,11 +1395,34 @@ export class JacxiDataProvider {
           where: { scope: 'mcp-gateway' },
         });
         if (record) {
+          let extra: {
+            googleOAuthEnabled?: boolean;
+            googleClientId?: string;
+            googleClientSecret?: string;
+            allowedGoogleDomains?: string;
+            requireExistingUser?: boolean;
+          } = {};
+          if (record.chatCompletionsUrl && record.chatCompletionsUrl.startsWith('{')) {
+            try {
+              extra = JSON.parse(record.chatCompletionsUrl);
+            } catch {
+              // ignore
+            }
+          }
           return {
             enabled: record.enabled,
             apiKey: record.apiKey || defaultKey,
             authMode: record.provider === 'optional' ? 'optional' : 'required',
             dataSource: 'database',
+            googleOAuthEnabled:
+              extra.googleOAuthEnabled !== undefined
+                ? extra.googleOAuthEnabled
+                : true,
+            googleClientId: extra.googleClientId || envGoogleClientId,
+            googleClientSecret:
+              extra.googleClientSecret || envGoogleClientSecret,
+            allowedGoogleDomains: extra.allowedGoogleDomains || '*',
+            requireExistingUser: Boolean(extra.requireExistingUser),
           };
         }
       } catch {
@@ -1405,6 +1435,11 @@ export class JacxiDataProvider {
       apiKey: defaultKey,
       authMode: 'required',
       dataSource: prisma ? 'database' : 'snapshot',
+      googleOAuthEnabled: true,
+      googleClientId: envGoogleClientId,
+      googleClientSecret: envGoogleClientSecret,
+      allowedGoogleDomains: '*',
+      requireExistingUser: false,
     };
   }
 
@@ -1412,16 +1447,55 @@ export class JacxiDataProvider {
     enabled?: boolean;
     apiKey?: string;
     authMode?: 'required' | 'optional';
+    googleOAuthEnabled?: boolean;
+    googleClientId?: string;
+    googleClientSecret?: string;
+    allowedGoogleDomains?: string;
+    requireExistingUser?: boolean;
   }) {
     const current = await this.getMcpGatewaySettings();
     const updated = {
       enabled: input.enabled !== undefined ? input.enabled : current.enabled,
       apiKey: input.apiKey ? input.apiKey.trim() : current.apiKey,
       authMode: input.authMode || current.authMode,
+      googleOAuthEnabled:
+        input.googleOAuthEnabled !== undefined
+          ? input.googleOAuthEnabled
+          : current.googleOAuthEnabled,
+      googleClientId:
+        input.googleClientId !== undefined
+          ? input.googleClientId.trim()
+          : current.googleClientId,
+      googleClientSecret:
+        input.googleClientSecret !== undefined
+          ? input.googleClientSecret.trim()
+          : current.googleClientSecret,
+      allowedGoogleDomains:
+        input.allowedGoogleDomains !== undefined
+          ? input.allowedGoogleDomains.trim() || '*'
+          : current.allowedGoogleDomains,
+      requireExistingUser:
+        input.requireExistingUser !== undefined
+          ? input.requireExistingUser
+          : current.requireExistingUser,
     };
 
     // Update process.env in memory for immediate effect
     process.env.MCP_API_KEY = updated.apiKey;
+    if (updated.googleClientId) {
+      process.env.GOOGLE_CLIENT_ID = updated.googleClientId;
+    }
+    if (updated.googleClientSecret) {
+      process.env.GOOGLE_CLIENT_SECRET = updated.googleClientSecret;
+    }
+
+    const extraJson = JSON.stringify({
+      googleOAuthEnabled: updated.googleOAuthEnabled,
+      googleClientId: updated.googleClientId,
+      googleClientSecret: updated.googleClientSecret,
+      allowedGoogleDomains: updated.allowedGoogleDomains,
+      requireExistingUser: updated.requireExistingUser,
+    });
 
     const prisma = await this.getPrisma();
     if (prisma) {
@@ -1432,6 +1506,7 @@ export class JacxiDataProvider {
             enabled: updated.enabled,
             apiKey: updated.apiKey,
             provider: updated.authMode,
+            chatCompletionsUrl: extraJson,
           },
           create: {
             scope: 'mcp-gateway',
@@ -1439,6 +1514,7 @@ export class JacxiDataProvider {
             apiKey: updated.apiKey,
             provider: updated.authMode,
             model: 'mcp-v1',
+            chatCompletionsUrl: extraJson,
           },
         });
       } catch {

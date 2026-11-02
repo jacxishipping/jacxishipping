@@ -1,4 +1,12 @@
 import { JacxiDataProvider } from './src/data-provider';
+import {
+  createAuthorizationCode,
+  createOAuthTokens,
+  getOAuthAuthorizationServerMetadata,
+  verifyAuthorizationCode,
+  verifyOAuthAccessToken,
+} from './src/oauth';
+import { verifyAuth } from './src/auth';
 
 async function runTests() {
   console.log('--- Testing Jacxi MCP Data Provider ---');
@@ -54,6 +62,43 @@ async function runTests() {
     totalContainers: stats.totalContainers,
     activeOceanContainers: stats.activeOceanContainers,
     source: stats.dataSource,
+  });
+
+  // Test 5: Google OAuth 2.0 / MCP OAuth 2.1 Code & Token Flow
+  console.log('\n[Test 5] Google OAuth 2.0 & MCP OAuth 2.1 Flow');
+  const metadata = getOAuthAuthorizationServerMetadata('https://jacxishipping.com');
+  const authCode = createAuthorizationCode({
+    clientId: 'mcp-test-client',
+    redirectUri: 'http://localhost:3000/callback',
+    scope: 'openid email profile mcp:tools',
+    user: {
+      sub: 'google-12345',
+      email: 'shkrbabar@gmail.com',
+      name: 'Shakir Babar',
+      role: 'admin',
+      provider: 'google',
+    },
+  });
+  const verifiedCode = verifyAuthorizationCode(authCode);
+  const tokens = createOAuthTokens({
+    clientId: verifiedCode!.clientId,
+    scope: verifiedCode!.scope,
+    user: verifiedCode!.user,
+  });
+  const verifiedToken = verifyOAuthAccessToken(tokens.access_token);
+  const mockReq = new Request('https://jacxishipping.com/api/mcp', {
+    headers: { Authorization: `Bearer ${tokens.access_token}` },
+  });
+  const authCheck = await verifyAuth(mockReq);
+  console.log({
+    issuer: metadata.issuer,
+    authorizeEndpoint: metadata.authorization_endpoint,
+    tokenEndpoint: metadata.token_endpoint,
+    codeVerified: Boolean(verifiedCode),
+    tokenVerified: Boolean(verifiedToken),
+    mcpRequestAuthenticated: authCheck.authenticated,
+    authType: authCheck.authType,
+    userEmail: authCheck.user?.email,
   });
 
   console.log('\nAll tests passed successfully!');
