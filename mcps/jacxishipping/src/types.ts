@@ -18,6 +18,7 @@ export interface VinSearchResult {
     id?: string;
     name?: string | null;
     email?: string | null;
+    phone?: string | null;
   };
   container?: {
     id?: string;
@@ -105,6 +106,10 @@ export interface ContainerSearchResult {
     lotNumber?: string | null;
     status: string;
     customerName?: string | null;
+    hasKey?: boolean | null;
+    hasTitle?: boolean | null;
+    titleStatus?: string | null;
+    weight?: number | null;
   }>;
   webAppUrl: string;
   trackingEvents?: Array<{
@@ -161,3 +166,68 @@ export interface ShippingStats {
   dataSource: 'database' | 'api' | 'snapshot';
 }
 
+export interface CustomerSearchResult {
+  id: string;
+  name: string | null;
+  email: string;
+  phone: string | null;
+  city: string | null;
+  country: string | null;
+  loginCode: string | null;
+  role: string;
+  shipmentCount: number;
+  shipments: Array<{
+    id: string;
+    vin: string | null;
+    vehicle: string;
+    status: string;
+    containerNumber: string | null;
+  }>;
+  dataSource: 'database' | 'api' | 'snapshot';
+}
+
+export interface DispatchSearchResult {
+  id: string;
+  referenceNumber: string;
+  status: string;
+  origin: string;
+  destination: string;
+  carrierName: string | null;
+  dispatchDate: string | null;
+  estimatedArrival: string | null;
+  shipmentCount: number;
+  vehicles: Array<{
+    id: string;
+    vin: string | null;
+    vehicle: string;
+    lotNumber: string | null;
+    status: string;
+  }>;
+  dataSource: 'database' | 'api' | 'snapshot';
+}
+
+export interface QuoteEstimateResult {
+  vehicleType: string;
+  originPort: string;
+  destination: string;
+  oceanFreightUsd: number;
+  inlandTowingEstimateUsd: number;
+  customsAndTransitUsd: number;
+  totalEstimatedUsd: number;
+  estimatedTransitDays: string;
+  notes: string[];
+}
+
+export interface McpToolMetadata {
+  name: string;
+  category: 'Search' | 'Tracking' | 'Operations' | 'Analytics' | 'Quotes';
+  description: string;
+  parameters: Array<{
+    name: string;
+    type: string;
+    required: boolean;
+    description: string;
+    defaultValue?: string;
+  }>;
+  sampleArgs: Record<string, any>;
+}

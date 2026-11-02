@@ -5,7 +5,26 @@ import {
   ContainerSearchResult,
   TrackingResult,
   ShippingStats,
+  CustomerSearchResult,
+  DispatchSearchResult,
+  QuoteEstimateResult,
 } from './types';
+
+// In-memory activity ring buffer fallback when DB is read-only or offline
+const memoryLogs: Array<{
+  id: string;
+  feature: string;
+  entityType: string | null;
+  entityId: string | null;
+  provider: string;
+  model: string | null;
+  prompt: string;
+  response: string | null;
+  requestPayload: unknown;
+  responsePayload: unknown;
+  status: string;
+  createdAt: string;
+}> = [];
 
 // Web App base URL (defaults to localhost:3000)
 const APP_URL = (
@@ -1078,6 +1097,432 @@ export class JacxiDataProvider {
       webAppUrl: `${APP_URL}/dashboard/containers/${c.id}`,
       dataSource: 'snapshot',
     };
+  }
+
+  // =========================================================================
+  // CUSTOMER SEARCH
+  // =========================================================================
+
+  async searchCustomers(query: string, limit = 10): Promise<CustomerSearchResult[]> {
+    const clean = query.trim();
+    const prisma = await this.getPrisma();
+
+    if (prisma) {
+      try {
+        const where: any = clean
+          ? {
+              OR: [
+                { name: { contains: clean, mode: 'insensitive' } },
+                { email: { contains: clean, mode: 'insensitive' } },
+                { phone: { contains: clean, mode: 'insensitive' } },
+                { loginCode: { contains: clean, mode: 'insensitive' } },
+                { id: clean },
+              ],
+            }
+          : {};
+
+        const users = await prisma.user.findMany({
+          where,
+          include: {
+            shipments: {
+              include: { container: { select: { containerNumber: true } } },
+              take: 15,
+            },
+          },
+          take: Math.min(limit, 30),
+        });
+
+        if (users.length > 0) {
+          return users.map((u: any) => ({
+            id: u.id,
+            name: u.name,
+            email: u.email,
+            phone: u.phone,
+            city: u.city,
+            country: u.country,
+            loginCode: u.loginCode || null,
+            role: u.role,
+            shipmentCount: (u.shipments || []).length,
+            shipments: (u.shipments || []).map((s: any) => ({
+              id: s.id,
+              vin: s.vehicleVIN || null,
+              vehicle: [s.vehicleYear, s.vehicleMake, s.vehicleModel].filter(Boolean).join(' ') || 'Vehicle',
+              status: s.status,
+              containerNumber: s.container?.containerNumber || null,
+            })),
+            dataSource: 'database' as const,
+          }));
+        }
+      } catch {
+        // Fallback
+      }
+    }
+
+    // Snapshot fallback
+    if (this.snapshotData?.users) {
+      const q = clean.toLowerCase();
+      const matched = this.snapshotData.users.filter((u: any) => {
+        if (!q) return true;
+        return (
+          (u.name || '').toLowerCase().includes(q) ||
+          (u.email || '').toLowerCase().includes(q) ||
+          (u.phone || '').toLowerCase().includes(q) ||
+          (u.loginCode || '').toLowerCase().includes(q) ||
+          u.id === clean
+        );
+      });
+
+      return matched.slice(0, limit).map((u: any) => {
+        const userShipments = (this.snapshotData.shipments || []).filter(
+          (s: any) => s.userId === u.id
+        );
+        return {
+          id: u.id,
+          name: u.name || null,
+          email: u.email,
+          phone: u.phone || null,
+          city: u.city || null,
+          country: u.country || null,
+          loginCode: u.loginCode || null,
+          role: u.role || 'user',
+          shipmentCount: userShipments.length,
+          shipments: userShipments.slice(0, 15).map((s: any) => {
+            const c = s.containerId
+              ? (this.snapshotData.containers || []).find((x: any) => x.id === s.containerId)
+              : null;
+            return {
+              id: s.id,
+              vin: s.vehicleVIN || null,
+              vehicle: `${s.vehicleYear || ''} ${s.vehicleMake || ''} ${s.vehicleModel || ''}`.trim() || 'Vehicle',
+              status: s.status,
+              containerNumber: c?.containerNumber || null,
+            };
+          }),
+          dataSource: 'snapshot' as const,
+        };
+      });
+    }
+
+    return [];
+  }
+
+  // =========================================================================
+  // LIST DISPATCHES (INLAND TOWING)
+  // =========================================================================
+
+  async listDispatches(options: {
+    status?: string;
+    search?: string;
+    limit?: number;
+  }): Promise<DispatchSearchResult[]> {
+    const limit = Math.min(options.limit || 15, 50);
+    const prisma = await this.getPrisma();
+
+    if (prisma) {
+      try {
+        const where: any = {};
+        if (options.status) where.status = options.status;
+        if (options.search) {
+          const q = options.search;
+          where.OR = [
+            { referenceNumber: { contains: q, mode: 'insensitive' } },
+            { origin: { contains: q, mode: 'insensitive' } },
+            { destination: { contains: q, mode: 'insensitive' } },
+          ];
+        }
+
+        const dispatches = await prisma.dispatch.findMany({
+          where,
+          include: {
+            company: true,
+            shipments: true,
+          },
+          orderBy: { createdAt: 'desc' },
+          take: limit,
+        });
+
+        if (dispatches.length > 0) {
+          return dispatches.map((d: any) => ({
+            id: d.id,
+            referenceNumber: d.referenceNumber,
+            status: d.status,
+            origin: d.origin,
+            destination: d.destination,
+            carrierName: d.company?.name || null,
+            dispatchDate: d.dispatchDate ? new Date(d.dispatchDate).toISOString() : null,
+            estimatedArrival: d.estimatedArrival ? new Date(d.estimatedArrival).toISOString() : null,
+            shipmentCount: (d.shipments || []).length,
+            vehicles: (d.shipments || []).map((s: any) => ({
+              id: s.id,
+              vin: s.vehicleVIN || null,
+              vehicle: [s.vehicleYear, s.vehicleMake, s.vehicleModel].filter(Boolean).join(' ') || 'Vehicle',
+              lotNumber: s.lotNumber || null,
+              status: s.status,
+            })),
+            dataSource: 'database' as const,
+          }));
+        }
+      } catch {
+        // Fallback
+      }
+    }
+
+    // Snapshot fallback
+    if (this.snapshotData?.dispatches) {
+      let list = [...this.snapshotData.dispatches];
+      if (options.status) {
+        list = list.filter((d) => d.status === options.status);
+      }
+      if (options.search) {
+        const q = options.search.toLowerCase();
+        list = list.filter(
+          (d) =>
+            (d.referenceNumber || '').toLowerCase().includes(q) ||
+            (d.origin || '').toLowerCase().includes(q) ||
+            (d.destination || '').toLowerCase().includes(q)
+        );
+      }
+
+      return list.slice(0, limit).map((d: any) => {
+        const company = d.companyId
+          ? (this.snapshotData.companies || []).find((c: any) => c.id === d.companyId)
+          : null;
+        const vehicles = (this.snapshotData.shipments || []).filter(
+          (s: any) => s.dispatchId === d.id
+        );
+
+        return {
+          id: d.id,
+          referenceNumber: d.referenceNumber || d.id,
+          status: d.status || 'PENDING',
+          origin: d.origin || 'Auction Yard',
+          destination: d.destination || 'Export Port',
+          carrierName: company?.name || null,
+          dispatchDate: d.dispatchDate || null,
+          estimatedArrival: d.estimatedArrival || null,
+          shipmentCount: vehicles.length,
+          vehicles: vehicles.map((s: any) => ({
+            id: s.id,
+            vin: s.vehicleVIN || null,
+            vehicle: `${s.vehicleYear || ''} ${s.vehicleMake || ''} ${s.vehicleModel || ''}`.trim() || 'Vehicle',
+            lotNumber: s.lotNumber || null,
+            status: s.status,
+          })),
+          dataSource: 'snapshot' as const,
+        };
+      });
+    }
+
+    return [];
+  }
+
+  // =========================================================================
+  // CALCULATE SHIPPING QUOTE ESTIMATE
+  // =========================================================================
+
+  calculateQuote(options: {
+    vehicleType?: string;
+    originPort?: string;
+    destination?: string;
+  }): QuoteEstimateResult {
+    const vType = (options.vehicleType || 'sedan').toLowerCase();
+    const origin = options.originPort || 'Savannah, GA / Houston, TX';
+    const dest = options.destination || 'Mersin -> Islam Qala / Herat';
+
+    const isSuvOrTruck =
+      vType.includes('suv') ||
+      vType.includes('truck') ||
+      vType.includes('pickup') ||
+      vType.includes('van');
+
+    const oceanFreightUsd = isSuvOrTruck ? 1650 : 1350;
+    const inlandTowingEstimateUsd = 450;
+    const isAfghanistan =
+      dest.toLowerCase().includes('islam qala') ||
+      dest.toLowerCase().includes('herat') ||
+      dest.toLowerCase().includes('kabul') ||
+      dest.toLowerCase().includes('afg');
+
+    const customsAndTransitUsd = isAfghanistan ? 950 : 350;
+    const totalEstimatedUsd =
+      oceanFreightUsd + inlandTowingEstimateUsd + customsAndTransitUsd;
+
+    return {
+      vehicleType: options.vehicleType || 'Standard Sedan',
+      originPort: origin,
+      destination: dest,
+      oceanFreightUsd,
+      inlandTowingEstimateUsd,
+      customsAndTransitUsd,
+      totalEstimatedUsd,
+      estimatedTransitDays: isAfghanistan ? '42 - 55 days' : '28 - 38 days',
+      notes: [
+        'Includes export customs clearance, container loading, and bracing at US port terminal.',
+        isAfghanistan
+          ? 'Includes Mersin port handling and overland transit corridor to Islam Qala / Herat.'
+          : 'Port-to-port ocean container freight rate (4-car consolidation basis).',
+        'Exact inland towing rate varies by Copart / IAAI auction sublot distance.',
+      ],
+    };
+  }
+
+  // =========================================================================
+  // MCP GATEWAY SETTINGS & ACTIVITY LOGGING
+  // =========================================================================
+
+  async getMcpGatewaySettings(): Promise<{
+    enabled: boolean;
+    apiKey: string;
+    authMode: 'required' | 'optional';
+    dataSource: 'database' | 'snapshot';
+  }> {
+    const defaultKey =
+      process.env.MCP_API_KEY ||
+      process.env.JACXI_API_KEY ||
+      'jx_mcp_e123d9017e0693f76939ee0b6bb2ea7f8f5d920d348f9f42';
+
+    const prisma = await this.getPrisma();
+    if (prisma) {
+      try {
+        const record = await prisma.aiProviderSettings.findUnique({
+          where: { scope: 'mcp-gateway' },
+        });
+        if (record) {
+          return {
+            enabled: record.enabled,
+            apiKey: record.apiKey || defaultKey,
+            authMode: record.provider === 'optional' ? 'optional' : 'required',
+            dataSource: 'database',
+          };
+        }
+      } catch {
+        // Fallback
+      }
+    }
+
+    return {
+      enabled: true,
+      apiKey: defaultKey,
+      authMode: 'required',
+      dataSource: prisma ? 'database' : 'snapshot',
+    };
+  }
+
+  async saveMcpGatewaySettings(input: {
+    enabled?: boolean;
+    apiKey?: string;
+    authMode?: 'required' | 'optional';
+  }) {
+    const current = await this.getMcpGatewaySettings();
+    const updated = {
+      enabled: input.enabled !== undefined ? input.enabled : current.enabled,
+      apiKey: input.apiKey ? input.apiKey.trim() : current.apiKey,
+      authMode: input.authMode || current.authMode,
+    };
+
+    // Update process.env in memory for immediate effect
+    process.env.MCP_API_KEY = updated.apiKey;
+
+    const prisma = await this.getPrisma();
+    if (prisma) {
+      try {
+        await prisma.aiProviderSettings.upsert({
+          where: { scope: 'mcp-gateway' },
+          update: {
+            enabled: updated.enabled,
+            apiKey: updated.apiKey,
+            provider: updated.authMode,
+          },
+          create: {
+            scope: 'mcp-gateway',
+            enabled: updated.enabled,
+            apiKey: updated.apiKey,
+            provider: updated.authMode,
+            model: 'mcp-v1',
+          },
+        });
+      } catch {
+        // Ignore if DB is read-only
+      }
+    }
+
+    return updated;
+  }
+
+  async logMcpActivity(entry: {
+    tool: string;
+    query: string;
+    provider?: string;
+    entityType?: string;
+    entityId?: string;
+    status?: 'SUCCESS' | 'ERROR';
+    responseSummary?: string;
+    requestPayload?: any;
+    responsePayload?: any;
+  }) {
+    const logItem = {
+      id: `mcp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      feature: `mcp-${entry.tool.replace(/_/g, '-')}`,
+      entityType: entry.entityType || 'MCP_TOOL',
+      entityId: entry.entityId || entry.query || null,
+      provider: entry.provider || 'mcp-gateway',
+      model: entry.tool,
+      prompt: entry.query || entry.tool,
+      response: entry.responseSummary || 'Completed',
+      requestPayload: entry.requestPayload || {},
+      responsePayload: entry.responsePayload || {},
+      status: entry.status || 'SUCCESS',
+      createdAt: new Date().toISOString(),
+    };
+
+    memoryLogs.unshift(logItem);
+    if (memoryLogs.length > 50) memoryLogs.pop();
+
+    const prisma = await this.getPrisma();
+    if (prisma) {
+      try {
+        await prisma.aiInteractionLog.create({
+          data: {
+            feature: logItem.feature,
+            entityType: logItem.entityType,
+            entityId: logItem.entityId,
+            provider: logItem.provider,
+            model: logItem.model,
+            prompt: logItem.prompt,
+            response: logItem.response,
+            requestPayload: logItem.requestPayload,
+            responsePayload: logItem.responsePayload,
+            status: logItem.status,
+          },
+        });
+      } catch {
+        // Non-fatal
+      }
+    }
+  }
+
+  async getRecentMcpLogs(limit = 25) {
+    const prisma = await this.getPrisma();
+    if (prisma) {
+      try {
+        const dbLogs = await prisma.aiInteractionLog.findMany({
+          where: {
+            OR: [
+              { feature: { startsWith: 'mcp-' } },
+              { provider: { contains: 'mcp' } },
+            ],
+          },
+          orderBy: { createdAt: 'desc' },
+          take: limit,
+        });
+        if (dbLogs.length > 0) {
+          return dbLogs;
+        }
+      } catch {
+        // Fallback to memory logs
+      }
+    }
+    return memoryLogs.slice(0, limit);
   }
 }
 

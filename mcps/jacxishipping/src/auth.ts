@@ -21,7 +21,7 @@ export interface AuthResult {
  *  - Query: ?key=<TOKEN> or ?apiKey=<TOKEN>
  */
 export async function verifyAuth(request: Request): Promise<AuthResult> {
-  const configuredKey = process.env.MCP_API_KEY || process.env.JACXI_API_KEY;
+  const envKey = process.env.MCP_API_KEY || process.env.JACXI_API_KEY;
 
   // Extract token from multiple possible sources
   let token: string | null = null;
@@ -48,14 +48,59 @@ export async function verifyAuth(request: Request): Promise<AuthResult> {
   if (!token) {
     try {
       const url = new URL(request.url);
-      token = url.searchParams.get('key') || url.searchParams.get('apiKey') || url.searchParams.get('api_key');
+      token =
+        url.searchParams.get('key') ||
+        url.searchParams.get('apiKey') ||
+        url.searchParams.get('api_key');
     } catch {
       // Ignore URL parse errors
     }
   }
 
-  // If NO master API key is configured in environment, allow with warning or dev mode
-  if (!configuredKey) {
+  // Check if token matches env key immediately
+  if (token && envKey && token === envKey) {
+    return {
+      authenticated: true,
+      authType: 'api_key',
+    };
+  }
+
+  // Check database-configured MCP Gateway settings & user login codes
+  let dbKey: string | null = null;
+  let dbEnabled = true;
+  let dbAuthMode: 'required' | 'optional' = 'required';
+
+  try {
+    const settings = await prisma.aiProviderSettings.findUnique({
+      where: { scope: 'mcp-gateway' },
+    });
+    if (settings) {
+      dbEnabled = settings.enabled;
+      dbKey = settings.apiKey;
+      dbAuthMode = settings.provider === 'optional' ? 'optional' : 'required';
+    }
+  } catch {
+    // Database settings lookup optional
+  }
+
+  if (!dbEnabled) {
+    return {
+      authenticated: false,
+      error: 'The Jacxi MCP & AI Gateway is currently paused by an administrator.',
+    };
+  }
+
+  if (token && dbKey && token === dbKey) {
+    return {
+      authenticated: true,
+      authType: 'api_key',
+    };
+  }
+
+  const effectiveKey = dbKey || envKey;
+
+  // If no key is configured or authMode is set to optional, allow
+  if (!effectiveKey || dbAuthMode === 'optional') {
     return {
       authenticated: true,
       authType: 'public_dev',
@@ -65,15 +110,8 @@ export async function verifyAuth(request: Request): Promise<AuthResult> {
   if (!token) {
     return {
       authenticated: false,
-      error: 'Authentication required. Please provide an API key via Bearer token, X-API-Key header, or ?key= query parameter.',
-    };
-  }
-
-  // Check master API key
-  if (token === configuredKey) {
-    return {
-      authenticated: true,
-      authType: 'api_key',
+      error:
+        'Authentication required. Please provide an API key via Bearer token, X-API-Key header, or ?key= query parameter.',
     };
   }
 
@@ -81,10 +119,7 @@ export async function verifyAuth(request: Request): Promise<AuthResult> {
   try {
     const user = await prisma.user.findFirst({
       where: {
-        OR: [
-          { loginCode: token },
-          { id: token },
-        ],
+        OR: [{ loginCode: token }, { id: token }],
       },
       select: {
         id: true,

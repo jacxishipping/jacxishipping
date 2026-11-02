@@ -102,7 +102,7 @@ print(response.text)
 
 ### Simple HTTP GET Test for Gemini or Browser
 ```bash
-curl "https://jacxishipping.com/api/gemini?action=search_vin&vin=JTEBU5JR4A5011946&key=YOUR_MCP_API_KEY"
+curl "https://jacxishipping.com/api/gemini?action=search_vin&vin=JTEBU5JR4A5011946&key=jx_mcp_e123d9017e0693f76939ee0b6bb2ea7f8f5d920d348f9f42"
 ```
 
 ---

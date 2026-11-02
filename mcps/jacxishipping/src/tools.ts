@@ -1,5 +1,263 @@
 import { z } from 'zod';
 import { JacxiDataProvider } from './data-provider';
+import { McpToolMetadata } from './types';
+
+export function getMcpToolsCatalog(): McpToolMetadata[] {
+  return [
+    {
+      name: 'search_vin',
+      category: 'Search',
+      description:
+        'Search for a vehicle shipment by full (17-char) or partial VIN, auction lot number, or shipment ID.',
+      parameters: [
+        {
+          name: 'vin',
+          type: 'string',
+          required: true,
+          description: 'Full or partial Vehicle Identification Number (VIN), lot number, or shipment ID',
+        },
+        {
+          name: 'includeTracking',
+          type: 'boolean',
+          required: false,
+          description: 'Include chronological tracking milestone events',
+          defaultValue: 'true',
+        },
+      ],
+      sampleArgs: {
+        vin: 'JTEBU5JR4A5011946',
+        includeTracking: true,
+      },
+    },
+    {
+      name: 'search_container',
+      category: 'Search',
+      description:
+        'Search for an ocean freight container by container number, booking number, or tracking ID.',
+      parameters: [
+        {
+          name: 'containerNumber',
+          type: 'string',
+          required: true,
+          description: 'Container number (e.g. CAAU5189072, MSKU...), booking number, or tracking ID',
+        },
+        {
+          name: 'includeShipments',
+          type: 'boolean',
+          required: false,
+          description: 'Include list of all vehicles loaded inside the container',
+          defaultValue: 'true',
+        },
+      ],
+      sampleArgs: {
+        containerNumber: 'CAAU5189072',
+        includeShipments: true,
+      },
+    },
+    {
+      name: 'track',
+      category: 'Tracking',
+      description:
+        'Universal live tracking resolver for any VIN, container number, booking number, or lot number.',
+      parameters: [
+        {
+          name: 'query',
+          type: 'string',
+          required: true,
+          description: 'VIN, Container number, Booking number, or Lot number',
+        },
+      ],
+      sampleArgs: {
+        query: 'CAAU5189072',
+      },
+    },
+    {
+      name: 'list_containers',
+      category: 'Operations',
+      description:
+        'List ocean freight containers with filters for lifecycle status, destination port, or search keyword.',
+      parameters: [
+        {
+          name: 'status',
+          type: 'string',
+          required: false,
+          description: "Filter by status: 'active', 'IN_TRANSIT', 'LOADED', 'WAITING_FOR_LOADING', 'ARRIVED', 'DELIVERED', 'CREATED'",
+        },
+        {
+          name: 'destinationPort',
+          type: 'string',
+          required: false,
+          description: 'Filter by destination port (e.g. Mersin, Dubai)',
+        },
+        {
+          name: 'search',
+          type: 'string',
+          required: false,
+          description: 'Keyword search for container, booking, or vessel',
+        },
+        {
+          name: 'limit',
+          type: 'number',
+          required: false,
+          description: 'Maximum results to return (default 15)',
+          defaultValue: '15',
+        },
+      ],
+      sampleArgs: {
+        status: 'active',
+        limit: 10,
+      },
+    },
+    {
+      name: 'list_shipments',
+      category: 'Operations',
+      description:
+        'List vehicle shipments with filters for status, search query, or container assignment.',
+      parameters: [
+        {
+          name: 'status',
+          type: 'string',
+          required: false,
+          description: "Filter by status: 'ON_HAND', 'DISPATCHING', 'IN_TRANSIT', 'RELEASED', 'DELIVERED'",
+        },
+        {
+          name: 'search',
+          type: 'string',
+          required: false,
+          description: 'Search by VIN, make, model, or lot number',
+        },
+        {
+          name: 'containerNumber',
+          type: 'string',
+          required: false,
+          description: 'Filter by assigned container number',
+        },
+        {
+          name: 'limit',
+          type: 'number',
+          required: false,
+          description: 'Maximum results to return (default 15)',
+          defaultValue: '15',
+        },
+      ],
+      sampleArgs: {
+        status: 'IN_TRANSIT',
+        limit: 10,
+      },
+    },
+    {
+      name: 'get_shipping_overview',
+      category: 'Analytics',
+      description:
+        'Get real-time operational shipping statistics, container breakdowns, and yard inventory counts.',
+      parameters: [],
+      sampleArgs: {},
+    },
+    {
+      name: 'search_customer',
+      category: 'Search',
+      description:
+        'Search customers by name, email, phone, or 8-character login code and list their vehicle shipments.',
+      parameters: [
+        {
+          name: 'query',
+          type: 'string',
+          required: true,
+          description: 'Customer name, email, phone number, or login code',
+        },
+        {
+          name: 'limit',
+          type: 'number',
+          required: false,
+          description: 'Maximum customers to return (default 10)',
+          defaultValue: '10',
+        },
+      ],
+      sampleArgs: {
+        query: 'Aziz',
+        limit: 5,
+      },
+    },
+    {
+      name: 'list_dispatches',
+      category: 'Operations',
+      description:
+        'List inland towing dispatches from US auction yards (Copart/IAAI) to export port terminals.',
+      parameters: [
+        {
+          name: 'status',
+          type: 'string',
+          required: false,
+          description: 'Filter by dispatch status (e.g. PENDING, IN_TRANSIT, COMPLETED)',
+        },
+        {
+          name: 'search',
+          type: 'string',
+          required: false,
+          description: 'Search by reference number, origin, or destination',
+        },
+        {
+          name: 'limit',
+          type: 'number',
+          required: false,
+          description: 'Maximum dispatches to return (default 15)',
+          defaultValue: '15',
+        },
+      ],
+      sampleArgs: {
+        limit: 10,
+      },
+    },
+    {
+      name: 'get_container_manifest',
+      category: 'Operations',
+      description:
+        'Generate a complete cargo manifest report for a container, including all loaded vehicles, VINs, customers, and customs readiness.',
+      parameters: [
+        {
+          name: 'containerNumber',
+          type: 'string',
+          required: true,
+          description: 'Container number (e.g. CAAU5189072)',
+        },
+      ],
+      sampleArgs: {
+        containerNumber: 'CAAU5189072',
+      },
+    },
+    {
+      name: 'calculate_shipping_quote',
+      category: 'Quotes',
+      description:
+        'Calculate an estimated end-to-end shipping quote (inland towing + ocean freight + transit) from US ports to destination.',
+      parameters: [
+        {
+          name: 'vehicleType',
+          type: 'string',
+          required: true,
+          description: 'Vehicle type (e.g. Sedan, SUV, Pickup Truck)',
+        },
+        {
+          name: 'originPort',
+          type: 'string',
+          required: false,
+          description: 'US Port of Loading (e.g. Savannah, Houston, New York, Los Angeles)',
+        },
+        {
+          name: 'destination',
+          type: 'string',
+          required: false,
+          description: 'Final destination (e.g. Mersin, Islam Qala, Herat, Kabul, Dubai)',
+        },
+      ],
+      sampleArgs: {
+        vehicleType: 'SUV',
+        originPort: 'Houston, TX',
+        destination: 'Islam Qala, Afghanistan',
+      },
+    },
+  ];
+}
 
 export function registerJacxiTools(server: any, provider: JacxiDataProvider) {
   // =========================================================================
@@ -22,6 +280,15 @@ export function registerJacxiTools(server: any, provider: JacxiDataProvider) {
     async ({ vin, includeTracking }: { vin: string; includeTracking: boolean }) => {
       try {
         const results = await provider.searchVin(vin, includeTracking);
+        await provider.logMcpActivity({
+          tool: 'search_vin',
+          query: vin,
+          entityType: 'SHIPMENT',
+          entityId: vin,
+          responseSummary: `Found ${results.length} vehicle(s)`,
+          requestPayload: { vin, includeTracking },
+          responsePayload: { count: results.length },
+        });
 
         if (results.length === 0) {
           return {
@@ -34,7 +301,6 @@ export function registerJacxiTools(server: any, provider: JacxiDataProvider) {
           };
         }
 
-        // Format primary result with markdown
         const formatted = results
           .map((item, idx) => {
             const carDesc = [item.year, item.make, item.model].filter(Boolean).join(' ') || 'Vehicle';
@@ -52,7 +318,6 @@ export function registerJacxiTools(server: any, provider: JacxiDataProvider) {
               md += `- **Current Location**: ${item.currentLocation}\n`;
             }
 
-            // Container Info
             if (item.container) {
               md += `\n**Container Assignment**:\n`;
               md += `  - **Container #**: \`${item.container.containerNumber}\`\n`;
@@ -68,7 +333,6 @@ export function registerJacxiTools(server: any, provider: JacxiDataProvider) {
               md += `\n**Container**: Not yet loaded into an ocean container.\n`;
             }
 
-            // Inland Dispatch
             if (item.dispatch) {
               md += `\n**Inland Dispatch**:\n`;
               md += `  - **Carrier**: ${item.dispatch.carrier || 'Towing'}\n`;
@@ -76,7 +340,6 @@ export function registerJacxiTools(server: any, provider: JacxiDataProvider) {
               if (item.dispatch.status) md += `  - **Dispatch Status**: ${item.dispatch.status}\n`;
             }
 
-            // Timeline / Tracking
             if (includeTracking && item.trackingEvents && item.trackingEvents.length > 0) {
               md += `\n**Tracking Milestones**:\n`;
               for (const ev of item.trackingEvents) {
@@ -93,14 +356,8 @@ export function registerJacxiTools(server: any, provider: JacxiDataProvider) {
 
         return {
           content: [
-            {
-              type: 'text',
-              text: formatted,
-            },
-            {
-              type: 'text',
-              text: `JSON Payload:\n` + JSON.stringify(results, null, 2),
-            },
+            { type: 'text', text: formatted },
+            { type: 'text', text: `JSON Payload:\n` + JSON.stringify(results, null, 2) },
           ],
         };
       } catch (err: any) {
@@ -138,6 +395,15 @@ export function registerJacxiTools(server: any, provider: JacxiDataProvider) {
     }) => {
       try {
         const results = await provider.searchContainer(containerNumber, includeShipments);
+        await provider.logMcpActivity({
+          tool: 'search_container',
+          query: containerNumber,
+          entityType: 'CONTAINER',
+          entityId: containerNumber,
+          responseSummary: `Found ${results.length} container(s)`,
+          requestPayload: { containerNumber, includeShipments },
+          responsePayload: { count: results.length },
+        });
 
         if (results.length === 0) {
           return {
@@ -181,14 +447,8 @@ export function registerJacxiTools(server: any, provider: JacxiDataProvider) {
 
         return {
           content: [
-            {
-              type: 'text',
-              text: formatted,
-            },
-            {
-              type: 'text',
-              text: `JSON Payload:\n` + JSON.stringify(results, null, 2),
-            },
+            { type: 'text', text: formatted },
+            { type: 'text', text: `JSON Payload:\n` + JSON.stringify(results, null, 2) },
           ],
         };
       } catch (err: any) {
@@ -215,15 +475,18 @@ export function registerJacxiTools(server: any, provider: JacxiDataProvider) {
     async ({ query }: { query: string }) => {
       try {
         const tracking = await provider.track(query);
+        await provider.logMcpActivity({
+          tool: 'track',
+          query,
+          entityType: tracking?.resolvedType || 'TRACKING',
+          entityId: query,
+          responseSummary: tracking ? `Resolved as ${tracking.resolvedType} (${tracking.shipmentStatus})` : 'Not found',
+          requestPayload: { query },
+        });
 
         if (!tracking) {
           return {
-            content: [
-              {
-                type: 'text',
-                text: `No tracking information found for "${query}".`,
-              },
-            ],
+            content: [{ type: 'text', text: `No tracking information found for "${query}".` }],
           };
         }
 
@@ -258,14 +521,8 @@ export function registerJacxiTools(server: any, provider: JacxiDataProvider) {
 
         return {
           content: [
-            {
-              type: 'text',
-              text: md,
-            },
-            {
-              type: 'text',
-              text: `JSON Payload:\n` + JSON.stringify(tracking, null, 2),
-            },
+            { type: 'text', text: md },
+            { type: 'text', text: `JSON Payload:\n` + JSON.stringify(tracking, null, 2) },
           ],
         };
       } catch (err: any) {
@@ -310,15 +567,17 @@ export function registerJacxiTools(server: any, provider: JacxiDataProvider) {
     }) => {
       try {
         const containers = await provider.listContainers(args);
+        await provider.logMcpActivity({
+          tool: 'list_containers',
+          query: args.search || args.status || 'all',
+          entityType: 'CONTAINER',
+          responseSummary: `Listed ${containers.length} containers`,
+          requestPayload: args,
+        });
 
         if (containers.length === 0) {
           return {
-            content: [
-              {
-                type: 'text',
-                text: 'No containers found matching the criteria.',
-              },
-            ],
+            content: [{ type: 'text', text: 'No containers found matching the criteria.' }],
           };
         }
 
@@ -333,14 +592,8 @@ export function registerJacxiTools(server: any, provider: JacxiDataProvider) {
 
         return {
           content: [
-            {
-              type: 'text',
-              text: md,
-            },
-            {
-              type: 'text',
-              text: `JSON Payload:\n` + JSON.stringify(containers, null, 2),
-            },
+            { type: 'text', text: md },
+            { type: 'text', text: `JSON Payload:\n` + JSON.stringify(containers, null, 2) },
           ],
         };
       } catch (err: any) {
@@ -385,15 +638,17 @@ export function registerJacxiTools(server: any, provider: JacxiDataProvider) {
     }) => {
       try {
         const shipments = await provider.listShipments(args);
+        await provider.logMcpActivity({
+          tool: 'list_shipments',
+          query: args.search || args.status || 'all',
+          entityType: 'SHIPMENT',
+          responseSummary: `Listed ${shipments.length} shipments`,
+          requestPayload: args,
+        });
 
         if (shipments.length === 0) {
           return {
-            content: [
-              {
-                type: 'text',
-                text: 'No vehicle shipments found matching the criteria.',
-              },
-            ],
+            content: [{ type: 'text', text: 'No vehicle shipments found matching the criteria.' }],
           };
         }
 
@@ -410,14 +665,8 @@ export function registerJacxiTools(server: any, provider: JacxiDataProvider) {
 
         return {
           content: [
-            {
-              type: 'text',
-              text: md,
-            },
-            {
-              type: 'text',
-              text: `JSON Payload:\n` + JSON.stringify(shipments, null, 2),
-            },
+            { type: 'text', text: md },
+            { type: 'text', text: `JSON Payload:\n` + JSON.stringify(shipments, null, 2) },
           ],
         };
       } catch (err: any) {
@@ -439,6 +688,12 @@ export function registerJacxiTools(server: any, provider: JacxiDataProvider) {
     async () => {
       try {
         const stats = await provider.getStats();
+        await provider.logMcpActivity({
+          tool: 'get_shipping_overview',
+          query: 'overview',
+          entityType: 'ANALYTICS',
+          responseSummary: `${stats.totalShipments} shipments, ${stats.totalContainers} containers`,
+        });
 
         let md = `## 📊 Jacxi Shipping Overview\n\n`;
         md += `- **Total Shipments**: **${stats.totalShipments}**\n`;
@@ -459,14 +714,8 @@ export function registerJacxiTools(server: any, provider: JacxiDataProvider) {
 
         return {
           content: [
-            {
-              type: 'text',
-              text: md,
-            },
-            {
-              type: 'text',
-              text: `JSON Payload:\n` + JSON.stringify(stats, null, 2),
-            },
+            { type: 'text', text: md },
+            { type: 'text', text: `JSON Payload:\n` + JSON.stringify(stats, null, 2) },
           ],
         };
       } catch (err: any) {
@@ -477,5 +726,284 @@ export function registerJacxiTools(server: any, provider: JacxiDataProvider) {
       }
     }
   );
-}
 
+  // =========================================================================
+  // 7. SEARCH CUSTOMER
+  // =========================================================================
+  server.tool(
+    'search_customer',
+    'Search customers by name, email, phone, or 8-character login code and list their vehicle shipments.',
+    {
+      query: z.string().min(1).describe('Customer name, email, phone number, or login code'),
+      limit: z.number().optional().default(10).describe('Max customers to return (default 10)'),
+    },
+    async ({ query, limit }: { query: string; limit: number }) => {
+      try {
+        const customers = await provider.searchCustomers(query, limit);
+        await provider.logMcpActivity({
+          tool: 'search_customer',
+          query,
+          entityType: 'CUSTOMER',
+          entityId: query,
+          responseSummary: `Found ${customers.length} customer(s)`,
+          requestPayload: { query, limit },
+        });
+
+        if (customers.length === 0) {
+          return {
+            content: [{ type: 'text', text: `No customers found matching "${query}".` }],
+          };
+        }
+
+        let md = `### Found ${customers.length} Customer(s)\n\n`;
+        for (const cust of customers) {
+          md += `#### 👤 ${cust.name || 'Unnamed'} (${cust.email})\n`;
+          if (cust.phone) md += `- **Phone**: ${cust.phone}\n`;
+          if (cust.city || cust.country) md += `- **Location**: ${[cust.city, cust.country].filter(Boolean).join(', ')}\n`;
+          md += `- **Total Shipments**: ${cust.shipmentCount}\n`;
+          if (cust.shipments.length > 0) {
+            md += `- **Vehicles**:\n`;
+            for (const s of cust.shipments) {
+              md += `  - **${s.vehicle}** (VIN: \`${s.vin || 'N/A'}\`) — Status: \`${s.status}\` ${s.containerNumber ? `[Container: \`${s.containerNumber}\`]` : ''}\n`;
+            }
+          }
+          md += `\n`;
+        }
+
+        return {
+          content: [
+            { type: 'text', text: md },
+            { type: 'text', text: `JSON Payload:\n` + JSON.stringify(customers, null, 2) },
+          ],
+        };
+      } catch (err: any) {
+        return {
+          isError: true,
+          content: [{ type: 'text', text: `Failed to search customers: ${err?.message || err}` }],
+        };
+      }
+    }
+  );
+
+  // =========================================================================
+  // 8. LIST DISPATCHES
+  // =========================================================================
+  server.tool(
+    'list_dispatches',
+    'List inland towing dispatches from US auction yards to export port terminals.',
+    {
+      status: z.string().optional().describe('Filter by dispatch status'),
+      search: z.string().optional().describe('Search by reference number, origin, or destination'),
+      limit: z.number().optional().default(15).describe('Max dispatches to return'),
+    },
+    async (args: { status?: string; search?: string; limit?: number }) => {
+      try {
+        const dispatches = await provider.listDispatches(args);
+        await provider.logMcpActivity({
+          tool: 'list_dispatches',
+          query: args.search || args.status || 'all',
+          entityType: 'DISPATCH',
+          responseSummary: `Found ${dispatches.length} dispatch(es)`,
+          requestPayload: args,
+        });
+
+        if (dispatches.length === 0) {
+          return {
+            content: [{ type: 'text', text: 'No dispatches found matching the criteria.' }],
+          };
+        }
+
+        let md = `### Found ${dispatches.length} Inland Dispatches\n\n`;
+        md += `| Ref # | Route | Carrier | Status | Vehicles |\n`;
+        md += `| :--- | :--- | :--- | :--- | :--- |\n`;
+        for (const d of dispatches) {
+          md += `| \`${d.referenceNumber}\` | ${d.origin} → ${d.destination} | ${d.carrierName || 'Towing'} | \`${d.status}\` | ${d.shipmentCount} |\n`;
+        }
+
+        return {
+          content: [
+            { type: 'text', text: md },
+            { type: 'text', text: `JSON Payload:\n` + JSON.stringify(dispatches, null, 2) },
+          ],
+        };
+      } catch (err: any) {
+        return {
+          isError: true,
+          content: [{ type: 'text', text: `Failed to list dispatches: ${err?.message || err}` }],
+        };
+      }
+    }
+  );
+
+  // =========================================================================
+  // 9. GET CONTAINER MANIFEST
+  // =========================================================================
+  server.tool(
+    'get_container_manifest',
+    'Generate a complete cargo manifest report for a container, including all loaded vehicles, VINs, and customer breakdown.',
+    {
+      containerNumber: z.string().min(1).describe('Container number (e.g. CAAU5189072)'),
+    },
+    async ({ containerNumber }: { containerNumber: string }) => {
+      try {
+        const results = await provider.searchContainer(containerNumber, true);
+        await provider.logMcpActivity({
+          tool: 'get_container_manifest',
+          query: containerNumber,
+          entityType: 'CONTAINER',
+          entityId: containerNumber,
+          responseSummary: results[0]
+            ? `Manifest for ${results[0].containerNumber} (${results[0].shipmentCount} units)`
+            : 'Container not found',
+        });
+
+        if (results.length === 0) {
+          return {
+            content: [{ type: 'text', text: `Container "${containerNumber}" not found.` }],
+          };
+        }
+
+        const c = results[0];
+        let md = `## 📋 Official Container Manifest: \`${c.containerNumber}\`\n\n`;
+        md += `- **Booking Number**: ${c.bookingNumber || 'N/A'}\n`;
+        md += `- **Shipping Line**: ${c.shippingLine || 'N/A'}\n`;
+        md += `- **Vessel / Voyage**: ${c.vesselName || 'TBA'} / ${c.voyageNumber || 'TBA'}\n`;
+        md += `- **Port of Loading (POL)**: ${c.loadingPort || 'N/A'}\n`;
+        md += `- **Port of Discharge (POD)**: ${c.destinationPort || 'N/A'}\n`;
+        md += `- **Departure Date**: ${c.departureDate ? new Date(c.departureDate).toLocaleDateString() : 'Pending'}\n`;
+        md += `- **Estimated Arrival (ETA)**: ${c.estimatedArrival ? new Date(c.estimatedArrival).toLocaleDateString() : 'Pending'}\n`;
+        md += `- **Total Loaded Units**: ${c.shipmentCount} / ${c.maxCapacity || 4}\n\n`;
+
+        md += `### Cargo Itemization\n`;
+        md += `| # | Vehicle | VIN | Lot # | Customer | Status |\n`;
+        md += `| :--- | :--- | :--- | :--- | :--- | :--- |\n`;
+        c.shipments.forEach((s, idx) => {
+          md += `| ${idx + 1} | **${s.vehicle}** | \`${s.vin || 'N/A'}\` | ${s.lotNumber || '-'} | ${s.customerName || '-'} | \`${s.status}\` |\n`;
+        });
+
+        return {
+          content: [
+            { type: 'text', text: md },
+            { type: 'text', text: `JSON Payload:\n` + JSON.stringify(c, null, 2) },
+          ],
+        };
+      } catch (err: any) {
+        return {
+          isError: true,
+          content: [{ type: 'text', text: `Failed to generate manifest: ${err?.message || err}` }],
+        };
+      }
+    }
+  );
+
+  // =========================================================================
+  // 10. CALCULATE SHIPPING QUOTE
+  // =========================================================================
+  server.tool(
+    'calculate_shipping_quote',
+    'Calculate an estimated shipping quote (inland towing + ocean freight + transit) from US ports to final destination.',
+    {
+      vehicleType: z.string().describe('Vehicle type (e.g. Sedan, SUV, Pickup Truck)'),
+      originPort: z.string().optional().describe('US Port of Loading (e.g. Savannah, Houston, New York, Los Angeles)'),
+      destination: z.string().optional().describe('Final destination (e.g. Mersin, Islam Qala, Herat, Kabul, Dubai)'),
+    },
+    async (args: { vehicleType: string; originPort?: string; destination?: string }) => {
+      const quote = provider.calculateQuote(args);
+      await provider.logMcpActivity({
+        tool: 'calculate_shipping_quote',
+        query: `${args.vehicleType} to ${args.destination || 'Destination'}`,
+        entityType: 'QUOTE',
+        responseSummary: `Estimated total: $${quote.totalEstimatedUsd} USD`,
+        requestPayload: args,
+        responsePayload: quote,
+      });
+
+      let md = `## 💰 Estimated Shipping Quote\n\n`;
+      md += `- **Vehicle Type**: ${quote.vehicleType}\n`;
+      md += `- **Origin Port (POL)**: ${quote.originPort}\n`;
+      md += `- **Final Destination**: ${quote.destination}\n`;
+      md += `- **Estimated Transit Time**: ${quote.estimatedTransitDays}\n\n`;
+      md += `### Cost Breakdown (USD)\n`;
+      md += `- **Inland Towing Estimate**: \`$${quote.inlandTowingEstimateUsd}\`\n`;
+      md += `- **Ocean Container Freight**: \`$${quote.oceanFreightUsd}\`\n`;
+      md += `- **Customs & Overland Transit**: \`$${quote.customsAndTransitUsd}\`\n`;
+      md += `- **Total Estimated Rate**: **\`$${quote.totalEstimatedUsd} USD\`**\n\n`;
+      md += `### Notes:\n`;
+      for (const note of quote.notes) {
+        md += `- ${note}\n`;
+      }
+
+      return {
+        content: [
+          { type: 'text', text: md },
+          { type: 'text', text: `JSON Payload:\n` + JSON.stringify(quote, null, 2) },
+        ],
+      };
+    }
+  );
+
+  // =========================================================================
+  // MCP RESOURCES & PROMPTS
+  // =========================================================================
+  if (typeof server.resource === 'function') {
+    server.resource(
+      'shipping-overview',
+      'jacxi://stats/overview',
+      async (uri: URL) => {
+        const stats = await provider.getStats();
+        return {
+          contents: [
+            {
+              uri: uri.href,
+              mimeType: 'application/json',
+              text: JSON.stringify(stats, null, 2),
+            },
+          ],
+        };
+      }
+    );
+
+    server.resource(
+      'active-containers',
+      'jacxi://containers/active',
+      async (uri: URL) => {
+        const containers = await provider.listContainers({ status: 'active', limit: 25 });
+        return {
+          contents: [
+            {
+              uri: uri.href,
+              mimeType: 'application/json',
+              text: JSON.stringify(containers, null, 2),
+            },
+          ],
+        };
+      }
+    );
+  }
+
+  if (typeof server.prompt === 'function') {
+    server.prompt(
+      'customer-tracking-update',
+      'Draft a professional customer tracking update message for a vehicle VIN or container',
+      { query: z.string().describe('VIN or Container Number') },
+      async ({ query }: { query: string }) => {
+        const tracking = await provider.track(query);
+        return {
+          messages: [
+            {
+              role: 'user',
+              content: {
+                type: 'text',
+                text: `Please draft a polite, clear WhatsApp and Email update for our Jacxi Shipping customer regarding "${query}". Here is the live tracking data:\n\n${JSON.stringify(
+                  tracking,
+                  null,
+                  2
+                )}`,
+              },
+            },
+          ],
+        };
+      }
+    );
+  }
+}
