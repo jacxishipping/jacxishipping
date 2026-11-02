@@ -1,15 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { JacxiDataProvider } from '../../../../../mcps/jacxishipping/src/data-provider';
+import { verifyAuth } from '../../../../../mcps/jacxishipping/src/auth';
 
 const provider = new JacxiDataProvider();
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-API-Key',
 };
 
 export async function GET(request: NextRequest) {
+  const auth = await verifyAuth(request);
+  if (!auth.authenticated) {
+    return NextResponse.json({ error: auth.error }, { status: 401, headers: corsHeaders });
+  }
+
   const { searchParams } = new URL(request.url);
   const query = (
     searchParams.get('query') ||
@@ -34,6 +40,11 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await verifyAuth(request);
+  if (!auth.authenticated) {
+    return NextResponse.json({ error: auth.error }, { status: 401, headers: corsHeaders });
+  }
+
   try {
     const body = await request.json();
     const query = (body.query || body.trackNumber || body.trackingNumber || '').trim();

@@ -149,6 +149,65 @@ export function getOpenApiSpec(baseUrl?: string) {
         },
       },
     },
+    components: {
+      securitySchemes: {
+        BearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT or API Key',
+          description: 'Enter your Jacxi MCP API key or login code',
+        },
+        ApiKeyAuth: {
+          type: 'apiKey',
+          in: 'header',
+          name: 'X-API-Key',
+          description: 'Custom API Key header',
+        },
+      },
+    },
+    security: [
+      {
+        BearerAuth: [],
+      },
+      {
+        ApiKeyAuth: [],
+      },
+    ],
+  };
+}
+
+/**
+ * Official ChatGPT Plugin Manifest (.well-known/ai-plugin.json)
+ */
+export function getChatGPTPluginManifest(baseUrl?: string) {
+  const host = (baseUrl || process.env.NEXT_PUBLIC_APP_URL || 'https://jacxishipping.com').replace(/\/$/, '');
+  const hasKey = Boolean(process.env.MCP_API_KEY || process.env.JACXI_API_KEY);
+
+  return {
+    schema_version: 'v1',
+    name_for_human: 'Jacxi Shipping',
+    name_for_model: 'jacxishipping',
+    description_for_human:
+      'Search vehicle shipments by VIN or lot number and track ocean freight containers with Jacxi Shipping.',
+    description_for_model:
+      'Plugin for Jacxi Shipping web app. Allows searching vehicle shipments by VIN, lot number, or shipment ID; searching ocean containers by container number, booking number, or tracking number; and obtaining real-time tracking milestones.',
+    auth: hasKey
+      ? {
+          type: 'service_http',
+          authorization_type: 'bearer',
+          verification_tokens: {},
+        }
+      : {
+          type: 'none',
+        },
+    api: {
+      type: 'openapi',
+      url: `${host}/openapi.json`,
+      is_user_authenticated: false,
+    },
+    logo_url: `${host}/favicon.png`,
+    contact_email: 'support@jacxishipping.com',
+    legal_info_url: `${host}`,
   };
 }
 

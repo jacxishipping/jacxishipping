@@ -3,10 +3,30 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js';
 import { JacxiDataProvider } from '../../../../mcps/jacxishipping/src/data-provider';
 import { registerJacxiTools } from '../../../../mcps/jacxishipping/src/tools';
+import { verifyAuth } from '../../../../mcps/jacxishipping/src/auth';
 
 const provider = new JacxiDataProvider();
 
 export async function POST(request: NextRequest) {
+  // Verify authentication if configured
+  const auth = await verifyAuth(request);
+  if (!auth.authenticated) {
+    return NextResponse.json(
+      {
+        jsonrpc: '2.0',
+        error: { code: -32000, message: auth.error || 'Authentication required' },
+        id: null,
+      },
+      {
+        status: 401,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-API-Key',
+        },
+      }
+    );
+  }
+
   try {
     const mcpServer = new McpServer({
       name: 'jacxishipping',
@@ -63,6 +83,20 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
+  const auth = await verifyAuth(request);
+  if (!auth.authenticated) {
+    return NextResponse.json(
+      { error: auth.error || 'Authentication required' },
+      {
+        status: 401,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-API-Key',
+        },
+      }
+    );
+  }
+
   try {
     const mcpServer = new McpServer({
       name: 'jacxishipping',

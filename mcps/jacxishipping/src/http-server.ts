@@ -9,7 +9,9 @@ import {
   getOpenAITools,
   getGeminiTools,
   getClaudeTools,
+  getChatGPTPluginManifest,
 } from './ai-schemas';
+import { verifyAuth } from './auth';
 
 const PORT = Number(process.env.MCP_HTTP_PORT || process.env.PORT || 3333);
 const HOST = process.env.HOST || '0.0.0.0';
@@ -85,8 +87,13 @@ export async function startHttpServer() {
     }
 
     // -----------------------------------------------------------------------
-    // 2. OPENAPI SPECIFICATION (FOR CHATGPT ACTIONS / CUSTOM GPTS)
+    // 2. CHATGPT PLUGIN MANIFEST & OPENAPI SPECIFICATION
     // -----------------------------------------------------------------------
+    if (pathname === '/.well-known/ai-plugin.json') {
+      sendJson(200, getChatGPTPluginManifest(baseUrl));
+      return;
+    }
+
     if (pathname === '/openapi.json') {
       sendJson(200, getOpenApiSpec(baseUrl));
       return;
@@ -108,6 +115,21 @@ export async function startHttpServer() {
     if (pathname === '/schemas/claude') {
       sendJson(200, { tools: getClaudeTools() });
       return;
+    }
+
+    // -----------------------------------------------------------------------
+    // AUTHENTICATION CHECK FOR PROTECTED ENDPOINTS
+    // -----------------------------------------------------------------------
+    if (pathname.startsWith('/api/') || pathname === '/sse' || pathname === '/messages') {
+      const dummyReq = new Request(`${baseUrl}${pathname}${parsedUrl.search || ''}`, {
+        method: req.method,
+        headers: req.headers as HeadersInit,
+      });
+      const auth = await verifyAuth(dummyReq);
+      if (!auth.authenticated) {
+        sendJson(401, { error: auth.error || 'Authentication required' });
+        return;
+      }
     }
 
     // -----------------------------------------------------------------------

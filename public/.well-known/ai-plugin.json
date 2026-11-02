@@ -1,0 +1,19 @@
+{
+  "schema_version": "v1",
+  "name_for_human": "Jacxi Shipping",
+  "name_for_model": "jacxishipping",
+  "description_for_human": "Search vehicle shipments by VIN or lot number and track ocean freight containers with Jacxi Shipping.",
+  "description_for_model": "Plugin for Jacxi Shipping web app. Allows searching vehicle shipments by VIN, lot number, or shipment ID; searching ocean containers by container number, booking number, or tracking number; and obtaining real-time tracking milestones.",
+  "auth": {
+    "type": "none"
+  },
+  "api": {
+    "type": "openapi",
+    "url": "https://jacxishipping.com/openapi.json",
+    "is_user_authenticated": false
+  },
+  "logo_url": "https://jacxishipping.com/favicon.png",
+  "contact_email": "support@jacxishipping.com",
+  "legal_info_url": "https://jacxishipping.com"
+}
+

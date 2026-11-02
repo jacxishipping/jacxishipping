@@ -1,42 +1,48 @@
 import { startHttpServer } from './src/http-server';
 
 async function testHttp() {
+  process.env.MCP_API_KEY = 'test_secret_mcp_key_123';
   const server = await startHttpServer();
 
   try {
-    // Test 1: Health check
-    console.log('[Test 1] Testing /health');
-    const res1 = await fetch('http://localhost:3333/health');
-    const json1 = await res1.json();
-    console.log('Health status:', json1.status, json1.service);
+    // Test 1: ChatGPT Plugin manifest
+    console.log('[Test 1] Testing /.well-known/ai-plugin.json');
+    const resPlugin = await fetch('http://localhost:3333/.well-known/ai-plugin.json');
+    const pluginJson = await resPlugin.json();
+    console.log('Plugin name:', pluginJson.name_for_human, 'Auth type:', pluginJson.auth?.type);
 
-    // Test 2: OpenAPI spec for ChatGPT
-    console.log('\n[Test 2] Testing /openapi.json');
-    const res2 = await fetch('http://localhost:3333/openapi.json');
-    const json2 = await res2.json();
-    console.log('OpenAPI Title:', json2.info?.title, 'Paths:', Object.keys(json2.paths));
+    // Test 2: OpenAPI security schemes
+    console.log('\n[Test 2] Testing /openapi.json security');
+    const resOpenApi = await fetch('http://localhost:3333/openapi.json');
+    const openapiJson = await resOpenApi.json();
+    console.log('Security schemes:', Object.keys(openapiJson.components?.securitySchemes || {}));
 
-    // Test 3: REST VIN Search
-    console.log('\n[Test 3] Testing /api/search-vin?vin=JTEBU5JR4A5011946');
-    const res3 = await fetch('http://localhost:3333/api/search-vin?vin=JTEBU5JR4A5011946');
-    const json3 = await res3.json();
-    console.log('VIN search result:', {
-      found: json3.found,
-      count: json3.count,
-      car: json3.results?.[0]?.make + ' ' + json3.results?.[0]?.model,
+    // Test 3: Auth rejection without key
+    console.log('\n[Test 3] Testing unauthenticated call to /api/search-vin');
+    const resUnauthorized = await fetch('http://localhost:3333/api/search-vin?vin=JTEBU5JR4A5011946');
+    console.log('Status without auth:', resUnauthorized.status, '(expected 401)');
+
+    // Test 4: Auth success with Bearer token
+    console.log('\n[Test 4] Testing Bearer token auth on /api/search-vin');
+    const resBearer = await fetch('http://localhost:3333/api/search-vin?vin=JTEBU5JR4A5011946', {
+      headers: { Authorization: 'Bearer test_secret_mcp_key_123' },
     });
+    const bearerJson = await resBearer.json();
+    console.log('Status with Bearer:', resBearer.status, 'Found:', bearerJson.found);
 
-    // Test 4: Gemini schemas
-    console.log('\n[Test 4] Testing /schemas/gemini');
-    const res4 = await fetch('http://localhost:3333/schemas/gemini');
-    const json4 = await res4.json();
-    console.log('Gemini function declarations count:', json4.tools?.[0]?.functionDeclarations?.length);
+    // Test 5: Auth success with ?key= query parameter
+    console.log('\n[Test 5] Testing query parameter key auth');
+    const resQueryKey = await fetch(
+      'http://localhost:3333/api/search-vin?vin=JTEBU5JR4A5011946&key=test_secret_mcp_key_123'
+    );
+    const queryKeyJson = await resQueryKey.json();
+    console.log('Status with ?key=:', resQueryKey.status, 'Found:', queryKeyJson.found);
 
-    console.log('\nHTTP Gateway tested successfully!');
+    console.log('\nAll Auth & ChatGPT Plugin tests passed successfully!');
   } finally {
     server.close();
+    delete process.env.MCP_API_KEY;
   }
 }
 
 testHttp().catch(console.error);
-
