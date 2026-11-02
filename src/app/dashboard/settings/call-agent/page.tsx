@@ -19,6 +19,7 @@ import { Alert, Box, Typography } from '@mui/material';
 
 import { DashboardGrid, DashboardPanel, DashboardSurface } from '@/components/dashboard/DashboardSurface';
 import { Breadcrumbs, Button, FormField, LoadingState, PageHeader, StatsCard, toast } from '@/components/design-system';
+import { GoogleVoiceLiveCallPanel } from '@/components/voice/GoogleVoiceLiveCallPanel';
 
 const DEFAULT_TWILIO_VALUES = {
   twilioAccountSid: '',
@@ -395,6 +396,10 @@ export default function CallAgentSettingsPage() {
           </Box>
         }
       />
+
+      <div className="mb-6">
+        <GoogleVoiceLiveCallPanel />
+      </div>
 
       <DashboardGrid className="grid-cols-1 md:grid-cols-2 xl:grid-cols-5">
         <StatsCard

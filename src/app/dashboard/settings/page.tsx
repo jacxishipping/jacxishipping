@@ -66,6 +66,7 @@ import {
 import { TrackingApisTab } from '@/components/dashboard/settings/TrackingApisTab';
 import { BackupDatabaseTab } from '@/components/dashboard/settings/BackupDatabaseTab';
 import { BrandingSettingsCard } from '@/components/dashboard/settings/BrandingSettingsCard';
+import { GoogleVoiceLiveCallPanel } from '@/components/voice/GoogleVoiceLiveCallPanel';
 
 const DEFAULT_SETTINGS = {
   theme: 'light',
@@ -2387,6 +2388,9 @@ export default function SettingsPage() {
             </Link>
           }
         >
+          <div className="mb-6">
+            <GoogleVoiceLiveCallPanel />
+          </div>
           <Box component="form" onSubmit={handleSaveCallAgentSettings} sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             <DashboardGrid className="grid-cols-1 md:grid-cols-4">
               <StatsCard

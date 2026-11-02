@@ -24,8 +24,10 @@ import {
   CheckCircle2,
   AlertCircle,
   QrCode,
+  PhoneCall,
 } from 'lucide-react';
 import { toast } from '@/components/design-system';
+import { GoogleVoiceLiveCallPanel } from '@/components/voice/GoogleVoiceLiveCallPanel';
 
 export interface CustomerNotificationPayload {
   shipmentId?: string;
@@ -53,7 +55,7 @@ interface CustomerNotificationModalProps {
   payload: CustomerNotificationPayload;
 }
 
-type NotificationChannel = 'whatsapp' | 'sms' | 'email';
+type NotificationChannel = 'whatsapp' | 'google_voice' | 'sms' | 'email';
 type TemplateLanguage = 'en' | 'ps' | 'fa' | 'ar';
 type WhatsAppDispatchMode = 'auto' | 'wa_me' | 'api_only';
 
@@ -354,6 +356,20 @@ export function CustomerNotificationModal({ open, onClose, payload }: CustomerNo
     setSending(true);
     setLastDispatchInfo(null);
     try {
+      if (channel === 'google_voice') {
+        const cleanPhone = (normalizedE164Phone || customPhone || '').replace(/[^\d+]/g, '');
+        const gvUrl = cleanPhone
+          ? `https://voice.google.com/u/0/calls?a=nc,${encodeURIComponent(cleanPhone)}`
+          : 'https://voice.google.com/u/0/calls';
+        window.open(gvUrl, '_blank', 'noopener,noreferrer');
+        toast.success('Launched Google Voice Call');
+        setLastDispatchInfo({
+          ok: true,
+          mode: 'Google Voice Call Launched (voice.google.com)',
+        });
+        return;
+      }
+
       if (channel === 'whatsapp' && waDispatchMode === 'wa_me') {
         handleOpenWaMeDirect();
         setLastDispatchInfo({
@@ -505,10 +521,11 @@ export function CustomerNotificationModal({ open, onClose, payload }: CustomerNo
                 <label className="block text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)] mb-1.5">
                   Communication Channel
                 </label>
-                <div className="grid grid-cols-3 gap-1.5">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
                   {[
                     { id: 'whatsapp', label: 'WhatsApp', icon: MessageSquare, activeCls: 'bg-emerald-600 text-white border-emerald-600' },
-                    { id: 'sms', label: 'Direct SMS', icon: Smartphone, activeCls: 'bg-blue-600 text-white border-blue-600' },
+                    { id: 'google_voice', label: 'Google Voice', icon: PhoneCall, activeCls: 'bg-blue-600 text-white border-blue-600' },
+                    { id: 'sms', label: 'Direct SMS', icon: Smartphone, activeCls: 'bg-sky-600 text-white border-sky-600' },
                     { id: 'email', label: 'Email', icon: Mail, activeCls: 'bg-[var(--accent-gold)] text-white border-[var(--accent-gold)]' },
                   ].map((c) => {
                     const isSel = channel === c.id;
@@ -559,6 +576,27 @@ export function CustomerNotificationModal({ open, onClose, payload }: CustomerNo
                 </div>
               </div>
             </div>
+
+            {/* Google Voice & Live Voice Call Console when Google Voice tab is active */}
+            {channel === 'google_voice' && (
+              <GoogleVoiceLiveCallPanel
+                compact
+                defaultLanguage={language}
+                context={{
+                  shipmentId: activePayload.shipmentId,
+                  customerName: activePayload.customerName,
+                  customerPhone: normalizedE164Phone || customPhone,
+                  vehicleDetails: activePayload.vehicleDetails,
+                  vin: activePayload.vin,
+                  containerNumber: activePayload.containerNumber,
+                  portOfOrigin: activePayload.portOfOrigin,
+                  destinationPort: activePayload.destinationPort,
+                  eta: activePayload.eta,
+                  balanceDue: activePayload.balanceDue,
+                  messagePreview: messageBody,
+                }}
+              />
+            )}
 
             {/* Row 2: Smart Phone Number E.164 & Recipient Info */}
             <div className="p-3.5 rounded-xl border border-[var(--border)] bg-[var(--background)] space-y-2.5">
@@ -992,7 +1030,11 @@ export function CustomerNotificationModal({ open, onClose, payload }: CustomerNo
               disabled={sending}
               onClick={handleSend}
               className={`flex items-center gap-1.5 px-5 py-2 text-xs font-bold rounded-xl text-white hover:opacity-90 transition-opacity shadow-md disabled:opacity-50 ${
-                channel === 'whatsapp' ? 'bg-emerald-600' : 'bg-[var(--accent-gold)]'
+                channel === 'whatsapp'
+                  ? 'bg-emerald-600'
+                  : channel === 'google_voice'
+                    ? 'bg-blue-600'
+                    : 'bg-[var(--accent-gold)]'
               }`}
             >
               <Send className="w-3.5 h-3.5" />
@@ -1000,7 +1042,9 @@ export function CustomerNotificationModal({ open, onClose, payload }: CustomerNo
                 ? 'Dispatching...'
                 : channel === 'whatsapp'
                   ? 'Send via WhatsApp Business'
-                  : `Dispatch ${channel.toUpperCase()}`}
+                  : channel === 'google_voice'
+                    ? 'Call in Google Voice'
+                    : `Dispatch ${channel.toUpperCase()}`}
             </button>
           </div>
         </div>
