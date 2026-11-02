@@ -163,6 +163,9 @@ async function loadInvoiceLogo(customLogoUrl?: string): Promise<string | null> {
     }
 
     const fetchUrl = targetUrl || '/main-logo.png';
+    if (typeof window === 'undefined' && fetchUrl.startsWith('/')) {
+      return null;
+    }
     const response = await fetch(fetchUrl);
     if (!response.ok) {
       if (fetchUrl !== '/main-logo.png') {
@@ -312,19 +315,41 @@ export const generateInvoicePDF = async (invoice: Invoice) => {
   if (invoice.paidDate) {
     addDetailRow('Paid Date', formatDate(invoice.paidDate));
   }
+
+  // 1. Vehicle info if this invoice is for a shipment (or line items belong to a single vehicle)
+  const uniqueShipmentVins = Array.from(
+    new Set(
+      invoice.lineItems
+        .map((item) => item.shipment?.vehicleVIN)
+        .filter((vin): vin is string => Boolean(vin)),
+    ),
+  );
+  const primaryShipment =
+    invoice.shipment ||
+    (uniqueShipmentVins.length === 1
+      ? invoice.lineItems.find((item) => item.shipment)?.shipment
+      : null);
+
+  if (primaryShipment) {
+    const vehicleLabel =
+      [primaryShipment.vehicleYear, primaryShipment.vehicleMake, primaryShipment.vehicleModel].filter(Boolean).join(' ') ||
+      ('vehicleType' in primaryShipment ? (primaryShipment as any).vehicleType : 'Vehicle');
+    if (vehicleLabel) {
+      addDetailRow('Vehicle', vehicleLabel);
+    }
+    if (primaryShipment.vehicleVIN) {
+      addDetailRow('VIN', primaryShipment.vehicleVIN);
+    }
+    if ('vehicleColor' in primaryShipment && (primaryShipment as any).vehicleColor) {
+      addDetailRow('Color', (primaryShipment as any).vehicleColor);
+    }
+  }
+
+  // 2. Container info if associated with a container
   if (invoice.container) {
     addDetailRow('Container #', invoice.container.containerNumber);
     if (invoice.container.trackingNumber) {
       addDetailRow('Tracking #', invoice.container.trackingNumber);
-    }
-  } else if (invoice.shipment) {
-    const vehicleLabel = [invoice.shipment.vehicleYear, invoice.shipment.vehicleMake, invoice.shipment.vehicleModel].filter(Boolean).join(' ') || invoice.shipment.vehicleType;
-    addDetailRow('Vehicle', vehicleLabel);
-    if (invoice.shipment.vehicleVIN) {
-      addDetailRow('VIN', invoice.shipment.vehicleVIN);
-    }
-    if (invoice.shipment.vehicleColor) {
-      addDetailRow('Color', invoice.shipment.vehicleColor);
     }
   }
 

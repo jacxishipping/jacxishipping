@@ -235,9 +235,9 @@ export async function POST(request: NextRequest) {
           })
         : null;
 
-      // Add this expense as a line item on the shipment's pending invoice
+      // Add this expense as a line item on the shipment's pending invoice if one exists
       try {
-        const linkedInvoiceId = await addExpenseLineItemToShipmentInvoice(
+        await addExpenseLineItemToShipmentInvoice(
           validatedData.shipmentId,
           {
             description: validatedData.description,
@@ -247,26 +247,6 @@ export async function POST(request: NextRequest) {
           },
           tx as any
         );
-
-        if (linkedInvoiceId) {
-          const inv = await tx.userInvoice.findUnique({
-            where: { id: linkedInvoiceId },
-            select: { invoiceNumber: true, status: true },
-          });
-          if (inv) {
-            await tx.ledgerEntry.update({
-              where: { id: debitEntry.id },
-              data: {
-                metadata: {
-                  ...((debitEntry.metadata as Record<string, unknown>) || {}),
-                  invoiceId: linkedInvoiceId,
-                  invoiceNumber: inv.invoiceNumber,
-                  invoiceStatus: inv.status,
-                },
-              },
-            });
-          }
-        }
       } catch (invoiceErr) {
         routeDeps.logger.error('Failed to sync expense line item to shipment invoice', { error: invoiceErr });
       }

@@ -4,7 +4,7 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { hasAnyPermission, hasPermission } from '@/lib/rbac';
 
-const mutableStatuses = new Set<ShipmentChargeStatus>(['DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'DISPUTED']);
+const mutableStatuses = new Set<ShipmentChargeStatus>(['DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'DISPUTED', 'VOID']);
 
 export async function PATCH(
   request: NextRequest,
@@ -93,12 +93,15 @@ export async function PATCH(
     }
 
     const updatedCharge = await prisma.$transaction(async (tx) => {
+      const isRestoringFromVoid = charge.status === 'VOID' && body.status === 'APPROVED';
+
       const nextCharge = await tx.shipmentCharge.update({
         where: { id: charge.id },
         data: {
           status: body.status,
           approvedAt: body.status === 'APPROVED' ? new Date() : null,
           approvedBy: body.status === 'APPROVED' ? session.user.id : null,
+          voidedAt: isRestoringFromVoid ? null : undefined,
           notes: body.note ? body.note.trim() : undefined,
           // Release the charge from a not-yet-issued invoice so it can be disputed
           // or approved again. The next invoice generation rebuilds the draft.
@@ -110,11 +113,16 @@ export async function PATCH(
       await tx.shipmentChargeAuditLog.create({
         data: {
           chargeId: charge.id,
-          action: body.status === 'APPROVED' ? 'MANUAL_APPROVAL' : 'MANUAL_DISPUTE',
-          description:
-            body.status === 'APPROVED'
-              ? `Shipment charge approved: ${charge.description}`
-              : `Shipment charge disputed: ${charge.description}`,
+          action: isRestoringFromVoid
+            ? 'RESTORE_FROM_VOID'
+            : body.status === 'APPROVED'
+            ? 'MANUAL_APPROVAL'
+            : 'MANUAL_DISPUTE',
+          description: isRestoringFromVoid
+            ? `Shipment charge restored from void to approved: ${charge.description}`
+            : body.status === 'APPROVED'
+            ? `Shipment charge approved: ${charge.description}`
+            : `Shipment charge disputed: ${charge.description}`,
           performedBy: actorId,
           oldValue: charge.status,
           newValue: body.status,

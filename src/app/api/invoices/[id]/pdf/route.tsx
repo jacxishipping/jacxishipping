@@ -21,7 +21,15 @@ export async function GET(
             include: {
                 user: true,
                 container: true,
-                lineItems: true
+                shipment: true,
+                lineItems: {
+                    include: {
+                        shipment: true,
+                    },
+                    orderBy: {
+                        createdAt: 'asc',
+                    },
+                },
             }
         });
 
