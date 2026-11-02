@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { randomBytes } from 'crypto';
 import {
   VinSearchResult,
   ContainerSearchResult,
@@ -8,6 +9,10 @@ import {
   CustomerSearchResult,
   DispatchSearchResult,
   QuoteEstimateResult,
+  TransitSearchResult,
+  CustomerLedgerResult,
+  InvoiceSearchResult,
+  DocumentSearchResult,
 } from './types';
 
 // In-memory activity ring buffer fallback when DB is read-only or offline
@@ -1599,6 +1604,1352 @@ export class JacxiDataProvider {
       }
     }
     return memoryLogs.slice(0, limit);
+  }
+
+  // =========================================================================
+  // 1. WRITE / MUTATION TOOLS (SHIPMENTS, CONTAINERS, DISPATCHES, TRANSITS, CUSTOMERS)
+  // =========================================================================
+
+  async createShipment(input: {
+    vehicleVIN: string;
+    vehicleYear?: number;
+    vehicleMake?: string;
+    vehicleModel?: string;
+    vehicleColor?: string;
+    vehicleType?: string;
+    lotNumber?: string;
+    auctionName?: string;
+    customerQuery?: string;
+    price?: number;
+    purchasePrice?: number;
+    serviceType?: 'SHIPPING_ONLY' | 'PURCHASE_AND_SHIPPING';
+    hasKey?: boolean;
+    hasTitle?: boolean;
+    status?: string;
+    containerNumber?: string;
+  }) {
+    const prisma = await this.getPrisma();
+    if (!prisma) {
+      throw new Error('Database connection required to create a shipment.');
+    }
+
+    const cleanVin = input.vehicleVIN.trim().toUpperCase();
+    // Resolve customer or fall back to first user/admin
+    let user: any = null;
+    if (input.customerQuery) {
+      const q = input.customerQuery.trim();
+      user = await prisma.user.findFirst({
+        where: {
+          OR: [
+            { id: q },
+            { email: { equals: q, mode: 'insensitive' } },
+            { loginCode: { equals: q, mode: 'insensitive' } },
+            { name: { contains: q, mode: 'insensitive' } },
+          ],
+        },
+      });
+    }
+    if (!user) {
+      user = await prisma.user.findFirst({ orderBy: { createdAt: 'asc' } });
+    }
+    if (!user) {
+      throw new Error('No customer user found in database to assign shipment.');
+    }
+
+    let containerId: string | undefined;
+    if (input.containerNumber) {
+      const c = await prisma.container.findFirst({
+        where: {
+          containerNumber: {
+            equals: input.containerNumber.trim(),
+            mode: 'insensitive',
+          },
+        },
+      });
+      if (c) containerId = c.id;
+    }
+
+    const created = await prisma.shipment.create({
+      data: {
+        vehicleVIN: cleanVin,
+        vehicleYear: input.vehicleYear || null,
+        vehicleMake: input.vehicleMake || null,
+        vehicleModel: input.vehicleModel || null,
+        vehicleColor: input.vehicleColor || null,
+        vehicleType: input.vehicleType || 'SEDAN',
+        lotNumber: input.lotNumber || null,
+        auctionName: input.auctionName || null,
+        userId: user.id,
+        containerId: containerId || null,
+        price: input.price ?? null,
+        purchasePrice: input.purchasePrice ?? null,
+        serviceType: input.serviceType || 'SHIPPING_ONLY',
+        hasKey: input.hasKey ?? null,
+        hasTitle: input.hasTitle ?? null,
+        status: (input.status as any) || 'ON_HAND',
+      },
+      include: {
+        user: { select: { id: true, name: true, email: true } },
+        container: { select: { id: true, containerNumber: true } },
+      },
+    });
+
+    await this.logMcpActivity({
+      tool: 'create_shipment',
+      query: cleanVin,
+      entityType: 'SHIPMENT',
+      entityId: created.id,
+      responseSummary: `Created shipment ${cleanVin} for ${user.name || user.email}`,
+    });
+
+    return {
+      success: true,
+      message: `Created vehicle shipment ${cleanVin} (${[created.vehicleYear, created.vehicleMake, created.vehicleModel].filter(Boolean).join(' ')})`,
+      shipment: created,
+      webAppUrl: `${APP_URL}/dashboard/shipments/${created.id}`,
+    };
+  }
+
+  async updateShipment(input: {
+    vinOrId: string;
+    status?: string;
+    containerNumber?: string;
+    price?: number;
+    paymentStatus?: 'PENDING' | 'COMPLETED' | 'FAILED' | 'REFUNDED' | 'CANCELLED';
+    hasKey?: boolean;
+    hasTitle?: boolean;
+    internalNotes?: string;
+  }) {
+    const prisma = await this.getPrisma();
+    if (!prisma) {
+      throw new Error('Database connection required to update a shipment.');
+    }
+
+    const q = input.vinOrId.trim();
+    const existing = await prisma.shipment.findFirst({
+      where: {
+        OR: [
+          { id: q },
+          { vehicleVIN: { equals: q, mode: 'insensitive' } },
+          { lotNumber: { equals: q, mode: 'insensitive' } },
+        ],
+      },
+    });
+
+    if (!existing) {
+      return {
+        success: false,
+        error: `No shipment found matching "${q}".`,
+      };
+    }
+
+    const data: Record<string, any> = {};
+    if (input.status) data.status = input.status;
+    if (input.price !== undefined) data.price = input.price;
+    if (input.paymentStatus) data.paymentStatus = input.paymentStatus;
+    if (input.hasKey !== undefined) data.hasKey = input.hasKey;
+    if (input.hasTitle !== undefined) data.hasTitle = input.hasTitle;
+    if (input.internalNotes !== undefined) data.internalNotes = input.internalNotes;
+
+    if (input.containerNumber !== undefined) {
+      if (!input.containerNumber.trim()) {
+        data.containerId = null;
+      } else {
+        const container = await prisma.container.findFirst({
+          where: {
+            containerNumber: {
+              equals: input.containerNumber.trim(),
+              mode: 'insensitive',
+            },
+          },
+        });
+        if (!container) {
+          return {
+            success: false,
+            error: `Container "${input.containerNumber}" not found.`,
+          };
+        }
+        data.containerId = container.id;
+      }
+    }
+
+    const updated = await prisma.shipment.update({
+      where: { id: existing.id },
+      data,
+      include: {
+        user: { select: { id: true, name: true, email: true } },
+        container: { select: { id: true, containerNumber: true, status: true } },
+      },
+    });
+
+    await this.logMcpActivity({
+      tool: 'update_shipment',
+      query: q,
+      entityType: 'SHIPMENT',
+      entityId: updated.id,
+      responseSummary: `Updated shipment ${updated.vehicleVIN || updated.id} (status=${updated.status})`,
+    });
+
+    return {
+      success: true,
+      message: `Updated shipment ${updated.vehicleVIN || updated.id}`,
+      shipment: updated,
+      webAppUrl: `${APP_URL}/dashboard/shipments/${updated.id}`,
+    };
+  }
+
+  async createContainer(input: {
+    containerNumber: string;
+    bookingNumber?: string;
+    shippingLine?: string;
+    vesselName?: string;
+    voyageNumber?: string;
+    loadingPort?: string;
+    destinationPort?: string;
+    estimatedArrival?: string;
+    maxCapacity?: number;
+    status?: string;
+    notes?: string;
+  }) {
+    const prisma = await this.getPrisma();
+    if (!prisma) {
+      throw new Error('Database connection required to create a container.');
+    }
+
+    const cleanNum = input.containerNumber.trim().toUpperCase();
+    const created = await prisma.container.create({
+      data: {
+        containerNumber: cleanNum,
+        bookingNumber: input.bookingNumber || null,
+        trackingNumber: cleanNum,
+        shippingLine: input.shippingLine || null,
+        vesselName: input.vesselName || null,
+        voyageNumber: input.voyageNumber || null,
+        loadingPort: input.loadingPort || null,
+        destinationPort: input.destinationPort || null,
+        estimatedArrival: input.estimatedArrival
+          ? new Date(input.estimatedArrival)
+          : null,
+        maxCapacity: input.maxCapacity || 4,
+        status: (input.status as any) || 'CREATED',
+        notes: input.notes || null,
+      },
+    });
+
+    await this.logMcpActivity({
+      tool: 'create_container',
+      query: cleanNum,
+      entityType: 'CONTAINER',
+      entityId: created.id,
+      responseSummary: `Created container ${cleanNum} (${created.shippingLine || 'N/A'})`,
+    });
+
+    return {
+      success: true,
+      message: `Created ocean container ${cleanNum}`,
+      container: created,
+      webAppUrl: `${APP_URL}/dashboard/containers/${created.id}`,
+    };
+  }
+
+  async updateContainerAndTracking(input: {
+    containerNumber: string;
+    status?: string;
+    currentLocation?: string;
+    vesselName?: string;
+    voyageNumber?: string;
+    estimatedArrival?: string;
+    progress?: number;
+    milestoneStatus?: string;
+    milestoneLocation?: string;
+    milestoneDescription?: string;
+  }) {
+    const prisma = await this.getPrisma();
+    if (!prisma) {
+      throw new Error('Database connection required to update container.');
+    }
+
+    const q = input.containerNumber.trim();
+    const existing = await prisma.container.findFirst({
+      where: {
+        OR: [
+          { id: q },
+          { containerNumber: { equals: q, mode: 'insensitive' } },
+          { bookingNumber: { equals: q, mode: 'insensitive' } },
+        ],
+      },
+    });
+
+    if (!existing) {
+      return {
+        success: false,
+        error: `Container "${q}" not found.`,
+      };
+    }
+
+    const data: Record<string, any> = {};
+    if (input.status) data.status = input.status;
+    if (input.currentLocation !== undefined) {
+      data.currentLocation = input.currentLocation;
+      data.lastLocationUpdate = new Date();
+    }
+    if (input.vesselName !== undefined) data.vesselName = input.vesselName;
+    if (input.voyageNumber !== undefined) data.voyageNumber = input.voyageNumber;
+    if (input.estimatedArrival) {
+      data.estimatedArrival = new Date(input.estimatedArrival);
+    }
+    if (input.progress !== undefined) data.progress = input.progress;
+
+    const updated = await prisma.container.update({
+      where: { id: existing.id },
+      data,
+    });
+
+    let createdMilestone: any = null;
+    if (input.milestoneStatus) {
+      createdMilestone = await prisma.containerTrackingEvent.create({
+        data: {
+          containerId: existing.id,
+          status: input.milestoneStatus,
+          location: input.milestoneLocation || input.currentLocation || null,
+          vesselName: input.vesselName || updated.vesselName || null,
+          description: input.milestoneDescription || input.milestoneStatus,
+          eventDate: new Date(),
+          source: 'MCP_AI_AGENT',
+          completed: true,
+        },
+      });
+    }
+
+    await this.logMcpActivity({
+      tool: 'update_container_and_tracking',
+      query: updated.containerNumber,
+      entityType: 'CONTAINER',
+      entityId: updated.id,
+      responseSummary: `Updated container ${updated.containerNumber}${createdMilestone ? ` + added milestone "${input.milestoneStatus}"` : ''}`,
+    });
+
+    return {
+      success: true,
+      message: `Updated container ${updated.containerNumber}`,
+      container: updated,
+      addedMilestone: createdMilestone,
+      webAppUrl: `${APP_URL}/dashboard/containers/${updated.id}`,
+    };
+  }
+
+  async createDispatch(input: {
+    referenceNumber?: string;
+    origin: string;
+    destination: string;
+    companyQuery?: string;
+    cost?: number;
+    status?: string;
+    notes?: string;
+    vins?: string[];
+  }) {
+    const prisma = await this.getPrisma();
+    if (!prisma) {
+      throw new Error('Database connection required to create a dispatch.');
+    }
+
+    let company: any = null;
+    if (input.companyQuery) {
+      company = await prisma.company.findFirst({
+        where: {
+          OR: [
+            { id: input.companyQuery },
+            { name: { contains: input.companyQuery, mode: 'insensitive' } },
+          ],
+        },
+      });
+    }
+    if (!company) {
+      company = await prisma.company.findFirst({
+        where: { isActive: true },
+        orderBy: { createdAt: 'asc' },
+      });
+    }
+    if (!company) {
+      company = await prisma.company.create({
+        data: {
+          name: input.companyQuery || 'Jacxi Inland Dispatch Carrier',
+          isDispatch: true,
+        },
+      });
+    }
+
+    const refNum =
+      input.referenceNumber?.trim() ||
+      `DSP-${new Date().getFullYear()}-${randomBytes(3).toString('hex').toUpperCase()}`;
+
+    const dispatch = await prisma.dispatch.create({
+      data: {
+        referenceNumber: refNum,
+        companyId: company.id,
+        origin: input.origin,
+        destination: input.destination,
+        cost: input.cost ?? null,
+        status: (input.status as any) || 'PENDING',
+        dispatchDate: new Date(),
+        notes: input.notes || null,
+        createdBy: 'mcp-agent',
+      },
+    });
+
+    if (input.vins && input.vins.length > 0) {
+      await prisma.shipment.updateMany({
+        where: {
+          vehicleVIN: { in: input.vins.map((v) => v.trim().toUpperCase()) },
+        },
+        data: { dispatchId: dispatch.id },
+      });
+    }
+
+    await this.logMcpActivity({
+      tool: 'create_dispatch',
+      query: refNum,
+      entityType: 'DISPATCH',
+      entityId: dispatch.id,
+      responseSummary: `Created inland dispatch ${refNum} (${input.origin} -> ${input.destination})`,
+    });
+
+    return {
+      success: true,
+      message: `Created inland dispatch ${refNum}`,
+      dispatch,
+    };
+  }
+
+  // =========================================================================
+  // 2. OVERLAND TRANSITS (MERSIN / DUBAI -> HERAT / KABUL AFGHANISTAN)
+  // =========================================================================
+
+  async listAndManageTransits(input: {
+    action?: 'list' | 'create' | 'add_event';
+    search?: string;
+    status?: string;
+    referenceNumber?: string;
+    origin?: string;
+    destination?: string;
+    cost?: number;
+    eventStatus?: string;
+    eventLocation?: string;
+    eventDescription?: string;
+    vins?: string[];
+    limit?: number;
+  }): Promise<{
+    action: string;
+    transits?: TransitSearchResult[];
+    createdTransit?: any;
+    createdEvent?: any;
+  }> {
+    const action = input.action || 'list';
+    const prisma = await this.getPrisma();
+
+    if (action === 'create' && prisma) {
+      const refNum =
+        input.referenceNumber?.trim() ||
+        `TRN-${new Date().getFullYear()}-${randomBytes(3).toString('hex').toUpperCase()}`;
+
+      const company = await prisma.company.findFirst({
+        where: { isTransit: true },
+      });
+
+      const created = await prisma.transit.create({
+        data: {
+          referenceNumber: refNum,
+          companyId: company?.id || null,
+          origin: input.origin || 'Mersin / Dubai',
+          destination: input.destination || 'Herat / Kabul, Afghanistan',
+          status: (input.status as any) || 'PENDING',
+          dispatchDate: new Date(),
+          cost: input.cost ?? null,
+          createdBy: 'mcp-agent',
+        },
+      });
+
+      if (input.vins && input.vins.length > 0) {
+        await prisma.shipment.updateMany({
+          where: {
+            vehicleVIN: { in: input.vins.map((v) => v.trim().toUpperCase()) },
+          },
+          data: { transitId: created.id },
+        });
+      }
+
+      return {
+        action: 'create',
+        createdTransit: created,
+      };
+    }
+
+    if (action === 'add_event' && prisma && input.referenceNumber) {
+      const transit = await prisma.transit.findFirst({
+        where: {
+          OR: [
+            { id: input.referenceNumber },
+            {
+              referenceNumber: {
+                equals: input.referenceNumber.trim(),
+                mode: 'insensitive',
+              },
+            },
+          ],
+        },
+      });
+      if (!transit) {
+        throw new Error(`Transit "${input.referenceNumber}" not found.`);
+      }
+      let companyId = transit.companyId;
+      if (!companyId) {
+        const anyCompany = await prisma.company.findFirst();
+        companyId = anyCompany?.id || null;
+      }
+      if (!companyId) {
+        throw new Error('No transit company found to record transit event.');
+      }
+
+      const ev = await prisma.transitEvent.create({
+        data: {
+          transitId: transit.id,
+          companyId,
+          origin: transit.origin,
+          destination: transit.destination,
+          status: input.eventStatus || 'IN_TRANSIT',
+          location: input.eventLocation || null,
+          description: input.eventDescription || input.eventStatus || 'Transit milestone update',
+          eventDate: new Date(),
+          createdBy: 'mcp-agent',
+        },
+      });
+
+      return {
+        action: 'add_event',
+        createdEvent: ev,
+      };
+    }
+
+    // Default: list transits
+    if (prisma) {
+      try {
+        const where: any = {};
+        if (input.status) where.status = input.status;
+        if (input.search) {
+          where.OR = [
+            { referenceNumber: { contains: input.search, mode: 'insensitive' } },
+            { origin: { contains: input.search, mode: 'insensitive' } },
+            { destination: { contains: input.search, mode: 'insensitive' } },
+          ];
+        }
+
+        const rows = await prisma.transit.findMany({
+          where,
+          include: {
+            company: { select: { name: true } },
+            shipments: {
+              select: {
+                id: true,
+                vehicleVIN: true,
+                vehicleYear: true,
+                vehicleMake: true,
+                vehicleModel: true,
+                status: true,
+              },
+            },
+            events: {
+              orderBy: { eventDate: 'desc' },
+              take: 10,
+            },
+          },
+          orderBy: { createdAt: 'desc' },
+          take: Math.min(input.limit || 15, 50),
+        });
+
+        return {
+          action: 'list',
+          transits: rows.map((t: any) => ({
+            id: t.id,
+            referenceNumber: t.referenceNumber,
+            status: t.status,
+            origin: t.origin,
+            destination: t.destination,
+            companyName: t.company?.name || null,
+            dispatchDate: t.dispatchDate ? new Date(t.dispatchDate).toISOString() : null,
+            estimatedDelivery: t.estimatedDelivery
+              ? new Date(t.estimatedDelivery).toISOString()
+              : null,
+            actualDelivery: t.actualDelivery
+              ? new Date(t.actualDelivery).toISOString()
+              : null,
+            cost: t.cost ?? null,
+            shipmentCount: (t.shipments || []).length,
+            vehicles: (t.shipments || []).map((s: any) => ({
+              id: s.id,
+              vin: s.vehicleVIN || null,
+              vehicle:
+                [s.vehicleYear, s.vehicleMake, s.vehicleModel]
+                  .filter(Boolean)
+                  .join(' ') || 'Vehicle',
+              status: s.status,
+            })),
+            events: (t.events || []).map((e: any) => ({
+              id: e.id,
+              status: e.status,
+              location: e.location || null,
+              description: e.description || null,
+              eventDate: new Date(e.eventDate).toISOString(),
+            })),
+            dataSource: 'database',
+          })),
+        };
+      } catch {
+        // Fallback to snapshot
+      }
+    }
+
+    const snap = this.snapshotData;
+    const list = (snap?.transits || []).slice(0, input.limit || 15).map((t: any) => ({
+      id: t.id,
+      referenceNumber: t.referenceNumber,
+      status: t.status,
+      origin: t.origin,
+      destination: t.destination,
+      companyName: null,
+      dispatchDate: t.dispatchDate || null,
+      estimatedDelivery: t.estimatedDelivery || null,
+      actualDelivery: t.actualDelivery || null,
+      cost: t.cost ?? null,
+      shipmentCount: 0,
+      vehicles: [],
+      events: [],
+      dataSource: 'snapshot' as const,
+    }));
+
+    return {
+      action: 'list',
+      transits: list,
+    };
+  }
+
+  async manageCustomer(input: {
+    action: 'create' | 'reset_login_code';
+    customerQuery?: string;
+    name?: string;
+    email?: string;
+    phone?: string;
+    city?: string;
+    country?: string;
+  }) {
+    const prisma = await this.getPrisma();
+    if (!prisma) {
+      throw new Error('Database connection required to manage customers.');
+    }
+
+    const generateLoginCode = () =>
+      randomBytes(4).toString('hex').toUpperCase();
+
+    if (input.action === 'create') {
+      if (!input.email) {
+        throw new Error('Customer email is required to create a customer.');
+      }
+      const code = generateLoginCode();
+      const created = await prisma.user.create({
+        data: {
+          name: input.name || input.email.split('@')[0],
+          email: input.email.trim().toLowerCase(),
+          phone: input.phone || null,
+          city: input.city || null,
+          country: input.country || null,
+          role: 'user',
+          loginCode: code,
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+          city: true,
+          country: true,
+          loginCode: true,
+          role: true,
+        },
+      });
+      return {
+        success: true,
+        message: `Created customer ${created.name} (${created.email}) with loginCode ${created.loginCode}`,
+        customer: created,
+      };
+    }
+
+    // reset_login_code
+    const q = (input.customerQuery || input.email || '').trim();
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { id: q },
+          { email: { equals: q, mode: 'insensitive' } },
+          { loginCode: { equals: q, mode: 'insensitive' } },
+          { name: { contains: q, mode: 'insensitive' } },
+        ],
+      },
+    });
+    if (!user) {
+      return {
+        success: false,
+        error: `Customer "${q}" not found.`,
+      };
+    }
+
+    const newCode = generateLoginCode();
+    const updated = await prisma.user.update({
+      where: { id: user.id },
+      data: { loginCode: newCode },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        loginCode: true,
+      },
+    });
+
+    return {
+      success: true,
+      message: `Reset 8-character loginCode for ${updated.name || updated.email} to ${updated.loginCode}`,
+      customer: updated,
+    };
+  }
+
+  // =========================================================================
+  // 3. ACCOUNTING, LEDGERS, INVOICING & EXPENSES
+  // =========================================================================
+
+  async getCustomerLedgerAndBalance(
+    query: string
+  ): Promise<CustomerLedgerResult | null> {
+    const clean = query.trim();
+    const prisma = await this.getPrisma();
+
+    if (prisma) {
+      try {
+        const user = await prisma.user.findFirst({
+          where: {
+            OR: [
+              { id: clean },
+              { email: { equals: clean, mode: 'insensitive' } },
+              { loginCode: { equals: clean, mode: 'insensitive' } },
+              { name: { contains: clean, mode: 'insensitive' } },
+            ],
+          },
+          include: {
+            ledgerEntries: {
+              include: { shipment: { select: { vehicleVIN: true } } },
+              orderBy: { transactionDate: 'desc' },
+              take: 25,
+            },
+            invoices: {
+              orderBy: { issueDate: 'desc' },
+              take: 20,
+            },
+          },
+        });
+
+        if (user) {
+          let totalDebits = 0;
+          let totalCredits = 0;
+          for (const entry of user.ledgerEntries) {
+            if (entry.type === 'DEBIT') totalDebits += entry.amount;
+            else totalCredits += entry.amount;
+          }
+          const latestBalance =
+            user.ledgerEntries[0]?.balance ?? totalDebits - totalCredits;
+
+          const unpaidInvoices = user.invoices.filter(
+            (inv: any) => inv.status !== 'PAID' && inv.status !== 'VOID'
+          );
+          const unpaidAmount = unpaidInvoices.reduce(
+            (sum: number, inv: any) => sum + (inv.amountRemaining || 0),
+            0
+          );
+
+          return {
+            customerId: user.id,
+            customerName: user.name,
+            customerEmail: user.email,
+            loginCode: user.loginCode,
+            collectionStatus: String(user.collectionStatus || 'CURRENT'),
+            promiseToPayDate: user.promiseToPayDate
+              ? new Date(user.promiseToPayDate).toISOString()
+              : null,
+            currentBalance: latestBalance,
+            totalDebits,
+            totalCredits,
+            unpaidInvoicesCount: unpaidInvoices.length,
+            unpaidInvoicesAmount: unpaidAmount,
+            recentEntries: user.ledgerEntries.map((e: any) => ({
+              id: e.id,
+              transactionDate: new Date(e.transactionDate).toISOString(),
+              description: e.description,
+              type: String(e.type),
+              amount: e.amount,
+              balance: e.balance,
+              shipmentVin: e.shipment?.vehicleVIN || null,
+            })),
+            invoices: user.invoices.map((inv: any) => ({
+              id: inv.id,
+              invoiceNumber: inv.invoiceNumber,
+              status: String(inv.status),
+              total: inv.total,
+              amountPaid: inv.amountPaid,
+              amountRemaining: inv.amountRemaining,
+              issueDate: new Date(inv.issueDate).toISOString(),
+              dueDate: inv.dueDate ? new Date(inv.dueDate).toISOString() : null,
+            })),
+            dataSource: 'database',
+          };
+        }
+      } catch {
+        // Fallback to snapshot
+      }
+    }
+
+    const snap = this.snapshotData;
+    const user = (snap?.users || []).find(
+      (u: any) =>
+        u.id === clean ||
+        (u.email && u.email.toLowerCase() === clean.toLowerCase()) ||
+        (u.name && u.name.toLowerCase().includes(clean.toLowerCase())) ||
+        (u.loginCode && u.loginCode.toLowerCase() === clean.toLowerCase())
+    );
+    if (!user) return null;
+
+    const entries = (snap?.ledgerEntries || []).filter(
+      (e: any) => e.userId === user.id
+    );
+    const totalDebits = entries
+      .filter((e: any) => e.type === 'DEBIT')
+      .reduce((acc: number, e: any) => acc + (e.amount || 0), 0);
+    const totalCredits = entries
+      .filter((e: any) => e.type === 'CREDIT')
+      .reduce((acc: number, e: any) => acc + (e.amount || 0), 0);
+
+    return {
+      customerId: user.id,
+      customerName: user.name || null,
+      customerEmail: user.email,
+      loginCode: user.loginCode || null,
+      collectionStatus: user.collectionStatus || 'CURRENT',
+      promiseToPayDate: null,
+      currentBalance: totalDebits - totalCredits,
+      totalDebits,
+      totalCredits,
+      unpaidInvoicesCount: 0,
+      unpaidInvoicesAmount: 0,
+      recentEntries: entries.slice(0, 20).map((e: any) => ({
+        id: e.id,
+        transactionDate: e.transactionDate,
+        description: e.description,
+        type: e.type,
+        amount: e.amount,
+        balance: e.balance,
+      })),
+      invoices: [],
+      dataSource: 'snapshot',
+    };
+  }
+
+  async listAndSearchInvoices(input: {
+    query?: string;
+    status?: string;
+    limit?: number;
+  }): Promise<InvoiceSearchResult[]> {
+    const prisma = await this.getPrisma();
+    const limit = Math.min(input.limit || 15, 50);
+
+    if (prisma) {
+      try {
+        const where: any = {};
+        if (input.status) where.status = input.status;
+        if (input.query) {
+          const q = input.query.trim();
+          where.OR = [
+            { invoiceNumber: { contains: q, mode: 'insensitive' } },
+            { user: { name: { contains: q, mode: 'insensitive' } } },
+            { user: { email: { contains: q, mode: 'insensitive' } } },
+            { shipment: { vehicleVIN: { contains: q, mode: 'insensitive' } } },
+            { container: { containerNumber: { contains: q, mode: 'insensitive' } } },
+          ];
+        }
+
+        const invoices = await prisma.userInvoice.findMany({
+          where,
+          include: {
+            user: { select: { name: true, email: true } },
+            container: { select: { containerNumber: true } },
+            shipment: { select: { vehicleVIN: true } },
+            lineItems: true,
+          },
+          orderBy: { issueDate: 'desc' },
+          take: limit,
+        });
+
+        return invoices.map((inv: any) => ({
+          id: inv.id,
+          invoiceNumber: inv.invoiceNumber,
+          status: String(inv.status),
+          customerName: inv.user?.name || null,
+          customerEmail: inv.user?.email || null,
+          containerNumber: inv.container?.containerNumber || null,
+          shipmentVin: inv.shipment?.vehicleVIN || null,
+          subtotal: inv.subtotal,
+          tax: inv.tax,
+          discount: inv.discount,
+          total: inv.total,
+          amountPaid: inv.amountPaid,
+          amountRemaining: inv.amountRemaining,
+          currency: inv.currency || 'USD',
+          issueDate: new Date(inv.issueDate).toISOString(),
+          dueDate: inv.dueDate ? new Date(inv.dueDate).toISOString() : null,
+          paidDate: inv.paidDate ? new Date(inv.paidDate).toISOString() : null,
+          lineItems: (inv.lineItems || []).map((li: any) => ({
+            description: li.description,
+            type: String(li.type),
+            quantity: li.quantity,
+            unitPrice: li.unitPrice,
+            amount: li.amount,
+          })),
+          dataSource: 'database',
+        }));
+      } catch {
+        // Fallback
+      }
+    }
+
+    const snap = this.snapshotData;
+    return (snap?.userInvoices || []).slice(0, limit).map((inv: any) => ({
+      id: inv.id,
+      invoiceNumber: inv.invoiceNumber,
+      status: inv.status,
+      customerName: null,
+      customerEmail: null,
+      containerNumber: null,
+      shipmentVin: null,
+      subtotal: inv.subtotal || 0,
+      tax: inv.tax || 0,
+      discount: inv.discount || 0,
+      total: inv.total || 0,
+      amountPaid: inv.amountPaid || 0,
+      amountRemaining: inv.amountRemaining || 0,
+      currency: inv.currency || 'USD',
+      issueDate: inv.issueDate,
+      dueDate: inv.dueDate || null,
+      paidDate: inv.paidDate || null,
+      lineItems: [],
+      dataSource: 'snapshot' as const,
+    }));
+  }
+
+  async getFinancialAndExpenseSummary(input?: {
+    containerNumber?: string;
+    limit?: number;
+  }) {
+    const prisma = await this.getPrisma();
+    if (prisma) {
+      try {
+        const [
+          invoiceAgg,
+          paymentAgg,
+          containerExpenseAgg,
+          dispatchExpenseAgg,
+          recentContainerExpenses,
+        ] = await Promise.all([
+          prisma.userInvoice.aggregate({
+            _sum: {
+              total: true,
+              amountPaid: true,
+              amountRemaining: true,
+            },
+            _count: { id: true },
+          }),
+          prisma.payment.aggregate({
+            _sum: { amount: true },
+            _count: { id: true },
+          }),
+          prisma.containerExpense.aggregate({
+            _sum: { amount: true },
+            _count: { id: true },
+          }),
+          prisma.dispatchExpense.aggregate({
+            _sum: { amount: true },
+            _count: { id: true },
+          }),
+          prisma.containerExpense.findMany({
+            where: input?.containerNumber
+              ? {
+                  container: {
+                    containerNumber: {
+                      contains: input.containerNumber.trim(),
+                      mode: 'insensitive',
+                    },
+                  },
+                }
+              : undefined,
+            include: {
+              container: { select: { containerNumber: true } },
+            },
+            orderBy: { date: 'desc' },
+            take: Math.min(input?.limit || 15, 40),
+          }),
+        ]);
+
+        return {
+          invoicing: {
+            totalInvoices: invoiceAgg._count.id || 0,
+            totalBilledUsd: invoiceAgg._sum.total || 0,
+            totalCollectedUsd: invoiceAgg._sum.amountPaid || 0,
+            totalOutstandingReceivablesUsd:
+              invoiceAgg._sum.amountRemaining || 0,
+          },
+          payments: {
+            totalPaymentsCount: paymentAgg._count.id || 0,
+            totalPaymentsAmountUsd: paymentAgg._sum.amount || 0,
+          },
+          operationalExpenses: {
+            containerExpensesCount: containerExpenseAgg._count.id || 0,
+            containerExpensesTotalUsd: containerExpenseAgg._sum.amount || 0,
+            dispatchExpensesCount: dispatchExpenseAgg._count.id || 0,
+            dispatchExpensesTotalUsd: dispatchExpenseAgg._sum.amount || 0,
+          },
+          recentContainerExpenses: recentContainerExpenses.map((e: any) => ({
+            id: e.id,
+            containerNumber: e.container?.containerNumber || null,
+            type: e.type,
+            amount: e.amount,
+            currency: e.currency,
+            vendor: e.vendor,
+            date: new Date(e.date).toISOString(),
+            notes: e.notes,
+          })),
+          dataSource: 'database',
+        };
+      } catch {
+        // Fallback
+      }
+    }
+
+    const snap = this.snapshotData;
+    const expenses = snap?.containerExpenses || [];
+    const totalExp = expenses.reduce(
+      (acc: number, e: any) => acc + (e.amount || 0),
+      0
+    );
+
+    return {
+      invoicing: {
+        totalInvoices: (snap?.userInvoices || []).length,
+        totalBilledUsd: 0,
+        totalCollectedUsd: 0,
+        totalOutstandingReceivablesUsd: 0,
+      },
+      payments: {
+        totalPaymentsCount: (snap?.payments || []).length,
+        totalPaymentsAmountUsd: 0,
+      },
+      operationalExpenses: {
+        containerExpensesCount: expenses.length,
+        containerExpensesTotalUsd: totalExp,
+        dispatchExpensesCount: (snap?.dispatchExpenses || []).length,
+        dispatchExpensesTotalUsd: 0,
+      },
+      recentContainerExpenses: expenses.slice(0, 10),
+      dataSource: 'snapshot',
+    };
+  }
+
+  // =========================================================================
+  // 4. LIVE AUCTION LOT SCRAPER (COPART / IAAI) & LIVE CARRIER AIS SYNC
+  // =========================================================================
+
+  async fetchAuctionLot(lotOrVin: string) {
+    const clean = lotOrVin.trim();
+
+    // 1. Check if already in Jacxi database first
+    const existingVinMatches = await this.searchVin(clean, false);
+
+    // 2. If numeric lot number, try live Copart scraper (`fetchCopartLotVehicleData`)
+    let liveCopartData: any = null;
+    let scraperError: string | null = null;
+    if (/^\d{6,10}$/.test(clean)) {
+      try {
+        const mod = await import('../../../src/lib/copart/lot-scraper');
+        if (mod && typeof mod.fetchCopartLotVehicleData === 'function') {
+          liveCopartData = await mod.fetchCopartLotVehicleData(clean);
+        }
+      } catch (err: any) {
+        scraperError = err?.message || 'Live Copart scraper unavailable';
+      }
+    }
+
+    return {
+      query: clean,
+      liveAuctionData: liveCopartData,
+      existingShipmentsInJacxi: existingVinMatches,
+      scraperNote: scraperError,
+    };
+  }
+
+  async syncLiveContainerTracking(containerNumber: string) {
+    const clean = containerNumber.trim().toUpperCase();
+    const prisma = await this.getPrisma();
+
+    let syncResult: any = null;
+    if (prisma) {
+      try {
+        const container = await prisma.container.findFirst({
+          where: {
+            OR: [
+              { id: clean },
+              { containerNumber: { equals: clean, mode: 'insensitive' } },
+              { bookingNumber: { equals: clean, mode: 'insensitive' } },
+            ],
+          },
+        });
+
+        if (container) {
+          const syncMod = await import('../../../src/lib/services/tracking-sync');
+          if (syncMod && syncMod.trackingSync) {
+            syncResult = await syncMod.trackingSync.syncContainerTracking(
+              container.id,
+              { force: true }
+            );
+          }
+        }
+      } catch (err: any) {
+        syncResult = {
+          success: false,
+          error: err?.message || 'Live carrier sync unavailable',
+        };
+      }
+    }
+
+    const latestTracking = await this.track(clean);
+
+    return {
+      containerNumber: clean,
+      carrierSyncResult: syncResult,
+      latestTracking,
+    };
+  }
+
+  // =========================================================================
+  // 5. DOCUMENTS, GATE PASSES & OUTBOUND NOTIFICATIONS
+  // =========================================================================
+
+  async listAndGenerateDocuments(input: {
+    action?: 'list' | 'generate_gate_pass';
+    query?: string;
+    category?: string;
+    limit?: number;
+  }): Promise<{
+    action: string;
+    documents?: DocumentSearchResult[];
+    gatePass?: any;
+  }> {
+    const action = input.action || 'list';
+    const prisma = await this.getPrisma();
+
+    if (action === 'generate_gate_pass' && prisma && input.query) {
+      const q = input.query.trim();
+      const shipment = await prisma.shipment.findFirst({
+        where: {
+          OR: [
+            { id: q },
+            { vehicleVIN: { equals: q, mode: 'insensitive' } },
+            { lotNumber: { equals: q, mode: 'insensitive' } },
+          ],
+        },
+        include: {
+          user: { select: { name: true, email: true } },
+          container: { select: { containerNumber: true } },
+        },
+      });
+
+      if (!shipment) {
+        throw new Error(`Shipment "${q}" not found to generate Gate Pass.`);
+      }
+
+      const token =
+        shipment.releaseToken ||
+        `GP-${new Date().getFullYear()}-${randomBytes(4).toString('hex').toUpperCase()}`;
+
+      const updated = await prisma.shipment.update({
+        where: { id: shipment.id },
+        data: {
+          releaseToken: token,
+          releaseTokenCreatedAt: new Date(),
+          companyGatePassRequested: true,
+          companyGatePassRequestedAt: new Date(),
+        },
+      });
+
+      return {
+        action: 'generate_gate_pass',
+        gatePass: {
+          shipmentId: updated.id,
+          vin: updated.vehicleVIN,
+          vehicle: [
+            updated.vehicleYear,
+            updated.vehicleMake,
+            updated.vehicleModel,
+          ]
+            .filter(Boolean)
+            .join(' '),
+          customerName: shipment.user?.name || null,
+          containerNumber: shipment.container?.containerNumber || null,
+          releaseToken: token,
+          issuedAt: new Date().toISOString(),
+          paymentStatus: updated.paymentStatus,
+          gatePassVerifyUrl: `${APP_URL}/dashboard/shipments/${updated.id}`,
+        },
+      };
+    }
+
+    // Default: list documents (both shipment Document and ContainerDocument)
+    if (prisma) {
+      try {
+        const q = (input.query || '').trim();
+        const [shipmentDocs, containerDocs] = await Promise.all([
+          prisma.document.findMany({
+            where: q
+              ? {
+                  OR: [
+                    { name: { contains: q, mode: 'insensitive' } },
+                    {
+                      shipment: {
+                        vehicleVIN: { contains: q, mode: 'insensitive' },
+                      },
+                    },
+                  ],
+                }
+              : undefined,
+            include: { shipment: { select: { vehicleVIN: true } } },
+            orderBy: { createdAt: 'desc' },
+            take: Math.min(input.limit || 15, 40),
+          }),
+          prisma.containerDocument.findMany({
+            where: q
+              ? {
+                  OR: [
+                    { name: { contains: q, mode: 'insensitive' } },
+                    {
+                      container: {
+                        containerNumber: { contains: q, mode: 'insensitive' },
+                      },
+                    },
+                  ],
+                }
+              : undefined,
+            include: { container: { select: { containerNumber: true } } },
+            orderBy: { uploadedAt: 'desc' },
+            take: Math.min(input.limit || 15, 40),
+          }),
+        ]);
+
+        const combined: DocumentSearchResult[] = [
+          ...shipmentDocs.map((d: any) => ({
+            id: d.id,
+            name: d.name,
+            category: String(d.category),
+            fileUrl: d.fileUrl,
+            fileType: d.fileType,
+            shipmentVin: d.shipment?.vehicleVIN || null,
+            containerNumber: null,
+            uploadedBy: d.uploadedBy,
+            createdAt: new Date(d.createdAt).toISOString(),
+          })),
+          ...containerDocs.map((d: any) => ({
+            id: d.id,
+            name: d.name,
+            category: d.type,
+            fileUrl: d.fileUrl,
+            fileType: d.fileType,
+            shipmentVin: null,
+            containerNumber: d.container?.containerNumber || null,
+            uploadedBy: d.uploadedBy,
+            createdAt: new Date(d.uploadedAt).toISOString(),
+          })),
+        ];
+
+        return {
+          action: 'list',
+          documents: combined.slice(0, input.limit || 20),
+        };
+      } catch {
+        // Fallback
+      }
+    }
+
+    return {
+      action: 'list',
+      documents: [],
+    };
+  }
+
+  async sendCustomerNotification(input: {
+    customerQuery: string;
+    title: string;
+    description: string;
+    type?: 'INFO' | 'SUCCESS' | 'WARNING' | 'ERROR';
+    link?: string;
+  }) {
+    const prisma = await this.getPrisma();
+    if (!prisma) {
+      throw new Error('Database connection required to send notifications.');
+    }
+
+    const q = input.customerQuery.trim();
+    let user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { id: q },
+          { email: { equals: q, mode: 'insensitive' } },
+          { loginCode: { equals: q, mode: 'insensitive' } },
+          { name: { contains: q, mode: 'insensitive' } },
+        ],
+      },
+    });
+
+    if (!user) {
+      user = await prisma.user.findFirst({ orderBy: { createdAt: 'asc' } });
+    }
+    if (!user) {
+      throw new Error(`No user found matching "${q}".`);
+    }
+
+    const notification = await prisma.notification.create({
+      data: {
+        userId: user.id,
+        title: input.title,
+        description: input.description,
+        type: (input.type as any) || 'INFO',
+        link: input.link || null,
+      },
+    });
+
+    await this.logMcpActivity({
+      tool: 'send_customer_notification',
+      query: `${user.email}: ${input.title}`,
+      entityType: 'NOTIFICATION',
+      entityId: notification.id,
+      responseSummary: `Sent notification "${input.title}" to ${user.name || user.email}`,
+    });
+
+    return {
+      success: true,
+      message: `Notification "${input.title}" sent to ${user.name || user.email}`,
+      notification,
+    };
   }
 }
 

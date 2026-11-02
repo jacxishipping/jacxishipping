@@ -34,9 +34,36 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ found: Boolean(tracking), tracking }, { headers });
     }
 
-    if (action === 'overview' || action === 'stats') {
+    if (action === 'overview' || action === 'stats' || action === 'get_shipping_overview') {
       const stats = await provider.getStats();
       return NextResponse.json(stats, { headers });
+    }
+
+    if (action === 'get_customer_ledger_and_balance') {
+      const res = await provider.getCustomerLedgerAndBalance(searchParams.get('query') || '');
+      return NextResponse.json(res, { headers });
+    }
+
+    if (action === 'list_and_search_invoices') {
+      const res = await provider.listAndSearchInvoices({
+        query: searchParams.get('query') || undefined,
+        status: searchParams.get('status') || undefined,
+      });
+      return NextResponse.json(res, { headers });
+    }
+
+    if (action === 'get_financial_and_expense_summary') {
+      const res = await provider.getFinancialAndExpenseSummary({
+        containerNumber: searchParams.get('containerNumber') || undefined,
+      });
+      return NextResponse.json(res, { headers });
+    }
+
+    if (action === 'fetch_auction_lot') {
+      const res = await provider.fetchAuctionLot(
+        searchParams.get('lotOrVin') || searchParams.get('query') || ''
+      );
+      return NextResponse.json(res, { headers });
     }
 
     return NextResponse.json(
@@ -81,9 +108,79 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ found: Boolean(tracking), tracking }, { headers });
     }
 
-    if (action === 'overview' || action === 'stats') {
+    if (action === 'overview' || action === 'stats' || action === 'get_shipping_overview') {
       const stats = await provider.getStats();
       return NextResponse.json(stats, { headers });
+    }
+
+    if (action === 'get_customer_ledger_and_balance') {
+      const res = await provider.getCustomerLedgerAndBalance(body.query || '');
+      return NextResponse.json(res, { headers });
+    }
+
+    if (action === 'list_and_search_invoices') {
+      const res = await provider.listAndSearchInvoices(body);
+      return NextResponse.json(res, { headers });
+    }
+
+    if (action === 'get_financial_and_expense_summary') {
+      const res = await provider.getFinancialAndExpenseSummary(body);
+      return NextResponse.json(res, { headers });
+    }
+
+    if (action === 'list_and_manage_transits') {
+      const res = await provider.listAndManageTransits(body);
+      return NextResponse.json(res, { headers });
+    }
+
+    if (action === 'fetch_auction_lot') {
+      const res = await provider.fetchAuctionLot(body.lotOrVin || body.query || '');
+      return NextResponse.json(res, { headers });
+    }
+
+    if (action === 'sync_live_container_tracking') {
+      const res = await provider.syncLiveContainerTracking(body.containerNumber || '');
+      return NextResponse.json(res, { headers });
+    }
+
+    if (action === 'list_and_generate_documents') {
+      const res = await provider.listAndGenerateDocuments(body);
+      return NextResponse.json(res, { headers });
+    }
+
+    if (action === 'send_customer_notification') {
+      const res = await provider.sendCustomerNotification(body);
+      return NextResponse.json(res, { headers });
+    }
+
+    if (action === 'create_shipment') {
+      const res = await provider.createShipment(body);
+      return NextResponse.json(res, { headers });
+    }
+
+    if (action === 'update_shipment') {
+      const res = await provider.updateShipment(body);
+      return NextResponse.json(res, { headers });
+    }
+
+    if (action === 'create_container') {
+      const res = await provider.createContainer(body);
+      return NextResponse.json(res, { headers });
+    }
+
+    if (action === 'update_container_and_tracking') {
+      const res = await provider.updateContainerAndTracking(body);
+      return NextResponse.json(res, { headers });
+    }
+
+    if (action === 'create_dispatch') {
+      const res = await provider.createDispatch(body);
+      return NextResponse.json(res, { headers });
+    }
+
+    if (action === 'manage_customer') {
+      const res = await provider.manageCustomer(body);
+      return NextResponse.json(res, { headers });
     }
 
     return NextResponse.json({ error: `Unknown tool action: ${action}` }, { status: 400, headers });

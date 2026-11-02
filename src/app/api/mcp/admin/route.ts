@@ -285,6 +285,86 @@ export async function POST(request: NextRequest) {
           summary = `Quote estimated at $${result.totalEstimatedUsd} USD (${result.estimatedTransitDays})`;
           break;
         }
+        case 'create_shipment': {
+          result = await provider.createShipment(args as any);
+          summary = result.message || 'Created shipment';
+          break;
+        }
+        case 'update_shipment': {
+          result = await provider.updateShipment(args as any);
+          summary = result.message || result.error || 'Updated shipment';
+          break;
+        }
+        case 'create_container': {
+          result = await provider.createContainer(args as any);
+          summary = result.message || 'Created container';
+          break;
+        }
+        case 'update_container_and_tracking': {
+          result = await provider.updateContainerAndTracking(args as any);
+          summary = result.message || result.error || 'Updated container';
+          break;
+        }
+        case 'create_dispatch': {
+          result = await provider.createDispatch(args as any);
+          summary = result.message || 'Created inland dispatch';
+          break;
+        }
+        case 'list_and_manage_transits': {
+          result = await provider.listAndManageTransits(args as any);
+          summary =
+            result.action === 'list'
+              ? `Listed ${result.transits?.length || 0} overland transit(s)`
+              : `Executed transit ${result.action}`;
+          break;
+        }
+        case 'manage_customer': {
+          result = await provider.manageCustomer(args as any);
+          summary = result.message || result.error || 'Customer operation completed';
+          break;
+        }
+        case 'get_customer_ledger_and_balance': {
+          result = await provider.getCustomerLedgerAndBalance(String(args.query || ''));
+          summary = result
+            ? `${result.customerName || result.customerEmail}: Balance $${result.currentBalance} USD`
+            : `No customer found for "${args.query}"`;
+          break;
+        }
+        case 'list_and_search_invoices': {
+          result = await provider.listAndSearchInvoices(args as any);
+          summary = `Found ${result.length} invoice(s)`;
+          break;
+        }
+        case 'get_financial_and_expense_summary': {
+          result = await provider.getFinancialAndExpenseSummary(args as any);
+          summary = `Total Billed: $${result.invoicing.totalBilledUsd}, Collected: $${result.invoicing.totalCollectedUsd}`;
+          break;
+        }
+        case 'fetch_auction_lot': {
+          result = await provider.fetchAuctionLot(String(args.lotOrVin || ''));
+          summary = result.liveAuctionData
+            ? `Fetched live Copart lot ${args.lotOrVin}`
+            : `Checked ${result.existingShipmentsInJacxi.length} existing Jacxi record(s)`;
+          break;
+        }
+        case 'sync_live_container_tracking': {
+          result = await provider.syncLiveContainerTracking(String(args.containerNumber || ''));
+          summary = `Synced live tracking for ${args.containerNumber}`;
+          break;
+        }
+        case 'list_and_generate_documents': {
+          result = await provider.listAndGenerateDocuments(args as any);
+          summary =
+            result.action === 'generate_gate_pass'
+              ? `Generated Gate Pass ${result.gatePass?.releaseToken}`
+              : `Listed ${result.documents?.length || 0} document(s)`;
+          break;
+        }
+        case 'send_customer_notification': {
+          result = await provider.sendCustomerNotification(args as any);
+          summary = result.message || 'Sent notification';
+          break;
+        }
         default:
           return NextResponse.json(
             { error: `Unknown tool: ${toolName}` },

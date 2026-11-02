@@ -136,9 +136,50 @@ export async function POST(request: NextRequest) {
       result = await provider.track(query);
     } else if (toolName === 'get_shipping_overview' || toolName === 'overview') {
       result = await provider.getStats();
+    } else if (toolName === 'list_containers') {
+      result = await provider.listContainers(args);
+    } else if (toolName === 'list_shipments') {
+      result = await provider.listShipments(args);
+    } else if (toolName === 'search_customer') {
+      result = await provider.searchCustomers(args.query || '', args.limit || 10);
+    } else if (toolName === 'list_dispatches') {
+      result = await provider.listDispatches(args);
+    } else if (toolName === 'get_container_manifest') {
+      const containers = await provider.searchContainer(args.containerNumber || '', true);
+      result = containers[0] || null;
+    } else if (toolName === 'calculate_shipping_quote') {
+      result = provider.calculateQuote(args);
+    } else if (toolName === 'create_shipment') {
+      result = await provider.createShipment(args);
+    } else if (toolName === 'update_shipment') {
+      result = await provider.updateShipment(args);
+    } else if (toolName === 'create_container') {
+      result = await provider.createContainer(args);
+    } else if (toolName === 'update_container_and_tracking') {
+      result = await provider.updateContainerAndTracking(args);
+    } else if (toolName === 'create_dispatch') {
+      result = await provider.createDispatch(args);
+    } else if (toolName === 'list_and_manage_transits') {
+      result = await provider.listAndManageTransits(args);
+    } else if (toolName === 'manage_customer') {
+      result = await provider.manageCustomer(args);
+    } else if (toolName === 'get_customer_ledger_and_balance') {
+      result = await provider.getCustomerLedgerAndBalance(args.query || '');
+    } else if (toolName === 'list_and_search_invoices') {
+      result = await provider.listAndSearchInvoices(args);
+    } else if (toolName === 'get_financial_and_expense_summary') {
+      result = await provider.getFinancialAndExpenseSummary(args);
+    } else if (toolName === 'fetch_auction_lot') {
+      result = await provider.fetchAuctionLot(args.lotOrVin || args.query || '');
+    } else if (toolName === 'sync_live_container_tracking') {
+      result = await provider.syncLiveContainerTracking(args.containerNumber || '');
+    } else if (toolName === 'list_and_generate_documents') {
+      result = await provider.listAndGenerateDocuments(args);
+    } else if (toolName === 'send_customer_notification') {
+      result = await provider.sendCustomerNotification(args);
     } else {
       return NextResponse.json(
-        { error: `Unknown tool function: "${toolName}". Available: search_vin, search_container, track, get_shipping_overview` },
+        { error: `Unknown tool function: "${toolName}".` },
         { status: 400, headers: corsHeaders }
       );
     }

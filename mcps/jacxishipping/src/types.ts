@@ -218,9 +218,120 @@ export interface QuoteEstimateResult {
   notes: string[];
 }
 
+export interface TransitSearchResult {
+  id: string;
+  referenceNumber: string;
+  status: string;
+  origin: string;
+  destination: string;
+  companyName: string | null;
+  dispatchDate: string | null;
+  estimatedDelivery: string | null;
+  actualDelivery: string | null;
+  cost: number | null;
+  shipmentCount: number;
+  vehicles: Array<{
+    id: string;
+    vin: string | null;
+    vehicle: string;
+    status: string;
+  }>;
+  events: Array<{
+    id: string;
+    status: string;
+    location: string | null;
+    description: string | null;
+    eventDate: string;
+  }>;
+  dataSource: 'database' | 'api' | 'snapshot';
+}
+
+export interface CustomerLedgerResult {
+  customerId: string;
+  customerName: string | null;
+  customerEmail: string;
+  loginCode: string | null;
+  collectionStatus: string;
+  promiseToPayDate: string | null;
+  currentBalance: number;
+  totalDebits: number;
+  totalCredits: number;
+  unpaidInvoicesCount: number;
+  unpaidInvoicesAmount: number;
+  recentEntries: Array<{
+    id: string;
+    transactionDate: string;
+    description: string;
+    type: string;
+    amount: number;
+    balance: number;
+    shipmentVin?: string | null;
+  }>;
+  invoices: Array<{
+    id: string;
+    invoiceNumber: string;
+    status: string;
+    total: number;
+    amountPaid: number;
+    amountRemaining: number;
+    issueDate: string;
+    dueDate: string | null;
+  }>;
+  dataSource: 'database' | 'snapshot';
+}
+
+export interface InvoiceSearchResult {
+  id: string;
+  invoiceNumber: string;
+  status: string;
+  customerName: string | null;
+  customerEmail: string | null;
+  containerNumber: string | null;
+  shipmentVin: string | null;
+  subtotal: number;
+  tax: number;
+  discount: number;
+  total: number;
+  amountPaid: number;
+  amountRemaining: number;
+  currency: string;
+  issueDate: string;
+  dueDate: string | null;
+  paidDate: string | null;
+  lineItems: Array<{
+    description: string;
+    type: string;
+    quantity: number;
+    unitPrice: number;
+    amount: number;
+  }>;
+  dataSource: 'database' | 'snapshot';
+}
+
+export interface DocumentSearchResult {
+  id: string;
+  name: string;
+  category: string;
+  fileUrl: string;
+  fileType: string;
+  shipmentVin: string | null;
+  containerNumber: string | null;
+  uploadedBy: string;
+  createdAt: string;
+}
+
 export interface McpToolMetadata {
   name: string;
-  category: 'Search' | 'Tracking' | 'Operations' | 'Analytics' | 'Quotes';
+  category:
+    | 'Search'
+    | 'Tracking'
+    | 'Operations'
+    | 'Mutations & Admin'
+    | 'Accounting & Billing'
+    | 'Live Scrapers & AIS'
+    | 'Documents & Alerts'
+    | 'Analytics'
+    | 'Quotes';
   description: string;
   parameters: Array<{
     name: string;

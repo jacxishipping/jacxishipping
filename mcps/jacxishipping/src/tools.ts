@@ -256,6 +256,245 @@ export function getMcpToolsCatalog(): McpToolMetadata[] {
         destination: 'Islam Qala, Afghanistan',
       },
     },
+    {
+      name: 'create_shipment',
+      category: 'Mutations & Admin',
+      description:
+        'Create a new vehicle shipment record in Jacxi Shipping with VIN, vehicle details, lot number, customer assignment, and container assignment.',
+      parameters: [
+        { name: 'vehicleVIN', type: 'string', required: true, description: '17-character Vehicle Identification Number' },
+        { name: 'vehicleYear', type: 'number', required: false, description: 'Model year (e.g. 2021)' },
+        { name: 'vehicleMake', type: 'string', required: false, description: 'Vehicle make (e.g. TOYOTA)' },
+        { name: 'vehicleModel', type: 'string', required: false, description: 'Vehicle model (e.g. HIGHLANDER)' },
+        { name: 'lotNumber', type: 'string', required: false, description: 'Copart or IAAI lot number' },
+        { name: 'customerQuery', type: 'string', required: false, description: 'Customer email, name, ID, or loginCode' },
+        { name: 'containerNumber', type: 'string', required: false, description: 'Optional container number to assign' },
+        { name: 'price', type: 'number', required: false, description: 'Shipping fare in USD' },
+      ],
+      sampleArgs: {
+        vehicleVIN: '5TDGZRBH7MS098765',
+        vehicleYear: 2021,
+        vehicleMake: 'TOYOTA',
+        vehicleModel: 'HIGHLANDER',
+        lotNumber: '61029384',
+        customerQuery: 'Aziz ahmad',
+        price: 1650,
+      },
+    },
+    {
+      name: 'update_shipment',
+      category: 'Mutations & Admin',
+      description:
+        'Update an existing vehicle shipment status, container assignment, shipping price, payment status, keys/title status, or internal notes.',
+      parameters: [
+        { name: 'vinOrId', type: 'string', required: true, description: 'VIN, lot number, or shipment ID' },
+        { name: 'status', type: 'string', required: false, description: 'ON_HAND, DISPATCHING, IN_TRANSIT, IN_TRANSIT_TO_DESTINATION, DELIVERED' },
+        { name: 'containerNumber', type: 'string', required: false, description: 'Container number to assign (or empty string to unassign)' },
+        { name: 'price', type: 'number', required: false, description: 'Updated shipping price in USD' },
+        { name: 'paymentStatus', type: 'string', required: false, description: 'PENDING, COMPLETED, FAILED, REFUNDED, CANCELLED' },
+        { name: 'hasKey', type: 'boolean', required: false, description: 'Whether vehicle has keys' },
+        { name: 'hasTitle', type: 'boolean', required: false, description: 'Whether vehicle has export title' },
+      ],
+      sampleArgs: {
+        vinOrId: 'JTEBU5JR4A5011946',
+        status: 'IN_TRANSIT',
+        hasKey: true,
+        hasTitle: true,
+      },
+    },
+    {
+      name: 'create_container',
+      category: 'Mutations & Admin',
+      description:
+        'Create a new ocean freight container with container number, booking number, shipping line, vessel, voyage, ports, and ETA.',
+      parameters: [
+        { name: 'containerNumber', type: 'string', required: true, description: 'Container number (e.g. MSKU9012345)' },
+        { name: 'bookingNumber', type: 'string', required: false, description: 'Carrier booking reference' },
+        { name: 'shippingLine', type: 'string', required: false, description: 'Shipping line (e.g. MAERSK, MSC, CMA CGM)' },
+        { name: 'vesselName', type: 'string', required: false, description: 'Vessel name' },
+        { name: 'loadingPort', type: 'string', required: false, description: 'Port of Loading (e.g. Houston, TX)' },
+        { name: 'destinationPort', type: 'string', required: false, description: 'Port of Discharge (e.g. Mersin, Turkey)' },
+        { name: 'estimatedArrival', type: 'string', required: false, description: 'ETA ISO date string (YYYY-MM-DD)' },
+      ],
+      sampleArgs: {
+        containerNumber: 'MSKU9012345',
+        shippingLine: 'MAERSK',
+        loadingPort: 'Houston, TX',
+        destinationPort: 'Mersin',
+      },
+    },
+    {
+      name: 'update_container_and_tracking',
+      category: 'Mutations & Admin',
+      description:
+        'Update an ocean container status, ETA, current location, or progress %, and optionally append a new tracking milestone event.',
+      parameters: [
+        { name: 'containerNumber', type: 'string', required: true, description: 'Container number or booking number' },
+        { name: 'status', type: 'string', required: false, description: 'CREATED, WAITING_FOR_LOADING, LOADED, IN_TRANSIT, ARRIVED_PORT, CUSTOMS_CLEARANCE, RELEASED, CLOSED' },
+        { name: 'currentLocation', type: 'string', required: false, description: 'Current port or ocean position' },
+        { name: 'estimatedArrival', type: 'string', required: false, description: 'Updated ETA (YYYY-MM-DD)' },
+        { name: 'progress', type: 'number', required: false, description: 'Journey progress percentage (0-100)' },
+        { name: 'milestoneStatus', type: 'string', required: false, description: 'Optional new tracking event status to append' },
+        { name: 'milestoneDescription', type: 'string', required: false, description: 'Optional description for the new milestone' },
+      ],
+      sampleArgs: {
+        containerNumber: 'CAAU5189072',
+        currentLocation: 'Mediterranean Sea (En route to Mersin)',
+        progress: 75,
+        milestoneStatus: 'Vessel In Transit',
+        milestoneDescription: 'Passed Gibraltar Strait en route to Mersin port',
+      },
+    },
+    {
+      name: 'create_dispatch',
+      category: 'Mutations & Admin',
+      description:
+        'Create a new US domestic inland towing dispatch from auction yard to warehouse/port and optionally assign vehicle VINs.',
+      parameters: [
+        { name: 'origin', type: 'string', required: true, description: 'Pickup location / auction yard' },
+        { name: 'destination', type: 'string', required: true, description: 'Delivery warehouse or port terminal' },
+        { name: 'companyQuery', type: 'string', required: false, description: 'Dispatch carrier company name or ID' },
+        { name: 'cost', type: 'number', required: false, description: 'Towing dispatch cost in USD' },
+      ],
+      sampleArgs: {
+        origin: 'Copart Dallas, TX',
+        destination: 'Houston Export Terminal, TX',
+        cost: 325,
+      },
+    },
+    {
+      name: 'list_and_manage_transits',
+      category: 'Operations',
+      description:
+        'List, create, or add tracking events to overland transits (e.g. Mersin / Dubai to Herat / Kabul, Afghanistan).',
+      parameters: [
+        { name: 'action', type: 'string', required: false, description: "'list' (default), 'create', or 'add_event'" },
+        { name: 'search', type: 'string', required: false, description: 'Search by transit reference number, origin, or destination' },
+        { name: 'status', type: 'string', required: false, description: 'PENDING, DISPATCHED, IN_TRANSIT, ARRIVED, DELIVERED, CANCELLED' },
+        { name: 'referenceNumber', type: 'string', required: false, description: 'Transit reference number (for create or add_event)' },
+        { name: 'origin', type: 'string', required: false, description: 'Transit origin (e.g. Mersin, Turkey or Dubai, UAE)' },
+        { name: 'destination', type: 'string', required: false, description: 'Transit destination (e.g. Herat / Islam Qala, Afghanistan)' },
+      ],
+      sampleArgs: {
+        action: 'list',
+        limit: 10,
+      },
+    },
+    {
+      name: 'manage_customer',
+      category: 'Mutations & Admin',
+      description:
+        'Create a new customer profile or reset/generate a customer 8-character loginCode.',
+      parameters: [
+        { name: 'action', type: 'string', required: true, description: "'create' or 'reset_login_code'" },
+        { name: 'customerQuery', type: 'string', required: false, description: 'Existing customer name, email, or ID (for reset_login_code)' },
+        { name: 'name', type: 'string', required: false, description: 'Customer full name (for create)' },
+        { name: 'email', type: 'string', required: false, description: 'Customer email address' },
+        { name: 'phone', type: 'string', required: false, description: 'Customer phone / WhatsApp' },
+        { name: 'city', type: 'string', required: false, description: 'Customer city' },
+        { name: 'country', type: 'string', required: false, description: 'Customer country' },
+      ],
+      sampleArgs: {
+        action: 'reset_login_code',
+        customerQuery: 'Aziz ahmad',
+      },
+    },
+    {
+      name: 'get_customer_ledger_and_balance',
+      category: 'Accounting & Billing',
+      description:
+        'Get a customer financial statement, current balance, debit/credit ledger entries, collection status, and unpaid invoices.',
+      parameters: [
+        { name: 'query', type: 'string', required: true, description: 'Customer name, email, ID, or 8-char loginCode' },
+      ],
+      sampleArgs: {
+        query: 'Aziz ahmad',
+      },
+    },
+    {
+      name: 'list_and_search_invoices',
+      category: 'Accounting & Billing',
+      description:
+        'Search and list customer invoices (UserInvoice) by invoice number, customer, VIN, container number, or payment status.',
+      parameters: [
+        { name: 'query', type: 'string', required: false, description: 'Invoice number (INV-...), customer name, VIN, or container #' },
+        { name: 'status', type: 'string', required: false, description: 'DRAFT, PENDING, SENT, PAID, OVERDUE, CANCELLED' },
+        { name: 'limit', type: 'number', required: false, description: 'Max invoices to return (default 15)' },
+      ],
+      sampleArgs: {
+        limit: 10,
+      },
+    },
+    {
+      name: 'get_financial_and_expense_summary',
+      category: 'Accounting & Billing',
+      description:
+        'Get company-wide billing totals, collected payments, outstanding receivables, and container/dispatch operational expenses.',
+      parameters: [
+        { name: 'containerNumber', type: 'string', required: false, description: 'Optional container number to filter container expenses' },
+        { name: 'limit', type: 'number', required: false, description: 'Max recent expenses to return (default 15)' },
+      ],
+      sampleArgs: {
+        limit: 10,
+      },
+    },
+    {
+      name: 'fetch_auction_lot',
+      category: 'Live Scrapers & AIS',
+      description:
+        'Fetch live vehicle data from Copart / IAAI auction by lot number (via Oxylabs scraper) and check existing Jacxi shipments.',
+      parameters: [
+        { name: 'lotOrVin', type: 'string', required: true, description: 'Copart/IAAI numeric lot number (e.g. 59292076) or VIN' },
+      ],
+      sampleArgs: {
+        lotOrVin: '59292076',
+      },
+    },
+    {
+      name: 'sync_live_container_tracking',
+      category: 'Live Scrapers & AIS',
+      description:
+        'Trigger a live ocean carrier & vessel AIS tracking refresh for a container and return updated milestones and ETA.',
+      parameters: [
+        { name: 'containerNumber', type: 'string', required: true, description: 'Container number (e.g. CAAU5189072)' },
+      ],
+      sampleArgs: {
+        containerNumber: 'CAAU5189072',
+      },
+    },
+    {
+      name: 'list_and_generate_documents',
+      category: 'Documents & Alerts',
+      description:
+        'List shipment/container documents (BOL, Title, Customs, Photos) or generate an official vehicle Release Gate Pass token.',
+      parameters: [
+        { name: 'action', type: 'string', required: false, description: "'list' (default) or 'generate_gate_pass'" },
+        { name: 'query', type: 'string', required: false, description: 'VIN, container number, or document name' },
+        { name: 'limit', type: 'number', required: false, description: 'Max documents to return (default 15)' },
+      ],
+      sampleArgs: {
+        action: 'list',
+        limit: 10,
+      },
+    },
+    {
+      name: 'send_customer_notification',
+      category: 'Documents & Alerts',
+      description:
+        'Send an in-app notification alert to a customer or staff member regarding a shipment, container, or invoice update.',
+      parameters: [
+        { name: 'customerQuery', type: 'string', required: true, description: 'Customer name, email, loginCode, or user ID' },
+        { name: 'title', type: 'string', required: true, description: 'Notification title' },
+        { name: 'description', type: 'string', required: true, description: 'Notification message body' },
+        { name: 'type', type: 'string', required: false, description: 'INFO, SUCCESS, WARNING, or ERROR' },
+      ],
+      sampleArgs: {
+        customerQuery: 'Aziz ahmad',
+        title: 'Container CAAU5189072 Tracking Update',
+        description: 'Your 2010 TOYOTA 4Runner (VIN: JTEBU5JR4A5011946) is in transit to Mersin port.',
+        type: 'INFO',
+      },
+    },
   ];
 }
 
@@ -939,6 +1178,493 @@ export function registerJacxiTools(server: any, provider: JacxiDataProvider) {
           { type: 'text', text: `JSON Payload:\n` + JSON.stringify(quote, null, 2) },
         ],
       };
+    }
+  );
+
+  // =========================================================================
+  // 11. CREATE SHIPMENT
+  // =========================================================================
+  server.tool(
+    'create_shipment',
+    'Create a new vehicle shipment in Jacxi Shipping with VIN, make, model, year, lot number, customer, and optional container.',
+    {
+      vehicleVIN: z.string().min(5).describe('Vehicle Identification Number (VIN)'),
+      vehicleYear: z.number().optional().describe('Vehicle model year (e.g. 2021)'),
+      vehicleMake: z.string().optional().describe('Vehicle make (e.g. TOYOTA)'),
+      vehicleModel: z.string().optional().describe('Vehicle model (e.g. 4RUNNER)'),
+      vehicleColor: z.string().optional().describe('Vehicle exterior color'),
+      vehicleType: z.string().optional().default('SEDAN').describe('Vehicle type (SEDAN, SUV, PICKUP, VAN, MOTORCYCLE)'),
+      lotNumber: z.string().optional().describe('Copart or IAAI auction lot number'),
+      auctionName: z.string().optional().describe('Auction house (e.g. Copart, IAAI)'),
+      customerQuery: z.string().optional().describe('Customer email, name, ID, or 8-char loginCode'),
+      containerNumber: z.string().optional().describe('Optional container number to assign'),
+      price: z.number().optional().describe('Customer shipping price in USD'),
+      purchasePrice: z.number().optional().describe('Vehicle purchase price in USD'),
+      hasKey: z.boolean().optional().describe('Whether vehicle has keys'),
+      hasTitle: z.boolean().optional().describe('Whether vehicle has export title'),
+      status: z.string().optional().describe('ON_HAND, DISPATCHING, IN_TRANSIT, DELIVERED'),
+    },
+    async (args: any) => {
+      try {
+        const res = await provider.createShipment(args);
+        return {
+          content: [
+            { type: 'text', text: `✅ ${res.message}\n\n` + JSON.stringify(res, null, 2) },
+          ],
+        };
+      } catch (err: any) {
+        return {
+          isError: true,
+          content: [{ type: 'text', text: `Failed to create shipment: ${err?.message || err}` }],
+        };
+      }
+    }
+  );
+
+  // =========================================================================
+  // 12. UPDATE SHIPMENT
+  // =========================================================================
+  server.tool(
+    'update_shipment',
+    'Update an existing vehicle shipment by VIN, lot number, or shipment ID (status, container assignment, price, payment status, keys/title, notes).',
+    {
+      vinOrId: z.string().min(1).describe('VIN, lot number, or shipment ID'),
+      status: z.string().optional().describe('ON_HAND, DISPATCHING, IN_TRANSIT, IN_TRANSIT_TO_DESTINATION, DELIVERED'),
+      containerNumber: z.string().optional().describe('Container number to assign (or empty string to unassign)'),
+      price: z.number().optional().describe('Updated shipping fare in USD'),
+      paymentStatus: z.enum(['PENDING', 'COMPLETED', 'FAILED', 'REFUNDED', 'CANCELLED']).optional(),
+      hasKey: z.boolean().optional(),
+      hasTitle: z.boolean().optional(),
+      internalNotes: z.string().optional(),
+    },
+    async (args: any) => {
+      try {
+        const res = await provider.updateShipment(args);
+        return {
+          content: [{ type: 'text', text: JSON.stringify(res, null, 2) }],
+        };
+      } catch (err: any) {
+        return {
+          isError: true,
+          content: [{ type: 'text', text: `Failed to update shipment: ${err?.message || err}` }],
+        };
+      }
+    }
+  );
+
+  // =========================================================================
+  // 13. CREATE CONTAINER
+  // =========================================================================
+  server.tool(
+    'create_container',
+    'Create a new ocean freight container in Jacxi Shipping.',
+    {
+      containerNumber: z.string().min(4).describe('Container number (e.g. MSKU9012345)'),
+      bookingNumber: z.string().optional().describe('Carrier booking reference'),
+      shippingLine: z.string().optional().describe('Shipping line (e.g. MAERSK, MSC, CMA CGM, HAPAG-LLOYD)'),
+      vesselName: z.string().optional().describe('Vessel name'),
+      voyageNumber: z.string().optional().describe('Voyage number'),
+      loadingPort: z.string().optional().describe('Port of Loading (e.g. Houston, Savannah, New York)'),
+      destinationPort: z.string().optional().describe('Port of Discharge (e.g. Mersin, Dubai, Jebel Ali)'),
+      estimatedArrival: z.string().optional().describe('Estimated arrival date (YYYY-MM-DD)'),
+      maxCapacity: z.number().optional().default(4).describe('Max vehicle capacity (default 4)'),
+      status: z.string().optional().describe('Initial container status (default CREATED)'),
+      notes: z.string().optional(),
+    },
+    async (args: any) => {
+      try {
+        const res = await provider.createContainer(args);
+        return {
+          content: [{ type: 'text', text: `✅ ${res.message}\n\n` + JSON.stringify(res, null, 2) }],
+        };
+      } catch (err: any) {
+        return {
+          isError: true,
+          content: [{ type: 'text', text: `Failed to create container: ${err?.message || err}` }],
+        };
+      }
+    }
+  );
+
+  // =========================================================================
+  // 14. UPDATE CONTAINER & ADD TRACKING MILESTONE
+  // =========================================================================
+  server.tool(
+    'update_container_and_tracking',
+    'Update an ocean container status, ETA, current location, or progress %, and optionally append a new tracking milestone event.',
+    {
+      containerNumber: z.string().min(1).describe('Container number or booking number'),
+      status: z.string().optional().describe('CREATED, WAITING_FOR_LOADING, LOADED, IN_TRANSIT, ARRIVED_PORT, CUSTOMS_CLEARANCE, RELEASED, CLOSED'),
+      currentLocation: z.string().optional().describe('Current port or ocean position'),
+      vesselName: z.string().optional().describe('Updated vessel name'),
+      voyageNumber: z.string().optional().describe('Updated voyage number'),
+      estimatedArrival: z.string().optional().describe('Updated ETA (YYYY-MM-DD)'),
+      progress: z.number().optional().describe('Journey progress percentage (0-100)'),
+      milestoneStatus: z.string().optional().describe('Optional new tracking milestone title to record'),
+      milestoneLocation: z.string().optional().describe('Optional location for the new tracking milestone'),
+      milestoneDescription: z.string().optional().describe('Optional detailed description for the new milestone'),
+    },
+    async (args: any) => {
+      try {
+        const res = await provider.updateContainerAndTracking(args);
+        return {
+          content: [{ type: 'text', text: JSON.stringify(res, null, 2) }],
+        };
+      } catch (err: any) {
+        return {
+          isError: true,
+          content: [{ type: 'text', text: `Failed to update container: ${err?.message || err}` }],
+        };
+      }
+    }
+  );
+
+  // =========================================================================
+  // 15. CREATE DISPATCH
+  // =========================================================================
+  server.tool(
+    'create_dispatch',
+    'Create a new US domestic inland towing dispatch from auction yard to port/warehouse and optionally assign VINs.',
+    {
+      origin: z.string().min(1).describe('Pickup location / auction yard'),
+      destination: z.string().min(1).describe('Delivery warehouse or port terminal'),
+      referenceNumber: z.string().optional().describe('Optional custom dispatch reference number'),
+      companyQuery: z.string().optional().describe('Carrier company name or ID'),
+      cost: z.number().optional().describe('Dispatch towing cost in USD'),
+      status: z.string().optional().describe('PENDING, DISPATCHED, IN_TRANSIT, ARRIVED_AT_PORT, COMPLETED'),
+      notes: z.string().optional(),
+      vins: z.array(z.string()).optional().describe('Optional list of vehicle VINs to assign to this dispatch'),
+    },
+    async (args: any) => {
+      try {
+        const res = await provider.createDispatch(args);
+        return {
+          content: [{ type: 'text', text: JSON.stringify(res, null, 2) }],
+        };
+      } catch (err: any) {
+        return {
+          isError: true,
+          content: [{ type: 'text', text: `Failed to create dispatch: ${err?.message || err}` }],
+        };
+      }
+    }
+  );
+
+  // =========================================================================
+  // 16. LIST & MANAGE OVERLAND TRANSITS (MERSIN / DUBAI -> AFGHANISTAN)
+  // =========================================================================
+  server.tool(
+    'list_and_manage_transits',
+    'List, search, create, or add milestone events to overland transits (e.g. Mersin or Dubai to Herat / Islam Qala / Kabul, Afghanistan).',
+    {
+      action: z.enum(['list', 'create', 'add_event']).optional().default('list'),
+      search: z.string().optional().describe('Search by reference number, origin, or destination'),
+      status: z.string().optional().describe('PENDING, DISPATCHED, IN_TRANSIT, ARRIVED, DELIVERED, CANCELLED'),
+      referenceNumber: z.string().optional().describe('Transit reference number (for create or add_event)'),
+      origin: z.string().optional().describe('Origin city/port (e.g. Mersin, Turkey or Dubai, UAE)'),
+      destination: z.string().optional().describe('Destination city (e.g. Herat or Kabul, Afghanistan)'),
+      cost: z.number().optional().describe('Agreed overland transit cost in USD'),
+      eventStatus: z.string().optional().describe('Event status when action=add_event'),
+      eventLocation: z.string().optional().describe('Border crossing or city when action=add_event (e.g. Dogubayazit, Islam Qala)'),
+      eventDescription: z.string().optional().describe('Event description when action=add_event'),
+      vins: z.array(z.string()).optional().describe('Vehicle VINs to assign when action=create'),
+      limit: z.number().optional().default(15),
+    },
+    async (args: any) => {
+      try {
+        const res = await provider.listAndManageTransits(args);
+        await provider.logMcpActivity({
+          tool: 'list_and_manage_transits',
+          query: args.referenceNumber || args.search || args.action || 'list',
+          entityType: 'TRANSIT',
+          responseSummary:
+            res.action === 'list'
+              ? `Listed ${res.transits?.length || 0} overland transit(s)`
+              : `Executed transit ${res.action}`,
+        });
+        return {
+          content: [{ type: 'text', text: JSON.stringify(res, null, 2) }],
+        };
+      } catch (err: any) {
+        return {
+          isError: true,
+          content: [{ type: 'text', text: `Failed transit operation: ${err?.message || err}` }],
+        };
+      }
+    }
+  );
+
+  // =========================================================================
+  // 17. MANAGE CUSTOMER (CREATE OR RESET 8-CHAR LOGIN CODE)
+  // =========================================================================
+  server.tool(
+    'manage_customer',
+    'Create a new customer account or reset/generate a customer 8-character loginCode.',
+    {
+      action: z.enum(['create', 'reset_login_code']).describe("'create' a new customer or 'reset_login_code' for an existing customer"),
+      customerQuery: z.string().optional().describe('Customer name, email, or ID (when resetting login code)'),
+      name: z.string().optional().describe('Customer full name'),
+      email: z.string().optional().describe('Customer email address'),
+      phone: z.string().optional().describe('Customer phone / WhatsApp number'),
+      city: z.string().optional().describe('Customer city'),
+      country: z.string().optional().describe('Customer country'),
+    },
+    async (args: any) => {
+      try {
+        const res = await provider.manageCustomer(args);
+        await provider.logMcpActivity({
+          tool: 'manage_customer',
+          query: args.email || args.customerQuery || args.action,
+          entityType: 'CUSTOMER',
+          responseSummary: res.message || 'Customer operation completed',
+        });
+        return {
+          content: [{ type: 'text', text: JSON.stringify(res, null, 2) }],
+        };
+      } catch (err: any) {
+        return {
+          isError: true,
+          content: [{ type: 'text', text: `Failed customer operation: ${err?.message || err}` }],
+        };
+      }
+    }
+  );
+
+  // =========================================================================
+  // 18. GET CUSTOMER LEDGER & BALANCE
+  // =========================================================================
+  server.tool(
+    'get_customer_ledger_and_balance',
+    'Get a customer financial statement, current balance, debit/credit ledger entries, collection status, and unpaid/paid invoices.',
+    {
+      query: z.string().min(1).describe('Customer name, email, user ID, or 8-character loginCode'),
+    },
+    async ({ query }: { query: string }) => {
+      try {
+        const ledger = await provider.getCustomerLedgerAndBalance(query);
+        await provider.logMcpActivity({
+          tool: 'get_customer_ledger_and_balance',
+          query,
+          entityType: 'LEDGER',
+          responseSummary: ledger
+            ? `${ledger.customerName || ledger.customerEmail}: Balance $${ledger.currentBalance} USD (${ledger.unpaidInvoicesCount} unpaid invoices)`
+            : 'Customer not found',
+        });
+
+        if (!ledger) {
+          return {
+            content: [{ type: 'text', text: `No customer found matching "${query}".` }],
+          };
+        }
+
+        let md = `## 💳 Customer Financial Statement: ${ledger.customerName || ledger.customerEmail}\n\n`;
+        md += `- **Email**: ${ledger.customerEmail}\n`;
+        md += `- **Login Code**: \`${ledger.loginCode || 'N/A'}\`\n`;
+        md += `- **Collection Status**: \`${ledger.collectionStatus}\`\n`;
+        md += `- **Current Ledger Balance**: **\`$${ledger.currentBalance.toLocaleString()} USD\`**\n`;
+        md += `- **Total Debits**: \`$${ledger.totalDebits.toLocaleString()}\` | **Total Credits**: \`$${ledger.totalCredits.toLocaleString()}\`\n`;
+        md += `- **Unpaid Invoices**: ${ledger.unpaidInvoicesCount} (\`$${ledger.unpaidInvoicesAmount.toLocaleString()} USD\` remaining)\n`;
+
+        return {
+          content: [
+            { type: 'text', text: md },
+            { type: 'text', text: `JSON Payload:\n` + JSON.stringify(ledger, null, 2) },
+          ],
+        };
+      } catch (err: any) {
+        return {
+          isError: true,
+          content: [{ type: 'text', text: `Failed to get customer ledger: ${err?.message || err}` }],
+        };
+      }
+    }
+  );
+
+  // =========================================================================
+  // 19. LIST & SEARCH INVOICES
+  // =========================================================================
+  server.tool(
+    'list_and_search_invoices',
+    'Search and list customer invoices (UserInvoice) by invoice number, customer name/email, VIN, container number, or status.',
+    {
+      query: z.string().optional().describe('Invoice number (e.g. INV-...), customer name, VIN, or container number'),
+      status: z.string().optional().describe('DRAFT, PENDING, SENT, PAID, OVERDUE, CANCELLED'),
+      limit: z.number().optional().default(15),
+    },
+    async (args: any) => {
+      try {
+        const invoices = await provider.listAndSearchInvoices(args);
+        await provider.logMcpActivity({
+          tool: 'list_and_search_invoices',
+          query: args.query || args.status || 'all',
+          entityType: 'INVOICE',
+          responseSummary: `Found ${invoices.length} invoice(s)`,
+        });
+        return {
+          content: [{ type: 'text', text: JSON.stringify(invoices, null, 2) }],
+        };
+      } catch (err: any) {
+        return {
+          isError: true,
+          content: [{ type: 'text', text: `Failed to search invoices: ${err?.message || err}` }],
+        };
+      }
+    }
+  );
+
+  // =========================================================================
+  // 20. GET FINANCIAL & EXPENSE SUMMARY
+  // =========================================================================
+  server.tool(
+    'get_financial_and_expense_summary',
+    'Get company-wide billing totals, collected payments, outstanding receivables, and container/dispatch operational expenses.',
+    {
+      containerNumber: z.string().optional().describe('Optional container number to filter expenses'),
+      limit: z.number().optional().default(15),
+    },
+    async (args: any) => {
+      try {
+        const summary = await provider.getFinancialAndExpenseSummary(args);
+        await provider.logMcpActivity({
+          tool: 'get_financial_and_expense_summary',
+          query: args.containerNumber || 'company-wide',
+          entityType: 'FINANCE',
+          responseSummary: `Billed: $${summary.invoicing.totalBilledUsd}, Collected: $${summary.invoicing.totalCollectedUsd}`,
+        });
+        return {
+          content: [{ type: 'text', text: JSON.stringify(summary, null, 2) }],
+        };
+      } catch (err: any) {
+        return {
+          isError: true,
+          content: [{ type: 'text', text: `Failed to get financial summary: ${err?.message || err}` }],
+        };
+      }
+    }
+  );
+
+  // =========================================================================
+  // 21. FETCH AUCTION LOT (LIVE COPART / IAAI SCRAPER)
+  // =========================================================================
+  server.tool(
+    'fetch_auction_lot',
+    'Fetch live vehicle specs and auction details from Copart / IAAI by lot number and check existing Jacxi shipments.',
+    {
+      lotOrVin: z.string().min(1).describe('Copart/IAAI numeric lot number (e.g. 59292076) or VIN'),
+    },
+    async ({ lotOrVin }: { lotOrVin: string }) => {
+      try {
+        const res = await provider.fetchAuctionLot(lotOrVin);
+        await provider.logMcpActivity({
+          tool: 'fetch_auction_lot',
+          query: lotOrVin,
+          entityType: 'AUCTION_LOT',
+          responseSummary: res.liveAuctionData
+            ? `Fetched live Copart lot ${lotOrVin}`
+            : `Checked ${res.existingShipmentsInJacxi.length} existing Jacxi record(s) for ${lotOrVin}`,
+        });
+        return {
+          content: [{ type: 'text', text: JSON.stringify(res, null, 2) }],
+        };
+      } catch (err: any) {
+        return {
+          isError: true,
+          content: [{ type: 'text', text: `Failed to fetch auction lot: ${err?.message || err}` }],
+        };
+      }
+    }
+  );
+
+  // =========================================================================
+  // 22. SYNC LIVE CONTAINER TRACKING (CARRIER & VESSEL AIS)
+  // =========================================================================
+  server.tool(
+    'sync_live_container_tracking',
+    'Trigger a live ocean carrier & vessel AIS tracking refresh for a container and return updated milestones and ETA.',
+    {
+      containerNumber: z.string().min(1).describe('Container number (e.g. CAAU5189072)'),
+    },
+    async ({ containerNumber }: { containerNumber: string }) => {
+      try {
+        const res = await provider.syncLiveContainerTracking(containerNumber);
+        await provider.logMcpActivity({
+          tool: 'sync_live_container_tracking',
+          query: containerNumber,
+          entityType: 'CONTAINER',
+          responseSummary: `Synced live carrier tracking for ${containerNumber}`,
+        });
+        return {
+          content: [{ type: 'text', text: JSON.stringify(res, null, 2) }],
+        };
+      } catch (err: any) {
+        return {
+          isError: true,
+          content: [{ type: 'text', text: `Failed to sync live tracking: ${err?.message || err}` }],
+        };
+      }
+    }
+  );
+
+  // =========================================================================
+  // 23. LIST DOCUMENTS & GENERATE GATE PASS
+  // =========================================================================
+  server.tool(
+    'list_and_generate_documents',
+    'List shipment/container documents (BOL, Title, Customs, Photos) or generate an official vehicle Release Gate Pass token.',
+    {
+      action: z.enum(['list', 'generate_gate_pass']).optional().default('list'),
+      query: z.string().optional().describe('VIN, container number, lot number, or document name'),
+      limit: z.number().optional().default(15),
+    },
+    async (args: any) => {
+      try {
+        const res = await provider.listAndGenerateDocuments(args);
+        await provider.logMcpActivity({
+          tool: 'list_and_generate_documents',
+          query: args.query || args.action || 'list',
+          entityType: 'DOCUMENT',
+          responseSummary:
+            res.action === 'generate_gate_pass'
+              ? `Generated Gate Pass ${res.gatePass?.releaseToken} for ${res.gatePass?.vin}`
+              : `Listed ${res.documents?.length || 0} document(s)`,
+        });
+        return {
+          content: [{ type: 'text', text: JSON.stringify(res, null, 2) }],
+        };
+      } catch (err: any) {
+        return {
+          isError: true,
+          content: [{ type: 'text', text: `Failed document/gate-pass operation: ${err?.message || err}` }],
+        };
+      }
+    }
+  );
+
+  // =========================================================================
+  // 24. SEND CUSTOMER NOTIFICATION
+  // =========================================================================
+  server.tool(
+    'send_customer_notification',
+    'Send an in-app notification alert to a customer or staff member regarding a shipment, container, or invoice update.',
+    {
+      customerQuery: z.string().min(1).describe('Customer name, email, loginCode, or user ID'),
+      title: z.string().min(1).describe('Notification title'),
+      description: z.string().min(1).describe('Notification message body'),
+      type: z.enum(['INFO', 'SUCCESS', 'WARNING', 'ERROR']).optional().default('INFO'),
+      link: z.string().optional().describe('Optional dashboard link (e.g. /dashboard/shipments/...)'),
+    },
+    async (args: any) => {
+      try {
+        const res = await provider.sendCustomerNotification(args);
+        return {
+          content: [{ type: 'text', text: JSON.stringify(res, null, 2) }],
+        };
+      } catch (err: any) {
+        return {
+          isError: true,
+          content: [{ type: 'text', text: `Failed to send notification: ${err?.message || err}` }],
+        };
+      }
     }
   );
 
