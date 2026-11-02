@@ -452,14 +452,31 @@ export function getMcpToolsCatalog(): McpToolMetadata[] {
       name: 'list_and_generate_documents',
       category: 'Documents & Alerts',
       description:
-        'List shipment/container documents (BOL, Title, Customs, Photos) or generate an official vehicle Release Gate Pass token.',
+        'List documents, create official Jacxi Shipping branded documents (English LTR or Pashto/Dari/Arabic RTL matching the Documents page design), generate Gate Passes, or get direct PDF download links for Invoices, Shipment Receipts, Customer Statements, and Container Manifests.',
       parameters: [
-        { name: 'action', type: 'string', required: false, description: "'list' (default) or 'generate_gate_pass'" },
-        { name: 'query', type: 'string', required: false, description: 'VIN, container number, or document name' },
+        {
+          name: 'action',
+          type: 'string',
+          required: false,
+          description:
+            "'list' (default), 'create_branded_document', 'generate_gate_pass', 'download_invoice', 'download_shipment_receipt', 'download_customer_statement', or 'download_container_manifest'",
+        },
+        { name: 'query', type: 'string', required: false, description: 'VIN, container number, invoice number, customer name, or document name' },
+        { name: 'title', type: 'string', required: false, description: 'Document title when action=create_branded_document' },
+        { name: 'bodyText', type: 'string', required: false, description: 'Document body paragraphs (supports **bold**) when action=create_branded_document' },
+        { name: 'badgeText', type: 'string', required: false, description: "Top-right badge text (e.g. 'IMPORTANT NOTICE' or 'اړینه خبرتیا')" },
+        { name: 'salutation', type: 'string', required: false, description: "Salutation (e.g. 'Dear Valued Customer,' or 'ګرانه پیرودونکیه،')" },
+        { name: 'closingNote', type: 'string', required: false, description: 'Closing note at bottom of document' },
+        { name: 'direction', type: 'string', required: false, description: "'auto', 'ltr' (English), or 'rtl' (Pashto/Dari/Arabic)" },
         { name: 'limit', type: 'number', required: false, description: 'Optional max documents to return (omit to return all)' },
       ],
       sampleArgs: {
-        action: 'list',
+        action: 'create_branded_document',
+        title: 'Official Export Clearance & Vehicle Release Notice',
+        badgeText: 'OFFICIAL NOTICE',
+        salutation: 'Dear Valued Customer,',
+        bodyText: 'We are pleased to confirm that your vehicle consignment has completed export clearance and is scheduled for loading.',
+        direction: 'ltr',
       },
     },
     {
@@ -478,6 +495,59 @@ export function getMcpToolsCatalog(): McpToolMetadata[] {
         title: 'Container CAAU5189072 Tracking Update',
         description: 'Your 2010 TOYOTA 4Runner (VIN: JTEBU5JR4A5011946) is in transit to Mersin port.',
         type: 'INFO',
+      },
+    },
+    {
+      name: 'manage_office_expenses',
+      category: 'Accounting & Billing',
+      description:
+        'List, add (create), update, or delete Office & Operating Expenses (OpEx) such as rent, utilities, payroll, software, supplies, and view monthly/yearly totals, category breakdowns, recurring expenses, and budgets.',
+      parameters: [
+        { name: 'action', type: 'string', required: false, description: "'list' (default), 'create', 'update', or 'delete'" },
+        { name: 'id', type: 'string', required: false, description: 'Office expense ID (for update or delete)' },
+        { name: 'title', type: 'string', required: false, description: 'Expense title / description (required for create)' },
+        {
+          name: 'category',
+          type: 'string',
+          required: false,
+          description:
+            'RENT, UTILITIES, SALARIES_PAYROLL, OFFICE_SUPPLIES, EQUIPMENT_HARDWARE, SOFTWARE_SUBSCRIPTIONS, MAINTENANCE_REPAIRS, TRAVEL_TRANSPORT, MARKETING_ADVERTISING, LEGAL_PROFESSIONAL, COMMUNICATION_INTERNET, TAXES_GOVERNMENT_FEES, BANK_FEES, MEALS_ENTERTAINMENT, OTHER',
+        },
+        { name: 'amount', type: 'number', required: false, description: 'Expense amount in USD' },
+        { name: 'paymentMethod', type: 'string', required: false, description: 'CASH, BANK_TRANSFER, CHECK, CREDIT_CARD, DEBIT_CARD, ZELLE, OTHER' },
+        { name: 'vendor', type: 'string', required: false, description: 'Vendor / Paid to' },
+        { name: 'referenceNumber', type: 'string', required: false, description: 'Receipt #, Check #, or Invoice #' },
+        { name: 'status', type: 'string', required: false, description: 'PAID, PENDING, or CANCELLED' },
+        { name: 'notes', type: 'string', required: false, description: 'Additional notes' },
+        { name: 'search', type: 'string', required: false, description: 'Search filter when action=list' },
+      ],
+      sampleArgs: {
+        action: 'list',
+      },
+    },
+    {
+      name: 'manage_shipment_expenses',
+      category: 'Accounting & Billing',
+      description:
+        'View all expenses/charges on a vehicle shipment or add a new expense to a shipment by VIN, lot number, or shipment ID (automatically syncing customer ledger, shipment charges, operational expenses, and pending invoice line items).',
+      parameters: [
+        { name: 'action', type: 'string', required: false, description: "'list' (default) or 'add'" },
+        { name: 'vinOrId', type: 'string', required: true, description: 'Vehicle VIN, lot number, or shipment ID' },
+        { name: 'description', type: 'string', required: false, description: 'Expense description (required when action=add)' },
+        { name: 'amount', type: 'number', required: false, description: 'Expense amount in USD (required when action=add)' },
+        {
+          name: 'expenseType',
+          type: 'string',
+          required: false,
+          description: 'SHIPPING_FEE, FUEL, PORT_CHARGES, TOWING, CUSTOMS, STORAGE_FEE, HANDLING_FEE, INSURANCE, OTHER',
+        },
+        { name: 'contextType', type: 'string', required: false, description: 'CONTAINER, DISPATCH, or TRANSIT' },
+        { name: 'vendor', type: 'string', required: false, description: 'Vendor name' },
+        { name: 'notes', type: 'string', required: false, description: 'Optional notes' },
+      ],
+      sampleArgs: {
+        action: 'list',
+        vinOrId: 'JTEBU5JR4A5011946',
       },
     },
   ];
@@ -1596,14 +1666,61 @@ export function registerJacxiTools(server: any, provider: JacxiDataProvider) {
   );
 
   // =========================================================================
-  // 23. LIST DOCUMENTS & GENERATE GATE PASS
+  // 23. LIST DOCUMENTS, CREATE BRANDED DOCUMENTS, GATE PASSES & PDF DOWNLOADS
   // =========================================================================
   server.tool(
     'list_and_generate_documents',
-    'List shipment/container documents (BOL, Title, Customs, Photos) or generate an official vehicle Release Gate Pass token.',
+    'List shipment/container documents, create official Jacxi Shipping branded documents (matching the exact brand design in /dashboard/documents in English LTR or Pashto/Dari/Arabic RTL), generate official Gate Passes, or get direct PDF download links for Invoices, Shipment Receipts, Customer Statements, and Container Manifests.',
     {
-      action: z.enum(['list', 'generate_gate_pass']).optional().default('list'),
-      query: z.string().optional().describe('VIN, container number, lot number, or document name'),
+      action: z
+        .enum([
+          'list',
+          'create_branded_document',
+          'generate_gate_pass',
+          'download_invoice',
+          'download_shipment_receipt',
+          'download_customer_statement',
+          'download_container_manifest',
+        ])
+        .optional()
+        .default('list'),
+      query: z
+        .string()
+        .optional()
+        .describe('VIN, container number, invoice number (INV-...), customer name, lot number, or document name'),
+      category: z
+        .string()
+        .optional()
+        .describe('Document category: INVOICE, BILL_OF_LADING, CUSTOMS, INSURANCE, TITLE, INSPECTION_REPORT, EXPORT_DOCUMENT, PACKING_LIST, CONTRACT, OTHER'),
+      title: z
+        .string()
+        .optional()
+        .describe('Document title when action=create_branded_document'),
+      bodyText: z
+        .string()
+        .optional()
+        .describe('Document body text (supports multiple paragraphs and **bold** text) when action=create_branded_document'),
+      badgeText: z
+        .string()
+        .optional()
+        .describe("Top-right badge text when action=create_branded_document (e.g. 'IMPORTANT NOTICE', 'OFFICIAL DOCUMENT', or 'اړینه خبرتیا')"),
+      salutation: z
+        .string()
+        .optional()
+        .describe("Opening salutation (e.g. 'Dear Valued Customer,' or 'ګرانه پیرودونکیه،')"),
+      closingNote: z
+        .string()
+        .optional()
+        .describe('Closing note at bottom of document'),
+      date: z
+        .string()
+        .optional()
+        .describe('Formatted date string (e.g. MM/DD/YYYY)'),
+      direction: z
+        .enum(['auto', 'ltr', 'rtl'])
+        .optional()
+        .default('auto')
+        .describe("Layout direction: 'auto', 'ltr' (English), or 'rtl' (Pashto/Dari/Arabic)"),
       limit: z.number().optional().describe('Optional max documents to return (omit to return all)'),
     },
     async (args: any) => {
@@ -1611,12 +1728,14 @@ export function registerJacxiTools(server: any, provider: JacxiDataProvider) {
         const res = await provider.listAndGenerateDocuments(args);
         await provider.logMcpActivity({
           tool: 'list_and_generate_documents',
-          query: args.query || args.action || 'list',
+          query: args.title || args.query || args.action || 'list',
           entityType: 'DOCUMENT',
           responseSummary:
             res.action === 'generate_gate_pass'
               ? `Generated Gate Pass ${res.gatePass?.releaseToken} for ${res.gatePass?.vin}`
-              : `Listed ${res.documents?.length || 0} document(s)`,
+              : res.action === 'create_branded_document'
+                ? `Created branded Jacxi document "${res.document?.title}"`
+                : `Executed document action: ${res.action}`,
         });
         return {
           content: [{ type: 'text', text: JSON.stringify(res, null, 2) }],
@@ -1653,6 +1772,124 @@ export function registerJacxiTools(server: any, provider: JacxiDataProvider) {
         return {
           isError: true,
           content: [{ type: 'text', text: `Failed to send notification: ${err?.message || err}` }],
+        };
+      }
+    }
+  );
+
+  // =========================================================================
+  // 25. MANAGE OFFICE EXPENSES (OPEX)
+  // =========================================================================
+  server.tool(
+    'manage_office_expenses',
+    'List, add (create), update, or delete Office & Operating Expenses (OpEx) such as rent, utilities, payroll, software, office supplies, and view monthly/yearly totals, category breakdowns, recurring expenses, and budgets.',
+    {
+      action: z
+        .enum(['list', 'create', 'update', 'delete'])
+        .optional()
+        .default('list')
+        .describe("'list' (default), 'create', 'update', or 'delete'"),
+      id: z.string().optional().describe('Office expense ID (for update or delete)'),
+      title: z.string().optional().describe('Office expense title / description (required when action=create)'),
+      category: z
+        .string()
+        .optional()
+        .describe(
+          'RENT, UTILITIES, SALARIES_PAYROLL, OFFICE_SUPPLIES, EQUIPMENT_HARDWARE, SOFTWARE_SUBSCRIPTIONS, MAINTENANCE_REPAIRS, TRAVEL_TRANSPORT, MARKETING_ADVERTISING, LEGAL_PROFESSIONAL, COMMUNICATION_INTERNET, TAXES_GOVERNMENT_FEES, BANK_FEES, MEALS_ENTERTAINMENT, OTHER'
+        ),
+      amount: z.number().optional().describe('Expense amount in USD (required when action=create)'),
+      currency: z.string().optional().default('USD').describe('Currency code (default USD)'),
+      expenseDate: z.string().optional().describe('Expense date (YYYY-MM-DD)'),
+      paymentMethod: z
+        .string()
+        .optional()
+        .describe('CASH, BANK_TRANSFER, CHECK, CREDIT_CARD, DEBIT_CARD, ZELLE, OTHER'),
+      vendor: z.string().optional().describe('Vendor / Landlord / Provider paid'),
+      referenceNumber: z.string().optional().describe('Receipt #, Check #, or Invoice #'),
+      receiptUrl: z.string().optional().describe('Optional receipt URL'),
+      notes: z.string().optional().describe('Additional notes'),
+      status: z.enum(['PAID', 'PENDING', 'CANCELLED']).optional().describe('Payment status (default PAID)'),
+      search: z.string().optional().describe('Keyword search when action=list'),
+      startDate: z.string().optional().describe('Filter start date (YYYY-MM-DD) when action=list'),
+      endDate: z.string().optional().describe('Filter end date (YYYY-MM-DD) when action=list'),
+      limit: z.number().optional().describe('Optional max records to return (omit to return all)'),
+    },
+    async (args: any) => {
+      try {
+        const res = await provider.manageOfficeExpenses(args);
+        return {
+          content: [{ type: 'text', text: JSON.stringify(res, null, 2) }],
+        };
+      } catch (err: any) {
+        return {
+          isError: true,
+          content: [{ type: 'text', text: `Failed office expense operation: ${err?.message || err}` }],
+        };
+      }
+    }
+  );
+
+  // =========================================================================
+  // 26. MANAGE SHIPMENT EXPENSES & CHARGES
+  // =========================================================================
+  server.tool(
+    'manage_shipment_expenses',
+    'View all expenses/charges on a vehicle shipment or add a new expense to a shipment by VIN, lot number, or shipment ID (automatically syncing customer ledger, shipment charges, operational expenses, and pending invoice line items, plus returning printable/downloadable Shipment Receipt & Invoice PDF links).',
+    {
+      action: z
+        .enum(['list', 'add'])
+        .optional()
+        .default('list')
+        .describe("'list' (default) to see all expenses/charges on a shipment, or 'add' to record a new expense on a shipment"),
+      vinOrId: z
+        .string()
+        .min(1)
+        .describe('Vehicle VIN, lot number, or shipment ID'),
+      description: z
+        .string()
+        .optional()
+        .describe('Description of the expense (required when action=add, e.g. "Forklift Loading Fee", "Customs Inspection", "Storage")'),
+      amount: z
+        .number()
+        .optional()
+        .describe('Expense amount in USD (required when action=add)'),
+      expenseType: z
+        .enum([
+          'SHIPPING_FEE',
+          'FUEL',
+          'PORT_CHARGES',
+          'TOWING',
+          'CUSTOMS',
+          'STORAGE_FEE',
+          'HANDLING_FEE',
+          'INSURANCE',
+          'OTHER',
+        ])
+        .optional()
+        .default('OTHER')
+        .describe('Expense category type'),
+      contextType: z
+        .enum(['CONTAINER', 'DISPATCH', 'TRANSIT'])
+        .optional()
+        .describe('Optional operational leg context (CONTAINER, DISPATCH, or TRANSIT)'),
+      vendor: z.string().optional().describe('Optional vendor name'),
+      notes: z.string().optional().describe('Optional internal or billing notes'),
+      createCompanyCredit: z
+        .boolean()
+        .optional()
+        .default(false)
+        .describe('Whether to also record a credit recovery entry on the linked shipping/dispatch/transit company ledger'),
+    },
+    async (args: any) => {
+      try {
+        const res = await provider.manageShipmentExpenses(args);
+        return {
+          content: [{ type: 'text', text: JSON.stringify(res, null, 2) }],
+        };
+      } catch (err: any) {
+        return {
+          isError: true,
+          content: [{ type: 'text', text: `Failed shipment expense operation: ${err?.message || err}` }],
         };
       }
     }

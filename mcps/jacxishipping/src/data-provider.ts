@@ -13,7 +13,9 @@ import {
   CustomerLedgerResult,
   InvoiceSearchResult,
   DocumentSearchResult,
+  OfficeExpenseItem,
 } from './types';
+import { createSignedDownloadToken } from './oauth';
 
 // In-memory activity ring buffer fallback when DB is read-only or offline
 const memoryLogs: Array<{
@@ -31,11 +33,11 @@ const memoryLogs: Array<{
   createdAt: string;
 }> = [];
 
-// Web App base URL (defaults to localhost:3000)
+// Web App base URL (defaults to https://www.jacxishipping.com)
 const APP_URL = (
   process.env.JACXISHIPPING_APP_URL ||
   process.env.NEXT_PUBLIC_APP_URL ||
-  'http://localhost:3000'
+  'https://www.jacxishipping.com'
 ).replace(/\/$/, '');
 
 // Try loading environment from project root .env
@@ -2378,6 +2380,11 @@ export class JacxiDataProvider {
             0
           );
 
+          const statementToken = createSignedDownloadToken(
+            'customer_statement',
+            user.id
+          );
+
           return {
             customerId: user.id,
             customerName: user.name,
@@ -2392,6 +2399,8 @@ export class JacxiDataProvider {
             totalCredits,
             unpaidInvoicesCount: unpaidInvoices.length,
             unpaidInvoicesAmount: unpaidAmount,
+            statementPrintUrl: `${APP_URL}/api/documents/branded?type=customer_statement&id=${encodeURIComponent(user.id)}&token=${encodeURIComponent(statementToken)}&print=true`,
+            statementDownloadUrl: `${APP_URL}/api/documents/branded?type=customer_statement&id=${encodeURIComponent(user.id)}&token=${encodeURIComponent(statementToken)}&download=1`,
             recentEntries: user.ledgerEntries.map((e: any) => ({
               id: e.id,
               transactionDate: new Date(e.transactionDate).toISOString(),
@@ -2401,16 +2410,21 @@ export class JacxiDataProvider {
               balance: e.balance,
               shipmentVin: e.shipment?.vehicleVIN || null,
             })),
-            invoices: user.invoices.map((inv: any) => ({
-              id: inv.id,
-              invoiceNumber: inv.invoiceNumber,
-              status: String(inv.status),
-              total: inv.total,
-              amountPaid: inv.amountPaid,
-              amountRemaining: inv.amountRemaining,
-              issueDate: new Date(inv.issueDate).toISOString(),
-              dueDate: inv.dueDate ? new Date(inv.dueDate).toISOString() : null,
-            })),
+            invoices: user.invoices.map((inv: any) => {
+              const dlToken = createSignedDownloadToken('invoice', inv.id);
+              return {
+                id: inv.id,
+                invoiceNumber: inv.invoiceNumber,
+                status: String(inv.status),
+                total: inv.total,
+                amountPaid: inv.amountPaid,
+                amountRemaining: inv.amountRemaining,
+                issueDate: new Date(inv.issueDate).toISOString(),
+                dueDate: inv.dueDate ? new Date(inv.dueDate).toISOString() : null,
+                pdfDownloadUrl: `${APP_URL}/api/invoices/${inv.id}/pdf?download=1&token=${encodeURIComponent(dlToken)}`,
+                pdfViewUrl: `${APP_URL}/api/invoices/${inv.id}/pdf?token=${encodeURIComponent(dlToken)}`,
+              };
+            }),
             dataSource: 'database',
           };
         }
@@ -2499,33 +2513,38 @@ export class JacxiDataProvider {
           ...(limit ? { take: limit } : {}),
         });
 
-        return invoices.map((inv: any) => ({
-          id: inv.id,
-          invoiceNumber: inv.invoiceNumber,
-          status: String(inv.status),
-          customerName: inv.user?.name || null,
-          customerEmail: inv.user?.email || null,
-          containerNumber: inv.container?.containerNumber || null,
-          shipmentVin: inv.shipment?.vehicleVIN || null,
-          subtotal: inv.subtotal,
-          tax: inv.tax,
-          discount: inv.discount,
-          total: inv.total,
-          amountPaid: inv.amountPaid,
-          amountRemaining: inv.amountRemaining,
-          currency: inv.currency || 'USD',
-          issueDate: new Date(inv.issueDate).toISOString(),
-          dueDate: inv.dueDate ? new Date(inv.dueDate).toISOString() : null,
-          paidDate: inv.paidDate ? new Date(inv.paidDate).toISOString() : null,
-          lineItems: (inv.lineItems || []).map((li: any) => ({
-            description: li.description,
-            type: String(li.type),
-            quantity: li.quantity,
-            unitPrice: li.unitPrice,
-            amount: li.amount,
-          })),
-          dataSource: 'database',
-        }));
+        return invoices.map((inv: any) => {
+          const dlToken = createSignedDownloadToken('invoice', inv.id);
+          return {
+            id: inv.id,
+            invoiceNumber: inv.invoiceNumber,
+            status: String(inv.status),
+            customerName: inv.user?.name || null,
+            customerEmail: inv.user?.email || null,
+            containerNumber: inv.container?.containerNumber || null,
+            shipmentVin: inv.shipment?.vehicleVIN || null,
+            subtotal: inv.subtotal,
+            tax: inv.tax,
+            discount: inv.discount,
+            total: inv.total,
+            amountPaid: inv.amountPaid,
+            amountRemaining: inv.amountRemaining,
+            currency: inv.currency || 'USD',
+            issueDate: new Date(inv.issueDate).toISOString(),
+            dueDate: inv.dueDate ? new Date(inv.dueDate).toISOString() : null,
+            paidDate: inv.paidDate ? new Date(inv.paidDate).toISOString() : null,
+            pdfDownloadUrl: `${APP_URL}/api/invoices/${inv.id}/pdf?download=1&token=${encodeURIComponent(dlToken)}`,
+            pdfViewUrl: `${APP_URL}/api/invoices/${inv.id}/pdf?token=${encodeURIComponent(dlToken)}`,
+            lineItems: (inv.lineItems || []).map((li: any) => ({
+              description: li.description,
+              type: String(li.type),
+              quantity: li.quantity,
+              unitPrice: li.unitPrice,
+              amount: li.amount,
+            })),
+            dataSource: 'database',
+          };
+        });
       } catch {
         // Fallback
       }
@@ -2569,7 +2588,9 @@ export class JacxiDataProvider {
           paymentAgg,
           containerExpenseAgg,
           dispatchExpenseAgg,
+          officeExpenseAgg,
           recentContainerExpenses,
+          recentOfficeExpenses,
         ] = await Promise.all([
           prisma.userInvoice.aggregate({
             _sum: {
@@ -2591,6 +2612,10 @@ export class JacxiDataProvider {
             _sum: { amount: true },
             _count: { id: true },
           }),
+          prisma.officeExpense.aggregate({
+            _sum: { amount: true },
+            _count: { id: true },
+          }),
           prisma.containerExpense.findMany({
             where: input?.containerNumber
               ? {
@@ -2606,6 +2631,10 @@ export class JacxiDataProvider {
               container: { select: { containerNumber: true } },
             },
             orderBy: { date: 'desc' },
+            ...(input?.limit && input.limit > 0 ? { take: input.limit } : {}),
+          }),
+          prisma.officeExpense.findMany({
+            orderBy: { expenseDate: 'desc' },
             ...(input?.limit && input.limit > 0 ? { take: input.limit } : {}),
           }),
         ]);
@@ -2627,6 +2656,8 @@ export class JacxiDataProvider {
             containerExpensesTotalUsd: containerExpenseAgg._sum.amount || 0,
             dispatchExpensesCount: dispatchExpenseAgg._count.id || 0,
             dispatchExpensesTotalUsd: dispatchExpenseAgg._sum.amount || 0,
+            officeExpensesCount: officeExpenseAgg._count.id || 0,
+            officeExpensesTotalUsd: officeExpenseAgg._sum.amount || 0,
           },
           recentContainerExpenses: recentContainerExpenses.map((e: any) => ({
             id: e.id,
@@ -2636,6 +2667,18 @@ export class JacxiDataProvider {
             currency: e.currency,
             vendor: e.vendor,
             date: new Date(e.date).toISOString(),
+            notes: e.notes,
+          })),
+          recentOfficeExpenses: recentOfficeExpenses.map((e: any) => ({
+            id: e.id,
+            title: e.title,
+            category: String(e.category),
+            amount: e.amount,
+            currency: e.currency,
+            vendor: e.vendor,
+            paymentMethod: e.paymentMethod,
+            status: String(e.status),
+            expenseDate: new Date(e.expenseDate).toISOString(),
             notes: e.notes,
           })),
           dataSource: 'database',
@@ -2751,22 +2794,201 @@ export class JacxiDataProvider {
   }
 
   // =========================================================================
-  // 5. DOCUMENTS, GATE PASSES & OUTBOUND NOTIFICATIONS
+  // 5. DOCUMENTS, BRANDED DOCUMENTS, GATE PASSES, INVOICE DOWNLOADS & ALERTS
   // =========================================================================
 
   async listAndGenerateDocuments(input: {
-    action?: 'list' | 'generate_gate_pass';
+    action?:
+      | 'list'
+      | 'generate_gate_pass'
+      | 'create_branded_document'
+      | 'download_invoice'
+      | 'download_shipment_receipt'
+      | 'download_customer_statement'
+      | 'download_container_manifest';
     query?: string;
     category?: string;
     limit?: number;
-  }): Promise<{
-    action: string;
-    documents?: DocumentSearchResult[];
-    gatePass?: any;
-  }> {
+    // Branded document fields (matching /dashboard/documents AnnouncementGeneratorModal)
+    title?: string;
+    bodyText?: string;
+    badgeText?: string;
+    salutation?: string;
+    closingNote?: string;
+    date?: string;
+    direction?: 'auto' | 'rtl' | 'ltr';
+    phone?: string;
+    email?: string;
+    website?: string;
+  }): Promise<any> {
     const action = input.action || 'list';
     const prisma = await this.getPrisma();
 
+    // 1. CREATE BRANDED DOCUMENT (matching Jacxi Shipping.pdf design in /dashboard/documents)
+    if (action === 'create_branded_document') {
+      const { generateAnnouncementPrintHtml } = await import(
+        '../../../src/lib/announcement-pdf-print'
+      );
+      const docOptions = {
+        date:
+          input.date ||
+          new Date().toLocaleDateString('en-US', {
+            month: '2-digit',
+            day: '2-digit',
+            year: 'numeric',
+          }),
+        badgeText: input.badgeText || 'IMPORTANT NOTICE',
+        title: input.title || input.query || 'Jacxi Shipping Official Document',
+        salutation: input.salutation || 'Dear Valued Customer,',
+        bodyText: input.bodyText || '',
+        closingNote:
+          input.closingNote ||
+          'Thank you for your continued cooperation and partnership.',
+        phone: input.phone || '+1 (925) 20089 27',
+        email: input.email || 'info@jacxi.com',
+        website: input.website || 'www.jacxishipping.com',
+        direction: input.direction || 'auto',
+      };
+
+      const html = generateAnnouncementPrintHtml(docOptions);
+      const encodedData = Buffer.from(JSON.stringify(docOptions), 'utf8').toString(
+        'base64url'
+      );
+      const dataUrl = `data:text/html;base64,${Buffer.from(html, 'utf8').toString('base64')}`;
+
+      let savedDocId: string | null = null;
+      if (prisma) {
+        try {
+          let shipmentId: string | null = null;
+          if (input.query) {
+            const matchedShipment = await prisma.shipment.findFirst({
+              where: {
+                OR: [
+                  { id: input.query.trim() },
+                  { vehicleVIN: { equals: input.query.trim(), mode: 'insensitive' } },
+                  { lotNumber: { equals: input.query.trim(), mode: 'insensitive' } },
+                ],
+              },
+              select: { id: true },
+            });
+            if (matchedShipment) shipmentId = matchedShipment.id;
+          }
+
+          const createdDoc = await prisma.document.create({
+            data: {
+              name: docOptions.title,
+              description: docOptions.bodyText.slice(0, 500),
+              fileUrl: dataUrl,
+              fileType: 'text/html',
+              fileSize: Buffer.byteLength(html, 'utf8'),
+              category: (input.category as any) || 'OTHER',
+              shipmentId,
+              uploadedBy: 'MCP Gateway (Branded Generator)',
+              isPublic: true,
+              tags: ['branded-document', 'jacxi-official'],
+            },
+          });
+          savedDocId = createdDoc.id;
+        } catch {
+          // Continue with stateless URL if DB write fails
+        }
+      }
+
+      const statelessPrintUrl = `${APP_URL}/api/documents/branded?data=${encodedData}&print=true`;
+      const statelessDownloadUrl = `${APP_URL}/api/documents/branded?data=${encodedData}&download=1`;
+      const dbViewUrl = savedDocId
+        ? `${APP_URL}/api/documents/branded?id=${savedDocId}&print=true`
+        : statelessPrintUrl;
+
+      await this.logMcpActivity({
+        tool: 'list_and_generate_documents',
+        query: `create_branded_document: ${docOptions.title}`,
+        entityType: 'DOCUMENT',
+        entityId: savedDocId || undefined,
+        responseSummary: `Created branded Jacxi document "${docOptions.title}"`,
+      });
+
+      return {
+        action: 'create_branded_document',
+        success: true,
+        message: `Created official Jacxi Shipping branded document "${docOptions.title}"`,
+        document: {
+          id: savedDocId,
+          title: docOptions.title,
+          badgeText: docOptions.badgeText,
+          date: docOptions.date,
+          direction: docOptions.direction,
+          printAndSaveAsPdfUrl: statelessPrintUrl,
+          downloadHtmlUrl: statelessDownloadUrl,
+          dashboardDocumentUrl: dbViewUrl,
+        },
+      };
+    }
+
+    // 2. DOWNLOAD INVOICE PDF (by invoiceNumber, ID, VIN, container, or customer)
+    if (action === 'download_invoice' && prisma) {
+      const q = (input.query || '').trim();
+      const invoices = await this.listAndSearchInvoices({
+        query: q || undefined,
+        limit: q ? 10 : 25,
+      });
+
+      return {
+        action: 'download_invoice',
+        count: invoices.length,
+        invoices: invoices.map((inv) => ({
+          id: inv.id,
+          invoiceNumber: inv.invoiceNumber,
+          status: inv.status,
+          customerName: inv.customerName,
+          shipmentVin: inv.shipmentVin,
+          containerNumber: inv.containerNumber,
+          total: inv.total,
+          amountPaid: inv.amountPaid,
+          amountRemaining: inv.amountRemaining,
+          pdfDownloadUrl: inv.pdfDownloadUrl,
+          pdfViewUrl: inv.pdfViewUrl,
+        })),
+      };
+    }
+
+    // 3. DOWNLOAD BRANDED SHIPMENT RECEIPT & EXPENSE BREAKDOWN
+    if (action === 'download_shipment_receipt' && input.query) {
+      const q = input.query.trim();
+      const dlToken = createSignedDownloadToken('shipment_receipt', q);
+      return {
+        action: 'download_shipment_receipt',
+        query: q,
+        printAndSaveAsPdfUrl: `${APP_URL}/api/documents/branded?type=shipment_receipt&id=${encodeURIComponent(q)}&token=${encodeURIComponent(dlToken)}&print=true`,
+        downloadFileUrl: `${APP_URL}/api/documents/branded?type=shipment_receipt&id=${encodeURIComponent(q)}&token=${encodeURIComponent(dlToken)}&download=1`,
+      };
+    }
+
+    // 4. DOWNLOAD BRANDED CUSTOMER FINANCIAL STATEMENT
+    if (action === 'download_customer_statement' && input.query) {
+      const q = input.query.trim();
+      const dlToken = createSignedDownloadToken('customer_statement', q);
+      return {
+        action: 'download_customer_statement',
+        query: q,
+        printAndSaveAsPdfUrl: `${APP_URL}/api/documents/branded?type=customer_statement&id=${encodeURIComponent(q)}&token=${encodeURIComponent(dlToken)}&print=true`,
+        downloadFileUrl: `${APP_URL}/api/documents/branded?type=customer_statement&id=${encodeURIComponent(q)}&token=${encodeURIComponent(dlToken)}&download=1`,
+      };
+    }
+
+    // 5. DOWNLOAD BRANDED CONTAINER MANIFEST
+    if (action === 'download_container_manifest' && input.query) {
+      const q = input.query.trim();
+      const dlToken = createSignedDownloadToken('container_manifest', q);
+      return {
+        action: 'download_container_manifest',
+        query: q,
+        printAndSaveAsPdfUrl: `${APP_URL}/api/documents/branded?type=container_manifest&id=${encodeURIComponent(q)}&token=${encodeURIComponent(dlToken)}&print=true`,
+        downloadFileUrl: `${APP_URL}/api/documents/branded?type=container_manifest&id=${encodeURIComponent(q)}&token=${encodeURIComponent(dlToken)}&download=1`,
+      };
+    }
+
+    // 6. GENERATE GATE PASS
     if (action === 'generate_gate_pass' && prisma && input.query) {
       const q = input.query.trim();
       const shipment = await prisma.shipment.findFirst({
@@ -2801,6 +3023,8 @@ export class JacxiDataProvider {
         },
       });
 
+      const dlToken = createSignedDownloadToken('gate_pass', updated.id);
+
       return {
         action: 'generate_gate_pass',
         gatePass: {
@@ -2819,6 +3043,8 @@ export class JacxiDataProvider {
           issuedAt: new Date().toISOString(),
           paymentStatus: updated.paymentStatus,
           gatePassVerifyUrl: `${APP_URL}/dashboard/shipments/${updated.id}`,
+          brandedGatePassPrintUrl: `${APP_URL}/api/documents/branded?type=gate_pass&id=${encodeURIComponent(updated.id)}&token=${encodeURIComponent(dlToken)}&print=true`,
+          brandedGatePassDownloadUrl: `${APP_URL}/api/documents/branded?type=gate_pass&id=${encodeURIComponent(updated.id)}&token=${encodeURIComponent(dlToken)}&download=1`,
         },
       };
     }
@@ -2871,12 +3097,17 @@ export class JacxiDataProvider {
             id: d.id,
             name: d.name,
             category: String(d.category),
-            fileUrl: d.fileUrl,
+            fileUrl: d.fileUrl.startsWith('data:text/html;base64,')
+              ? `${APP_URL}/api/documents/branded?id=${d.id}`
+              : d.fileUrl,
             fileType: d.fileType,
             shipmentVin: d.shipment?.vehicleVIN || null,
             containerNumber: null,
             uploadedBy: d.uploadedBy,
             createdAt: new Date(d.createdAt).toISOString(),
+            downloadUrl: d.fileUrl.startsWith('data:text/html;base64,')
+              ? `${APP_URL}/api/documents/branded?id=${d.id}&download=1`
+              : d.fileUrl,
           })),
           ...containerDocs.map((d: any) => ({
             id: d.id,
@@ -2888,6 +3119,7 @@ export class JacxiDataProvider {
             containerNumber: d.container?.containerNumber || null,
             uploadedBy: d.uploadedBy,
             createdAt: new Date(d.uploadedAt).toISOString(),
+            downloadUrl: d.fileUrl,
           })),
         ];
 
@@ -2903,6 +3135,616 @@ export class JacxiDataProvider {
     return {
       action: 'list',
       documents: [],
+    };
+  }
+
+  // =========================================================================
+  // 6. OFFICE EXPENSES (ADD, MANAGE, UPDATE, DELETE & VIEW)
+  // =========================================================================
+
+  async manageOfficeExpenses(input: {
+    action?: 'list' | 'create' | 'update' | 'delete';
+    id?: string;
+    title?: string;
+    category?: string;
+    amount?: number;
+    currency?: string;
+    expenseDate?: string;
+    paymentMethod?: string;
+    vendor?: string;
+    referenceNumber?: string;
+    receiptUrl?: string;
+    notes?: string;
+    status?: 'PAID' | 'PENDING' | 'CANCELLED';
+    search?: string;
+    startDate?: string;
+    endDate?: string;
+    limit?: number;
+  }) {
+    const action = input.action || 'list';
+    const prisma = await this.getPrisma();
+    if (!prisma) {
+      throw new Error('Database connection required to manage office expenses.');
+    }
+
+    const validCategories = [
+      'RENT',
+      'UTILITIES',
+      'SALARIES_PAYROLL',
+      'OFFICE_SUPPLIES',
+      'EQUIPMENT_HARDWARE',
+      'SOFTWARE_SUBSCRIPTIONS',
+      'MAINTENANCE_REPAIRS',
+      'TRAVEL_TRANSPORT',
+      'MARKETING_ADVERTISING',
+      'LEGAL_PROFESSIONAL',
+      'COMMUNICATION_INTERNET',
+      'TAXES_GOVERNMENT_FEES',
+      'BANK_FEES',
+      'MEALS_ENTERTAINMENT',
+      'OTHER',
+    ];
+
+    const validStatuses = ['PAID', 'PENDING', 'CANCELLED'];
+
+    if (action === 'create') {
+      if (!input.title || !input.title.trim()) {
+        throw new Error('Office expense title is required.');
+      }
+      const amt = Number(input.amount);
+      if (!Number.isFinite(amt) || amt <= 0) {
+        throw new Error('A positive amount is required to record an office expense.');
+      }
+
+      const catUpper = (input.category || 'OTHER').toUpperCase().trim();
+      const resolvedCategory = validCategories.includes(catUpper) ? catUpper : 'OTHER';
+      const statusUpper = (input.status || 'PAID').toUpperCase().trim();
+      const resolvedStatus = validStatuses.includes(statusUpper) ? statusUpper : 'PAID';
+
+      const created = await prisma.officeExpense.create({
+        data: {
+          title: input.title.trim(),
+          category: resolvedCategory as any,
+          amount: amt,
+          currency: (input.currency || 'USD').toUpperCase().trim(),
+          expenseDate: input.expenseDate ? new Date(input.expenseDate) : new Date(),
+          paymentMethod: (input.paymentMethod || 'CASH').toUpperCase().trim(),
+          vendor: input.vendor ? input.vendor.trim() : null,
+          referenceNumber: input.referenceNumber ? input.referenceNumber.trim() : null,
+          receiptUrl: input.receiptUrl ? input.receiptUrl.trim() : null,
+          notes: input.notes ? input.notes.trim() : null,
+          status: resolvedStatus as any,
+        },
+      });
+
+      await this.logMcpActivity({
+        tool: 'manage_office_expenses',
+        query: `create: ${created.title} ($${created.amount})`,
+        entityType: 'OFFICE_EXPENSE',
+        entityId: created.id,
+        responseSummary: `Created office expense "${created.title}" ($${created.amount} ${created.currency})`,
+      });
+
+      return {
+        action: 'create',
+        success: true,
+        message: `Recorded office expense "${created.title}" for $${created.amount} ${created.currency} (${created.category})`,
+        expense: created,
+      };
+    }
+
+    if (action === 'update') {
+      let targetId = input.id?.trim();
+      if (!targetId && input.title) {
+        const found = await prisma.officeExpense.findFirst({
+          where: {
+            OR: [
+              { title: { contains: input.title.trim(), mode: 'insensitive' } },
+              { referenceNumber: { equals: input.title.trim(), mode: 'insensitive' } },
+            ],
+          },
+          orderBy: { expenseDate: 'desc' },
+        });
+        targetId = found?.id;
+      }
+
+      if (!targetId) {
+        throw new Error('Office expense ID (or matching title/referenceNumber) is required to update.');
+      }
+
+      const data: any = {};
+      if (input.title !== undefined) data.title = input.title.trim();
+      if (input.amount !== undefined && Number(input.amount) > 0) data.amount = Number(input.amount);
+      if (input.category !== undefined) {
+        const c = input.category.toUpperCase().trim();
+        if (validCategories.includes(c)) data.category = c;
+      }
+      if (input.status !== undefined) {
+        const s = input.status.toUpperCase().trim();
+        if (validStatuses.includes(s)) data.status = s;
+      }
+      if (input.currency !== undefined) data.currency = input.currency.toUpperCase().trim();
+      if (input.expenseDate !== undefined) data.expenseDate = new Date(input.expenseDate);
+      if (input.paymentMethod !== undefined) data.paymentMethod = input.paymentMethod.toUpperCase().trim();
+      if (input.vendor !== undefined) data.vendor = input.vendor || null;
+      if (input.referenceNumber !== undefined) data.referenceNumber = input.referenceNumber || null;
+      if (input.notes !== undefined) data.notes = input.notes || null;
+
+      const updated = await prisma.officeExpense.update({
+        where: { id: targetId },
+        data,
+      });
+
+      await this.logMcpActivity({
+        tool: 'manage_office_expenses',
+        query: `update: ${updated.id}`,
+        entityType: 'OFFICE_EXPENSE',
+        entityId: updated.id,
+        responseSummary: `Updated office expense "${updated.title}"`,
+      });
+
+      return {
+        action: 'update',
+        success: true,
+        message: `Updated office expense "${updated.title}" ($${updated.amount})`,
+        expense: updated,
+      };
+    }
+
+    if (action === 'delete') {
+      if (!input.id) {
+        throw new Error('Office expense ID is required to delete.');
+      }
+      const deleted = await prisma.officeExpense.delete({
+        where: { id: input.id.trim() },
+      });
+
+      await this.logMcpActivity({
+        tool: 'manage_office_expenses',
+        query: `delete: ${deleted.id}`,
+        entityType: 'OFFICE_EXPENSE',
+        entityId: deleted.id,
+        responseSummary: `Deleted office expense "${deleted.title}"`,
+      });
+
+      return {
+        action: 'delete',
+        success: true,
+        message: `Deleted office expense "${deleted.title}" ($${deleted.amount})`,
+        deletedId: deleted.id,
+      };
+    }
+
+    // Default: list office expenses + summary + recurring + budgets
+    const where: any = {};
+    if (input.search && input.search.toLowerCase() !== 'all' && input.search !== '*') {
+      const q = input.search.trim();
+      where.OR = [
+        { title: { contains: q, mode: 'insensitive' } },
+        { vendor: { contains: q, mode: 'insensitive' } },
+        { referenceNumber: { contains: q, mode: 'insensitive' } },
+        { notes: { contains: q, mode: 'insensitive' } },
+      ];
+    }
+    if (input.category && input.category.toLowerCase() !== 'all') {
+      const c = input.category.toUpperCase().trim();
+      if (validCategories.includes(c)) where.category = c;
+    }
+    if (input.status && input.status.toLowerCase() !== 'all') {
+      const s = input.status.toUpperCase().trim();
+      if (validStatuses.includes(s)) where.status = s;
+    }
+    if (input.paymentMethod) {
+      where.paymentMethod = input.paymentMethod.toUpperCase().trim();
+    }
+    if (input.startDate || input.endDate) {
+      where.expenseDate = {};
+      if (input.startDate) where.expenseDate.gte = new Date(input.startDate);
+      if (input.endDate) where.expenseDate.lte = new Date(input.endDate);
+    }
+
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfYear = new Date(now.getFullYear(), 0, 1);
+    const limit = input.limit && input.limit > 0 ? input.limit : undefined;
+
+    const [expenses, totalAgg, monthAgg, yearAgg, byCategory, recurring, budgets] =
+      await Promise.all([
+        prisma.officeExpense.findMany({
+          where,
+          include: {
+            recordedBy: { select: { name: true, email: true } },
+          },
+          orderBy: { expenseDate: 'desc' },
+          ...(limit ? { take: limit } : {}),
+        }),
+        prisma.officeExpense.aggregate({
+          where,
+          _sum: { amount: true },
+          _count: { id: true },
+        }),
+        prisma.officeExpense.aggregate({
+          where: { ...where, expenseDate: { gte: startOfMonth } },
+          _sum: { amount: true },
+          _count: { id: true },
+        }),
+        prisma.officeExpense.aggregate({
+          where: { ...where, expenseDate: { gte: startOfYear } },
+          _sum: { amount: true },
+          _count: { id: true },
+        }),
+        prisma.officeExpense.groupBy({
+          by: ['category'],
+          where,
+          _sum: { amount: true },
+          _count: { id: true },
+        }),
+        prisma.recurringExpense.findMany({
+          where: { isActive: true },
+          orderBy: { nextDueDate: 'asc' },
+        }),
+        prisma.expenseBudget.findMany({
+          orderBy: { createdAt: 'desc' },
+        }),
+      ]);
+
+    const mappedExpenses: OfficeExpenseItem[] = expenses.map((e: any) => ({
+      id: e.id,
+      title: e.title,
+      category: String(e.category),
+      amount: e.amount,
+      currency: e.currency,
+      expenseDate: new Date(e.expenseDate).toISOString(),
+      paymentMethod: e.paymentMethod,
+      vendor: e.vendor || null,
+      referenceNumber: e.referenceNumber || null,
+      receiptUrl: e.receiptUrl || null,
+      notes: e.notes || null,
+      status: String(e.status),
+      recordedBy: e.recordedBy?.name || e.recordedBy?.email || null,
+      createdAt: new Date(e.createdAt).toISOString(),
+    }));
+
+    return {
+      action: 'list',
+      summary: {
+        totalCount: totalAgg._count.id || 0,
+        totalAmountUsd: totalAgg._sum.amount || 0,
+        thisMonthCount: monthAgg._count.id || 0,
+        thisMonthAmountUsd: monthAgg._sum.amount || 0,
+        thisYearCount: yearAgg._count.id || 0,
+        thisYearAmountUsd: yearAgg._sum.amount || 0,
+        categoryBreakdown: byCategory.map((c: any) => ({
+          category: String(c.category),
+          count: c._count.id || 0,
+          amountUsd: c._sum.amount || 0,
+        })),
+      },
+      expenses: mappedExpenses,
+      activeRecurringExpenses: recurring,
+      budgets,
+    };
+  }
+
+  // =========================================================================
+  // 7. SHIPMENT EXPENSES & CHARGES (ADD, VIEW & SYNC TO LEDGER + INVOICE)
+  // =========================================================================
+
+  async manageShipmentExpenses(input: {
+    action?: 'list' | 'add';
+    vinOrId: string;
+    description?: string;
+    amount?: number;
+    expenseType?:
+      | 'SHIPPING_FEE'
+      | 'FUEL'
+      | 'PORT_CHARGES'
+      | 'TOWING'
+      | 'CUSTOMS'
+      | 'STORAGE_FEE'
+      | 'HANDLING_FEE'
+      | 'INSURANCE'
+      | 'OTHER';
+    contextType?: 'TRANSIT' | 'CONTAINER' | 'DISPATCH';
+    vendor?: string;
+    notes?: string;
+    createCompanyCredit?: boolean;
+  }) {
+    const action = input.action || 'list';
+    const prisma = await this.getPrisma();
+    if (!prisma) {
+      throw new Error('Database connection required to manage shipment expenses.');
+    }
+
+    const q = (input.vinOrId || '').trim();
+    if (!q) {
+      throw new Error('vinOrId (VIN, lot number, or shipment ID) is required.');
+    }
+
+    const shipment = await prisma.shipment.findFirst({
+      where: {
+        OR: [
+          { id: q },
+          { vehicleVIN: { equals: q, mode: 'insensitive' } },
+          { vehicleVIN: { contains: q, mode: 'insensitive' } },
+          { lotNumber: { equals: q, mode: 'insensitive' } },
+        ],
+      },
+      include: {
+        user: { select: { id: true, name: true, email: true } },
+        container: {
+          select: { id: true, containerNumber: true, companyId: true },
+        },
+        dispatch: {
+          select: { id: true, referenceNumber: true, companyId: true },
+        },
+        transit: {
+          select: {
+            id: true,
+            referenceNumber: true,
+            companyId: true,
+            events: {
+              orderBy: { eventDate: 'desc' },
+              take: 1,
+              select: { companyId: true, origin: true, destination: true },
+            },
+          },
+        },
+        charges: { orderBy: { createdAt: 'desc' } },
+        ledgerEntries: { orderBy: { transactionDate: 'desc' } },
+        dispatchExpenses: { orderBy: { date: 'desc' } },
+        transitExpenses: { orderBy: { date: 'desc' } },
+        invoices: {
+          include: { lineItems: true },
+          orderBy: { createdAt: 'desc' },
+        },
+      },
+    });
+
+    if (!shipment) {
+      throw new Error(`No vehicle shipment found matching "${q}".`);
+    }
+
+    const receiptToken = createSignedDownloadToken('shipment_receipt', shipment.id);
+    const shipmentReceiptPrintUrl = `${APP_URL}/api/documents/branded?type=shipment_receipt&id=${encodeURIComponent(shipment.id)}&token=${encodeURIComponent(receiptToken)}&print=true`;
+    const shipmentReceiptDownloadUrl = `${APP_URL}/api/documents/branded?type=shipment_receipt&id=${encodeURIComponent(shipment.id)}&token=${encodeURIComponent(receiptToken)}&download=1`;
+
+    if (action === 'add') {
+      const amt = Number(input.amount);
+      if (!Number.isFinite(amt) || amt <= 0) {
+        throw new Error('A positive amount is required to add an expense to a shipment.');
+      }
+      const desc = (input.description || input.expenseType || 'Shipment Expense').trim();
+      const expType = input.expenseType || 'OTHER';
+
+      const vehicleInfo =
+        [shipment.vehicleYear, shipment.vehicleMake, shipment.vehicleModel]
+          .filter(Boolean)
+          .join(' ') || 'Vehicle';
+      const shipmentRef = shipment.vehicleVIN
+        ? `VIN ${shipment.vehicleVIN}`
+        : `Shipment ${shipment.id}`;
+
+      const effectiveContext =
+        input.contextType ||
+        (['TOWING', 'FUEL'].includes(expType) && shipment.dispatchId
+          ? 'DISPATCH'
+          : ['PORT_CHARGES', 'SHIPPING_FEE', 'STORAGE_FEE'].includes(expType) &&
+              shipment.containerId
+            ? 'CONTAINER'
+            : shipment.transitId
+              ? 'TRANSIT'
+              : 'CONTAINER');
+
+      const expenseSource =
+        effectiveContext === 'DISPATCH'
+          ? 'DISPATCH'
+          : effectiveContext === 'TRANSIT'
+            ? 'TRANSIT'
+            : 'SHIPMENT';
+
+      const contextLabel =
+        effectiveContext === 'DISPATCH' && shipment.dispatch
+          ? `(Dispatch ${shipment.dispatch.referenceNumber})`
+          : effectiveContext === 'TRANSIT' && shipment.transit
+            ? `(Transit ${shipment.transit.referenceNumber})`
+            : shipment.container
+              ? `(Container ${shipment.container.containerNumber})`
+              : '';
+
+      const fullDescription = `${desc} - ${expType.replace(/_/g, ' ').toLowerCase()} for ${vehicleInfo} (${shipmentRef}) ${contextLabel}`.trim();
+
+      const { syncShipmentChargeFromLedgerEntry } = await import(
+        '../../../src/lib/billing/shipment-charges'
+      );
+      const { addExpenseLineItemToShipmentInvoice, mapExpenseTypeToLineItemType } =
+        await import('../../../src/lib/shipment-invoice');
+
+      const result = await prisma.$transaction(async (tx: any) => {
+        // 1. Create Customer Ledger DEBIT Entry
+        const debitEntry = await tx.ledgerEntry.create({
+          data: {
+            userId: shipment.userId,
+            shipmentId: shipment.id,
+            description: fullDescription,
+            type: 'DEBIT',
+            amount: amt,
+            balance: 0,
+            createdBy: shipment.userId,
+            notes: input.notes || null,
+            metadata: {
+              expenseType: expType,
+              paymentMode: 'DUE',
+              isExpense: true,
+              pendingInvoice: true,
+              expenseSource,
+              ...(shipment.dispatchId ? { dispatchId: shipment.dispatchId } : {}),
+              ...(shipment.transitId ? { transitId: shipment.transitId } : {}),
+              ...(shipment.containerId ? { containerId: shipment.containerId } : {}),
+            },
+          },
+        });
+
+        // 2. Sync ShipmentCharge record
+        await syncShipmentChargeFromLedgerEntry(tx, {
+          entryId: debitEntry.id,
+          userId: debitEntry.userId,
+          shipmentId: debitEntry.shipmentId,
+          description: debitEntry.description,
+          type: debitEntry.type,
+          amount: debitEntry.amount,
+          transactionDate: debitEntry.transactionDate,
+          transactionInfoType: debitEntry.transactionInfoType,
+          notes: debitEntry.notes,
+          metadata: debitEntry.metadata,
+          actorId: shipment.userId,
+        });
+
+        // 3. Optionally record DispatchExpense / TransitExpense / ContainerExpense
+        let operationalExpense: any = null;
+        if (effectiveContext === 'DISPATCH' && shipment.dispatchId) {
+          operationalExpense = await tx.dispatchExpense.create({
+            data: {
+              dispatchId: shipment.dispatchId,
+              shipmentId: shipment.id,
+              type: expType,
+              description: desc,
+              amount: amt,
+              vendor: input.vendor || null,
+              notes: input.notes || null,
+              createdBy: shipment.userId,
+            },
+          });
+        } else if (effectiveContext === 'TRANSIT' && shipment.transitId) {
+          operationalExpense = await tx.transitExpense.create({
+            data: {
+              transitId: shipment.transitId,
+              shipmentId: shipment.id,
+              type: expType,
+              description: desc,
+              amount: amt,
+              vendor: input.vendor || null,
+              notes: input.notes || null,
+              createdBy: shipment.userId,
+            },
+          });
+        } else if (effectiveContext === 'CONTAINER' && shipment.containerId) {
+          operationalExpense = await tx.containerExpense.create({
+            data: {
+              containerId: shipment.containerId,
+              type: expType,
+              amount: amt,
+              vendor: input.vendor || null,
+              notes: `${desc} (VIN: ${shipment.vehicleVIN || shipment.id})`,
+            },
+          });
+        }
+
+        // 4. Add line item to pending shipment invoice if one exists
+        try {
+          await addExpenseLineItemToShipmentInvoice(
+            shipment.id,
+            {
+              description: desc,
+              type: mapExpenseTypeToLineItemType(expType),
+              amount: amt,
+              expenseSource,
+            },
+            tx
+          );
+        } catch {
+          // Non-fatal if no mutable pending invoice exists
+        }
+
+        // 5. Optional company ledger credit recovery
+        const resolvedCompanyId =
+          shipment.container?.companyId ||
+          shipment.transit?.companyId ||
+          shipment.transit?.events?.[0]?.companyId ||
+          shipment.dispatch?.companyId;
+
+        let companyEntry: any = null;
+        if (input.createCompanyCredit && resolvedCompanyId) {
+          companyEntry = await tx.companyLedgerEntry.create({
+            data: {
+              companyId: resolvedCompanyId,
+              description: `Expense recovery - ${fullDescription}`,
+              type: 'CREDIT',
+              amount: amt,
+              balance: 0,
+              category: 'Shipment Expense Recovery',
+              reference: `shipment-expense:${debitEntry.id}`,
+              notes: input.notes || null,
+              createdBy: shipment.userId,
+            },
+          });
+        }
+
+        return { debitEntry, operationalExpense, companyEntry };
+      });
+
+      await this.logMcpActivity({
+        tool: 'manage_shipment_expenses',
+        query: `add: ${shipment.vehicleVIN || shipment.id} ($${amt} - ${desc})`,
+        entityType: 'SHIPMENT_EXPENSE',
+        entityId: shipment.id,
+        responseSummary: `Added $${amt} USD ${expType} expense ("${desc}") to ${vehicleInfo} (${shipment.vehicleVIN})`,
+      });
+
+      return {
+        action: 'add',
+        success: true,
+        message: `Added $${amt.toFixed(2)} USD expense ("${desc}" - ${expType}) to ${vehicleInfo} (VIN: ${shipment.vehicleVIN || shipment.id})`,
+        shipment: {
+          id: shipment.id,
+          vin: shipment.vehicleVIN,
+          vehicle: vehicleInfo,
+          customer: shipment.user?.name || shipment.user?.email,
+        },
+        ledgerEntry: result.debitEntry,
+        operationalExpense: result.operationalExpense,
+        shipmentReceiptPrintUrl,
+        shipmentReceiptDownloadUrl,
+      };
+    }
+
+    // Default: list all expenses, charges, ledger entries, and invoices for this shipment
+    return {
+      action: 'list',
+      shipment: {
+        id: shipment.id,
+        vin: shipment.vehicleVIN,
+        vehicle: [shipment.vehicleYear, shipment.vehicleMake, shipment.vehicleModel]
+          .filter(Boolean)
+          .join(' '),
+        status: shipment.status,
+        paymentStatus: shipment.paymentStatus,
+        baseShippingPriceUsd: shipment.price,
+        purchasePriceUsd: shipment.purchasePrice,
+        customerName: shipment.user?.name || null,
+        customerEmail: shipment.user?.email || null,
+        containerNumber: shipment.container?.containerNumber || null,
+      },
+      charges: shipment.charges,
+      ledgerEntries: shipment.ledgerEntries,
+      dispatchExpenses: shipment.dispatchExpenses,
+      transitExpenses: shipment.transitExpenses,
+      invoices: shipment.invoices.map((inv: any) => {
+        const dlToken = createSignedDownloadToken('invoice', inv.id);
+        return {
+          id: inv.id,
+          invoiceNumber: inv.invoiceNumber,
+          status: inv.status,
+          total: inv.total,
+          amountPaid: inv.amountPaid,
+          amountRemaining: inv.amountRemaining,
+          lineItems: inv.lineItems,
+          pdfDownloadUrl: `${APP_URL}/api/invoices/${inv.id}/pdf?download=1&token=${encodeURIComponent(dlToken)}`,
+          pdfViewUrl: `${APP_URL}/api/invoices/${inv.id}/pdf?token=${encodeURIComponent(dlToken)}`,
+        };
+      }),
+      shipmentReceiptPrintUrl,
+      shipmentReceiptDownloadUrl,
     };
   }
 

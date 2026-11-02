@@ -357,12 +357,30 @@ export async function POST(request: NextRequest) {
           summary =
             result.action === 'generate_gate_pass'
               ? `Generated Gate Pass ${result.gatePass?.releaseToken}`
-              : `Listed ${result.documents?.length || 0} document(s)`;
+              : result.action === 'create_branded_document'
+                ? `Created branded Jacxi document "${result.document?.title}"`
+                : `Executed document action: ${result.action}`;
           break;
         }
         case 'send_customer_notification': {
           result = await provider.sendCustomerNotification(args as any);
           summary = result.message || 'Sent notification';
+          break;
+        }
+        case 'manage_office_expenses': {
+          result = await provider.manageOfficeExpenses(args as any);
+          summary =
+            result.action === 'list'
+              ? `Listed ${result.expenses?.length || 0} office expense(s) (Total: $${result.summary?.totalAmountUsd || 0})`
+              : result.message || `Executed office expense ${result.action}`;
+          break;
+        }
+        case 'manage_shipment_expenses': {
+          result = await provider.manageShipmentExpenses(args as any);
+          summary =
+            result.action === 'add'
+              ? result.message || 'Added shipment expense'
+              : `Listed expenses & charges for ${result.shipment?.vin || args.vinOrId}`;
           break;
         }
         default:

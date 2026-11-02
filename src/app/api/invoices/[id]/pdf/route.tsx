@@ -3,21 +3,48 @@ import { renderToStream } from '@react-pdf/renderer';
 import { prisma } from '@/lib/db';
 import InvoiceTemplate from '@/components/invoices/pdf/InvoiceTemplate';
 import { auth } from '@/lib/auth';
+import { verifySignedDownloadToken } from '../../../../../../mcps/jacxishipping/src/oauth';
+import { verifyAuth } from '../../../../../../mcps/jacxishipping/src/auth';
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: Promise<{ id: string }> } // Params are async in Next.js 15
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const session = await auth();
-        if (!session?.user) {
+        const { id } = await params;
+        const token = request.nextUrl.searchParams.get('token');
+
+        let isAuthorized = false;
+        if (token) {
+            const verified =
+                verifySignedDownloadToken(token, 'invoice', id) ||
+                verifySignedDownloadToken(token, 'invoice');
+            if (verified) isAuthorized = true;
+        }
+
+        if (!isAuthorized) {
+            const session = await auth();
+            if (session?.user) {
+                isAuthorized = true;
+            } else {
+                const mcpAuth = await verifyAuth(request);
+                if (mcpAuth.authenticated) {
+                    isAuthorized = true;
+                }
+            }
+        }
+
+        if (!isAuthorized) {
             return new NextResponse('Unauthorized', { status: 401 });
         }
-        
-        const { id } = await params;
 
-        const invoice = await prisma.userInvoice.findUnique({
-            where: { id },
+        const invoice = await prisma.userInvoice.findFirst({
+            where: {
+                OR: [
+                    { id },
+                    { invoiceNumber: { equals: id, mode: 'insensitive' } },
+                ],
+            },
             include: {
                 user: true,
                 container: true,
@@ -30,7 +57,7 @@ export async function GET(
                         createdAt: 'asc',
                     },
                 },
-            }
+            },
         });
 
         if (!invoice) {
@@ -40,7 +67,7 @@ export async function GET(
         // Render PDF
         // @ts-ignore - renderToStream types can be tricky with NextResponse
         const stream = await renderToStream(<InvoiceTemplate invoice={invoice} />);
-        
+
         const isDownload = request.nextUrl.searchParams.get('download') === '1';
         const disposition = isDownload ? 'attachment' : 'inline';
 

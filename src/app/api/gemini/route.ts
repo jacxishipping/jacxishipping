@@ -177,6 +177,10 @@ export async function POST(request: NextRequest) {
       result = await provider.listAndGenerateDocuments(args);
     } else if (toolName === 'send_customer_notification') {
       result = await provider.sendCustomerNotification(args);
+    } else if (toolName === 'manage_office_expenses') {
+      result = await provider.manageOfficeExpenses(args);
+    } else if (toolName === 'manage_shipment_expenses') {
+      result = await provider.manageShipmentExpenses(args);
     } else {
       return NextResponse.json(
         { error: `Unknown tool function: "${toolName}".` },

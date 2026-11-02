@@ -410,3 +410,44 @@ export function getOAuthAuthorizationServerMetadata(
   };
 }
 
+/**
+ * Signed token for direct one-click downloads of Invoices, Branded Documents, Statements, Gate Passes, and Manifests
+ */
+export interface SignedDownloadTokenPayload {
+  type: 'download';
+  resourceType: string;
+  resourceId: string;
+  exp: number;
+}
+
+export function createSignedDownloadToken(
+  resourceType: string,
+  resourceId: string,
+  ttlSeconds = 30 * 24 * 3600
+): string {
+  const payload: SignedDownloadTokenPayload = {
+    type: 'download',
+    resourceType,
+    resourceId,
+    exp: Math.floor(Date.now() / 1000) + ttlSeconds,
+  };
+  return signSegment('jx_dl', payload);
+}
+
+export function verifySignedDownloadToken(
+  token: string,
+  expectedResourceType?: string,
+  expectedResourceId?: string
+): SignedDownloadTokenPayload | null {
+  const payload = verifySegment<SignedDownloadTokenPayload>('jx_dl', token);
+  if (!payload || payload.type !== 'download') return null;
+  if (expectedResourceType && payload.resourceType !== expectedResourceType && payload.resourceType !== '*') {
+    return null;
+  }
+  if (expectedResourceId && payload.resourceId !== expectedResourceId && payload.resourceId !== '*') {
+    return null;
+  }
+  return payload;
+}
+
+

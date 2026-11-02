@@ -183,6 +183,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(res, { headers });
     }
 
+    if (action === 'manage_office_expenses') {
+      const res = await provider.manageOfficeExpenses(body);
+      return NextResponse.json(res, { headers });
+    }
+
+    if (action === 'manage_shipment_expenses') {
+      const res = await provider.manageShipmentExpenses(body);
+      return NextResponse.json(res, { headers });
+    }
+
     return NextResponse.json({ error: `Unknown tool action: ${action}` }, { status: 400, headers });
   } catch (error: any) {
     return NextResponse.json({ error: error?.message || 'Invalid request' }, { status: 500, headers });

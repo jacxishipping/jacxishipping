@@ -276,7 +276,11 @@ export interface CustomerLedgerResult {
     amountRemaining: number;
     issueDate: string;
     dueDate: string | null;
+    pdfDownloadUrl?: string;
+    pdfViewUrl?: string;
   }>;
+  statementPrintUrl?: string;
+  statementDownloadUrl?: string;
   dataSource: 'database' | 'snapshot';
 }
 
@@ -298,6 +302,8 @@ export interface InvoiceSearchResult {
   issueDate: string;
   dueDate: string | null;
   paidDate: string | null;
+  pdfDownloadUrl?: string;
+  pdfViewUrl?: string;
   lineItems: Array<{
     description: string;
     type: string;
@@ -317,6 +323,24 @@ export interface DocumentSearchResult {
   shipmentVin: string | null;
   containerNumber: string | null;
   uploadedBy: string;
+  createdAt: string;
+  downloadUrl?: string;
+}
+
+export interface OfficeExpenseItem {
+  id: string;
+  title: string;
+  category: string;
+  amount: number;
+  currency: string;
+  expenseDate: string;
+  paymentMethod: string;
+  vendor: string | null;
+  referenceNumber: string | null;
+  receiptUrl: string | null;
+  notes: string | null;
+  status: string;
+  recordedBy: string | null;
   createdAt: string;
 }
 
