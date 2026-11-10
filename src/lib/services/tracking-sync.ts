@@ -100,8 +100,6 @@ export class TrackingSyncService {
 							eventDate: new Date(event.timestamp),
 							source: event.source || 'API',
 							completed: isCompletedStatus(event.status),
-							latitude: event.latitude || undefined,
-							longitude: event.longitude || undefined,
 						},
 					});
 					insertedCount++;
