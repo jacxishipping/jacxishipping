@@ -71,7 +71,20 @@ export function parseTrackingSource(source?: string | null): {
     };
   }
 
-  if (s.includes('carrier') || s.includes('dcsa') || s.includes('maersk') || s.includes('msc') || s.includes('cma')) {
+  if (s.includes('dcsa_sync') || s.includes('fallback')) {
+    return {
+      key: 'fallback',
+      label: 'AIS Simulation',
+      fullLabel: 'Simulated AIS Corridor Telemetry',
+      icon: <Radio className="w-3 h-3 text-rose-500 shrink-0" />,
+      bg: 'rgba(244, 63, 94, 0.1)',
+      color: '#F43F5E',
+      border: 'rgba(244, 63, 94, 0.25)',
+      description: 'Estimated position based on AIS corridor telemetry',
+    };
+  }
+
+  if (s.includes('carrier') || s.includes('maersk') || s.includes('msc') || s.includes('cma')) {
     const carrierName = source?.replace(/^(carrier\s*api\s*\(?|\)?)/gi, '') || 'Ocean Carrier';
     return {
       key: 'carrier',

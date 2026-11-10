@@ -11,6 +11,7 @@ import { detectOceanCarrier } from './carrier-detector';
 import { 
   type OceanCarrierSyncSnapshot, 
   type NormalizedCarrierEvent, 
+  type CarrierMetadata,
   SUPPORTED_OCEAN_CARRIERS 
 } from './types';
 import { dispatchMilestoneAlert, type MilestoneType } from '@/lib/notifications/milestone-alerts';
@@ -202,6 +203,7 @@ export class OceanCarrierSyncService {
         milestoneTrigger = 'VESSEL_DEPARTED';
       } else if (snapshot.lifecycleStatus === 'ARRIVED_PORT' && ['LOADED', 'IN_TRANSIT'].includes(container.status)) {
         updateData.status = 'ARRIVED_PORT';
+        updateData.autoTrackingEnabled = false;
         statusAdvanced = true;
         milestoneTrigger = 'ARRIVED_AT_PORT';
       } else if (snapshot.lifecycleStatus === 'CUSTOMS_CLEARANCE' && container.status === 'ARRIVED_PORT') {
@@ -317,7 +319,7 @@ export class OceanCarrierSyncService {
 
   private transformSupabaseToCarrierSnapshot(
     cleanNumber: string,
-    carrier: any,
+    carrier: CarrierMetadata,
     supabaseData: SupabaseTrackingData
   ): OceanCarrierSyncSnapshot {
     const pol = supabaseData.pol || {};
@@ -388,7 +390,7 @@ export class OceanCarrierSyncService {
 
   private transformRawToCarrierSnapshot(
     cleanNumber: string,
-    carrier: any,
+    carrier: CarrierMetadata,
     rawData: any[]
   ): OceanCarrierSyncSnapshot {
     const latest = rawData[0];
@@ -468,7 +470,7 @@ export class OceanCarrierSyncService {
    */
   private transformTurkonToCarrierSnapshot(
     cleanNumber: string,
-    carrier: any,
+    carrier: CarrierMetadata,
     turkonData: any
   ): OceanCarrierSyncSnapshot | null {
     if (!turkonData) return null;
@@ -621,7 +623,7 @@ export class OceanCarrierSyncService {
 
   private generateSimulatedCarrierSnapshot(
     cleanNumber: string,
-    carrier: any
+    carrier: CarrierMetadata
   ): OceanCarrierSyncSnapshot {
     const nameHash = cleanNumber.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
     const isTurkon = carrier.code === 'TURKON' || cleanNumber.startsWith('TRKU');
@@ -727,7 +729,7 @@ export class OceanCarrierSyncService {
       currentLocation: isTurkon ? 'Eastern Mediterranean Sea Corridor' : 'Mediterranean Sea Corridor (Passing Sicily)',
       events,
       lastSyncedAt: new Date().toISOString(),
-      source: 'DCSA_SYNC',
+      source: 'FALLBACK_AIS',
     };
   }
 }

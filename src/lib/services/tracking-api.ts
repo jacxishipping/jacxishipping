@@ -6,6 +6,7 @@
 
 import { logger } from '@/lib/logger';
 import { containerTrackingClient, type SupabaseTrackingData } from '@/lib/services/container-tracking-client';
+import { calculateProgressFromStatus, fetchWithRetry } from '@/lib/tracking-utils';
 
 const PGL_TRACKING_ENDPOINT = 'https://api.pglsystem.com/api/public/tracking';
 
@@ -51,6 +52,8 @@ export interface ContainerTrackingSnapshot {
 	}>;
 	progress: number;
 	currentLocation?: string;
+	/** Identifies which provider returned this data: 'turkon' | 'supabase' | 'pgl' */
+	provider?: string;
 }
 
 interface PGLTrackingResponse {
@@ -97,7 +100,7 @@ export class TrackingAPIService {
 	 */
 	async fetchTrackingData(
 		trackingNumber: string,
-		_shippingLine?: string,
+		shippingLine?: string,
 		options?: { forceRefresh?: boolean }
 	): Promise<ExternalTrackingEvent[]> {
 		try {
@@ -260,14 +263,15 @@ export class TrackingAPIService {
 			shippingLine: data.scac || undefined,
 			loadingPort,
 			destinationPort,
-			loadingDate: pol.etd_date ? new Date(pol.etd_date).toISOString() : undefined,
+			loadingDate: undefined,
 			departureDate: pol.etd_date ? new Date(pol.etd_date).toISOString() : undefined,
 			estimatedArrival: pod.eta_date ? new Date(pod.eta_date).toISOString() : undefined,
 			containerType: data.container?.type || undefined,
 			status: isCompleted ? 'Delivered' : latestStatus,
 			trackingEvents,
-			progress: isCompleted ? 100 : this.calculateProgressFromStatus(latestStatus),
+			progress: isCompleted ? 100 : calculateProgressFromStatus(latestStatus),
 			currentLocation: latestEvent?.location || loadingPort || destinationPort || undefined,
+			provider: 'supabase',
 		};
 	}
 
@@ -329,14 +333,14 @@ export class TrackingAPIService {
 				snapshot,
 				rawData: json,
 			};
-		} catch (err: any) {
+		} catch (err: unknown) {
 			return {
 				success: false,
 				httpStatus: 0,
 				latencyMs: Date.now() - start,
 				snapshot: null,
 				rawData: null,
-				error: err?.message || 'Turkon request failed',
+				error: err instanceof Error ? err.message : 'Turkon request failed',
 			};
 		}
 	}
@@ -396,7 +400,7 @@ export class TrackingAPIService {
 				count: entries.length,
 				rawData: payload,
 			};
-		} catch (err: any) {
+		} catch (err: unknown) {
 			return {
 				success: false,
 				httpStatus: 0,
@@ -404,7 +408,7 @@ export class TrackingAPIService {
 				snapshot: null,
 				count: 0,
 				rawData: null,
-				error: err?.message || 'PGL request failed',
+				error: err instanceof Error ? err.message : 'PGL request failed',
 			};
 		}
 	}
@@ -416,20 +420,25 @@ export class TrackingAPIService {
 		containerNumber: string
 	): Promise<ContainerTrackingSnapshot | null> {
 		const url = `https://myturkonline.turkon.com/shipping-prod-service/tracking/getTrackingTopInformation/en/${encodeURIComponent(containerNumber)}`;
-		const res = await fetch(url, {
-			method: 'POST',
-			headers: {
-				'accept': 'application/json, text/plain, */*',
-				'accept-language': 'en-GB,en-US;q=0.9,en;q=0.8',
-				'content-type': 'application/json',
-				'priority': 'u=1, i',
-				'referrer': 'https://myturkonline.turkon.com/tracking',
-				'origin': 'https://myturkonline.turkon.com',
-				'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
+		const res = await fetchWithRetry(
+			url,
+			{
+				method: 'POST',
+				headers: {
+					'accept': 'application/json, text/plain, */*',
+					'accept-language': 'en-GB,en-US;q=0.9,en;q=0.8',
+					'content-type': 'application/json',
+					'priority': 'u=1, i',
+					'referrer': 'https://myturkonline.turkon.com/tracking',
+					'origin': 'https://myturkonline.turkon.com',
+					'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
+				},
+				body: JSON.stringify({ token: null, cookie: null }),
+				cache: 'no-store',
 			},
-			body: JSON.stringify({ token: null, cookie: null }),
-			cache: 'no-store',
-		});
+			2,
+			1000
+		);
 
 		if (!res.ok) {
 			return null;
@@ -537,14 +546,15 @@ export class TrackingAPIService {
 			shippingLine: 'Turkon Line',
 			loadingPort,
 			destinationPort,
-			loadingDate: departureDate,
+			loadingDate: undefined,
 			departureDate,
 			estimatedArrival,
 			containerType: data.containerType || '40HC',
 			status: isCompleted ? 'Delivered' : latestStatus,
 			trackingEvents,
-			progress: isCompleted ? 100 : this.calculateProgressFromStatus(latestStatus),
+			progress: isCompleted ? 100 : calculateProgressFromStatus(latestStatus),
 			currentLocation: trackingEvents[0]?.location || 'Eastern Mediterranean Corridor',
+			provider: 'turkon',
 		};
 	}
 
@@ -644,8 +654,9 @@ export class TrackingAPIService {
 			containerType: undefined,
 			status: latestStatus,
 			trackingEvents,
-			progress: this.calculateProgressFromStatus(latestStatus),
+			progress: calculateProgressFromStatus(latestStatus),
 			currentLocation: latestEvent?.location || loadingPort || undefined,
+			provider: 'pgl',
 		};
 	}
 
@@ -654,12 +665,17 @@ export class TrackingAPIService {
 		const url = `${PGL_TRACKING_ENDPOINT}?tracking_value=${encodeURIComponent(normalizedContainerNumber)}`;
 
 		try {
-			const response = await fetch(url, {
-				cache: 'no-store',
-				headers: {
-					Accept: 'application/json',
+			const response = await fetchWithRetry(
+				url,
+				{
+					cache: 'no-store',
+					headers: {
+						Accept: 'application/json',
+					},
 				},
-			});
+				2,
+				1000
+			);
 
 			if (!response.ok) {
 				logger.error('PGL tracking API error:', response.status);
@@ -758,24 +774,6 @@ export class TrackingAPIService {
 			});
 
 		return this.toIsoString(match?.created_at);
-	}
-
-	private calculateProgressFromStatus(status?: string): number {
-		const normalizedStatus = status?.toLowerCase() || '';
-
-		if (normalizedStatus.includes('booked')) return 10;
-		if (normalizedStatus.includes('loading')) return 25;
-		if (normalizedStatus.includes('loaded')) return 30;
-		if (normalizedStatus.includes('dock')) return 35;
-		if (normalizedStatus.includes('depart')) return 40;
-		if (normalizedStatus.includes('transit') || normalizedStatus.includes('ocean')) return 60;
-		if (normalizedStatus.includes('arrived')) return 75;
-		if (normalizedStatus.includes('customs')) return 85;
-		if (normalizedStatus.includes('released') || normalizedStatus.includes('cleared')) return 90;
-		if (normalizedStatus.includes('delivery')) return 95;
-		if (normalizedStatus.includes('delivered')) return 100;
-
-		return 50;
 	}
 
 	private toIsoString(value?: string | null): string | undefined {

@@ -1,0 +1,86 @@
+/**
+ * Shared tracking utility functions.
+ * Single source of truth for progress calculation and status checks
+ * used across tracking-api, tracking-sync, and webhook route.
+ */
+
+/**
+ * Determine if a status string represents a "completed" state.
+ */
+export function isCompletedStatus(status: string): boolean {
+	const completedStatuses = [
+		'delivered',
+		'completed',
+		'arrived',
+		'released',
+		'cleared',
+	];
+	return completedStatuses.some((s) => status.toLowerCase().includes(s));
+}
+
+/**
+ * Calculate progress percentage (0-100) based on status text.
+ * Used by tracking-sync and webhook route.
+ */
+export function calculateProgress(status: string): number {
+	const statusLower = status.toLowerCase();
+
+	if (statusLower.includes('book')) return 10;
+	if (statusLower.includes('pickup') || statusLower.includes('empty')) return 20;
+	if (statusLower.includes('loading')) return 25;
+	if (statusLower.includes('loaded')) return 30;
+	if (statusLower.includes('dock')) return 35;
+	if (statusLower.includes('depart')) return 40;
+	if (statusLower.includes('transit') || statusLower.includes('ocean')) return 60;
+	if (statusLower.includes('arrived')) return 75;
+	if (statusLower.includes('customs')) return 85;
+	if (statusLower.includes('released') || statusLower.includes('cleared')) return 90;
+	if (statusLower.includes('delivery') || statusLower.includes('out for')) return 95;
+	if (statusLower.includes('delivered') || statusLower.includes('completed')) return 100;
+
+	return 50; // Default
+}
+
+/**
+ * Calculate progress from a status string (alias used by tracking-api).
+ * Merges the same logic as calculateProgress for consistency.
+ */
+export function calculateProgressFromStatus(status?: string): number {
+	return calculateProgress(status || '');
+}
+
+/**
+ * Generic retry wrapper for async fetch operations with exponential backoff.
+ * Retries on network errors and HTTP 5xx status codes.
+ */
+export async function fetchWithRetry(
+	url: string,
+	options: RequestInit,
+	maxRetries = 2,
+	initialDelayMs = 1000
+): Promise<Response> {
+	let lastError: Error | null = null;
+
+	for (let attempt = 0; attempt <= maxRetries; attempt++) {
+		try {
+			const response = await fetch(url, options);
+			if (response.ok || response.status < 500) {
+				return response;
+			}
+			// 5xx — retry
+			lastError = new Error(`HTTP ${response.status}`);
+			if (attempt < maxRetries) {
+				await new Promise((r) => setTimeout(r, initialDelayMs * Math.pow(2, attempt)));
+			} else {
+				return response;
+			}
+		} catch (err) {
+			lastError = err instanceof Error ? err : new Error(String(err));
+			if (attempt < maxRetries) {
+				await new Promise((r) => setTimeout(r, initialDelayMs * Math.pow(2, attempt)));
+			}
+		}
+	}
+
+	throw lastError || new Error(`Request to ${url} failed after ${maxRetries} retries.`);
+}

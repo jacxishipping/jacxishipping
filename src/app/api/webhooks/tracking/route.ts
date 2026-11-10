@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { verifySignature } from '@/lib/webhook-auth';
+import { isCompletedStatus, calculateProgress } from '@/lib/tracking-utils';
 
 /**
  * Webhook endpoint for receiving tracking updates from external API
@@ -126,13 +127,24 @@ export async function POST(request: NextRequest) {
 
 		// Update container progress and last location update
 		const progress = calculateProgress(event.status);
+		const updateData: Record<string, any> = {
+			progress,
+			lastLocationUpdate: new Date(),
+			currentLocation: event.location || container.currentLocation,
+		};
+
+		// Disable auto-tracking when container has arrived at destination
+		const statusLower = (event.status || '').toLowerCase();
+		if (
+			(statusLower.includes('arrived') || statusLower.includes('delivered') || statusLower.includes('released') || statusLower.includes('cleared')) &&
+			!['RELEASED', 'CLOSED'].includes(container.status)
+		) {
+			updateData.autoTrackingEnabled = false;
+		}
+
 		await prisma.container.update({
 			where: { id: container.id },
-			data: {
-				progress,
-				lastLocationUpdate: new Date(),
-				currentLocation: event.location || container.currentLocation,
-			},
+			data: updateData,
 		});
 
 		logger.info(`Tracking event created for container ${container.id}`);
@@ -149,26 +161,4 @@ export async function POST(request: NextRequest) {
 			{ status: 500 }
 		);
 	}
-}
-
-function isCompletedStatus(status: string): boolean {
-	const completedStatuses = ['delivered', 'completed', 'arrived', 'released', 'cleared'];
-	return completedStatuses.some((s) => status.toLowerCase().includes(s));
-}
-
-function calculateProgress(status: string): number {
-	const statusLower = status.toLowerCase();
-	
-	if (statusLower.includes('book')) return 10;
-	if (statusLower.includes('pickup') || statusLower.includes('empty')) return 20;
-	if (statusLower.includes('loaded')) return 30;
-	if (statusLower.includes('depart')) return 40;
-	if (statusLower.includes('transit') || statusLower.includes('ocean')) return 60;
-	if (statusLower.includes('arrived')) return 75;
-	if (statusLower.includes('customs')) return 85;
-	if (statusLower.includes('released') || statusLower.includes('cleared')) return 90;
-	if (statusLower.includes('delivery') || statusLower.includes('out for')) return 95;
-	if (statusLower.includes('delivered') || statusLower.includes('completed')) return 100;
-	
-	return 50;
 }

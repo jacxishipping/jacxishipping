@@ -6,6 +6,7 @@
 import { prisma } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { trackingAPI } from './tracking-api';
+import { isCompletedStatus, calculateProgress } from '@/lib/tracking-utils';
 
 export class TrackingSyncService {
 	/**
@@ -18,6 +19,7 @@ export class TrackingSyncService {
 		success: boolean;
 		newEvents: number;
 		updatedETA: boolean;
+		provider?: string;
 		error?: string;
 	}> {
 		try {
@@ -48,15 +50,25 @@ export class TrackingSyncService {
 			}
 
 			// Fetch tracking data from external API
-			const externalEvents = await trackingAPI.fetchTrackingData(
+			const snapshot = await trackingAPI.fetchContainerTrackingData(
 				trackingNum,
-				container.shippingLine || undefined,
 				{ forceRefresh: options?.force }
 			);
 
-			if (externalEvents.length === 0) {
-				return { success: true, newEvents: 0, updatedETA: false };
+			if (!snapshot || snapshot.trackingEvents.length === 0) {
+				return { success: true, newEvents: 0, updatedETA: false, provider: snapshot?.provider };
 			}
+
+			const externalEvents = snapshot.trackingEvents.map((ev) => ({
+				status: ev.status,
+				location: ev.location || 'Unknown',
+				timestamp: ev.eventDate,
+				description: ev.description,
+				vesselName: ev.vesselName || snapshot.vesselName,
+				voyageNumber: snapshot.voyageNumber,
+				completed: ev.completed,
+				source: ev.source || 'API',
+			}));
 
 			// Get existing events from database
 			const existingEvents = await prisma.containerTrackingEvent.findMany({
@@ -87,7 +99,7 @@ export class TrackingSyncService {
 							description: event.description || undefined,
 							eventDate: new Date(event.timestamp),
 							source: event.source || 'API',
-							completed: this.isCompletedStatus(event.status),
+							completed: isCompletedStatus(event.status),
 							latitude: event.latitude || undefined,
 							longitude: event.longitude || undefined,
 						},
@@ -112,10 +124,17 @@ export class TrackingSyncService {
 			// Update container progress and other fields based on latest status
 			if (externalEvents.length > 0) {
 				const latestEvent = externalEvents[0];
-				const progress = this.calculateProgress(latestEvent.status);
+				const progress = calculateProgress(latestEvent.status);
 				
                 // Prepare update data
-                const updateData: any = {
+                const updateData: {
+                    progress: number;
+                    lastLocationUpdate: Date;
+                    currentLocation?: string;
+                    vesselName?: string;
+                    status?: string;
+                    autoTrackingEnabled?: boolean;
+                } = {
                     progress,
                     lastLocationUpdate: new Date(),
                 };
@@ -139,9 +158,24 @@ export class TrackingSyncService {
                     ['CREATED', 'WAITING_FOR_LOADING', 'LOADED', 'IN_TRANSIT'].includes(container.status)
                 ) {
                     updateData.status = 'ARRIVED_PORT';
+                    updateData.autoTrackingEnabled = false;
                     statusChanged = true;
                 } else if ((statusLower.includes('depart') || statusLower.includes('transit')) && container.status === 'LOADED') {
                     updateData.status = 'IN_TRANSIT';
+                    statusChanged = true;
+                } else if (
+                    (statusLower.includes('released') || statusLower.includes('cleared')) &&
+                    ['ARRIVED_PORT', 'CUSTOMS_CLEARANCE'].includes(container.status)
+                ) {
+                    updateData.status = 'RELEASED';
+                    updateData.autoTrackingEnabled = false;
+                    statusChanged = true;
+                } else if (
+                    statusLower.includes('delivered') &&
+                    ['RELEASED', 'ARRIVED_PORT', 'CUSTOMS_CLEARANCE'].includes(container.status)
+                ) {
+                    updateData.status = 'CLOSED';
+                    updateData.autoTrackingEnabled = false;
                     statusChanged = true;
                 }
 
@@ -162,6 +196,16 @@ export class TrackingSyncService {
 							where: { containerId, transitId: null },
                             data: { status: 'ON_HAND' },
                         });
+                    } else if (updateData.status === 'RELEASED') {
+                        await prisma.shipment.updateMany({
+							where: { containerId, transitId: null },
+                            data: { status: 'RELEASED' },
+                        });
+                    } else if (updateData.status === 'CLOSED') {
+                        await prisma.shipment.updateMany({
+							where: { containerId, transitId: null },
+                            data: { status: 'DELIVERED' },
+                        });
                     }
                 }
 			}
@@ -170,6 +214,7 @@ export class TrackingSyncService {
 				success: true,
 				newEvents: insertedCount,
 				updatedETA,
+				provider: snapshot.provider,
 			};
 		} catch (error) {
 			logger.error('Error syncing container tracking:', error);
@@ -191,7 +236,7 @@ export class TrackingSyncService {
 				where: {
 					autoTrackingEnabled: true,
 					status: {
-						in: ['IN_TRANSIT', 'LOADED', 'ARRIVED_PORT', 'CUSTOMS_CLEARANCE'],
+						in: ['WAITING_FOR_LOADING', 'IN_TRANSIT', 'LOADED', 'ARRIVED_PORT', 'CUSTOMS_CLEARANCE'],
 					},
 					trackingNumber: {
 						not: null,
@@ -223,40 +268,6 @@ export class TrackingSyncService {
 			logger.error('Error syncing all containers:', error);
 			return { processed: 0, successful: 0, totalNewEvents: 0 };
 		}
-	}
-
-	/**
-	 * Determine if a status is "completed"
-	 */
-	private isCompletedStatus(status: string): boolean {
-		const completedStatuses = [
-			'delivered',
-			'completed',
-			'arrived',
-			'released',
-			'cleared',
-		];
-		return completedStatuses.some((s) => status.toLowerCase().includes(s));
-	}
-
-	/**
-	 * Calculate progress based on status
-	 */
-	private calculateProgress(status: string): number {
-		const statusLower = status.toLowerCase();
-		
-		if (statusLower.includes('book')) return 10;
-		if (statusLower.includes('pickup') || statusLower.includes('empty')) return 20;
-		if (statusLower.includes('loaded')) return 30;
-		if (statusLower.includes('depart')) return 40;
-		if (statusLower.includes('transit') || statusLower.includes('ocean')) return 60;
-		if (statusLower.includes('arrived')) return 75;
-		if (statusLower.includes('customs')) return 85;
-		if (statusLower.includes('released') || statusLower.includes('cleared')) return 90;
-		if (statusLower.includes('delivery') || statusLower.includes('out for')) return 95;
-		if (statusLower.includes('delivered') || statusLower.includes('completed')) return 100;
-		
-		return 50; // Default
 	}
 
 	/**
