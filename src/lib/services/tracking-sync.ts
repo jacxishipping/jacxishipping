@@ -7,6 +7,7 @@ import { prisma } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { trackingAPI } from './tracking-api';
 import { isCompletedStatus, calculateProgress } from '@/lib/tracking-utils';
+import { ContainerLifecycleStatus } from '@prisma/client';
 
 export class TrackingSyncService {
 	/**
@@ -130,7 +131,7 @@ export class TrackingSyncService {
                     lastLocationUpdate: Date;
                     currentLocation?: string;
                     vesselName?: string;
-                    status?: string;
+                    status?: ContainerLifecycleStatus;
                     autoTrackingEnabled?: boolean;
                 } = {
                     progress,
@@ -155,24 +156,24 @@ export class TrackingSyncService {
                     statusLower.includes('arrived') &&
                     ['CREATED', 'WAITING_FOR_LOADING', 'LOADED', 'IN_TRANSIT'].includes(container.status)
                 ) {
-                    updateData.status = 'ARRIVED_PORT';
+                    updateData.status = 'ARRIVED_PORT' as ContainerLifecycleStatus;
                     updateData.autoTrackingEnabled = false;
                     statusChanged = true;
                 } else if ((statusLower.includes('depart') || statusLower.includes('transit')) && container.status === 'LOADED') {
-                    updateData.status = 'IN_TRANSIT';
+                    updateData.status = 'IN_TRANSIT' as ContainerLifecycleStatus;
                     statusChanged = true;
                 } else if (
                     (statusLower.includes('released') || statusLower.includes('cleared')) &&
                     ['ARRIVED_PORT', 'CUSTOMS_CLEARANCE'].includes(container.status)
                 ) {
-                    updateData.status = 'RELEASED';
+                    updateData.status = 'RELEASED' as ContainerLifecycleStatus;
                     updateData.autoTrackingEnabled = false;
                     statusChanged = true;
                 } else if (
                     statusLower.includes('delivered') &&
                     ['RELEASED', 'ARRIVED_PORT', 'CUSTOMS_CLEARANCE'].includes(container.status)
                 ) {
-                    updateData.status = 'CLOSED';
+                    updateData.status = 'CLOSED' as ContainerLifecycleStatus;
                     updateData.autoTrackingEnabled = false;
                     statusChanged = true;
                 }
