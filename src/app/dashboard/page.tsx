@@ -13,6 +13,7 @@ import DashboardTodayWork from '@/components/dashboard/DashboardTodayWork';
 import DashboardMore from '@/components/dashboard/DashboardMore';
 import QuickCalculatorButton from '@/components/dashboard/QuickCalculatorButton';
 import OnboardingTour from '@/components/onboarding/OnboardingTour';
+import CustomerDashboardSummary from '@/components/dashboard/CustomerDashboardSummary';
 import { getEffectiveAiProviderSettings, isAiProviderConfigured } from '@/lib/ai/provider-settings';
 import { DashboardPageSkeleton } from '@/components/design-system';
 
@@ -581,6 +582,24 @@ async function getDashboardWorkData(
 export default async function DashboardPage() {
     const session = await auth();
     const role = session?.user?.role;
+    const isCustomer = role === 'user';
+
+    // For customers, show the simplified customer dashboard
+    if (isCustomer) {
+        return (
+            <DashboardSurface className="gap-4 pt-3 pb-6">
+                <div id="dashboard-header">
+                    <DashboardHeader
+                        title="My Dashboard"
+                        description="Your shipments, invoices and account overview."
+                        actions={<OnboardingTour autoStart={true} />}
+                    />
+                </div>
+                <CustomerDashboardSummary role={role} />
+            </DashboardSurface>
+        );
+    }
+
     const options = {
         canReadAllShipments: hasPermission(role, 'shipments:read_all'),
         canReadAllContainers: hasPermission(role, 'containers:read_all'),

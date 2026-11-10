@@ -127,6 +127,7 @@ const ROLE_PERMISSIONS: Record<AppRole, Set<Permission>> = {
     'invoices:view',
     'tracking:view',
     'documents:view',
+    'finance:view',
   ]),
 };
 

@@ -172,10 +172,9 @@ const aiDocumentNavigation: NavigationItem[] = [
 
 const settingsNavigation: NavigationItem[] = [
 	{
-		name: 'Settings',
+		name: 'My Profile',
 		href: '/dashboard/settings',
 		icon: Settings,
-		requiredPermission: 'users:manage',
 	},
 ];
 
