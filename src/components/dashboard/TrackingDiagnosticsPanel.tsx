@@ -114,6 +114,7 @@ type TestTarget =
 interface TestResult {
   target: string;
   success: boolean;
+  trackingNumber?: string;
   httpStatus?: number;
   latencyMs?: number;
   error?: string;
@@ -576,7 +577,7 @@ export function TrackingDiagnosticsPanel() {
             </Box>
 
             {/* Carrier & Destination Distribution */}
-            <DashboardGrid className="grid-cols-1 md:grid-cols-2" sx={{ mt: 3 }}>
+            <DashboardGrid className="mt-6 grid-cols-1 md:grid-cols-2">
               {stats.carrierDistribution.length > 0 && (
                 <Box sx={{ p: 2, borderRadius: 2, border: '1px solid var(--border)', bgcolor: 'var(--surface-subtle)' }}>
                   <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-secondary)', mb: 1.5 }}>

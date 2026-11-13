@@ -14,7 +14,7 @@ import { useTheme } from '@/hooks/useTheme';
 interface StatsCardProps {
 	icon: ReactNode;
 	title: string;
-	value: string | number;
+	value: ReactNode;
 	subtitle?: string;
 	compactValue?: string | number;
 	trend?: {

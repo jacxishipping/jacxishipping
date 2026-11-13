@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from 'react';
-import { driver, Driver } from 'driver.js';
+import { driver, type Driver, type DriveStep } from 'driver.js';
 import 'driver.js/dist/driver.css';
 import { Button } from '@/components/design-system';
 import { HelpCircle } from 'lucide-react';
@@ -21,7 +21,7 @@ export default function OnboardingTour({
   const isCustomer = role === 'user';
 
   useEffect(() => {
-    const customerSteps = [
+    const customerSteps: DriveStep[] = [
       {
         element: '#dashboard-header',
         popover: {
@@ -73,7 +73,7 @@ export default function OnboardingTour({
       },
     ];
 
-    const adminSteps = [
+    const adminSteps: DriveStep[] = [
       {
         element: '#dashboard-header',
         popover: {
