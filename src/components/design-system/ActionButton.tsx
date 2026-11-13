@@ -1,10 +1,9 @@
 "use client";
 
-import type { ButtonProps as MuiButtonProps } from '@mui/material';
 import { ReactNode } from 'react';
-import Button from './Button';
+import Button, { type ButtonProps } from './Button';
 
-interface ActionButtonProps extends Omit<MuiButtonProps, 'variant' | 'size' | 'loading'> {
+interface ActionButtonProps extends Omit<ButtonProps, 'variant' | 'size' | 'loading'> {
 	variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
 	size?: 'sm' | 'md' | 'lg' | 'small' | 'medium' | 'large';
 	loading?: boolean;

@@ -8,6 +8,7 @@ import { ArrowRight, CheckCircle, PackageCheck, ShieldCheck, Ship } from 'lucide
 import { motion, useScroll, useTransform } from 'framer-motion';
 import Magnetic from '@/components/ui/Magnetic';
 import { SpringButton } from '@jacxishippingorg/jx-ui-react';
+import { JacxiButton } from '@/components/design-system/JacxiButton';
 
 const quoteSchema = z.object({
   fullName: z.string().min(2, 'Name must be at least 2 characters'),
@@ -92,9 +93,9 @@ export default function QuoteFormSection() {
           <p className="text-base sm:text-lg text-black/60 max-w-lg mx-auto">
             Our logistics team is analyzing the lane. We will contact you shortly with accurate pricing and routing options.
           </p>
-          <SpringButton type="button" onClick={() => setSubmitted(false)} className="mt-8 font-bold uppercase tracking-widest text-sm text-[#D4AF37] hover:text-black transition-colors">
+          <JacxiButton type="button" onClick={() => setSubmitted(false)} className="mt-8 font-bold uppercase tracking-widest text-sm text-[#D4AF37] hover:text-black transition-colors">
             Request another quote
-          </SpringButton>
+          </JacxiButton>
         </motion.div>
       </section>
     );

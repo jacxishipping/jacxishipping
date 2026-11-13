@@ -1,34 +1,15 @@
 'use client';
-import { formatMoney as formatCurrency } from '@/lib/format';
 
-import { useState, useEffect } from 'react';
+import { formatMoney as formatCurrency } from '@/lib/format';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
+
+import { Suspense, useState, useEffect, forwardRef, type CSSProperties, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { hasPermission } from '@/lib/rbac';
 import { useConfirmAction } from '@/components/ui/ConfirmActionProvider';
 import Link from 'next/link';
-import { 
-	Box, 
-	Chip,
-	MenuItem,
-	Select,
-	FormControl,
-	InputLabel,
-	TextField,
-	InputAdornment,
-} from '@mui/material';
-import {
-	FileText,
-	Search,
-	Download,
-	Eye,
-	ExternalLink,
-	Calendar,
-	DollarSign,
-	User,
-	Package,
-	PanelRightOpen,
-} from 'lucide-react';
+import { Calendar, ChevronDown, DollarSign, Download, ExternalLink, Eye, FileText, Package, PanelRightOpen, Search, User } from 'lucide-react';
 import { DashboardSurface, DashboardPanel } from '@/components/dashboard/DashboardSurface';
 import InvoiceQuickPeek from '@/components/dashboard/InvoiceQuickPeek';
 import InvoicePreviewModal from '@/components/invoices/InvoicePreviewModal';
@@ -48,6 +29,121 @@ import {
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { exportToCSVWithHeaders } from '@/lib/export';
 import { SavedFilterPresets } from '@/components/dashboard/SavedFilterPresets';
+
+/** Bare input with the Jacxi field look (no label) — search fields, table-cell editors. */
+const BareInput = forwardRef<HTMLInputElement | HTMLTextAreaElement, BareInputProps>(function BareInput(
+  { leftIcon, rightIcon, rightElement, error = false, helperText, size = 'small', multiline = false, rows, minRows, inputProps, className, style, ...rest },
+  ref,
+) {
+  const controlClass = [
+    'w-full rounded-lg border bg-[var(--background)] text-[var(--text-primary)] outline-none transition-colors placeholder:text-[var(--text-secondary)]',
+    size === 'small' ? 'px-2.5 py-1.5 text-[0.8125rem]' : 'px-3 py-2 text-[0.875rem]',
+    leftIcon ? 'pl-9' : '',
+    rightIcon || rightElement ? 'pr-9' : '',
+    error
+      ? 'border-[var(--error)] focus:border-[var(--error)] focus:ring-2 focus:ring-[rgba(var(--error-rgb),0.2)]'
+      : 'border-[rgba(var(--border-rgb),0.9)] hover:border-[var(--border)] focus:border-[var(--accent-gold)] focus:ring-2 focus:ring-[rgba(var(--accent-gold-rgb),0.2)]',
+    rest.disabled ? 'opacity-50' : '',
+    className,
+  ].filter(Boolean).join(' ');
+  return (
+    <div>
+      <div className="relative">
+        {leftIcon && (
+          <span className="pointer-events-none absolute left-3 top-1/2 flex -translate-y-1/2 text-[var(--text-secondary)]">{leftIcon}</span>
+        )}
+        {multiline ? (
+          <textarea
+            {...(rest as TextareaHTMLAttributes<HTMLTextAreaElement>)}
+            {...(inputProps as unknown as TextareaHTMLAttributes<HTMLTextAreaElement>)}
+            ref={ref as React.Ref<HTMLTextAreaElement>}
+            rows={rows ?? minRows ?? 3}
+            aria-invalid={error || undefined}
+            style={style}
+            className={`${controlClass} min-h-[80px] resize-y leading-[1.5]`}
+          />
+        ) : (
+          <input
+            {...rest}
+            {...inputProps}
+            ref={ref as React.Ref<HTMLInputElement>}
+            aria-invalid={error || undefined}
+            style={style}
+            className={controlClass}
+          />
+        )}
+        {rightIcon && (
+          <span className="pointer-events-none absolute right-3 top-1/2 flex -translate-y-1/2 text-[var(--text-secondary)]">{rightIcon}</span>
+        )}
+        {rightElement && (
+          <span className="absolute right-3 top-1/2 flex -translate-y-1/2 text-[var(--text-secondary)]">{rightElement}</span>
+        )}
+      </div>
+      {helperText && (
+        <p className="mt-0.5 text-[0.75rem]" style={{ color: error ? 'var(--error)' : 'var(--text-secondary)' }}>{helperText}</p>
+      )}
+    </div>
+  );
+});
+
+type BareInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> & {
+  leftIcon?: ReactNode;
+  rightIcon?: ReactNode;
+  /** Interactive element on the right (e.g. password visibility toggle). */
+  rightElement?: ReactNode;
+  error?: boolean;
+  helperText?: ReactNode;
+  size?: 'small' | 'medium';
+  multiline?: boolean;
+  rows?: number;
+  minRows?: number;
+  inputProps?: InputHTMLAttributes<HTMLInputElement>;
+};
+
+
+/** Bare select with the Jacxi field look (no label) — filter dropdowns. Keeps the native event onChange. */
+function BareSelect({ options, placeholder, error = false, size = 'small', leftIcon, className, style, ...rest }: BareSelectProps) {
+  return (
+    <div className="relative">
+      {leftIcon && (
+        <span className="pointer-events-none absolute left-3 top-1/2 flex -translate-y-1/2 text-[var(--text-secondary)]">{leftIcon}</span>
+      )}
+      <select
+        {...rest}
+        aria-invalid={error || undefined}
+        style={style}
+        className={[
+          'w-full appearance-none rounded-lg border bg-[var(--background)] text-[var(--text-primary)] outline-none transition-colors',
+          size === 'small' ? 'px-2.5 py-1.5 text-[0.8125rem]' : 'px-3 py-2 text-[0.875rem]',
+          leftIcon ? 'pl-9' : '',
+          'pr-9',
+          error
+            ? 'border-[var(--error)] focus:border-[var(--error)] focus:ring-2 focus:ring-[rgba(var(--error-rgb),0.2)]'
+            : 'border-[rgba(var(--border-rgb),0.9)] hover:border-[var(--border)] focus:border-[var(--accent-gold)] focus:ring-2 focus:ring-[rgba(var(--accent-gold-rgb),0.2)]',
+          rest.disabled ? 'opacity-50' : '',
+          className,
+        ].filter(Boolean).join(' ')}
+      >
+        {placeholder && (
+          <option value="" disabled>{placeholder}</option>
+        )}
+        {options.map((option) => (
+          <option key={option.value} value={String(option.value)} disabled={option.disabled}>{option.label}</option>
+        ))}
+      </select>
+      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-secondary)]" aria-hidden="true" />
+    </div>
+  );
+}
+
+type BareSelectProps = Omit<SelectHTMLAttributes<HTMLSelectElement>, 'size'> & {
+  options: { value: string | number; label: string; disabled?: boolean }[];
+  placeholder?: string;
+  error?: boolean;
+  size?: 'small' | 'medium';
+  leftIcon?: ReactNode;
+};
+
 
 interface Invoice {
 	id: string;
@@ -105,7 +201,7 @@ const statusConfig: Record<string, { label: string; color: 'success' | 'warning'
 	CANCELLED: { label: 'Cancelled', color: 'default' },
 };
 
-export default function InvoicesPage() {
+function InvoicesPageContent() {
 	const router = useRouter();
 	const searchParams = useSearchParams();
 	const { data: session } = useSession();
@@ -356,9 +452,9 @@ export default function InvoicesPage() {
 					<span style={{ fontSize: '0.8rem' }}>
 						{formatDate(String(row.reversedAt))}
 						{row.reversedByLabel ? (
-							<Box component="span" sx={{ display: 'block', color: 'var(--text-secondary)' }}>
+							<JXBox padding="none" border={false} component="span" style={{backgroundColor: 'transparent', borderRadius: 0, display: 'block', color: 'var(--text-secondary)'}}>
 								by {row.reversedByLabel}
-							</Box>
+							</JXBox>
 						) : null}
 					</span>
 				);
@@ -374,7 +470,7 @@ export default function InvoicesPage() {
 			header: 'Actions',
 			align: 'right',
 			render: (_, row) => (
-				<Box sx={{ display: 'flex', gap: 0.75, justifyContent: 'flex-end', flexWrap: 'nowrap', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
+				<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '6px', justifyContent: 'flex-end', flexWrap: 'nowrap', whiteSpace: 'nowrap'}} onClick={(e) => e.stopPropagation()}>
 					<Button
 						variant="outline"
 						size="sm"
@@ -420,7 +516,7 @@ export default function InvoicesPage() {
 					>
 						PDF
 					</Button>
-				</Box>
+				</JXBox>
 			),
 		},
 	];
@@ -566,22 +662,17 @@ const confirmAction = useConfirmAction();
 				description={isAdmin ? 'Manage customer invoices' : 'View and download your invoices'}
 				actions={
 					isAdmin ? (
-						<Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+						<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
 							<Button variant="outline" onClick={handleBackfillShipmentCharges} disabled={backfillingCharges}>
 								{backfillingCharges ? 'Backfilling...' : 'Backfill Shipment Charges'}
 							</Button>
-						</Box>
+						</JXBox>
 					) : null
 				}
 			/>
 
 			{/* Stats Cards */}
-			<Box sx={{ 
-				display: 'grid', 
-				gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(4, 1fr)' }, 
-				gap: 3, 
-				mb: 3 
-			}}>
+			<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '24px', marginBottom: '24px'}} className="grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
 				<StatsCard
 					title="Total Invoices"
 					value={stats.total}
@@ -610,11 +701,11 @@ const confirmAction = useConfirmAction();
 					trend={{ value: 0, isPositive: false }}
 					variant="error"
 				/>
-			</Box>
+			</JXBox>
 
 			<DashboardPanel title="Invoice Health" description="Jump straight to the invoice queue that needs attention.">
-				<Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1.25fr 1fr' }, gap: 2 }}>
-					<Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0, overflow: 'hidden' }}>
+				<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '16px'}} className="grid-cols-1 grid lg:grid-cols-[1.25fr_1fr]">
+					<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '8px', minWidth: '0px', overflow: 'hidden'}}>
 						<StatusFilterPills
 							options={[
 								{ value: 'all', label: `All (${pagination.totalAll})` },
@@ -627,20 +718,20 @@ const confirmAction = useConfirmAction();
 							selectedValue={statusFilter}
 							onSelect={(val) => setStatusFilter(val)}
 						/>
-					</Box>
-					<Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 1 }}>
+					</JXBox>
+					<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '8px'}} className="grid-cols-1 sm:grid-cols-3">
 						{[
 							{ label: 'Open Amount', value: formatCurrency(Math.max(stats.totalAmount - stats.paidAmount, 0)) },
 							{ label: 'Paid Amount', value: formatCurrency(stats.paidAmount) },
 							{ label: 'Visible Total', value: formatCurrency(stats.totalAmount) },
 						].map((item) => (
-							<Box key={item.label} sx={{ p: 1.25, borderRadius: 1.5, border: '1px solid var(--border)', background: 'var(--background)' }}>
-								<Box sx={{ fontSize: '0.68rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 800 }}>{item.label}</Box>
-								<Box sx={{ mt: 0.25, fontWeight: 800, color: 'var(--text-primary)' }}>{item.value}</Box>
-							</Box>
+							<JXBox padding="none" border={false} key={item.label} style={{padding: '10px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--background)'}}>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.68rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 800}}>{item.label}</JXBox>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '2px', fontWeight: 800, color: 'var(--text-primary)'}}>{item.value}</JXBox>
+							</JXBox>
 						))}
-					</Box>
-				</Box>
+					</JXBox>
+				</JXBox>
 			</DashboardPanel>
 
 			{/* Main Invoices Panel */}
@@ -649,36 +740,23 @@ const confirmAction = useConfirmAction();
 				description={customerFilterUserId ? `${pagination.total} invoice(s) for ${customerFilterLabel}` : `${pagination.total} invoice(s)`}
 			>
 				{customerFilterUserId ? (
-					<Box sx={{ display: 'flex', gap: 2, alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', mb: 3, p: 2, border: '1px solid var(--border)', borderRadius: 2, background: 'var(--panel)' }}>
-						<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+					<JXBox padding="none" border={false} style={{display: 'flex', gap: '16px', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', marginBottom: '24px', padding: '16px', border: '1px solid var(--border)', borderRadius: '16px', background: 'var(--panel)'}}>
+						<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '12px'}}>
 							<User className="w-4 h-4" />
-							<Box>
-								<Box sx={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Customer Filter</Box>
-								<Box sx={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)' }}>{customerFilterLabel}</Box>
-							</Box>
-						</Box>
+							<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)'}}>Customer Filter</JXBox>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)'}}>{customerFilterLabel}</JXBox>
+							</JXBox>
+						</JXBox>
 						<Button variant="outline" size="sm" onClick={() => router.push('/dashboard/invoices')}>
 							Clear Filter
 						</Button>
-					</Box>
+					</JXBox>
 				) : null}
 
 				{/* Filters */}
-				<Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mb: 3 }}>
-					<TextField
-						placeholder="Search by invoice #, customer, VIN, vehicle, or container..."
-						value={searchTerm}
-						onChange={(e) => setSearchTerm(e.target.value)}
-						size="small"
-						fullWidth
-						InputProps={{
-							startAdornment: (
-								<InputAdornment position="start">
-									<Search className="w-4 h-4" />
-								</InputAdornment>
-							),
-						}}
-					/>
+				<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px'}}>
+					<div className="min-w-0 flex-1"><BareInput placeholder="Search by invoice #, customer, VIN, vehicle, or container..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} leftIcon={<Search className="w-4 h-4" />} size="small" /></div>
 					<SavedFilterPresets
 						storageKey="invoices"
 						currentFilters={{ status: statusFilter, search: searchTerm }}
@@ -687,7 +765,7 @@ const confirmAction = useConfirmAction();
 							if (typeof filters.search === 'string') setSearchTerm(filters.search);
 						}}
 					/>
-				</Box>
+				</JXBox>
 
 				{/* Invoices Table */}
 				{filteredInvoices.length === 0 ? (
@@ -726,42 +804,25 @@ const confirmAction = useConfirmAction();
 			</DashboardPanel>
 
 				{/* Pagination Controls */}
-				<Box sx={{ mt: 4, pt: 3, borderTop: '1px solid var(--border-color)' }}>
-					<Box sx={{ 
-						display: 'flex', 
-						justifyContent: 'space-between', 
-						alignItems: 'center',
-						flexWrap: 'wrap',
-						gap: 2,
-						mb: 3
-					}}>
+				<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '32px', paddingTop: '24px', borderTop: '1px solid var(--border-color)'}}>
+					<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '24px'}}>
 						{/* Items per page selector */}
-						<Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+						<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '16px'}}>
 							<span style={{ fontSize: '0.875rem' }}>Items per page:</span>
-							<FormControl size="small" sx={{ minWidth: 80 }}>
-								<Select
-									value={itemsPerPage}
-									onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
-								>
-									<MenuItem value={10}>10</MenuItem>
-									<MenuItem value={25}>25</MenuItem>
-									<MenuItem value={50}>50</MenuItem>
-									<MenuItem value={100}>100</MenuItem>
-								</Select>
-							</FormControl>
-						</Box>
+							<div style={{minWidth: '80px'}}><BareSelect options={[{ value: 10, label: '10' }, { value: 25, label: '25' }, { value: 50, label: '50' }, { value: 100, label: '100' }]} value={itemsPerPage} size="small" onChange={(e) => handleItemsPerPageChange(Number(e.target.value))} /></div>
+						</JXBox>
 
 						{/* Pagination info and controls */}
-						<Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+						<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '16px'}}>
 							<span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
 								{pagination.total === 0
 									? 'Showing 0 of 0 invoices'
 									: `Showing ${((currentPage - 1) * itemsPerPage) + 1} to ${Math.min(currentPage * itemsPerPage, pagination.total)} of ${pagination.total} invoices`}
 							</span>
-						</Box>
+						</JXBox>
 
 						{/* Page Navigation */}
-						<Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+						<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '8px', alignItems: 'center'}}>
 							<Button
 								variant="outline"
 								size="sm"
@@ -772,7 +833,7 @@ const confirmAction = useConfirmAction();
 							</Button>
 
 							{/* Page Numbers */}
-							<Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+							<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '8px', alignItems: 'center'}}>
 								{Array.from({ length: Math.min(5, Math.ceil(pagination.total / itemsPerPage)) }).map((_, index) => {
 									const totalPages = Math.ceil(pagination.total / itemsPerPage);
 									let pageNum = index + 1;
@@ -793,13 +854,13 @@ const confirmAction = useConfirmAction();
 											size="sm"
 											disabled={loading}
 											onClick={() => handlePageChange(pageNum)}
-											sx={{ minWidth: '32px' }}
+											style={{minWidth: '32px'}}
 										>
 											{pageNum}
 										</Button>
 									);
 								})}
-							</Box>
+							</JXBox>
 
 							<Button
 								variant="outline"
@@ -809,9 +870,9 @@ const confirmAction = useConfirmAction();
 							>
 								Next →
 							</Button>
-						</Box>
-					</Box>
-				</Box>
+						</JXBox>
+					</JXBox>
+				</JXBox>
 
 				{/* Slide-over Quick Peek Drawer */}
 				<InvoiceQuickPeek
@@ -832,4 +893,14 @@ const confirmAction = useConfirmAction();
 				/>
 		</DashboardSurface>
 	);
+}
+
+// useSearchParams() must sit under a Suspense boundary or static
+// prerendering fails (missing-suspense-with-csr-bailout).
+export default function InvoicesPage() {
+  return (
+    <Suspense fallback={<div aria-busy="true" style={{ minHeight: '50vh' }} />}>
+      <InvoicesPageContent />
+    </Suspense>
+  );
 }

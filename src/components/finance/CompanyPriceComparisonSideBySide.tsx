@@ -1,9 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { Box, MenuItem, TextField } from '@mui/material';
 import { ArrowLeftRight, GitCompareArrows, Trophy } from 'lucide-react';
-import { EmptyState } from '@/components/design-system';
+import { EmptyState, Select } from '@/components/design-system';
 import type { CompanyPriceSnapshot, ComparisonSortKey } from '@/lib/company-price-comparison';
 import {
   buildSideBySideRows,
@@ -48,25 +47,17 @@ function CompanyHeader({
   highlight?: boolean;
 }) {
   return (
-    <Box
-      sx={{
-        p: 1.5,
-        borderRadius: 2,
-        border: highlight ? '1px solid rgba(34, 197, 94, 0.35)' : '1px solid var(--border)',
-        background: highlight ? 'rgba(34, 197, 94, 0.08)' : 'var(--panel)',
-        textAlign: align,
-      }}
-    >
+    <div style={{padding: '12px', borderRadius: '16px', border: highlight ? '1px solid rgba(34, 197, 94, 0.35)' : '1px solid var(--border)', background: highlight ? 'rgba(34, 197, 94, 0.08)' : 'var(--panel)', textAlign: align}}>
       <Link href={`/dashboard/finance/companies/${company.id}`} style={{ color: 'inherit', textDecoration: 'none' }}>
-        <Box sx={{ fontWeight: 700, fontSize: '1rem' }}>{company.name}</Box>
-        <Box sx={{ fontSize: '0.78rem', color: 'var(--text-secondary)', mt: 0.25 }}>{company.destinationLabel}</Box>
+        <div style={{fontWeight: 700, fontSize: '1rem'}}>{company.name}</div>
+        <div style={{fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '2px'}}>{company.destinationLabel}</div>
         {company.activePriceList?.sourceFileName && (
-          <Box sx={{ fontSize: '0.72rem', color: 'var(--text-secondary)', mt: 0.25 }}>
+          <div style={{fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '2px'}}>
             {company.activePriceList.sourceFileName}
-          </Box>
+          </div>
         )}
       </Link>
-    </Box>
+    </div>
   );
 }
 
@@ -87,76 +78,43 @@ function SideBySideCard({
   const rightWins = row.winner === 'right' || row.winner === 'left-only';
 
   return (
-    <Box
-      sx={{
-        display: 'grid',
-        gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr) 120px minmax(0, 1fr)' },
-        gap: 1,
-        p: 1.25,
-        borderRadius: 2,
-        border: '1px solid var(--border)',
-        background: 'var(--background)',
-        alignItems: 'center',
-      }}
-    >
-      <Box
-        sx={{
-          p: 1.25,
-          borderRadius: 1.5,
-          border: leftWins ? '1px solid rgba(34, 197, 94, 0.35)' : '1px solid transparent',
-          background: leftWins ? 'rgba(34, 197, 94, 0.06)' : 'transparent',
-        }}
-      >
-        <Box sx={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>
+    <div style={{display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 120px minmax(0, 1fr)', gap: '8px', padding: '10px', borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--background)', alignItems: 'center'}}>
+      <div style={{padding: '10px', borderRadius: '12px', border: leftWins ? '1px solid rgba(34, 197, 94, 0.35)' : '1px solid transparent', background: leftWins ? 'rgba(34, 197, 94, 0.06)' : 'transparent'}}>
+        <div style={{fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700}}>
           {leftCompany.name}
-        </Box>
-        <Box sx={{ fontWeight: 700, fontSize: '1.1rem', mt: 0.25 }}>
+        </div>
+        <div style={{fontWeight: 700, fontSize: '1.1rem', marginTop: '2px'}}>
           {row.leftRate === null ? '—' : formatCurrency(row.leftRate)}
-        </Box>
-      </Box>
+        </div>
+      </div>
 
-      <Box sx={{ textAlign: 'center', px: 0.5 }}>
-        <Box sx={{ fontWeight: 700, fontSize: '0.82rem' }}>{row.label}</Box>
+      <div style={{textAlign: 'center', paddingLeft: '4px', paddingRight: '4px'}}>
+        <div style={{fontWeight: 700, fontSize: '0.82rem'}}>{row.label}</div>
         {row.delta !== null && row.leftRate !== null && row.rightRate !== null ? (
-          <Box
-            sx={{
-              mt: 0.5,
-              fontWeight: 700,
-              fontSize: '0.84rem',
-              color: row.delta < 0 ? 'rgb(22, 163, 74)' : row.delta > 0 ? 'rgb(220, 38, 38)' : 'var(--text-secondary)',
-            }}
-          >
+          <div style={{marginTop: '4px', fontWeight: 700, fontSize: '0.84rem', color: row.delta < 0 ? 'rgb(22, 163, 74)' : row.delta > 0 ? 'rgb(220, 38, 38)' : 'var(--text-secondary)'}}>
             {formatSignedCurrency(row.delta)}
-          </Box>
+          </div>
         ) : (
-          <Box sx={{ mt: 0.5, fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+          <div style={{marginTop: '4px', fontSize: '0.78rem', color: 'var(--text-secondary)'}}>
             {row.winner === 'left-only' ? 'Left only' : row.winner === 'right-only' ? 'Right only' : 'No overlap'}
-          </Box>
+          </div>
         )}
         {row.spread ? (
-          <Box sx={{ mt: 0.25, fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+          <div style={{marginTop: '2px', fontSize: '0.72rem', color: 'var(--text-secondary)'}}>
             Spread {formatCurrency(row.spread)}
-          </Box>
+          </div>
         ) : null}
-      </Box>
+      </div>
 
-      <Box
-        sx={{
-          p: 1.25,
-          borderRadius: 1.5,
-          border: rightWins ? '1px solid rgba(34, 197, 94, 0.35)' : '1px solid transparent',
-          background: rightWins ? 'rgba(34, 197, 94, 0.06)' : 'transparent',
-          textAlign: { xs: 'left', md: 'right' },
-        }}
-      >
-        <Box sx={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>
+      <div style={{padding: '10px', borderRadius: '12px', border: rightWins ? '1px solid rgba(34, 197, 94, 0.35)' : '1px solid transparent', background: rightWins ? 'rgba(34, 197, 94, 0.06)' : 'transparent', textAlign: 'right'}}>
+        <div style={{fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700}}>
           {rightCompany.name}
-        </Box>
-        <Box sx={{ fontWeight: 700, fontSize: '1.1rem', mt: 0.25 }}>
+        </div>
+        <div style={{fontWeight: 700, fontSize: '1.1rem', marginTop: '2px'}}>
           {row.rightRate === null ? '—' : formatCurrency(row.rightRate)}
-        </Box>
-      </Box>
-    </Box>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -216,55 +174,22 @@ export default function CompanyPriceComparisonSideBySide({
   const rightLeads = summary.rightWins > summary.leftWins;
 
   return (
-    <Box sx={{ display: 'grid', gap: 2 }}>
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' }, gap: 1.5 }}>
-        <TextField
-          select
-          size="small"
-          label="Left company"
-          value={leftCompanyId}
-          onChange={(event) => onLeftCompanyChange(event.target.value)}
-        >
-          {companies.map((company) => (
-            <MenuItem key={company.id} value={company.id} disabled={company.id === rightCompanyId}>
-              {company.name}
-            </MenuItem>
-          ))}
-        </TextField>
-        <TextField
-          select
-          size="small"
-          label="Compare"
-          value={rateType}
-          onChange={(event) => onRateTypeChange(event.target.value as SideBySideRateType)}
-        >
-          <MenuItem value="state">State rates</MenuItem>
-          <MenuItem value="lane">Branch / city lanes</MenuItem>
-        </TextField>
-        <TextField
-          select
-          size="small"
-          label="Right company"
-          value={rightCompanyId}
-          onChange={(event) => onRightCompanyChange(event.target.value)}
-        >
-          {companies.map((company) => (
-            <MenuItem key={company.id} value={company.id} disabled={company.id === leftCompanyId}>
-              {company.name}
-            </MenuItem>
-          ))}
-        </TextField>
-      </Box>
+    <div style={{display: 'grid', gap: '16px'}}>
+      <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px'}}>
+        <Select label="Left company" value={leftCompanyId} onChange={(val) => onLeftCompanyChange(String(val))} size="small" options={companies.map((company) => ({ value: company.id, label: company.name, disabled: company.id === rightCompanyId }))} />
+        <Select label="Compare" value={rateType} onChange={(val) => onRateTypeChange(String(val) as SideBySideRateType)} size="small" options={[{ value: "state", label: 'State rates' }, { value: "lane", label: 'Branch / city lanes' }]} />
+        <Select label="Right company" value={rightCompanyId} onChange={(val) => onRightCompanyChange(String(val))} size="small" options={companies.map((company) => ({ value: company.id, label: company.name, disabled: company.id === leftCompanyId }))} />
+      </div>
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 80px 1fr' }, gap: 1.5, alignItems: 'stretch' }}>
+      <div style={{display: 'grid', gridTemplateColumns: '1fr 80px 1fr', gap: '12px', alignItems: 'stretch'}}>
         <CompanyHeader company={leftCompany} align="left" highlight={leftLeads} />
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
+        <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)'}}>
           <ArrowLeftRight className="w-5 h-5" />
-        </Box>
+        </div>
         <CompanyHeader company={rightCompany} align="right" highlight={rightLeads} />
-      </Box>
+      </div>
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(5, 1fr)' }, gap: 1 }}>
+      <div style={{display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px'}}>
         {[
           { label: 'Left wins', value: summary.leftWins, highlight: leftLeads, color: 'rgb(22, 163, 74)' },
           { label: 'Right wins', value: summary.rightWins, highlight: rightLeads, color: 'rgb(22, 163, 74)' },
@@ -276,41 +201,23 @@ export default function CompanyPriceComparisonSideBySide({
             color: summary.averageDelta && summary.averageDelta < 0 ? 'rgb(22, 163, 74)' : summary.averageDelta && summary.averageDelta > 0 ? 'rgb(220, 38, 38)' : 'var(--text-primary)',
           },
         ].map((stat) => (
-          <Box
-            key={stat.label}
-            sx={{
-              p: 1.25,
-              borderRadius: 2,
-              border: stat.highlight ? '1px solid rgba(34, 197, 94, 0.35)' : '1px solid var(--border)',
-              background: stat.highlight ? 'rgba(34, 197, 94, 0.06)' : 'var(--panel)',
-              transition: 'transform 0.15s ease',
-              '&:hover': { transform: 'translateY(-1px)' },
-            }}
-          >
-            <Box sx={{ fontSize: '0.68rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>{stat.label}</Box>
-            <Box sx={{ fontWeight: 700, fontSize: '1.1rem', color: stat.color }}>{stat.value}</Box>
-          </Box>
+          <div key={stat.label} style={{padding: '10px', borderRadius: '16px', border: stat.highlight ? '1px solid rgba(34, 197, 94, 0.35)' : '1px solid var(--border)', background: stat.highlight ? 'rgba(34, 197, 94, 0.06)' : 'var(--panel)', transition: 'transform 0.15s ease'}}>
+            <div style={{fontSize: '0.68rem', color: 'var(--text-secondary)', textTransform: 'uppercase'}}>{stat.label}</div>
+            <div style={{fontWeight: 700, fontSize: '1.1rem', color: stat.color}}>{stat.value}</div>
+          </div>
         ))}
-        <Box
-          sx={{
-            p: 1.25,
-            borderRadius: 2,
-            border: '1px solid rgba(var(--accent-gold-rgb), 0.35)',
-            background: 'rgba(var(--accent-gold-rgb), 0.08)',
-            gridColumn: { xs: 'span 2', md: 'auto' },
-          }}
-        >
-          <Box sx={{ fontSize: '0.68rem', color: 'var(--text-secondary)', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+        <div style={{padding: '10px', borderRadius: '16px', border: '1px solid rgba(var(--accent-gold-rgb), 0.35)', background: 'rgba(var(--accent-gold-rgb), 0.08)', gridColumn: 'auto'}}>
+          <div style={{fontSize: '0.68rem', color: 'var(--text-secondary)', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '4px'}}>
             <Trophy className="w-3.5 h-3.5" /> Leader
-          </Box>
-          <Box sx={{ fontWeight: 700, fontSize: '0.95rem' }}>
+          </div>
+          <div style={{fontWeight: 700, fontSize: '0.95rem'}}>
             {leftLeads ? leftCompany.name : rightLeads ? rightCompany.name : 'Even'}
-          </Box>
-        </Box>
-      </Box>
+          </div>
+        </div>
+      </div>
 
       {rows.length > 0 ? (
-        <Box sx={{ display: 'grid', gap: 1, maxHeight: 620, overflow: 'auto', pr: 0.5 }}>
+        <div style={{display: 'grid', gap: '8px', maxHeight: 620, overflow: 'auto', paddingRight: '4px'}}>
           {rows.map((row) => (
             <SideBySideCard
               key={row.key}
@@ -321,7 +228,7 @@ export default function CompanyPriceComparisonSideBySide({
               formatSignedCurrency={formatSignedCurrency}
             />
           ))}
-        </Box>
+        </div>
       ) : (
         <EmptyState
           icon={<GitCompareArrows />}
@@ -329,6 +236,6 @@ export default function CompanyPriceComparisonSideBySide({
           description="Try another rate type, select different companies, or loosen your filters to find overlapping prices."
         />
       )}
-    </Box>
+    </div>
   );
 }

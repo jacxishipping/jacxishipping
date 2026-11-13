@@ -2,14 +2,10 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
-import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
-import GroupsOutlinedIcon from '@mui/icons-material/GroupsOutlined';
-import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
-import FmdGoodOutlinedIcon from '@mui/icons-material/FmdGoodOutlined';
-import { Box, TextField, Typography } from '@mui/material';
 import { DashboardSurface, DashboardPanel, DashboardGrid, DashboardHeader } from '@/components/dashboard/DashboardSurface';
-import { Button, EmptyState, Skeleton, SkeletonTable, toast } from '@/components/design-system';
+import { Button, EmptyState, FormField, Skeleton, SkeletonTable, toast } from '@/components/design-system';
 import { DataTable, type Column } from '@/components/ui/DataTable';
+import { User as PersonOutlineIcon, Users as GroupsOutlinedIcon, Package as Inventory2OutlinedIcon, MapPin as FmdGoodOutlinedIcon } from 'lucide-react';
 
 type PortalCustomer = {
   id: string;
@@ -140,7 +136,7 @@ export default function PortalCustomersPage() {
       header: 'Actions',
       align: 'right',
       render: (_, row) => (
-        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end', flexWrap: 'nowrap', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'nowrap', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
           {viewer.canManageCustomers ? (
             <>
               <Button
@@ -178,7 +174,7 @@ export default function PortalCustomersPage() {
               </Button>
             </>
           ) : 'Read only'}
-        </Box>
+        </div>
       ),
     },
   ], [deletingCustomerId, issuingAccessCustomerId, viewer.canManageCustomers]);
@@ -298,11 +294,11 @@ export default function PortalCustomersPage() {
       {loading ? (
         <DashboardGrid className="grid-cols-1 gap-3 lg:grid-cols-[0.95fr_1.35fr]">
           <DashboardPanel title="Customer Directory" description="Capture the downstream customer identity for this portal.">
-            <Box sx={{ display: 'grid', gap: 2 }}>
+            <div style={{ display: 'grid', gap: 16 }}>
               {[0, 1, 2, 3].map((index) => (
                 <Skeleton key={index} variant="rounded" height={48} />
               ))}
-            </Box>
+            </div>
           </DashboardPanel>
           <DashboardPanel title="Portal Customers" description="Accounts created inside this partner workspace.">
             <SkeletonTable rows={5} columns={4} />
@@ -318,17 +314,17 @@ export default function PortalCustomersPage() {
                 : 'Customer-scoped logins can review their profile and shipments, but they cannot change the portal customer directory.'}
             >
               {viewer.canManageCustomers ? (
-                <Box sx={{ display: 'grid', gap: 1.5 }}>
-                  <TextField label="Customer Name" value={form.name} onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))} />
-                  <TextField label="Email" value={form.email} onChange={(event) => setForm((prev) => ({ ...prev, email: event.target.value }))} />
-                  <TextField label="Phone" value={form.phone} onChange={(event) => setForm((prev) => ({ ...prev, phone: event.target.value }))} />
-                  <Box sx={{ display: 'grid', gap: 1.5, gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' } }}>
-                    <TextField label="City" value={form.city} onChange={(event) => setForm((prev) => ({ ...prev, city: event.target.value }))} />
-                    <TextField label="Country" value={form.country} onChange={(event) => setForm((prev) => ({ ...prev, country: event.target.value }))} />
-                  </Box>
-                  <TextField label="Notes" multiline minRows={3} value={form.notes} onChange={(event) => setForm((prev) => ({ ...prev, notes: event.target.value }))} />
+                <div style={{ display: 'grid', gap: 12 }}>
+                  <FormField label="Customer Name" value={form.name} onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))} />
+                  <FormField label="Email" value={form.email} onChange={(event) => setForm((prev) => ({ ...prev, email: event.target.value }))} />
+                  <FormField label="Phone" value={form.phone} onChange={(event) => setForm((prev) => ({ ...prev, phone: event.target.value }))} />
+                  <div className="grid grid-cols-1 md:grid-cols-2" style={{ display: 'grid', gap: 12 }}>
+                    <FormField label="City" value={form.city} onChange={(event) => setForm((prev) => ({ ...prev, city: event.target.value }))} />
+                    <FormField label="Country" value={form.country} onChange={(event) => setForm((prev) => ({ ...prev, country: event.target.value }))} />
+                  </div>
+                  <FormField label="Notes" value={form.notes} onChange={(event) => setForm((prev) => ({ ...prev, notes: event.target.value }))} minRows={3} />
 
-                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, pt: 1 }}>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, paddingTop: 8 }}>
                     {editingCustomerId ? (
                       <Button variant="outline" onClick={resetForm} disabled={creating}>
                         Cancel
@@ -337,63 +333,58 @@ export default function PortalCustomersPage() {
                     <Button variant="primary" onClick={() => void handleSaveCustomer()} disabled={creating}>
                       {creating ? 'Saving...' : editingCustomerId ? 'Save Changes' : 'Create Customer'}
                     </Button>
-                  </Box>
-                </Box>
+                  </div>
+                </div>
               ) : (
-                <Box sx={{ color: 'var(--text-secondary)' }}>
+                <div style={{ color: 'var(--text-secondary)' }}>
                   This login is tied to a single portal customer. Staff-only customer creation, editing, and deletion are disabled.
-                </Box>
+                </div>
               )}
             </DashboardPanel>
 
             <DashboardPanel title="Customer Directory" description="Search, review, and refine the customer roster tied to this portal workspace.">
-              <Box sx={{ display: 'grid', gap: 2.5 }}>
+              <div style={{ display: 'grid', gap: 20 }}>
                 {accessResult ? (
-                  <Box sx={{ border: '1px solid var(--border)', borderRadius: 2.5, p: 1.8, display: 'grid', gap: 0.8, bgcolor: 'rgba(var(--brand-primary-rgb),0.05)' }}>
-                    <Typography sx={{ fontWeight: 700 }}>Portal customer login issued</Typography>
-                    <Typography sx={{ color: 'var(--text-secondary)' }}>
+                  <div style={{ border: '1px solid var(--border)', borderRadius: 20, padding: 14.4, display: 'grid', gap: 6.4, backgroundColor: 'rgba(var(--brand-primary-rgb),0.05)' }}>
+                    <p style={{ fontWeight: 700 }}>Portal customer login issued</p>
+                    <p style={{ color: 'var(--text-secondary)' }}>
                       Share the sign-in page and code with {accessResult.name}. The workspace route is where they land after sign-in.
-                    </Typography>
-                    <Typography sx={{ color: 'var(--text-secondary)' }}>Email: {accessResult.email}</Typography>
-                    <Typography sx={{ color: 'var(--text-secondary)' }}>Login code: {accessResult.loginCode}</Typography>
-                    <Typography sx={{ color: 'var(--text-secondary)' }}>Sign-in page: {accessResult.simpleLoginUrl}</Typography>
-                    <Typography sx={{ color: 'var(--text-secondary)' }}>Workspace route: {accessResult.portalUrl}</Typography>
-                  </Box>
+                    </p>
+                    <p style={{ color: 'var(--text-secondary)' }}>Email: {accessResult.email}</p>
+                    <p style={{ color: 'var(--text-secondary)' }}>Login code: {accessResult.loginCode}</p>
+                    <p style={{ color: 'var(--text-secondary)' }}>Sign-in page: {accessResult.simpleLoginUrl}</p>
+                    <p style={{ color: 'var(--text-secondary)' }}>Workspace route: {accessResult.portalUrl}</p>
+                  </div>
                 ) : null}
 
                 <DashboardGrid className="grid-cols-1 gap-3 md:grid-cols-3">
-                  <Box sx={{ border: '1px solid var(--border)', borderRadius: 2.5, p: 1.8, bgcolor: 'rgba(var(--brand-primary-rgb),0.08)', display: 'grid', gap: 0.65 }}>
-                    <Typography sx={{ fontSize: '0.75rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Directory Size</Typography>
-                    <Typography sx={{ fontSize: '1.4rem', fontWeight: 800 }}>{customers.length}</Typography>
-                    <GroupsOutlinedIcon sx={{ color: 'var(--text-secondary)' }} />
-                  </Box>
-                  <Box sx={{ border: '1px solid var(--border)', borderRadius: 2.5, p: 1.8, bgcolor: 'rgba(var(--accent-rgb),0.08)', display: 'grid', gap: 0.65 }}>
-                    <Typography sx={{ fontSize: '0.75rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Shipment Load</Typography>
-                    <Typography sx={{ fontSize: '1.4rem', fontWeight: 800 }}>{totalAssignedShipments}</Typography>
-                    <Inventory2OutlinedIcon sx={{ color: 'var(--text-secondary)' }} />
-                  </Box>
-                  <Box sx={{ border: '1px solid var(--border)', borderRadius: 2.5, p: 1.8, bgcolor: 'rgba(var(--text-primary-rgb),0.05)', display: 'grid', gap: 0.65 }}>
-                    <Typography sx={{ fontSize: '0.75rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Geographies</Typography>
-                    <Typography sx={{ fontSize: '1.4rem', fontWeight: 800 }}>{locationsTracked}</Typography>
-                    <FmdGoodOutlinedIcon sx={{ color: 'var(--text-secondary)' }} />
-                  </Box>
+                  <div style={{ border: '1px solid var(--border)', borderRadius: 20, padding: 14.4, backgroundColor: 'rgba(var(--brand-primary-rgb),0.08)', display: 'grid', gap: 5.2 }}>
+                    <p style={{ fontSize: '0.75rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Directory Size</p>
+                    <p style={{ fontSize: '1.4rem', fontWeight: 800 }}>{customers.length}</p>
+                    <GroupsOutlinedIcon style={{ color: 'var(--text-secondary)' }} />
+                  </div>
+                  <div style={{ border: '1px solid var(--border)', borderRadius: 20, padding: 14.4, backgroundColor: 'rgba(var(--accent-rgb),0.08)', display: 'grid', gap: 5.2 }}>
+                    <p style={{ fontSize: '0.75rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Shipment Load</p>
+                    <p style={{ fontSize: '1.4rem', fontWeight: 800 }}>{totalAssignedShipments}</p>
+                    <Inventory2OutlinedIcon style={{ color: 'var(--text-secondary)' }} />
+                  </div>
+                  <div style={{ border: '1px solid var(--border)', borderRadius: 20, padding: 14.4, backgroundColor: 'rgba(var(--text-primary-rgb),0.05)', display: 'grid', gap: 5.2 }}>
+                    <p style={{ fontSize: '0.75rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Geographies</p>
+                    <p style={{ fontSize: '1.4rem', fontWeight: 800 }}>{locationsTracked}</p>
+                    <FmdGoodOutlinedIcon style={{ color: 'var(--text-secondary)' }} />
+                  </div>
                 </DashboardGrid>
 
-                <TextField
-                  label="Search customers"
-                  placeholder="Search by name, email, phone, city, or country"
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                />
+                <FormField label="Search customers" placeholder="Search by name, email, phone, city, or country" value={query} onChange={(event) => setQuery(event.target.value)} />
 
                 {customers.length === 0 ? (
                   <EmptyState icon={<PersonOutlineIcon />} title="No customers yet" description="Create your first portal customer, then assign shipments to them from the Assigned Shipments page." />
                 ) : filteredCustomers.length === 0 ? (
-                  <Box sx={{ color: 'var(--text-secondary)' }}>No customers matched your current search.</Box>
+                  <div style={{ color: 'var(--text-secondary)' }}>No customers matched your current search.</div>
                 ) : (
                   <DataTable data={filteredCustomers} columns={columns} keyField="id" />
                 )}
-              </Box>
+              </div>
             </DashboardPanel>
           </DashboardGrid>
         </>

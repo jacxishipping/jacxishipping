@@ -1,9 +1,10 @@
 'use client';
 
+import { JacxiButton } from '@/components/design-system/JacxiButton';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Home, Ship, Package, FileText, Menu } from 'lucide-react';
-import { SpringButton } from '@jacxishippingorg/jx-ui-react';
+
 import { useSession } from 'next-auth/react';
 import { cn } from '@/lib/utils';
 import { hasPermission, type Permission } from '@/lib/rbac';
@@ -67,7 +68,7 @@ export function BottomNavigation({ onMenuClick }: { onMenuClick?: () => void }) 
 
           if (item.isMenuToggle) {
             return (
-              <SpringButton
+              <JacxiButton
                 key="menu-toggle-btn"
                 type="button"
                 variant="outline"
@@ -110,7 +111,7 @@ export function BottomNavigation({ onMenuClick }: { onMenuClick?: () => void }) 
                     {item.label}
                   </span>
                 </div>
-              </SpringButton>
+              </JacxiButton>
             );
           }
 

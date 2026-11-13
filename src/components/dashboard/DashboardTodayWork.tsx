@@ -1,5 +1,6 @@
 'use client';
 
+import { JacxiButton } from '@/components/design-system/JacxiButton';
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
@@ -19,7 +20,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { Button, CopyButton, Tooltip } from '@/components/design-system';
-import { SpringButton } from '@jacxishippingorg/jx-ui-react';
+
 import { hasPermission } from '@/lib/rbac';
 import ShipmentQuickPeek from '@/components/dashboard/ShipmentQuickPeek';
 import ContainerQuickPeek from '@/components/dashboard/ContainerQuickPeek';
@@ -336,7 +337,7 @@ export default function DashboardTodayWork({
                     <div className="flex items-center gap-1.5">
                       {/* 1. Quick Peek Drawer Trigger */}
                       {hasShipmentOrContainer && (
-                        <SpringButton
+                        <JacxiButton
                           type="button"
                           variant="outline"
                           onClick={(e) => handleQuickPeek(e, item)}
@@ -347,7 +348,7 @@ export default function DashboardTodayWork({
                         >
                           <PanelRightOpen className="h-3.5 w-3.5 text-[var(--accent-gold-text)]" />
                           <span className="hidden md:inline">Peek</span>
-                        </SpringButton>
+                        </JacxiButton>
                       )}
 
                       {/* 2. Contextual Action: Create transit, reassign dispatch, or track route */}
@@ -385,7 +386,7 @@ export default function DashboardTodayWork({
                       )}
 
                       {/* 3. Customer Notification / Nudge Modal */}
-                      <SpringButton
+                      <JacxiButton
                         type="button"
                         variant="outline"
                         onClick={(e) => handleOpenNotification(e, item)}
@@ -395,7 +396,7 @@ export default function DashboardTodayWork({
                         className="!p-1.5 !text-xs !rounded-lg !border !border-[var(--border)] !bg-transparent !text-[var(--text-secondary)] hover:!text-[var(--text-primary)] hover:!border-[var(--border-hover)] hover:!bg-[var(--background)] shadow-none transition-all cursor-pointer"
                       >
                         <MessageSquare className="h-3.5 w-3.5" />
-                      </SpringButton>
+                      </JacxiButton>
 
                       {/* 4. Full Page Navigation */}
                       <Link

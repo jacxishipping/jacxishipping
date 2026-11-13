@@ -1,9 +1,9 @@
 'use client';
 
 import { ChangeEvent, useEffect, useRef, useState } from 'react';
+import { JXBox, JXAvatar } from '@jacxishippingorg/jx-ui-react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Box, Avatar, Divider } from '@mui/material';
 import {
 	User,
 	Mail,
@@ -309,9 +309,9 @@ export default function ProfilePage() {
 	return (
 		<DashboardSurface>
 			{/* Breadcrumbs */}
-			<Box sx={{ px: 2, pt: 2 }}>
+			<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingLeft: '16px', paddingRight: '16px', paddingTop: '16px'}}>
 				<Breadcrumbs />
-			</Box>
+			</JXBox>
 
 			<PageHeader
 				title="Profile"
@@ -319,7 +319,7 @@ export default function ProfilePage() {
 			/>
 
 			{/* Account Stats */}
-			<Box sx={{ px: 2, mb: 3 }}>
+			<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingLeft: '16px', paddingRight: '16px', marginBottom: '24px'}}>
 				<DashboardGrid className="grid-cols-1 md:grid-cols-3">
 					<StatsCard
 						icon={<Mail style={{ fontSize: 18 }} />}
@@ -343,40 +343,36 @@ export default function ProfilePage() {
 						size="md"
 					/>
 				</DashboardGrid>
-			</Box>
+			</JXBox>
 
-			<Box sx={{ px: 2, pb: 4 }}>
-				<Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '2fr 1fr' }, gap: 3 }}>
+			<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingLeft: '16px', paddingRight: '16px', paddingBottom: '32px'}}>
+				<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '24px'}} className="grid-cols-1 grid lg:grid-cols-[2fr_1fr]">
 					{/* Main Profile Form */}
-					<Box>
+					<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
 						<DashboardPanel
 							title="Personal Information"
 							description="Update your personal details and contact information"
 						>
-							<Box component="form" onSubmit={handleSubmit}>
-								<Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+							<JXBox padding="none" border={false} component="form" onSubmit={handleSubmit} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '24px'}}>
 									{/* Avatar Section */}
-									<Box>
-										<Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-											<Avatar
-												sx={{
-													width: 80,
-													height: 80,
-													bgcolor: 'var(--accent-gold)',
-													fontSize: '2rem',
-													fontWeight: 600,
-												}}
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '24px'}}>
+											<JXAvatar
+												name={profile.name || profile.email}
 												src={profile.image || undefined}
-											>
-												{(profile.name || profile.email)[0].toUpperCase()}
-											</Avatar>
-											<Box>
-												<Box sx={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-primary)', mb: 0.5 }}>
+												shape="circle"
+												size="lg"
+												gradientClass="from-[#D4AF37] to-[#96791F]"
+												className="!h-20 !w-20 !text-[2rem]"
+											/>
+											<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+												<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px'}}>
 													{profile.name || 'User'}
-												</Box>
-												<Box sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+												</JXBox>
+												<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', color: 'var(--text-secondary)'}}>
 													{profile.email}
-												</Box>
+												</JXBox>
 												<input
 													ref={avatarInputRef}
 													type="file"
@@ -391,18 +387,18 @@ export default function ProfilePage() {
 													icon={<Upload className="w-4 h-4" />}
 													onClick={() => avatarInputRef.current?.click()}
 													disabled={uploadingAvatar}
-													sx={{ mt: 1.25 }}
+													style={{marginTop: '10px'}}
 												>
 													{uploadingAvatar ? 'Uploading...' : 'Change photo'}
 												</Button>
-											</Box>
-										</Box>
-									</Box>
+											</JXBox>
+										</JXBox>
+									</JXBox>
 
-									<Divider sx={{ borderColor: 'var(--border)' }} />
+									<div aria-hidden="true" className="my-4 border-t border-[var(--border)]" style={{borderColor: 'var(--border)'}} />
 
 									{/* Name & Phone */}
-									<Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '24px'}} className="grid-cols-1 grid md:grid-cols-[1fr_1fr]">
 										<FormField
 											label="Full Name"
 											name="name"
@@ -420,10 +416,10 @@ export default function ProfilePage() {
 											placeholder="+1 (555) 123-4567"
 											leftIcon={<Phone className="w-4 h-4 text-[var(--text-secondary)]" />}
 										/>
-									</Box>
+									</JXBox>
 
 									{/* Address */}
-									<Box>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
 										<FormField
 											label="Address"
 											name="address"
@@ -432,10 +428,10 @@ export default function ProfilePage() {
 											placeholder="123 Main Street"
 											leftIcon={<MapPin className="w-4 h-4 text-[var(--text-secondary)]" />}
 										/>
-									</Box>
+									</JXBox>
 
 									{/* City & Country */}
-									<Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '24px'}} className="grid-cols-1 grid md:grid-cols-[1fr_1fr]">
 										<FormField
 											label="City"
 											name="city"
@@ -453,10 +449,10 @@ export default function ProfilePage() {
 											placeholder="United States"
 											leftIcon={<MapPin className="w-4 h-4 text-[var(--text-secondary)]" />}
 										/>
-									</Box>
+									</JXBox>
 
 									{/* Image URL */}
-									<Box>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
 										<FormField
 											label="Profile Image URL"
 											name="image"
@@ -465,11 +461,11 @@ export default function ProfilePage() {
 											placeholder="https://example.com/image.jpg"
 											leftIcon={<ImageIcon className="w-4 h-4 text-[var(--text-secondary)]" />}
 										/>
-									</Box>
+									</JXBox>
 
 									{/* Action Buttons */}
-									<Box>
-										<Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', mt: 2 }}>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '16px', justifyContent: 'flex-end', marginTop: '16px'}}>
 											<Button
 												type="button"
 												variant="outline"
@@ -489,35 +485,35 @@ export default function ProfilePage() {
 											>
 												{saving ? 'Saving...' : 'Save Changes'}
 											</Button>
-										</Box>
-									</Box>
-								</Box>
-							</Box>
+										</JXBox>
+									</JXBox>
+								</JXBox>
+							</JXBox>
 						</DashboardPanel>
-					</Box>
+					</JXBox>
 
 					{/* Sidebar - Security Tips */}
-					<Box>
-						<Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+					<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+						<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '24px'}}>
 							<DashboardPanel
 								title="Security Tips"
 								description="Keep your account safe"
 							>
-								<Box sx={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.6 }}>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.6}}>
 									<ul style={{ listStyle: 'disc', paddingLeft: '1.25rem', margin: 0 }}>
 										<li style={{ marginBottom: '0.5rem' }}>Use a strong, unique password</li>
 										<li style={{ marginBottom: '0.5rem' }}>Enable two-factor authentication</li>
 										<li style={{ marginBottom: '0.5rem' }}>Keep your contact info up to date</li>
 										<li style={{ marginBottom: '0.5rem' }}>Review account activity regularly</li>
 									</ul>
-								</Box>
+								</JXBox>
 							</DashboardPanel>
 
 							<DashboardPanel
 								title="Password"
 								description="Set a new password for your account"
 							>
-								<Box component="form" onSubmit={handlePasswordSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+								<JXBox padding="none" border={false} component="form" onSubmit={handlePasswordSubmit} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '20px'}}>
 									<FormField
 										label="Current Password"
 										name="currentPassword"
@@ -550,7 +546,7 @@ export default function ProfilePage() {
 										leftIcon={<Key className="w-4 h-4 text-[var(--text-secondary)]" />}
 									/>
 
-									<Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '16px', justifyContent: 'flex-end'}}>
 										<Button
 											type="button"
 											variant="outline"
@@ -570,8 +566,8 @@ export default function ProfilePage() {
 										>
 											{savingPassword ? 'Updating...' : 'Update Password'}
 										</Button>
-									</Box>
-								</Box>
+									</JXBox>
+								</JXBox>
 							</DashboardPanel>
 
 							{profile.role === 'user' && (
@@ -588,37 +584,18 @@ export default function ProfilePage() {
 								title="Login Code"
 								description="Quick access code for simplified login"
 							>
-								<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '16px'}}>
 									{profile.loginCode ? (
 										<>
-											<Box>
-												<Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)', mb: 1 }}>
+											<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+												<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '8px'}}>
 													Your Login Code
-												</Box>
-												<Box 
-													sx={{ 
-														display: 'flex',
-														alignItems: 'center',
-														gap: 1,
-														bgcolor: 'var(--background)',
-														border: '2px solid var(--accent-gold)',
-														borderRadius: 2,
-														p: 2,
-													}}
-												>
+												</JXBox>
+												<JXBox padding="none" border={false} style={{display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: 'var(--background)', border: '2px solid var(--accent-gold)', borderRadius: '16px', padding: '16px'}}>
 													<Key className="w-5 h-5" style={{ color: 'var(--accent-gold)' }} />
-													<Box 
-														sx={{ 
-															fontSize: '1.5rem', 
-															fontWeight: 700,
-															color: 'var(--text-primary)',
-															fontFamily: 'monospace',
-															letterSpacing: '0.2em',
-															flex: 1,
-														}}
-													>
+													<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'monospace', letterSpacing: '0.2em', flex: 1}}>
 														{formatLoginCode(profile.loginCode)}
-													</Box>
+													</JXBox>
 													<Button
 														variant="ghost"
 														size="sm"
@@ -627,18 +604,18 @@ export default function ProfilePage() {
 													>
 														Copy
 													</Button>
-												</Box>
-											</Box>
-											<Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+												</JXBox>
+											</JXBox>
+											<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: 1.5}}>
 												Use this code to login at{' '}
-												<Box component="span" sx={{ color: 'var(--accent-gold)', fontWeight: 500 }}>
+												<JXBox padding="none" border={false} component="span" style={{backgroundColor: 'transparent', borderRadius: 0, color: 'var(--accent-gold)', fontWeight: 500}}>
 													/auth/simple-login
-												</Box>
+												</JXBox>
 												. Keep it secure and don't share it with others.
-											</Box>
+											</JXBox>
 											{session?.user.role === 'admin' && (
 												<>
-													<Divider sx={{ borderColor: 'var(--border)' }} />
+													<div aria-hidden="true" className="my-4 border-t border-[var(--border)]" style={{borderColor: 'var(--border)'}} />
 													<Button
 														variant="outline"
 														size="sm"
@@ -654,10 +631,10 @@ export default function ProfilePage() {
 										</>
 									) : (
 										<>
-											<Box sx={{ textAlign: 'center', py: 2 }}>
-												<Box sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)', mb: 2 }}>
+											<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, textAlign: 'center', paddingTop: '16px', paddingBottom: '16px'}}>
+												<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '16px'}}>
 													No login code set yet
-												</Box>
+												</JXBox>
 												{session?.user.role === 'admin' && (
 													<Button
 														variant="primary"
@@ -670,43 +647,43 @@ export default function ProfilePage() {
 													</Button>
 												)}
 												{session?.user.role !== 'admin' && (
-													<Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+													<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.75rem', color: 'var(--text-secondary)'}}>
 														Contact an administrator to set up a login code
-													</Box>
+													</JXBox>
 												)}
-											</Box>
+											</JXBox>
 										</>
 									)}
-								</Box>
+								</JXBox>
 							</DashboardPanel>
 
 							<DashboardPanel
 								title="Account Info"
 							>
-								<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-									<Box>
-										<Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)', mb: 0.5 }}>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '16px'}}>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px'}}>
 											Account ID
-										</Box>
-										<Box sx={{ fontSize: '0.875rem', color: 'var(--text-primary)', fontFamily: 'monospace' }}>
+										</JXBox>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', color: 'var(--text-primary)', fontFamily: 'monospace'}}>
 											{profile.id.slice(0, 8)}...
-										</Box>
-									</Box>
-									<Divider sx={{ borderColor: 'var(--border)' }} />
-									<Box>
-										<Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)', mb: 0.5 }}>
+										</JXBox>
+									</JXBox>
+									<div aria-hidden="true" className="my-4 border-t border-[var(--border)]" style={{borderColor: 'var(--border)'}} />
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px'}}>
 											Last Updated
-										</Box>
-										<Box sx={{ fontSize: '0.875rem', color: 'var(--text-primary)' }}>
+										</JXBox>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', color: 'var(--text-primary)'}}>
 											{new Date(profile.updatedAt).toLocaleDateString()}
-										</Box>
-									</Box>
-								</Box>
+										</JXBox>
+									</JXBox>
+								</JXBox>
 							</DashboardPanel>
-						</Box>
-					</Box>
-				</Box>
-			</Box>
+						</JXBox>
+					</JXBox>
+				</JXBox>
+			</JXBox>
 		</DashboardSurface>
 	);
 }

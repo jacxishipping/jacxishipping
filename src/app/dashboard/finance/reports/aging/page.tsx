@@ -1,6 +1,6 @@
 'use client';
 import { formatMoney as formatCurrency } from '@/lib/format';
-import { Box } from '@mui/material';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
 
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -180,9 +180,9 @@ export default function AgingReportPage() {
     return (
       <AdminRoute>
         <DashboardSurface>
-          <Box sx={{ px: 2, pt: 2 }}>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingLeft: '16px', paddingRight: '16px', paddingTop: '16px'}}>
             <Breadcrumbs />
-          </Box>
+          </JXBox>
           <LoadingState message="Loading aging report..." />
         </DashboardSurface>
       </AdminRoute>
@@ -193,9 +193,9 @@ export default function AgingReportPage() {
     return (
       <AdminRoute>
         <DashboardSurface>
-          <Box sx={{ px: 2, pt: 2 }}>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingLeft: '16px', paddingRight: '16px', paddingTop: '16px'}}>
             <Breadcrumbs />
-          </Box>
+          </JXBox>
           <div className="text-center py-12 space-y-4">
             <AlertCircle className="w-16 h-16 mx-auto text-[var(--text-secondary)] opacity-50" />
             <p className="text-[var(--text-secondary)]">Failed to load aging report</p>

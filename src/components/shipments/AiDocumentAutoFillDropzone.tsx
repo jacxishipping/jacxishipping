@@ -2,7 +2,6 @@
 
 import { useState, useRef } from 'react';
 import { Upload, Sparkles, FileText, CheckCircle2, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
-import { Box, Typography, Chip, Tooltip } from '@mui/material';
 import { Button, toast } from '@/components/design-system';
 
 export interface ExtractedShipmentData {
@@ -125,31 +124,18 @@ export function AiDocumentAutoFillDropzone({ onExtracted, disabled = false }: Ai
   };
 
   return (
-    <Box
-      sx={{
-        mb: 2.5,
-        p: 2,
-        borderRadius: 2.5,
-        border: '1px dashed',
-        borderColor: isDragging
+    <div style={{marginBottom: '20px', padding: '16px', borderRadius: '20px', border: '1px dashed', borderColor: isDragging
           ? 'var(--accent-gold)'
           : extractedData
           ? 'rgba(34, 197, 94, 0.4)'
-          : 'rgba(var(--border-rgb), 0.8)',
-        bgcolor: isDragging
+          : 'rgba(var(--border-rgb), 0.8)', backgroundColor: isDragging
           ? 'rgba(var(--accent-gold-rgb), 0.04)'
           : extractedData
           ? 'rgba(34, 197, 94, 0.03)'
-          : 'var(--panel)',
-        transition: 'all 0.2s ease',
-      }}
-      onDragOver={(e) => {
+          : 'var(--panel)', transition: 'all 0.2s ease'}} onDragOver={(e) => {
         e.preventDefault();
         if (!disabled && !isProcessing) setIsDragging(true);
-      }}
-      onDragLeave={() => setIsDragging(false)}
-      onDrop={handleDrop}
-    >
+      }} onDragLeave={() => setIsDragging(false)} onDrop={handleDrop}>
       <input
         ref={fileInputRef}
         type="file"
@@ -160,31 +146,20 @@ export function AiDocumentAutoFillDropzone({ onExtracted, disabled = false }: Ai
       />
 
       {/* Header & Description */}
-      <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1.5, mb: 1.5 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 28,
-              height: 28,
-              borderRadius: 1.5,
-              bgcolor: 'rgba(var(--accent-gold-rgb), 0.12)',
-              color: 'var(--accent-gold)',
-            }}
-          >
+      <div style={{display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', marginBottom: '12px'}}>
+        <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+          <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: '12px', backgroundColor: 'rgba(var(--accent-gold-rgb), 0.12)', color: 'var(--accent-gold)'}}>
             <Sparkles size={16} />
-          </Box>
-          <Box>
-            <Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.2 }}>
+          </div>
+          <div>
+            <p style={{fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.2}}>
               Smart Document Auto-Fill
-            </Typography>
-            <Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+            </p>
+            <p style={{fontSize: '0.75rem', color: 'var(--text-secondary)'}}>
               Drop a Copart / IAAI Bill of Sale, Title, or Dock Receipt to auto-populate vehicle & auction info
-            </Typography>
-          </Box>
-        </Box>
+            </p>
+          </div>
+        </div>
 
         {!isProcessing && !extractedData && (
           <Button
@@ -210,86 +185,50 @@ export function AiDocumentAutoFillDropzone({ onExtracted, disabled = false }: Ai
             Upload Another
           </Button>
         )}
-      </Box>
+      </div>
 
       {/* Processing State */}
       {isProcessing && (
-        <Box sx={{ py: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.5 }}>
+        <div style={{paddingTop: '16px', paddingBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px'}}>
           <Loader2 className="w-5 h-5 text-[var(--accent-gold)] animate-spin" />
-          <Typography sx={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
+          <p style={{fontSize: '0.8125rem', color: 'var(--text-secondary)', fontWeight: 500}}>
             Analyzing document with AI... Extracting VIN, Lot #, and vehicle details
-          </Typography>
-        </Box>
+          </p>
+        </div>
       )}
 
       {/* Extracted Data Preview Pills */}
       {extractedData && (
-        <Box sx={{ mt: 1, pt: 1.5, borderTop: '1px solid rgba(var(--border-rgb), 0.5)' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+        <div style={{marginTop: '8px', paddingTop: '12px', borderTop: '1px solid rgba(var(--border-rgb), 0.5)'}}>
+          <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px'}}>
             <CheckCircle2 size={15} style={{ color: '#16a34a' }} />
-            <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: '#16a34a' }}>
+            <p style={{fontSize: '0.75rem', fontWeight: 600, color: '#16a34a'}}>
               Extracted from {fileName}:
-            </Typography>
-          </Box>
+            </p>
+          </div>
 
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+          <div style={{display: 'flex', flexWrap: 'wrap', gap: '6px'}}>
             {extractedData.vin && (
-              <Chip
-                label={`VIN: ${extractedData.vin}`}
-                size="small"
-                sx={{
-                  fontFamily: 'monospace',
-                  fontWeight: 700,
-                  fontSize: '0.75rem',
-                  bgcolor: 'rgba(var(--accent-gold-rgb), 0.1)',
-                  color: 'var(--text-primary)',
-                  border: '1px solid rgba(var(--accent-gold-rgb), 0.3)',
-                }}
-              />
+              <span style={{fontFamily: 'monospace', fontWeight: 700, fontSize: '0.75rem', backgroundColor: 'rgba(var(--accent-gold-rgb), 0.1)', color: 'var(--text-primary)', border: '1px solid rgba(var(--accent-gold-rgb), 0.3)'}} className="inline-flex items-center gap-1 rounded-full font-medium text-[0.7rem] px-2 py-0.5 border border-[var(--border)] bg-[var(--background)] text-[var(--text-primary)]">{`VIN: ${extractedData.vin}`}</span>
             )}
             {(extractedData.year || extractedData.make || extractedData.model) && (
-              <Chip
-                label={[extractedData.year, extractedData.make, extractedData.model].filter(Boolean).join(' ')}
-                size="small"
-                sx={{ fontSize: '0.75rem', fontWeight: 600, bgcolor: 'var(--background)' }}
-              />
+              <span style={{fontSize: '0.75rem', fontWeight: 600, backgroundColor: 'var(--background)'}} className="inline-flex items-center gap-1 rounded-full font-medium text-[0.7rem] px-2 py-0.5 border border-[var(--border)] bg-[var(--background)] text-[var(--text-primary)]">{[extractedData.year, extractedData.make, extractedData.model].filter(Boolean).join(' ')}</span>
             )}
             {extractedData.lotNumber && (
-              <Chip
-                label={`Lot #${extractedData.lotNumber}${extractedData.auctionName ? ` (${extractedData.auctionName})` : ''}`}
-                size="small"
-                sx={{ fontSize: '0.75rem', fontWeight: 600, bgcolor: 'var(--background)' }}
-              />
+              <span style={{fontSize: '0.75rem', fontWeight: 600, backgroundColor: 'var(--background)'}} className="inline-flex items-center gap-1 rounded-full font-medium text-[0.7rem] px-2 py-0.5 border border-[var(--border)] bg-[var(--background)] text-[var(--text-primary)]">{`Lot #${extractedData.lotNumber}${extractedData.auctionName ? ` (${extractedData.auctionName})` : ''}`}</span>
             )}
             {extractedData.hasKeys !== undefined && (
-              <Chip
-                label={`Keys: ${extractedData.hasKeys ? 'Yes' : 'No'}`}
-                size="small"
-                sx={{
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
-                  bgcolor: extractedData.hasKeys ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                  color: extractedData.hasKeys ? '#16a34a' : '#ef4444',
-                }}
-              />
+              <span style={{fontSize: '0.75rem', fontWeight: 600, backgroundColor: extractedData.hasKeys ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)', color: extractedData.hasKeys ? '#16a34a' : '#ef4444'}} className="inline-flex items-center gap-1 rounded-full font-medium text-[0.7rem] px-2 py-0.5 border border-[var(--border)] bg-[var(--background)] text-[var(--text-primary)]">{`Keys: ${extractedData.hasKeys ? 'Yes' : 'No'}`}</span>
             )}
             {extractedData.titleStatus && (
-              <Chip
-                label={`Title: ${extractedData.titleStatus}`}
-                size="small"
-                sx={{ fontSize: '0.75rem', fontWeight: 600, bgcolor: 'var(--background)' }}
-              />
+              <span style={{fontSize: '0.75rem', fontWeight: 600, backgroundColor: 'var(--background)'}} className="inline-flex items-center gap-1 rounded-full font-medium text-[0.7rem] px-2 py-0.5 border border-[var(--border)] bg-[var(--background)] text-[var(--text-primary)]">{`Title: ${extractedData.titleStatus}`}</span>
             )}
             {typeof extractedData.purchasePrice === 'number' && extractedData.purchasePrice > 0 && (
-              <Chip
-                label={`Price: $${extractedData.purchasePrice.toLocaleString()}`}
-                size="small"
-                sx={{ fontSize: '0.75rem', fontWeight: 600, bgcolor: 'rgba(59, 130, 246, 0.1)', color: '#2563eb' }}
-              />
+              <span style={{fontSize: '0.75rem', fontWeight: 600, backgroundColor: 'rgba(59, 130, 246, 0.1)', color: '#2563eb'}} className="inline-flex items-center gap-1 rounded-full font-medium text-[0.7rem] px-2 py-0.5 border border-[var(--border)] bg-[var(--background)] text-[var(--text-primary)]">{`Price: $${extractedData.purchasePrice.toLocaleString()}`}</span>
             )}
-          </Box>
-        </Box>
+          </div>
+        </div>
       )}
-    </Box>
+    </div>
   );
 }

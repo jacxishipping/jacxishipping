@@ -8,8 +8,7 @@ import Header from '@/components/dashboard/Header';
 import { BottomNavigation } from '@/components/mobile/BottomNavigation';
 import { KeyboardShortcutHelp } from '@/components/design-system';
 import { SessionProvider } from '@/components/providers/SessionProvider';
-import { JXThemeProvider } from '@jacxishippingorg/jx-ui-react';
-import { Box } from '@mui/material';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
 
 import { LenisWrapperProvider, useLenisWrapper } from '@/components/providers/LenisWrapperProvider';
 import { ConfirmActionProvider } from '@/components/ui/ConfirmActionProvider';
@@ -55,60 +54,33 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   }, [registerWrapper, unregisterWrapper]);
 
   return (
-    <Box
-      className="dashboard-surface-root transition-colors duration-200"
-      sx={{
-        height: '100vh',
-        overflow: 'hidden',
-        bgcolor: 'var(--background)',
-        display: 'flex',
-        flexDirection: 'column',
-        color: 'var(--text-primary)',
-      }}
+    <JXBox
+      padding="none"
+      border={false}
+      className="dashboard-surface-root flex h-[100vh] flex-col overflow-hidden bg-[var(--background)] text-[var(--text-primary)] transition-colors duration-200 !rounded-none"
+      style={{ fontFamily: 'inherit' }}
     >
       {/* Header */}
       <Header onMenuClick={() => setMobileOpen(!mobileOpen)} />
 
       {/* Content Area with Sidebar */}
-      <Box
-          sx={{
-            display: 'flex',
-            flexGrow: 1,
-            minHeight: 0,
-            overflow: 'hidden',
-          }}
+      <JXBox
+        padding="none"
+        border={false}
+        className="flex min-h-0 flex-1 overflow-hidden !rounded-none !bg-transparent"
+        style={{ fontFamily: 'inherit' }}
       >
         {/* Sidebar */}
         <Sidebar mobileOpen={mobileOpen} onMobileClose={() => setMobileOpen(false)} />
 
         {/* Main Content - This is the scroll container for Lenis */}
-        <Box
+        <main
           ref={mainContentRef}
-          component="main"
-          sx={{
-            flexGrow: 1,
-            minWidth: 0,
-            minHeight: 0,
-            bgcolor: 'var(--background)',
-            backgroundImage: 'none',
-            overflow: 'auto',
-            /* Keep the scroll affordance visible on dense operational pages. */
-            '&::-webkit-scrollbar': {
-              width: 10,
-              height: 10,
-            },
-            '&::-webkit-scrollbar-thumb': {
-              backgroundColor: 'rgba(var(--text-primary-rgb), 0.24)',
-              border: '3px solid var(--background)',
-              borderRadius: 10,
-            },
-            scrollbarColor: 'rgba(var(--text-primary-rgb), 0.24) var(--background)',
-            pb: { xs: 'calc(76px + env(safe-area-inset-bottom, 0px))', lg: 0 },
-          }}
+          className="dashboard-scroll min-h-0 min-w-0 flex-1 overflow-auto bg-[var(--background)] pb-[calc(76px+env(safe-area-inset-bottom,0px))] lg:pb-0"
         >
           {children}
-        </Box>
-      </Box>
+        </main>
+      </JXBox>
 
       {/* Mobile Bottom Navigation */}
       <BottomNavigation />
@@ -121,7 +93,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
 
       {/* Universal Shipment Export Modal - Callable anywhere */}
       <UniversalShipmentExportModal />
-    </Box>
+    </JXBox>
   );
 }
 
@@ -132,15 +104,13 @@ export default function DashboardLayout({
 }) {
   return (
     <SessionProvider>
-      <JXThemeProvider defaultMode="light" storageKey="jacxi-jxui-mode">
-        <ProtectedRoute>
-          <LenisWrapperProvider>
-            <ConfirmActionProvider>
-              <DashboardLayoutInner>{children}</DashboardLayoutInner>
-            </ConfirmActionProvider>
-          </LenisWrapperProvider>
-        </ProtectedRoute>
-      </JXThemeProvider>
+      <ProtectedRoute>
+        <LenisWrapperProvider>
+          <ConfirmActionProvider>
+            <DashboardLayoutInner>{children}</DashboardLayoutInner>
+          </ConfirmActionProvider>
+        </LenisWrapperProvider>
+      </ProtectedRoute>
     </SessionProvider>
   );
 }

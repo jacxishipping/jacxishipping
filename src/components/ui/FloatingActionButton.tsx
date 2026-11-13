@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, Ship, Package, FileText, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Fab, Tooltip, Zoom, Box } from '@mui/material';
+import { AnimatePresence, motion } from 'framer-motion';
+import Tooltip from '@/components/design-system/Tooltip';
 
 interface QuickAction {
   icon: React.ReactNode;
@@ -34,6 +35,11 @@ const quickActions: QuickAction[] = [
   },
 ];
 
+/**
+ * FloatingActionButton — native buttons + motion (was MUI Fab/Zoom).
+ * Kept clear of the mobile bottom nav: bottom 80px on small screens,
+ * 32px on lg+ (audit P2-06 — the FAB must not cover the nav's Menu item).
+ */
 export function FloatingActionButton() {
   const [open, setOpen] = useState(false);
   const router = useRouter();
@@ -54,69 +60,52 @@ export function FloatingActionButton() {
       )}
 
       {/* Quick Actions */}
-      <Box
-        sx={{
-          position: 'fixed',
-          right: { xs: 16, lg: 32 },
-          bottom: { xs: 80, lg: 32 },
-          zIndex: 1300,
-          display: 'flex',
-          flexDirection: 'column-reverse',
-          gap: 2,
-          alignItems: 'flex-end',
-        }}
-      >
-        {quickActions.map((action, index) => (
-          <Zoom
-            key={action.href}
-            in={open}
-            timeout={200 + index * 50}
-            style={{ transitionDelay: open ? `${index * 50}ms` : '0ms' }}
-          >
-            <div className="flex items-center gap-3 justify-end">
-              <Tooltip title={action.label} placement="left">
-                <button
-                  onClick={() => handleAction(action.href)}
-                  className={cn(
-                    'w-12 h-12 rounded-full shadow-lg transition-all duration-200',
-                    'flex items-center justify-center text-white',
-                    'hover:scale-110 active:scale-95',
-                    'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--accent-gold)]'
-                  )}
-                  style={{ backgroundColor: action.color }}
-                  aria-label={action.label}
-                >
-                  {action.icon}
-                </button>
-              </Tooltip>
-            </div>
-          </Zoom>
-        ))}
+      <div className="fixed bottom-20 right-4 z-[1300] flex flex-col-reverse items-end gap-2 lg:bottom-8 lg:right-8">
+        <AnimatePresence>
+          {open &&
+            quickActions.map((action, index) => (
+              <motion.div
+                key={action.href}
+                initial={{ opacity: 0, scale: 0.5 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.5 }}
+                transition={{ duration: 0.2, delay: index * 0.05 }}
+                className="flex items-center gap-3 justify-end"
+              >
+                <Tooltip title={action.label} placement="left">
+                  <button
+                    onClick={() => handleAction(action.href)}
+                    className={cn(
+                      'w-12 h-12 rounded-full shadow-lg transition-all duration-200',
+                      'flex items-center justify-center text-white',
+                      'hover:scale-110 active:scale-95',
+                      'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--accent-gold)]'
+                    )}
+                    style={{ backgroundColor: action.color }}
+                    aria-label={action.label}
+                  >
+                    {action.icon}
+                  </button>
+                </Tooltip>
+              </motion.div>
+            ))}
+        </AnimatePresence>
 
         {/* Main FAB */}
-        <Fab
+        <button
+          type="button"
           onClick={() => setOpen(!open)}
-          sx={{
-            bgcolor: open ? 'var(--error)' : 'var(--accent-gold)',
-            color: 'white',
-            width: 56,
-            height: 56,
-            '&:hover': {
-              bgcolor: open ? '#EF4444' : '#C99B2F',
-              transform: 'scale(1.05)',
-            },
-            transition: 'all 0.2s ease',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
-          }}
           aria-label={open ? 'Close quick actions' : 'Open quick actions'}
+          className="flex h-14 w-14 items-center justify-center rounded-full text-white shadow-[0_4px_12px_rgba(0,0,0,0.2)] transition-all duration-200 hover:scale-105"
+          style={{ backgroundColor: open ? 'var(--error)' : 'var(--accent-gold)' }}
         >
           {open ? (
             <X className="w-6 h-6 transition-transform duration-200 rotate-0" />
           ) : (
             <Plus className="w-6 h-6 transition-transform duration-200 rotate-0" />
           )}
-        </Fab>
-      </Box>
+        </button>
+      </div>
     </>
   );
 }

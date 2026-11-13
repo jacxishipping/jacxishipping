@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { Box, Typography } from '@mui/material';
 import { Send, Headphones, UserRound } from 'lucide-react';
 import { Button, FormField, toast } from '@/components/design-system';
 
@@ -74,28 +73,17 @@ export default function NotificationComposer({
   };
 
   return (
-    <Box component="form" onSubmit={handleSubmit}>
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <Box
-            sx={{
-              width: 40,
-              height: 40,
-              borderRadius: 2,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              bgcolor: 'rgba(var(--accent-gold-rgb), 0.12)',
-              color: 'var(--accent-gold)',
-            }}
-          >
+    <form onSubmit={handleSubmit}>
+      <div style={{display: 'flex', flexDirection: 'column', gap: '20px'}}>
+        <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+          <div style={{width: 40, height: 40, borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(var(--accent-gold-rgb), 0.12)', color: 'var(--accent-gold)'}}>
             {isCustomerToSupport ? <Headphones className="w-5 h-5" /> : <UserRound className="w-5 h-5" />}
-          </Box>
-          <Box>
-            <Typography sx={{ fontWeight: 700, color: 'var(--text-primary)' }}>{title}</Typography>
-            <Typography sx={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>{description}</Typography>
-          </Box>
-        </Box>
+          </div>
+          <div>
+            <p style={{fontWeight: 700, color: 'var(--text-primary)'}}>{title}</p>
+            <p style={{fontSize: '0.8125rem', color: 'var(--text-secondary)'}}>{description}</p>
+          </div>
+        </div>
 
         <FormField
           label="Subject"
@@ -113,7 +101,7 @@ export default function NotificationComposer({
           minRows={4}
         />
 
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <div style={{display: 'flex', justifyContent: 'flex-end'}}>
           <Button
             type="submit"
             variant="primary"
@@ -123,8 +111,8 @@ export default function NotificationComposer({
           >
             {sending ? 'Sending...' : 'Send Notification'}
           </Button>
-        </Box>
-      </Box>
-    </Box>
+        </div>
+      </div>
+    </form>
   );
 }

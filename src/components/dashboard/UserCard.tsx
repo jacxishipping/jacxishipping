@@ -1,14 +1,12 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { User, Eye, EyeOff, Copy, Check, Package, Key } from 'lucide-react';
-import { Slide, Tooltip } from '@mui/material';
-import { JXBox, SpringButton } from '@jacxishippingorg/jx-ui-react';
-import { Button } from '@/components/design-system';
-import VisibilityIcon from '@mui/icons-material/Visibility';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
+import { Check, Copy, Eye, EyeOff, Key, Package, User, Eye as VisibilityIcon, Pencil as EditIcon, Trash2 as DeleteIcon } from 'lucide-react';
+import { JXBox } from "@jacxishippingorg/jx-ui-react";
+import { JacxiButton } from '@/components/design-system/JacxiButton';
+import { Button, Tooltip } from '@/components/design-system';
 
 interface UserData {
   id: string;
@@ -64,7 +62,7 @@ export default function UserCard({
   }, [index]);
 
   return (
-    <Slide in={visible} direction="up" timeout={600}>
+    <motion.div initial={{ opacity: 0, y: 24 }} animate={visible ? { opacity: 1, y: 0 } : { opacity: 0, y: 24 }} transition={{ duration: 0.6 }}>
       <div>
         <JXBox
           surface="elevated"
@@ -99,7 +97,7 @@ export default function UserCard({
             <div>
               <Tooltip title={showEmail ? "Hide email" : "Show email"}>
                 <span className="inline-flex">
-                  <SpringButton
+                  <JacxiButton
                     type="button"
                     variant="outline"
                     tone="primary"
@@ -113,7 +111,7 @@ export default function UserCard({
                     ) : (
                       <Eye style={{ width: 16, height: 16 }} />
                     )}
-                  </SpringButton>
+                  </JacxiButton>
                 </span>
               </Tooltip>
             </div>
@@ -130,7 +128,7 @@ export default function UserCard({
               {showEmail && (
                 <Tooltip title={copiedEmail === user.id ? "Email copied" : "Copy email"}>
                   <span className="inline-flex">
-                    <SpringButton
+                    <JacxiButton
                       type="button"
                       variant="outline"
                       tone="primary"
@@ -144,7 +142,7 @@ export default function UserCard({
                       ) : (
                         <Copy style={{ color: 'var(--accent-gold)', width: 16, height: 16 }} />
                       )}
-                    </SpringButton>
+                    </JacxiButton>
                   </span>
                 </Tooltip>
               )}
@@ -181,7 +179,7 @@ export default function UserCard({
               variant="outline"
               size="sm"
               icon={<VisibilityIcon />}
-              sx={{ textTransform: "none", fontSize: "0.7rem" }}
+              style={{textTransform: "none", fontSize: "0.7rem"}}
             >
               View
             </Button>
@@ -201,7 +199,7 @@ export default function UserCard({
               variant="ghost"
               size="sm"
               icon={<EditIcon />}
-              sx={{ textTransform: "none", fontSize: "0.7rem" }}
+              style={{textTransform: "none", fontSize: "0.7rem"}}
             >
               Edit
             </Button>
@@ -217,6 +215,6 @@ export default function UserCard({
           </div>
         </JXBox>
       </div>
-    </Slide>
+    </motion.div>
   );
 }

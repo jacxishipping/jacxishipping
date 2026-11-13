@@ -2,7 +2,6 @@
 
 import React, { useRef } from 'react';
 import QRCode from 'react-qr-code';
-import { Box, Typography } from '@mui/material';
 import { Copy, Download, Printer, QrCode, Check } from 'lucide-react';
 import { Modal, Button, toast } from '@/components/design-system';
 
@@ -168,7 +167,7 @@ export function QRCodeModal({ open, onClose, data }: QRCodeModalProps) {
       description={`Generate & print thermal scan stickers for ${data.type.toLowerCase()} verification`}
       size="md"
       actions={
-        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end', width: '100%' }}>
+        <div style={{display: 'flex', gap: '8px', justifyContent: 'flex-end', width: '100%'}}>
           <Button variant="outline" size="sm" onClick={onClose}>
             Close
           </Button>
@@ -188,146 +187,100 @@ export function QRCodeModal({ open, onClose, data }: QRCodeModalProps) {
           >
             Print Yard Label
           </Button>
-        </Box>
+        </div>
       }
     >
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 1 }}>
+      <div style={{display: 'flex', flexDirection: 'column', gap: '24px', paddingTop: '8px'}}>
         {/* Printable Label Preview Card */}
         <div ref={printAreaRef}>
-          <Box
-            sx={{
-              border: '2px dashed var(--border)',
-              borderRadius: 3,
-              p: 3,
-              backgroundColor: '#ffffff',
-              color: '#09090b',
-              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.05)',
-            }}
-          >
+          <div style={{border: '2px dashed var(--border)', borderRadius: '24px', padding: '24px', backgroundColor: '#ffffff', color: '#09090b', boxShadow: '0 8px 24px rgba(0, 0, 0, 0.05)'}}>
             {/* Header */}
-            <Box
-              sx={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                borderBottom: '2px solid #09090b',
-                pb: 1.5,
-                mb: 2,
-              }}
-            >
-              <Box>
-                <Typography sx={{ fontWeight: 900, fontSize: '1.2rem', letterSpacing: '0.05em', color: '#09090b' }}>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #09090b', paddingBottom: '12px', marginBottom: '16px'}}>
+              <div>
+                <p style={{fontWeight: 900, fontSize: '1.2rem', letterSpacing: '0.05em', color: '#09090b'}}>
                   JACXI SHIPPING
-                </Typography>
-                <Typography sx={{ fontSize: '0.72rem', color: '#71717a', textTransform: 'uppercase', fontWeight: 600 }}>
+                </p>
+                <p style={{fontSize: '0.72rem', color: '#71717a', textTransform: 'uppercase', fontWeight: 600}}>
                   Yard Manifest Verification Tag
-                </Typography>
-              </Box>
-              <Box
-                sx={{
-                  px: 1.5,
-                  py: 0.5,
-                  backgroundColor: '#09090b',
-                  color: '#ffffff',
-                  borderRadius: 1,
-                  fontSize: '0.75rem',
-                  fontWeight: 800,
-                  letterSpacing: '0.05em',
-                }}
-              >
+                </p>
+              </div>
+              <div style={{paddingLeft: '12px', paddingRight: '12px', paddingTop: '4px', paddingBottom: '4px', backgroundColor: '#09090b', color: '#ffffff', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.05em'}}>
                 {data.type}
-              </Box>
-            </Box>
+              </div>
+            </div>
 
             {/* Code identifier */}
-            <Box sx={{ textAlign: 'center', my: 1.5 }}>
-              <Typography sx={{ fontSize: '0.75rem', color: '#71717a', textTransform: 'uppercase', fontWeight: 700 }}>
+            <div style={{textAlign: 'center', marginTop: '12px', marginBottom: '12px'}}>
+              <p style={{fontSize: '0.75rem', color: '#71717a', textTransform: 'uppercase', fontWeight: 700}}>
                 {data.type === 'SHIPMENT' ? 'Vehicle VIN' : 'Container Number'}
-              </Typography>
-              <Typography sx={{ fontSize: '1.5rem', fontWeight: 900, letterSpacing: '0.1em', color: '#09090b' }}>
+              </p>
+              <p style={{fontSize: '1.5rem', fontWeight: 900, letterSpacing: '0.1em', color: '#09090b'}}>
                 {data.code}
-              </Typography>
-            </Box>
+              </p>
+            </div>
 
             {/* QR Code */}
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
-              <Box
-                sx={{
-                  p: 2,
-                  backgroundColor: '#ffffff',
-                  border: '1px solid #e4e4e7',
-                  borderRadius: 2,
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-                }}
-              >
+            <div style={{display: 'flex', justifyContent: 'center', paddingTop: '16px', paddingBottom: '16px'}}>
+              <div style={{padding: '16px', backgroundColor: '#ffffff', border: '1px solid #e4e4e7', borderRadius: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)'}}>
                 <QRCode
                   value={data.trackingUrl}
                   size={160}
                   style={{ height: 'auto', maxWidth: '100%', width: '100%' }}
                   viewBox={`0 0 256 256`}
                 />
-              </Box>
-            </Box>
+              </div>
+            </div>
 
             {/* Metadata Grid */}
-            <Box
-              sx={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(2, 1fr)',
-                gap: 1.5,
-                borderTop: '1px solid #e4e4e7',
-                pt: 2,
-                mt: 1,
-              }}
-            >
+            <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', borderTop: '1px solid #e4e4e7', paddingTop: '16px', marginTop: '8px'}}>
               {data.metadata?.customerName && (
-                <Box>
-                  <Typography sx={{ fontSize: '0.68rem', color: '#71717a', textTransform: 'uppercase', fontWeight: 700 }}>
+                <div>
+                  <p style={{fontSize: '0.68rem', color: '#71717a', textTransform: 'uppercase', fontWeight: 700}}>
                     Consignee / Customer
-                  </Typography>
-                  <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: '#09090b' }}>
+                  </p>
+                  <p style={{fontSize: '0.85rem', fontWeight: 700, color: '#09090b'}}>
                     {data.metadata.customerName}
-                  </Typography>
-                </Box>
+                  </p>
+                </div>
               )}
               {data.metadata?.destination && (
-                <Box>
-                  <Typography sx={{ fontSize: '0.68rem', color: '#71717a', textTransform: 'uppercase', fontWeight: 700 }}>
+                <div>
+                  <p style={{fontSize: '0.68rem', color: '#71717a', textTransform: 'uppercase', fontWeight: 700}}>
                     Destination Port
-                  </Typography>
-                  <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: '#09090b' }}>
+                  </p>
+                  <p style={{fontSize: '0.85rem', fontWeight: 700, color: '#09090b'}}>
                     {data.metadata.destination}
-                  </Typography>
-                </Box>
+                  </p>
+                </div>
               )}
               {data.metadata?.bookingNumber && (
-                <Box>
-                  <Typography sx={{ fontSize: '0.68rem', color: '#71717a', textTransform: 'uppercase', fontWeight: 700 }}>
+                <div>
+                  <p style={{fontSize: '0.68rem', color: '#71717a', textTransform: 'uppercase', fontWeight: 700}}>
                     Booking #
-                  </Typography>
-                  <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: '#09090b' }}>
+                  </p>
+                  <p style={{fontSize: '0.85rem', fontWeight: 700, color: '#09090b'}}>
                     {data.metadata.bookingNumber}
-                  </Typography>
-                </Box>
+                  </p>
+                </div>
               )}
               {data.metadata?.vesselName && (
-                <Box>
-                  <Typography sx={{ fontSize: '0.68rem', color: '#71717a', textTransform: 'uppercase', fontWeight: 700 }}>
+                <div>
+                  <p style={{fontSize: '0.68rem', color: '#71717a', textTransform: 'uppercase', fontWeight: 700}}>
                     Vessel
-                  </Typography>
-                  <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: '#09090b' }}>
+                  </p>
+                  <p style={{fontSize: '0.85rem', fontWeight: 700, color: '#09090b'}}>
                     {data.metadata.vesselName}
-                  </Typography>
-                </Box>
+                  </p>
+                </div>
               )}
-            </Box>
+            </div>
 
-            <Typography sx={{ textAlign: 'center', fontSize: '0.7rem', color: '#71717a', mt: 2, wordBreak: 'break-all' }}>
+            <p style={{textAlign: 'center', fontSize: '0.7rem', color: '#71717a', marginTop: '16px', wordBreak: 'break-all'}}>
               {data.trackingUrl}
-            </Typography>
-          </Box>
+            </p>
+          </div>
         </div>
-      </Box>
+      </div>
     </Modal>
   );
 }

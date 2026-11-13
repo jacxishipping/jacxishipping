@@ -3,9 +3,8 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { Box, MenuItem, TextField } from '@mui/material';
 import { DashboardSurface, DashboardPanel } from '@/components/dashboard/DashboardSurface';
-import { Breadcrumbs, Button, toast } from '@/components/design-system';
+import { Breadcrumbs, Button, FormField, Select, toast } from '@/components/design-system';
 import { PortalActivityList, type PortalActivityItem } from '@/components/partner-portals/PortalActivityList';
 
 type PortalInfo = {
@@ -74,9 +73,9 @@ export default function PortalActivityPageContent({ mode }: PortalActivityPageCo
   return (
     <DashboardSurface>
       {mode === 'dashboard' ? (
-        <Box sx={{ px: 2, pt: 2 }}>
+        <div style={{ paddingLeft: 16, paddingRight: 16, paddingTop: 16 }}>
           <Breadcrumbs />
-        </Box>
+        </div>
       ) : null}
 
       <DashboardPanel
@@ -88,19 +87,14 @@ export default function PortalActivityPageContent({ mode }: PortalActivityPageCo
           </Link>
         }
       >
-        <Box sx={{ display: 'grid', gap: 2 }}>
-          <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', md: '220px minmax(0, 1fr)' } }}>
-            <TextField select label="Action" value={actionFilter} onChange={(event) => setActionFilter(event.target.value)}>
-              <MenuItem value="ALL">All actions</MenuItem>
-              <MenuItem value="CREATE">Create</MenuItem>
-              <MenuItem value="UPDATE">Update</MenuItem>
-              <MenuItem value="DELETE">Delete</MenuItem>
-            </TextField>
-            <TextField label="Actor" placeholder="Filter by actor name or email" value={actorFilter} onChange={(event) => setActorFilter(event.target.value)} />
-          </Box>
+        <div style={{ display: 'grid', gap: 16 }}>
+          <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)]" style={{ display: 'grid', gap: 16 }}>
+            <Select label="Action" value={actionFilter} onChange={(val) => setActionFilter(val as string)} options={[{ value: 'ALL', label: 'All actions' }, { value: 'CREATE', label: 'Create' }, { value: 'UPDATE', label: 'Update' }, { value: 'DELETE', label: 'Delete' }]} />
+            <FormField label="Actor" placeholder="Filter by actor name or email" value={actorFilter} onChange={(event) => setActorFilter(event.target.value)} />
+          </div>
 
           {loading ? (
-            <Box sx={{ color: 'var(--text-secondary)' }}>Loading portal activity...</Box>
+            <div style={{ color: 'var(--text-secondary)' }}>Loading portal activity...</div>
           ) : (
             <PortalActivityList
               activities={activities}
@@ -108,7 +102,7 @@ export default function PortalActivityPageContent({ mode }: PortalActivityPageCo
               emptyDescription="Try a different action or actor filter."
             />
           )}
-        </Box>
+        </div>
       </DashboardPanel>
     </DashboardSurface>
   );

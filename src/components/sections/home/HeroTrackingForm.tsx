@@ -1,9 +1,10 @@
 'use client';
 
+import { JacxiButton } from '@/components/design-system/JacxiButton';
 import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, Search } from 'lucide-react';
-import { SpringButton } from '@jacxishippingorg/jx-ui-react';
+
 
 export default function HeroTrackingForm() {
   const [trackingInput, setTrackingInput] = useState('');
@@ -37,13 +38,13 @@ export default function HeroTrackingForm() {
           aria-label="Container number"
           className="w-full bg-transparent px-4 py-3 text-base font-medium text-[var(--text-primary)] outline-none placeholder:text-[var(--text-secondary)]"
         />
-        <SpringButton
+        <JacxiButton
           type="submit"
           className="inline-flex items-center gap-2 rounded-xl bg-[var(--accent-gold)] px-5 py-3 text-sm font-bold text-slate-950 shadow-md shadow-[var(--accent-gold)]/20 hover:brightness-105"
         >
           <span>Track</span>
           <ArrowRight className="h-4 w-4" />
-        </SpringButton>
+        </JacxiButton>
       </div>
     </form>
   );

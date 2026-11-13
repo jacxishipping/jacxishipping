@@ -1,20 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import {
-	TextField,
-	FormControl,
-	InputLabel,
-	Select,
-	MenuItem,
-	Box,
-	InputAdornment,
-	FormControlLabel,
-	Checkbox,
-	CircularProgress,
-} from '@mui/material';
 import { DollarSign, Plus, Trash2, Paperclip, X, TrendingUp, TrendingDown } from 'lucide-react';
-import { Button, Modal, toast } from '@/components/design-system';
+import { Button, FormField, Modal, Select, toast } from '@/components/design-system';
 
 interface ShipmentOption {
 	id: string;
@@ -375,10 +363,10 @@ export default function AddShipmentExpenseModal({
 			onClose={handleClose}
 			size={isBulkMode ? 'lg' : 'sm'}
 			title={
-				<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+				<div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
 					<DollarSign style={{ fontSize: 24, color: 'var(--accent-gold)' }} />
 					<span>{modalTitle || 'Add Shipment Expense'}</span>
-				</Box>
+				</div>
 			}
 			description={
 				isBulkMode
@@ -399,68 +387,48 @@ export default function AddShipmentExpenseModal({
 				</>
 			}
 		>
-			<Box component="form" id={formId} onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+			<form id={formId} onSubmit={handleSubmit} style={{display: 'flex', flexDirection: 'column', gap: '20px'}}>
 				{isBulkMode ? (
 					<>
-						<Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-							<Box sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+						<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+							<div style={{fontSize: '0.875rem', color: 'var(--text-secondary)'}}>
 								Add multiple shipment expenses in one submission
-							</Box>
+							</div>
 							<Button type="button" variant="outline" size="sm" icon={<Plus className="w-4 h-4" />} onClick={addItem} disabled={loading}>
 								Add Row
 							</Button>
-						</Box>
+						</div>
 
 						{expenseItems.map((item, index) => (
-							<Box key={`expense-row-${index}`} sx={{ border: '1px solid var(--border)', borderRadius: 2, p: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-								<Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-									<Box sx={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Expense #{index + 1}</Box>
+							<div key={`expense-row-${index}`} style={{border: '1px solid var(--border)', borderRadius: '16px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px'}}>
+								<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+									<div style={{fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)'}}>Expense #{index + 1}</div>
 									<Button type="button" variant="outline" size="sm" icon={<Trash2 className="w-3 h-3" />} onClick={() => removeItem(index)} disabled={loading || expenseItems.length === 1}>
 										Remove
 									</Button>
-								</Box>
+								</div>
 
-								<FormControl fullWidth size="small" required>
-									<InputLabel>Shipment</InputLabel>
-									<Select value={item.shipmentId} onChange={(e) => updateItem(index, 'shipmentId', e.target.value)} label="Shipment">
-										<MenuItem value=""><em>Select a shipment...</em></MenuItem>
-										{shipments?.map((s) => (
-											<MenuItem key={s.id} value={s.id}>
-												{s.vehicleMake} {s.vehicleModel}{s.vehicleVIN ? ` - ${s.vehicleVIN}` : ''}{s.user ? ` (${s.user.name || s.user.email})` : ''}
-											</MenuItem>
-										))}
-									</Select>
-								</FormControl>
+								<Select label="Shipment" value={item.shipmentId} onChange={(val) => updateItem(index, 'shipmentId', String(val))} options={[{ value: "", label: `${'Select a shipment...'}` }, ...(shipments?.map((s) => ({ value: s.id, label: `${s.vehicleMake} ${s.vehicleModel}${s.vehicleVIN ? ` - ${s.vehicleVIN}` : ''}${s.user ? ` (${s.user.name || s.user.email})` : ''}` })) ?? [])]} />
 
-								<FormControl fullWidth size="small" required>
-									<InputLabel>Expense Type</InputLabel>
-									<Select value={item.expenseType} onChange={(e) => updateItem(index, 'expenseType', e.target.value)} label="Expense Type">
-										{expenseTypes.map((type) => (
-											<MenuItem key={type.value} value={type.value}>{type.label}</MenuItem>
-										))}
-									</Select>
-								</FormControl>
+								<Select label="Expense Type" value={item.expenseType} onChange={(val) => updateItem(index, 'expenseType', String(val))} options={expenseTypes.map((type) => ({ value: type.value, label: type.label }))} />
 
-								<TextField size="small" label="Description" value={item.description} onChange={(e) => updateItem(index, 'description', e.target.value)} required />
+								<FormField label="Description" value={item.description} onChange={(e) => updateItem(index, 'description', e.target.value)} required size="small" />
 
-								<FormControlLabel
-									control={<Checkbox checked={item.useSplitAmounts} onChange={(e) => updateItem(index, 'useSplitAmounts', e.target.checked)} size="small" />}
-									label={<Box component="span" sx={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>Use split amounts (Customer vs. Company Cost)</Box>}
-								/>
+								<label className="flex cursor-pointer items-center gap-2 text-sm text-[var(--text-primary)]"><input type="checkbox" checked={item.useSplitAmounts} onChange={(e) => updateItem(index, 'useSplitAmounts', e.target.checked)} className="h-4 w-4 shrink-0 cursor-pointer accent-[var(--accent-gold)] disabled:cursor-not-allowed disabled:opacity-50" />{<span style={{fontSize: '0.8125rem', color: 'var(--text-secondary)'}}>Use split amounts (Customer vs. Company Cost)</span>}</label>
 
 								{!item.useSplitAmounts ? (
-									<TextField size="small" label="Amount (USD)" type="number" value={item.amount} onChange={(e) => updateItem(index, 'amount', e.target.value)} required inputProps={{ min: 0, step: 0.01 }} InputProps={{ startAdornment: <InputAdornment position="start">$</InputAdornment> }} helperText="Only the customer ledger will be debited" />
+									<FormField label="Amount (USD)" type="number" value={item.amount} onChange={(e) => updateItem(index, 'amount', e.target.value)} required inputProps={{ min: 0, step: 0.01 }} helperText="Only the customer ledger will be debited" size="small" leftIcon={'$'} />
 								) : (
 									<>
-										<TextField size="small" label="Customer Amount (USD)" type="number" value={item.amount} onChange={(e) => updateItem(index, 'amount', e.target.value)} required inputProps={{ min: 0, step: 0.01 }} InputProps={{ startAdornment: <InputAdornment position="start">$</InputAdornment> }} helperText="Amount debited to the customer ledger" />
-										<TextField size="small" label="Carrier Cost (USD)" type="number" value={item.companyAmount} onChange={(e) => updateItem(index, 'companyAmount', e.target.value)} required inputProps={{ min: 0, step: 0.01 }} InputProps={{ startAdornment: <InputAdornment position="start">$</InputAdornment> }} helperText="Amount credited to the company ledger" />
+										<FormField label="Customer Amount (USD)" type="number" value={item.amount} onChange={(e) => updateItem(index, 'amount', e.target.value)} required inputProps={{ min: 0, step: 0.01 }} helperText="Amount debited to the customer ledger" size="small" leftIcon={'$'} />
+										<FormField label="Carrier Cost (USD)" type="number" value={item.companyAmount} onChange={(e) => updateItem(index, 'companyAmount', e.target.value)} required inputProps={{ min: 0, step: 0.01 }} helperText="Amount credited to the company ledger" size="small" leftIcon={'$'} />
 									</>
 								)}
 
 								{/* Receipt attachment for bulk item */}
-								<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mt: 0.5 }}>
+								<div style={{display: 'flex', alignItems: 'center', gap: '12px', marginTop: '4px'}}>
 									{item.receiptUrl ? (
-										<Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1.5, py: 0.75, border: '1px solid var(--border)', borderRadius: 1.5, backgroundColor: 'rgba(var(--accent-gold-rgb), 0.08)' }}>
+										<div style={{display: 'flex', alignItems: 'center', gap: '8px', paddingLeft: '12px', paddingRight: '12px', paddingTop: '6px', paddingBottom: '6px', border: '1px solid var(--border)', borderRadius: '12px', backgroundColor: 'rgba(var(--accent-gold-rgb), 0.08)'}}>
 											<Paperclip className="w-3.5 h-3.5 text-[var(--accent-gold)]" />
 											<span className="text-xs truncate max-w-[200px] text-[var(--text-primary)]">{item.receiptName || 'Attached Receipt'}</span>
 											<button
@@ -473,7 +441,7 @@ export default function AddShipmentExpenseModal({
 											>
 												<X className="w-3 h-3" />
 											</button>
-										</Box>
+										</div>
 									) : (
 										<label className="inline-flex items-center gap-1.5 px-3 py-1 border border-dashed border-[var(--border)] rounded text-xs text-[var(--text-secondary)] hover:border-[var(--accent-gold)] hover:text-[var(--accent-gold)] cursor-pointer transition-colors">
 											<Paperclip className="w-3.5 h-3.5" />
@@ -489,127 +457,46 @@ export default function AddShipmentExpenseModal({
 											/>
 										</label>
 									)}
-								</Box>
+								</div>
 
-								<Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+								<div style={{fontSize: '0.75rem', color: 'var(--text-secondary)'}}>
 									Payment mode: Due (invoice first)
-								</Box>
+								</div>
 
-								<TextField size="small" label="Notes" value={item.notes} onChange={(e) => updateItem(index, 'notes', e.target.value)} multiline rows={2} />
-							</Box>
+								<FormField label="Notes" value={item.notes} onChange={(e) => updateItem(index, 'notes', e.target.value)} multiline rows={2} size="small" />
+							</div>
 						))}
 					</>
 				) : (
 					<>
 						{shouldShowShipmentSelector && (
-							<FormControl fullWidth size="small" required>
-								<InputLabel>Shipment</InputLabel>
-								<Select value={selectedShipmentId} onChange={(e) => setSelectedShipmentId(e.target.value)} label="Shipment">
-									<MenuItem value=""><em>Select a shipment...</em></MenuItem>
-									{shipmentOptions.map((s) => (
-										<MenuItem key={s.id} value={s.id}>
-											{s.vehicleMake} {s.vehicleModel}{s.vehicleVIN ? ` - ${s.vehicleVIN}` : ''}{s.user ? ` (${s.user.name || s.user.email})` : ''}
-										</MenuItem>
-									))}
-								</Select>
-							</FormControl>
+							<Select label="Shipment" value={selectedShipmentId} onChange={(val) => setSelectedShipmentId(String(val))} options={[{ value: "", label: `${'Select a shipment...'}` }, ...shipmentOptions.map((s) => ({ value: s.id, label: `${s.vehicleMake} ${s.vehicleModel}${s.vehicleVIN ? ` - ${s.vehicleVIN}` : ''}${s.user ? ` (${s.user.name || s.user.email})` : ''}` }))]} />
 						)}
 
 						{/* Accounting Leg Selector (when context is not locked by props) */}
 						{!contextTypeProp && (
-							<FormControl fullWidth size="small">
-								<InputLabel>Accounting Leg / Posting Route</InputLabel>
-								<Select
-									value={selectedContextType}
-									onChange={(e) => setSelectedContextType(e.target.value as any)}
-									label="Accounting Leg / Posting Route"
-								>
-									<MenuItem value=""><em>Auto-detect from expense type & shipment setup</em></MenuItem>
-									<MenuItem value="CONTAINER">Container / Ocean Shipping Line</MenuItem>
-									<MenuItem value="DISPATCH">Dispatch / Inland Towing Carrier</MenuItem>
-									<MenuItem value="TRANSIT">Transit / Destination Transport Carrier</MenuItem>
-								</Select>
-							</FormControl>
+							<Select label="Accounting Leg / Posting Route" value={selectedContextType} onChange={(val) => setSelectedContextType(String(val) as any)} options={[{ value: "", label: `${'Auto-detect from expense type & shipment setup'}` }, { value: "CONTAINER", label: 'Container / Ocean Shipping Line' }, { value: "DISPATCH", label: 'Dispatch / Inland Towing Carrier' }, { value: "TRANSIT", label: 'Transit / Destination Transport Carrier' }]} />
 						)}
 
-						<FormControl fullWidth size="small" required>
-							<InputLabel>Expense Type</InputLabel>
-							<Select value={formData.expenseType} onChange={(e) => handleChange('expenseType', e.target.value)} label="Expense Type">
-								{expenseTypes.map((type) => (
-									<MenuItem key={type.value} value={type.value}>{type.label}</MenuItem>
-								))}
-							</Select>
-						</FormControl>
+						<Select label="Expense Type" value={formData.expenseType} onChange={(val) => handleChange('expenseType', String(val))} options={expenseTypes.map((type) => ({ value: type.value, label: type.label }))} />
 
-						<TextField
-							size="small"
-							label="Description"
-							value={formData.description}
-							onChange={(e) => handleChange('description', e.target.value)}
-							required
-							placeholder="e.g. Forklift fee, storage demurrage, extra towing"
-						/>
+						<FormField label="Description" value={formData.description} onChange={(e) => handleChange('description', e.target.value)} required placeholder="e.g. Forklift fee, storage demurrage, extra towing" size="small" />
 
-						<FormControlLabel
-							control={<Checkbox checked={useSplitAmounts} onChange={(e) => setUseSplitAmounts(e.target.checked)} size="small" />}
-							label={<Box component="span" sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Use split amounts (Track Customer Charge vs. Carrier Cost)</Box>}
-						/>
+						<label className="flex cursor-pointer items-center gap-2 text-sm text-[var(--text-primary)]"><input type="checkbox" checked={useSplitAmounts} onChange={(e) => setUseSplitAmounts(e.target.checked)} className="h-4 w-4 shrink-0 cursor-pointer accent-[var(--accent-gold)] disabled:cursor-not-allowed disabled:opacity-50" />{<span style={{fontSize: '0.875rem', color: 'var(--text-secondary)'}}>Use split amounts (Track Customer Charge vs. Carrier Cost)</span>}</label>
 
 						{!useSplitAmounts ? (
-							<TextField
-								size="small"
-								label="Amount (USD)"
-								type="number"
-								value={formData.amount}
-								onChange={(e) => handleChange('amount', e.target.value)}
-								required
-								inputProps={{ min: 0, step: 0.01 }}
-								InputProps={{ startAdornment: <InputAdornment position="start">$</InputAdornment> }}
-								helperText="Customer ledger debited. Company ledger credited at same amount."
-							/>
+							<FormField label="Amount (USD)" type="number" value={formData.amount} onChange={(e) => handleChange('amount', e.target.value)} required inputProps={{ min: 0, step: 0.01 }} helperText="Customer ledger debited. Company ledger credited at same amount." size="small" leftIcon={'$'} />
 						) : (
-							<Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-								<Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
-									<TextField
-										size="small"
-										label="Customer Charge (USD)"
-										type="number"
-										value={formData.amount}
-										onChange={(e) => handleChange('amount', e.target.value)}
-										required
-										inputProps={{ min: 0, step: 0.01 }}
-										InputProps={{ startAdornment: <InputAdornment position="start">$</InputAdornment> }}
-										helperText="Debited to customer"
-									/>
-									<TextField
-										size="small"
-										label="Carrier Cost (USD)"
-										type="number"
-										value={formData.companyAmount}
-										onChange={(e) => handleChange('companyAmount', e.target.value)}
-										required
-										inputProps={{ min: 0, step: 0.01 }}
-										InputProps={{ startAdornment: <InputAdornment position="start">$</InputAdornment> }}
-										helperText="Credited to company ledger"
-									/>
-								</Box>
+							<div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
+								<div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px'}}>
+									<FormField label="Customer Charge (USD)" type="number" value={formData.amount} onChange={(e) => handleChange('amount', e.target.value)} required inputProps={{ min: 0, step: 0.01 }} helperText="Debited to customer" size="small" leftIcon={'$'} />
+									<FormField label="Carrier Cost (USD)" type="number" value={formData.companyAmount} onChange={(e) => handleChange('companyAmount', e.target.value)} required inputProps={{ min: 0, step: 0.01 }} helperText="Credited to company ledger" size="small" leftIcon={'$'} />
+								</div>
 
 								{/* Dynamic Margin Indicator */}
 								{customerAmountNum > 0 && companyAmountNum > 0 && (
-									<Box
-										sx={{
-											p: 1.25,
-											borderRadius: 1.5,
-											border: '1px solid',
-											borderColor: marginNum >= 0 ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)',
-											backgroundColor: marginNum >= 0 ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)',
-											display: 'flex',
-											alignItems: 'center',
-											justifyContent: 'space-between',
-											fontSize: '0.8125rem',
-										}}
-									>
-										<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+									<div style={{padding: '10px', borderRadius: '12px', border: '1px solid', borderColor: marginNum >= 0 ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)', backgroundColor: marginNum >= 0 ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.8125rem'}}>
+										<div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
 											{marginNum >= 0 ? (
 												<TrendingUp className="w-4 h-4 text-emerald-500" />
 											) : (
@@ -618,20 +505,20 @@ export default function AddShipmentExpenseModal({
 											<span style={{ color: marginNum >= 0 ? 'rgb(21,128,61)' : 'rgb(185,28,28)', fontWeight: 600 }}>
 												{marginNum >= 0 ? 'Projected Profit Margin' : 'Projected Negative Margin (Loss)'}
 											</span>
-										</Box>
-										<Box sx={{ fontWeight: 700, color: marginNum >= 0 ? 'rgb(21,128,61)' : 'rgb(185,28,28)' }}>
+										</div>
+										<div style={{fontWeight: 700, color: marginNum >= 0 ? 'rgb(21,128,61)' : 'rgb(185,28,28)'}}>
 											{marginNum >= 0 ? '+' : ''}${marginNum.toFixed(2)} ({marginPercentage.toFixed(1)}%)
-										</Box>
-									</Box>
+										</div>
+									</div>
 								)}
-							</Box>
+							</div>
 						)}
 
 						{/* Document / Receipt Upload */}
-						<Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-							<Box sx={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+						<div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
+							<div style={{fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)'}}>
 								Receipt / Invoice Document
-							</Box>
+							</div>
 							<input
 								type="file"
 								ref={fileInputRef}
@@ -643,23 +530,13 @@ export default function AddShipmentExpenseModal({
 								}}
 							/>
 							{formData.receiptUrl ? (
-								<Box
-									sx={{
-										display: 'flex',
-										alignItems: 'center',
-										justifyContent: 'space-between',
-										p: 1.25,
-										border: '1px solid rgba(var(--accent-gold-rgb), 0.35)',
-										borderRadius: 1.5,
-										backgroundColor: 'rgba(var(--accent-gold-rgb), 0.08)',
-									}}
-								>
-									<Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+								<div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px', border: '1px solid rgba(var(--accent-gold-rgb), 0.35)', borderRadius: '12px', backgroundColor: 'rgba(var(--accent-gold-rgb), 0.08)'}}>
+									<div style={{display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0}}>
 										<Paperclip className="w-4 h-4 text-[var(--accent-gold)] shrink-0" />
-										<Box sx={{ fontSize: '0.8125rem', fontWeight: 500, color: 'var(--text-primary)' }} className="truncate">
+										<div style={{fontSize: '0.8125rem', fontWeight: 500, color: 'var(--text-primary)'}} className="truncate">
 											{formData.receiptName || 'Receipt Document Attached'}
-										</Box>
-									</Box>
+										</div>
+									</div>
 									<button
 										type="button"
 										onClick={() => setFormData((prev) => ({ ...prev, receiptUrl: '', receiptName: '' }))}
@@ -668,37 +545,29 @@ export default function AddShipmentExpenseModal({
 									>
 										<X className="w-4 h-4" />
 									</button>
-								</Box>
+								</div>
 							) : (
 								<Button
 									type="button"
 									variant="outline"
 									size="sm"
 									disabled={uploadingReceipt}
-									icon={uploadingReceipt ? <CircularProgress size={14} color="inherit" /> : <Paperclip className="w-4 h-4" />}
+									icon={uploadingReceipt ? <span role="status" aria-label="Loading" className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-[var(--border)]" style={{width: 14, height: 14, borderTopColor: 'currentColor'}} /> : <Paperclip className="w-4 h-4" />}
 									onClick={() => fileInputRef.current?.click()}
 								>
 									{uploadingReceipt ? 'Uploading Receipt...' : 'Attach Receipt (PDF or Image)'}
 								</Button>
 							)}
-						</Box>
+						</div>
 
-						<Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+						<div style={{fontSize: '0.75rem', color: 'var(--text-secondary)'}}>
 							Payment mode: Due (invoice first)
-						</Box>
+						</div>
 
-						<TextField
-							size="small"
-							label="Notes"
-							value={formData.notes}
-							onChange={(e) => handleChange('notes', e.target.value)}
-							multiline
-							rows={2}
-							placeholder="Additional vendor or handling details..."
-						/>
+						<FormField label="Notes" value={formData.notes} onChange={(e) => handleChange('notes', e.target.value)} multiline rows={2} placeholder="Additional vendor or handling details..." size="small" />
 					</>
 				)}
-			</Box>
+			</form>
 		</Modal>
 	);
 }

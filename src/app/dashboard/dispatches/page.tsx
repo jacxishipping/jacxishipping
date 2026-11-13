@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Box } from '@mui/material';
 import { Eye, Pencil, Plus, Search, Trash2, Truck, Layers } from 'lucide-react';
 import PermissionRoute from '@/components/auth/PermissionRoute';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
@@ -279,23 +279,23 @@ export default function DispatchesPage() {
       header: 'Reference',
       sortable: true,
       render: (_, row) => (
-        <Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px'}}>
             <span style={{ fontWeight: 600, fontFamily: 'monospace' }}>{row.referenceNumber}</span>
             <CopyButton value={row.referenceNumber} label="Dispatch #" />
-          </Box>
-          <Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{row.company.name}</Box>
-        </Box>
+          </JXBox>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.75rem', color: 'var(--text-secondary)'}}>{row.company.name}</JXBox>
+        </JXBox>
       ),
     },
     {
       key: 'origin',
       header: 'Route',
       render: (_, row) => (
-        <Box sx={{ fontSize: '0.8rem' }}>
-          <Box>{row.origin}</Box>
-          <Box sx={{ color: 'var(--text-secondary)' }}>→ {row.destination}</Box>
-        </Box>
+        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.8rem'}}>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>{row.origin}</JXBox>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, color: 'var(--text-secondary)'}}>→ {row.destination}</JXBox>
+        </JXBox>
       ),
     },
     {
@@ -322,7 +322,7 @@ export default function DispatchesPage() {
       header: 'Actions',
       align: 'right',
       render: (_, row) => (
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.75, flexWrap: 'nowrap', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
+        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'flex-end', gap: '6px', flexWrap: 'nowrap', whiteSpace: 'nowrap'}} onClick={(e) => e.stopPropagation()}>
           <Button
             variant="outline"
             size="sm"
@@ -354,17 +354,11 @@ export default function DispatchesPage() {
               void handleDeleteDispatch(row);
             }}
             disabled={deletingDispatchId === row.id}
-            sx={{
-              color: 'var(--error)',
-              borderColor: 'var(--error)',
-              '&:hover': {
-                bgcolor: 'rgba(var(--error-rgb), 0.1)',
-              },
-            }}
+            style={{color: 'var(--error)', borderColor: 'var(--error)'}}
           >
             {deletingDispatchId === row.id ? 'Deleting...' : 'Delete'}
           </Button>
-        </Box>
+        </JXBox>
       ),
     },
   ], [deletingDispatchId, router]);
@@ -434,7 +428,7 @@ export default function DispatchesPage() {
         {/* Data Table Panel */}
         <DashboardPanel title={`Dispatches List (${totalCount || dispatches.length})`} fullHeight>
           {loading ? (
-            <Box sx={{ py: 4, textAlign: 'center', color: 'var(--text-secondary)' }}>Loading dispatches...</Box>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingTop: '32px', paddingBottom: '32px', textAlign: 'center', color: 'var(--text-secondary)'}}>Loading dispatches...</JXBox>
           ) : (
             <>
               <DataTable
@@ -448,19 +442,8 @@ export default function DispatchesPage() {
 
               {/* Pagination Controls */}
               {totalCount > 0 && (
-                <Box
-                  sx={{
-                    display: 'flex',
-                    flexDirection: { xs: 'column', sm: 'row' },
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 2,
-                    mt: 3,
-                    pt: 2,
-                    borderTop: '1px solid var(--border)',
-                  }}
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', marginTop: '24px', paddingTop: '16px', borderTop: '1px solid var(--border)'}} className="flex-col sm:flex-row">
+                  <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--text-secondary)', fontSize: '0.875rem'}}>
                     <span>
                       Showing {Math.min((page - 1) * pageSize + 1, totalCount)}–{Math.min(page * pageSize, totalCount)} of {totalCount}
                     </span>
@@ -481,9 +464,9 @@ export default function DispatchesPage() {
                         <option value={100}>100</option>
                       </select>
                     </div>
-                  </Box>
+                  </JXBox>
 
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px'}}>
                     <Button
                       variant="outline"
                       size="sm"
@@ -492,9 +475,9 @@ export default function DispatchesPage() {
                     >
                       Previous
                     </Button>
-                    <Box sx={{ px: 1.5, fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingLeft: '12px', paddingRight: '12px', fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 500}}>
                       Page {page} of {totalPages}
-                    </Box>
+                    </JXBox>
                     <Button
                       variant="outline"
                       size="sm"
@@ -503,8 +486,8 @@ export default function DispatchesPage() {
                     >
                       Next
                     </Button>
-                  </Box>
-                </Box>
+                  </JXBox>
+                </JXBox>
               )}
             </>
           )}

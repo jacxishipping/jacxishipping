@@ -7,8 +7,6 @@
   header,
   footer,
   button,
-  .MuiTab-root,
-  .MuiTabs-root,
   [role="navigation"],
   [aria-label="breadcrumb"] {
     display: none !important;
@@ -92,8 +90,6 @@
   }
 
   /* Cards and panels */
-  .MuiPaper-root,
-  .MuiCard-root,
   [class*="panel"],
   [class*="card"] {
     border: 1px solid #ccc !important;
@@ -107,7 +103,6 @@
   }
 
   /* Chips and badges */
-  .MuiChip-root,
   [class*="badge"],
   [class*="chip"] {
     border: 1px solid #ccc !important;
@@ -162,12 +157,6 @@
     }
   }
 
-  /* Optimize space */
-  .MuiBox-root {
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-
   /* Tabs content - show all */
   [role="tabpanel"] {
     display: block !important;
@@ -188,17 +177,6 @@
   /* Ensure content is visible */
   [hidden] {
     display: none !important;
-  }
-
-  /* Fix for MUI components */
-  .MuiContainer-root {
-    max-width: 100% !important;
-    padding: 0 !important;
-  }
-
-  .MuiPaper-root {
-    box-shadow: none !important;
-    border-radius: 0 !important;
   }
 
   /* Financial sections */

@@ -1,8 +1,7 @@
 'use client';
 
 import { Eye, EyeOff } from 'lucide-react';
-import { Box, MenuItem, TextField } from '@mui/material';
-import { Button, Modal } from '@/components/design-system';
+import { Button, Modal, Select } from '@/components/design-system';
 import AddShipmentExpenseModal from '@/components/shipments/AddShipmentExpenseModal';
 import PhotoLightbox from '@/components/shipments/PhotoLightbox';
 import type {
@@ -124,27 +123,12 @@ export default function ShipmentDetailOverlays({
             </>
           }
         >
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <TextField
-              select
-              fullWidth
-              label="Dispatch"
-              value={dispatchIdToAssign}
-              onChange={(event) => onDispatchIdChange(event.target.value)}
-              helperText={loadingDispatches ? 'Loading pending dispatches...' : 'Select a dispatch route for this shipment'}
-              size="small"
-              disabled={loadingDispatches || assigningDispatch}
-            >
-              {availableDispatches.map((dispatch) => (
-                <MenuItem key={dispatch.id} value={dispatch.id}>
-                  {dispatch.referenceNumber} - {dispatch.company.name} ({dispatch.origin} → {dispatch.destination})
-                </MenuItem>
-              ))}
-            </TextField>
+          <div style={{display: 'flex', flexDirection: 'column', gap: '16px'}}>
+            <Select label="Dispatch" value={dispatchIdToAssign} onChange={(val) => onDispatchIdChange(String(val))} helperText={loadingDispatches ? 'Loading pending dispatches...' : 'Select a dispatch route for this shipment'} disabled={loadingDispatches || assigningDispatch} size="small" options={availableDispatches.map((dispatch) => ({ value: dispatch.id, label: `${dispatch.referenceNumber} - ${dispatch.company.name} (${dispatch.origin} → ${dispatch.destination})` }))} />
             {!loadingDispatches && availableDispatches.length === 0 && (
               <p className="mt-3 text-sm text-[var(--text-secondary)]">No pending dispatches are available.</p>
             )}
-          </Box>
+          </div>
         </Modal>
       )}
 
@@ -172,48 +156,32 @@ export default function ShipmentDetailOverlays({
             </>
           }
         >
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <TextField
-              select
-              fullWidth
-              label="Transit"
-              value={transitIdToAssign}
-              onChange={(event) => onTransitIdChange(event.target.value)}
-              helperText={loadingTransits ? 'Loading open transits...' : 'Select the transit this shipment will travel on'}
-              size="small"
-              disabled={loadingTransits || assigningTransit}
-            >
-              {availableTransits.map((transit) => (
-                <MenuItem key={transit.id} value={transit.id}>
-                  {transit.referenceNumber}
-                  {transit.currentCompany ? ` - ${transit.currentCompany.name}` : ''} ({transit.origin} → {transit.destination})
-                </MenuItem>
-              ))}
-            </TextField>
+          <div style={{display: 'flex', flexDirection: 'column', gap: '16px'}}>
+            <Select label="Transit" value={transitIdToAssign} onChange={(val) => onTransitIdChange(String(val))} helperText={loadingTransits ? 'Loading open transits...' : 'Select the transit this shipment will travel on'} disabled={loadingTransits || assigningTransit} size="small" options={availableTransits.map((transit) => ({ value: transit.id, label: `${transit.referenceNumber} ${transit.currentCompany ? ` - ${transit.currentCompany.name}` : ''} (${transit.origin} → ${transit.destination})` }))} />
             {!loadingTransits && availableTransits.length === 0 && (
               <p className="mt-3 text-sm text-[var(--text-secondary)]">No open transits are available. Create one from the Transits page first.</p>
             )}
-            <TextField
-              fullWidth
-              label="Release Token"
-              type={showReleaseToken ? 'text' : 'password'}
-              value={releaseTokenToAssign}
-              onChange={(event) => onReleaseTokenChange(event.target.value)}
-              helperText="Auto-filled from this shipment — the token is verified before assigning"
-              size="small"
-              InputProps={{
-                endAdornment: (
-                  <button
-                    type="button"
-                    onClick={onToggleReleaseToken}
-                    style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-secondary)' }}
-                  >
-                    {showReleaseToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                ),
-              }}
-            />
-          </Box>
+            <div>
+              <p className="mb-1.5 text-[0.875rem] font-medium text-[var(--text-primary)]">Release Token</p>
+              <div className="relative">
+                <input
+                  type={showReleaseToken ? 'text' : 'password'}
+                  value={releaseTokenToAssign}
+                  onChange={(event) => onReleaseTokenChange(event.target.value)}
+                  className="ds-form-field-control w-full rounded-lg border bg-[var(--background)] text-[var(--text-primary)] outline-none transition-colors placeholder:text-[var(--text-secondary)] px-2.5 py-1.5 text-[0.8125rem] pr-9 border-[rgba(var(--border-rgb),0.9)] hover:border-[var(--border)] focus:border-[var(--accent-gold)] focus:ring-2 focus:ring-[rgba(var(--accent-gold-rgb),0.2)]"
+                />
+                <button
+                  type="button"
+                  onClick={onToggleReleaseToken}
+                  aria-label={showReleaseToken ? 'Hide release token' : 'Show release token'}
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 cursor-pointer border-none bg-transparent p-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                >
+                  {showReleaseToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              <p className="mt-1.5 text-[0.8125rem] text-[var(--text-secondary)]">Auto-filled from this shipment — the token is verified before assigning</p>
+            </div>
+          </div>
         </Modal>
       )}
 

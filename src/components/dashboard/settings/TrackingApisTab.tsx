@@ -22,9 +22,8 @@ import {
   Zap,
   Info
 } from 'lucide-react';
-import { Box, Chip, TextField, Typography, Tooltip } from '@mui/material';
 import { DashboardGrid, DashboardPanel } from '@/components/dashboard/DashboardSurface';
-import { Button, StatsCard, StatusBadge, toast } from '@/components/design-system';
+import { Button, FormField, StatsCard, StatusBadge, toast } from '@/components/design-system';
 
 type SupabaseDiagnostics = {
   supabaseUrl: string;
@@ -305,10 +304,10 @@ export function TrackingApisTab() {
 
   if (loading) {
     return (
-      <Box sx={{ p: 4, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 2 }}>
+      <div style={{padding: '32px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '16px'}}>
         <RefreshCw className="w-5 h-5 animate-spin text-[var(--accent-gold)]" />
-        <Typography sx={{ color: 'var(--text-secondary)' }}>Loading tracking APIs status...</Typography>
-      </Box>
+        <p style={{color: 'var(--text-secondary)'}}>Loading tracking APIs status...</p>
+      </div>
     );
   }
 
@@ -321,7 +320,7 @@ export function TrackingApisTab() {
         title="Tracking APIs & Carrier Telematics"
         description="Monitor status, check JWT access token lifecycle, test upstream carrier endpoints, and execute live container lookups."
         actions={
-          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+          <div style={{display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
             <Button
               variant="outline"
               size="sm"
@@ -340,7 +339,7 @@ export function TrackingApisTab() {
             >
               Renew Supabase JWT
             </Button>
-          </Box>
+          </div>
         }
       >
         <DashboardGrid className="grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
@@ -395,7 +394,7 @@ export function TrackingApisTab() {
         title="Supabase Backend & Token Lifecycle"
         description="Inspect ContainerTracking JWT token expiration, test token renewal, and manage integration credentials."
         actions={
-          <Box sx={{ display: 'flex', gap: 1 }}>
+          <div style={{display: 'flex', gap: '8px'}}>
             <Button
               variant="outline"
               size="sm"
@@ -413,80 +412,58 @@ export function TrackingApisTab() {
             >
               {showEditCredentials ? 'Hide Credentials' : 'Edit Credentials'}
             </Button>
-          </Box>
+          </div>
         }
       >
         <div className="space-y-4">
           {/* Status Details Bar */}
-          <Box
-            sx={{
-              p: 2.5,
-              borderRadius: '10px',
-              border: '1px solid var(--border)',
-              backgroundColor: 'var(--background)',
-              display: 'grid',
-              gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' },
-              gap: 2,
-            }}
-          >
+          <div style={{padding: '20px', borderRadius: '10px', border: '1px solid var(--border)', backgroundColor: 'var(--background)', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px'}}>
             <div>
-              <Typography sx={{ fontSize: '0.78rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>
+              <p style={{fontSize: '0.78rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700}}>
                 Supabase URL
-              </Typography>
-              <Typography sx={{ fontSize: '0.88rem', color: 'var(--text-primary)', mt: 0.5, fontFamily: 'monospace' }}>
+              </p>
+              <p style={{fontSize: '0.88rem', color: 'var(--text-primary)', marginTop: '4px', fontFamily: 'monospace'}}>
                 {supabase?.supabaseUrl || 'Not configured'}
-              </Typography>
+              </p>
             </div>
 
             <div>
-              <Typography sx={{ fontSize: '0.78rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>
+              <p style={{fontSize: '0.78rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700}}>
                 Token Expiration
-              </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+              </p>
+              <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px'}}>
                 <Clock className="w-4 h-4 text-[var(--accent-gold)]" />
-                <Typography sx={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600 }}>
+                <p style={{fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600}}>
                   {supabase?.tokenExpiresAt
                     ? `${new Date(supabase.tokenExpiresAt).toLocaleString()} (${formatExpiryTime(supabase.secondsUntilExpiry)})`
                     : 'N/A'}
-                </Typography>
-              </Box>
+                </p>
+              </div>
             </div>
 
             <div>
-              <Typography sx={{ fontSize: '0.78rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>
+              <p style={{fontSize: '0.78rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700}}>
                 Masked Refresh Token
-              </Typography>
-              <Typography sx={{ fontSize: '0.88rem', color: 'var(--text-primary)', mt: 0.5, fontFamily: 'monospace' }}>
+              </p>
+              <p style={{fontSize: '0.88rem', color: 'var(--text-primary)', marginTop: '4px', fontFamily: 'monospace'}}>
                 {supabase?.maskedRefreshToken || 'None'}
-              </Typography>
+              </p>
             </div>
-          </Box>
+          </div>
 
           {/* Quick Renewal Action Callout */}
-          <Box
-            sx={{
-              p: 2,
-              borderRadius: '8px',
-              border: '1px solid rgba(var(--accent-gold-rgb), 0.25)',
-              backgroundColor: 'rgba(var(--accent-gold-rgb), 0.05)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: 2,
-            }}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <div style={{padding: '16px', borderRadius: '8px', border: '1px solid rgba(var(--accent-gold-rgb), 0.25)', backgroundColor: 'rgba(var(--accent-gold-rgb), 0.05)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px'}}>
+            <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
               <Zap className="w-5 h-5 text-[var(--accent-gold)]" />
-              <Box>
-                <Typography sx={{ fontSize: '0.88rem', fontWeight: 650, color: 'var(--text-primary)' }}>
+              <div>
+                <p style={{fontSize: '0.88rem', fontWeight: 650, color: 'var(--text-primary)'}}>
                   Test Automatic Token Renewal
-                </Typography>
-                <Typography sx={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                </p>
+                <p style={{fontSize: '0.8rem', color: 'var(--text-secondary)'}}>
                   Exchanges the refresh token for a fresh Supabase JWT token and updates client headers in real time.
-                </Typography>
-              </Box>
-            </Box>
+                </p>
+              </div>
+            </div>
             <Button
               variant="primary"
               size="sm"
@@ -496,91 +473,33 @@ export function TrackingApisTab() {
             >
               Execute Renewal Now
             </Button>
-          </Box>
+          </div>
 
           {/* Credentials Edit Form */}
           {showEditCredentials && (
-            <Box
-              component="form"
-              onSubmit={handleSaveCredentials}
-              sx={{
-                p: 3,
-                borderRadius: '10px',
-                border: '1px solid var(--border)',
-                backgroundColor: 'var(--panel)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 2,
-              }}
-            >
-              <Typography sx={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', mb: 1 }}>
+            <form onSubmit={handleSaveCredentials} style={{padding: '24px', borderRadius: '10px', border: '1px solid var(--border)', backgroundColor: 'var(--panel)', display: 'flex', flexDirection: 'column', gap: '16px'}}>
+              <p style={{fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px'}}>
                 Update Tracking Service Credentials
-              </Typography>
+              </p>
 
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
-                <TextField
-                  size="small"
-                  label="Supabase URL"
-                  value={credentialsForm.supabaseUrl}
-                  onChange={(e) => setCredentialsForm({ ...credentialsForm, supabaseUrl: e.target.value })}
-                  placeholder="https://your-project.supabase.co"
-                  fullWidth
-                />
-                <TextField
-                  size="small"
-                  label="User ID (UUID)"
-                  value={credentialsForm.userId}
-                  onChange={(e) => setCredentialsForm({ ...credentialsForm, userId: e.target.value })}
-                  placeholder="4507dbe2-5a3d-42eb-..."
-                  fullWidth
-                />
-                <TextField
-                  size="small"
-                  label="Anon Key (Public API Key)"
-                  type="password"
-                  value={credentialsForm.anonKey}
-                  onChange={(e) => setCredentialsForm({ ...credentialsForm, anonKey: e.target.value })}
-                  placeholder="Enter new Anon Key (leave blank to keep current)"
-                  fullWidth
-                />
-                <TextField
-                  size="small"
-                  label="Refresh Token"
-                  type="password"
-                  value={credentialsForm.refreshToken}
-                  onChange={(e) => setCredentialsForm({ ...credentialsForm, refreshToken: e.target.value })}
-                  placeholder="Enter new Refresh Token (leave blank to keep current)"
-                  fullWidth
-                />
-                <TextField
-                  size="small"
-                  label="Access Token (JWT)"
-                  type="password"
-                  value={credentialsForm.accessToken}
-                  onChange={(e) => setCredentialsForm({ ...credentialsForm, accessToken: e.target.value })}
-                  placeholder="Enter manual Access Token (optional)"
-                  fullWidth
-                />
-                <TextField
-                  size="small"
-                  label="Public Tracking API Key (Gateway)"
-                  type="password"
-                  value={credentialsForm.publicTrackingApiKey}
-                  onChange={(e) => setCredentialsForm({ ...credentialsForm, publicTrackingApiKey: e.target.value })}
-                  placeholder="Optional custom secret for /api/public/tracking"
-                  fullWidth
-                />
-              </Box>
+              <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
+                <FormField label="Supabase URL" value={credentialsForm.supabaseUrl} onChange={(e) => setCredentialsForm({ ...credentialsForm, supabaseUrl: e.target.value })} placeholder="https://your-project.supabase.co" size="small" />
+                <FormField label="User ID (UUID)" value={credentialsForm.userId} onChange={(e) => setCredentialsForm({ ...credentialsForm, userId: e.target.value })} placeholder="4507dbe2-5a3d-42eb-..." size="small" />
+                <FormField label="Anon Key (Public API Key)" type="password" value={credentialsForm.anonKey} onChange={(e) => setCredentialsForm({ ...credentialsForm, anonKey: e.target.value })} placeholder="Enter new Anon Key (leave blank to keep current)" size="small" />
+                <FormField label="Refresh Token" type="password" value={credentialsForm.refreshToken} onChange={(e) => setCredentialsForm({ ...credentialsForm, refreshToken: e.target.value })} placeholder="Enter new Refresh Token (leave blank to keep current)" size="small" />
+                <FormField label="Access Token (JWT)" type="password" value={credentialsForm.accessToken} onChange={(e) => setCredentialsForm({ ...credentialsForm, accessToken: e.target.value })} placeholder="Enter manual Access Token (optional)" size="small" />
+                <FormField label="Public Tracking API Key (Gateway)" type="password" value={credentialsForm.publicTrackingApiKey} onChange={(e) => setCredentialsForm({ ...credentialsForm, publicTrackingApiKey: e.target.value })} placeholder="Optional custom secret for /api/public/tracking" size="small" />
+              </div>
 
-              <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 1 }}>
+              <div style={{display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '8px'}}>
                 <Button variant="outline" size="sm" onClick={() => setShowEditCredentials(false)}>
                   Cancel
                 </Button>
                 <Button type="submit" variant="primary" size="sm" loading={savingCredentials}>
                   Save Credentials
                 </Button>
-              </Box>
-            </Box>
+              </div>
+            </form>
           )}
         </div>
       </DashboardPanel>
@@ -620,55 +539,21 @@ export function TrackingApisTab() {
           </DashboardGrid>
 
           {/* AIS Credentials Form */}
-          <Box
-            sx={{
-              p: 3,
-              borderRadius: '10px',
-              border: '1px solid var(--border)',
-              backgroundColor: 'var(--panel)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 2,
-            }}
-          >
-            <Typography sx={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', mb: 1 }}>
+          <div style={{padding: '24px', borderRadius: '10px', border: '1px solid var(--border)', backgroundColor: 'var(--panel)', display: 'flex', flexDirection: 'column', gap: '16px'}}>
+            <p style={{fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px'}}>
               AIS Provider API Keys
-            </Typography>
-            <Typography sx={{ fontSize: '0.8rem', color: 'var(--text-secondary)', mb: 1 }}>
+            </p>
+            <p style={{fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '8px'}}>
               Enter your API keys for real-time vessel tracking. The map will fall back through providers in order: MarineTraffic → VesselFinder → AISHub → Simulated.
-            </Typography>
+            </p>
 
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
-              <TextField
-                size="small"
-                label="MarineTraffic API Key"
-                type="password"
-                value={credentialsForm.marineTrafficApiKey}
-                onChange={(e) => setCredentialsForm({ ...credentialsForm, marineTrafficApiKey: e.target.value })}
-                placeholder={data?.aisProviders?.marineTraffic.configured ? 'Leave blank to keep current key' : 'Enter MarineTraffic API key'}
-                fullWidth
-              />
-              <TextField
-                size="small"
-                label="VesselFinder API Key"
-                type="password"
-                value={credentialsForm.vesselFinderApiKey}
-                onChange={(e) => setCredentialsForm({ ...credentialsForm, vesselFinderApiKey: e.target.value })}
-                placeholder={data?.aisProviders?.vesselFinder.configured ? 'Leave blank to keep current key' : 'Enter VesselFinder API key'}
-                fullWidth
-              />
-              <TextField
-                size="small"
-                label="AISHub API Key"
-                type="password"
-                value={credentialsForm.aisHubApiKey}
-                onChange={(e) => setCredentialsForm({ ...credentialsForm, aisHubApiKey: e.target.value })}
-                placeholder={data?.aisProviders?.aisHub.configured ? 'Leave blank to keep current key' : 'Enter AISHub API key'}
-                fullWidth
-              />
-            </Box>
+            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
+              <FormField label="MarineTraffic API Key" type="password" value={credentialsForm.marineTrafficApiKey} onChange={(e) => setCredentialsForm({ ...credentialsForm, marineTrafficApiKey: e.target.value })} placeholder={data?.aisProviders?.marineTraffic.configured ? 'Leave blank to keep current key' : 'Enter MarineTraffic API key'} size="small" />
+              <FormField label="VesselFinder API Key" type="password" value={credentialsForm.vesselFinderApiKey} onChange={(e) => setCredentialsForm({ ...credentialsForm, vesselFinderApiKey: e.target.value })} placeholder={data?.aisProviders?.vesselFinder.configured ? 'Leave blank to keep current key' : 'Enter VesselFinder API key'} size="small" />
+              <FormField label="AISHub API Key" type="password" value={credentialsForm.aisHubApiKey} onChange={(e) => setCredentialsForm({ ...credentialsForm, aisHubApiKey: e.target.value })} placeholder={data?.aisProviders?.aisHub.configured ? 'Leave blank to keep current key' : 'Enter AISHub API key'} size="small" />
+            </div>
 
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 1 }}>
+            <div style={{display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '8px'}}>
               <Button
                 variant="primary"
                 size="sm"
@@ -703,8 +588,8 @@ export function TrackingApisTab() {
               >
                 Save AIS API Keys
               </Button>
-            </Box>
-          </Box>
+            </div>
+          </div>
         </div>
       </DashboardPanel>
 
@@ -715,7 +600,7 @@ export function TrackingApisTab() {
       >
         <div className="space-y-4">
           {/* Target Selector Tabs */}
-          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+          <div style={{display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
             {[
               { id: 'pipeline', label: '⚡ Production Pipeline (All Providers)' },
               { id: 'supabase-container', label: '📦 Supabase ContainerTracking' },
@@ -724,107 +609,46 @@ export function TrackingApisTab() {
               { id: 'supabase-vessel', label: '⚓ Vessel AIS Position (IMO)' },
               { id: 'public-api', label: '🔑 Public Gateway API' },
             ].map((tab) => (
-              <Chip
-                key={tab.id}
-                label={tab.label}
-                clickable
-                onClick={() => setTestTarget(tab.id as TestTarget)}
-                sx={{
-                  fontWeight: testTarget === tab.id ? 700 : 500,
-                  backgroundColor: testTarget === tab.id ? 'var(--accent-gold)' : 'var(--background)',
-                  color: testTarget === tab.id ? '#000' : 'var(--text-secondary)',
-                  border: '1px solid var(--border)',
-                  '&:hover': {
-                    backgroundColor: testTarget === tab.id ? 'var(--accent-gold)' : 'rgba(var(--accent-gold-rgb), 0.1)',
-                  },
-                }}
-              />
+              <button type="button" key={tab.id} onClick={() => setTestTarget(tab.id as TestTarget)} style={{fontWeight: testTarget === tab.id ? 700 : 500, backgroundColor: testTarget === tab.id ? 'var(--accent-gold)' : 'var(--background)', color: testTarget === tab.id ? '#000' : 'var(--text-secondary)', border: '1px solid var(--border)'}} className="inline-flex items-center gap-1 rounded-full font-medium text-xs px-2.5 py-1 border border-[var(--border)] bg-[var(--background)] text-[var(--text-primary)]">{tab.label}</button>
             ))}
-          </Box>
+          </div>
 
           {/* Quick-Pick Sample Container Chips */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-            <Typography sx={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+          <div style={{display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap'}}>
+            <p style={{fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600}}>
               Sample Numbers:
-            </Typography>
-            <Chip
-              size="small"
-              label="TRKU3019842 (Turkon)"
-              clickable
-              onClick={() => {
+            </p>
+            <button type="button" onClick={() => {
                 setTrackingNumber('TRKU3019842');
                 setTestTarget('pipeline');
-              }}
-              sx={{ fontSize: '0.75rem', fontFamily: 'monospace' }}
-            />
-            <Chip
-              size="small"
-              label="UETU6059142 (PGL/Maersk)"
-              clickable
-              onClick={() => {
+              }} style={{fontSize: '0.75rem', fontFamily: 'monospace'}} className="inline-flex items-center gap-1 rounded-full font-medium text-[0.7rem] px-2 py-0.5 border border-[var(--border)] bg-[var(--background)] text-[var(--text-primary)]">"TRKU3019842 (Turkon)"</button>
+            <button type="button" onClick={() => {
                 setTrackingNumber('UETU6059142');
                 setTestTarget('pipeline');
-              }}
-              sx={{ fontSize: '0.75rem', fontFamily: 'monospace' }}
-            />
-            <Chip
-              size="small"
-              label="MSKU9876543 (Maersk)"
-              clickable
-              onClick={() => {
+              }} style={{fontSize: '0.75rem', fontFamily: 'monospace'}} className="inline-flex items-center gap-1 rounded-full font-medium text-[0.7rem] px-2 py-0.5 border border-[var(--border)] bg-[var(--background)] text-[var(--text-primary)]">"UETU6059142 (PGL/Maersk)"</button>
+            <button type="button" onClick={() => {
                 setTrackingNumber('MSKU9876543');
                 setTestTarget('pipeline');
-              }}
-              sx={{ fontSize: '0.75rem', fontFamily: 'monospace' }}
-            />
+              }} style={{fontSize: '0.75rem', fontFamily: 'monospace'}} className="inline-flex items-center gap-1 rounded-full font-medium text-[0.7rem] px-2 py-0.5 border border-[var(--border)] bg-[var(--background)] text-[var(--text-primary)]">"MSKU9876543 (Maersk)"</button>
             {data?.recentContainers?.slice(0, 4).map((c) => (
-              <Chip
-                key={c.id}
-                size="small"
-                label={`${c.containerNumber} (${c.shippingLine || 'DB'})`}
-                clickable
-                onClick={() => {
+              <button type="button" key={c.id} onClick={() => {
                   setTrackingNumber(c.containerNumber);
                   setTestTarget('pipeline');
-                }}
-                sx={{ fontSize: '0.75rem', fontFamily: 'monospace' }}
-              />
+                }} style={{fontSize: '0.75rem', fontFamily: 'monospace'}} className="inline-flex items-center gap-1 rounded-full font-medium text-[0.7rem] px-2 py-0.5 border border-[var(--border)] bg-[var(--background)] text-[var(--text-primary)]">{`${c.containerNumber} (${c.shippingLine || 'DB'})`}</button>
             ))}
-          </Box>
+          </div>
 
           {/* Input & Execution Bar */}
-          <Box
-            sx={{
-              display: 'flex',
-              gap: 2,
-              flexDirection: { xs: 'column', md: 'row' },
-              alignItems: { xs: 'stretch', md: 'center' },
-            }}
-          >
+          <div style={{display: 'flex', gap: '16px', flexDirection: 'row', alignItems: 'center'}}>
             {testTarget === 'supabase-vessel' ? (
-              <TextField
-                size="small"
-                label="Vessel IMO Number"
-                value={vesselImo}
-                onChange={(e) => setVesselImo(e.target.value)}
-                placeholder="e.g. 9811000"
-                sx={{ flex: 1 }}
-              />
+              <div style={{flex: 1}}><FormField label="Vessel IMO Number" value={vesselImo} onChange={(e) => setVesselImo(e.target.value)} placeholder="e.g. 9811000" size="small" /></div>
             ) : (
-              <TextField
-                size="small"
-                label="Container / Tracking Number"
-                value={trackingNumber}
-                onChange={(e) => setTrackingNumber(e.target.value.toUpperCase())}
-                placeholder="e.g. TRKU3019842, UETU6059142"
-                onKeyDown={(e) => {
+              <div style={{flex: 1, fontFamily: 'monospace'}}><FormField label="Container / Tracking Number" value={trackingNumber} onChange={(e) => setTrackingNumber(e.target.value.toUpperCase())} placeholder="e.g. TRKU3019842, UETU6059142" onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
                     handleRunTest();
                   }
-                }}
-                sx={{ flex: 1, fontFamily: 'monospace' }}
-              />
+                }} size="small" /></div>
             )}
 
             <Button
@@ -836,53 +660,34 @@ export function TrackingApisTab() {
             >
               Execute Test
             </Button>
-          </Box>
+          </div>
 
           {/* Test Results Section */}
           {testResult && (
-            <Box
-              sx={{
-                mt: 3,
-                p: 2.5,
-                borderRadius: '10px',
-                border: '1px solid var(--border)',
-                backgroundColor: 'var(--background)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 2,
-              }}
-            >
+            <div style={{marginTop: '24px', padding: '20px', borderRadius: '10px', border: '1px solid var(--border)', backgroundColor: 'var(--background)', display: 'flex', flexDirection: 'column', gap: '16px'}}>
               {/* Result Status Bar */}
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px'}}>
+                <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
                   {testResult.success ? (
                     <CheckCircle2 className="w-5 h-5 text-emerald-500" />
                   ) : (
                     <AlertTriangle className="w-5 h-5 text-amber-500" />
                   )}
-                  <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)' }}>
+                  <p style={{fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)'}}>
                     {testResult.success ? 'Query Succeeded' : 'Query Completed with Warning'}
-                  </Typography>
+                  </p>
                   <StatusBadge
                     status={testResult.success ? 'SUCCESS' : 'WARNING'}
                     label={`HTTP ${testResult.httpStatus || 200}`}
                     size="sm"
                   />
-                  <Chip
-                    size="small"
-                    label={`${testResult.latencyMs || 0} ms`}
-                    sx={{ fontSize: '0.75rem', fontWeight: 650 }}
-                  />
+                  <span style={{fontSize: '0.75rem', fontWeight: 650}} className="inline-flex items-center gap-1 rounded-full font-medium text-[0.7rem] px-2 py-0.5 border border-[var(--border)] bg-[var(--background)] text-[var(--text-primary)]">{`${testResult.latencyMs || 0} ms`}</span>
                   {testResult.detectedSource && (
-                    <Chip
-                      size="small"
-                      label={`Source: ${testResult.detectedSource}`}
-                      sx={{ fontSize: '0.75rem', backgroundColor: 'rgba(var(--accent-gold-rgb), 0.1)', color: 'var(--accent-gold)' }}
-                    />
+                    <span style={{fontSize: '0.75rem', backgroundColor: 'rgba(var(--accent-gold-rgb), 0.1)', color: 'var(--accent-gold)'}} className="inline-flex items-center gap-1 rounded-full font-medium text-[0.7rem] px-2 py-0.5 border border-[var(--border)] bg-[var(--background)] text-[var(--text-primary)]">{`Source: ${testResult.detectedSource}`}</span>
                   )}
-                </Box>
+                </div>
 
-                <Box sx={{ display: 'flex', gap: 1 }}>
+                <div style={{display: 'flex', gap: '8px'}}>
                   <Button
                     variant="outline"
                     size="sm"
@@ -899,87 +704,64 @@ export function TrackingApisTab() {
                   >
                     {jsonExpanded ? 'Collapse' : 'Inspect Raw JSON'}
                   </Button>
-                </Box>
-              </Box>
+                </div>
+              </div>
 
               {/* Message notice */}
               {testResult.message && (
-                <Typography sx={{ fontSize: '0.84rem', color: 'var(--text-secondary)' }}>
+                <p style={{fontSize: '0.84rem', color: 'var(--text-secondary)'}}>
                   {testResult.message}
-                </Typography>
+                </p>
               )}
 
               {/* Formatted Snapshot Overview if present */}
               {(testResult.snapshot || testResult.unified) && (
-                <Box
-                  sx={{
-                    p: 2,
-                    borderRadius: '8px',
-                    border: '1px solid var(--border)',
-                    backgroundColor: 'var(--panel)',
-                    display: 'grid',
-                    gridTemplateColumns: { xs: '1fr', md: 'repeat(4, 1fr)' },
-                    gap: 2,
-                  }}
-                >
+                <div style={{padding: '16px', borderRadius: '8px', border: '1px solid var(--border)', backgroundColor: 'var(--panel)', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px'}}>
                   <div>
-                    <Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase' }}>
+                    <p style={{fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase'}}>
                       Container #
-                    </Typography>
-                    <Typography sx={{ fontSize: '0.9rem', color: 'var(--text-primary)', fontWeight: 650, fontFamily: 'monospace' }}>
+                    </p>
+                    <p style={{fontSize: '0.9rem', color: 'var(--text-primary)', fontWeight: 650, fontFamily: 'monospace'}}>
                       {testResult.snapshot?.containerNumber || testResult.unified?.containerNumber || trackingNumber}
-                    </Typography>
+                    </p>
                   </div>
 
                   <div>
-                    <Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase' }}>
+                    <p style={{fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase'}}>
                       Status
-                    </Typography>
-                    <Typography sx={{ fontSize: '0.9rem', color: 'var(--accent-gold)', fontWeight: 650 }}>
+                    </p>
+                    <p style={{fontSize: '0.9rem', color: 'var(--accent-gold)', fontWeight: 650}}>
                       {testResult.snapshot?.status || testResult.unified?.shipmentStatus || 'In Transit'}
-                    </Typography>
+                    </p>
                   </div>
 
                   <div>
-                    <Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase' }}>
+                    <p style={{fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase'}}>
                       Vessel / Voyage
-                    </Typography>
-                    <Typography sx={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+                    </p>
+                    <p style={{fontSize: '0.9rem', color: 'var(--text-primary)'}}>
                       {testResult.snapshot?.vesselName || testResult.unified?.company?.name || 'N/A'} {testResult.snapshot?.voyageNumber ? `(${testResult.snapshot.voyageNumber})` : ''}
-                    </Typography>
+                    </p>
                   </div>
 
                   <div>
-                    <Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase' }}>
+                    <p style={{fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase'}}>
                       Route (POL ➔ POD)
-                    </Typography>
-                    <Typography sx={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>
+                    </p>
+                    <p style={{fontSize: '0.85rem', color: 'var(--text-primary)'}}>
                       {[testResult.snapshot?.loadingPort || testResult.unified?.pol, testResult.snapshot?.destinationPort || testResult.unified?.pod].filter(Boolean).join(' ➔ ') || 'N/A'}
-                    </Typography>
+                    </p>
                   </div>
-                </Box>
+                </div>
               )}
 
               {/* Raw JSON Code Block */}
               {jsonExpanded && (
-                <Box
-                  component="pre"
-                  sx={{
-                    p: 2,
-                    borderRadius: '8px',
-                    backgroundColor: '#0a0a0c',
-                    color: '#e4e4e7',
-                    fontSize: '0.8rem',
-                    fontFamily: 'monospace',
-                    overflowX: 'auto',
-                    maxHeight: '400px',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                  }}
-                >
+                <pre style={{padding: '16px', borderRadius: '8px', backgroundColor: '#0a0a0c', color: '#e4e4e7', fontSize: '0.8rem', fontFamily: 'monospace', overflowX: 'auto', maxHeight: '400px', border: '1px solid rgba(255,255,255,0.1)'}}>
                   {JSON.stringify(testResult, null, 2)}
-                </Box>
+                </pre>
               )}
-            </Box>
+            </div>
           )}
         </div>
       </DashboardPanel>

@@ -3,7 +3,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Bell, X, Check, Package, Ship, FileText, AlertCircle, RefreshCw } from 'lucide-react';
-import { IconButton, Badge, Drawer, Box, Typography, Divider, Tooltip } from '@mui/material';
+import Drawer from '@/components/design-system/Drawer';
+import { IconButton } from '@/components/design-system';
+import Tooltip from '@/components/design-system/Tooltip';
 import { toast } from '@/components/design-system';
 
 interface Notification {
@@ -190,128 +192,85 @@ export function NotificationCenter() {
   return (
     <>
       <Tooltip title="Notifications">
-        <IconButton
-          onClick={() => setOpen(true)}
-          aria-label="Notifications"
-          sx={{
-            color: 'var(--text-secondary)',
-            p: 1,
-            '&:hover': {
-              bgcolor: 'rgba(var(--border-rgb), 0.4)',
-              color: 'var(--text-primary)',
-            },
-          }}
-        >
-          <Badge badgeContent={unreadCount} color="error">
-            <Bell className="w-5 h-5" />
-          </Badge>
-        </IconButton>
+        <span className="relative inline-flex">
+          <IconButton
+            onClick={() => setOpen(true)}
+            ariaLabel="Notifications"
+            icon={<Bell className="w-5 h-5" />}
+            className="!text-[var(--text-secondary)] hover:!bg-[rgba(var(--border-rgb),0.4)] hover:!text-[var(--text-primary)]"
+          />
+          {unreadCount > 0 && (
+            <span
+              aria-label={`${unreadCount} unread notifications`}
+              className="pointer-events-none absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[var(--error)] px-1 text-[0.625rem] font-bold leading-none text-white"
+            >
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </span>
+          )}
+        </span>
       </Tooltip>
 
       <Drawer
         anchor="right"
         open={open}
         onClose={() => setOpen(false)}
-        PaperProps={{
-          sx: {
-            width: { xs: "100%", sm: 400 },
-            bgcolor: "var(--panel)",
-            color: "var(--text-primary)",
-          },
-        }}
+        size="sm"
+        title={
+          <span className="flex items-center gap-3">
+            <span>
+              <span className="block text-[1.125rem] font-bold leading-[1.3] text-[var(--text-primary)]">
+                Notifications
+              </span>
+              <span className="block text-[0.8125rem] leading-[1.4] text-[var(--text-secondary)]">
+                {unreadCount} unread
+              </span>
+            </span>
+            <span className="flex items-center gap-1">
+              <Tooltip title="Refresh">
+                <span className="inline-flex">
+                  <IconButton
+                    onClick={fetchNotifications}
+                    ariaLabel="Refresh notifications"
+                    icon={<RefreshCw className="w-4 h-4" />}
+                    size="sm"
+                  />
+                </span>
+              </Tooltip>
+              {unreadCount > 0 && (
+                <button
+                  onClick={markAllAsRead}
+                  className="whitespace-nowrap text-xs text-[var(--accent-gold)] hover:underline"
+                >
+                  Mark all read
+                </button>
+              )}
+            </span>
+          </span>
+        }
       >
-        {/* Header */}
-        <Box
-          sx={{
-            p: 3,
-            borderBottom: "1px solid var(--border)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <Box>
-            <Typography
-              variant="h6"
-              sx={{ fontWeight: 700, color: "var(--text-primary)" }}
-            >
-              Notifications
-            </Typography>
-            <Typography
-              variant="caption"
-              sx={{ color: "var(--text-secondary)" }}
-            >
-              {unreadCount} unread
-            </Typography>
-          </Box>
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Tooltip title="Refresh">
-              <IconButton onClick={fetchNotifications} size="small" aria-label="Refresh notifications">
-                   <RefreshCw className="w-4 h-4" />
-              </IconButton>
-            </Tooltip>
-            {unreadCount > 0 && (
-              <button
-                onClick={markAllAsRead}
-                className="text-xs text-[var(--accent-gold)] hover:underline"
-              >
-                Mark all read
-              </button>
-            )}
-            <Tooltip title="Close">
-              <IconButton onClick={() => setOpen(false)} size="small" aria-label="Close notifications">
-                <X className="w-5 h-5" />
-              </IconButton>
-            </Tooltip>
-          </Box>
-        </Box>
 
         {/* Notifications List */}
-        <Box sx={{ flex: 1, overflow: "auto" }}>
+        <div className="flex-1 overflow-auto">
           {loading ? (
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                py: 8,
-              }}
-            >
+            <div className="flex items-center justify-center py-8">
               <RefreshCw className="w-6 h-6 text-[var(--text-secondary)] animate-spin" />
-            </Box>
+            </div>
           ) : notifications.length === 0 ? (
-            <Box
-              sx={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                py: 8,
-                px: 3,
-                textAlign: "center",
-              }}
-            >
+            <div className="flex flex-col items-center justify-center px-3 py-8 text-center">
               <Bell className="w-12 h-12 text-[var(--text-secondary)] opacity-50 mb-3" />
-              <Typography
-                sx={{ color: "var(--text-secondary)", fontSize: "0.875rem" }}
-              >
+              <p className="text-[0.875rem] text-[var(--text-secondary)]">
                 No notifications yet
-              </Typography>
-            </Box>
+              </p>
+            </div>
           ) : (
             notifications.map((notification, index) => (
               <div key={notification.id}>
-                <Box
-                  sx={{
-                    p: 3,
-                    cursor: "pointer",
-                    bgcolor: notification.read
+                <div
+                  className="cursor-pointer p-3 transition-colors hover:bg-[var(--background)]"
+                  style={{
+                    backgroundColor: notification.read
                       ? "transparent"
                       : "rgba(var(--accent-gold-rgb), 0.05)",
-                    "&:hover": {
-                      bgcolor: "var(--background)",
-                    },
-                    transition: "background-color 0.2s",
                   }}
                   onClick={() => {
                     markAsRead(notification.id);
@@ -321,119 +280,66 @@ export function NotificationCenter() {
                     }
                   }}
                 >
-                  <Box sx={{ display: "flex", gap: 2 }}>
-                    <Box
-                      sx={{
-                        flexShrink: 0,
-                        mt: 0.5,
-                      }}
-                    >
+                  <div className="flex gap-2">
+                    <div className="mt-0.5 shrink-0">
                       {getNotificationIcon(notification.type)}
-                    </Box>
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Box
-                        sx={{
-                          display: "flex",
-                          alignItems: "start",
-                          justifyContent: "space-between",
-                          gap: 2,
-                        }}
-                      >
-                        <Box sx={{ flex: 1, minWidth: 0 }}>
-                          <Box
-                            sx={{
-                              display: "flex",
-                              flexWrap: "wrap",
-                              alignItems: "center",
-                              gap: 1,
-                              mb: 0.5,
-                            }}
-                          >
-                            <Typography
-                              sx={{
-                                fontSize: "0.875rem",
-                                fontWeight: notification.read ? 500 : 700,
-                                color: "var(--text-primary)",
-                              }}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="mb-0.5 flex flex-wrap items-center gap-1">
+                            <p
+                              className="text-[0.875rem] text-[var(--text-primary)]"
+                              style={{ fontWeight: notification.read ? 500 : 700 }}
                             >
                               {notification.title}
-                            </Typography>
-                            <Box
-                              component="span"
-                              sx={{
-                                display: "inline-flex",
-                                alignItems: "center",
-                                borderRadius: 999,
-                                px: 1,
-                                py: 0.25,
-                                fontSize: "0.6875rem",
-                                fontWeight: 700,
-                                letterSpacing: "0.04em",
-                                textTransform: "uppercase",
-                                border: "1px solid",
-                                ...getOriginStyles(notification),
-                              }}
+                            </p>
+                            <span
+                              className="inline-flex items-center rounded-full border border-solid px-2 py-0.5 text-[0.6875rem] font-bold uppercase tracking-[0.04em]"
+                              style={getOriginStyles(notification)}
                             >
                               {getOriginLabel(notification)}
-                            </Box>
-                          </Box>
-                        </Box>
+                            </span>
+                          </div>
+                        </div>
                         <Tooltip title="Delete">
-                          <IconButton
-                            size="small"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              deleteNotification(notification.id);
-                            }}
-                            sx={{ mt: -1 }}
-                            aria-label="Delete notification"
-                          >
-                            <X className="w-4 h-4 opacity-50 hover:opacity-100" />
-                          </IconButton>
+                          <span className="-mt-1 inline-flex">
+                            <IconButton
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteNotification(notification.id);
+                              }}
+                              ariaLabel="Delete notification"
+                              icon={<X className="w-4 h-4 opacity-50 hover:opacity-100" />}
+                            />
+                          </span>
                         </Tooltip>
-                      </Box>
-                      <Typography
-                        sx={{
-                          fontSize: "0.8125rem",
-                          color: "var(--text-secondary)",
-                          mt: 0.5,
-                        }}
-                      >
+                      </div>
+                      <p className="mt-0.5 text-[0.8125rem] text-[var(--text-secondary)]">
                         {notification.description}
-                      </Typography>
+                      </p>
                       {getSenderLabel(notification) && (
-                        <Typography
-                          sx={{
-                            fontSize: "0.75rem",
-                            color: "var(--text-secondary)",
-                            mt: 1,
-                          }}
-                        >
+                        <p className="mt-1 text-[0.75rem] text-[var(--text-secondary)]">
                           {notification.origin === "system"
                             ? "Triggered by "
                             : "From "}
                           {getSenderLabel(notification)}
-                        </Typography>
+                        </p>
                       )}
-                      <Typography
-                        sx={{
-                          fontSize: "0.75rem",
-                          color: "var(--text-secondary)",
-                          mt: 0.5,
-                        }}
-                      >
+                      <p className="mt-0.5 text-[0.75rem] text-[var(--text-secondary)]">
                         {formatTimestamp(notification.createdAt)}
-                      </Typography>
-                    </Box>
-                  </Box>
-                </Box>
+                      </p>
+                    </div>
+                  </div>
+                </div>
                 {index < notifications.length - 1 && (
-                  <Divider sx={{ borderColor: "var(--border)" }} />
+                  <hr className="border-[var(--border)]" />
                 )}
               </div>
             ))
           )}
-        </Box>
+        </div>
       </Drawer>
     </>
   );

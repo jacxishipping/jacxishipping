@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState, use } from 'react';
+import { useEffect, useState, use, forwardRef, type CSSProperties, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
@@ -23,21 +24,84 @@ import {
   Shield,
   Check,
 } from 'lucide-react';
-import { Box, Typography, Alert, Divider, TextField, InputAdornment, IconButton } from '@mui/material';
 import { 
   DashboardSurface, 
   DashboardPanel 
 } from '@/components/dashboard/DashboardSurface';
-import { 
-  PageHeader, 
-  Button, 
-  Breadcrumbs, 
-  FormField, 
-  LoadingState,
-  toast,
-} from '@/components/design-system';
+import { Alert, Breadcrumbs, Button, FormField, IconButton, LoadingState, PageHeader, toast } from '@/components/design-system';
 import { formatLoginCode, loginCodeToVoiceDigits } from '@/lib/loginCode';
 import { hasPermission } from '@/lib/rbac';
+
+/** Bare input with the Jacxi field look (no label) — search fields, table-cell editors. */
+const BareInput = forwardRef<HTMLInputElement | HTMLTextAreaElement, BareInputProps>(function BareInput(
+  { leftIcon, rightIcon, rightElement, error = false, helperText, size = 'small', multiline = false, rows, minRows, inputProps, className, style, ...rest },
+  ref,
+) {
+  const controlClass = [
+    'w-full rounded-lg border bg-[var(--background)] text-[var(--text-primary)] outline-none transition-colors placeholder:text-[var(--text-secondary)]',
+    size === 'small' ? 'px-2.5 py-1.5 text-[0.8125rem]' : 'px-3 py-2 text-[0.875rem]',
+    leftIcon ? 'pl-9' : '',
+    rightIcon || rightElement ? 'pr-9' : '',
+    error
+      ? 'border-[var(--error)] focus:border-[var(--error)] focus:ring-2 focus:ring-[rgba(var(--error-rgb),0.2)]'
+      : 'border-[rgba(var(--border-rgb),0.9)] hover:border-[var(--border)] focus:border-[var(--accent-gold)] focus:ring-2 focus:ring-[rgba(var(--accent-gold-rgb),0.2)]',
+    rest.disabled ? 'opacity-50' : '',
+    className,
+  ].filter(Boolean).join(' ');
+  return (
+    <div>
+      <div className="relative">
+        {leftIcon && (
+          <span className="pointer-events-none absolute left-3 top-1/2 flex -translate-y-1/2 text-[var(--text-secondary)]">{leftIcon}</span>
+        )}
+        {multiline ? (
+          <textarea
+            {...(rest as TextareaHTMLAttributes<HTMLTextAreaElement>)}
+            {...(inputProps as unknown as TextareaHTMLAttributes<HTMLTextAreaElement>)}
+            ref={ref as React.Ref<HTMLTextAreaElement>}
+            rows={rows ?? minRows ?? 3}
+            aria-invalid={error || undefined}
+            style={style}
+            className={`${controlClass} min-h-[80px] resize-y leading-[1.5]`}
+          />
+        ) : (
+          <input
+            {...rest}
+            {...inputProps}
+            ref={ref as React.Ref<HTMLInputElement>}
+            aria-invalid={error || undefined}
+            style={style}
+            className={controlClass}
+          />
+        )}
+        {rightIcon && (
+          <span className="pointer-events-none absolute right-3 top-1/2 flex -translate-y-1/2 text-[var(--text-secondary)]">{rightIcon}</span>
+        )}
+        {rightElement && (
+          <span className="absolute right-3 top-1/2 flex -translate-y-1/2 text-[var(--text-secondary)]">{rightElement}</span>
+        )}
+      </div>
+      {helperText && (
+        <p className="mt-0.5 text-[0.75rem]" style={{ color: error ? 'var(--error)' : 'var(--text-secondary)' }}>{helperText}</p>
+      )}
+    </div>
+  );
+});
+
+type BareInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> & {
+  leftIcon?: ReactNode;
+  rightIcon?: ReactNode;
+  /** Interactive element on the right (e.g. password visibility toggle). */
+  rightElement?: ReactNode;
+  error?: boolean;
+  helperText?: ReactNode;
+  size?: 'small' | 'medium';
+  multiline?: boolean;
+  rows?: number;
+  minRows?: number;
+  inputProps?: InputHTMLAttributes<HTMLInputElement>;
+};
+
 
 const userSchema = z
   .object({
@@ -289,9 +353,9 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
 
   return (
     <DashboardSurface>
-      <Box sx={{ px: 2, pt: 2 }}>
+      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingLeft: '16px', paddingRight: '16px', paddingTop: '16px'}}>
         <Breadcrumbs />
-      </Box>
+      </JXBox>
 
       <PageHeader
         title="Edit User"
@@ -307,7 +371,7 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
 
       <DashboardPanel className="max-w-2xl mx-auto">
         {error && (
-          <Alert severity="error" sx={{ mb: 3 }} icon={<AlertCircle className="w-5 h-5" />}>
+          <Alert severity="error" icon={<AlertCircle className="w-5 h-5" />} variant="subtle" className="mb-6">
             {error}
           </Alert>
         )}
@@ -346,7 +410,7 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
             {...register('address')}
           />
 
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '24px'}} className="grid-cols-1 grid md:grid-cols-[1fr_1fr]">
             <FormField
               label="City"
               placeholder="New York"
@@ -362,10 +426,10 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
               helperText={errors.country?.message}
               {...register('country')}
             />
-          </Box>
+          </JXBox>
 
-          <Box>
-            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>Role</Typography>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+            <p className="text-sm font-medium" style={{marginBottom: '8px', fontWeight: 600}}>Role</p>
             <select
               {...register('role')}
               className="w-full p-2.5 rounded-lg border border-[var(--border)] bg-[var(--background)] text-[var(--text-primary)] focus:ring-2 focus:ring-[var(--accent-gold)] focus:border-transparent outline-none transition-all"
@@ -376,21 +440,21 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
               <option value="customer_service">Customer Service</option>
             </select>
             {errors.role && (
-              <Typography color="error" variant="caption" sx={{ mt: 0.5, display: 'block' }}>
+              <span className="text-xs text-[var(--text-secondary)] text-[var(--error)]" style={{marginTop: '4px', display: 'block'}}>
                 {errors.role.message}
-              </Typography>
+              </span>
             )}
-          </Box>
+          </JXBox>
 
-          <Divider sx={{ my: 3, borderColor: 'var(--border)' }} />
+          <div aria-hidden="true" className="my-4 border-t border-[var(--border)]" style={{marginTop: '24px', marginBottom: '24px', borderColor: 'var(--border)'}} />
 
           {/* Password Management Section */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '16px'}}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+              <p className="text-sm font-medium" style={{fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px'}}>
                 <Shield className="w-4 h-4 text-[var(--accent-gold)]" />
                 Password & Security
-              </Typography>
+              </p>
               <Button
                 type="button"
                 variant="outline"
@@ -400,75 +464,33 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
               >
                 Generate Strong Password
               </Button>
-            </Box>
+            </JXBox>
 
-            <Typography variant="caption" sx={{ color: 'var(--text-secondary)', display: 'block' }}>
+            <span className="text-xs text-[var(--text-secondary)]" style={{color: 'var(--text-secondary)', display: 'block'}}>
               Leave blank to keep existing password. If entering a new password, it must be at least 6 characters.
-            </Typography>
+            </span>
 
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
-              <Box>
-                <Typography variant="caption" sx={{ color: 'var(--text-secondary)', mb: 0.5, display: 'block' }}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '24px'}} className="grid-cols-1 grid md:grid-cols-[1fr_1fr]">
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+                <span className="text-xs text-[var(--text-secondary)]" style={{color: 'var(--text-secondary)', marginBottom: '4px', display: 'block'}}>
                   New Password
-                </Typography>
-                <TextField
-                  fullWidth
-                  size="small"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="Enter new password"
-                  error={!!errors.password}
-                  helperText={errors.password?.message}
-                  {...register('password')}
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton
-                          size="small"
-                          onClick={() => setShowPassword((prev) => !prev)}
-                          title={showPassword ? 'Hide password' : 'Show password'}
-                        >
-                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Box>
+                </span>
+                <div className="min-w-0 flex-1"><BareInput type={showPassword ? 'text' : 'password'} placeholder="Enter new password" error={!!errors.password} helperText={errors.password?.message} rightElement={<IconButton icon={showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />} ariaLabel={showPassword ? 'Hide password' : 'Show password'} variant="ghost" size="sm" onClick={() => setShowPassword((prev) => !prev)} title={showPassword ? 'Hide password' : 'Show password'} />} size="small" /></div>
+              </JXBox>
 
-              <Box>
-                <Typography variant="caption" sx={{ color: 'var(--text-secondary)', mb: 0.5, display: 'block' }}>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+                <span className="text-xs text-[var(--text-secondary)]" style={{color: 'var(--text-secondary)', marginBottom: '4px', display: 'block'}}>
                   Confirm New Password
-                </Typography>
-                <TextField
-                  fullWidth
-                  size="small"
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  placeholder="Confirm new password"
-                  error={!!errors.confirmPassword}
-                  helperText={errors.confirmPassword?.message}
-                  {...register('confirmPassword')}
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton
-                          size="small"
-                          onClick={() => setShowConfirmPassword((prev) => !prev)}
-                          title={showConfirmPassword ? 'Hide password' : 'Show password'}
-                        >
-                          {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Box>
-            </Box>
+                </span>
+                <div className="min-w-0 flex-1"><BareInput type={showConfirmPassword ? 'text' : 'password'} placeholder="Confirm new password" error={!!errors.confirmPassword} helperText={errors.confirmPassword?.message} rightElement={<IconButton icon={showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />} ariaLabel={showConfirmPassword ? 'Hide password' : 'Show password'} variant="ghost" size="sm" onClick={() => setShowConfirmPassword((prev) => !prev)} title={showConfirmPassword ? 'Hide password' : 'Show password'} />} size="small" /></div>
+              </JXBox>
+            </JXBox>
 
             {watchPassword && (
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 1.5, bgcolor: 'var(--background)', borderRadius: 2, border: '1px solid var(--border)' }}>
-                <Typography variant="caption" sx={{ color: 'var(--text-secondary)' }}>
+              <JXBox padding="none" border={false} style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', backgroundColor: 'var(--background)', borderRadius: '16px', border: '1px solid var(--border)'}}>
+                <span className="text-xs text-[var(--text-secondary)]" style={{color: 'var(--text-secondary)'}}>
                   A new password is ready to be set upon saving.
-                </Typography>
+                </span>
                 <Button
                   type="button"
                   variant="ghost"
@@ -478,49 +500,30 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
                 >
                   {copiedPassword ? 'Copied' : 'Copy Password'}
                 </Button>
-              </Box>
+              </JXBox>
             )}
-          </Box>
+          </JXBox>
 
-          <Divider sx={{ my: 3, borderColor: 'var(--border)' }} />
+          <div aria-hidden="true" className="my-4 border-t border-[var(--border)]" style={{marginTop: '24px', marginBottom: '24px', borderColor: 'var(--border)'}} />
 
           {/* Login Code Management Section */}
-          <Box>
-            <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+            <p className="text-sm font-medium" style={{marginBottom: '16px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px'}}>
               <Key className="w-4 h-4" />
               Login Code Management
-            </Typography>
+            </p>
             
             {loginCode ? (
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <Box>
-                  <Typography variant="caption" sx={{ color: 'var(--text-secondary)', mb: 1, display: 'block' }}>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '16px'}}>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+                  <span className="text-xs text-[var(--text-secondary)]" style={{color: 'var(--text-secondary)', marginBottom: '8px', display: 'block'}}>
                     Current Login Code
-                  </Typography>
-                  <Box 
-                    sx={{ 
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 1,
-                      bgcolor: 'var(--background)',
-                      border: '2px solid var(--accent-gold)',
-                      borderRadius: 2,
-                      p: 2,
-                    }}
-                  >
+                  </span>
+                  <JXBox padding="none" border={false} style={{display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: 'var(--background)', border: '2px solid var(--accent-gold)', borderRadius: '16px', padding: '16px'}}>
                     <Key className="w-5 h-5" style={{ color: 'var(--accent-gold)' }} />
-                    <Box 
-                      sx={{ 
-                        fontSize: '1.5rem', 
-                        fontWeight: 700,
-                        color: 'var(--text-primary)',
-                        fontFamily: 'monospace',
-                        letterSpacing: '0.2em',
-                        flex: 1,
-                      }}
-                    >
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'monospace', letterSpacing: '0.2em', flex: 1}}>
                       {formatLoginCode(loginCode)}
-                    </Box>
+                    </JXBox>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -530,10 +533,10 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
                     >
                       Copy
                     </Button>
-                  </Box>
-                </Box>
+                  </JXBox>
+                </JXBox>
                 
-                <Box sx={{ display: 'flex', gap: 2 }}>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '16px'}}>
                   <Button
                     variant="outline"
                     size="sm"
@@ -554,57 +557,25 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
                   >
                     Remove Code
                   </Button>
-                </Box>
+                </JXBox>
 
-                <Typography variant="caption" sx={{ color: 'var(--text-secondary)', fontSize: '0.75rem', lineHeight: 1.5 }}>
-                  This user can login using this code at <Box component="span" sx={{ color: 'var(--accent-gold)', fontWeight: 500 }}>/auth/simple-login</Box>
-                </Typography>
+                <span className="text-xs text-[var(--text-secondary)]" style={{color: 'var(--text-secondary)', fontSize: '0.75rem', lineHeight: 1.5}}>
+                  This user can login using this code at <JXBox padding="none" border={false} component="span" style={{backgroundColor: 'transparent', borderRadius: 0, color: 'var(--accent-gold)', fontWeight: 500}}>/auth/simple-login</JXBox>
+                </span>
 
-                <Alert
-                  severity="info"
-                  icon={<PhoneCall className="w-4 h-4" />}
-                  sx={{
-                    alignItems: 'flex-start',
-                    bgcolor: 'rgba(14, 165, 233, 0.08)',
-                    border: '1px solid rgba(14, 165, 233, 0.18)',
-                    color: 'var(--text-primary)',
-                    '& .MuiAlert-icon': {
-                      color: 'rgb(14, 165, 233)',
-                      mt: '2px',
-                    },
-                  }}
-                >
+                <Alert severity="info" icon={<PhoneCall className="w-4 h-4" />} variant="subtle">
                   The call agent asks for an 8-digit phone keypad code. If this access code contains letters, share the keypad version below with the customer for phone support.
                 </Alert>
 
                 {voiceAccessCode ? (
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 1.5,
-                      bgcolor: 'var(--background)',
-                      border: '1px solid var(--border)',
-                      borderRadius: 2,
-                      p: 2,
-                    }}
-                  >
-                    <Typography variant="caption" sx={{ color: 'var(--text-secondary)', display: 'block' }}>
+                  <JXBox padding="none" border={false} style={{display: 'flex', flexDirection: 'column', gap: '12px', backgroundColor: 'var(--background)', border: '1px solid var(--border)', borderRadius: '16px', padding: '16px'}}>
+                    <span className="text-xs text-[var(--text-secondary)]" style={{color: 'var(--text-secondary)', display: 'block'}}>
                       Voice keypad code for the call agent
-                    </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                      <Box
-                        sx={{
-                          fontSize: '1.25rem',
-                          fontWeight: 700,
-                          color: 'var(--text-primary)',
-                          fontFamily: 'monospace',
-                          letterSpacing: '0.2em',
-                          flex: 1,
-                        }}
-                      >
+                    </span>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap'}}>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'monospace', letterSpacing: '0.2em', flex: 1}}>
                         {formatLoginCode(voiceAccessCode)}
-                      </Box>
+                      </JXBox>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -614,21 +585,21 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
                       >
                         Copy Voice Code
                       </Button>
-                    </Box>
-                    <Typography variant="caption" sx={{ color: 'var(--text-secondary)', fontSize: '0.75rem', lineHeight: 1.6 }}>
+                    </JXBox>
+                    <span className="text-xs text-[var(--text-secondary)]" style={{color: 'var(--text-secondary)', fontSize: '0.75rem', lineHeight: 1.6}}>
                       Standard phone mapping: ABC = 2, DEF = 3, GHI = 4, JKL = 5, MNO = 6, PQRS = 7, TUV = 8, WXYZ = 9.
-                    </Typography>
-                  </Box>
+                    </span>
+                  </JXBox>
                 ) : null}
-              </Box>
+              </JXBox>
             ) : (
-              <Box sx={{ textAlign: 'center', py: 3, bgcolor: 'var(--background)', borderRadius: 2, border: '1px dashed var(--border)' }}>
-                <Typography sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)', mb: 2 }}>
+              <JXBox padding="none" border={false} style={{textAlign: 'center', paddingTop: '24px', paddingBottom: '24px', backgroundColor: 'var(--background)', borderRadius: '16px', border: '1px dashed var(--border)'}}>
+                <p className="text-sm leading-relaxed" style={{fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '16px'}}>
                   No login code set for this user
-                </Typography>
-                <Typography variant="caption" sx={{ color: 'var(--text-secondary)', display: 'block', mb: 2, lineHeight: 1.5 }}>
+                </p>
+                <span className="text-xs text-[var(--text-secondary)]" style={{color: 'var(--text-secondary)', display: 'block', marginBottom: '16px', lineHeight: 1.5}}>
                   Generate a login code first to enable both simple login and phone-call access for this user.
-                </Typography>
+                </span>
                 <Button
                   variant="primary"
                   size="sm"
@@ -639,11 +610,11 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
                 >
                   {generatingCode ? 'Generating...' : 'Generate Login Code'}
                 </Button>
-              </Box>
+              </JXBox>
             )}
-          </Box>
+          </JXBox>
 
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, pt: 2 }}>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'flex-end', gap: '16px', paddingTop: '16px'}}>
             <Link href={`/dashboard/users/${id}`} style={{ textDecoration: 'none' }}>
               <Button variant="ghost" type="button">Cancel</Button>
             </Link>
@@ -655,7 +626,7 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
             >
               {isSubmitting ? 'Saving...' : 'Save Changes'}
             </Button>
-          </Box>
+          </JXBox>
         </form>
       </DashboardPanel>
     </DashboardSurface>

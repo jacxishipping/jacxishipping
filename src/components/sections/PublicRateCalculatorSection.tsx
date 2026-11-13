@@ -148,7 +148,7 @@ export default function PublicRateCalculatorSection() {
                       aria-pressed={vType.id === v.id}
                       className={`flex justify-center items-center py-3 px-2 rounded-xl sm:rounded-full border text-center transition-all text-xs sm:text-sm ${
                         vType.id === v.id
-                           ? 'border-[#D4AF37] bg-[#D4AF37] text-slate-950 font-bold shadow-md shadow-[#D4AF37]/20'
+                           ? 'border-[#D4AF37] !bg-[#D4AF37] !text-slate-950 font-bold shadow-md shadow-[#D4AF37]/20'
                            : 'border-black/5 bg-white/60 text-black/70 hover:bg-white font-medium'
                       }`}
                     >

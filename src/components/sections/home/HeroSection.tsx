@@ -15,7 +15,7 @@ import {
 import gsap from 'gsap';
 import Magnetic from '@/components/ui/Magnetic';
 import HeroTrackingForm from '@/components/sections/home/HeroTrackingForm';
-import { SpringButton, TiltCard } from '@jacxishippingorg/jx-ui-react';
+import { TiltCard } from '@jacxishippingorg/jx-ui-react';
 
 const corridorCards = [
   {

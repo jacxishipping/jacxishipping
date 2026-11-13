@@ -1,7 +1,7 @@
 'use client';
 
 import { Car, Container, FileCheck, Search } from 'lucide-react';
-import { Fade, Zoom, Box } from '@mui/material';
+import { motion } from 'framer-motion';
 
 const services = [
 	{
@@ -23,8 +23,6 @@ const services = [
 ];
 
 export default function ServicesSection() {
-	const show = true;
-
 	return (
 		<section id="services" className="py-20 bg-gradient-to-b from-gray-50 to-white">
 			<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -40,37 +38,39 @@ export default function ServicesSection() {
 					{services.map((service, index) => {
 						const Icon = service.icon;
 						return (
-							<Zoom
+							<motion.div
 								key={index}
-								in={show}
-								timeout={500}
-								style={{ transitionDelay: `${index * 100}ms` }}
+								initial={{ opacity: 0, scale: 0.95 }}
+								animate={{ opacity: 1, scale: 1 }}
+								transition={{ duration: 0.5, delay: index * 0.1 }}
 							>
-								<Box
-									className="group bg-white rounded-2xl p-8 shadow-md hover:shadow-2xl transition-all duration-300 border border-gray-200 hover:border-blue-300 flex flex-col items-center text-center cursor-pointer"
-									sx={{
-										'&:hover': {
-											transform: 'translateY(-8px) scale(1.02)',
-										},
-									}}
+								<div
+									className="group bg-white rounded-2xl p-8 shadow-md hover:shadow-2xl transition-all duration-300 border border-gray-200 hover:border-blue-300 hover:-translate-y-2 hover:scale-[1.02] flex flex-col items-center text-center cursor-pointer"
 								>
 									{/* Icon Container */}
-									<Zoom in={show} timeout={600} style={{ transitionDelay: `${index * 100 + 200}ms` }}>
-										<Box className="mb-4">
+									<motion.div
+										initial={{ opacity: 0, scale: 0.95 }}
+										animate={{ opacity: 1, scale: 1 }}
+										transition={{ duration: 0.6, delay: index * 0.1 + 0.2 }}
+										className="mb-4"
+									>
 											<div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center text-blue-600 group-hover:from-blue-600 group-hover:to-blue-700 group-hover:text-white transition-all duration-300 shadow-sm group-hover:shadow-lg group-hover:shadow-blue-500/30">
 												<Icon className="w-10 h-10" strokeWidth={1.5} />
 											</div>
-										</Box>
-									</Zoom>
+									</motion.div>
 
 									{/* Title */}
-									<Fade in={show} timeout={600} style={{ transitionDelay: `${index * 100 + 300}ms` }}>
+									<motion.div
+										initial={{ opacity: 0 }}
+										animate={{ opacity: 1 }}
+										transition={{ duration: 0.6, delay: index * 0.1 + 0.3 }}
+									>
 										<h3 className="text-sm font-semibold text-gray-900 whitespace-nowrap group-hover:text-blue-600 transition-colors">
 											{service.title}
 										</h3>
-									</Fade>
-								</Box>
-							</Zoom>
+									</motion.div>
+								</div>
+							</motion.div>
 						);
 					})}
 				</div>

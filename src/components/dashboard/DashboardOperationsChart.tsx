@@ -1,5 +1,6 @@
 'use client';
 
+import { JacxiButton } from '@/components/design-system/JacxiButton';
 import { useMemo, useState } from 'react';
 import {
   AreaChart,
@@ -17,7 +18,7 @@ import {
   Pie,
 } from 'recharts';
 import { Activity, BarChart3, PieChart as PieIcon, Layers, TrendingUp, TrendingDown } from 'lucide-react';
-import { SpringButton } from '@jacxishippingorg/jx-ui-react';
+
 import { DashboardPanel } from '@/components/dashboard/DashboardSurface';
 
 type TrendPoint = {
@@ -149,7 +150,7 @@ export default function DashboardOperationsChart({
         <div className="flex items-center gap-2 flex-wrap">
           {/* Main Tab Switcher */}
           <div className="flex items-center gap-1 rounded-xl border border-[var(--border)] bg-[var(--background)] p-1 text-xs">
-            <SpringButton
+            <JacxiButton
               type="button"
               variant="outline"
               onClick={() => setActiveTab('trends')}
@@ -163,8 +164,8 @@ export default function DashboardOperationsChart({
               <Activity className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Movement Trends</span>
               <span className="sm:hidden">Trends</span>
-            </SpringButton>
-            <SpringButton
+            </JacxiButton>
+            <JacxiButton
               type="button"
               variant="outline"
               onClick={() => setActiveTab('status')}
@@ -178,8 +179,8 @@ export default function DashboardOperationsChart({
               <PieIcon className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Pipeline Status</span>
               <span className="sm:hidden">Pipeline</span>
-            </SpringButton>
-            <SpringButton
+            </JacxiButton>
+            <JacxiButton
               type="button"
               variant="outline"
               onClick={() => setActiveTab('containers')}
@@ -193,14 +194,14 @@ export default function DashboardOperationsChart({
               <Layers className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Container Capacity</span>
               <span className="sm:hidden">Capacity</span>
-            </SpringButton>
+            </JacxiButton>
           </div>
 
           {/* Dynamic Period Selector for Trends (7D / 14D / 30D) */}
           {activeTab === 'trends' && (
             <div className="flex items-center gap-0.5 rounded-lg border border-[var(--border)] bg-[var(--background)] p-0.5 text-[11px]">
               {(['7d', '14d', '30d'] as const).map((period) => (
-                <SpringButton
+                <JacxiButton
                   key={period}
                   type="button"
                   variant="outline"
@@ -213,7 +214,7 @@ export default function DashboardOperationsChart({
                   }`}
                 >
                   {period.toUpperCase()}
-                </SpringButton>
+                </JacxiButton>
               ))}
             </div>
           )}

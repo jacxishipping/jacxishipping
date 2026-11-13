@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Box, Typography } from '@mui/material';
 import { AlertCircle, Calendar, CheckCircle2, Clock, Copy, MapPin, Package, Search, Ship, XCircle, Camera, Plus, Minus, Layers, List, Loader2 } from 'lucide-react';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
 import { PageHeader, Button, EmptyState, FormField, Breadcrumbs, toast, DashboardPageSkeleton, StatusBadge } from '@/components/design-system';
@@ -225,10 +225,10 @@ export default function DashboardTrackingPage() {
 			{/* Search Panel */}
 			<DashboardPanel title="Track Shipment" description="Enter container or tracking number">
 				{/* Batch Mode Toggle */}
-				<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-					<Typography sx={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+				<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px'}}>
+					<p className="text-sm leading-relaxed" style={{fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)'}}>
 						{batchMode ? 'Batch Tracking Mode' : 'Single Tracking Mode'}
-					</Typography>
+					</p>
 					<Button
 						variant="outline"
 						size="sm"
@@ -242,13 +242,13 @@ export default function DashboardTrackingPage() {
 					>
 						{batchMode ? 'Single Mode' : 'Batch Mode'}
 					</Button>
-				</Box>
+				</JXBox>
 
 				{batchMode ? (
-					<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+					<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '16px'}}>
 						{batchNumbers.map((num, idx) => (
-							<Box key={idx} sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-								<Box sx={{ flex: 1 }}>
+							<JXBox padding="none" border={false} key={idx} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '8px', alignItems: 'center'}}>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, flex: 1}}>
 									<FormField
 										label=""
 										type="text"
@@ -266,7 +266,7 @@ export default function DashboardTrackingPage() {
 											}
 										}}
 									/>
-								</Box>
+								</JXBox>
 								{batchNumbers.length > 1 && (
 									<Button
 										variant="ghost"
@@ -277,9 +277,9 @@ export default function DashboardTrackingPage() {
 										}}
 									/>
 								)}
-							</Box>
+							</JXBox>
 						))}
-						<Box sx={{ display: 'flex', gap: 1 }}>
+						<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '8px'}}>
 							<Button
 								variant="outline"
 								size="sm"
@@ -296,23 +296,15 @@ export default function DashboardTrackingPage() {
 							>
 								{batchLoading ? 'Tracking...' : `Track All (${batchNumbers.filter(n => n.trim()).length})`}
 							</Button>
-						</Box>
+						</JXBox>
 
 						{/* Batch Results */}
 						{batchResults.length > 0 && (
-							<Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+							<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '16px'}}>
 								{batchResults.map((result, idx) => (
-									<Box
-										key={idx}
-										sx={{
-											p: 2,
-											borderRadius: 2,
-											border: `1px solid ${result.error ? 'rgba(239, 68, 68, 0.3)' : result.details ? 'rgba(34, 211, 238, 0.3)' : 'var(--border)'}`,
-											bgcolor: result.error ? 'rgba(239, 68, 68, 0.05)' : result.details ? 'rgba(34, 211, 238, 0.05)' : 'var(--background)',
-										}}
-									>
-										<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
-											<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0 }}>
+									<JXBox padding="none" border={false} key={idx} style={{padding: '16px', borderRadius: '16px', border: `1px solid ${result.error ? 'rgba(239, 68, 68, 0.3)' : result.details ? 'rgba(34, 211, 238, 0.3)' : 'var(--border)'}`, backgroundColor: result.error ? 'rgba(239, 68, 68, 0.05)' : result.details ? 'rgba(34, 211, 238, 0.05)' : 'var(--background)'}}>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px'}}>
+											<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '12px', minWidth: '0px'}}>
 												{result.error ? (
 													<XCircle className="w-4 h-4 text-[var(--error)] shrink-0" />
 												) : result.details ? (
@@ -320,23 +312,23 @@ export default function DashboardTrackingPage() {
 												) : (
 													<Clock className="w-4 h-4 text-[var(--text-secondary)] shrink-0" />
 												)}
-												<Box sx={{ minWidth: 0 }}>
-													<Typography sx={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+												<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, minWidth: '0px'}}>
+													<p className="text-sm leading-relaxed" style={{fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)'}}>
 														{result.number}
-													</Typography>
+													</p>
 													{result.error && (
-														<Typography sx={{ fontSize: '0.75rem', color: 'var(--error)' }}>
+														<p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', color: 'var(--error)'}}>
 															{result.error}
-														</Typography>
+														</p>
 													)}
 													{result.details && (
-														<Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+														<p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', color: 'var(--text-secondary)'}}>
 															{result.details.origin || 'N/A'} → {result.details.destination || 'N/A'}
 															{result.details.shipmentStatus && ` • ${result.details.shipmentStatus.replace(/_/g, ' ')}`}
-														</Typography>
+														</p>
 													)}
-												</Box>
-											</Box>
+												</JXBox>
+											</JXBox>
 											{result.details && (
 												<Button
 													variant="outline"
@@ -351,16 +343,16 @@ export default function DashboardTrackingPage() {
 													View Details
 												</Button>
 											)}
-										</Box>
-									</Box>
+										</JXBox>
+									</JXBox>
 								))}
-							</Box>
+							</JXBox>
 						)}
-					</Box>
+					</JXBox>
 				) : (
 					<>
-				<Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
-					<Box sx={{ flex: 1 }}>
+				<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '16px'}} className="flex-col sm:flex-row">
+					<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, flex: 1}}>
 						<FormField
 							label=""
 							type="text"
@@ -374,8 +366,8 @@ export default function DashboardTrackingPage() {
 								}
 							}}
 						/>
-					</Box>
-					<Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 1 }}>
+					</JXBox>
+					<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'flex-end', gap: '8px'}}>
 						<Button
 							variant="outline"
 							onClick={() => setScannerOpen(true)}
@@ -391,34 +383,27 @@ export default function DashboardTrackingPage() {
 						>
 							{isLoading ? 'Tracking...' : 'Track'}
 						</Button>
-					</Box>
-				</Box>
+					</JXBox>
+				</JXBox>
 
-				<Box
-					sx={{
-						mt: 2,
-						display: 'grid',
-						gridTemplateColumns: { xs: '1fr', lg: '1.2fr 0.8fr' },
-						gap: 2,
-					}}
-				>
-					<Box sx={{ p: 2, border: '1px solid var(--border)', borderRadius: 2, bgcolor: 'var(--background)' }}>
-						<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 1.25 }}>
-							<Typography sx={{ fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
+				<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '16px', display: 'grid', gap: '16px'}} className="grid-cols-1 grid lg:grid-cols-[1.2fr_0.8fr]">
+					<JXBox padding="none" border={false} style={{padding: '16px', border: '1px solid var(--border)', borderRadius: '16px', backgroundColor: 'var(--background)'}}>
+						<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '10px'}}>
+							<p className="text-sm leading-relaxed" style={{fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)'}}>
 								Recent lookups
-							</Typography>
+							</p>
 							{recentTrackingNumbers.length > 0 && (
 								<Button variant="ghost" size="sm" icon={<XCircle className="w-4 h-4" />} onClick={clearRecentTrackingNumbers}>
 									Clear
 								</Button>
 							)}
-						</Box>
+						</JXBox>
 						{recentTrackingNumbers.length === 0 ? (
-							<Typography sx={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+							<p className="text-sm leading-relaxed" style={{fontSize: '0.82rem', color: 'var(--text-secondary)'}}>
 								Successful tracking searches will appear here for fast repeat checks.
-							</Typography>
+							</p>
 						) : (
-							<Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+							<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexWrap: 'wrap', gap: '8px'}}>
 								{recentTrackingNumbers.map((number) => (
 									<Button
 										key={number}
@@ -431,41 +416,30 @@ export default function DashboardTrackingPage() {
 										{number}
 									</Button>
 								))}
-							</Box>
+							</JXBox>
 						)}
-					</Box>
+					</JXBox>
 
-					<Box sx={{ p: 2, border: '1px solid var(--border)', borderRadius: 2, bgcolor: 'var(--background)' }}>
-						<Typography sx={{ fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)', mb: 1 }}>
+					<JXBox padding="none" border={false} style={{padding: '16px', border: '1px solid var(--border)', borderRadius: '16px', backgroundColor: 'var(--background)'}}>
+						<p className="text-sm leading-relaxed" style={{fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '8px'}}>
 							Tracking readiness
-						</Typography>
-						<Typography sx={{ fontSize: '0.84rem', color: 'var(--text-primary)', fontWeight: 700 }}>
+						</p>
+						<p className="text-sm leading-relaxed" style={{fontSize: '0.84rem', color: 'var(--text-primary)', fontWeight: 700}}>
 							Container number, booking number, or carrier tracking ID
-						</Typography>
-						<Typography sx={{ fontSize: '0.8rem', color: 'var(--text-secondary)', mt: 0.5 }}>
+						</p>
+						<p className="text-sm leading-relaxed" style={{fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px'}}>
 							Results include carrier milestones, route, ETA, and progress when the provider returns those fields.
-						</Typography>
-					</Box>
-				</Box>
+						</p>
+					</JXBox>
+				</JXBox>
 
 				{errorMessage && (
-					<Box
-						sx={{
-							mt: 2,
-							p: 2,
-							borderRadius: 2,
-							border: '1px solid rgba(239, 68, 68, 0.3)',
-							bgcolor: 'rgba(239, 68, 68, 0.1)',
-							display: 'flex',
-							alignItems: 'start',
-							gap: 1.5,
-						}}
-					>
+					<JXBox padding="none" border={false} style={{marginTop: '16px', padding: '16px', borderRadius: '16px', border: '1px solid rgba(239, 68, 68, 0.3)', backgroundColor: 'rgba(239, 68, 68, 0.1)', display: 'flex', alignItems: 'start', gap: '12px'}}>
 						<AlertCircle style={{ fontSize: 18, color: 'rgb(239, 68, 68)', flexShrink: 0 }} />
-						<Typography sx={{ fontSize: '0.85rem', color: 'rgb(239, 68, 68)' }}>
+						<p className="text-sm leading-relaxed" style={{fontSize: '0.85rem', color: 'rgb(239, 68, 68)'}}>
 							{errorMessage}
-						</Typography>
-					</Box>
+						</p>
+					</JXBox>
 				)}
 					</>
 				)}
@@ -475,7 +449,7 @@ export default function DashboardTrackingPage() {
 			{trackingDetails ? (
 				<>
 					{/* Interactive Route Map Toggle Button */}
-					<Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
+					<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'flex-end', marginBottom: '8px'}}>
 						<Button
 							variant={showRouteMap ? 'primary' : 'outline'}
 							size="sm"
@@ -484,7 +458,7 @@ export default function DashboardTrackingPage() {
 						>
 							{showRouteMap ? 'Hide Route Map' : 'View Interactive Route Map'}
 						</Button>
-					</Box>
+					</JXBox>
 
 					{/* Interactive Route Map (Only on demand) */}
 					{showRouteMap && (
@@ -502,124 +476,108 @@ export default function DashboardTrackingPage() {
 					{/* Container Details */}
 					<DashboardPanel title="Container Details" description="Current status and information">
 						<DashboardGrid className="grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
-							<Box>
-								<Typography sx={{ fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-secondary)', mb: 0.5 }}>
+							<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+								<p className="text-sm leading-relaxed" style={{fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-secondary)', marginBottom: '4px'}}>
 									Container Number
-								</Typography>
-								<Typography sx={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', wordBreak: 'break-all' }}>
+								</p>
+								<p className="text-sm leading-relaxed" style={{fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', wordBreak: 'break-all'}}>
 									{trackingDetails.containerNumber}
-								</Typography>
+								</p>
 								<Button
 									variant="ghost"
 									size="sm"
 									icon={<Copy className="w-4 h-4" />}
 									onClick={() => void copyTrackingNumber(trackingDetails.containerNumber)}
-									sx={{ mt: 1 }}
+									style={{marginTop: '8px'}}
 								>
 									Copy
 								</Button>
 								{trackingDetails.company?.name && (
-									<Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)', mt: 0.5 }}>
+									<p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '4px'}}>
 										Carrier: {trackingDetails.company.name}
-									</Typography>
+									</p>
 								)}
-							</Box>
+							</JXBox>
 
-							<Box>
-								<Typography sx={{ fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-secondary)', mb: 0.5 }}>
+							<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+								<p className="text-sm leading-relaxed" style={{fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-secondary)', marginBottom: '4px'}}>
 									Status
-								</Typography>
-								<Box sx={{ mt: 0.5 }}>
+								</p>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '4px'}}>
 									<StatusBadge status={trackingDetails.shipmentStatus || 'IN_TRANSIT'} size="md" />
-								</Box>
-							</Box>
+								</JXBox>
+							</JXBox>
 
-							<Box>
-								<Typography sx={{ fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-secondary)', mb: 0.5 }}>
+							<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+								<p className="text-sm leading-relaxed" style={{fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-secondary)', marginBottom: '4px'}}>
 									Current Location
-								</Typography>
-								<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+								</p>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '4px'}}>
 									<MapPin style={{ fontSize: 16, color: 'var(--text-secondary)' }} />
-									<Typography sx={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>
+									<p className="text-sm leading-relaxed" style={{fontSize: '0.85rem', color: 'var(--text-primary)'}}>
 										{trackingDetails.currentLocation || 'Not available'}
-									</Typography>
-								</Box>
-							</Box>
+									</p>
+								</JXBox>
+							</JXBox>
 
-							<Box>
-								<Typography sx={{ fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-secondary)', mb: 0.5 }}>
+							<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+								<p className="text-sm leading-relaxed" style={{fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-secondary)', marginBottom: '4px'}}>
 									Estimated Arrival
-								</Typography>
-								<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+								</p>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '4px'}}>
 									<Calendar style={{ fontSize: 16, color: 'var(--text-secondary)' }} />
-									<Typography sx={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>
+									<p className="text-sm leading-relaxed" style={{fontSize: '0.85rem', color: 'var(--text-primary)'}}>
 										{formatDisplayDate(trackingDetails.estimatedArrival) || 'Not available'}
-									</Typography>
-								</Box>
-							</Box>
+									</p>
+								</JXBox>
+							</JXBox>
 						</DashboardGrid>
 
 						{/* Route Information */}
-						<Box sx={{ mt: 3, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2 }}>
-							<Box sx={{ p: 2, borderRadius: 2, border: '1px solid var(--border)', bgcolor: 'var(--background)' }}>
-								<Typography sx={{ fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-secondary)', mb: 0.5 }}>
+						<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '24px', display: 'grid', gap: '16px'}} className="grid-cols-1 sm:grid-cols-3">
+							<JXBox padding="none" border={false} style={{padding: '16px', borderRadius: '16px', border: '1px solid var(--border)', backgroundColor: 'var(--background)'}}>
+								<p className="text-sm leading-relaxed" style={{fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '4px'}}>
 									Origin
-								</Typography>
-								<Typography sx={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>
+								</p>
+								<p className="text-sm leading-relaxed" style={{fontSize: '0.85rem', color: 'var(--text-primary)'}}>
 									{trackingDetails.origin || 'Not available'}
-								</Typography>
-							</Box>
+								</p>
+							</JXBox>
 
-							<Box sx={{ p: 2, borderRadius: 2, border: '1px solid var(--border)', bgcolor: 'var(--background)' }}>
-								<Typography sx={{ fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-secondary)', mb: 0.5 }}>
+							<JXBox padding="none" border={false} style={{padding: '16px', borderRadius: '16px', border: '1px solid var(--border)', backgroundColor: 'var(--background)'}}>
+								<p className="text-sm leading-relaxed" style={{fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '4px'}}>
 									Destination
-								</Typography>
-								<Typography sx={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>
+								</p>
+								<p className="text-sm leading-relaxed" style={{fontSize: '0.85rem', color: 'var(--text-primary)'}}>
 									{trackingDetails.destination || 'Not available'}
-								</Typography>
-							</Box>
+								</p>
+							</JXBox>
 
-							<Box sx={{ p: 2, borderRadius: 2, border: '1px solid var(--border)', bgcolor: 'var(--background)' }}>
-								<Typography sx={{ fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-secondary)', mb: 0.5 }}>
+							<JXBox padding="none" border={false} style={{padding: '16px', borderRadius: '16px', border: '1px solid var(--border)', backgroundColor: 'var(--background)'}}>
+								<p className="text-sm leading-relaxed" style={{fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '4px'}}>
 									Container Type
-								</Typography>
-								<Typography sx={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>
+								</p>
+								<p className="text-sm leading-relaxed" style={{fontSize: '0.85rem', color: 'var(--text-primary)'}}>
 									{trackingDetails.containerType || 'Not available'}
-								</Typography>
-							</Box>
-						</Box>
+								</p>
+							</JXBox>
+						</JXBox>
 
 						{/* Progress Bar */}
 						{progressValue !== null && (
-							<Box sx={{ mt: 3 }}>
-								<Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-									<Typography sx={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+							<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '24px'}}>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px'}}>
+									<p className="text-sm leading-relaxed" style={{fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)'}}>
 										Shipment Progress
-									</Typography>
-									<Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--accent-gold)' }}>
+									</p>
+									<p className="text-sm leading-relaxed" style={{fontSize: '0.8rem', fontWeight: 700, color: 'var(--accent-gold)'}}>
 										{progressValue}%
-									</Typography>
-								</Box>
-								<Box
-									sx={{
-										width: '100%',
-										height: 8,
-										borderRadius: 1,
-										bgcolor: 'var(--background)',
-										border: '1px solid var(--border)',
-										overflow: 'hidden',
-									}}
-								>
-									<Box
-										sx={{
-											width: `${progressValue}%`,
-											height: '100%',
-											bgcolor: 'var(--accent-gold)',
-											transition: 'width 0.5s ease',
-										}}
-									/>
-								</Box>
-							</Box>
+									</p>
+								</JXBox>
+								<JXBox padding="none" border={false} style={{width: '100%', height: '8px', borderRadius: '8px', backgroundColor: 'var(--background)', border: '1px solid var(--border)', overflow: 'hidden'}}>
+									<JXBox padding="none" border={false} style={{borderRadius: 0, width: `${progressValue}%`, height: '100%', backgroundColor: 'var(--accent-gold)', transition: 'width 0.5s ease'}} />
+								</JXBox>
+							</JXBox>
 						)}
 					</DashboardPanel>
 
@@ -632,75 +590,50 @@ export default function DashboardTrackingPage() {
 								description="No tracking events available for this container yet"
 							/>
 						) : (
-							<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+							<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '16px'}}>
 								{timelineEvents.map((event) => {
 									const Icon = event.icon;
 									const isActual = event.actual;
 									return (
-										<Box
-											key={event.id}
-											sx={{
-												p: 2,
-												borderRadius: 2,
-												border: `1px solid ${isActual ? 'rgba(34, 211, 238, 0.3)' : 'var(--border)'}`,
-												bgcolor: isActual ? 'rgba(34, 211, 238, 0.05)' : 'var(--panel)',
-												transition: 'all 0.2s ease',
-												'&:hover': {
-													transform: 'translateX(4px)',
-													borderColor: isActual ? 'rgba(34, 211, 238, 0.5)' : 'var(--accent-gold)',
-												},
-											}}
-										>
-											<Box sx={{ display: 'flex', alignItems: 'start', gap: 2 }}>
-												<Box
-													sx={{
-														width: 40,
-														height: 40,
-														borderRadius: 2,
-														bgcolor: isActual ? 'rgba(34, 211, 238, 0.15)' : 'var(--background)',
-														border: `1px solid ${isActual ? 'rgba(34, 211, 238, 0.3)' : 'var(--border)'}`,
-														display: 'flex',
-														alignItems: 'center',
-														justifyContent: 'center',
-														flexShrink: 0,
-													}}
-												>
+										<JXBox padding="none" border={false} key={event.id} style={{padding: '16px', borderRadius: '16px', border: `1px solid ${isActual ? 'rgba(34, 211, 238, 0.3)' : 'var(--border)'}`, backgroundColor: isActual ? 'rgba(34, 211, 238, 0.05)' : 'var(--panel)', transition: 'all 0.2s ease'}}>
+											<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'start', gap: '16px'}}>
+												<JXBox padding="none" border={false} style={{width: '40px', height: '40px', borderRadius: '16px', backgroundColor: isActual ? 'rgba(34, 211, 238, 0.15)' : 'var(--background)', border: `1px solid ${isActual ? 'rgba(34, 211, 238, 0.3)' : 'var(--border)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0}}>
 													<Icon style={{ fontSize: 18, color: isActual ? 'rgb(34, 211, 238)' : 'var(--text-secondary)' }} />
-												</Box>
+												</JXBox>
 
-												<Box sx={{ flex: 1, minWidth: 0 }}>
-													<Typography sx={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)', mb: 0.5 }}>
+												<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, flex: 1, minWidth: '0px'}}>
+													<p className="text-sm leading-relaxed" style={{fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px'}}>
 														{event.status}
-													</Typography>
+													</p>
 													
-													<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap', mb: 0.5 }}>
+													<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginBottom: '4px'}}>
 														{event.location && (
-															<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+															<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '4px'}}>
 																<MapPin style={{ fontSize: 14, color: 'var(--text-secondary)' }} />
-																<Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+																<p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', color: 'var(--text-secondary)'}}>
 																	{event.location}
-																</Typography>
-															</Box>
+																</p>
+															</JXBox>
 														)}
-														<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+														<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '4px'}}>
 															<Clock style={{ fontSize: 14, color: 'var(--text-secondary)' }} />
-															<Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+															<p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', color: 'var(--text-secondary)'}}>
 																{event.displayTimestamp}
-															</Typography>
-														</Box>
-													</Box>
+															</p>
+														</JXBox>
+													</JXBox>
 
 													{event.description && (
-														<Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)', mt: 0.5 }}>
+														<p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '4px'}}>
 															{event.description}
-														</Typography>
+														</p>
 													)}
-												</Box>
-											</Box>
-										</Box>
+												</JXBox>
+											</JXBox>
+										</JXBox>
 									);
 								})}
-							</Box>
+							</JXBox>
 						)}
 					</DashboardPanel>
 				</>

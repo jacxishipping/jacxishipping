@@ -1,29 +1,130 @@
 'use client';
 import { formatMoney as formatCurrency } from '@/lib/format';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, forwardRef, type CSSProperties, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  Box,
-  Checkbox,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  FormControlLabel,
-  FormGroup,
-  FormLabel,
-  IconButton,
-  MenuItem,
-  TextField,
-  Tooltip,
-} from '@mui/material';
-import { Building2, Download, GitCompareArrows, Pencil, Plus, ReceiptText, Search, Trash2 } from 'lucide-react';
+import { Building2, ChevronDown, Download, GitCompareArrows, Pencil, Plus, ReceiptText, Search, Trash2 } from 'lucide-react';
 import PermissionRoute from '@/components/auth/PermissionRoute';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
-import { Breadcrumbs, Button, StatsCard, toast, PageHeader } from '@/components/design-system';
+import { Breadcrumbs, Button, FormField, IconButton, PageHeader, StatsCard, Tooltip, toast, Modal } from '@/components/design-system';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { openUniversalShipmentExport } from '@/components/shipments/UniversalShipmentExportModal';
+
+/** Bare input with the Jacxi field look (no label) — search fields, table-cell editors. */
+const BareInput = forwardRef<HTMLInputElement | HTMLTextAreaElement, BareInputProps>(function BareInput(
+  { leftIcon, rightIcon, rightElement, error = false, helperText, size = 'small', multiline = false, rows, minRows, inputProps, className, style, ...rest },
+  ref,
+) {
+  const controlClass = [
+    'w-full rounded-lg border bg-[var(--background)] text-[var(--text-primary)] outline-none transition-colors placeholder:text-[var(--text-secondary)]',
+    size === 'small' ? 'px-2.5 py-1.5 text-[0.8125rem]' : 'px-3 py-2 text-[0.875rem]',
+    leftIcon ? 'pl-9' : '',
+    rightIcon || rightElement ? 'pr-9' : '',
+    error
+      ? 'border-[var(--error)] focus:border-[var(--error)] focus:ring-2 focus:ring-[rgba(var(--error-rgb),0.2)]'
+      : 'border-[rgba(var(--border-rgb),0.9)] hover:border-[var(--border)] focus:border-[var(--accent-gold)] focus:ring-2 focus:ring-[rgba(var(--accent-gold-rgb),0.2)]',
+    rest.disabled ? 'opacity-50' : '',
+    className,
+  ].filter(Boolean).join(' ');
+  return (
+    <div>
+      <div className="relative">
+        {leftIcon && (
+          <span className="pointer-events-none absolute left-3 top-1/2 flex -translate-y-1/2 text-[var(--text-secondary)]">{leftIcon}</span>
+        )}
+        {multiline ? (
+          <textarea
+            {...(rest as TextareaHTMLAttributes<HTMLTextAreaElement>)}
+            {...(inputProps as unknown as TextareaHTMLAttributes<HTMLTextAreaElement>)}
+            ref={ref as React.Ref<HTMLTextAreaElement>}
+            rows={rows ?? minRows ?? 3}
+            aria-invalid={error || undefined}
+            style={style}
+            className={`${controlClass} min-h-[80px] resize-y leading-[1.5]`}
+          />
+        ) : (
+          <input
+            {...rest}
+            {...inputProps}
+            ref={ref as React.Ref<HTMLInputElement>}
+            aria-invalid={error || undefined}
+            style={style}
+            className={controlClass}
+          />
+        )}
+        {rightIcon && (
+          <span className="pointer-events-none absolute right-3 top-1/2 flex -translate-y-1/2 text-[var(--text-secondary)]">{rightIcon}</span>
+        )}
+        {rightElement && (
+          <span className="absolute right-3 top-1/2 flex -translate-y-1/2 text-[var(--text-secondary)]">{rightElement}</span>
+        )}
+      </div>
+      {helperText && (
+        <p className="mt-0.5 text-[0.75rem]" style={{ color: error ? 'var(--error)' : 'var(--text-secondary)' }}>{helperText}</p>
+      )}
+    </div>
+  );
+});
+
+type BareInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> & {
+  leftIcon?: ReactNode;
+  rightIcon?: ReactNode;
+  /** Interactive element on the right (e.g. password visibility toggle). */
+  rightElement?: ReactNode;
+  error?: boolean;
+  helperText?: ReactNode;
+  size?: 'small' | 'medium';
+  multiline?: boolean;
+  rows?: number;
+  minRows?: number;
+  inputProps?: InputHTMLAttributes<HTMLInputElement>;
+};
+
+
+/** Bare select with the Jacxi field look (no label) — filter dropdowns. Keeps the native event onChange. */
+function BareSelect({ options, placeholder, error = false, size = 'small', leftIcon, className, style, ...rest }: BareSelectProps) {
+  return (
+    <div className="relative">
+      {leftIcon && (
+        <span className="pointer-events-none absolute left-3 top-1/2 flex -translate-y-1/2 text-[var(--text-secondary)]">{leftIcon}</span>
+      )}
+      <select
+        {...rest}
+        aria-invalid={error || undefined}
+        style={style}
+        className={[
+          'w-full appearance-none rounded-lg border bg-[var(--background)] text-[var(--text-primary)] outline-none transition-colors',
+          size === 'small' ? 'px-2.5 py-1.5 text-[0.8125rem]' : 'px-3 py-2 text-[0.875rem]',
+          leftIcon ? 'pl-9' : '',
+          'pr-9',
+          error
+            ? 'border-[var(--error)] focus:border-[var(--error)] focus:ring-2 focus:ring-[rgba(var(--error-rgb),0.2)]'
+            : 'border-[rgba(var(--border-rgb),0.9)] hover:border-[var(--border)] focus:border-[var(--accent-gold)] focus:ring-2 focus:ring-[rgba(var(--accent-gold-rgb),0.2)]',
+          rest.disabled ? 'opacity-50' : '',
+          className,
+        ].filter(Boolean).join(' ')}
+      >
+        {placeholder && (
+          <option value="" disabled>{placeholder}</option>
+        )}
+        {options.map((option) => (
+          <option key={option.value} value={String(option.value)} disabled={option.disabled}>{option.label}</option>
+        ))}
+      </select>
+      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-secondary)]" aria-hidden="true" />
+    </div>
+  );
+}
+
+type BareSelectProps = Omit<SelectHTMLAttributes<HTMLSelectElement>, 'size'> & {
+  options: { value: string | number; label: string; disabled?: boolean }[];
+  placeholder?: string;
+  error?: boolean;
+  size?: 'small' | 'medium';
+  leftIcon?: ReactNode;
+};
+
 
 interface Company {
   id: string;
@@ -278,12 +379,12 @@ export default function CompanyFinancePage() {
         header: 'Company',
         sortable: true,
         render: (_, row) => (
-          <Box>
-            <Box sx={{ fontWeight: 600 }}>{row.name}</Box>
-            <Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 600}}>{row.name}</JXBox>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.75rem', color: 'var(--text-secondary)'}}>
               {row.code || row.email || 'No reference'}
-            </Box>
-          </Box>
+            </JXBox>
+          </JXBox>
         ),
       },
       {
@@ -318,37 +419,14 @@ export default function CompanyFinancePage() {
           }
           const rowCount = activeList.importedAuctionRateCount || activeList.importedStateRateCount;
           return (
-            <Tooltip title="View company price list inside ledger">
-              <Box
-                component="button"
-                type="button"
-                onClick={(e) => {
+            <Tooltip title="View company price list inside ledger" arrow={false}>
+              <button type="button" onClick={(e) => {
                   e.stopPropagation();
                   router.push(`/dashboard/finance/companies/${row.id}?tab=price-list`);
-                }}
-                sx={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 0.5,
-                  px: 1,
-                  py: 0.35,
-                  borderRadius: 1.5,
-                  fontSize: '0.75rem',
-                  fontWeight: 700,
-                  backgroundColor: 'rgba(var(--accent-gold-rgb), 0.1)',
-                  color: 'var(--accent-gold)',
-                  border: '1px solid rgba(var(--accent-gold-rgb), 0.28)',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                  '&:hover': {
-                    backgroundColor: 'rgba(var(--accent-gold-rgb), 0.2)',
-                    transform: 'translateY(-1px)',
-                  },
-                }}
-              >
+                }} style={{display: 'inline-flex', alignItems: 'center', gap: '4px', paddingLeft: '8px', paddingRight: '8px', paddingTop: '2.8px', paddingBottom: '2.8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 700, backgroundColor: 'rgba(var(--accent-gold-rgb), 0.1)', color: 'var(--accent-gold)', border: '1px solid rgba(var(--accent-gold-rgb), 0.28)', cursor: 'pointer', transition: 'all 0.15s ease'}}>
                 <ReceiptText className="w-3.5 h-3.5" />
                 {rowCount} rates
-              </Box>
+              </button>
             </Tooltip>
           );
         },
@@ -386,26 +464,14 @@ export default function CompanyFinancePage() {
         header: 'Actions',
         align: 'center',
         render: (_, row) => (
-          <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
-            <Tooltip title="Edit company">
-              <IconButton
-                size="small"
-                onClick={(event) => openEditDialog(row, event)}
-              >
-                <Pencil className="w-4 h-4" />
-              </IconButton>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '4px', justifyContent: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap'}} onClick={(e) => e.stopPropagation()}>
+            <Tooltip title="Edit company" arrow={false}>
+              <IconButton icon={<Pencil className="w-4 h-4" />} ariaLabel="Edit company" variant="ghost" size="sm" onClick={(event) => openEditDialog(row, event)} />
             </Tooltip>
-            <Tooltip title="Delete company">
-              <IconButton
-                size="small"
-                color="error"
-                disabled={deleting === row.id}
-                onClick={(event) => void handleDelete(row, event)}
-              >
-                <Trash2 className="w-4 h-4" />
-              </IconButton>
+            <Tooltip title="Delete company" arrow={false}>
+              <IconButton icon={<Trash2 className="w-4 h-4" />} ariaLabel="Delete company" variant="ghost" size="sm" color="error" onClick={(event) => void handleDelete(row, event)} disabled={deleting === row.id} />
             </Tooltip>
-          </Box>
+          </JXBox>
         ),
       },
     ],
@@ -420,7 +486,7 @@ export default function CompanyFinancePage() {
           title="Company Finance Ledgers"
           description="Create and manage ledgers for partner companies"
           actions={
-            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
               <Button
                 variant="outline"
                 icon={<Download className="w-4 h-4 text-emerald-500" />}
@@ -439,7 +505,7 @@ export default function CompanyFinancePage() {
               <Button variant="primary" icon={<Plus className="w-4 h-4" />} onClick={() => setOpenCreate(true)}>
                 Add Company
               </Button>
-            </Box>
+            </JXBox>
           }
         />
 
@@ -451,53 +517,22 @@ export default function CompanyFinancePage() {
             <StatsCard icon={<Building2 className="w-5 h-5" />} title="Net Balance" value={formatCurrency(stats.netBalance)} variant="info" />
           </DashboardGrid>
 
-          <Box sx={{ mb: 2, display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 220px' }, gap: 1.5 }}>
-            <TextField
-              fullWidth
-              size="small"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search company by name, code, email"
-              InputProps={{
-                startAdornment: <Search className="w-4 h-4 mr-2 text-[var(--text-secondary)]" />,
-              }}
-            />
-            <TextField
-              select
-              size="small"
-              value={typeFilter}
-              onChange={(event) => setTypeFilter(event.target.value as 'ALL' | 'SHIPPING' | 'DISPATCH' | 'TRANSIT')}
-            >
-              <MenuItem value="ALL">All Types</MenuItem>
-              <MenuItem value="SHIPPING">Shipping</MenuItem>
-              <MenuItem value="DISPATCH">Dispatch</MenuItem>
-              <MenuItem value="TRANSIT">Transit</MenuItem>
-            </TextField>
-          </Box>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginBottom: '16px', display: 'grid', gap: '12px'}} className="grid-cols-1 grid md:grid-cols-[1fr_220px]">
+            <div className="min-w-0 flex-1"><BareInput value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search company by name, code, email" leftIcon={<Search className="w-4 h-4 mr-2 text-[var(--text-secondary)]" />} size="small" /></div>
+            <BareSelect options={[{ value: "ALL", label: 'All Types' }, { value: "SHIPPING", label: 'Shipping' }, { value: "DISPATCH", label: 'Dispatch' }, { value: "TRANSIT", label: 'Transit' }]} value={typeFilter} size="small" onChange={(event) => setTypeFilter(event.target.value as 'ALL' | 'SHIPPING' | 'DISPATCH' | 'TRANSIT')} />
+          </JXBox>
 
-          <Box sx={{ mb: 2 }}>
-            <Box
-              sx={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                px: 1.25,
-                py: 0.5,
-                borderRadius: 9999,
-                border: '1px solid var(--border)',
-                background: 'var(--panel)',
-                color: 'var(--text-secondary)',
-                fontSize: '0.75rem',
-              }}
-            >
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginBottom: '16px'}}>
+            <JXBox padding="none" border={false} style={{display: 'inline-flex', alignItems: 'center', paddingLeft: '10px', paddingRight: '10px', paddingTop: '4px', paddingBottom: '4px', borderRadius: '79992px', border: '1px solid var(--border)', background: 'var(--panel)', color: 'var(--text-secondary)', fontSize: '0.75rem'}}>
               Showing:
-              <Box component="span" sx={{ ml: 0.75, fontWeight: 700, color: 'var(--text-primary)' }}>
+              <JXBox padding="none" border={false} component="span" style={{backgroundColor: 'transparent', borderRadius: 0, marginLeft: '6px', fontWeight: 700, color: 'var(--text-primary)'}}>
                 {activeTypeLabel}
-              </Box>
-            </Box>
-          </Box>
+              </JXBox>
+            </JXBox>
+          </JXBox>
 
           {loading ? (
-            <Box sx={{ py: 3, textAlign: 'center', color: 'var(--text-secondary)' }}>Loading companies...</Box>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingTop: '24px', paddingBottom: '24px', textAlign: 'center', color: 'var(--text-secondary)'}}>Loading companies...</JXBox>
           ) : (
             <DataTable
               data={companies}
@@ -508,103 +543,65 @@ export default function CompanyFinancePage() {
           )}
         </DashboardPanel>
 
-        <Dialog open={openCreate} onClose={() => !creating && setOpenCreate(false)} maxWidth="sm" fullWidth>
-          <DialogTitle>Create Company Ledger</DialogTitle>
-          <DialogContent sx={{ display: 'grid', gap: 2, pt: 1.5 }}>
-            <TextField label="Company Name" value={formData.name} onChange={(event) => setFormData((prev) => ({ ...prev, name: event.target.value }))} required />
-            <TextField label="Code" value={formData.code} onChange={(event) => setFormData((prev) => ({ ...prev, code: event.target.value }))} />
-            <Box>
-              <FormLabel component="legend" sx={{ fontSize: '0.85rem', mb: 0.5 }}>Company Type (select all that apply)</FormLabel>
-              <FormGroup row>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.isDispatch}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, isDispatch: e.target.checked }))}
-                    />
-                  }
-                  label="Dispatch"
-                />
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.isShipping}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, isShipping: e.target.checked }))}
-                    />
-                  }
-                  label="Shipping"
-                />
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.isTransit}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, isTransit: e.target.checked }))}
-                    />
-                  }
-                  label="Transit"
-                />
-              </FormGroup>
-            </Box>
-            <TextField label="Email" value={formData.email} onChange={(event) => setFormData((prev) => ({ ...prev, email: event.target.value }))} />
-            <TextField label="Phone" value={formData.phone} onChange={(event) => setFormData((prev) => ({ ...prev, phone: event.target.value }))} />
-            <TextField label="Address" value={formData.address} onChange={(event) => setFormData((prev) => ({ ...prev, address: event.target.value }))} />
-            <TextField label="Country" value={formData.country} onChange={(event) => setFormData((prev) => ({ ...prev, country: event.target.value }))} />
-            <TextField label="Notes" multiline rows={3} value={formData.notes} onChange={(event) => setFormData((prev) => ({ ...prev, notes: event.target.value }))} />
-          </DialogContent>
-          <DialogActions>
+        <Modal
+          open={openCreate}
+          onClose={() => !creating && setOpenCreate(false)}
+          title="Create Company Ledger"
+          size="sm"
+          contentSx={{display: 'grid', gap: '16px', paddingTop: '12px'}}
+          actions={<>
+
             <Button variant="outline" onClick={() => setOpenCreate(false)} disabled={creating}>Cancel</Button>
             <Button variant="primary" onClick={handleCreate} disabled={creating}>{creating ? 'Creating...' : 'Create'}</Button>
-          </DialogActions>
-        </Dialog>
+          </>}
+        >
 
-        <Dialog open={openEdit} onClose={() => !saving && setOpenEdit(false)} maxWidth="sm" fullWidth>
-          <DialogTitle>Edit Company</DialogTitle>
-          <DialogContent sx={{ display: 'grid', gap: 2, pt: 1.5 }}>
-            <TextField label="Company Name" value={editForm.name} onChange={(event) => setEditForm((prev) => ({ ...prev, name: event.target.value }))} required />
-            <TextField label="Code" value={editForm.code} onChange={(event) => setEditForm((prev) => ({ ...prev, code: event.target.value }))} />
-            <Box>
-              <FormLabel component="legend" sx={{ fontSize: '0.85rem', mb: 0.5 }}>Company Type (select all that apply)</FormLabel>
-              <FormGroup row>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={editForm.isDispatch}
-                      onChange={(e) => setEditForm((prev) => ({ ...prev, isDispatch: e.target.checked }))}
-                    />
-                  }
-                  label="Dispatch"
-                />
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={editForm.isShipping}
-                      onChange={(e) => setEditForm((prev) => ({ ...prev, isShipping: e.target.checked }))}
-                    />
-                  }
-                  label="Shipping"
-                />
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={editForm.isTransit}
-                      onChange={(e) => setEditForm((prev) => ({ ...prev, isTransit: e.target.checked }))}
-                    />
-                  }
-                  label="Transit"
-                />
-              </FormGroup>
-            </Box>
-            <TextField label="Email" value={editForm.email} onChange={(event) => setEditForm((prev) => ({ ...prev, email: event.target.value }))} />
-            <TextField label="Phone" value={editForm.phone} onChange={(event) => setEditForm((prev) => ({ ...prev, phone: event.target.value }))} />
-            <TextField label="Address" value={editForm.address} onChange={(event) => setEditForm((prev) => ({ ...prev, address: event.target.value }))} />
-            <TextField label="Country" value={editForm.country} onChange={(event) => setEditForm((prev) => ({ ...prev, country: event.target.value }))} />
-            <TextField label="Notes" multiline rows={3} value={editForm.notes} onChange={(event) => setEditForm((prev) => ({ ...prev, notes: event.target.value }))} />
-          </DialogContent>
-          <DialogActions>
+            <FormField label="Company Name" value={formData.name} onChange={(event) => setFormData((prev) => ({ ...prev, name: event.target.value }))} required />
+            <FormField label="Code" value={formData.code} onChange={(event) => setFormData((prev) => ({ ...prev, code: event.target.value }))} />
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+              <span className="text-sm font-medium text-[var(--text-primary)]">Company Type (select all that apply)</span>
+              <div className="flex flex-row flex-wrap items-center gap-4">
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-[var(--text-primary)]"><input type="checkbox" onChange={(e) => setFormData((prev) => ({ ...prev, isDispatch: e.target.checked }))} checked={formData.isDispatch} className="h-5 w-5 shrink-0 cursor-pointer accent-[var(--accent-gold)] disabled:cursor-not-allowed disabled:opacity-50" /><span>{"Dispatch"}</span></label>
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-[var(--text-primary)]"><input type="checkbox" onChange={(e) => setFormData((prev) => ({ ...prev, isShipping: e.target.checked }))} checked={formData.isShipping} className="h-5 w-5 shrink-0 cursor-pointer accent-[var(--accent-gold)] disabled:cursor-not-allowed disabled:opacity-50" /><span>{"Shipping"}</span></label>
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-[var(--text-primary)]"><input type="checkbox" onChange={(e) => setFormData((prev) => ({ ...prev, isTransit: e.target.checked }))} checked={formData.isTransit} className="h-5 w-5 shrink-0 cursor-pointer accent-[var(--accent-gold)] disabled:cursor-not-allowed disabled:opacity-50" /><span>{"Transit"}</span></label>
+              </div>
+            </JXBox>
+            <FormField label="Email" value={formData.email} onChange={(event) => setFormData((prev) => ({ ...prev, email: event.target.value }))} />
+            <FormField label="Phone" value={formData.phone} onChange={(event) => setFormData((prev) => ({ ...prev, phone: event.target.value }))} />
+            <FormField label="Address" value={formData.address} onChange={(event) => setFormData((prev) => ({ ...prev, address: event.target.value }))} />
+            <FormField label="Country" value={formData.country} onChange={(event) => setFormData((prev) => ({ ...prev, country: event.target.value }))} />
+            <FormField label="Notes" multiline rows={3} value={formData.notes} onChange={(event) => setFormData((prev) => ({ ...prev, notes: event.target.value }))} />
+        </Modal>
+
+        <Modal
+          open={openEdit}
+          onClose={() => !saving && setOpenEdit(false)}
+          title="Edit Company"
+          size="sm"
+          contentSx={{display: 'grid', gap: '16px', paddingTop: '12px'}}
+          actions={<>
+
             <Button variant="outline" onClick={() => setOpenEdit(false)} disabled={saving}>Cancel</Button>
             <Button variant="primary" onClick={handleEdit} disabled={saving}>{saving ? 'Saving...' : 'Save Changes'}</Button>
-          </DialogActions>
-        </Dialog>
+          </>}
+        >
+
+            <FormField label="Company Name" value={editForm.name} onChange={(event) => setEditForm((prev) => ({ ...prev, name: event.target.value }))} required />
+            <FormField label="Code" value={editForm.code} onChange={(event) => setEditForm((prev) => ({ ...prev, code: event.target.value }))} />
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+              <span className="text-sm font-medium text-[var(--text-primary)]">Company Type (select all that apply)</span>
+              <div className="flex flex-row flex-wrap items-center gap-4">
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-[var(--text-primary)]"><input type="checkbox" onChange={(e) => setEditForm((prev) => ({ ...prev, isDispatch: e.target.checked }))} checked={editForm.isDispatch} className="h-5 w-5 shrink-0 cursor-pointer accent-[var(--accent-gold)] disabled:cursor-not-allowed disabled:opacity-50" /><span>{"Dispatch"}</span></label>
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-[var(--text-primary)]"><input type="checkbox" onChange={(e) => setEditForm((prev) => ({ ...prev, isShipping: e.target.checked }))} checked={editForm.isShipping} className="h-5 w-5 shrink-0 cursor-pointer accent-[var(--accent-gold)] disabled:cursor-not-allowed disabled:opacity-50" /><span>{"Shipping"}</span></label>
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-[var(--text-primary)]"><input type="checkbox" onChange={(e) => setEditForm((prev) => ({ ...prev, isTransit: e.target.checked }))} checked={editForm.isTransit} className="h-5 w-5 shrink-0 cursor-pointer accent-[var(--accent-gold)] disabled:cursor-not-allowed disabled:opacity-50" /><span>{"Transit"}</span></label>
+              </div>
+            </JXBox>
+            <FormField label="Email" value={editForm.email} onChange={(event) => setEditForm((prev) => ({ ...prev, email: event.target.value }))} />
+            <FormField label="Phone" value={editForm.phone} onChange={(event) => setEditForm((prev) => ({ ...prev, phone: event.target.value }))} />
+            <FormField label="Address" value={editForm.address} onChange={(event) => setEditForm((prev) => ({ ...prev, address: event.target.value }))} />
+            <FormField label="Country" value={editForm.country} onChange={(event) => setEditForm((prev) => ({ ...prev, country: event.target.value }))} />
+            <FormField label="Notes" multiline rows={3} value={editForm.notes} onChange={(event) => setEditForm((prev) => ({ ...prev, notes: event.target.value }))} />
+        </Modal>
       </DashboardSurface>
     </PermissionRoute>
   );

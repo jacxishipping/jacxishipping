@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { JXBox, SpringButton } from '@jacxishippingorg/jx-ui-react';
+import { JXBox } from "@jacxishippingorg/jx-ui-react";
+import { JacxiButton } from '@/components/design-system/JacxiButton';
 import { 
   LayoutGrid, 
   Truck, 
@@ -107,7 +108,7 @@ export function RolePerspectiveSwitcher({
           const isActive = activePerspective === p.id;
 
           return (
-            <SpringButton
+            <JacxiButton
               key={p.id}
               type="button"
               variant={isActive ? 'solid' : 'outline'}
@@ -123,7 +124,7 @@ export function RolePerspectiveSwitcher({
             >
               <Icon className="w-3.5 h-3.5" />
               <span>{p.shortLabel}</span>
-            </SpringButton>
+            </JacxiButton>
           );
         })}
       </div>

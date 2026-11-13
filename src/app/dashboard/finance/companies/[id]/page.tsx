@@ -1,33 +1,136 @@
 'use client';
-import { formatMoney as formatCurrency } from '@/lib/format';
 
-import { ChangeEvent, ReactNode, useEffect, useMemo, useState } from 'react';
+import { formatMoney as formatCurrency } from '@/lib/format';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
+
+import { Suspense, ChangeEvent, ReactNode, useEffect, useMemo, useState, forwardRef, type CSSProperties, type InputHTMLAttributes, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import {
-  Box,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Chip,
-  IconButton,
-  MenuItem,
-  Tab,
-  Tabs,
-  TextField,
-  Tooltip,
-} from '@mui/material';
-import { AlertTriangle, ArrowLeft, Building2, Car, CheckCircle2, DollarSign, Download, Eye, GitCompareArrows, Landmark, Navigation, Package, Pencil, Plus, Printer, ReceiptText, Search, ShieldCheck, Ship, Trash2, Truck, Upload } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Building2, Car, CheckCircle2, ChevronDown, DollarSign, Download, Eye, GitCompareArrows, Landmark, Navigation, Package, Pencil, Plus, Printer, ReceiptText, Search, ShieldCheck, Ship, Trash2, Truck, Upload } from 'lucide-react';
 import PermissionRoute from "@/components/auth/PermissionRoute";
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
-import { Breadcrumbs, Button, StatsCard, toast, TableSkeleton, PageHeader } from '@/components/design-system';
+import { Breadcrumbs, Button, FormField, IconButton, PageHeader, Select, StatsCard, TableSkeleton, Tooltip, toast, Modal } from '@/components/design-system';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { normalizeShippingRateConfig, type AuctionRateEntry, type ShippingRateCalculatorConfig } from '@/lib/shipping-rate-calculator';
 import CompanyPriceListDrawer from '@/components/finance/CompanyPriceListDrawer';
 import { printCompanyPriceList, printTransitPriceList } from '@/lib/price-list-print';
 import { openUniversalShipmentExport } from '@/components/shipments/UniversalShipmentExportModal';
 import { detectPriceListCorridor, isTransitPriceList, CORRIDOR_DEFINITIONS } from '@/lib/price-list-corridors';
+
+/** Bare input with the Jacxi field look (no label) — search fields, table-cell editors. */
+const BareInput = forwardRef<HTMLInputElement | HTMLTextAreaElement, BareInputProps>(function BareInput(
+  { leftIcon, rightIcon, rightElement, error = false, helperText, size = 'small', multiline = false, rows, minRows, inputProps, className, style, ...rest },
+  ref,
+) {
+  const controlClass = [
+    'w-full rounded-lg border bg-[var(--background)] text-[var(--text-primary)] outline-none transition-colors placeholder:text-[var(--text-secondary)]',
+    size === 'small' ? 'px-2.5 py-1.5 text-[0.8125rem]' : 'px-3 py-2 text-[0.875rem]',
+    leftIcon ? 'pl-9' : '',
+    rightIcon || rightElement ? 'pr-9' : '',
+    error
+      ? 'border-[var(--error)] focus:border-[var(--error)] focus:ring-2 focus:ring-[rgba(var(--error-rgb),0.2)]'
+      : 'border-[rgba(var(--border-rgb),0.9)] hover:border-[var(--border)] focus:border-[var(--accent-gold)] focus:ring-2 focus:ring-[rgba(var(--accent-gold-rgb),0.2)]',
+    rest.disabled ? 'opacity-50' : '',
+    className,
+  ].filter(Boolean).join(' ');
+  return (
+    <div>
+      <div className="relative">
+        {leftIcon && (
+          <span className="pointer-events-none absolute left-3 top-1/2 flex -translate-y-1/2 text-[var(--text-secondary)]">{leftIcon}</span>
+        )}
+        {multiline ? (
+          <textarea
+            {...(rest as TextareaHTMLAttributes<HTMLTextAreaElement>)}
+            {...(inputProps as unknown as TextareaHTMLAttributes<HTMLTextAreaElement>)}
+            ref={ref as React.Ref<HTMLTextAreaElement>}
+            rows={rows ?? minRows ?? 3}
+            aria-invalid={error || undefined}
+            style={style}
+            className={`${controlClass} min-h-[80px] resize-y leading-[1.5]`}
+          />
+        ) : (
+          <input
+            {...rest}
+            {...inputProps}
+            ref={ref as React.Ref<HTMLInputElement>}
+            aria-invalid={error || undefined}
+            style={style}
+            className={controlClass}
+          />
+        )}
+        {rightIcon && (
+          <span className="pointer-events-none absolute right-3 top-1/2 flex -translate-y-1/2 text-[var(--text-secondary)]">{rightIcon}</span>
+        )}
+        {rightElement && (
+          <span className="absolute right-3 top-1/2 flex -translate-y-1/2 text-[var(--text-secondary)]">{rightElement}</span>
+        )}
+      </div>
+      {helperText && (
+        <p className="mt-0.5 text-[0.75rem]" style={{ color: error ? 'var(--error)' : 'var(--text-secondary)' }}>{helperText}</p>
+      )}
+    </div>
+  );
+});
+
+type BareInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> & {
+  leftIcon?: ReactNode;
+  rightIcon?: ReactNode;
+  /** Interactive element on the right (e.g. password visibility toggle). */
+  rightElement?: ReactNode;
+  error?: boolean;
+  helperText?: ReactNode;
+  size?: 'small' | 'medium';
+  multiline?: boolean;
+  rows?: number;
+  minRows?: number;
+  inputProps?: InputHTMLAttributes<HTMLInputElement>;
+};
+
+
+/** Bare select with the Jacxi field look (no label) — filter dropdowns. Keeps the native event onChange. */
+function BareSelect({ options, placeholder, error = false, size = 'small', leftIcon, className, style, ...rest }: BareSelectProps) {
+  return (
+    <div className="relative">
+      {leftIcon && (
+        <span className="pointer-events-none absolute left-3 top-1/2 flex -translate-y-1/2 text-[var(--text-secondary)]">{leftIcon}</span>
+      )}
+      <select
+        {...rest}
+        aria-invalid={error || undefined}
+        style={style}
+        className={[
+          'w-full appearance-none rounded-lg border bg-[var(--background)] text-[var(--text-primary)] outline-none transition-colors',
+          size === 'small' ? 'px-2.5 py-1.5 text-[0.8125rem]' : 'px-3 py-2 text-[0.875rem]',
+          leftIcon ? 'pl-9' : '',
+          'pr-9',
+          error
+            ? 'border-[var(--error)] focus:border-[var(--error)] focus:ring-2 focus:ring-[rgba(var(--error-rgb),0.2)]'
+            : 'border-[rgba(var(--border-rgb),0.9)] hover:border-[var(--border)] focus:border-[var(--accent-gold)] focus:ring-2 focus:ring-[rgba(var(--accent-gold-rgb),0.2)]',
+          rest.disabled ? 'opacity-50' : '',
+          className,
+        ].filter(Boolean).join(' ')}
+      >
+        {placeholder && (
+          <option value="" disabled>{placeholder}</option>
+        )}
+        {options.map((option) => (
+          <option key={option.value} value={String(option.value)} disabled={option.disabled}>{option.label}</option>
+        ))}
+      </select>
+      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-secondary)]" aria-hidden="true" />
+    </div>
+  );
+}
+
+type BareSelectProps = Omit<SelectHTMLAttributes<HTMLSelectElement>, 'size'> & {
+  options: { value: string | number; label: string; disabled?: boolean }[];
+  placeholder?: string;
+  error?: boolean;
+  size?: 'small' | 'medium';
+  leftIcon?: ReactNode;
+};
+
 
 type PriceListImportMode = 'replace' | 'merge' | 'add_new';
 
@@ -36,7 +139,7 @@ const companyTabSlugs = ['ledger', 'shipments', 'operations', 'price-list', 'rep
 function TabPanel({ children, value, index }: { children: ReactNode; value: number; index: number }) {
   return (
     <div role="tabpanel" hidden={value !== index} id={`company-tabpanel-${index}`} aria-labelledby={`company-tab-${index}`}>
-      {value === index && <Box sx={{ pt: 2 }}>{children}</Box>}
+      {value === index && <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingTop: '16px'}}>{children}</JXBox>}
     </div>
   );
 }
@@ -308,7 +411,7 @@ function buildPriceListVersionComparison(currentConfig: ShippingRateCalculatorCo
   };
 }
 
-export default function CompanyLedgerDetailPage() {
+function CompanyLedgerDetailPageContent() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -1210,64 +1313,27 @@ export default function CompanyLedgerDetailPage() {
           const priceListName = (metadata.priceListName as string) || (typeof row.reference === 'string' && row.reference.startsWith('price-list') ? 'Price List' : null);
 
           return (
-            <Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                <Box sx={{ fontWeight: 500 }}>{row.description}</Box>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap'}}>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 500}}>{row.description}</JXBox>
                 {isBankImportedEntry(row) && (
-                  <Box
-                    component="span"
-                    sx={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      px: 0.75,
-                      py: 0.25,
-                      borderRadius: 1,
-                      fontSize: '0.65rem',
-                      fontWeight: 700,
-                      letterSpacing: '0.05em',
-                      backgroundColor: 'rgba(59, 130, 246, 0.12)',
-                      color: '#2563eb',
-                      border: '1px solid rgba(59, 130, 246, 0.22)',
-                      textTransform: 'uppercase',
-                    }}
-                  >
+                  <JXBox padding="none" border={false} component="span" style={{display: 'inline-flex', alignItems: 'center', paddingLeft: '6px', paddingRight: '6px', paddingTop: '2px', paddingBottom: '2px', borderRadius: '8px', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.05em', backgroundColor: 'rgba(59, 130, 246, 0.12)', color: '#2563eb', border: '1px solid rgba(59, 130, 246, 0.22)', textTransform: 'uppercase'}}>
                     Bank Import
-                  </Box>
+                  </JXBox>
                 )}
                 {priceListName && (
-                  <Box
-                    component="button"
-                    type="button"
-                    onClick={(e) => {
+                  <button type="button" onClick={(e) => {
                       e.stopPropagation();
                       setOpenPriceListDrawer(true);
-                    }}
-                    sx={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 0.5,
-                      px: 0.75,
-                      py: 0.2,
-                      borderRadius: 1,
-                      fontSize: '0.68rem',
-                      fontWeight: 700,
-                      backgroundColor: 'rgba(var(--accent-gold-rgb), 0.12)',
-                      color: 'var(--accent-gold)',
-                      border: '1px solid rgba(var(--accent-gold-rgb), 0.28)',
-                      cursor: 'pointer',
-                      '&:hover': {
-                        backgroundColor: 'rgba(var(--accent-gold-rgb), 0.22)',
-                      },
-                    }}
-                  >
+                    }} style={{display: 'inline-flex', alignItems: 'center', gap: '4px', paddingLeft: '6px', paddingRight: '6px', paddingTop: '1.6px', paddingBottom: '1.6px', borderRadius: '8px', fontSize: '0.68rem', fontWeight: 700, backgroundColor: 'rgba(var(--accent-gold-rgb), 0.12)', color: 'var(--accent-gold)', border: '1px solid rgba(var(--accent-gold-rgb), 0.28)', cursor: 'pointer'}}>
                     <ReceiptText className="w-3 h-3" />
                     {priceListName}
-                  </Box>
+                  </button>
                 )}
-              </Box>
-              <Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+              </JXBox>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.75rem', color: 'var(--text-secondary)'}}>
                 {row.category || 'General'}{row.reference ? ` • Ref: ${row.reference}` : ''}
-              </Box>
+              </JXBox>
             {(() => {
               const metadata = (row.metadata || {}) as Record<string, unknown>;
               const metaShipmentId = typeof metadata.shipmentId === 'string' ? metadata.shipmentId : null;
@@ -1286,40 +1352,21 @@ export default function CompanyLedgerDetailPage() {
                 : `Shipment #${metaShipmentId?.slice(-6)}`;
 
               return (
-                <Box sx={{ mt: 0.5 }}>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '4px'}}>
                   <Link
                     href={`/dashboard/shipments/${linked?.id || metaShipmentId}`}
                     style={{ textDecoration: 'none' }}
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <Box
-                      component="span"
-                      sx={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 0.5,
-                        px: 1,
-                        py: 0.25,
-                        borderRadius: 1,
-                        fontSize: '0.7rem',
-                        fontWeight: 600,
-                        backgroundColor: 'rgba(var(--accent-gold-rgb), 0.12)',
-                        color: 'var(--accent-gold)',
-                        border: '1px solid rgba(var(--accent-gold-rgb), 0.28)',
-                        transition: 'all 0.15s ease',
-                        '&:hover': {
-                          backgroundColor: 'rgba(var(--accent-gold-rgb), 0.22)',
-                        },
-                      }}
-                    >
+                    <JXBox padding="none" border={false} component="span" style={{display: 'inline-flex', alignItems: 'center', gap: '4px', paddingLeft: '8px', paddingRight: '8px', paddingTop: '2px', paddingBottom: '2px', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 600, backgroundColor: 'rgba(var(--accent-gold-rgb), 0.12)', color: 'var(--accent-gold)', border: '1px solid rgba(var(--accent-gold-rgb), 0.28)', transition: 'all 0.15s ease'}}>
                       <Car className="w-3 h-3" />
                       <span>{label}</span>
-                    </Box>
+                    </JXBox>
                   </Link>
-                </Box>
+                </JXBox>
               );
             })()}
-          </Box>
+          </JXBox>
         );
       },
     },
@@ -1356,30 +1403,19 @@ export default function CompanyLedgerDetailPage() {
         header: 'Actions',
         align: 'center',
         render: (_, row) => (
-          <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '4px', justifyContent: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap'}} onClick={(e) => e.stopPropagation()}>
             {canEditEntry(row) && (
-              <Tooltip title="Edit transaction">
-                <IconButton
-                  size="small"
-                  onClick={(event) => openEditEntryDialog(row, event)}
-                >
-                  <Pencil className="w-4 h-4" />
-                </IconButton>
+              <Tooltip title="Edit transaction" arrow={false}>
+                <IconButton icon={<Pencil className="w-4 h-4" />} ariaLabel="Edit entry" variant="ghost" size="sm" onClick={(event) => openEditEntryDialog(row, event)} />
               </Tooltip>
             )}
-            <Tooltip title="Delete transaction">
-              <IconButton
-                size="small"
-                onClick={(event) => {
+            <Tooltip title="Delete transaction" arrow={false}>
+              <IconButton icon={<Trash2 className="w-4 h-4" />} ariaLabel="Delete entry" variant="ghost" size="sm" color="error" onClick={(event) => {
                   event.stopPropagation();
                   void handleDeleteEntry(row.id);
-                }}
-                color="error"
-              >
-                <Trash2 className="w-4 h-4" />
-              </IconButton>
+                }} />
             </Tooltip>
-          </Box>
+          </JXBox>
         ),
       },
     ],
@@ -1393,8 +1429,8 @@ export default function CompanyLedgerDetailPage() {
         header: 'Vehicle / VIN',
         sortable: true,
         render: (_, row) => (
-          <Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px'}}>
               <span className="font-mono font-semibold tracking-wide text-xs text-[var(--text-primary)]">
                 {row.vehicleVIN || 'No VIN'}
               </span>
@@ -1403,11 +1439,11 @@ export default function CompanyLedgerDetailPage() {
                   Lot: {row.lotNumber}
                 </span>
               )}
-            </Box>
-            <Box sx={{ fontSize: '0.8rem', color: 'var(--text-secondary)', mt: 0.25 }}>
+            </JXBox>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '2px'}}>
               {[row.vehicleYear, row.vehicleMake, row.vehicleModel].filter(Boolean).join(' ') || 'Unknown Vehicle'}
-            </Box>
-          </Box>
+            </JXBox>
+          </JXBox>
         ),
       },
       {
@@ -1415,7 +1451,7 @@ export default function CompanyLedgerDetailPage() {
         header: 'Company Role',
         align: 'center',
         render: (_, row) => (
-          <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', justifyContent: 'center' }}>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '4px', flexWrap: 'wrap', justifyContent: 'center'}}>
             {row.isDispatched && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30">
                 <Truck className="w-3 h-3" />
@@ -1437,7 +1473,7 @@ export default function CompanyLedgerDetailPage() {
             {!row.isDispatched && !row.isShipped && !row.isTransited && (
               <span className="text-xs text-[var(--text-secondary)]">Associated</span>
             )}
-          </Box>
+          </JXBox>
         ),
       },
       {
@@ -1455,7 +1491,7 @@ export default function CompanyLedgerDetailPage() {
         key: 'operations',
         header: 'Operations Link',
         render: (_, row) => (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, fontSize: '0.75rem' }}>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.75rem'}}>
             {row.dispatch && (
               <Link
                 href={`/dashboard/dispatches/${row.dispatch.id}`}
@@ -1489,19 +1525,19 @@ export default function CompanyLedgerDetailPage() {
             {!row.dispatch && !row.container && !row.transit && (
               <span className="text-[var(--text-secondary)]">-</span>
             )}
-          </Box>
+          </JXBox>
         ),
       },
       {
         key: 'customer',
         header: 'Customer',
         render: (_, row) => (
-          <Box sx={{ fontSize: '0.8rem' }}>
-            <Box sx={{ fontWeight: 500 }}>{row.customer?.name || 'N/A'}</Box>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.8rem'}}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 500}}>{row.customer?.name || 'N/A'}</JXBox>
             {row.customer?.email && (
-              <Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{row.customer.email}</Box>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.75rem', color: 'var(--text-secondary)'}}>{row.customer.email}</JXBox>
             )}
-          </Box>
+          </JXBox>
         ),
       },
       {
@@ -1519,10 +1555,7 @@ export default function CompanyLedgerDetailPage() {
         header: 'Actions',
         align: 'center',
         render: (_, row) => (
-          <Box
-            sx={{ display: 'flex', gap: 0.75, justifyContent: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap' }}
-            onClick={(e) => e.stopPropagation()}
-          >
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '6px', justifyContent: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap'}} onClick={(e) => e.stopPropagation()}>
             <Button
               variant="outline"
               size="sm"
@@ -1559,7 +1592,7 @@ export default function CompanyLedgerDetailPage() {
             >
               Ledger
             </Button>
-          </Box>
+          </JXBox>
         ),
       },
     ],
@@ -1581,7 +1614,7 @@ export default function CompanyLedgerDetailPage() {
       <PermissionRoute permission="finance:manage">
         <DashboardSurface>
           <DashboardPanel title="Company not found">
-            <Box sx={{ color: 'var(--text-secondary)' }}>The requested company could not be loaded.</Box>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, color: 'var(--text-secondary)'}}>The requested company could not be loaded.</JXBox>
           </DashboardPanel>
         </DashboardSurface>
       </PermissionRoute>
@@ -1596,7 +1629,7 @@ export default function CompanyLedgerDetailPage() {
           title={company.name}
           description={`${companyTypeLabel} Company Ledger${company.code ? ` • ${company.code}` : ''}`}
           actions={
-            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
               <Link href="/dashboard/finance/companies" style={{ textDecoration: 'none' }}>
                 <Button variant="outline" icon={<ArrowLeft className="w-4 h-4" />}>Back</Button>
               </Link>
@@ -1641,7 +1674,7 @@ export default function CompanyLedgerDetailPage() {
               }}>
                 Add Transaction
               </Button>
-            </Box>
+            </JXBox>
           }
         />
 
@@ -1658,77 +1691,35 @@ export default function CompanyLedgerDetailPage() {
           />
         </DashboardGrid>
 
-        <Box
-          sx={{
-            position: 'sticky',
-            top: 0,
-            zIndex: 15,
-            border: '1px solid var(--border)',
-            borderRadius: '12px',
-            backgroundColor: 'var(--panel)',
-            boxShadow: '0 12px 28px rgba(var(--text-primary-rgb),0.08)',
-            overflow: 'hidden',
-          }}
-        >
-          <Tabs
-            value={activeTab}
-            onChange={(_, newValue) => {
-              setActiveTab(newValue);
+        <JXBox padding="none" border={false} style={{position: 'sticky', top: '0px', zIndex: 15, border: '1px solid var(--border)', borderRadius: '12px', backgroundColor: 'var(--panel)', boxShadow: '0 12px 28px rgba(var(--text-primary-rgb),0.08)', overflow: 'hidden'}}>
+          <div role="tablist" className="flex gap-1 overflow-x-auto border-b border-[var(--border)]">
+            {companyTabs.map((tab, index) => (
+              <button
+                key={tab.label}
+                type="button"
+                role="tab"
+                id={`company-tab-${index}`}
+                aria-selected={activeTab === index}
+                aria-controls={`company-tabpanel-${index}`}
+                onClick={() => { const newValue = index; setActiveTab(newValue);
               const nextParams = new URLSearchParams(searchParams.toString());
               nextParams.set('tab', companyTabSlugs[newValue] || companyTabSlugs[0]);
-              router.replace(`?${nextParams.toString()}`, { scroll: false });
-            }}
-            variant="scrollable"
-            scrollButtons="auto"
-            sx={{
-              minHeight: 52,
-              '& .MuiTabs-flexContainer': {
-                gap: 0.25,
-                px: 1,
-              },
-              '& .MuiTab-root': {
-                textTransform: 'none',
-                fontSize: '0.875rem',
-                fontWeight: 650,
-                color: 'var(--text-secondary)',
-                minHeight: 52,
-                borderRadius: '10px',
-                my: 0.75,
-                px: 1.5,
-                '&:hover': {
-                  color: 'var(--accent-gold)',
-                  backgroundColor: 'rgba(var(--accent-gold-rgb), 0.08)',
-                },
-              },
-              '& .Mui-selected': {
-                color: 'var(--accent-gold) !important',
-                backgroundColor: 'rgba(var(--accent-gold-rgb), 0.1)',
-              },
-              '& .MuiTabs-indicator': {
-                backgroundColor: 'var(--accent-gold)',
-                height: 3,
-              },
-            }}
-          >
-            {companyTabs.map((tab, index) => (
-              <Tab
-                key={tab.label}
-                id={`company-tab-${index}`}
-                aria-controls={`company-tabpanel-${index}`}
-                icon={tab.icon}
-                iconPosition="start"
-                label={tab.label}
-              />
+              router.replace(`?${nextParams.toString()}`, { scroll: false }); }}
+                className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === index ? 'border-[var(--accent-gold)] text-[var(--accent-gold-text)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+              >
+                {tab.icon} {tab.label}
+              </button>
             ))}
-          </Tabs>
-        </Box>
+          
+          </div>
+        </JXBox>
 
         <TabPanel value={activeTab} index={0}>
         <DashboardPanel
           title="Company Ledger"
           description="Search, filter, and manage transactions for this company"
           actions={
-            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
               <Button
                 variant="outline"
                 size="sm"
@@ -1766,110 +1757,48 @@ export default function CompanyLedgerDetailPage() {
               >
                 Price List Tab
               </Button>
-            </Box>
+            </JXBox>
           }
         >
 
           {/* Active Price List Quick Glance & Rate Lookup */}
-          <Box
-            sx={{
-              mb: 2.5,
-              p: 2,
-              borderRadius: 2,
-              border: activePriceList
+          <JXBox padding="none" border={false} style={{marginBottom: '20px', padding: '16px', borderRadius: '16px', border: activePriceList
                 ? '1px solid rgba(var(--accent-gold-rgb), 0.35)'
-                : '1px solid var(--border)',
-              background: activePriceList
+                : '1px solid var(--border)', background: activePriceList
                 ? 'linear-gradient(to right, rgba(var(--accent-gold-rgb), 0.05), var(--panel))'
-                : 'var(--panel)',
-              boxShadow: '0 2px 10px rgba(0,0,0,0.03)',
-            }}
-          >
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: { xs: 'flex-start', sm: 'center' },
-                justifyContent: 'space-between',
-                gap: 1.5,
-                flexWrap: 'wrap',
-              }}
-            >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
-                <Box
-                  sx={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 2,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    background: activePriceList ? 'rgba(var(--accent-gold-rgb), 0.15)' : 'var(--background)',
-                    color: activePriceList ? 'var(--accent-gold)' : 'var(--text-secondary)',
-                    border: '1px solid var(--border)',
-                  }}
-                >
+                : 'var(--panel)', boxShadow: '0 2px 10px rgba(0,0,0,0.03)'}}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap'}} className="items-start sm:items-center">
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '10px'}}>
+                <JXBox padding="none" border={false} style={{width: '36px', height: '36px', borderRadius: '16px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: activePriceList ? 'rgba(var(--accent-gold-rgb), 0.15)' : 'var(--background)', color: activePriceList ? 'var(--accent-gold)' : 'var(--text-secondary)', border: '1px solid var(--border)'}}>
                   <ReceiptText className="w-5 h-5" />
-                </Box>
-                <Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
-                    <Box sx={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--text-primary)' }}>
+                </JXBox>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+                  <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap'}}>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 800, fontSize: '0.95rem', color: 'var(--text-primary)'}}>
                       Company Price Lists
-                    </Box>
+                    </JXBox>
                     {activeOceanPriceList && (
-                      <Chip
-                        size="small"
-                        icon={<Ship className="w-3 h-3 text-blue-600" />}
-                        label={`Ocean: USA ➔ ${activeOceanPriceList.destinationLabel || 'Port'} (${activePriceListLaneCount} rates)`}
-                        sx={{
-                          fontWeight: 750,
-                          fontSize: '0.72rem',
-                          backgroundColor: 'rgba(59, 130, 246, 0.12)',
-                          color: '#1d4ed8',
-                          border: '1px solid rgba(59, 130, 246, 0.3)',
-                        }}
-                      />
+                      <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5" style={{fontWeight: 750, fontSize: '0.72rem', backgroundColor: 'rgba(59, 130, 246, 0.12)', color: '#1d4ed8', border: '1px solid rgba(59, 130, 246, 0.3)'}}>{<Ship className="w-3 h-3 text-blue-600" />} {`Ocean: USA ➔ ${activeOceanPriceList.destinationLabel || 'Port'} (${activePriceListLaneCount} rates)`}</span>
                     )}
                     {(activeTransitPriceList || activeTransitData) && (
-                      <Chip
-                        size="small"
-                        icon={<Truck className="w-3 h-3 text-emerald-600" />}
-                        label={`Transit: ${activeTransitData ? `${activeTransitData.origin.split(',')[0]} ➔ Islam Qala ($${activeTransitData.rates?.sedan}/$${activeTransitData.rates?.suv})` : 'Overland Transit Active'}`}
-                        sx={{
-                          fontWeight: 750,
-                          fontSize: '0.72rem',
-                          backgroundColor: 'rgba(34, 197, 94, 0.12)',
-                          color: '#15803d',
-                          border: '1px solid rgba(34, 197, 94, 0.3)',
-                        }}
-                      />
+                      <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5" style={{fontWeight: 750, fontSize: '0.72rem', backgroundColor: 'rgba(34, 197, 94, 0.12)', color: '#15803d', border: '1px solid rgba(34, 197, 94, 0.3)'}}>{<Truck className="w-3 h-3 text-emerald-600" />} {`Transit: ${activeTransitData ? `${activeTransitData.origin.split(',')[0]} ➔ Islam Qala ($${activeTransitData.rates?.sedan}/$${activeTransitData.rates?.suv})` : 'Overland Transit Active'}`}</span>
                     )}
                     {!activeOceanPriceList && !activeTransitPriceList && (
-                      <Chip
-                        size="small"
-                        icon={<AlertTriangle className="w-3 h-3 text-amber-500" />}
-                        label="No Active Price Lists"
-                        sx={{
-                          fontWeight: 750,
-                          fontSize: '0.72rem',
-                          backgroundColor: 'rgba(234, 179, 8, 0.1)',
-                          color: 'var(--warning)',
-                          border: '1px solid rgba(234, 179, 8, 0.3)',
-                        }}
-                      />
+                      <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5" style={{fontWeight: 750, fontSize: '0.72rem', backgroundColor: 'rgba(234, 179, 8, 0.1)', color: 'var(--warning)', border: '1px solid rgba(234, 179, 8, 0.3)'}}>{<AlertTriangle className="w-3 h-3 text-amber-500" />} {"No Active Price Lists"}</span>
                     )}
-                  </Box>
-                  <Box sx={{ fontSize: '0.8rem', color: 'var(--text-secondary)', mt: 0.25 }}>
+                  </JXBox>
+                  <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '2px'}}>
                     {activeOceanPriceList || activeTransitPriceList
                       ? [
                           activeOceanPriceList ? `🌊 Leg 1 Ocean: USA to ${activeOceanPriceList.destinationLabel} (${activePriceListLaneCount} lanes)` : null,
                           activeTransitData ? `🚚 Leg 2 Transit: ${activeTransitData.origin} to ${activeTransitData.destination} (Sedan ${formatCurrency(activeTransitData.rates?.sedan || 2300)}, SUV ${formatCurrency(activeTransitData.rates?.suv || 2400)} incl. clearance)` : null,
                         ].filter(Boolean).join(' • ')
                       : 'No rate sheets uploaded yet for automated shipping pricing and rate lookup.'}
-                  </Box>
-                </Box>
-              </Box>
+                  </JXBox>
+                </JXBox>
+              </JXBox>
 
-              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap'}}>
                 {activePriceList && (
                   <>
                     <Button
@@ -1912,33 +1841,24 @@ export default function CompanyLedgerDetailPage() {
                     Upload Price List
                   </Button>
                 )}
-              </Box>
-            </Box>
+              </JXBox>
+            </JXBox>
 
             {/* Inline Quick Rate Search when expanded */}
             {activePriceList && showInlineRateLookup && (
-              <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid var(--border)', display: 'grid', gap: 1.5 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <TextField
-                    size="small"
-                    fullWidth
-                    placeholder="Look up rate by state, branch, or city (e.g. TX, Dallas, Atlanta, Copart)..."
-                    value={inlineRateSearch}
-                    onChange={(e) => setInlineRateSearch(e.target.value)}
-                    InputProps={{
-                      startAdornment: <Search className="w-4 h-4 mr-2 text-[var(--text-secondary)]" />,
-                    }}
-                  />
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border)', display: 'grid', gap: '12px'}}>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px'}}>
+                  <div className="min-w-0 flex-1"><BareInput placeholder="Look up rate by state, branch, or city (e.g. TX, Dallas, Atlanta, Copart)..." value={inlineRateSearch} onChange={(e) => setInlineRateSearch(e.target.value)} leftIcon={<Search className="w-4 h-4 mr-2 text-[var(--text-secondary)]" />} size="small" /></div>
                   {inlineRateSearch && (
                     <Button variant="ghost" size="sm" onClick={() => setInlineRateSearch('')}>
                       Clear
                     </Button>
                   )}
-                </Box>
+                </JXBox>
 
                 {/* Instant matching preview */}
                 {inlineMatchedRates.length > 0 ? (
-                  <Box sx={{ border: '1px solid var(--border)', borderRadius: 1.5, overflow: 'hidden' }}>
+                  <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden'}}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
                       <thead>
                         <tr style={{ background: 'var(--panel)', borderBottom: '1px solid var(--border)' }}>
@@ -1964,19 +1884,7 @@ export default function CompanyLedgerDetailPage() {
                       </tbody>
                     </table>
                     {totalInlineMatches > 6 && (
-                      <Box
-                        sx={{
-                          p: 1,
-                          textAlign: 'center',
-                          background: 'var(--panel)',
-                          fontSize: '0.78rem',
-                          color: 'var(--text-secondary)',
-                          display: 'flex',
-                          justifyContent: 'center',
-                          alignItems: 'center',
-                          gap: 1,
-                        }}
-                      >
+                      <JXBox padding="none" border={false} style={{borderRadius: 0, padding: '8px', textAlign: 'center', background: 'var(--panel)', fontSize: '0.78rem', color: 'var(--text-secondary)', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px'}}>
                         <span>Showing 6 of {totalInlineMatches} matching rates.</span>
                         <Button
                           variant="ghost"
@@ -1985,62 +1893,27 @@ export default function CompanyLedgerDetailPage() {
                         >
                           View all in Drawer →
                         </Button>
-                      </Box>
+                      </JXBox>
                     )}
-                  </Box>
+                  </JXBox>
                 ) : inlineRateSearch ? (
-                  <Box sx={{ p: 1.5, textAlign: 'center', fontSize: '0.82rem', color: 'var(--text-secondary)', borderRadius: 1.5, background: 'var(--panel)' }}>
+                  <JXBox padding="none" border={false} style={{padding: '12px', textAlign: 'center', fontSize: '0.82rem', color: 'var(--text-secondary)', borderRadius: '12px', background: 'var(--panel)'}}>
                     No rates matching &quot;{inlineRateSearch}&quot; in this company&apos;s active price list.
-                  </Box>
+                  </JXBox>
                 ) : null}
-              </Box>
+              </JXBox>
             )}
-          </Box>
+          </JXBox>
 
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr) 160px 160px 220px' }, gap: 1.5, mb: 2 }}>
-            <TextField
-              size="small"
-              placeholder="Search description / category / notes"
-              value={filters.search}
-              onChange={(event) => setFilters((prev) => ({ ...prev, search: event.target.value }))}
-            />
-            <TextField
-              select
-              size="small"
-              value={filters.type}
-              onChange={(event) => setFilters((prev) => ({ ...prev, type: event.target.value }))}
-            >
-              <MenuItem value="">All Types</MenuItem>
-              <MenuItem value="DEBIT">DEBIT</MenuItem>
-              <MenuItem value="CREDIT">CREDIT</MenuItem>
-            </TextField>
-            <TextField
-              select
-              size="small"
-              value={filters.source}
-              onChange={(event) => setFilters((prev) => ({ ...prev, source: event.target.value }))}
-            >
-              <MenuItem value="">All Sources</MenuItem>
-              <MenuItem value="BANK_IMPORT">Bank Imports</MenuItem>
-              <MenuItem value="MANUAL">Manual Entries</MenuItem>
-            </TextField>
-            <TextField
-              select
-              size="small"
-              value={filters.shipmentId}
-              onChange={(event) => setFilters((prev) => ({ ...prev, shipmentId: event.target.value }))}
-            >
-              <MenuItem value="">All Shipments ({company.shipments?.length || 0})</MenuItem>
-              {(company.shipments || []).map((s) => (
-                <MenuItem key={s.id} value={s.id}>
-                  {s.vehicleVIN ? `${s.vehicleVIN.slice(-8)} • ` : ''}{[s.vehicleMake, s.vehicleModel].filter(Boolean).join(' ') || 'Shipment'}
-                </MenuItem>
-              ))}
-            </TextField>
-          </Box>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '12px', marginBottom: '16px'}} className="grid-cols-1 grid md:grid-cols-[minmax(0,_1fr)_160px_160px_220px]">
+            <BareInput placeholder="Search description / category / notes" value={filters.search} onChange={(event) => setFilters((prev) => ({ ...prev, search: event.target.value }))} size="small" />
+            <BareSelect options={[{ value: "", label: 'All Types' }, { value: "DEBIT", label: 'DEBIT' }, { value: "CREDIT", label: 'CREDIT' }]} value={filters.type} size="small" onChange={(event) => setFilters((prev) => ({ ...prev, type: event.target.value }))} />
+            <BareSelect options={[{ value: "", label: 'All Sources' }, { value: "BANK_IMPORT", label: 'Bank Imports' }, { value: "MANUAL", label: 'Manual Entries' }]} value={filters.source} size="small" onChange={(event) => setFilters((prev) => ({ ...prev, source: event.target.value }))} />
+            <BareSelect options={[{ value: "", label: `All Shipments (${company.shipments?.length || 0})` }, ...(company.shipments || []).map((s) => ({ value: s.id, label: `${s.vehicleVIN ? `${s.vehicleVIN.slice(-8)} • ` : ''}${[s.vehicleMake, s.vehicleModel].filter(Boolean).join(' ') || 'Shipment'}` }))]} value={filters.shipmentId} size="small" onChange={(event) => setFilters((prev) => ({ ...prev, shipmentId: event.target.value }))} />
+          </JXBox>
 
           {filters.shipmentId && (
-            <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap'}}>
               <span className="text-xs text-[var(--text-secondary)] font-medium">Filtered by shipment:</span>
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-[rgba(var(--accent-gold-rgb),0.12)] text-[var(--accent-gold)] border border-[rgba(var(--accent-gold-rgb),0.25)]">
                 <Car className="w-3.5 h-3.5" />
@@ -2056,44 +1929,36 @@ export default function CompanyLedgerDetailPage() {
                   ×
                 </button>
               </span>
-            </Box>
+            </JXBox>
           )}
 
           {(focusedEntryId || focusedEntryLoading || focusedEntry) && (
-            <Box
-              sx={{
-                mb: 2,
-                border: '1px solid rgba(var(--accent-gold-rgb), 0.32)',
-                background: 'rgba(var(--accent-gold-rgb), 0.08)',
-                borderRadius: 2,
-                p: 2,
-              }}
-            >
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', gap: 2, flexWrap: 'wrap' }}>
-                <Box>
-                  <Box sx={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-secondary)', fontWeight: 700 }}>
+            <JXBox padding="none" border={false} style={{marginBottom: '16px', border: '1px solid rgba(var(--accent-gold-rgb), 0.32)', background: 'rgba(var(--accent-gold-rgb), 0.08)', borderRadius: '16px', padding: '16px'}}>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'start', gap: '16px', flexWrap: 'wrap'}}>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+                  <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-secondary)', fontWeight: 700}}>
                     Focused Ledger Entry
-                  </Box>
+                  </JXBox>
                   {focusedEntryLoading ? (
-                    <Box sx={{ mt: 1, color: 'var(--text-secondary)' }}>Loading selected entry...</Box>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '8px', color: 'var(--text-secondary)'}}>Loading selected entry...</JXBox>
                   ) : focusedEntry ? (
                     <>
-                      <Box sx={{ mt: 1, fontWeight: 700, color: 'var(--text-primary)' }}>{focusedEntry.description}</Box>
-                      <Box sx={{ mt: 0.75, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '8px', fontWeight: 700, color: 'var(--text-primary)'}}>{focusedEntry.description}</JXBox>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '6px', fontSize: '0.85rem', color: 'var(--text-secondary)'}}>
                         {new Date(focusedEntry.transactionDate).toLocaleString()} • {getDisplayType(focusedEntry)} • {formatCurrency(focusedEntry.amount)}
-                      </Box>
-                      <Box sx={{ mt: 0.75, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                      </JXBox>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '6px', fontSize: '0.8rem', color: 'var(--text-secondary)'}}>
                         {focusedEntry.category || 'General'}{focusedEntry.reference ? ` • Ref: ${focusedEntry.reference}` : ''}
-                      </Box>
+                      </JXBox>
                       {focusedEntry.notes && (
-                        <Box sx={{ mt: 0.75, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{focusedEntry.notes}</Box>
+                        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '6px', fontSize: '0.8rem', color: 'var(--text-secondary)'}}>{focusedEntry.notes}</JXBox>
                       )}
                     </>
                   ) : (
-                    <Box sx={{ mt: 1, color: 'var(--text-secondary)' }}>The selected entry could not be loaded.</Box>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '8px', color: 'var(--text-secondary)'}}>The selected entry could not be loaded.</JXBox>
                   )}
-                </Box>
-                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                </JXBox>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
                   {activePriceList && (
                     <Button
                       variant="outline"
@@ -2105,9 +1970,9 @@ export default function CompanyLedgerDetailPage() {
                     </Button>
                   )}
                   <Button variant="outline" size="sm" onClick={clearFocusedEntry}>Clear Focus</Button>
-                </Box>
-              </Box>
-            </Box>
+                </JXBox>
+              </JXBox>
+            </JXBox>
           )}
 
           <DataTable
@@ -2128,7 +1993,7 @@ export default function CompanyLedgerDetailPage() {
             title="Company Shipments"
             description="All shipments handled by this company across dispatch, shipping, and transit operations"
             actions={
-              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '8px', alignItems: 'center'}}>
                 <Button
                   variant="outline"
                   size="sm"
@@ -2145,7 +2010,7 @@ export default function CompanyLedgerDetailPage() {
                 >
                   Export Shipments ({filteredCompanyShipments.length})
                 </Button>
-              </Box>
+              </JXBox>
             }
           >
             <DashboardGrid className="grid-cols-1 sm:grid-cols-2 md:grid-cols-4 mb-4">
@@ -2175,38 +2040,11 @@ export default function CompanyLedgerDetailPage() {
               />
             </DashboardGrid>
 
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr) 200px 180px' }, gap: 1.5, mb: 2 }}>
-              <TextField
-                size="small"
-                placeholder="Search VIN / vehicle / customer / reference"
-                value={shipmentSearch}
-                onChange={(e) => setShipmentSearch(e.target.value)}
-              />
-              <TextField
-                select
-                size="small"
-                value={shipmentRoleFilter}
-                onChange={(e) => setShipmentRoleFilter(e.target.value as any)}
-              >
-                <MenuItem value="ALL">All Roles ({company.shipments?.length || 0})</MenuItem>
-                <MenuItem value="DISPATCH">Dispatched ({(company.shipments || []).filter((s) => s.isDispatched).length})</MenuItem>
-                <MenuItem value="SHIPPING">Shipped ({(company.shipments || []).filter((s) => s.isShipped).length})</MenuItem>
-                <MenuItem value="TRANSIT">Transited ({(company.shipments || []).filter((s) => s.isTransited).length})</MenuItem>
-              </TextField>
-              <TextField
-                select
-                size="small"
-                value={shipmentStatusFilter}
-                onChange={(e) => setShipmentStatusFilter(e.target.value)}
-              >
-                <MenuItem value="ALL">All Statuses</MenuItem>
-                {Array.from(new Set((company.shipments || []).map((s) => s.status))).filter(Boolean).map((st) => (
-                  <MenuItem key={st} value={st}>
-                    {st.replace(/_/g, ' ')}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Box>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '12px', marginBottom: '16px'}} className="grid-cols-1 grid md:grid-cols-[minmax(0,_1fr)_200px_180px]">
+              <BareInput placeholder="Search VIN / vehicle / customer / reference" value={shipmentSearch} onChange={(e) => setShipmentSearch(e.target.value)} size="small" />
+              <BareSelect options={[{ value: "ALL", label: `All Roles (${company.shipments?.length || 0})` }, { value: "DISPATCH", label: `Dispatched (${(company.shipments || []).filter((s) => s.isDispatched).length})` }, { value: "SHIPPING", label: `Shipped (${(company.shipments || []).filter((s) => s.isShipped).length})` }, { value: "TRANSIT", label: `Transited (${(company.shipments || []).filter((s) => s.isTransited).length})` }]} value={shipmentRoleFilter} size="small" onChange={(e) => setShipmentRoleFilter(e.target.value as any)} />
+              <BareSelect options={[{ value: "ALL", label: 'All Statuses' }, ...Array.from(new Set((company.shipments || []).map((s) => s.status))).filter(Boolean).map((st) => ({ value: st, label: st.replace(/_/g, ' ') }))]} value={shipmentStatusFilter} size="small" onChange={(e) => setShipmentStatusFilter(e.target.value)} />
+            </JXBox>
 
             <DataTable
               data={filteredCompanyShipments}
@@ -2230,7 +2068,7 @@ export default function CompanyLedgerDetailPage() {
           title="Company Price List"
           description="Upload and manage the rate sheet used by this company"
           actions={
-            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '8px', alignItems: 'center'}}>
               {activePriceList && (
                 <Button
                   variant="outline"
@@ -2243,60 +2081,40 @@ export default function CompanyLedgerDetailPage() {
               <Button variant="outline" icon={<GitCompareArrows className="w-4 h-4" />} onClick={() => router.push('/dashboard/finance/price-comparison')}>
                 Compare Prices
               </Button>
-            </Box>
+            </JXBox>
           }
         >
-          <Box sx={{ display: 'grid', gap: 2.5 }}>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '20px'}}>
             {/* Dual-Leg Active Price Lists Banner */}
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' }, gap: 1.5 }}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '12px'}} className="grid-cols-1 grid lg:grid-cols-[1fr_1fr]">
               {/* Card 1: Leg 1 Ocean Shipping */}
-              <Box
-                sx={{
-                  p: 2,
-                  borderRadius: 2,
-                  border: activeOceanPriceList ? '1px solid rgba(59, 130, 246, 0.4)' : '1px dashed var(--border)',
-                  background: activeOceanPriceList ? 'rgba(59, 130, 246, 0.06)' : 'var(--panel)',
-                }}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1.5, flexWrap: 'wrap' }}>
-                  <Box sx={{ display: 'flex', gap: 1.25, alignItems: 'flex-start' }}>
-                    <Box
-                      sx={{
-                        mt: 0.25,
-                        width: 36,
-                        height: 36,
-                        borderRadius: 1.5,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        background: activeOceanPriceList ? 'rgba(59, 130, 246, 0.16)' : 'var(--background)',
-                        color: activeOceanPriceList ? '#2563eb' : 'var(--text-secondary)',
-                        border: '1px solid var(--border)',
-                      }}
-                    >
+              <JXBox padding="none" border={false} style={{padding: '16px', borderRadius: '16px', border: activeOceanPriceList ? '1px solid rgba(59, 130, 246, 0.4)' : '1px dashed var(--border)', background: activeOceanPriceList ? 'rgba(59, 130, 246, 0.06)' : 'var(--panel)'}}>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap'}}>
+                  <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '10px', alignItems: 'flex-start'}}>
+                    <JXBox padding="none" border={false} style={{marginTop: '2px', width: '36px', height: '36px', borderRadius: '12px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: activeOceanPriceList ? 'rgba(59, 130, 246, 0.16)' : 'var(--background)', color: activeOceanPriceList ? '#2563eb' : 'var(--text-secondary)', border: '1px solid var(--border)'}}>
                       <Ship className="h-5 w-5" />
-                    </Box>
-                    <Box>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Box sx={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.08em' }}>
+                    </JXBox>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px'}}>
+                        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.08em'}}>
                           Leg 1: Ocean Freight
-                        </Box>
+                        </JXBox>
                         {activeOceanPriceList ? (
-                          <Chip size="small" label="Active" sx={{ fontWeight: 800, height: 18, fontSize: '0.68rem', bgcolor: 'rgba(59, 130, 246, 0.15)', color: '#1d4ed8' }} />
+                          <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5" style={{fontWeight: 800, height: '18px', fontSize: '0.68rem', backgroundColor: 'rgba(59, 130, 246, 0.15)', color: '#1d4ed8'}}>{"Active"}</span>
                         ) : (
-                          <Chip size="small" label="Not Active" sx={{ fontWeight: 800, height: 18, fontSize: '0.68rem', bgcolor: 'rgba(234, 179, 8, 0.15)', color: 'var(--warning)' }} />
+                          <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5" style={{fontWeight: 800, height: '18px', fontSize: '0.68rem', backgroundColor: 'rgba(234, 179, 8, 0.15)', color: 'var(--warning)'}}>{"Not Active"}</span>
                         )}
-                      </Box>
-                      <Box sx={{ mt: 0.35, fontWeight: 800, fontSize: '0.98rem', color: 'var(--text-primary)' }}>
+                      </JXBox>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '2.8px', fontWeight: 800, fontSize: '0.98rem', color: 'var(--text-primary)'}}>
                         {activeOceanPriceList ? activeOceanPriceList.name : 'USA to Mersin / Jebel Ali Ocean Sheet'}
-                      </Box>
-                      <Box sx={{ mt: 0.35, fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                      </JXBox>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '2.8px', fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.5}}>
                         {activeOceanPriceList
                           ? `Destination: ${activeOceanPriceList.destinationLabel} • ${activePriceListLaneCount} Auction Lanes • ${activePriceListStateCount} States • ${activeOceanPriceList.sourceFileName}`
                           : 'Upload a USA auction rate sheet (Copart/IAAI) to activate Leg 1 port shipping rates.'}
-                      </Box>
-                    </Box>
-                  </Box>
+                      </JXBox>
+                    </JXBox>
+                  </JXBox>
                   {activeOceanPriceList && (
                     <Button
                       variant="outline"
@@ -2307,57 +2125,37 @@ export default function CompanyLedgerDetailPage() {
                       Print Ocean
                     </Button>
                   )}
-                </Box>
-              </Box>
+                </JXBox>
+              </JXBox>
 
               {/* Card 2: Leg 2 Overland Transit */}
-              <Box
-                sx={{
-                  p: 2,
-                  borderRadius: 2,
-                  border: (activeTransitPriceList || activeTransitData) ? '1px solid rgba(16, 185, 129, 0.4)' : '1px dashed var(--border)',
-                  background: (activeTransitPriceList || activeTransitData) ? 'rgba(16, 185, 129, 0.06)' : 'var(--panel)',
-                }}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1.5, flexWrap: 'wrap' }}>
-                  <Box sx={{ display: 'flex', gap: 1.25, alignItems: 'flex-start' }}>
-                    <Box
-                      sx={{
-                        mt: 0.25,
-                        width: 36,
-                        height: 36,
-                        borderRadius: 1.5,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        background: (activeTransitPriceList || activeTransitData) ? 'rgba(16, 185, 129, 0.16)' : 'var(--background)',
-                        color: (activeTransitPriceList || activeTransitData) ? '#059669' : 'var(--text-secondary)',
-                        border: '1px solid var(--border)',
-                      }}
-                    >
+              <JXBox padding="none" border={false} style={{padding: '16px', borderRadius: '16px', border: (activeTransitPriceList || activeTransitData) ? '1px solid rgba(16, 185, 129, 0.4)' : '1px dashed var(--border)', background: (activeTransitPriceList || activeTransitData) ? 'rgba(16, 185, 129, 0.06)' : 'var(--panel)'}}>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap'}}>
+                  <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '10px', alignItems: 'flex-start'}}>
+                    <JXBox padding="none" border={false} style={{marginTop: '2px', width: '36px', height: '36px', borderRadius: '12px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: (activeTransitPriceList || activeTransitData) ? 'rgba(16, 185, 129, 0.16)' : 'var(--background)', color: (activeTransitPriceList || activeTransitData) ? '#059669' : 'var(--text-secondary)', border: '1px solid var(--border)'}}>
                       <Truck className="h-5 w-5" />
-                    </Box>
-                    <Box>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Box sx={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.08em' }}>
+                    </JXBox>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px'}}>
+                        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.08em'}}>
                           Leg 2: Overland Transit
-                        </Box>
+                        </JXBox>
                         {(activeTransitPriceList || activeTransitData) ? (
-                          <Chip size="small" label="Active" sx={{ fontWeight: 800, height: 18, fontSize: '0.68rem', bgcolor: 'rgba(16, 185, 129, 0.15)', color: '#047857' }} />
+                          <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5" style={{fontWeight: 800, height: '18px', fontSize: '0.68rem', backgroundColor: 'rgba(16, 185, 129, 0.15)', color: '#047857'}}>{"Active"}</span>
                         ) : (
-                          <Chip size="small" label="Not Active" sx={{ fontWeight: 800, height: 18, fontSize: '0.68rem', bgcolor: 'rgba(234, 179, 8, 0.15)', color: 'var(--warning)' }} />
+                          <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5" style={{fontWeight: 800, height: '18px', fontSize: '0.68rem', backgroundColor: 'rgba(234, 179, 8, 0.15)', color: 'var(--warning)'}}>{"Not Active"}</span>
                         )}
-                      </Box>
-                      <Box sx={{ mt: 0.35, fontWeight: 800, fontSize: '0.98rem', color: 'var(--text-primary)' }}>
+                      </JXBox>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '2.8px', fontWeight: 800, fontSize: '0.98rem', color: 'var(--text-primary)'}}>
                         {activeTransitData ? `${activeTransitData.origin} ➔ ${activeTransitData.destination}` : 'Port to Islam Qala Transit Tariff'}
-                      </Box>
-                      <Box sx={{ mt: 0.35, fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                      </JXBox>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '2.8px', fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.5}}>
                         {activeTransitData
                           ? `Sedan: ${formatCurrency(activeTransitData.rates?.sedan || 2300)} • SUV: ${formatCurrency(activeTransitData.rates?.suv || 2400)} • Customs clearance included • ${activeTransitPriceList?.name || 'Overland Tariff'}`
                           : 'Upload a Mersin or UAE to Islam Qala rate sheet to activate overland delivery tariffs.'}
-                      </Box>
-                    </Box>
-                  </Box>
+                      </JXBox>
+                    </JXBox>
+                  </JXBox>
                   {(activeTransitPriceList || activeTransitData) && (
                     <Button
                       variant="outline"
@@ -2371,26 +2169,26 @@ export default function CompanyLedgerDetailPage() {
                       View Tariff
                     </Button>
                   )}
-                </Box>
-              </Box>
-            </Box>
+                </JXBox>
+              </JXBox>
+            </JXBox>
 
             {/* Quick Metrics */}
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(4, 1fr)' }, gap: 1 }}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '8px'}} className="grid grid-cols-[1fr_1fr] sm:grid-cols-4">
               {[
                 { label: 'Ocean Lanes', value: `${activePriceListLaneCount} rows` },
                 { label: 'State Rates', value: `${activePriceListStateCount} states` },
                 { label: 'Transit Sedan', value: activeTransitData ? formatCurrency(activeTransitData.rates?.sedan || 2300) : 'None' },
                 { label: 'Transit SUV', value: activeTransitData ? formatCurrency(activeTransitData.rates?.suv || 2400) : 'None' },
               ].map((item) => (
-                <Box key={item.label} sx={{ p: 1.25, borderRadius: 1.5, border: '1px solid var(--border)', background: 'var(--background)' }}>
-                  <Box sx={{ fontSize: '0.68rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 800 }}>{item.label}</Box>
-                  <Box sx={{ mt: 0.25, fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)' }}>{item.value}</Box>
-                </Box>
+                <JXBox padding="none" border={false} key={item.label} style={{padding: '10px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--background)'}}>
+                  <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.68rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 800}}>{item.label}</JXBox>
+                  <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '2px', fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)'}}>{item.value}</JXBox>
+                </JXBox>
               ))}
-            </Box>
+            </JXBox>
 
-            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
               {activeOceanPriceList && (
                 <Button
                   variant="outline"
@@ -2417,14 +2215,14 @@ export default function CompanyLedgerDetailPage() {
               {activePriceListWarnings.length > 0 && (
                 <Button variant="outline" size="sm" onClick={() => scrollToPriceListSection('price-list-warnings')}>Warnings</Button>
               )}
-            </Box>
+            </JXBox>
 
-            <Box sx={{ p: 2, borderRadius: 2, border: '1px solid rgba(var(--accent-gold-rgb), 0.32)', background: 'rgba(var(--accent-gold-rgb), 0.08)' }}>
-              <Box sx={{ fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 1 }}>
+            <JXBox padding="none" border={false} style={{padding: '16px', borderRadius: '16px', border: '1px solid rgba(var(--accent-gold-rgb), 0.32)', background: 'rgba(var(--accent-gold-rgb), 0.08)'}}>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px'}}>
                 <Navigation className="w-4 h-4 text-[var(--accent-gold)]" />
                 Dual-Leg Pricing Architecture (USA ➔ Port ➔ Islam Qala)
-              </Box>
-              <Box sx={{ mt: 0.75, fontSize: '0.84rem', color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+              </JXBox>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '6px', fontSize: '0.84rem', color: 'var(--text-secondary)', lineHeight: 1.7}}>
                 Jacxi supports <strong>two concurrent price lists</strong> for every shipping company:
                 <br />
                 • <strong>Leg 1 (Ocean Freight)</strong>: USA auction yards (Copart & IAAI across 50 states) to Mersin, Turkey or Jebel Ali, UAE.
@@ -2432,98 +2230,69 @@ export default function CompanyLedgerDetailPage() {
                 • <strong>Leg 2 (Overland Transit)</strong>: Port customs clearance and overland car-carrier transport from Mersin or UAE to Islam Qala, Herat border.
                 <br />
                 The system automatically detects whether an uploaded document is Leg 1 or Leg 2 from its destination and text content. Activating an overland transit list <strong>never</strong> overwrites or deactivates your ocean auction rates, and vice versa!
-              </Box>
-            </Box>
-            <Box id="price-list-upload-flow" sx={{ scrollMarginTop: 96, display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(4, 1fr)' }, gap: 1 }}>
+              </JXBox>
+            </JXBox>
+            <JXBox padding="none" border={false} id="price-list-upload-flow" style={{backgroundColor: 'transparent', borderRadius: 0, scrollMarginTop: 96, display: 'grid', gap: '8px'}} className="grid-cols-1 md:grid-cols-4">
               {[
                 ['1', 'Upload', priceListFile ? priceListFile.name : 'Choose a rate sheet file'],
                 ['2', 'Preview', priceListPreview ? `${priceListPreview.rows.length} editable rows found` : 'Check parser confidence before import'],
                 ['3', 'Review', priceListPreview?.parserStats ? `${priceListPreview.parserStats.confidence} confidence` : 'Edit/delete questionable rows'],
                 ['4', 'Activate', 'Save as a new active version'],
               ].map(([step, title, detail]) => (
-                <Box key={step} sx={{ p: 1.25, borderRadius: 1.5, border: '1px solid var(--border)', background: 'var(--background)', display: 'grid', gap: 0.5 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                    <Box sx={{ width: 22, height: 22, borderRadius: 999, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.72rem', fontWeight: 800, background: 'rgba(var(--accent-gold-rgb), 0.14)', color: 'var(--accent-gold)' }}>{step}</Box>
-                    <Box sx={{ fontWeight: 700, fontSize: '0.86rem' }}>{title}</Box>
-                  </Box>
-                  <Box sx={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>{detail}</Box>
-                </Box>
+                <JXBox padding="none" border={false} key={step} style={{padding: '10px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--background)', display: 'grid', gap: '4px'}}>
+                  <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '6px'}}>
+                    <JXBox padding="none" border={false} style={{width: '22px', height: '22px', borderRadius: '7992px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.72rem', fontWeight: 800, background: 'rgba(var(--accent-gold-rgb), 0.14)', color: 'var(--accent-gold)'}}>{step}</JXBox>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 700, fontSize: '0.86rem'}}>{title}</JXBox>
+                  </JXBox>
+                  <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.76rem', color: 'var(--text-secondary)'}}>{detail}</JXBox>
+                </JXBox>
               ))}
-            </Box>
+            </JXBox>
 
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' }, gap: 1.5 }}>
-              <Box sx={{ p: 1.5, borderRadius: 2, border: '1px solid var(--border)', background: 'var(--panel)' }}>
-                <Box sx={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Destination</Box>
-                <Box sx={{ mt: 0.5, fontWeight: 700 }}>{company.priceListConfig?.destinationLabel || 'Not imported'}</Box>
-              </Box>
-              <Box sx={{ p: 1.5, borderRadius: 2, border: '1px solid var(--border)', background: 'var(--panel)' }}>
-                <Box sx={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>State Rates</Box>
-                <Box sx={{ mt: 0.5, fontWeight: 700 }}>{Object.keys(company.priceListConfig?.stateRates || {}).length}</Box>
-              </Box>
-              <Box sx={{ p: 1.5, borderRadius: 2, border: '1px solid var(--border)', background: 'var(--panel)' }}>
-                <Box sx={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Auction Rows</Box>
-                <Box sx={{ mt: 0.5, fontWeight: 700 }}>{company.priceListConfig?.auctionRates?.length || 0}</Box>
-              </Box>
-            </Box>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '12px'}} className="grid-cols-1 md:grid-cols-3">
+              <JXBox padding="none" border={false} style={{padding: '12px', borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--panel)'}}>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700}}>Destination</JXBox>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '4px', fontWeight: 700}}>{company.priceListConfig?.destinationLabel || 'Not imported'}</JXBox>
+              </JXBox>
+              <JXBox padding="none" border={false} style={{padding: '12px', borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--panel)'}}>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700}}>State Rates</JXBox>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '4px', fontWeight: 700}}>{Object.keys(company.priceListConfig?.stateRates || {}).length}</JXBox>
+              </JXBox>
+              <JXBox padding="none" border={false} style={{padding: '12px', borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--panel)'}}>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700}}>Auction Rows</JXBox>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '4px', fontWeight: 700}}>{company.priceListConfig?.auctionRates?.length || 0}</JXBox>
+              </JXBox>
+            </JXBox>
 
             {activePriceListWarnings.length > 0 && (
-              <Box id="price-list-warnings" sx={{ scrollMarginTop: 96, p: 1.5, borderRadius: 2, border: '1px solid rgba(234, 179, 8, 0.35)', background: 'rgba(234, 179, 8, 0.08)', color: 'var(--text-primary)' }}>
-                <Box sx={{ fontWeight: 700, mb: 0.75 }}>Import Warnings</Box>
+              <JXBox padding="none" border={false} id="price-list-warnings" style={{scrollMarginTop: 96, padding: '12px', borderRadius: '16px', border: '1px solid rgba(234, 179, 8, 0.35)', background: 'rgba(234, 179, 8, 0.08)', color: 'var(--text-primary)'}}>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 700, marginBottom: '6px'}}>Import Warnings</JXBox>
                 {activePriceListWarnings.map((warning) => (
-                  <Box key={warning} sx={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{warning}</Box>
+                  <JXBox padding="none" border={false} key={warning} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.82rem', color: 'var(--text-secondary)'}}>{warning}</JXBox>
                 ))}
-              </Box>
+              </JXBox>
             )}
 
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 180px 180px' }, gap: 1.5 }}>
-              <TextField
-                size="small"
-                label="List Name"
-                value={priceListForm.name}
-                onChange={(event) => {
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '12px'}} className="grid-cols-1 grid md:grid-cols-[1fr_1fr_180px_180px]">
+              <FormField label="List Name" value={priceListForm.name} onChange={(event) => {
                   setPriceListForm((prev) => ({ ...prev, name: event.target.value }));
                   setPriceListPreview(null);
-                }}
-                placeholder={`${company.name} price list`}
-              />
-              <TextField
-                size="small"
-                label="Destination"
-                value={priceListForm.destinationLabel}
-                onChange={(event) => {
+                }} placeholder={`${company.name} price list`} size="small" />
+              <FormField label="Destination" value={priceListForm.destinationLabel} onChange={(event) => {
                   setPriceListForm((prev) => ({ ...prev, destinationLabel: event.target.value }));
                   setPriceListPreview(null);
-                }}
-                placeholder={company.priceListConfig?.destinationLabel || 'Islam Qala, Afghanistan'}
-              />
-              <TextField
-                size="small"
-                type="date"
-                label="Effective From"
-                InputLabelProps={{ shrink: true }}
-                value={priceListForm.effectiveFrom}
-                onChange={(event) => {
+                }} placeholder={company.priceListConfig?.destinationLabel || 'Islam Qala, Afghanistan'} size="small" />
+              <FormField type="date" label="Effective From" InputLabelProps={{ shrink: true }} value={priceListForm.effectiveFrom} onChange={(event) => {
                   setPriceListForm((prev) => ({ ...prev, effectiveFrom: event.target.value }));
                   setPriceListPreview(null);
-                }}
-              />
-              <TextField
-                select
-                size="small"
-                label="Import Mode"
-                value={priceListForm.mode}
-                onChange={(event) => {
-                  setPriceListForm((prev) => ({ ...prev, mode: event.target.value as PriceListImportMode }));
+                }} size="small" />
+              <Select label="Import Mode" options={[{ value: "merge", label: 'Merge/update' }, { value: "replace", label: 'Replace all' }, { value: "add_new", label: 'Add new only' }]} value={priceListForm.mode} size="small" onChange={(val) => {
+                  setPriceListForm((prev) => ({ ...prev, mode: val as PriceListImportMode }));
                   setPriceListPreview(null);
-                }}
-              >
-                <MenuItem value="merge">Merge/update</MenuItem>
-                <MenuItem value="replace">Replace all</MenuItem>
-                <MenuItem value="add_new">Add new only</MenuItem>
-              </TextField>
-            </Box>
+                }} />
+            </JXBox>
 
-            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 1, alignItems: { xs: 'stretch', sm: 'center' } }}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '8px'}} className="flex-col sm:flex-row items-stretch sm:items-center">
               <input id="company-price-list-pdf" type="file" accept=".pdf,.csv,.txt,.xlsx,application/pdf,text/csv,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={handlePriceListFileChange} style={{ display: 'none' }} />
               <label htmlFor="company-price-list-pdf">
                 <Button component="span" variant="outline" icon={<Upload className="w-4 h-4" />}>
@@ -2536,60 +2305,60 @@ export default function CompanyLedgerDetailPage() {
               <Button variant="primary" onClick={handleImportPriceListPdf} disabled={!priceListFile || !priceListPreview || importingPriceList || previewingPriceList}>
                 {importingPriceList ? 'Importing...' : 'Import Price List'}
               </Button>
-            </Box>
+            </JXBox>
 
             {priceListPreview && (
-              <Box sx={{ display: 'grid', gap: 1.5, p: 1.5, borderRadius: 2, border: '1px solid var(--border)', background: 'var(--background)' }}>
-                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(4, 1fr)' }, gap: 1.5 }}>
-                  <Box><Box sx={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 700 }}>States Found</Box><Box sx={{ fontWeight: 700 }}>{priceListPreview.importedCount}</Box></Box>
-                  <Box><Box sx={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 700 }}>Auction Rows Found</Box><Box sx={{ fontWeight: 700 }}>{priceListPreview.importedAuctionRateCount}</Box></Box>
-                  <Box><Box sx={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 700 }}>After Import Rows</Box><Box sx={{ fontWeight: 700 }}>{priceListPreview.totalAuctionRateCount}</Box></Box>
-                  <Box><Box sx={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 700 }}>Mode</Box><Box sx={{ fontWeight: 700 }}>{priceListPreview.mode}</Box></Box>
-                </Box>
+              <JXBox padding="none" border={false} style={{display: 'grid', gap: '12px', padding: '12px', borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--background)'}}>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '12px'}} className="grid-cols-1 md:grid-cols-4">
+                  <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}><JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 700}}>States Found</JXBox><JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 700}}>{priceListPreview.importedCount}</JXBox></JXBox>
+                  <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}><JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 700}}>Auction Rows Found</JXBox><JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 700}}>{priceListPreview.importedAuctionRateCount}</JXBox></JXBox>
+                  <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}><JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 700}}>After Import Rows</JXBox><JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 700}}>{priceListPreview.totalAuctionRateCount}</JXBox></JXBox>
+                  <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}><JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 700}}>Mode</JXBox><JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 700}}>{priceListPreview.mode}</JXBox></JXBox>
+                </JXBox>
                 {priceListPreview.parserStats && (
-                  <Box sx={{ display: 'grid', gap: 1, p: 1.25, borderRadius: 2, background: 'rgba(59, 130, 246, 0.08)', border: '1px solid rgba(59, 130, 246, 0.22)' }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
-                      <Box sx={{ fontWeight: 700 }}>Parser confidence: {priceListPreview.parserStats.confidence}</Box>
-                      <Box sx={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                  <JXBox padding="none" border={false} style={{display: 'grid', gap: '8px', padding: '10px', borderRadius: '16px', background: 'rgba(59, 130, 246, 0.08)', border: '1px solid rgba(59, 130, 246, 0.22)'}}>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap', alignItems: 'center'}}>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 700}}>Parser confidence: {priceListPreview.parserStats.confidence}</JXBox>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.8rem', color: 'var(--text-secondary)'}}>
                         Direct {priceListPreview.parserStats.directRows} / Flexible {priceListPreview.parserStats.flexibleRows} / Guessed {priceListPreview.parserStats.guessedRows} / AI {priceListPreview.parserStats.aiRows}
-                      </Box>
-                    </Box>
+                      </JXBox>
+                    </JXBox>
                     {priceListPreview.rowSourceSummary && (
-                      <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '6px', flexWrap: 'wrap'}}>
                         {Object.entries(priceListPreview.rowSourceSummary).map(([source, count]) => (
-                          <Box key={source} sx={{ px: 1, py: 0.35, borderRadius: 1, border: '1px solid rgba(59, 130, 246, 0.24)', fontSize: '0.76rem', fontWeight: 700 }}>
+                          <JXBox padding="none" border={false} key={source} style={{backgroundColor: 'transparent', paddingLeft: '8px', paddingRight: '8px', paddingTop: '2.8px', paddingBottom: '2.8px', borderRadius: '8px', border: '1px solid rgba(59, 130, 246, 0.24)', fontSize: '0.76rem', fontWeight: 700}}>
                             {source}: {count}
-                          </Box>
+                          </JXBox>
                         ))}
-                      </Box>
+                      </JXBox>
                     )}
                     {priceListPreview.parserStats.notes.length > 0 && (
-                      <Box sx={{ display: 'grid', gap: 0.25 }}>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '2px'}}>
                         {priceListPreview.parserStats.notes.map((note) => (
-                          <Box key={note} sx={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{note}</Box>
+                          <JXBox padding="none" border={false} key={note} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.82rem', color: 'var(--text-secondary)'}}>{note}</JXBox>
                         ))}
-                      </Box>
+                      </JXBox>
                     )}
-                  </Box>
+                  </JXBox>
                 )}
                 {priceListPreview.warnings.length > 0 && (
-                  <Box sx={{ p: 1.25, borderRadius: 2, background: 'rgba(234, 179, 8, 0.08)', border: '1px solid rgba(234, 179, 8, 0.3)' }}>
+                  <JXBox padding="none" border={false} style={{padding: '10px', borderRadius: '16px', background: 'rgba(234, 179, 8, 0.08)', border: '1px solid rgba(234, 179, 8, 0.3)'}}>
                     {priceListPreview.warnings.map((warning) => (
-                      <Box key={warning} sx={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{warning}</Box>
+                      <JXBox padding="none" border={false} key={warning} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.82rem', color: 'var(--text-secondary)'}}>{warning}</JXBox>
                     ))}
-                  </Box>
+                  </JXBox>
                 )}
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1.5, alignItems: 'center', flexWrap: 'wrap' }}>
-                  <Box>
-                    <Box sx={{ fontWeight: 700 }}>Preview Rows</Box>
-                    <Box sx={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Edit state, branch, city, loading point, or total before importing this version.</Box>
-                  </Box>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap'}}>
+                  <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 700}}>Preview Rows</JXBox>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.82rem', color: 'var(--text-secondary)'}}>Edit state, branch, city, loading point, or total before importing this version.</JXBox>
+                  </JXBox>
                   <Button variant="outline" size="sm" onClick={downloadPriceListImportReport}>
                     Download Report
                   </Button>
-                </Box>
-                <Box sx={{ border: '1px solid var(--border)', borderRadius: 2, overflow: 'hidden' }}>
-                  <Box sx={{ maxHeight: 380, overflow: 'auto' }}>
+                </JXBox>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', border: '1px solid var(--border)', borderRadius: '16px', overflow: 'hidden'}}>
+                  <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, maxHeight: '380px', overflow: 'auto'}}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                       <thead>
                         <tr style={{ background: 'var(--panel)', borderBottom: '1px solid var(--border)' }}>
@@ -2606,41 +2375,28 @@ export default function CompanyLedgerDetailPage() {
                         {priceListPreview.rows.length > 0 ? priceListPreview.rows.map((row, index) => (
                           <tr key={`${row.stateCode}-${row.branch}-${row.city}-${index}`} style={{ borderBottom: '1px solid var(--border)' }}>
                             <td style={{ padding: '8px 10px' }}>
-                              <TextField size="small" value={row.stateCode} onChange={(event) => handleUpdatePreviewRow(index, 'stateCode', event.target.value.toUpperCase())} inputProps={{ maxLength: 2 }} />
+                              <BareInput value={row.stateCode} onChange={(event) => handleUpdatePreviewRow(index, 'stateCode', event.target.value.toUpperCase())} inputProps={{ maxLength: 2 }} size="small" />
                             </td>
                             <td style={{ padding: '8px 10px' }}>
-                              <TextField size="small" value={row.branch} onChange={(event) => handleUpdatePreviewRow(index, 'branch', event.target.value)} />
+                              <BareInput value={row.branch} onChange={(event) => handleUpdatePreviewRow(index, 'branch', event.target.value)} size="small" />
                             </td>
                             <td style={{ padding: '8px 10px' }}>
-                              <TextField size="small" value={row.city} onChange={(event) => handleUpdatePreviewRow(index, 'city', event.target.value)} />
+                              <BareInput value={row.city} onChange={(event) => handleUpdatePreviewRow(index, 'city', event.target.value)} size="small" />
                             </td>
                             <td style={{ padding: '8px 10px' }}>
-                              <TextField size="small" value={row.loadingPoint || ''} onChange={(event) => handleUpdatePreviewRow(index, 'loadingPoint', event.target.value)} />
+                              <BareInput value={row.loadingPoint || ''} onChange={(event) => handleUpdatePreviewRow(index, 'loadingPoint', event.target.value)} size="small" />
                             </td>
                             <td style={{ padding: '8px 10px' }}>
-                              <TextField size="small" type="number" value={row.total} onChange={(event) => handleUpdatePreviewRow(index, 'total', event.target.value)} inputProps={{ min: 1 }} />
+                              <BareInput type="number" value={row.total} onChange={(event) => handleUpdatePreviewRow(index, 'total', event.target.value)} inputProps={{ min: 1 }} size="small" />
                             </td>
                             <td style={{ padding: '8px 10px' }}>
-                              <Box sx={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 0.5,
-                                px: 1,
-                                py: 0.35,
-                                borderRadius: 1,
-                                border: row.source === 'ai' ? '1px solid rgba(234, 179, 8, 0.5)' : '1px solid var(--border)',
-                                background: row.source === 'ai' ? 'rgba(234, 179, 8, 0.1)' : 'var(--panel)',
-                                color: 'var(--text-secondary)',
-                                fontSize: '0.75rem',
-                                fontWeight: 700,
-                                whiteSpace: 'nowrap',
-                              }}>
+                              <JXBox padding="none" border={false} style={{display: 'inline-flex', alignItems: 'center', gap: '4px', paddingLeft: '8px', paddingRight: '8px', paddingTop: '2.8px', paddingBottom: '2.8px', borderRadius: '8px', border: row.source === 'ai' ? '1px solid rgba(234, 179, 8, 0.5)' : '1px solid var(--border)', background: row.source === 'ai' ? 'rgba(234, 179, 8, 0.1)' : 'var(--panel)', color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700, whiteSpace: 'nowrap'}}>
                                 {row.source || 'unknown'}{row.confidence ? ` / ${row.confidence}` : ''}
-                              </Box>
+                              </JXBox>
                               {row.sourceNote && (
-                                <Box sx={{ mt: 0.35, fontSize: '0.72rem', color: 'var(--text-secondary)', maxWidth: 180 }}>
+                                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '2.8px', fontSize: '0.72rem', color: 'var(--text-secondary)', maxWidth: '180px'}}>
                                   {row.sourceNote}
-                                </Box>
+                                </JXBox>
                               )}
                             </td>
                             <td style={{ padding: '8px 10px', textAlign: 'center' }}>
@@ -2654,16 +2410,16 @@ export default function CompanyLedgerDetailPage() {
                         )}
                       </tbody>
                     </table>
-                  </Box>
-                </Box>
-              </Box>
+                  </JXBox>
+                </JXBox>
+              </JXBox>
             )}
 
-            <Box id="price-list-rate-lookup" sx={{ scrollMarginTop: 96, display: 'grid', gap: 1.5 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1.5, flexWrap: 'wrap', alignItems: 'center' }}>
-                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
-                  <Box sx={{ fontWeight: 700, mr: 0.5 }}>Rate Lookup</Box>
-                  <Box sx={{ display: 'inline-flex', p: 0.5, borderRadius: 1.5, bgcolor: 'var(--panel)', border: '1px solid var(--border)', gap: 0.5 }}>
+            <JXBox padding="none" border={false} id="price-list-rate-lookup" style={{backgroundColor: 'transparent', borderRadius: 0, scrollMarginTop: 96, display: 'grid', gap: '12px'}}>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', alignItems: 'center'}}>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap'}}>
+                  <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 700, marginRight: '4px'}}>Rate Lookup</JXBox>
+                  <JXBox padding="none" border={false} style={{display: 'inline-flex', padding: '4px', borderRadius: '12px', backgroundColor: 'var(--panel)', border: '1px solid var(--border)', gap: '4px'}}>
                     <Button
                       variant={rateLookupLeg === 'ocean' ? 'primary' : 'ghost'}
                       size="sm"
@@ -2680,11 +2436,11 @@ export default function CompanyLedgerDetailPage() {
                     >
                       Overland Transit (Islam Qala)
                     </Button>
-                  </Box>
-                </Box>
+                  </JXBox>
+                </JXBox>
 
                 {rateLookupLeg === 'ocean' && (
-                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap'}}>
                     {activeOceanPriceList && (
                       <Button
                         variant="outline"
@@ -2718,12 +2474,12 @@ export default function CompanyLedgerDetailPage() {
                         {priceListSearch.trim() ? `Print Filtered (${activePriceListRows.length})` : 'Print Ocean Rates'}
                       </Button>
                     )}
-                    <TextField size="small" placeholder="Search state, branch, city" value={priceListSearch} onChange={(event) => setPriceListSearch(event.target.value)} />
-                  </Box>
+                    <BareInput placeholder="Search state, branch, city" value={priceListSearch} onChange={(event) => setPriceListSearch(event.target.value)} size="small" />
+                  </JXBox>
                 )}
 
                 {rateLookupLeg === 'transit' && activeTransitData && (
-                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap'}}>
                     <Button
                       variant="outline"
                       size="sm"
@@ -2732,14 +2488,14 @@ export default function CompanyLedgerDetailPage() {
                     >
                       Print Transit Tariff
                     </Button>
-                  </Box>
+                  </JXBox>
                 )}
-              </Box>
+              </JXBox>
 
               {/* Ocean Leg Table View */}
               {rateLookupLeg === 'ocean' && (
-                <Box sx={{ border: '1px solid var(--border)', borderRadius: 2, overflow: 'hidden' }}>
-                  <Box sx={{ maxHeight: 380, overflow: 'auto' }}>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', border: '1px solid var(--border)', borderRadius: '16px', overflow: 'hidden'}}>
+                  <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, maxHeight: '380px', overflow: 'auto'}}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                       <thead>
                         <tr style={{ background: 'var(--panel)', borderBottom: '1px solid var(--border)' }}>
@@ -2764,31 +2520,27 @@ export default function CompanyLedgerDetailPage() {
                         )}
                       </tbody>
                     </table>
-                  </Box>
-                </Box>
+                  </JXBox>
+                </JXBox>
               )}
 
               {/* Overland Transit Tariff View */}
               {rateLookupLeg === 'transit' && (
-                <Box sx={{ display: 'grid', gap: 2, p: 2, border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: 2, background: 'rgba(16, 185, 129, 0.04)' }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1.5 }}>
-                    <Box>
-                      <Box sx={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
+                <JXBox padding="none" border={false} style={{display: 'grid', gap: '16px', padding: '16px', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: '16px', background: 'rgba(16, 185, 129, 0.04)'}}>
+                  <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px'}}>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)'}}>
                         Overland Transit Corridor (Second Leg)
-                      </Box>
-                      <Box sx={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--text-primary)' }}>
+                      </JXBox>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 800, fontSize: '1.1rem', color: 'var(--text-primary)'}}>
                         {activeTransitData ? `${activeTransitData.origin} ➔ ${activeTransitData.destination}` : 'Mersin/UAE Port ➔ Islam Qala, Herat (Afghanistan)'}
-                      </Box>
-                      <Box sx={{ fontSize: '0.8rem', color: 'var(--text-secondary)', mt: 0.25 }}>
+                      </JXBox>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '2px'}}>
                         Car-carrier / container transit with port customs clearance and border transport included.
-                      </Box>
-                    </Box>
-                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
-                      <Chip
-                        icon={<ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />}
-                        label="Customs Clearance Included"
-                        sx={{ fontWeight: 800, bgcolor: 'rgba(16, 185, 129, 0.15)', color: '#047857', border: '1px solid rgba(16, 185, 129, 0.3)' }}
-                      />
+                      </JXBox>
+                    </JXBox>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap'}}>
+                      <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5" style={{fontWeight: 800, backgroundColor: 'rgba(16, 185, 129, 0.15)', color: '#047857', border: '1px solid rgba(16, 185, 129, 0.3)'}}>{<ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />} {"Customs Clearance Included"}</span>
                       <Button
                         variant="outline"
                         size="sm"
@@ -2797,47 +2549,47 @@ export default function CompanyLedgerDetailPage() {
                       >
                         Print Transit Tariff
                       </Button>
-                    </Box>
-                  </Box>
+                    </JXBox>
+                  </JXBox>
 
-                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
-                    <Box sx={{ p: 2, borderRadius: 2, border: '1px solid var(--border)', background: 'var(--panel)', display: 'grid', gap: 0.5 }}>
-                      <Box sx={{ fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 800, color: 'var(--text-secondary)' }}>Sedan / Saloon</Box>
-                      <Box sx={{ fontSize: '1.8rem', fontWeight: 850, color: 'var(--text-primary)' }}>
+                  <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '16px'}} className="grid-cols-1 grid sm:grid-cols-[1fr_1fr]">
+                    <JXBox padding="none" border={false} style={{padding: '16px', borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--panel)', display: 'grid', gap: '4px'}}>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 800, color: 'var(--text-secondary)'}}>Sedan / Saloon</JXBox>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '1.8rem', fontWeight: 850, color: 'var(--text-primary)'}}>
                         {formatCurrency(activeTransitData?.rates?.sedan || 2300)}
-                      </Box>
-                      <Box sx={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Standard passenger car to Islam Qala border</Box>
-                    </Box>
+                      </JXBox>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.78rem', color: 'var(--text-secondary)'}}>Standard passenger car to Islam Qala border</JXBox>
+                    </JXBox>
 
-                    <Box sx={{ p: 2, borderRadius: 2, border: '1px solid rgba(var(--accent-gold-rgb), 0.4)', background: 'linear-gradient(145deg, rgba(var(--accent-gold-rgb), 0.08), var(--panel))', display: 'grid', gap: 0.5 }}>
-                      <Box sx={{ fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 800, color: 'var(--accent-gold)' }}>SUV / 4X4 / Truck</Box>
-                      <Box sx={{ fontSize: '1.8rem', fontWeight: 850, color: 'var(--accent-gold)' }}>
+                    <JXBox padding="none" border={false} style={{padding: '16px', borderRadius: '16px', border: '1px solid rgba(var(--accent-gold-rgb), 0.4)', background: 'linear-gradient(145deg, rgba(var(--accent-gold-rgb), 0.08), var(--panel))', display: 'grid', gap: '4px'}}>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 800, color: 'var(--accent-gold)'}}>SUV / 4X4 / Truck</JXBox>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '1.8rem', fontWeight: 850, color: 'var(--accent-gold)'}}>
                         {formatCurrency(activeTransitData?.rates?.suv || 2400)}
-                      </Box>
-                      <Box sx={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Large / heavy vehicle to Islam Qala border</Box>
-                    </Box>
-                  </Box>
+                      </JXBox>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.78rem', color: 'var(--text-secondary)'}}>Large / heavy vehicle to Islam Qala border</JXBox>
+                    </JXBox>
+                  </JXBox>
 
                   {activeTransitData?.terms && activeTransitData.terms.length > 0 && (
-                    <Box sx={{ p: 1.5, borderRadius: 1.5, border: '1px solid var(--border)', background: 'var(--panel)' }}>
-                      <Box sx={{ fontWeight: 800, fontSize: '0.82rem', mb: 0.75 }}>Transit Terms & Policy:</Box>
-                      <Box sx={{ display: 'grid', gap: 0.5 }}>
+                    <JXBox padding="none" border={false} style={{padding: '12px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--panel)'}}>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 800, fontSize: '0.82rem', marginBottom: '6px'}}>Transit Terms & Policy:</JXBox>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '4px'}}>
                         {activeTransitData.terms.map((term: string, idx: number) => (
-                          <Box key={idx} sx={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'flex-start', gap: 0.75 }}>
-                            <Box sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: 'var(--accent-gold)', mt: 0.75, shrink: 0 }} />
-                            <Box>{term}</Box>
-                          </Box>
+                          <JXBox padding="none" border={false} key={idx} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'flex-start', gap: '6px'}}>
+                            <JXBox padding="none" border={false} style={{width: '5px', height: '5px', borderRadius: '50%', backgroundColor: 'var(--accent-gold)', marginTop: '6px', flexShrink: 0}} />
+                            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>{term}</JXBox>
+                          </JXBox>
                         ))}
-                      </Box>
-                    </Box>
+                      </JXBox>
+                    </JXBox>
                   )}
-                </Box>
+                </JXBox>
               )}
-            </Box>
+            </JXBox>
 
             {company.priceLists && company.priceLists.length > 0 && (
-              <Box id="price-list-import-history" sx={{ scrollMarginTop: 96, display: 'grid', gap: 1 }}>
-                <Box sx={{ fontWeight: 700 }}>Import History & Multi-Leg Versions</Box>
+              <JXBox padding="none" border={false} id="price-list-import-history" style={{backgroundColor: 'transparent', borderRadius: 0, scrollMarginTop: 96, display: 'grid', gap: '8px'}}>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 700}}>Import History & Multi-Leg Versions</JXBox>
                 {company.priceLists.map((list) => {
                   const corridor = detectPriceListCorridor({
                     fileName: list.sourceFileName,
@@ -2848,25 +2600,20 @@ export default function CompanyLedgerDetailPage() {
                   });
                   const isTransit = corridor.leg === 'TRANSIT';
                   return (
-                    <Box key={list.id} sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr) auto' }, gap: 1.5, alignItems: 'center', p: 1.5, border: '1px solid var(--border)', borderRadius: 2, background: list.isActive ? (isTransit ? 'rgba(16, 185, 129, 0.08)' : 'rgba(59, 130, 246, 0.08)') : 'var(--panel)' }}>
-                      <Box>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                          <Chip
-                            size="small"
-                            icon={isTransit ? <Truck className="w-3 h-3 text-emerald-600" /> : <Ship className="w-3 h-3 text-blue-600" />}
-                            label={corridor.shortLabel}
-                            sx={{ fontWeight: 800, height: 20, fontSize: '0.7rem', bgcolor: isTransit ? 'rgba(16, 185, 129, 0.15)' : 'rgba(59, 130, 246, 0.15)', color: isTransit ? '#047857' : '#1d4ed8' }}
-                          />
-                          <Box sx={{ fontWeight: 700 }}>{list.name}</Box>
+                    <JXBox padding="none" border={false} key={list.id} style={{display: 'grid', gap: '12px', alignItems: 'center', padding: '12px', border: '1px solid var(--border)', borderRadius: '16px', background: list.isActive ? (isTransit ? 'rgba(16, 185, 129, 0.08)' : 'rgba(59, 130, 246, 0.08)') : 'var(--panel)'}} className="grid-cols-1 grid md:grid-cols-[minmax(0,_1fr)_auto]">
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+                        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap'}}>
+                          <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5" style={{fontWeight: 800, height: '20px', fontSize: '0.7rem', backgroundColor: isTransit ? 'rgba(16, 185, 129, 0.15)' : 'rgba(59, 130, 246, 0.15)', color: isTransit ? '#047857' : '#1d4ed8'}}>{isTransit ? <Truck className="w-3 h-3 text-emerald-600" /> : <Ship className="w-3 h-3 text-blue-600" />} {corridor.shortLabel}</span>
+                          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 700}}>{list.name}</JXBox>
                           {list.isActive && (
-                            <Chip size="small" label="Active" sx={{ fontWeight: 800, height: 18, fontSize: '0.68rem', bgcolor: 'rgba(34, 197, 94, 0.2)', color: '#15803d' }} />
+                            <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5" style={{fontWeight: 800, height: '18px', fontSize: '0.68rem', backgroundColor: 'rgba(34, 197, 94, 0.2)', color: '#15803d'}}>{"Active"}</span>
                           )}
-                        </Box>
-                        <Box sx={{ fontSize: '0.82rem', color: 'var(--text-secondary)', mt: 0.5 }}>
+                        </JXBox>
+                        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '4px'}}>
                           {list.sourceFileName} • {list.destinationLabel} • {isTransit ? 'Overland Tariff' : `${list.importedAuctionRateCount || list.importedStateRateCount} rows`} • {new Date(list.createdAt).toLocaleString()}
-                        </Box>
-                      </Box>
-                      <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', justifyContent: { xs: 'flex-start', md: 'flex-end' } }}>
+                        </JXBox>
+                      </JXBox>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '6px', flexWrap: 'wrap'}} className="justify-start md:justify-end">
                         <Button
                           variant="outline"
                           size="sm"
@@ -2886,13 +2633,13 @@ export default function CompanyLedgerDetailPage() {
                         >
                           {activatingPriceListId === list.id ? 'Restoring...' : list.isActive ? 'Active' : `Restore (${isTransit ? 'Transit Leg' : 'Ocean Leg'})`}
                         </Button>
-                      </Box>
-                    </Box>
+                      </JXBox>
+                    </JXBox>
                   );
                 })}
-              </Box>
+              </JXBox>
             )}
-          </Box>
+          </JXBox>
         </DashboardPanel>
         </TabPanel>
 
@@ -2907,8 +2654,8 @@ export default function CompanyLedgerDetailPage() {
               <StatsCard icon={<Package className="w-5 h-5" />} title="Shipped Vehicles" value={(company.shipments || []).filter((s) => s.isShipped).length} variant="info" />
             </DashboardGrid>
 
-            <Box sx={{ mb: 3 }}>
-              <Box sx={{ fontWeight: 600, mb: 1 }}>Recent Containers</Box>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginBottom: '24px'}}>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 600, marginBottom: '8px'}}>Recent Containers</JXBox>
               <DataTable
                 data={company.containers || []}
                 keyField="id"
@@ -2927,11 +2674,11 @@ export default function CompanyLedgerDetailPage() {
                   },
                 ]}
               />
-            </Box>
+            </JXBox>
 
-            <Box>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                <Box sx={{ fontWeight: 600 }}>Shipped Vehicles</Box>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px'}}>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 600}}>Shipped Vehicles</JXBox>
                 {((company.shipments || []).filter((s) => s.isShipped).length > 0) && (
                   <Button
                     variant="outline"
@@ -2949,7 +2696,7 @@ export default function CompanyLedgerDetailPage() {
                     Export Shipped Vehicles
                   </Button>
                 )}
-              </Box>
+              </JXBox>
               <DataTable
                 data={(company.shipments || []).filter((s) => s.isShipped)}
                 keyField="id"
@@ -2978,7 +2725,7 @@ export default function CompanyLedgerDetailPage() {
                     header: 'Actions',
                     align: 'center',
                     render: (_, row) => (
-                      <Box sx={{ display: 'flex', gap: 0.75, justifyContent: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '6px', justifyContent: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap'}} onClick={(e) => e.stopPropagation()}>
                         <Button
                           variant="outline"
                           size="sm"
@@ -3010,12 +2757,12 @@ export default function CompanyLedgerDetailPage() {
                             Container
                           </Button>
                         )}
-                      </Box>
+                      </JXBox>
                     ),
                   },
                 ]}
               />
-            </Box>
+            </JXBox>
 
           </DashboardPanel>
         )}
@@ -3030,8 +2777,8 @@ export default function CompanyLedgerDetailPage() {
               <StatsCard icon={<Package className="w-5 h-5" />} title="Dispatched Shipments" value={(company.shipments || []).filter((shipment) => shipment.isDispatched || Boolean(shipment.dispatchId)).length} variant="info" />
             </DashboardGrid>
 
-            <Box sx={{ mb: 3 }}>
-              <Box sx={{ fontWeight: 600, mb: 1 }}>Recent Dispatches</Box>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginBottom: '24px'}}>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 600, marginBottom: '8px'}}>Recent Dispatches</JXBox>
               <DataTable
                 data={company.dispatches || []}
                 keyField="id"
@@ -3053,7 +2800,7 @@ export default function CompanyLedgerDetailPage() {
                     header: 'Actions',
                     align: 'center',
                     render: (_, row) => (
-                      <Box sx={{ display: 'flex', gap: 0.75, justifyContent: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '6px', justifyContent: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap'}} onClick={(e) => e.stopPropagation()}>
                         <Button
                           variant="outline"
                           size="sm"
@@ -3061,15 +2808,15 @@ export default function CompanyLedgerDetailPage() {
                         >
                           Dispatch
                         </Button>
-                      </Box>
+                      </JXBox>
                     ),
                   },
                 ]}
               />
-            </Box>
+            </JXBox>
 
-            <Box>
-              <Box sx={{ fontWeight: 600, mb: 1 }}>Assigned Shipments</Box>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 600, marginBottom: '8px'}}>Assigned Shipments</JXBox>
               <DataTable
                 data={(company.shipments || []).filter((shipment) => shipment.isDispatched || Boolean(shipment.dispatchId))}
                 keyField="id"
@@ -3090,7 +2837,7 @@ export default function CompanyLedgerDetailPage() {
                     header: 'Actions',
                     align: 'center',
                     render: (_, row) => (
-                      <Box sx={{ display: 'flex', gap: 0.75, justifyContent: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '6px', justifyContent: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap'}} onClick={(e) => e.stopPropagation()}>
                         <Button
                           variant="outline"
                           size="sm"
@@ -3108,12 +2855,12 @@ export default function CompanyLedgerDetailPage() {
                             Dispatch
                           </Button>
                         )}
-                      </Box>
+                      </JXBox>
                     ),
                   },
                 ]}
               />
-            </Box>
+            </JXBox>
           </DashboardPanel>
         )}
 
@@ -3127,8 +2874,8 @@ export default function CompanyLedgerDetailPage() {
               <StatsCard icon={<Package className="w-5 h-5" />} title="Transited Shipments" value={(company.shipments || []).filter((shipment) => shipment.isTransited || Boolean(shipment.transitId)).length} variant="info" />
             </DashboardGrid>
 
-            <Box sx={{ mb: 3 }}>
-              <Box sx={{ fontWeight: 600, mb: 1 }}>Recent Transits</Box>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginBottom: '24px'}}>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 600, marginBottom: '8px'}}>Recent Transits</JXBox>
               <DataTable
                 data={company.transits || []}
                 keyField="id"
@@ -3147,10 +2894,10 @@ export default function CompanyLedgerDetailPage() {
                   },
                 ]}
               />
-            </Box>
+            </JXBox>
 
-            <Box>
-              <Box sx={{ fontWeight: 600, mb: 1 }}>Assigned Shipments</Box>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 600, marginBottom: '8px'}}>Assigned Shipments</JXBox>
               <DataTable
                 data={(company.shipments || []).filter((shipment) => shipment.isTransited || Boolean(shipment.transitId))}
                 keyField="id"
@@ -3171,7 +2918,7 @@ export default function CompanyLedgerDetailPage() {
                     header: 'Actions',
                     align: 'center',
                     render: (_, row) => (
-                      <Box sx={{ display: 'flex', gap: 0.75, justifyContent: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '6px', justifyContent: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap'}} onClick={(e) => e.stopPropagation()}>
                         <Button
                           variant="outline"
                           size="sm"
@@ -3189,12 +2936,12 @@ export default function CompanyLedgerDetailPage() {
                             Transit
                           </Button>
                         )}
-                      </Box>
+                      </JXBox>
                     ),
                   },
                 ]}
               />
-            </Box>
+            </JXBox>
 
           </DashboardPanel>
         )}
@@ -3203,7 +2950,7 @@ export default function CompanyLedgerDetailPage() {
         <TabPanel value={activeTab} index={4}>
         {report && report.summary.transactionCount > 0 && (
           <DashboardPanel title="Monthly Report" description="Transaction breakdown by month">
-            <Box sx={{ overflowX: 'auto' }}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, overflowX: 'auto'}}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--border)' }}>
@@ -3226,135 +2973,128 @@ export default function CompanyLedgerDetailPage() {
                   ))}
                 </tbody>
               </table>
-            </Box>
+            </JXBox>
           </DashboardPanel>
         )}
         {(!report || report.summary.transactionCount === 0) && (
           <DashboardPanel title="Monthly Report" description="Transaction breakdown by month">
-            <Box sx={{ color: 'var(--text-secondary)' }}>No report data is available for this company yet.</Box>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, color: 'var(--text-secondary)'}}>No report data is available for this company yet.</JXBox>
           </DashboardPanel>
         )}
         </TabPanel>
 
-        <Dialog open={openEntry} onClose={() => { if (!posting) { setOpenEntry(false); setIsPaymentMode(false); } }} maxWidth="sm" fullWidth>
-          <DialogTitle>{isPaymentMode ? `Record Payment to ${company?.name || 'Company'}` : 'Add Company Transaction'}</DialogTitle>
-          <DialogContent sx={{ display: 'grid', gap: 2, pt: 1.5 }}>
-            <TextField label="Description" value={formData.description} onChange={(event) => setFormData((prev) => ({ ...prev, description: event.target.value }))} required />
-            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
-              <TextField select label="Type" value={formData.type} onChange={(event) => setFormData((prev) => ({ ...prev, type: event.target.value }))}>
-                <MenuItem value="DEBIT">DEBIT (Payment to Company)</MenuItem>
-                <MenuItem value="CREDIT">CREDIT (Company Charge/Expense)</MenuItem>
-              </TextField>
-              <TextField label="Amount" type="number" inputProps={{ min: 0.01, step: 0.01 }} value={formData.amount} onChange={(event) => setFormData((prev) => ({ ...prev, amount: event.target.value }))} />
-            </Box>
-            <TextField label="Transaction Date" type="date" InputLabelProps={{ shrink: true }} value={formData.transactionDate} onChange={(event) => setFormData((prev) => ({ ...prev, transactionDate: event.target.value }))} />
-            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
-              <TextField label="Category" value={formData.category} onChange={(event) => setFormData((prev) => ({ ...prev, category: event.target.value }))} />
-              <TextField label="Reference" value={formData.reference} onChange={(event) => setFormData((prev) => ({ ...prev, reference: event.target.value }))} />
-            </Box>
-            <TextField label="Notes" rows={3} multiline value={formData.notes} onChange={(event) => setFormData((prev) => ({ ...prev, notes: event.target.value }))} />
-          </DialogContent>
-          <DialogActions>
+        <Modal
+          open={openEntry}
+          onClose={() => { if (!posting) { setOpenEntry(false); setIsPaymentMode(false); } }}
+          title={isPaymentMode ? `Record Payment to ${company?.name || 'Company'}` : 'Add Company Transaction'}
+          size="sm"
+          contentSx={{display: 'grid', gap: '16px', paddingTop: '12px'}}
+          actions={<>
+
             <Button variant="outline" onClick={() => { setOpenEntry(false); setIsPaymentMode(false); }} disabled={posting}>Cancel</Button>
             <Button variant="primary" onClick={handleCreateEntry} disabled={posting}>{posting ? 'Saving...' : isPaymentMode ? 'Record Payment' : 'Save Transaction'}</Button>
-          </DialogActions>
-        </Dialog>
+          </>}
+        >
 
-        <Dialog open={openImportDialog} onClose={() => { if (!importing && !previewingImport) { setOpenImportDialog(false); resetImportForm(); } }} maxWidth="md" fullWidth>
-          <DialogTitle>Import Bank of America CSV</DialogTitle>
-          <DialogContent sx={{ display: 'grid', gap: 2, pt: 1.5 }}>
-            <Box sx={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+            <FormField label="Description" value={formData.description} onChange={(event) => setFormData((prev) => ({ ...prev, description: event.target.value }))} required />
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
+              <Select label="Type" options={[{ value: "DEBIT", label: 'DEBIT (Payment to Company)' }, { value: "CREDIT", label: 'CREDIT (Company Charge/Expense)' }]} value={formData.type} onChange={(val) => setFormData((prev) => ({ ...prev, type: val as string }))} />
+              <FormField label="Amount" type="number" inputProps={{ min: 0.01, step: 0.01 }} value={formData.amount} onChange={(event) => setFormData((prev) => ({ ...prev, amount: event.target.value }))} />
+            </JXBox>
+            <FormField label="Transaction Date" type="date" InputLabelProps={{ shrink: true }} value={formData.transactionDate} onChange={(event) => setFormData((prev) => ({ ...prev, transactionDate: event.target.value }))} />
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
+              <FormField label="Category" value={formData.category} onChange={(event) => setFormData((prev) => ({ ...prev, category: event.target.value }))} />
+              <FormField label="Reference" value={formData.reference} onChange={(event) => setFormData((prev) => ({ ...prev, reference: event.target.value }))} />
+            </JXBox>
+            <FormField label="Notes" rows={3} multiline value={formData.notes} onChange={(event) => setFormData((prev) => ({ ...prev, notes: event.target.value }))} />
+        </Modal>
+
+        <Modal
+          open={openImportDialog}
+          onClose={() => { if (!importing && !previewingImport) { setOpenImportDialog(false); resetImportForm(); } }}
+          title="Import Bank of America CSV"
+          size="md"
+          contentSx={{display: 'grid', gap: '16px', paddingTop: '12px'}}
+          actions={<>
+
+            <Button variant="outline" onClick={() => { setOpenImportDialog(false); resetImportForm(); }} disabled={importing || previewingImport}>Cancel</Button>
+            <Button variant="outline" onClick={handlePreviewBankCsv} disabled={importing || previewingImport}>{previewingImport ? 'Previewing...' : 'Preview CSV'}</Button>
+            <Button variant="primary" onClick={handleImportBankCsv} disabled={importing || previewingImport || !importPreview}>{importing ? 'Importing...' : 'Import CSV'}</Button>
+          </>}
+        >
+
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.9rem', color: 'var(--text-secondary)'}}>
               Import a Bank of America CSV statement into this company ledger. Use a dedicated company record per bank account so the running balance stays meaningful.
-            </Box>
-            <Box sx={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+            </JXBox>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.85rem', color: 'var(--text-secondary)'}}>
               Money in is imported as <strong>DEBIT</strong>. Money out is imported as <strong>CREDIT</strong>. Previously imported rows are skipped automatically.
-            </Box>
-            <TextField
-              label="Ledger Category"
-              value={importForm.category}
-              onChange={(event) => {
+            </JXBox>
+            <div className="min-w-0 flex-1"><FormField label="Ledger Category" value={importForm.category} onChange={(event) => {
                 setImportForm((prev) => ({ ...prev, category: event.target.value }));
                 setImportPreview(null);
-              }}
-              placeholder="Bank Statement"
-              fullWidth
-            />
-            <TextField
-              label="Statement Ending Balance"
-              value={importForm.statementEndingBalance}
-              onChange={(event) => {
+              }} placeholder="Bank Statement" /></div>
+            <div className="min-w-0 flex-1"><FormField label="Statement Ending Balance" value={importForm.statementEndingBalance} onChange={(event) => {
                 setImportForm((prev) => ({ ...prev, statementEndingBalance: event.target.value }));
                 setImportPreview(null);
-              }}
-              placeholder="0.00"
-              helperText="Optional, but recommended for reconciliation against the statement total"
-              fullWidth
-            />
-            <Box>
-              <Box sx={{ fontSize: '0.8rem', color: 'var(--text-secondary)', mb: 1 }}>
+              }} placeholder="0.00" helperText="Optional, but recommended for reconciliation against the statement total" /></div>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '8px'}}>
                 CSV file
-              </Box>
+              </JXBox>
               <input type="file" accept=".csv,text/csv" onChange={handleImportFileChange} />
               {importFile && (
-                <Box sx={{ mt: 1, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '8px', fontSize: '0.8rem', color: 'var(--text-secondary)'}}>
                   Selected: {importFile.name}
-                </Box>
+                </JXBox>
               )}
-            </Box>
+            </JXBox>
             {importPreview && (
-              <Box sx={{ display: 'grid', gap: 2 }}>
-                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(4, 1fr)' }, gap: 1.5 }}>
-                  <Box sx={{ p: 1.5, borderRadius: 2, border: '1px solid var(--border)', background: 'var(--panel)' }}>
-                    <Box sx={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Rows</Box>
-                    <Box sx={{ mt: 0.5, fontWeight: 700 }}>{importPreview.totalCount}</Box>
-                    <Box sx={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>{importPreview.importableCount} ready to import</Box>
-                  </Box>
-                  <Box sx={{ p: 1.5, borderRadius: 2, border: '1px solid var(--border)', background: 'var(--panel)' }}>
-                    <Box sx={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Duplicates</Box>
-                    <Box sx={{ mt: 0.5, fontWeight: 700 }}>{importPreview.duplicateCount}</Box>
-                    <Box sx={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Already imported or repeated in file</Box>
-                  </Box>
-                  <Box sx={{ p: 1.5, borderRadius: 2, border: '1px solid var(--border)', background: 'var(--panel)' }}>
-                    <Box sx={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Net Change</Box>
-                    <Box sx={{ mt: 0.5, fontWeight: 700 }}>{formatCurrency(importPreview.importableNetChange)}</Box>
-                    <Box sx={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Current {formatCurrency(importPreview.currentBalance)}</Box>
-                  </Box>
-                  <Box sx={{ p: 1.5, borderRadius: 2, border: '1px solid var(--border)', background: 'var(--panel)' }}>
-                    <Box sx={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Projected Ending</Box>
-                    <Box sx={{ mt: 0.5, fontWeight: 700 }}>{formatCurrency(importPreview.projectedEndingBalance)}</Box>
-                    <Box sx={{ fontSize: '0.78rem', color: importPreview.reconciliationStatus === 'MATCH' ? '#16a34a' : importPreview.reconciliationStatus === 'VARIANCE' ? '#dc2626' : 'var(--text-secondary)' }}>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '16px'}}>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '12px'}} className="grid-cols-1 md:grid-cols-4">
+                  <JXBox padding="none" border={false} style={{padding: '12px', borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--panel)'}}>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700}}>Rows</JXBox>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '4px', fontWeight: 700}}>{importPreview.totalCount}</JXBox>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.78rem', color: 'var(--text-secondary)'}}>{importPreview.importableCount} ready to import</JXBox>
+                  </JXBox>
+                  <JXBox padding="none" border={false} style={{padding: '12px', borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--panel)'}}>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700}}>Duplicates</JXBox>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '4px', fontWeight: 700}}>{importPreview.duplicateCount}</JXBox>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.78rem', color: 'var(--text-secondary)'}}>Already imported or repeated in file</JXBox>
+                  </JXBox>
+                  <JXBox padding="none" border={false} style={{padding: '12px', borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--panel)'}}>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700}}>Net Change</JXBox>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '4px', fontWeight: 700}}>{formatCurrency(importPreview.importableNetChange)}</JXBox>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.78rem', color: 'var(--text-secondary)'}}>Current {formatCurrency(importPreview.currentBalance)}</JXBox>
+                  </JXBox>
+                  <JXBox padding="none" border={false} style={{padding: '12px', borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--panel)'}}>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700}}>Projected Ending</JXBox>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '4px', fontWeight: 700}}>{formatCurrency(importPreview.projectedEndingBalance)}</JXBox>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.78rem', color: importPreview.reconciliationStatus === 'MATCH' ? '#16a34a' : importPreview.reconciliationStatus === 'VARIANCE' ? '#dc2626' : 'var(--text-secondary)'}}>
                       {importPreview.reconciliationStatus === 'NOT_PROVIDED'
                         ? 'Add statement ending balance to reconcile'
                         : `${importPreview.reconciliationStatus === 'MATCH' ? 'Matches statement' : 'Difference'} ${formatCurrency(Math.abs(importPreview.reconciliationDifference || 0))}`}
-                    </Box>
-                  </Box>
-                </Box>
+                    </JXBox>
+                  </JXBox>
+                </JXBox>
 
                 {importPreview.statementEndingBalance !== null && (
-                  <Box
-                    sx={{
-                      p: 1.5,
-                      borderRadius: 2,
-                      border: '1px solid var(--border)',
-                      background: importPreview.reconciliationStatus === 'MATCH' ? 'rgba(34, 197, 94, 0.08)' : 'rgba(239, 68, 68, 0.08)',
-                    }}
-                  >
-                    <Box sx={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+                  <JXBox padding="none" border={false} style={{padding: '12px', borderRadius: '16px', border: '1px solid var(--border)', background: importPreview.reconciliationStatus === 'MATCH' ? 'rgba(34, 197, 94, 0.08)' : 'rgba(239, 68, 68, 0.08)'}}>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 700, color: 'var(--text-primary)'}}>
                       Statement ending balance: {formatCurrency(importPreview.statementEndingBalance)}
-                    </Box>
-                    <Box sx={{ fontSize: '0.82rem', color: 'var(--text-secondary)', mt: 0.5 }}>
+                    </JXBox>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '4px'}}>
                       {importPreview.reconciliationStatus === 'MATCH'
                         ? 'Projected ledger ending balance matches the statement total.'
                         : `Projected ledger ending balance differs by ${formatCurrency(Math.abs(importPreview.reconciliationDifference || 0))}. Review duplicates and source data before importing.`}
-                    </Box>
-                  </Box>
+                    </JXBox>
+                  </JXBox>
                 )}
 
-                <Box sx={{ border: '1px solid var(--border)', borderRadius: 2, overflow: 'hidden' }}>
-                  <Box sx={{ px: 2, py: 1.25, fontWeight: 700, borderBottom: '1px solid var(--border)', background: 'var(--panel)' }}>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', border: '1px solid var(--border)', borderRadius: '16px', overflow: 'hidden'}}>
+                  <JXBox padding="none" border={false} style={{borderRadius: 0, paddingLeft: '16px', paddingRight: '16px', paddingTop: '10px', paddingBottom: '10px', fontWeight: 700, borderBottom: '1px solid var(--border)', background: 'var(--panel)'}}>
                     Preview Rows
-                  </Box>
-                  <Box sx={{ maxHeight: 320, overflow: 'auto' }}>
+                  </JXBox>
+                  <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, maxHeight: '320px', overflow: 'auto'}}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                       <thead>
                         <tr style={{ background: 'var(--panel)', borderBottom: '1px solid var(--border)' }}>
@@ -3401,80 +3141,20 @@ export default function CompanyLedgerDetailPage() {
                         ))}
                       </tbody>
                     </table>
-                  </Box>
-                </Box>
-              </Box>
+                  </JXBox>
+                </JXBox>
+              </JXBox>
             )}
-          </DialogContent>
-          <DialogActions>
-            <Button variant="outline" onClick={() => { setOpenImportDialog(false); resetImportForm(); }} disabled={importing || previewingImport}>Cancel</Button>
-            <Button variant="outline" onClick={handlePreviewBankCsv} disabled={importing || previewingImport}>{previewingImport ? 'Previewing...' : 'Preview CSV'}</Button>
-            <Button variant="primary" onClick={handleImportBankCsv} disabled={importing || previewingImport || !importPreview}>{importing ? 'Importing...' : 'Import CSV'}</Button>
-          </DialogActions>
-        </Dialog>
+        </Modal>
 
-        <Dialog open={Boolean(priceListVersionReview)} onClose={() => !activatingPriceListId && setPriceListVersionReview(null)} maxWidth="md" fullWidth>
-          <DialogTitle>
-            {priceListVersionReview?.isActive ? 'Active Price List Details' : 'Review Price List Restore'}
-          </DialogTitle>
-          <DialogContent sx={{ display: 'grid', gap: 2, pt: 1.5 }}>
-            {priceListVersionReview && priceListVersionComparison && (
-              <>
-                <Box sx={{ p: 1.5, borderRadius: 2, border: '1px solid var(--border)', background: 'var(--panel)' }}>
-                  <Box sx={{ fontWeight: 700 }}>{priceListVersionReview.name}</Box>
-                  <Box sx={{ mt: 0.5, fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-                    {priceListVersionReview.sourceFileName} - {priceListVersionReview.destinationLabel} - Imported {new Date(priceListVersionReview.createdAt).toLocaleString()}
-                  </Box>
-                  {!priceListVersionReview.isActive && activePriceList && (
-                    <Box sx={{ mt: 1, fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-                      Restoring this version will replace the active version: <strong>{activePriceList.name}</strong>.
-                    </Box>
-                  )}
-                </Box>
+        <Modal
+          open={Boolean(priceListVersionReview)}
+          onClose={() => !activatingPriceListId && setPriceListVersionReview(null)}
+          title={priceListVersionReview?.isActive ? 'Active Price List Details' : 'Review Price List Restore'}
+          size="md"
+          contentSx={{display: 'grid', gap: '16px', paddingTop: '12px'}}
+          actions={<>
 
-                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(4, 1fr)' }, gap: 1 }}>
-                  {[
-                    { label: 'State changes', value: priceListVersionComparison.changedStates.length },
-                    { label: 'Added lanes', value: priceListVersionComparison.addedLanes.length },
-                    { label: 'Removed lanes', value: priceListVersionComparison.removedLanes.length },
-                    { label: 'Changed lanes', value: priceListVersionComparison.changedLanes.length },
-                  ].map((item) => (
-                    <Box key={item.label} sx={{ p: 1.25, borderRadius: 1.5, border: '1px solid var(--border)', background: 'var(--background)' }}>
-                      <Box sx={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase' }}>{item.label}</Box>
-                      <Box sx={{ mt: 0.35, fontWeight: 800, fontSize: '1.15rem' }}>{item.value}</Box>
-                    </Box>
-                  ))}
-                </Box>
-
-                <Box sx={{ display: 'grid', gap: 1 }}>
-                  <Box sx={{ fontWeight: 700 }}>Sample Changes</Box>
-                  {priceListVersionComparison.changedStates.slice(0, 5).map((row) => (
-                    <Box key={row.stateCode} sx={{ display: 'flex', justifyContent: 'space-between', gap: 1, p: 1, borderRadius: 1.5, border: '1px solid var(--border)' }}>
-                      <Box sx={{ fontWeight: 700 }}>{row.stateCode}</Box>
-                      <Box sx={{ color: 'var(--text-secondary)' }}>
-                        {row.current ? formatCurrency(row.current) : 'Missing'} -&gt; {row.target ? formatCurrency(row.target) : 'Missing'}
-                      </Box>
-                    </Box>
-                  ))}
-                  {priceListVersionComparison.changedLanes.slice(0, 5).map(({ current, target }) => (
-                    <Box key={priceListLaneKey(target)} sx={{ display: 'flex', justifyContent: 'space-between', gap: 1, p: 1, borderRadius: 1.5, border: '1px solid var(--border)' }}>
-                      <Box>
-                        <Box sx={{ fontWeight: 700 }}>{target.stateCode} {target.branch || target.city}</Box>
-                        <Box sx={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>{target.city || '-'}{target.loadingPoint ? ` - ${target.loadingPoint}` : ''}</Box>
-                      </Box>
-                      <Box sx={{ color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{formatCurrency(current.total)} -&gt; {formatCurrency(target.total)}</Box>
-                    </Box>
-                  ))}
-                  {!priceListVersionComparison.changedStates.length && !priceListVersionComparison.changedLanes.length && (
-                    <Box sx={{ p: 1.25, borderRadius: 1.5, border: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
-                      No changed prices were found between the active version and this version. Added or removed lanes may still apply.
-                    </Box>
-                  )}
-                </Box>
-              </>
-            )}
-          </DialogContent>
-          <DialogActions>
             {priceListVersionReview && (
               <Button
                 variant="outline"
@@ -3490,32 +3170,91 @@ export default function CompanyLedgerDetailPage() {
                 {activatingPriceListId === priceListVersionReview.id ? 'Restoring...' : 'Restore This Version'}
               </Button>
             )}
-          </DialogActions>
-        </Dialog>
+          </>}
+        >
 
-        <Dialog open={openEditEntry} onClose={() => !updating && setOpenEditEntry(false)} maxWidth="sm" fullWidth>
-          <DialogTitle>Edit Transaction</DialogTitle>
-          <DialogContent sx={{ display: 'grid', gap: 2, pt: 1.5 }}>
-            <TextField label="Description" value={editForm.description} onChange={(event) => setEditForm((prev) => ({ ...prev, description: event.target.value }))} required />
-            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
-              <TextField select label="Type" value={editForm.type} onChange={(event) => setEditForm((prev) => ({ ...prev, type: event.target.value }))}>
-                <MenuItem value="DEBIT">DEBIT</MenuItem>
-                <MenuItem value="CREDIT">CREDIT</MenuItem>
-              </TextField>
-              <TextField label="Amount" type="number" inputProps={{ min: 0.01, step: 0.01 }} value={editForm.amount} onChange={(event) => setEditForm((prev) => ({ ...prev, amount: event.target.value }))} />
-            </Box>
-            <TextField label="Transaction Date" type="date" InputLabelProps={{ shrink: true }} value={editForm.transactionDate} onChange={(event) => setEditForm((prev) => ({ ...prev, transactionDate: event.target.value }))} />
-            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
-              <TextField label="Category" value={editForm.category} onChange={(event) => setEditForm((prev) => ({ ...prev, category: event.target.value }))} />
-              <TextField label="Reference" value={editForm.reference} onChange={(event) => setEditForm((prev) => ({ ...prev, reference: event.target.value }))} />
-            </Box>
-            <TextField label="Notes" rows={3} multiline value={editForm.notes} onChange={(event) => setEditForm((prev) => ({ ...prev, notes: event.target.value }))} />
-          </DialogContent>
-          <DialogActions>
+            {priceListVersionReview && priceListVersionComparison && (
+              <>
+                <JXBox padding="none" border={false} style={{padding: '12px', borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--panel)'}}>
+                  <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 700}}>{priceListVersionReview.name}</JXBox>
+                  <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '4px', fontSize: '0.82rem', color: 'var(--text-secondary)'}}>
+                    {priceListVersionReview.sourceFileName} - {priceListVersionReview.destinationLabel} - Imported {new Date(priceListVersionReview.createdAt).toLocaleString()}
+                  </JXBox>
+                  {!priceListVersionReview.isActive && activePriceList && (
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '8px', fontSize: '0.82rem', color: 'var(--text-secondary)'}}>
+                      Restoring this version will replace the active version: <strong>{activePriceList.name}</strong>.
+                    </JXBox>
+                  )}
+                </JXBox>
+
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '8px'}} className="grid-cols-1 sm:grid-cols-4">
+                  {[
+                    { label: 'State changes', value: priceListVersionComparison.changedStates.length },
+                    { label: 'Added lanes', value: priceListVersionComparison.addedLanes.length },
+                    { label: 'Removed lanes', value: priceListVersionComparison.removedLanes.length },
+                    { label: 'Changed lanes', value: priceListVersionComparison.changedLanes.length },
+                  ].map((item) => (
+                    <JXBox padding="none" border={false} key={item.label} style={{padding: '10px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--background)'}}>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase'}}>{item.label}</JXBox>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '2.8px', fontWeight: 800, fontSize: '1.15rem'}}>{item.value}</JXBox>
+                    </JXBox>
+                  ))}
+                </JXBox>
+
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '8px'}}>
+                  <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 700}}>Sample Changes</JXBox>
+                  {priceListVersionComparison.changedStates.slice(0, 5).map((row) => (
+                    <JXBox padding="none" border={false} key={row.stateCode} style={{backgroundColor: 'transparent', display: 'flex', justifyContent: 'space-between', gap: '8px', padding: '8px', borderRadius: '12px', border: '1px solid var(--border)'}}>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 700}}>{row.stateCode}</JXBox>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, color: 'var(--text-secondary)'}}>
+                        {row.current ? formatCurrency(row.current) : 'Missing'} -&gt; {row.target ? formatCurrency(row.target) : 'Missing'}
+                      </JXBox>
+                    </JXBox>
+                  ))}
+                  {priceListVersionComparison.changedLanes.slice(0, 5).map(({ current, target }) => (
+                    <JXBox padding="none" border={false} key={priceListLaneKey(target)} style={{backgroundColor: 'transparent', display: 'flex', justifyContent: 'space-between', gap: '8px', padding: '8px', borderRadius: '12px', border: '1px solid var(--border)'}}>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+                        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 700}}>{target.stateCode} {target.branch || target.city}</JXBox>
+                        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.76rem', color: 'var(--text-secondary)'}}>{target.city || '-'}{target.loadingPoint ? ` - ${target.loadingPoint}` : ''}</JXBox>
+                      </JXBox>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, color: 'var(--text-secondary)', whiteSpace: 'nowrap'}}>{formatCurrency(current.total)} -&gt; {formatCurrency(target.total)}</JXBox>
+                    </JXBox>
+                  ))}
+                  {!priceListVersionComparison.changedStates.length && !priceListVersionComparison.changedLanes.length && (
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', padding: '10px', borderRadius: '12px', border: '1px solid var(--border)', color: 'var(--text-secondary)'}}>
+                      No changed prices were found between the active version and this version. Added or removed lanes may still apply.
+                    </JXBox>
+                  )}
+                </JXBox>
+              </>
+            )}
+        </Modal>
+
+        <Modal
+          open={openEditEntry}
+          onClose={() => !updating && setOpenEditEntry(false)}
+          title="Edit Transaction"
+          size="sm"
+          contentSx={{display: 'grid', gap: '16px', paddingTop: '12px'}}
+          actions={<>
+
             <Button variant="outline" onClick={() => setOpenEditEntry(false)} disabled={updating}>Cancel</Button>
             <Button variant="primary" onClick={handleEditEntry} disabled={updating}>{updating ? 'Saving...' : 'Save Changes'}</Button>
-          </DialogActions>
-        </Dialog>
+          </>}
+        >
+
+            <FormField label="Description" value={editForm.description} onChange={(event) => setEditForm((prev) => ({ ...prev, description: event.target.value }))} required />
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
+              <Select label="Type" options={[{ value: "DEBIT", label: 'DEBIT' }, { value: "CREDIT", label: 'CREDIT' }]} value={editForm.type} onChange={(val) => setEditForm((prev) => ({ ...prev, type: val as string }))} />
+              <FormField label="Amount" type="number" inputProps={{ min: 0.01, step: 0.01 }} value={editForm.amount} onChange={(event) => setEditForm((prev) => ({ ...prev, amount: event.target.value }))} />
+            </JXBox>
+            <FormField label="Transaction Date" type="date" InputLabelProps={{ shrink: true }} value={editForm.transactionDate} onChange={(event) => setEditForm((prev) => ({ ...prev, transactionDate: event.target.value }))} />
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
+              <FormField label="Category" value={editForm.category} onChange={(event) => setEditForm((prev) => ({ ...prev, category: event.target.value }))} />
+              <FormField label="Reference" value={editForm.reference} onChange={(event) => setEditForm((prev) => ({ ...prev, reference: event.target.value }))} />
+            </JXBox>
+            <FormField label="Notes" rows={3} multiline value={editForm.notes} onChange={(event) => setEditForm((prev) => ({ ...prev, notes: event.target.value }))} />
+        </Modal>
 
         {/* Company Price List Slide-over Drawer */}
         <CompanyPriceListDrawer
@@ -3536,5 +3275,15 @@ export default function CompanyLedgerDetailPage() {
         />
       </DashboardSurface>
     </PermissionRoute>
+  );
+}
+
+// useSearchParams() must sit under a Suspense boundary or static
+// prerendering fails (missing-suspense-with-csr-bailout).
+export default function CompanyLedgerDetailPage() {
+  return (
+    <Suspense fallback={<div aria-busy="true" style={{ minHeight: '50vh' }} />}>
+      <CompanyLedgerDetailPageContent />
+    </Suspense>
   );
 }

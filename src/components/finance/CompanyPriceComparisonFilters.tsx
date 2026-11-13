@@ -1,17 +1,8 @@
 'use client';
 
 import { useMemo, type ReactNode } from 'react';
-import {
-  Box,
-  Checkbox,
-  Chip,
-  FormControlLabel,
-  MenuItem,
-  TextField,
-  Tooltip,
-} from '@mui/material';
 import { Check, Search, X } from 'lucide-react';
-import { Button } from '@/components/design-system';
+import { Button, FormField, Select, Tooltip } from '@/components/design-system';
 import {
   DEFAULT_SHIPPING_RATE_CONFIG,
   US_STATES,
@@ -85,20 +76,12 @@ const vehicleTypes = DEFAULT_SHIPPING_RATE_CONFIG.vehicleTypes;
 
 function FilterSection({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <Box sx={{ display: 'grid', gap: 1.25 }}>
-      <Box
-        sx={{
-          fontSize: '0.68rem',
-          fontWeight: 700,
-          textTransform: 'uppercase',
-          letterSpacing: '0.12em',
-          color: 'var(--text-secondary)',
-        }}
-      >
+    <div style={{display: 'grid', gap: '10px'}}>
+      <div style={{fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-secondary)'}}>
         {title}
-      </Box>
+      </div>
       {children}
-    </Box>
+    </div>
   );
 }
 
@@ -217,173 +200,38 @@ export default function CompanyPriceComparisonFilters({
   }, [filters, onFilterChange, visibleCompanies]);
 
   return (
-    <Box sx={{ display: 'grid', gap: 1.5 }}>
-      <Box
-        sx={{
-          borderRadius: 2,
-          border: '1px solid var(--border)',
-          background: 'var(--panel)',
-          overflow: 'hidden',
-        }}
-      >
-        <Box sx={{ p: 1.5, display: 'grid', gap: 2 }}>
+    <div style={{display: 'grid', gap: '12px'}}>
+      <div style={{borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--panel)', overflow: 'hidden'}}>
+        <div style={{padding: '12px', display: 'grid', gap: '16px'}}>
           {showFilterFields && (
             <>
             <FilterSection title="Search & Scope">
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(4, 1fr)' }, gap: 1.5 }}>
-                <TextField
-                  select
-                  size="small"
-                  label="Company Type"
-                  value={filters.typeFilter}
-                  onChange={(event) => onFilterChange('typeFilter', event.target.value as ComparisonFiltersState['typeFilter'])}
-                >
-                  <MenuItem value="ALL">All Types</MenuItem>
-                  <MenuItem value="SHIPPING">Shipping</MenuItem>
-                  <MenuItem value="DISPATCH">Dispatch</MenuItem>
-                  <MenuItem value="TRANSIT">Transit</MenuItem>
-                </TextField>
-                <TextField
-                  size="small"
-                  label="Search"
-                  value={filters.search}
-                  onChange={(event) => onFilterChange('search', event.target.value)}
-                  placeholder="State, lane, branch, or city"
-                  InputProps={{
-                    startAdornment: <Search className="w-4 h-4 mr-2 text-[var(--text-secondary)]" />,
-                  }}
-                />
-                <TextField
-                  select
-                  size="small"
-                  label="State Filter"
-                  value={filters.stateFilter}
-                  onChange={(event) => onFilterChange('stateFilter', event.target.value)}
-                >
-                  <MenuItem value="">All States</MenuItem>
-                  {US_STATES.map((state) => (
-                    <MenuItem key={state.code} value={state.code}>
-                      {state.code} — {state.name}
-                    </MenuItem>
-                  ))}
-                </TextField>
-                <TextField
-                  select
-                  size="small"
-                  label="Destination"
-                  value={filters.destinationFilter}
-                  onChange={(event) => onFilterChange('destinationFilter', event.target.value)}
-                >
-                  <MenuItem value="">All Destinations</MenuItem>
-                  {destinationOptions.map((destination) => (
-                    <MenuItem key={destination} value={destination}>
-                      {destination}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Box>
+              <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px'}}>
+                <Select label="Company Type" value={filters.typeFilter} onChange={(val) => onFilterChange('typeFilter', String(val) as ComparisonFiltersState['typeFilter'])} size="small" options={[{ value: "ALL", label: 'All Types' }, { value: "SHIPPING", label: 'Shipping' }, { value: "DISPATCH", label: 'Dispatch' }, { value: "TRANSIT", label: 'Transit' }]} />
+                <FormField label="Search" value={filters.search} onChange={(event) => onFilterChange('search', event.target.value)} placeholder="State, lane, branch, or city" size="small" leftIcon={<Search className="w-4 h-4 mr-2 text-[var(--text-secondary)]" />} />
+                <Select label="State Filter" value={filters.stateFilter} onChange={(val) => onFilterChange('stateFilter', String(val))} size="small" options={[{ value: "", label: 'All States' }, ...US_STATES.map((state) => ({ value: state.code, label: `${state.code} — ${state.name}` }))]} />
+                <Select label="Destination" value={filters.destinationFilter} onChange={(val) => onFilterChange('destinationFilter', String(val))} size="small" options={[{ value: "", label: 'All Destinations' }, ...destinationOptions.map((destination) => ({ value: destination, label: destination }))]} />
+              </div>
             </FilterSection>
 
             <FilterSection title="Analysis">
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(4, 1fr)' }, gap: 1.5 }}>
-                <TextField
-                  select
-                  size="small"
-                  label="Vehicle Type"
-                  value={filters.vehicleTypeId}
-                  onChange={(event) => onFilterChange('vehicleTypeId', event.target.value)}
-                >
-                  {vehicleTypes.map((type: VehicleRateMultiplier) => (
-                    <MenuItem key={type.id} value={type.id}>
-                      {type.label} ({type.multiplier}x)
-                    </MenuItem>
-                  ))}
-                </TextField>
-                <TextField
-                  select
-                  size="small"
-                  label="Reference Company"
-                  value={filters.referenceCompanyId}
-                  onChange={(event) => onFilterChange('referenceCompanyId', event.target.value)}
-                >
-                  <MenuItem value="">No reference</MenuItem>
-                  {visibleCompanies.map((company) => (
-                    <MenuItem key={company.id} value={company.id}>
-                      {company.name}
-                    </MenuItem>
-                  ))}
-                </TextField>
-                <TextField
-                  select
-                  size="small"
-                  label="Display"
-                  value={filters.displayMode}
-                  onChange={(event) => onFilterChange('displayMode', event.target.value as ComparisonDisplayMode)}
-                  disabled={!filters.referenceCompanyId}
-                >
-                  <MenuItem value="absolute">Absolute prices</MenuItem>
-                  <MenuItem value="delta">Delta vs reference</MenuItem>
-                </TextField>
-                <TextField
-                  select
-                  size="small"
-                  label="Sort By"
-                  value={filters.sortBy}
-                  onChange={(event) => onFilterChange('sortBy', event.target.value as ComparisonSortKey)}
-                >
-                  <MenuItem value="spread-desc">Largest spread first</MenuItem>
-                  <MenuItem value="spread-asc">Smallest spread first</MenuItem>
-                  <MenuItem value="label-asc">Name A → Z</MenuItem>
-                  <MenuItem value="label-desc">Name Z → A</MenuItem>
-                  <MenuItem value="coverage-desc">Best coverage first</MenuItem>
-                  <MenuItem value="coverage-asc">Lowest coverage first</MenuItem>
-                </TextField>
-              </Box>
+              <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px'}}>
+                <Select label="Vehicle Type" value={filters.vehicleTypeId} onChange={(val) => onFilterChange('vehicleTypeId', String(val))} size="small" options={vehicleTypes.map((type: VehicleRateMultiplier) => ({ value: type.id, label: `${type.label} (${type.multiplier}x)` }))} />
+                <Select label="Reference Company" value={filters.referenceCompanyId} onChange={(val) => onFilterChange('referenceCompanyId', String(val))} size="small" options={[{ value: "", label: 'No reference' }, ...visibleCompanies.map((company) => ({ value: company.id, label: company.name }))]} />
+                <Select label="Display" value={filters.displayMode} onChange={(val) => onFilterChange('displayMode', String(val) as ComparisonDisplayMode)} disabled={!filters.referenceCompanyId} size="small" options={[{ value: "absolute", label: 'Absolute prices' }, { value: "delta", label: 'Delta vs reference' }]} />
+                <Select label="Sort By" value={filters.sortBy} onChange={(val) => onFilterChange('sortBy', String(val) as ComparisonSortKey)} size="small" options={[{ value: "spread-desc", label: 'Largest spread first' }, { value: "spread-asc", label: 'Smallest spread first' }, { value: "label-asc", label: 'Name A → Z' }, { value: "label-desc", label: 'Name Z → A' }, { value: "coverage-desc", label: 'Best coverage first' }, { value: "coverage-asc", label: 'Lowest coverage first' }]} />
+              </div>
             </FilterSection>
 
             <FilterSection title="Thresholds">
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '180px 1fr' }, gap: 1.5, alignItems: 'center' }}>
-                <TextField
-                  size="small"
-                  type="number"
-                  label="Min Spread ($)"
-                  value={filters.minSpread}
-                  onChange={(event) => onFilterChange('minSpread', event.target.value)}
-                  inputProps={{ min: 0, step: 50 }}
-                />
-                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={filters.differencesOnly}
-                        onChange={(event) => onFilterChange('differencesOnly', event.target.checked)}
-                        size="small"
-                      />
-                    }
-                    label="Only rows with price differences"
-                  />
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={filters.onlyWithPriceLists}
-                        onChange={(event) => onFilterChange('onlyWithPriceLists', event.target.checked)}
-                        size="small"
-                      />
-                    }
-                    label="Only companies with uploaded price lists"
-                  />
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={filters.completeCoverageOnly}
-                        onChange={(event) => onFilterChange('completeCoverageOnly', event.target.checked)}
-                        size="small"
-                      />
-                    }
-                    label="Only rows priced by every selected company"
-                  />
-                </Box>
-              </Box>
+              <div style={{display: 'grid', gridTemplateColumns: '180px 1fr', gap: '12px', alignItems: 'center'}}>
+                <FormField label="Min Spread ($)" type="number" value={filters.minSpread} onChange={(event) => onFilterChange('minSpread', event.target.value)} inputProps={{ min: 0, step: 50 }} size="small" />
+                <div style={{display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center'}}>
+                  <label className="flex cursor-pointer items-center gap-2 text-sm text-[var(--text-primary)]"><input type="checkbox" checked={filters.differencesOnly} onChange={(event) => onFilterChange('differencesOnly', event.target.checked)} className="h-4 w-4 shrink-0 cursor-pointer accent-[var(--accent-gold)] disabled:cursor-not-allowed disabled:opacity-50" /><span>Only rows with price differences</span></label>
+                  <label className="flex cursor-pointer items-center gap-2 text-sm text-[var(--text-primary)]"><input type="checkbox" checked={filters.onlyWithPriceLists} onChange={(event) => onFilterChange('onlyWithPriceLists', event.target.checked)} className="h-4 w-4 shrink-0 cursor-pointer accent-[var(--accent-gold)] disabled:cursor-not-allowed disabled:opacity-50" /><span>Only companies with uploaded price lists</span></label>
+                  <label className="flex cursor-pointer items-center gap-2 text-sm text-[var(--text-primary)]"><input type="checkbox" checked={filters.completeCoverageOnly} onChange={(event) => onFilterChange('completeCoverageOnly', event.target.checked)} className="h-4 w-4 shrink-0 cursor-pointer accent-[var(--accent-gold)] disabled:cursor-not-allowed disabled:opacity-50" /><span>Only rows priced by every selected company</span></label>
+                </div>
+              </div>
             </FilterSection>
             </>
           )}
@@ -392,96 +240,55 @@ export default function CompanyPriceComparisonFilters({
             <FilterSection title={`Companies to Compare (${selectedCompanyIds.length} selected, ${visibleCompanyCount} visible)`}>
               {loading ? (
                 <SkeletonGroup>
-                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                  <div style={{display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
                     {Array.from({ length: 6 }).map((_, index) => (
                       <Skeleton key={index} variant="rounded" width={120} height={32} />
                     ))}
-                  </Box>
+                  </div>
                 </SkeletonGroup>
               ) : companies.length === 0 ? (
-                <Box sx={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                <div style={{color: 'var(--text-secondary)', fontSize: '0.85rem'}}>
                   No companies found for this filter.
-                </Box>
+                </div>
               ) : (
                 <>
-                  <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', mb: 1 }}>
+                  <div style={{display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '8px'}}>
                     <Button variant="outline" size="sm" onClick={onSelectAllCompanies}>Select All</Button>
                     <Button variant="outline" size="sm" onClick={onClearCompanySelection}>Clear Selection</Button>
-                  </Box>
-                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                  </div>
+                  <div style={{display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
                     {companies.map((company) => {
                       const selected = selectedCompanyIds.includes(company.id);
                       const disabled = filters.onlyWithPriceLists && !company.hasPriceList;
 
                       return (
-                        <Tooltip
-                          key={company.id}
-                          title={company.hasPriceList
+                        <Tooltip key={company.id} title={company.hasPriceList
                             ? `${company.destinationLabel}${company.activePriceList?.name ? ` • ${company.activePriceList.name}` : ''}${company.activePriceList?.createdAt ? ` • ${new Date(company.activePriceList.createdAt).toLocaleDateString()}` : ''}`
-                            : 'No uploaded price list yet'}
-                        >
-                          <Box
-                            component="button"
-                            type="button"
-                            disabled={disabled}
-                            onClick={() => onToggleCompany(company.id)}
-                            sx={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: 0.5,
-                              border: selected ? '1px solid rgba(var(--accent-gold-rgb), 0.55)' : '1px solid var(--border)',
-                              background: selected ? 'rgba(var(--accent-gold-rgb), 0.12)' : 'var(--background)',
-                              color: disabled ? 'var(--text-secondary)' : 'var(--text-primary)',
-                              borderRadius: 9999,
-                              px: 1.25,
-                              py: 0.6,
-                              fontSize: '0.8rem',
-                              fontWeight: selected ? 700 : 500,
-                              cursor: disabled ? 'not-allowed' : 'pointer',
-                              opacity: disabled ? 0.55 : 1,
-                              transition: 'all 0.15s ease',
-                              '&:hover:not(:disabled)': {
-                                borderColor: 'rgba(var(--accent-gold-rgb), 0.45)',
-                                transform: 'translateY(-1px)',
-                              },
-                            }}
-                          >
+                            : 'No uploaded price list yet'}>
+                          <button type="button" disabled={disabled} onClick={() => onToggleCompany(company.id)} style={{display: 'inline-flex', alignItems: 'center', gap: '4px', border: selected ? '1px solid rgba(var(--accent-gold-rgb), 0.55)' : '1px solid var(--border)', background: selected ? 'rgba(var(--accent-gold-rgb), 0.12)' : 'var(--background)', color: disabled ? 'var(--text-secondary)' : 'var(--text-primary)', borderRadius: '79992px', paddingLeft: '10px', paddingRight: '10px', paddingTop: '4.8px', paddingBottom: '4.8px', fontSize: '0.8rem', fontWeight: selected ? 700 : 500, cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.55 : 1, transition: 'all 0.15s ease'}}>
                             {selected && <Check className="w-3.5 h-3.5" style={{ color: 'var(--accent-gold)' }} />}
                             {company.name}
                             {!company.hasPriceList ? ' (no list)' : ''}
-                          </Box>
+                          </button>
                         </Tooltip>
                       );
                     })}
-                  </Box>
+                  </div>
                 </>
               )}
             </FilterSection>
           )}
-        </Box>
-      </Box>
+        </div>
+      </div>
 
       {showActiveChips && activeChips.length > 0 && (
-        <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', alignItems: 'center' }}>
-          <Box sx={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 600, mr: 0.25 }}>Active:</Box>
+        <div style={{display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center'}}>
+          <div style={{fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 600, marginRight: '2px'}}>Active:</div>
           {activeChips.map((chip) => (
-            <Chip
-              key={chip.key}
-              size="small"
-              label={chip.label}
-              onDelete={chip.onDelete}
-              deleteIcon={<X className="w-3 h-3" />}
-              sx={{
-                height: 26,
-                fontSize: '0.72rem',
-                bgcolor: 'var(--background)',
-                border: '1px solid var(--border)',
-                '& .MuiChip-deleteIcon': { color: 'var(--text-secondary)' },
-              }}
-            />
+            <span key={chip.key} style={{height: 26, fontSize: '0.72rem', backgroundColor: 'var(--background)', border: '1px solid var(--border)'}} className="inline-flex items-center gap-1 rounded-full font-medium text-[0.7rem] px-2 py-0.5 border border-[var(--border)] bg-[var(--background)] text-[var(--text-primary)]">{chip.label}<button type="button" aria-label="Remove" onClick={(e) => { e.stopPropagation(); (chip.onDelete)(); }} className="ml-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full hover:bg-black/10"><X className="h-3 w-3" /></button></span>
           ))}
-        </Box>
+        </div>
       )}
-    </Box>
+    </div>
   );
 }

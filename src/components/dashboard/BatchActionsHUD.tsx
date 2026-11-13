@@ -15,7 +15,8 @@ import {
   QrCode,
   Sparkles
 } from 'lucide-react';
-import { JXBox, SpringButton } from '@jacxishippingorg/jx-ui-react';
+import { JXBox } from "@jacxishippingorg/jx-ui-react";
+import { JacxiButton } from '@/components/design-system/JacxiButton';
 import { toast } from '@/components/design-system';
 import { openUniversalShipmentExport } from '@/components/shipments/UniversalShipmentExportModal';
 
@@ -115,7 +116,7 @@ export function BatchActionsHUD({
         {/* Action Buttons */}
         <div className="flex items-center gap-1.5 flex-wrap">
           {/* Batch Thermal QR Button */}
-          <SpringButton
+          <JacxiButton
             type="button"
             variant="outline"
             tone="primary"
@@ -126,11 +127,11 @@ export function BatchActionsHUD({
           >
             <QrCode className="w-3.5 h-3.5 text-[var(--accent-gold)]" />
             <span>Thermal Badges</span>
-          </SpringButton>
+          </JacxiButton>
 
           {/* Bulk Assign Container */}
           {onBulkAssignContainer && (
-            <SpringButton
+            <JacxiButton
               type="button"
               variant="outline"
               tone="primary"
@@ -140,11 +141,11 @@ export function BatchActionsHUD({
             >
               <Package className="w-3.5 h-3.5 text-amber-500" />
               <span>Assign Container</span>
-            </SpringButton>
+            </JacxiButton>
           )}
 
           {/* Consolidated Manifest Export */}
-          <SpringButton
+          <JacxiButton
             type="button"
             variant="outline"
             tone="primary"
@@ -154,11 +155,11 @@ export function BatchActionsHUD({
           >
             <Download className="w-3.5 h-3.5 text-blue-500" />
             <span>Export Manifest</span>
-          </SpringButton>
+          </JacxiButton>
 
           {/* Bulk Notification */}
           {onBulkMessage && (
-            <SpringButton
+            <JacxiButton
               type="button"
               variant="outline"
               tone="primary"
@@ -168,11 +169,11 @@ export function BatchActionsHUD({
             >
               <MessageSquare className="w-3.5 h-3.5 text-emerald-500" />
               <span>Notify</span>
-            </SpringButton>
+            </JacxiButton>
           )}
 
           {/* Clear Selection X Button */}
-          <SpringButton
+          <JacxiButton
             type="button"
             variant="outline"
             tone="primary"
@@ -182,7 +183,7 @@ export function BatchActionsHUD({
             title="Deselect all"
           >
             <X className="w-4 h-4" />
-          </SpringButton>
+          </JacxiButton>
         </div>
       </JXBox>
     </div>

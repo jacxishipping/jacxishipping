@@ -4,16 +4,9 @@ import { formatMoney as formatCurrency } from '@/lib/format';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
-import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
-import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
-import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
-import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
-import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined';
-import AccountBalanceWalletOutlinedIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
-import ScheduleOutlinedIcon from '@mui/icons-material/ScheduleOutlined';
-import { Box, Typography } from '@mui/material';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
 import { Button, EmptyState, PaymentStatusBadge, toast } from '@/components/design-system';
+import { FileText as DescriptionOutlinedIcon, Package as Inventory2OutlinedIcon, User as PersonOutlineIcon, MapPin as LocationOnOutlinedIcon, Truck as LocalShippingOutlinedIcon, Wallet as AccountBalanceWalletOutlinedIcon, Clock as ScheduleOutlinedIcon } from 'lucide-react';
 
 type ShipmentDetailResponse = {
   portal: { id: string; name: string; code: string | null; requireCustomerLinkForReady?: boolean; defaultShipmentNotes?: string | null };
@@ -194,7 +187,7 @@ export default function PortalShipmentDetailPage() {
     return (
       <DashboardSurface>
         <DashboardPanel title="Shipment Detail">
-          <Box sx={{ color: 'var(--text-secondary)' }}>Loading shipment detail...</Box>
+          <div style={{ color: 'var(--text-secondary)' }}>Loading shipment detail...</div>
         </DashboardPanel>
       </DashboardSurface>
     );
@@ -231,96 +224,96 @@ export default function PortalShipmentDetailPage() {
         }
       >
         <DashboardGrid className="grid-cols-1 gap-4 lg:grid-cols-3">
-          <Box className="lg:col-span-2" sx={{ display: 'grid', gap: 2 }}>
+          <div className="lg:col-span-2" style={{ display: 'grid', gap: 16 }}>
             <DashboardPanel title="Shipment Overview" description={data.customerTracking.summary}>
-              <Box sx={{ display: 'grid', gap: 2 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}>
-                  <Typography sx={{ fontWeight: 700 }}>{data.customerTracking.currentStageLabel}</Typography>
-                  <Typography sx={{ color: 'var(--text-secondary)' }}>Status: {shipment.status}</Typography>
-                </Box>
-                <Box sx={{ height: 8, borderRadius: 999, bgcolor: 'var(--border)', overflow: 'hidden' }}>
-                  <Box sx={{ height: '100%', width: `${data.customerTracking.progressPercent}%`, bgcolor: 'var(--accent-gold)' }} />
-                </Box>
-                <Box sx={{ display: 'grid', gap: 1.5 }}>
+              <div style={{ display: 'grid', gap: 16 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
+                  <p style={{ fontWeight: 700 }}>{data.customerTracking.currentStageLabel}</p>
+                  <p style={{ color: 'var(--text-secondary)' }}>Status: {shipment.status}</p>
+                </div>
+                <div style={{ height: 8, borderRadius: 7992, backgroundColor: 'var(--border)', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${data.customerTracking.progressPercent}%`, backgroundColor: 'var(--accent-gold)' }} />
+                </div>
+                <div style={{ display: 'grid', gap: 12 }}>
                   {data.customerTracking.milestones.map((milestone) => (
-                    <Box key={milestone.key} sx={{ border: '1px solid var(--border)', borderRadius: 2, p: 2, bgcolor: 'var(--panel)' }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
-                        <Typography sx={{ fontWeight: 600 }}>{milestone.label}</Typography>
-                        <Typography sx={{ color: milestone.state === 'complete' ? 'var(--success)' : milestone.state === 'current' ? 'var(--accent-gold)' : 'var(--text-secondary)', textTransform: 'capitalize' }}>
+                    <div key={milestone.key} style={{ border: '1px solid var(--border)', borderRadius: 16, padding: 16, backgroundColor: 'var(--panel)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+                        <p style={{ fontWeight: 600 }}>{milestone.label}</p>
+                        <p style={{ color: milestone.state === 'complete' ? 'var(--success)' : milestone.state === 'current' ? 'var(--accent-gold)' : 'var(--text-secondary)', textTransform: 'capitalize' }}>
                           {milestone.state}
-                        </Typography>
-                      </Box>
-                      <Typography sx={{ color: 'var(--text-secondary)', mt: 0.5 }}>{milestone.description}</Typography>
+                        </p>
+                      </div>
+                      <p style={{ color: 'var(--text-secondary)', marginTop: 4 }}>{milestone.description}</p>
                       {milestone.timestamp ? (
-                        <Typography sx={{ color: 'var(--text-secondary)', fontSize: '0.85rem', mt: 1 }}>
+                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: 8 }}>
                           {new Date(milestone.timestamp).toLocaleString()}
-                        </Typography>
+                        </p>
                       ) : null}
-                    </Box>
+                    </div>
                   ))}
-                </Box>
-              </Box>
+                </div>
+              </div>
             </DashboardPanel>
 
             <DashboardPanel title="Status History" description="Customer-facing movement updates">
               {data.history.length === 0 ? (
                 <EmptyState icon={<Inventory2OutlinedIcon />} title="No status history" description="No movement updates are available yet." />
               ) : (
-                <Box sx={{ display: 'grid', gap: 1.5 }}>
+                <div style={{ display: 'grid', gap: 12 }}>
                   {data.history.map((item) => (
-                    <Box key={item.id} sx={{ border: '1px solid var(--border)', borderRadius: 2, p: 2 }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
-                        <Typography sx={{ fontWeight: 600 }}>{item.title}</Typography>
-                        <Typography sx={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{new Date(item.occurredAt).toLocaleString()}</Typography>
-                      </Box>
-                      <Typography sx={{ color: 'var(--text-secondary)', fontSize: '0.85rem', mt: 0.5 }}>{item.source}</Typography>
-                      {item.location ? <Typography sx={{ mt: 1 }}>Location: {item.location}</Typography> : null}
-                      {item.description ? <Typography sx={{ color: 'var(--text-secondary)', mt: 0.5 }}>{item.description}</Typography> : null}
-                    </Box>
+                    <div key={item.id} style={{ border: '1px solid var(--border)', borderRadius: 16, padding: 16 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+                        <p style={{ fontWeight: 600 }}>{item.title}</p>
+                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{new Date(item.occurredAt).toLocaleString()}</p>
+                      </div>
+                      <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: 4 }}>{item.source}</p>
+                      {item.location ? <p style={{ marginTop: 8 }}>Location: {item.location}</p> : null}
+                      {item.description ? <p style={{ color: 'var(--text-secondary)', marginTop: 4 }}>{item.description}</p> : null}
+                    </div>
                   ))}
-                </Box>
+                </div>
               )}
             </DashboardPanel>
 
             {shipment.dispatch?.events && shipment.dispatch.events.length > 0 ? (
               <DashboardPanel title="Dispatch Events" description="Internal dispatch movement updates">
-                <Box sx={{ display: 'grid', gap: 1.5 }}>
+                <div style={{ display: 'grid', gap: 12 }}>
                   {shipment.dispatch.events.map((event) => (
-                    <Box key={event.id} sx={{ border: '1px solid var(--border)', borderRadius: 2, p: 2 }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
-                        <Typography sx={{ fontWeight: 600 }}>{event.status}</Typography>
-                        <Typography sx={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{new Date(event.eventDate).toLocaleString()}</Typography>
-                      </Box>
-                      {event.location ? <Typography sx={{ mt: 0.5 }}><LocationOnOutlinedIcon sx={{ fontSize: 14, mr: 0.5, color: 'var(--text-secondary)' }}/>{event.location}</Typography> : null}
-                      {event.description ? <Typography sx={{ color: 'var(--text-secondary)', mt: 0.5 }}>{event.description}</Typography> : null}
-                    </Box>
+                    <div key={event.id} style={{ border: '1px solid var(--border)', borderRadius: 16, padding: 16 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+                        <p style={{ fontWeight: 600 }}>{event.status}</p>
+                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{new Date(event.eventDate).toLocaleString()}</p>
+                      </div>
+                      {event.location ? <p style={{ marginTop: 4 }}><LocationOnOutlinedIcon size={14} style={{ marginRight: 4.0, color: 'var(--text-secondary)' }}/>{event.location}</p> : null}
+                      {event.description ? <p style={{ color: 'var(--text-secondary)', marginTop: 4 }}>{event.description}</p> : null}
+                    </div>
                   ))}
-                </Box>
+                </div>
               </DashboardPanel>
             ) : null}
 
             {shipment.container?.trackingEvents && shipment.container.trackingEvents.length > 0 ? (
               <DashboardPanel title="Container Tracking" description="Container-level tracking events">
-                <Box sx={{ display: 'grid', gap: 1.5 }}>
+                <div style={{ display: 'grid', gap: 12 }}>
                   {shipment.container.trackingEvents.map((event) => (
-                    <Box key={event.id} sx={{ border: '1px solid var(--border)', borderRadius: 2, p: 2, display: 'flex', gap: 2, alignItems: 'flex-start' }}>
-                      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 48 }}>
-                        <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: event.completed ? 'var(--success)' : 'var(--accent-gold)' }} />
-                        <Typography sx={{ fontSize: '0.7rem', color: 'var(--text-secondary)', mt: 0.5, textTransform: 'uppercase' }}>
+                    <div key={event.id} style={{ border: '1px solid var(--border)', borderRadius: 16, padding: 16, display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 48 }}>
+                        <div style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: event.completed ? 'var(--success)' : 'var(--accent-gold)' }} />
+                        <p style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: 4, textTransform: 'uppercase' }}>
                           {event.completed ? 'Done' : 'Pending'}
-                        </Typography>
-                      </Box>
-                      <Box sx={{ flex: 1 }}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
-                          <Typography sx={{ fontWeight: 600 }}>{event.status}</Typography>
-                          <Typography sx={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{new Date(event.eventDate).toLocaleString()}</Typography>
-                        </Box>
-                        {event.location ? <Typography sx={{ mt: 0.5 }}><LocationOnOutlinedIcon sx={{ fontSize: 14, mr: 0.5, color: 'var(--text-secondary)' }}/>{event.location}</Typography> : null}
-                        {event.description ? <Typography sx={{ color: 'var(--text-secondary)', mt: 0.5 }}>{event.description}</Typography> : null}
-                      </Box>
-                    </Box>
+                        </p>
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+                          <p style={{ fontWeight: 600 }}>{event.status}</p>
+                          <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{new Date(event.eventDate).toLocaleString()}</p>
+                        </div>
+                        {event.location ? <p style={{ marginTop: 4 }}><LocationOnOutlinedIcon size={14} style={{ marginRight: 4.0, color: 'var(--text-secondary)' }}/>{event.location}</p> : null}
+                        {event.description ? <p style={{ color: 'var(--text-secondary)', marginTop: 4 }}>{event.description}</p> : null}
+                      </div>
+                    </div>
                   ))}
-                </Box>
+                </div>
               </DashboardPanel>
             ) : null}
 
@@ -328,176 +321,176 @@ export default function PortalShipmentDetailPage() {
               {shipment.documents.length === 0 ? (
                 <EmptyState icon={<DescriptionOutlinedIcon />} title="No public documents" description="No public documents have been shared for this shipment yet." />
               ) : (
-                <Box sx={{ display: 'grid', gap: 1.5 }}>
+                <div style={{ display: 'grid', gap: 12 }}>
                   {shipment.documents.map((document) => (
-                    <Box key={document.id} sx={{ border: '1px solid var(--border)', borderRadius: 2, p: 2, display: 'flex', justifyContent: 'space-between', gap: 2, alignItems: 'center' }}>
-                      <Box>
-                        <Typography sx={{ fontWeight: 600 }}>{document.name}</Typography>
-                        <Typography sx={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                    <div key={document.id} style={{ border: '1px solid var(--border)', borderRadius: 16, padding: 16, display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'center' }}>
+                      <div>
+                        <p style={{ fontWeight: 600 }}>{document.name}</p>
+                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
                           {document.category} • {document.description || 'Shared file'}
-                        </Typography>
-                      </Box>
+                        </p>
+                      </div>
                       <a href={document.fileUrl} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>
                         <Button variant="outline" size="sm">Open</Button>
                       </a>
-                    </Box>
+                    </div>
                   ))}
-                </Box>
+                </div>
               )}
             </DashboardPanel>
-          </Box>
+          </div>
 
-          <Box sx={{ display: 'grid', gap: 2 }}>
+          <div style={{ display: 'grid', gap: 16 }}>
             <DashboardPanel title="Vehicle Info">
-              <Box sx={{ display: 'grid', gap: 1.5 }}>
+              <div style={{ display: 'grid', gap: 12 }}>
                 {(shipment.vehiclePhotos.length > 0 || shipment.arrivalPhotos.length > 0) ? (
-                  <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                     {shipment.vehiclePhotos.slice(0, 3).map((photoUrl, index) => (
                       <a key={`vehicle-${index}`} href={photoUrl} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>
-                        <Box component="img" src={photoUrl} alt={`Vehicle photo ${index + 1}`} sx={{ width: 80, height: 80, borderRadius: 2, border: '1px solid var(--border)', objectFit: 'cover' }} />
+                        <img src={photoUrl} alt={`Vehicle photo ${index + 1}`} style={{ width: 80, height: 80, borderRadius: 16, border: '1px solid var(--border)', objectFit: 'cover' }} />
                       </a>
                     ))}
                     {shipment.arrivalPhotos.slice(0, 2).map((photoUrl, index) => (
                       <a key={`arrival-${index}`} href={photoUrl} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>
-                        <Box component="img" src={photoUrl} alt={`Arrival photo ${index + 1}`} sx={{ width: 80, height: 80, borderRadius: 2, border: '1px solid var(--border)', objectFit: 'cover' }} />
+                        <img src={photoUrl} alt={`Arrival photo ${index + 1}`} style={{ width: 80, height: 80, borderRadius: 16, border: '1px solid var(--border)', objectFit: 'cover' }} />
                       </a>
                     ))}
-                  </Box>
+                  </div>
                 ) : null}
-                <Typography><strong>VIN:</strong> {shipment.vehicleVIN || '—'}</Typography>
-                <Typography><strong>Color:</strong> {shipment.vehicleColor || '—'}</Typography>
-                <Typography><strong>Lot:</strong> {shipment.lotNumber || '—'}</Typography>
-                <Typography><strong>Auction:</strong> {shipment.auctionName || '—'}</Typography>
-                <Typography><strong>Has Key:</strong> {shipment.hasKey == null ? '—' : shipment.hasKey ? 'Yes' : 'No'}</Typography>
-                <Typography><strong>Has Title:</strong> {shipment.hasTitle == null ? '—' : shipment.hasTitle ? 'Yes' : 'No'}</Typography>
-              </Box>
+                <p><strong>VIN:</strong> {shipment.vehicleVIN || '—'}</p>
+                <p><strong>Color:</strong> {shipment.vehicleColor || '—'}</p>
+                <p><strong>Lot:</strong> {shipment.lotNumber || '—'}</p>
+                <p><strong>Auction:</strong> {shipment.auctionName || '—'}</p>
+                <p><strong>Has Key:</strong> {shipment.hasKey == null ? '—' : shipment.hasKey ? 'Yes' : 'No'}</p>
+                <p><strong>Has Title:</strong> {shipment.hasTitle == null ? '—' : shipment.hasTitle ? 'Yes' : 'No'}</p>
+              </div>
             </DashboardPanel>
 
             <DashboardPanel title="Portal Customer">
               {data.assignment.partnerCustomer ? (
-                <Box sx={{ display: 'grid', gap: 1 }}>
-                  <Typography sx={{ fontWeight: 700 }}>{data.assignment.partnerCustomer.name}</Typography>
-                  <Typography>{data.assignment.partnerCustomer.email || 'No email'}</Typography>
-                  <Typography>{data.assignment.partnerCustomer.phone || 'No phone'}</Typography>
-                  <Typography sx={{ color: 'var(--text-secondary)' }}>{[data.assignment.partnerCustomer.city, data.assignment.partnerCustomer.country].filter(Boolean).join(', ') || 'No location'}</Typography>
-                </Box>
+                <div style={{ display: 'grid', gap: 8 }}>
+                  <p style={{ fontWeight: 700 }}>{data.assignment.partnerCustomer.name}</p>
+                  <p>{data.assignment.partnerCustomer.email || 'No email'}</p>
+                  <p>{data.assignment.partnerCustomer.phone || 'No phone'}</p>
+                  <p style={{ color: 'var(--text-secondary)' }}>{[data.assignment.partnerCustomer.city, data.assignment.partnerCustomer.country].filter(Boolean).join(', ') || 'No location'}</p>
+                </div>
               ) : (
-                <Box sx={{ display: 'grid', gap: 1.5, alignItems: 'center' }}>
+                <div style={{ display: 'grid', gap: 12, alignItems: 'center' }}>
                   <EmptyState icon={<PersonOutlineIcon />} title="No linked portal customer" description="This shipment has not been linked to one of your portal customers yet." />
                   <Link href={`/portal/${portalId}/customers`} style={{ textDecoration: 'none' }}>
                     <Button variant="outline" size="sm">Link a Customer</Button>
                   </Link>
-                </Box>
+                </div>
               )}
             </DashboardPanel>
 
             <DashboardPanel title="Portal Readiness">
-              <Box sx={{ display: 'grid', gap: 1 }}>
-                <Typography sx={{ fontWeight: 700, color: isReadyForPartnerHandling ? 'var(--success)' : '#b45309' }}>
+              <div style={{ display: 'grid', gap: 8 }}>
+                <p style={{ fontWeight: 700, color: isReadyForPartnerHandling ? 'var(--success)' : '#b45309' }}>
                   {isReadyForPartnerHandling ? 'Ready for partner handling' : 'Waiting for customer link'}
-                </Typography>
-                <Typography sx={{ color: 'var(--text-secondary)' }}>
+                </p>
+                <p style={{ color: 'var(--text-secondary)' }}>
                   {data.portal.requireCustomerLinkForReady === false
                     ? 'This portal allows shipments to be treated as ready even before a portal customer is linked.'
                     : 'This portal requires a linked portal customer before staff should treat the shipment as ready.'}
-                </Typography>
+                </p>
                 {data.assignment.notes ? (
-                  <Box sx={{ display: 'grid', gap: 0.5 }}>
-                    <Typography sx={{ fontWeight: 700 }}>{noteSourceLabel}</Typography>
-                    <Typography><strong>Assignment Notes:</strong> {data.assignment.notes}</Typography>
-                  </Box>
+                  <div style={{ display: 'grid', gap: 4 }}>
+                    <p style={{ fontWeight: 700 }}>{noteSourceLabel}</p>
+                    <p><strong>Assignment Notes:</strong> {data.assignment.notes}</p>
+                  </div>
                 ) : data.portal.defaultShipmentNotes ? (
-                  <Box sx={{ display: 'grid', gap: 0.5 }}>
-                    <Typography sx={{ fontWeight: 700, color: '#1d4ed8' }}>Portal default is available</Typography>
-                    <Typography><strong>Default Portal Notes:</strong> {data.portal.defaultShipmentNotes}</Typography>
-                  </Box>
+                  <div style={{ display: 'grid', gap: 4 }}>
+                    <p style={{ fontWeight: 700, color: '#1d4ed8' }}>Portal default is available</p>
+                    <p><strong>Default Portal Notes:</strong> {data.portal.defaultShipmentNotes}</p>
+                  </div>
                 ) : null}
-              </Box>
+              </div>
             </DashboardPanel>
 
             <DashboardPanel title="Portal Finance">
-              <Box sx={{ display: 'grid', gap: 1.25 }}>
-                <Typography sx={{ fontWeight: 700 }}>Portal-only status</Typography>
+              <div style={{ display: 'grid', gap: 10 }}>
+                <p style={{ fontWeight: 700 }}>Portal-only status</p>
                 <PaymentStatusBadge status={data.portalFinance.status} />
-                <Typography><strong>Portal Balance:</strong> {formatCurrency(data.portalFinance.balance)}</Typography>
-                <Typography><strong>Portal Debits:</strong> {formatCurrency(data.portalFinance.debitAmount)}</Typography>
-                <Typography><strong>Portal Payments:</strong> {formatCurrency(data.portalFinance.paidAmount)}</Typography>
-                <Typography sx={{ color: 'var(--text-secondary)' }}>
+                <p><strong>Portal Balance:</strong> {formatCurrency(data.portalFinance.balance)}</p>
+                <p><strong>Portal Debits:</strong> {formatCurrency(data.portalFinance.debitAmount)}</p>
+                <p><strong>Portal Payments:</strong> {formatCurrency(data.portalFinance.paidAmount)}</p>
+                <p style={{ color: 'var(--text-secondary)' }}>
                   {data.portalFinance.paymentRecordCount} payment record(s) and {data.portalFinance.ledgerEntryCount} ledger entry/entries exist only in the portal and do not change the main shipment payment state.
-                </Typography>
+                </p>
                 {data.portalFinance.recentPayments.length > 0 ? (
-                  <Box sx={{ display: 'grid', gap: 0.75, pt: 0.75 }}>
-                    <Typography sx={{ fontSize: '0.76rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Recent Portal Payments</Typography>
+                  <div style={{ display: 'grid', gap: 6, paddingTop: 6 }}>
+                    <p style={{ fontSize: '0.76rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Recent Portal Payments</p>
                     {data.portalFinance.recentPayments.slice(0, 3).map((payment) => (
-                      <Box key={payment.id} sx={{ border: '1px solid var(--border)', borderRadius: 2, p: 1.25, bgcolor: 'rgba(34,197,94,0.05)' }}>
-                        <Typography sx={{ fontWeight: 700 }}>{formatCurrency(payment.amount)}</Typography>
-                        <Typography sx={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{new Date(payment.paymentDate).toLocaleDateString()} • {payment.paymentMethod}</Typography>
-                        {payment.reference ? <Typography sx={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Ref: {payment.reference}</Typography> : null}
-                      </Box>
+                      <div key={payment.id} style={{ border: '1px solid var(--border)', borderRadius: 16, padding: 10, backgroundColor: 'rgba(34,197,94,0.05)' }}>
+                        <p style={{ fontWeight: 700 }}>{formatCurrency(payment.amount)}</p>
+                        <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{new Date(payment.paymentDate).toLocaleDateString()} • {payment.paymentMethod}</p>
+                        {payment.reference ? <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Ref: {payment.reference}</p> : null}
+                      </div>
                     ))}
-                  </Box>
+                  </div>
                 ) : null}
-              </Box>
+              </div>
             </DashboardPanel>
 
             <DashboardPanel title="Route Snapshot">
-              <Box sx={{ display: 'grid', gap: 1.5 }}>
+              <div style={{ display: 'grid', gap: 12 }}>
                 {shipment.dispatch ? (
-                  <Box sx={{ border: '1px solid var(--border)', borderRadius: 2, p: 1.5, bgcolor: 'rgba(var(--brand-primary-rgb),0.04)' }}>
-                    <Typography sx={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                      <LocalShippingOutlinedIcon sx={{ fontSize: 16, color: 'var(--text-secondary)' }} />
+                  <div style={{ border: '1px solid var(--border)', borderRadius: 16, padding: 12, backgroundColor: 'rgba(var(--brand-primary-rgb),0.04)' }}>
+                    <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                      <LocalShippingOutlinedIcon size={16} style={{ color: 'var(--text-secondary)' }} />
                       Dispatch: {shipment.dispatch.referenceNumber}
-                    </Typography>
-                    <Typography sx={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                    </div>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
                       {shipment.dispatch.origin} → {shipment.dispatch.destination}
-                    </Typography>
+                    </p>
                     {shipment.dispatch.dispatchDate ? (
-                      <Typography sx={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-                        <ScheduleOutlinedIcon sx={{ fontSize: 12, mr: 0.5 }} />
+                      <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                        <ScheduleOutlinedIcon size={12} style={{ marginRight: 4.0 }} />
                         Dispatched: {new Date(shipment.dispatch.dispatchDate).toLocaleString()}
-                      </Typography>
+                      </p>
                     ) : null}
-                  </Box>
+                  </div>
                 ) : null}
                 {shipment.container ? (
-                  <Box sx={{ border: '1px solid var(--border)', borderRadius: 2, p: 1.5, bgcolor: 'rgba(var(--accent-rgb),0.05)' }}>
-                    <Typography sx={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                      <Inventory2OutlinedIcon sx={{ fontSize: 16, color: 'var(--text-secondary)' }} />
+                  <div style={{ border: '1px solid var(--border)', borderRadius: 16, padding: 12, backgroundColor: 'rgba(var(--accent-rgb),0.05)' }}>
+                    <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                      <Inventory2OutlinedIcon size={16} style={{ color: 'var(--text-secondary)' }} />
                       Container: {shipment.container.containerNumber}
-                    </Typography>
-                    {shipment.container.vesselName ? <Typography sx={{ fontSize: '0.85rem' }}>Vessel: {shipment.container.vesselName} ({shipment.container.voyageNumber || '—'})</Typography> : null}
-                    {shipment.container.trackingNumber ? <Typography sx={{ fontSize: '0.85rem' }}>Tracking: {shipment.container.trackingNumber}</Typography> : null}
-                    {shipment.container.currentLocation ? <Typography sx={{ fontSize: '0.85rem' }}><LocationOnOutlinedIcon sx={{ fontSize: 14, mr: 0.5, color: 'var(--text-secondary)' }}/>{shipment.container.currentLocation}</Typography> : null}
-                    {shipment.container.estimatedArrival ? <Typography sx={{ fontSize: '0.85rem' }}>ETA: {new Date(shipment.container.estimatedArrival).toLocaleDateString()}</Typography> : null}
-                    {shipment.container.actualArrival ? <Typography sx={{ fontSize: '0.85rem' }}>Arrived: {new Date(shipment.container.actualArrival).toLocaleDateString()}</Typography> : null}
-                  </Box>
+                    </div>
+                    {shipment.container.vesselName ? <p style={{ fontSize: '0.85rem' }}>Vessel: {shipment.container.vesselName} ({shipment.container.voyageNumber || '—'})</p> : null}
+                    {shipment.container.trackingNumber ? <p style={{ fontSize: '0.85rem' }}>Tracking: {shipment.container.trackingNumber}</p> : null}
+                    {shipment.container.currentLocation ? <p style={{ fontSize: '0.85rem' }}><LocationOnOutlinedIcon size={14} style={{ marginRight: 4.0, color: 'var(--text-secondary)' }}/>{shipment.container.currentLocation}</p> : null}
+                    {shipment.container.estimatedArrival ? <p style={{ fontSize: '0.85rem' }}>ETA: {new Date(shipment.container.estimatedArrival).toLocaleDateString()}</p> : null}
+                    {shipment.container.actualArrival ? <p style={{ fontSize: '0.85rem' }}>Arrived: {new Date(shipment.container.actualArrival).toLocaleDateString()}</p> : null}
+                  </div>
                 ) : null}
                 {shipment.transit ? (
-                  <Box sx={{ border: '1px solid var(--border)', borderRadius: 2, p: 1.5, bgcolor: 'rgba(15,23,42,0.03)' }}>
-                    <Typography sx={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                      <AccountBalanceWalletOutlinedIcon sx={{ fontSize: 16, color: 'var(--text-secondary)' }} />
+                  <div style={{ border: '1px solid var(--border)', borderRadius: 16, padding: 12, backgroundColor: 'rgba(15,23,42,0.03)' }}>
+                    <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                      <AccountBalanceWalletOutlinedIcon size={16} style={{ color: 'var(--text-secondary)' }} />
                       Final Transit
-                    </Typography>
-                    <Typography sx={{ fontSize: '0.85rem' }}>{shipment.transit.origin} → {shipment.transit.destination}</Typography>
-                    {shipment.transit.estimatedDelivery ? <Typography sx={{ fontSize: '0.85rem' }}>Estimated Delivery: {new Date(shipment.transit.estimatedDelivery).toLocaleDateString()}</Typography> : null}
-                    {shipment.transit.actualDelivery ? <Typography sx={{ fontSize: '0.85rem', color: 'var(--success)' }}>Delivered: {new Date(shipment.transit.actualDelivery).toLocaleDateString()}</Typography> : null}
-                  </Box>
+                    </div>
+                    <p style={{ fontSize: '0.85rem' }}>{shipment.transit.origin} → {shipment.transit.destination}</p>
+                    {shipment.transit.estimatedDelivery ? <p style={{ fontSize: '0.85rem' }}>Estimated Delivery: {new Date(shipment.transit.estimatedDelivery).toLocaleDateString()}</p> : null}
+                    {shipment.transit.actualDelivery ? <p style={{ fontSize: '0.85rem', color: 'var(--success)' }}>Delivered: {new Date(shipment.transit.actualDelivery).toLocaleDateString()}</p> : null}
+                  </div>
                 ) : null}
-              </Box>
+              </div>
             </DashboardPanel>
 
             {(shipment.vehiclePhotos.length > 0 || shipment.arrivalPhotos.length > 0) ? (
               <DashboardPanel title="Photos">
-                <Box sx={{ display: 'grid', gap: 1.5, gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))' }}>
+                <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))' }}>
                   {[...shipment.vehiclePhotos, ...shipment.arrivalPhotos].slice(0, 8).map((photoUrl, index) => (
                     <a key={`${photoUrl}-${index}`} href={photoUrl} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>
-                      <Box component="img" src={photoUrl} alt={`Shipment photo ${index + 1}`} sx={{ width: '100%', height: 120, borderRadius: 2, border: '1px solid var(--border)', objectFit: 'cover' }} />
+                      <img src={photoUrl} alt={`Shipment photo ${index + 1}`} style={{ width: '100%', height: 120, borderRadius: 16, border: '1px solid var(--border)', objectFit: 'cover' }} />
                     </a>
                   ))}
-                </Box>
+                </div>
               </DashboardPanel>
             ) : null}
-          </Box>
+          </div>
         </DashboardGrid>
       </DashboardPanel>
     </DashboardSurface>

@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Box, Typography, Divider, LinearProgress } from '@mui/material';
 import { 
   Package, 
   Ship, 
@@ -122,12 +121,12 @@ export default function ContainerQuickPeek({
       size="lg"
       title={
         container ? (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
             <span className="font-mono font-bold tracking-tight text-base sm:text-lg">
               {container.containerNumber}
             </span>
             <CopyButton value={container.containerNumber} label="Container Number" />
-          </Box>
+          </div>
         ) : (
           'Container Details'
         )
@@ -136,7 +135,7 @@ export default function ContainerQuickPeek({
       badge={container ? <StatusBadge status={container.status} /> : undefined}
       actions={
         container && (
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+          <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%'}}>
             <Button variant="outline" size="sm" onClick={onClose}>
               Close
             </Button>
@@ -149,119 +148,93 @@ export default function ContainerQuickPeek({
             >
               Open Full View
             </Button>
-          </Box>
+          </div>
         )
       }
     >
       {loading ? (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <div style={{display: 'flex', flexDirection: 'column', gap: '16px'}}>
           <Skeleton variant="rounded" height={90} />
           <Skeleton variant="rounded" height={120} />
           <Skeleton variant="rounded" height={160} />
-        </Box>
+        </div>
       ) : container ? (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+        <div style={{display: 'flex', flexDirection: 'column', gap: '24px'}}>
           {/* Milestone Stepper */}
-          <Box
-            sx={{
-              p: 2,
-              borderRadius: 2,
-              bgcolor: 'var(--background, #F9FAFB)',
-              border: '1px solid var(--border, #E5E7EB)',
-            }}
-          >
-            <Typography variant="caption" sx={{ fontWeight: 700, color: 'var(--text-secondary, #6B7280)', mb: 1.5, display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          <div style={{padding: '16px', borderRadius: '16px', backgroundColor: 'var(--background, #F9FAFB)', border: '1px solid var(--border, #E5E7EB)'}}>
+            <span style={{fontWeight: 700, color: 'var(--text-secondary, #6B7280)', marginBottom: '12px', display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em'}} className="text-[0.75rem]">
               Milestone Progression
-            </Typography>
+            </span>
             <MilestoneStepper
               steps={CONTAINER_STEPS}
               currentStepId={container.status}
               orientation="horizontal"
             />
-          </Box>
+          </div>
 
           {/* Capacity Progress Bar */}
-          <Box
-            sx={{
-              p: 2,
-              borderRadius: 2,
-              bgcolor: 'var(--panel-bg, #FFFFFF)',
-              border: '1px solid var(--border, #E5E7EB)',
-            }}
-          >
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-              <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary, #6B7280)' }}>
+          <div style={{padding: '16px', borderRadius: '16px', backgroundColor: 'var(--panel-bg, #FFFFFF)', border: '1px solid var(--border, #E5E7EB)'}}>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px'}}>
+              <p style={{fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary, #6B7280)'}}>
                 Cargo Loading Capacity
-              </Typography>
-              <Typography sx={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-primary, #111827)' }}>
+              </p>
+              <p style={{fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-primary, #111827)'}}>
                 {container.currentCount} / {container.maxCapacity} ({capacityPercent}%)
-              </Typography>
-            </Box>
-            <LinearProgress
-              variant="determinate"
-              value={capacityPercent}
-              sx={{
-                height: 8,
-                borderRadius: 4,
-                bgcolor: 'var(--background, #F3F4F6)',
-                '& .MuiLinearProgress-bar': {
-                  bgcolor: capacityPercent >= 100 ? 'var(--error, #EF4444)' : 'var(--accent-gold, #D4AF37)',
-                  borderRadius: 4,
-                },
-              }}
-            />
-          </Box>
+              </p>
+            </div>
+            <div style={{height: 8, borderRadius: '32px', backgroundColor: 'var(--background, #F3F4F6)'}} className="relative h-1.5 w-full overflow-hidden rounded-full bg-[var(--border)]" role="progressbar" aria-valuenow={capacityPercent} aria-valuemin={0} aria-valuemax={100}><div className="h-full rounded-full" style={{ width: `${capacityPercent}%`, backgroundColor: 'var(--accent-gold)' }} /></div>
+          </div>
 
           {/* Quick Metrics Grid */}
-          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1.5 }}>
-            <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'var(--background, #F9FAFB)', border: '1px solid var(--border, #E5E7EB)' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'var(--text-secondary, #6B7280)', mb: 0.5 }}>
+          <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px'}}>
+            <div style={{padding: '16px', borderRadius: '16px', backgroundColor: 'var(--background, #F9FAFB)', border: '1px solid var(--border, #E5E7EB)'}}>
+              <div style={{display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary, #6B7280)', marginBottom: '4px'}}>
                 <Ship className="w-4 h-4 text-amber-600" />
-                <Typography variant="caption" sx={{ fontWeight: 600 }}>Vessel</Typography>
-              </Box>
-              <Typography sx={{ fontWeight: 700, fontSize: '0.9375rem', color: 'var(--text-primary, #111827)' }} noWrap>
+                <span style={{fontWeight: 600}} className="text-[0.75rem]">Vessel</span>
+              </div>
+              <p style={{whiteSpace: 'nowrap', fontWeight: 700, fontSize: '0.9375rem', color: 'var(--text-primary, #111827)'}} className="truncate">
                 {container.vesselName || 'Unassigned'}
-              </Typography>
-            </Box>
+              </p>
+            </div>
 
-            <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'var(--background, #F9FAFB)', border: '1px solid var(--border, #E5E7EB)' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'var(--text-secondary, #6B7280)', mb: 0.5 }}>
+            <div style={{padding: '16px', borderRadius: '16px', backgroundColor: 'var(--background, #F9FAFB)', border: '1px solid var(--border, #E5E7EB)'}}>
+              <div style={{display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary, #6B7280)', marginBottom: '4px'}}>
                 <MapPin className="w-4 h-4 text-emerald-600" />
-                <Typography variant="caption" sx={{ fontWeight: 600 }}>Destination Port</Typography>
-              </Box>
-              <Typography sx={{ fontWeight: 700, fontSize: '0.9375rem', color: 'var(--text-primary, #111827)' }} noWrap>
+                <span style={{fontWeight: 600}} className="text-[0.75rem]">Destination Port</span>
+              </div>
+              <p style={{whiteSpace: 'nowrap', fontWeight: 700, fontSize: '0.9375rem', color: 'var(--text-primary, #111827)'}} className="truncate">
                 {container.destinationPort || 'TBD'}
-              </Typography>
-            </Box>
+              </p>
+            </div>
 
-            <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'var(--background, #F9FAFB)', border: '1px solid var(--border, #E5E7EB)' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'var(--text-secondary, #6B7280)', mb: 0.5 }}>
+            <div style={{padding: '16px', borderRadius: '16px', backgroundColor: 'var(--background, #F9FAFB)', border: '1px solid var(--border, #E5E7EB)'}}>
+              <div style={{display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary, #6B7280)', marginBottom: '4px'}}>
                 <Calendar className="w-4 h-4 text-blue-600" />
-                <Typography variant="caption" sx={{ fontWeight: 600 }}>ETA</Typography>
-              </Box>
-              <Typography sx={{ fontWeight: 700, fontSize: '0.9375rem', color: 'var(--text-primary, #111827)' }} noWrap>
+                <span style={{fontWeight: 600}} className="text-[0.75rem]">ETA</span>
+              </div>
+              <p style={{whiteSpace: 'nowrap', fontWeight: 700, fontSize: '0.9375rem', color: 'var(--text-primary, #111827)'}} className="truncate">
                 {container.estimatedArrival ? new Date(container.estimatedArrival).toLocaleDateString() : 'Pending'}
-              </Typography>
-            </Box>
+              </p>
+            </div>
 
-            <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'var(--background, #F9FAFB)', border: '1px solid var(--border, #E5E7EB)' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'var(--text-secondary, #6B7280)', mb: 0.5 }}>
+            <div style={{padding: '16px', borderRadius: '16px', backgroundColor: 'var(--background, #F9FAFB)', border: '1px solid var(--border, #E5E7EB)'}}>
+              <div style={{display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary, #6B7280)', marginBottom: '4px'}}>
                 <Layers className="w-4 h-4 text-purple-600" />
-                <Typography variant="caption" sx={{ fontWeight: 600 }}>Manifest Items</Typography>
-              </Box>
-              <Typography sx={{ fontWeight: 700, fontSize: '0.9375rem', color: 'var(--text-primary, #111827)' }}>
+                <span style={{fontWeight: 600}} className="text-[0.75rem]">Manifest Items</span>
+              </div>
+              <p style={{fontWeight: 700, fontSize: '0.9375rem', color: 'var(--text-primary, #111827)'}}>
                 {container._count?.shipments ?? container.shipments?.length ?? 0} Vehicles
-              </Typography>
-            </Box>
-          </Box>
+              </p>
+            </div>
+          </div>
 
           {/* Manifest Preview List */}
           {container.shipments && container.shipments.length > 0 && (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography sx={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary, #111827)' }}>
+            <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
+              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                <p style={{fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary, #111827)'}}>
                   Loaded Cargo Manifest ({container.shipments.length})
-                </Typography>
+                </p>
                 <Link
                   href={`/dashboard/containers/${container.id}?tab=cargo`}
                   onClick={onClose}
@@ -269,49 +242,32 @@ export default function ContainerQuickPeek({
                 >
                   View All &rarr;
                 </Link>
-              </Box>
+              </div>
 
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, maxHeight: 220, overflowY: 'auto' }}>
+              <div style={{display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: 220, overflowY: 'auto'}}>
                 {container.shipments.map((shipment) => (
-                  <Box
-                    key={shipment.id}
-                    sx={{
-                      p: 1.5,
-                      borderRadius: 1.5,
-                      border: '1px solid var(--border, #E5E7EB)',
-                      bgcolor: 'var(--background, #F9FAFB)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: 1.5,
-                      '&:hover': {
-                        bgcolor: '#FFFFFF',
-                        borderColor: 'var(--accent-gold, #D4AF37)',
-                      },
-                      transition: 'all 150ms ease',
-                    }}
-                  >
-                    <Box sx={{ minWidth: 0 }}>
-                      <Typography sx={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-primary, #111827)' }} noWrap>
+                  <div key={shipment.id} style={{padding: '12px', borderRadius: '12px', border: '1px solid var(--border, #E5E7EB)', backgroundColor: 'var(--background, #F9FAFB)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', transition: 'all 150ms ease'}}>
+                    <div style={{minWidth: 0}}>
+                      <p style={{whiteSpace: 'nowrap', fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-primary, #111827)'}} className="truncate">
                         {[shipment.vehicleYear, shipment.vehicleMake, shipment.vehicleModel].filter(Boolean).join(' ') || 'Vehicle'}
-                      </Typography>
+                      </p>
                       {shipment.vehicleVIN && (
                         <span className="font-mono text-xs text-gray-500 tracking-tight">
                           VIN: {shipment.vehicleVIN}
                         </span>
                       )}
-                    </Box>
+                    </div>
                     <StatusBadge status={shipment.status} size="sm" />
-                  </Box>
+                  </div>
                 ))}
-              </Box>
-            </Box>
+              </div>
+            </div>
           )}
-        </Box>
+        </div>
       ) : (
-        <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
+        <p style={{color: 'var(--text-secondary)', textAlign: 'center', paddingTop: '32px', paddingBottom: '32px'}} className="text-[0.875rem]">
           No container selected.
-        </Typography>
+        </p>
       )}
     </Drawer>
   );

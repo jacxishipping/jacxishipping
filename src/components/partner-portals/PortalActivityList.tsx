@@ -1,9 +1,8 @@
 'use client';
 
-import PeopleOutlineIcon from '@mui/icons-material/PeopleOutline';
-import { Box, Typography } from '@mui/material';
 import { EmptyState } from '@/components/design-system';
 import { formatRelativeTime } from '@/lib/relative-time';
+import { Users as PeopleOutlineIcon } from 'lucide-react';
 
 export type PortalActivityItem = {
   id: string;
@@ -27,15 +26,15 @@ export function PortalActivityList({ activities, emptyTitle, emptyDescription }:
   }
 
   return (
-    <Box sx={{ display: 'grid', gap: 1.5 }}>
+    <div style={{ display: 'grid', gap: 12 }}>
       {activities.map((activity) => (
-        <Box key={activity.id} sx={{ border: '1px solid var(--border)', borderRadius: 2, p: 2, display: 'grid', gap: 0.5 }}>
-          <Typography sx={{ fontWeight: 600 }}>{activity.summary}</Typography>
-          <Typography sx={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+        <div key={activity.id} style={{ border: '1px solid var(--border)', borderRadius: 16, padding: 16, display: 'grid', gap: 4 }}>
+          <p style={{ fontWeight: 600 }}>{activity.summary}</p>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
             {formatRelativeTime(activity.performedAt)} • {new Date(activity.performedAt).toLocaleString()} • {activity.actor.name || activity.actor.email || 'Unknown actor'}
-          </Typography>
-        </Box>
+          </p>
+        </div>
       ))}
-    </Box>
+    </div>
   );
 }

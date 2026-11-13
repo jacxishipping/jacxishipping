@@ -1,10 +1,10 @@
 'use client';
 
 import React from 'react';
-import { Box, Tooltip } from '@mui/material';
 import { JXBox } from '@jacxishippingorg/jx-ui-react';
 import { DollarSign, TrendingUp, ShieldCheck, AlertTriangle } from 'lucide-react';
 import { formatMoney as formatCurrency } from '@/lib/format';
+import { Tooltip } from '@/components/design-system';
 
 export interface ShipmentProfitabilityProps {
   billedRevenue?: number;
@@ -189,22 +189,22 @@ export function ShipmentProfitabilityCard({
           <div className="flex h-2.5 rounded-full overflow-hidden bg-[var(--border)] gap-[1px]">
             {dispatchShare > 0 && (
               <Tooltip title={`Dispatch / Towing: ${formatCurrency(dispatchCost)} (${dispatchShare.toFixed(1)}%)`}>
-                <Box sx={{ width: `${dispatchShare}%`, bgcolor: '#3b82f6', transition: 'width 0.3s ease' }} />
+                <div style={{width: `${dispatchShare}%`, backgroundColor: '#3b82f6', transition: 'width 0.3s ease'}} />
               </Tooltip>
             )}
             {oceanShare > 0 && (
               <Tooltip title={`Ocean Freight Share: ${formatCurrency(oceanFreightCost)} (${oceanShare.toFixed(1)}%)`}>
-                <Box sx={{ width: `${oceanShare}%`, bgcolor: '#8b5cf6', transition: 'width 0.3s ease' }} />
+                <div style={{width: `${oceanShare}%`, backgroundColor: '#8b5cf6', transition: 'width 0.3s ease'}} />
               </Tooltip>
             )}
             {otherShare > 0 && (
               <Tooltip title={`Port/Storage/Other: ${formatCurrency(terminalStorageCost + otherExpensesCost)} (${otherShare.toFixed(1)}%)`}>
-                <Box sx={{ width: `${otherShare}%`, bgcolor: '#f59e0b', transition: 'width 0.3s ease' }} />
+                <div style={{width: `${otherShare}%`, backgroundColor: '#f59e0b', transition: 'width 0.3s ease'}} />
               </Tooltip>
             )}
             {profitShare > 0 && (
               <Tooltip title={`Net Profit: ${formatCurrency(netProfit)} (${profitShare.toFixed(1)}%)`}>
-                <Box sx={{ width: `${profitShare}%`, bgcolor: '#22c55e', transition: 'width 0.3s ease' }} />
+                <div style={{width: `${profitShare}%`, backgroundColor: '#22c55e', transition: 'width 0.3s ease'}} />
               </Tooltip>
             )}
           </div>

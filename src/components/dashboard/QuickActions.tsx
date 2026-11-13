@@ -1,14 +1,13 @@
 "use client";
 
 import Link from 'next/link';
-import { Add, Search, Inventory2, Description } from '@mui/icons-material';
-import { Fade } from '@mui/material';
+import { motion } from 'framer-motion';
 import { JXBox } from '@jacxishippingorg/jx-ui-react';
-import type { SvgIconComponent } from '@mui/icons-material';
+import { FileText, Package, Plus, Search, type LucideIcon } from 'lucide-react';
 
 const actions = [
 	{
-		icon: Add,
+		icon: Plus,
 		title: 'New Shipment',
 		description: 'Create a new shipping request',
 		href: '/dashboard/shipments/new',
@@ -36,7 +35,7 @@ const actions = [
 		},
 	},
 	{
-		icon: Inventory2,
+		icon: Package,
 		title: 'All Shipments',
 		description: 'View all your shipments',
 		href: '/dashboard/shipments',
@@ -50,7 +49,7 @@ const actions = [
 		},
 	},
 	{
-		icon: Description,
+		icon: FileText,
 		title: 'Documents',
 		description: 'Manage shipping documents',
 		href: '/dashboard/documents',
@@ -71,7 +70,7 @@ type QuickActionsProps = {
 
 export default function QuickActions({ showHeading = false }: QuickActionsProps = {}) {
 	return (
-		<Fade in timeout={600}>
+		<motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6 }}>
 			<div>
 				{showHeading && (
 					<div className="mb-2">
@@ -89,12 +88,12 @@ export default function QuickActions({ showHeading = false }: QuickActionsProps 
 					))}
 				</div>
 			</div>
-		</Fade>
+		</motion.div>
 	);
 }
 
 interface ActionCardProps {
-	icon: SvgIconComponent;
+	icon: LucideIcon;
 	title: string;
 	description: string;
 	href: string;
@@ -130,7 +129,7 @@ function ActionCard({ icon: Icon, title, description, href, colorValues }: Actio
 							background: 'rgba(var(--text-secondary-rgb), 0.15)',
 						}}
 					>
-						<Icon sx={{ fontSize: 16, color: colorValues.text }} />
+						<Icon className="h-4 w-4" style={{ color: colorValues.text }}/>
 					</div>
 					<span className="truncate text-[0.78rem] font-semibold text-[var(--text-primary)]">
 						{title}

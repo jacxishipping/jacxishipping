@@ -1,5 +1,6 @@
 'use client';
 import { formatMoney as formatCurrency } from '@/lib/format';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -26,7 +27,6 @@ import {
   BarChart,
   Bar,
 } from 'recharts';
-import { Box, Typography } from '@mui/material';
 import { 
   PageHeader,
   Breadcrumbs,
@@ -226,31 +226,17 @@ export default function AnalyticsPage() {
     return (
       <ProtectedRoute>
         <DashboardSurface>
-          <Box sx={{ px: 2, pt: 2 }}>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingLeft: '16px', paddingRight: '16px', paddingTop: '16px'}}>
             <Breadcrumbs />
-          </Box>
-        <Box
-          sx={{
-            mx: 2,
-            my: 4,
-            borderRadius: 2,
-            border: '1px solid var(--error)',
-            background: 'rgba(var(--error-rgb), 0.08)',
-            p: 4,
-            color: 'var(--error)',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 2,
-          }}
-        >
+          </JXBox>
+        <JXBox padding="none" border={false} style={{marginLeft: '16px', marginRight: '16px', marginTop: '32px', marginBottom: '32px', borderRadius: '16px', border: '1px solid var(--error)', background: 'rgba(var(--error-rgb), 0.08)', padding: '32px', color: 'var(--error)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px'}}>
           <AlertTriangle size={48} />
-          <Typography variant="h6" fontWeight={600}>Failed to load analytics</Typography>
-          <Typography>{error}</Typography>
+          <h6 className="text-sm font-semibold">Failed to load analytics</h6>
+          <p className="text-sm leading-relaxed">{error}</p>
           <Button variant="outline" onClick={() => window.location.reload()}>
             Retry
           </Button>
-        </Box>
+        </JXBox>
       </DashboardSurface>
       </ProtectedRoute>
     );
@@ -261,31 +247,17 @@ export default function AnalyticsPage() {
     return (
       <ProtectedRoute>
         <DashboardSurface>
-          <Box sx={{ px: 2, pt: 2 }}>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingLeft: '16px', paddingRight: '16px', paddingTop: '16px'}}>
             <Breadcrumbs />
-          </Box>
-          <Box
-            sx={{
-              mx: 2,
-              my: 4,
-              borderRadius: 2,
-              border: '1px solid var(--error)',
-              background: 'rgba(var(--error-rgb), 0.08)',
-              p: 4,
-              color: 'var(--error)',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: 2,
-            }}
-          >
+          </JXBox>
+          <JXBox padding="none" border={false} style={{marginLeft: '16px', marginRight: '16px', marginTop: '32px', marginBottom: '32px', borderRadius: '16px', border: '1px solid var(--error)', background: 'rgba(var(--error-rgb), 0.08)', padding: '32px', color: 'var(--error)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px'}}>
             <AlertTriangle size={48} />
-            <Typography variant="h6" fontWeight={600}>No data available</Typography>
-            <Typography>Unable to load analytics data. Please try refreshing the page.</Typography>
+            <h6 className="text-sm font-semibold">No data available</h6>
+            <p className="text-sm leading-relaxed">Unable to load analytics data. Please try refreshing the page.</p>
             <Button variant="outline" onClick={handleRefresh}>
               Refresh
             </Button>
-          </Box>
+          </JXBox>
         </DashboardSurface>
       </ProtectedRoute>
     );
@@ -319,19 +291,9 @@ export default function AnalyticsPage() {
         />
 
       {error && (
-        <Box
-          sx={{
-            mx: { xs: 2, md: 3 },
-            borderRadius: 2,
-            border: '1px solid var(--error)',
-            background: 'rgba(var(--error-rgb), 0.08)',
-            px: 2.5,
-            py: 1.5,
-            color: 'var(--error)',
-          }}
-        >
+        <JXBox padding="none" border={false} style={{borderRadius: '16px', border: '1px solid var(--error)', background: 'rgba(var(--error-rgb), 0.08)', paddingLeft: '20px', paddingRight: '20px', paddingTop: '12px', paddingBottom: '12px', color: 'var(--error)'}} className="mx-4 md:mx-6">
           {error}
-        </Box>
+        </JXBox>
       )}
 
       <DashboardGrid className="grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
@@ -351,7 +313,7 @@ export default function AnalyticsPage() {
 
       <DashboardGrid className="lg:grid-cols-2">
         <DashboardPanel title="Shipment volume" description="Six month rolling window" fullHeight>
-          <Box sx={{ height: 300, width: '100%' }}>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, height: '300px', width: '100%'}}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={data.shipmentsByMonth || []}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
@@ -361,11 +323,11 @@ export default function AnalyticsPage() {
                 <Line type="monotone" dataKey="count" stroke="var(--accent-gold)" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
               </LineChart>
             </ResponsiveContainer>
-          </Box>
+          </JXBox>
         </DashboardPanel>
 
         <DashboardPanel title="Revenue (USD)" description="Paid invoices (six months)" fullHeight>
-          <Box sx={{ height: 300, width: '100%' }}>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, height: '300px', width: '100%'}}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={data.revenueByMonth || []}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
@@ -378,11 +340,11 @@ export default function AnalyticsPage() {
                 <Bar dataKey="totalUSD" fill="var(--accent-gold)" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
-          </Box>
+          </JXBox>
         </DashboardPanel>
 
         <DashboardPanel title="Dispatch spend (USD)" description="Dispatch expenses over six months" fullHeight>
-          <Box sx={{ height: 300, width: '100%' }}>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, height: '300px', width: '100%'}}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={data.dispatchSpendByMonth || []}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
@@ -395,35 +357,27 @@ export default function AnalyticsPage() {
                 <Bar dataKey="totalUSD" fill="var(--warning)" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
-          </Box>
+          </JXBox>
         </DashboardPanel>
 
         <DashboardPanel title="Dispatch status mix" description="Current workflow distribution" fullHeight>
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '12px'}} className="grid-cols-1 grid sm:grid-cols-[1fr_1fr]">
             {(data.dispatchesByStatus || []).map((item) => (
-              <Box
-                key={item.status}
-                sx={{
-                  border: '1px solid var(--border)',
-                  borderRadius: 2,
-                  p: 2,
-                  backgroundColor: 'var(--panel)',
-                }}
-              >
-                <Typography sx={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--text-secondary)' }}>
+              <JXBox padding="none" border={false} key={item.status} style={{border: '1px solid var(--border)', borderRadius: '16px', padding: '16px', backgroundColor: 'var(--panel)'}}>
+                <p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--text-secondary)'}}>
                   {getDispatchStatusLabel(item.status)}
-                </Typography>
-                <Typography sx={{ fontSize: '1.6rem', fontWeight: 700, mt: 0.5 }}>
+                </p>
+                <p className="text-sm leading-relaxed" style={{fontSize: '1.6rem', fontWeight: 700, marginTop: '4px'}}>
                   {item.count}
-                </Typography>
-              </Box>
+                </p>
+              </JXBox>
             ))}
             {(data.dispatchesByStatus || []).length === 0 && (
-              <Box sx={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, color: 'var(--text-secondary)', fontSize: '0.95rem'}}>
                 No dispatch activity recorded yet.
-              </Box>
+              </JXBox>
             )}
-          </Box>
+          </JXBox>
         </DashboardPanel>
       </DashboardGrid>
     </DashboardSurface>

@@ -1,22 +1,22 @@
 "use client";
 
-import {
-  Select as MuiSelect,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  SelectChangeEvent,
-  InputAdornment,
-} from '@mui/material';
-import { JXBox } from '@jacxishippingorg/jx-ui-react';
+import { ChevronDown } from 'lucide-react';
 import { ReactNode } from 'react';
-import { ExpandMore } from '@mui/icons-material';
 import { useTheme } from '@/hooks/useTheme';
 
 /**
- * Select Component
- * 
- * Dropdown select with consistent styling matching FormField.
+ * Select Component — Jacxi select on a native <select>.
+ *
+ * Deviation from the Phase 1 mapping (which marked `JXSelect` CLEAN):
+ * verified against the installed JXUI 3.0.0 source, `JXSelect` hardcodes
+ * slate surfaces/text (`bg-slate-50 dark:bg-slate-950`, `text-slate-900`)
+ * and an indigo focus ring (`palette.ring`) on inner elements that the
+ * root `className` cannot reach — there is no prop to recolour them. It
+ * also has no icon slot for the `leftIcon` this wrapper's call sites
+ * pass. The native control keeps the exact Jacxi look (system font,
+ * `--background` surface, gold focus ring), full keyboard/AT behaviour,
+ * and the exact public API. `option.icon` is accepted but cannot be
+ * rendered inside a native <option> — no call site passes one today.
  */
 
 export interface SelectOption {
@@ -28,7 +28,8 @@ export interface SelectOption {
 
 export interface SelectProps {
   id?: string;
-  label: string;
+  /** Optional: when omitted, no label row is rendered (bare-select call sites). */
+  label?: string;
   value: string | number;
   onChange: (value: string | number) => void;
   options: SelectOption[];
@@ -59,135 +60,95 @@ export default function Select({
 }: SelectProps) {
   const { density } = useTheme();
   const isCompact = density === 'compact';
-  const handleChange = (event: SelectChangeEvent<string | number>) => {
-    onChange(event.target.value);
+  const fieldSize = size === 'medium' && isCompact ? 'small' : size;
+
+  const handleChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const raw = event.target.value;
+    const matched = options.find((o) => String(o.value) === raw);
+    onChange(matched && typeof matched.value === 'number' ? matched.value : raw);
   };
 
   return (
-    <JXBox padding="none" border={false} className="ds-select !rounded-none !bg-transparent" style={{ fontFamily: 'inherit' }}>
+    <div className={fullWidth ? 'ds-select w-full' : 'ds-select'}>
       {/* Label */}
-      <label
-        htmlFor={id}
-        className="block font-medium"
-        style={{
-          fontSize: isCompact ? '0.775rem' : '0.875rem',
-          color: error ? 'var(--error)' : 'var(--text-primary)',
-          marginBottom: isCompact ? '0.175rem' : '0.5rem',
-        }}
-      >
-        {label}
-        {required && (
-          <span style={{ color: 'var(--error)', marginLeft: '0.25rem' }}>
-            *
-          </span>
-        )}
-      </label>
-
-      {/* Select */}
-      <FormControl fullWidth={fullWidth} error={error} disabled={disabled} size={size === 'medium' && isCompact ? 'small' : size}>
-        <MuiSelect
-          id={id}
-          value={value}
-          onChange={handleChange}
-          displayEmpty={!!placeholder}
-          startAdornment={
-            leftIcon ? (
-              <InputAdornment position="start">
-                <span className="flex text-[var(--text-secondary)]">
-                  {leftIcon}
-                </span>
-              </InputAdornment>
-            ) : undefined
-          }
-          IconComponent={ExpandMore}
-          sx={{
-            bgcolor: 'var(--background)',
-            borderRadius: 2,
-            color: 'var(--text-primary)',
-            '& .MuiOutlinedInput-notchedOutline': {
-              borderColor: error ? 'var(--error)' : 'rgba(var(--border-rgb), 0.9)',
-            },
-            '&:hover .MuiOutlinedInput-notchedOutline': {
-              borderColor: error ? 'var(--error)' : 'var(--border)',
-            },
-            '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-              borderColor: error ? 'var(--error)' : 'var(--accent-gold)',
-              borderWidth: 2,
-            },
-            '& .MuiSelect-select': {
-              color: value ? 'var(--text-primary)' : 'var(--text-secondary)',
-            },
-            '& .MuiSvgIcon-root': {
-              color: 'var(--text-secondary)',
-            },
-          }}
-          MenuProps={{
-            PaperProps: {
-              sx: {
-                bgcolor: 'var(--panel)',
-                borderRadius: 2,
-                border: '1px solid var(--border)',
-                boxShadow: '0 12px 28px rgba(var(--text-primary-rgb), 0.12), 0 4px 8px rgba(var(--text-primary-rgb), 0.08)',
-                mt: 0.5,
-                '& .MuiList-root': {
-                  py: 1,
-                },
-              },
-            },
+      {label ? (
+        <label
+          htmlFor={id}
+          className="block font-medium"
+          style={{
+            fontSize: isCompact ? '0.775rem' : '0.875rem',
+            color: error ? 'var(--error)' : 'var(--text-primary)',
+            marginBottom: isCompact ? '0.175rem' : '0.5rem',
           }}
         >
+          {label}
+          {required && (
+            <span style={{ color: 'var(--error)', marginLeft: '0.25rem' }}>
+              *
+            </span>
+          )}
+        </label>
+      ) : null}
+
+      {/* Select */}
+      <div className="relative">
+        {leftIcon && (
+          <span className="pointer-events-none absolute left-3 top-1/2 flex -translate-y-1/2 text-[var(--text-secondary)]">
+            {leftIcon}
+          </span>
+        )}
+        <select
+          id={id}
+          value={value === '' || value === undefined ? '' : String(value)}
+          onChange={handleChange}
+          disabled={disabled}
+          aria-invalid={error || undefined}
+          className={[
+            'ds-select-control w-full appearance-none rounded-lg border bg-[var(--background)] text-[var(--text-primary)] outline-none transition-colors',
+            fieldSize === 'small' ? 'px-2.5 py-1.5 text-[0.8125rem]' : 'px-3 py-2 text-[0.875rem]',
+            leftIcon ? 'pl-9' : '',
+            'pr-9',
+            value === '' ? 'text-[var(--text-secondary)]' : '',
+            error
+              ? 'border-[var(--error)] focus:border-[var(--error)] focus:ring-2 focus:ring-[rgba(var(--error-rgb),0.2)]'
+              : 'border-[rgba(var(--border-rgb),0.9)] hover:border-[var(--border)] focus:border-[var(--accent-gold)] focus:ring-2 focus:ring-[rgba(var(--accent-gold-rgb),0.2)]',
+            disabled ? 'opacity-50' : '',
+          ]
+            .filter(Boolean)
+            .join(' ')}
+        >
           {placeholder && (
-            <MenuItem value="" disabled>
-              <span className="text-[0.875rem] text-[var(--text-secondary)]">
-                {placeholder}
-              </span>
-            </MenuItem>
+            <option value="" disabled>
+              {placeholder}
+            </option>
           )}
           {options.map((option) => (
-            <MenuItem
+            <option
               key={option.value}
-              value={option.value}
+              value={String(option.value)}
               disabled={option.disabled}
-              sx={{
-                color: 'var(--text-primary)',
-                fontSize: '0.875rem',
-                py: 1.25,
-                px: 2,
-                mx: 0.5,
-                borderRadius: 1.5,
-                '&:hover': {
-                  bgcolor: 'rgba(var(--accent-gold-rgb), 0.1)',
-                },
-                '&.Mui-selected': {
-                  bgcolor: 'rgba(var(--accent-gold-rgb), 0.15)',
-                  '&:hover': {
-                    bgcolor: 'rgba(var(--accent-gold-rgb), 0.2)',
-                  },
-                },
-              }}
             >
-              {option.icon && (
-                <span className="mr-3 flex items-center">
-                  {option.icon}
-                </span>
-              )}
               {option.label}
-            </MenuItem>
+            </option>
           ))}
-        </MuiSelect>
-      </FormControl>
+        </select>
+        <ChevronDown
+          className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-secondary)]"
+          aria-hidden="true"
+        />
+      </div>
 
       {/* Helper Text */}
       {helperText && (
         <span
           className={[
-            "mt-1 block text-[0.75rem]",
-            error ? "text-[var(--error)]" : "text-[var(--text-secondary)]",
-          ].join(" ")}
+            'mt-1 block text-[0.75rem]',
+            error ? 'text-[var(--error)]' : 'text-[var(--text-secondary)]',
+          ].join(' ')}
         >
           {helperText}
         </span>
       )}
-    </JXBox>
+    </div>
   );
 }

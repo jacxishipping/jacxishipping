@@ -3,9 +3,8 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Building2, DollarSign, Pencil, Plus, ReceiptText } from 'lucide-react';
-import { Box, MenuItem, TextField } from '@mui/material';
 import { DashboardPanel } from '@/components/dashboard/DashboardSurface';
-import { Button, Modal, toast } from '@/components/design-system';
+import { Button, FormField, Modal, Select, toast } from '@/components/design-system';
 import { formatMoney } from '@/lib/format';
 import type { Shipment } from '@/components/shipments/shipment-detail-types';
 import CompanyPriceListDrawer from '@/components/finance/CompanyPriceListDrawer';
@@ -275,20 +274,9 @@ export default function ShipmentCompanyLedgerTab({
           </button>
         </div>
         {companies.length > 1 && (
-          <Box sx={{ maxWidth: 360, mb: 2 }}>
-            <TextField
-              select
-              fullWidth
-              size="small"
-              label="Company ledger"
-              value={company.id}
-              onChange={(event) => setSelectedCompanyId(event.target.value)}
-            >
-              {companies.map((candidate) => (
-                <MenuItem key={candidate.id} value={candidate.id}>{candidate.source}: {candidate.name}</MenuItem>
-              ))}
-            </TextField>
-          </Box>
+          <div style={{maxWidth: 360, marginBottom: '16px'}}>
+            <Select label="Company ledger" value={company.id} onChange={(val) => setSelectedCompanyId(String(val))} size="small" options={companies.map((candidate) => ({ value: candidate.id, label: `${candidate.source}: ${candidate.name}` }))} />
+          </div>
         )}
         {companyEntries.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-10 text-center text-[var(--text-secondary)]">
@@ -350,18 +338,18 @@ export default function ShipmentCompanyLedgerTab({
           </>
         }
       >
-        <Box sx={{ display: 'grid', gap: 2, pt: 1.5 }}>
-          <TextField label="Description" value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} required />
-          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
-            <TextField label="Amount" type="number" inputProps={{ min: 0.01, step: 0.01 }} value={form.amount} onChange={(event) => setForm((current) => ({ ...current, amount: event.target.value }))} required />
-            <TextField label="Transaction Date" type="date" InputLabelProps={{ shrink: true }} value={form.transactionDate} onChange={(event) => setForm((current) => ({ ...current, transactionDate: event.target.value }))} />
-          </Box>
-          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
-            <TextField label="Category" value={form.category} onChange={(event) => setForm((current) => ({ ...current, category: event.target.value }))} />
-            <TextField label="Reference" value={form.reference} onChange={(event) => setForm((current) => ({ ...current, reference: event.target.value }))} />
-          </Box>
-          <TextField label="Notes" rows={3} multiline value={form.notes} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} />
-        </Box>
+        <div style={{display: 'grid', gap: '16px', paddingTop: '12px'}}>
+          <FormField label="Description" value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} required />
+          <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
+            <FormField label="Amount" type="number" inputProps={{ min: 0.01, step: 0.01 }} value={form.amount} onChange={(event) => setForm((current) => ({ ...current, amount: event.target.value }))} required />
+            <FormField label="Transaction Date" type="date" InputLabelProps={{ shrink: true }} value={form.transactionDate} onChange={(event) => setForm((current) => ({ ...current, transactionDate: event.target.value }))} />
+          </div>
+          <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
+            <FormField label="Category" value={form.category} onChange={(event) => setForm((current) => ({ ...current, category: event.target.value }))} />
+            <FormField label="Reference" value={form.reference} onChange={(event) => setForm((current) => ({ ...current, reference: event.target.value }))} />
+          </div>
+          <FormField label="Notes" rows={3} multiline value={form.notes} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} />
+        </div>
       </Modal>
 
       <Modal
@@ -376,27 +364,19 @@ export default function ShipmentCompanyLedgerTab({
           </>
         }
       >
-        <Box sx={{ display: 'grid', gap: 2, pt: 1.5 }}>
-          <TextField label="Description" value={editForm.description} onChange={(event) => setEditForm((current) => ({ ...current, description: event.target.value }))} required />
-          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
-            <TextField
-              select
-              label="Type"
-              value={editType}
-              onChange={(event) => setEditType(event.target.value as 'DEBIT' | 'CREDIT')}
-            >
-              <MenuItem value="DEBIT">Payment</MenuItem>
-              <MenuItem value="CREDIT">Charge</MenuItem>
-            </TextField>
-            <TextField label="Amount" type="number" inputProps={{ min: 0.01, step: 0.01 }} value={editForm.amount} onChange={(event) => setEditForm((current) => ({ ...current, amount: event.target.value }))} required />
-          </Box>
-          <TextField label="Transaction Date" type="date" InputLabelProps={{ shrink: true }} value={editForm.transactionDate} onChange={(event) => setEditForm((current) => ({ ...current, transactionDate: event.target.value }))} />
-          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
-            <TextField label="Category" value={editForm.category} onChange={(event) => setEditForm((current) => ({ ...current, category: event.target.value }))} />
-            <TextField label="Reference" value={editForm.reference} onChange={(event) => setEditForm((current) => ({ ...current, reference: event.target.value }))} />
-          </Box>
-          <TextField label="Notes" rows={3} multiline value={editForm.notes} onChange={(event) => setEditForm((current) => ({ ...current, notes: event.target.value }))} />
-        </Box>
+        <div style={{display: 'grid', gap: '16px', paddingTop: '12px'}}>
+          <FormField label="Description" value={editForm.description} onChange={(event) => setEditForm((current) => ({ ...current, description: event.target.value }))} required />
+          <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
+            <Select label="Type" value={editType} onChange={(val) => setEditType(String(val) as 'DEBIT' | 'CREDIT')} options={[{ value: "DEBIT", label: 'Payment' }, { value: "CREDIT", label: 'Charge' }]} />
+            <FormField label="Amount" type="number" inputProps={{ min: 0.01, step: 0.01 }} value={editForm.amount} onChange={(event) => setEditForm((current) => ({ ...current, amount: event.target.value }))} required />
+          </div>
+          <FormField label="Transaction Date" type="date" InputLabelProps={{ shrink: true }} value={editForm.transactionDate} onChange={(event) => setEditForm((current) => ({ ...current, transactionDate: event.target.value }))} />
+          <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
+            <FormField label="Category" value={editForm.category} onChange={(event) => setEditForm((current) => ({ ...current, category: event.target.value }))} />
+            <FormField label="Reference" value={editForm.reference} onChange={(event) => setEditForm((current) => ({ ...current, reference: event.target.value }))} />
+          </div>
+          <FormField label="Notes" rows={3} multiline value={editForm.notes} onChange={(event) => setEditForm((current) => ({ ...current, notes: event.target.value }))} />
+        </div>
       </Modal>
 
       {/* Company Price List Drawer */}

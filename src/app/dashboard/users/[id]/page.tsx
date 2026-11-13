@@ -1,7 +1,9 @@
 'use client';
-import { formatMoney } from '@/lib/format';
 
-import { useCallback, useEffect, useState, use } from 'react';
+import { formatMoney } from '@/lib/format';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
+
+import { Suspense, useCallback, useEffect, useState, use } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
@@ -30,7 +32,6 @@ import {
   Key,
 } from 'lucide-react';
 import ResetPasswordModal from '@/components/users/ResetPasswordModal';
-import { Box, Typography, Tab, Tabs } from '@mui/material';
 import {
   DashboardSurface,
   DashboardPanel,
@@ -122,7 +123,7 @@ function toDateInputValue(value: string | null) {
   return value ? new Date(value).toISOString().slice(0, 10) : '';
 }
 
-export default function UserViewPage({ params }: { params: Promise<{ id: string }> }) {
+function UserViewPageContent({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -354,7 +355,7 @@ export default function UserViewPage({ params }: { params: Promise<{ id: string 
         title={user.name || 'User Profile'}
         description={`Account: ${user.email} • Member since ${new Date(user.createdAt).toLocaleDateString()}`}
         actions={
-          <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', alignItems: 'center' }}>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center'}}>
             <Link href={backHref} style={{ textDecoration: 'none' }}>
               <Button variant="outline" size="sm" icon={<ArrowLeft className="w-4 h-4" />}>
                 Back
@@ -411,74 +412,76 @@ export default function UserViewPage({ params }: { params: Promise<{ id: string 
                 </Link>
               </>
             )}
-          </Box>
+          </JXBox>
         }
       />
 
       {/* Standardized Tab Navigation Bar */}
-      <Box
-        sx={{
-          border: '1px solid var(--border)',
-          borderRadius: '14px',
-          backgroundColor: 'var(--panel)',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.04)',
-          overflow: 'hidden',
-          mb: 3,
-        }}
-      >
-        <Tabs
-          value={activeTab}
-          onChange={(_, newValue) => {
-            setActiveTab(newValue);
+      <JXBox padding="none" border={false} style={{border: '1px solid var(--border)', borderRadius: '14px', backgroundColor: 'var(--panel)', boxShadow: '0 4px 20px rgba(0,0,0,0.04)', overflow: 'hidden', marginBottom: '24px'}}>
+        <div role="tablist" className="flex gap-1 overflow-x-auto border-b border-[var(--border)]">
+          <button
+            key={0}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 0}
+            onClick={() => { const newValue = 0; setActiveTab(newValue);
             const slugs = ['overview', 'shipments', 'statement', 'notifications'];
             const nextParams = new URLSearchParams(searchParams.toString());
             nextParams.set('tab', slugs[newValue] || slugs[0]);
-            router.replace(`?${nextParams.toString()}`, { scroll: false });
-          }}
-          variant="scrollable"
-          scrollButtons="auto"
-          sx={{
-            minHeight: 52,
-            '& .MuiTabs-flexContainer': {
-              gap: 0.5,
-              px: 1,
-            },
-            '& .MuiTab-root': {
-              textTransform: 'none',
-              fontSize: '0.875rem',
-              fontWeight: 650,
-              color: 'var(--text-secondary)',
-              minHeight: 52,
-              borderRadius: '10px',
-              my: 0.5,
-              px: 2,
-              '&:hover': {
-                color: 'var(--accent-gold)',
-                backgroundColor: 'rgba(var(--accent-gold-rgb), 0.08)',
-              },
-            },
-            '& .Mui-selected': {
-              color: 'var(--accent-gold) !important',
-              fontWeight: 700,
-              backgroundColor: 'rgba(var(--accent-gold-rgb), 0.12)',
-            },
-            '& .MuiTabs-indicator': {
-              backgroundColor: 'var(--accent-gold)',
-              height: 3,
-              borderRadius: '3px 3px 0 0',
-            },
-          }}
-        >
-          <Tab icon={<User className="w-4 h-4" />} iconPosition="start" label="Overview & Profile" />
-          <Tab icon={<Package className="w-4 h-4" />} iconPosition="start" label={`Shipments (${user.shipments.length})`} />
+            router.replace(`?${nextParams.toString()}`, { scroll: false }); }}
+            className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === 0 ? 'border-[var(--accent-gold)] text-[var(--accent-gold-text)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+          >
+            {<User className="w-4 h-4" />} {"Overview & Profile"}
+          </button>
+          <button
+            key={1}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 1}
+            onClick={() => { const newValue = 1; setActiveTab(newValue);
+            const slugs = ['overview', 'shipments', 'statement', 'notifications'];
+            const nextParams = new URLSearchParams(searchParams.toString());
+            nextParams.set('tab', slugs[newValue] || slugs[0]);
+            router.replace(`?${nextParams.toString()}`, { scroll: false }); }}
+            className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === 1 ? 'border-[var(--accent-gold)] text-[var(--accent-gold-text)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+          >
+            {<Package className="w-4 h-4" />} {`Shipments (${user.shipments.length})`}
+          </button>
           {isCustomer && statement && (
-            <Tab icon={<Receipt className="w-4 h-4" />} iconPosition="start" label="Statement & Aging" />
+            <button
+              key={2}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 2}
+              onClick={() => { const newValue = 2; setActiveTab(newValue);
+            const slugs = ['overview', 'shipments', 'statement', 'notifications'];
+            const nextParams = new URLSearchParams(searchParams.toString());
+            nextParams.set('tab', slugs[newValue] || slugs[0]);
+            router.replace(`?${nextParams.toString()}`, { scroll: false }); }}
+              className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === 2 ? 'border-[var(--accent-gold)] text-[var(--accent-gold-text)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+            >
+              {<Receipt className="w-4 h-4" />} {"Statement & Aging"}
+            </button>
           )}
           {canNotifyCustomer && (
-            <Tab icon={<Send className="w-4 h-4" />} iconPosition="start" label="Direct Notifications" />
+            <button
+              key={3}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 3}
+              onClick={() => { const newValue = 3; setActiveTab(newValue);
+            const slugs = ['overview', 'shipments', 'statement', 'notifications'];
+            const nextParams = new URLSearchParams(searchParams.toString());
+            nextParams.set('tab', slugs[newValue] || slugs[0]);
+            router.replace(`?${nextParams.toString()}`, { scroll: false }); }}
+              className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === 3 ? 'border-[var(--accent-gold)] text-[var(--accent-gold-text)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+            >
+              {<Send className="w-4 h-4" />} {"Direct Notifications"}
+            </button>
           )}
-        </Tabs>
-      </Box>
+        
+        </div>
+      </JXBox>
 
       {/* TAB 0: Overview & Profile */}
       {activeTab === 0 && (
@@ -525,59 +528,59 @@ export default function UserViewPage({ params }: { params: Promise<{ id: string 
           <DashboardGrid className="grid-cols-1 lg:grid-cols-3">
             {/* User Profile Card */}
             <DashboardPanel title="Profile Details" className="lg:col-span-1">
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, pb: 2, borderBottom: '1px solid var(--border)' }}>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '24px'}}>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '16px', paddingBottom: '16px', borderBottom: '1px solid var(--border)'}}>
                   <div className="w-14 h-14 rounded-full bg-gradient-to-br from-amber-500/20 to-amber-600/10 border border-[var(--accent-gold)]/30 flex items-center justify-center font-bold text-lg text-[var(--accent-gold)]">
                     {(user.name || user.email).slice(0, 2).toUpperCase()}
                   </div>
-                  <Box sx={{ minWidth: 0 }}>
-                    <Typography variant="h6" fontWeight="bold" noWrap>
+                  <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, minWidth: '0px'}}>
+                    <h6 className="text-sm font-bold">
                       {user.name || 'No Name'}
-                    </Typography>
-                    <Box sx={{ mt: 0.5 }}>
+                    </h6>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '4px'}}>
                       <StatusBadge
                         status={user.role}
                         label={user.role.toUpperCase()}
                         size="sm"
                       />
-                    </Box>
-                  </Box>
-                </Box>
+                    </JXBox>
+                  </JXBox>
+                </JXBox>
 
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '20px'}}>
+                  <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '16px'}}>
                     <Mail className="w-4 h-4 text-[var(--text-secondary)] shrink-0" />
-                    <Box sx={{ minWidth: 0 }}>
-                      <Typography variant="caption" color="text.secondary">Email Address</Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>{user.email}</Typography>
-                    </Box>
-                  </Box>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, minWidth: '0px'}}>
+                      <span className="text-xs text-[var(--text-secondary)] text-[var(--text-secondary)]">Email Address</span>
+                      <p className="text-sm leading-relaxed" style={{fontWeight: 600}}>{user.email}</p>
+                    </JXBox>
+                  </JXBox>
 
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '16px'}}>
                     <Phone className="w-4 h-4 text-[var(--text-secondary)] shrink-0" />
-                    <Box sx={{ minWidth: 0 }}>
-                      <Typography variant="caption" color="text.secondary">Phone</Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{user.phone || 'Not provided'}</Typography>
-                    </Box>
-                  </Box>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, minWidth: '0px'}}>
+                      <span className="text-xs text-[var(--text-secondary)] text-[var(--text-secondary)]">Phone</span>
+                      <p className="text-sm leading-relaxed" style={{fontWeight: 600}}>{user.phone || 'Not provided'}</p>
+                    </JXBox>
+                  </JXBox>
 
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '16px'}}>
                     <Calendar className="w-4 h-4 text-[var(--text-secondary)] shrink-0" />
-                    <Box sx={{ minWidth: 0 }}>
-                      <Typography variant="caption" color="text.secondary">Registration Date</Typography>
-                      <Typography variant="body2">{new Date(user.createdAt).toLocaleDateString()}</Typography>
-                    </Box>
-                  </Box>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, minWidth: '0px'}}>
+                      <span className="text-xs text-[var(--text-secondary)] text-[var(--text-secondary)]">Registration Date</span>
+                      <p className="text-sm leading-relaxed">{new Date(user.createdAt).toLocaleDateString()}</p>
+                    </JXBox>
+                  </JXBox>
 
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '16px'}}>
                     <Clock className="w-4 h-4 text-[var(--text-secondary)] shrink-0" />
-                    <Box sx={{ minWidth: 0 }}>
-                      <Typography variant="caption" color="text.secondary">Last Profile Update</Typography>
-                      <Typography variant="body2">{new Date(user.updatedAt).toLocaleDateString()}</Typography>
-                    </Box>
-                  </Box>
-                </Box>
-              </Box>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, minWidth: '0px'}}>
+                      <span className="text-xs text-[var(--text-secondary)] text-[var(--text-secondary)]">Last Profile Update</span>
+                      <p className="text-sm leading-relaxed">{new Date(user.updatedAt).toLocaleDateString()}</p>
+                    </JXBox>
+                  </JXBox>
+                </JXBox>
+              </JXBox>
             </DashboardPanel>
 
             {/* Account Highlights & Summary */}
@@ -636,11 +639,11 @@ export default function UserViewPage({ params }: { params: Promise<{ id: string 
           fullHeight
         >
           {user.shipments.length > 0 ? (
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' }, gap: 2 }}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '16px'}} className="grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
               {user.shipments.map((shipment) => (
                 <ShipmentCard key={shipment.id} {...shipment} />
               ))}
-            </Box>
+            </JXBox>
           ) : (
             <EmptyState
               icon={<Package className="w-10 h-10" />}
@@ -657,7 +660,7 @@ export default function UserViewPage({ params }: { params: Promise<{ id: string 
           title="Customer Financial Statement & Aging"
           description="Receivables aging schedule, collections tracking, and itemized invoice history"
           actions={
-            <Box sx={{ display: 'flex', gap: 1 }}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '8px'}}>
               <Button variant="outline" size="sm" icon={<Download className="h-4 w-4" />} onClick={handleExportStatementCsv}>
                 Export CSV
               </Button>
@@ -669,15 +672,15 @@ export default function UserViewPage({ params }: { params: Promise<{ id: string 
                   View All Invoices
                 </Button>
               </Link>
-            </Box>
+            </JXBox>
           }
         >
           <div className="space-y-6">
             {/* Aging Schedule */}
             <div>
-              <Typography variant="caption" sx={{ fontWeight: 700, color: 'var(--text-secondary)', mb: 1.5, display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <span className="text-xs text-[var(--text-secondary)]" style={{fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '12px', display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em'}}>
                 Receivables Aging Schedule
-              </Typography>
+              </span>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
                 {agingCards.map((bucket) => (
                   <div key={bucket.label} className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-3">
@@ -840,5 +843,15 @@ export default function UserViewPage({ params }: { params: Promise<{ id: string 
         />
       )}
     </DashboardSurface>
+  );
+}
+
+// useSearchParams() must sit under a Suspense boundary or static
+// prerendering fails (missing-suspense-with-csr-bailout).
+export default function UserViewPage({ params }: { params: Promise<{ id: string }> }) {
+  return (
+    <Suspense fallback={<div aria-busy="true" style={{ minHeight: '50vh' }} />}>
+      <UserViewPageContent params={params} />
+    </Suspense>
   );
 }

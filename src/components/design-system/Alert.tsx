@@ -4,12 +4,12 @@ import { JXBox, JXButton } from "@jacxishippingorg/jx-ui-react";
 import { ReactNode } from "react";
 import Tooltip from "./Tooltip";
 import {
-  CheckCircle,
-  Warning,
-  Error as ErrorIcon,
+  CircleCheck,
+  TriangleAlert,
+  CircleAlert,
   Info,
-  Close,
-} from "@mui/icons-material";
+  X,
+} from "lucide-react";
 
 /**
  * Alert Component
@@ -35,28 +35,28 @@ export interface AlertProps {
 // Severity configurations
 const severityConfig = {
   success: {
-    icon: <CheckCircle sx={{ fontSize: 20 }} />,
+    icon: <CircleCheck className="h-5 w-5" />,
     color: "var(--success)",
     bgColor: "rgba(var(--success-rgb), 0.15)",
     borderColor: "var(--success)",
     lightBg: "var(--success-light)",
   },
   warning: {
-    icon: <Warning sx={{ fontSize: 20 }} />,
+    icon: <TriangleAlert className="h-5 w-5" />,
     color: "var(--warning)",
     bgColor: "rgba(var(--warning-rgb), 0.15)",
     borderColor: "var(--warning)",
     lightBg: "var(--warning-light)",
   },
   error: {
-    icon: <ErrorIcon sx={{ fontSize: 20 }} />,
+    icon: <CircleAlert className="h-5 w-5" />,
     color: "var(--error)",
     bgColor: "rgba(var(--error-rgb), 0.15)",
     borderColor: "var(--error)",
     lightBg: "var(--error-light)",
   },
   info: {
-    icon: <Info sx={{ fontSize: 20 }} />,
+    icon: <Info className="h-5 w-5" />,
     color: "var(--info)",
     bgColor: "rgba(var(--info-rgb), 0.15)",
     borderColor: "var(--info)",
@@ -190,7 +190,7 @@ export default function Alert({
               fontFamily: "inherit",
             }}
           >
-            <Close sx={{ fontSize: 18 }} />
+            <X className="h-[18px] w-[18px]" />
           </JXButton>
         </Tooltip>
       )}

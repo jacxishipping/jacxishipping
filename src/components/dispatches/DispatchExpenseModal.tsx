@@ -1,18 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import {
-  Box,
-  FormControl,
-  InputAdornment,
-  InputLabel,
-  MenuItem,
-  Select,
-  TextField,
-  Typography,
-} from '@mui/material';
 import { DollarSign, Paperclip, Upload } from 'lucide-react';
-import { Button, Modal, toast } from '@/components/design-system';
+import { Button, FormField, Modal, Select, toast } from '@/components/design-system';
 import {
   DEFAULT_DISPATCH_EXPENSE_CATEGORY,
   DISPATCH_EXPENSE_CATEGORY_OPTIONS,
@@ -200,10 +190,10 @@ export default function DispatchExpenseModal({
       onClose={resetAndClose}
       size="sm"
       title={
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
           <DollarSign style={{ fontSize: 24, color: 'var(--accent-gold)' }} />
           <span>{isEditing ? 'Edit Dispatch Expense' : 'Add Dispatch Expense'}</span>
-        </Box>
+        </div>
       }
       description="Track dispatch-related costs and attach supporting paperwork when available."
       showCloseButton={!loading && !uploading}
@@ -217,83 +207,35 @@ export default function DispatchExpenseModal({
         </>
       }
     >
-      <Box component="form" id={formId} onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
-            <FormControl fullWidth size="small" required>
-              <InputLabel>Category</InputLabel>
-              <Select
-                value={formData.category}
-                onChange={(e) => handleCategoryChange(e.target.value as DispatchExpenseCategory)}
-                label="Category"
-              >
-                {DISPATCH_EXPENSE_CATEGORY_OPTIONS.map((option) => (
-                  <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+      <form id={formId} onSubmit={handleSubmit} style={{display: 'flex', flexDirection: 'column', gap: '20px'}}>
+          <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
+            <Select label="Category" value={formData.category} onChange={(val) => handleCategoryChange(String(val) as DispatchExpenseCategory)} options={DISPATCH_EXPENSE_CATEGORY_OPTIONS.map((option) => ({ value: option.value, label: option.label }))} />
 
-            <FormControl fullWidth size="small" required>
-              <InputLabel>Expense Type</InputLabel>
-              <Select value={formData.type} onChange={(e) => handleChange('type', e.target.value)} label="Expense Type">
-                {typeOptions.map((option) => (
-                  <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Box>
+            <Select label="Expense Type" value={formData.type} onChange={(val) => handleChange('type', String(val))} options={typeOptions.map((option) => ({ value: option.value, label: option.label }))} />
+          </div>
 
-          <TextField
-            size="small"
-            label="Description"
-            value={formData.description}
-            onChange={(e) => handleChange('description', e.target.value)}
-            required
-            placeholder="What was this dispatch expense for?"
-          />
+          <FormField label="Description" value={formData.description} onChange={(e) => handleChange('description', e.target.value)} required placeholder="What was this dispatch expense for?" size="small" />
 
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '2fr 1fr' }, gap: 2 }}>
-            <TextField
-              size="small"
-              label="Amount"
-              type="number"
-              value={formData.amount}
-              onChange={(e) => handleChange('amount', e.target.value)}
-              required
-              inputProps={{ min: 0, step: 0.01 }}
-              InputProps={{ startAdornment: <InputAdornment position="start">$</InputAdornment> }}
-            />
-            <TextField size="small" label="Currency" value={formData.currency} disabled />
-          </Box>
+          <div style={{display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px'}}>
+            <FormField label="Amount" type="number" value={formData.amount} onChange={(e) => handleChange('amount', e.target.value)} required inputProps={{ min: 0, step: 0.01 }} size="small" leftIcon={'$'} />
+            <FormField label="Currency" value={formData.currency} disabled size="small" />
+          </div>
 
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
-            <TextField size="small" label="Vendor" value={formData.vendor} onChange={(e) => handleChange('vendor', e.target.value)} />
-            <TextField
-              size="small"
-              label="Invoice Number"
-              value={formData.invoiceNumber}
-              onChange={(e) => handleChange('invoiceNumber', e.target.value)}
-              helperText="3-40 chars: letters, numbers, dash, slash, underscore, or period"
-            />
-          </Box>
+          <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
+            <FormField label="Vendor" value={formData.vendor} onChange={(e) => handleChange('vendor', e.target.value)} size="small" />
+            <FormField label="Invoice Number" value={formData.invoiceNumber} onChange={(e) => handleChange('invoiceNumber', e.target.value)} helperText="3-40 chars: letters, numbers, dash, slash, underscore, or period" size="small" />
+          </div>
 
-          <TextField
-            size="small"
-            label="Date"
-            type="date"
-            value={formData.date}
-            onChange={(e) => handleChange('date', e.target.value)}
-            required
-            InputLabelProps={{ shrink: true }}
-          />
+          <FormField label="Date" type="date" value={formData.date} onChange={(e) => handleChange('date', e.target.value)} required InputLabelProps={{ shrink: true }} size="small" />
 
-          <Box sx={{ border: '1px solid var(--border)', borderRadius: 2, p: 1.5, display: 'grid', gap: 1.5 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
-              <Box>
-                <Typography sx={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)' }}>Attachment</Typography>
-                <Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+          <div style={{border: '1px solid var(--border)', borderRadius: '16px', padding: '12px', display: 'grid', gap: '12px'}}>
+            <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap'}}>
+              <div>
+                <p style={{fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)'}}>Attachment</p>
+                <p style={{fontSize: '0.75rem', color: 'var(--text-secondary)'}}>
                   Upload invoice, receipt, or support file for this expense
-                </Typography>
-              </Box>
+                </p>
+              </div>
               <Button component="label" variant="outline" size="sm" icon={<Upload className="w-4 h-4" />}>
                 {uploading ? 'Uploading...' : formData.attachmentUrl ? 'Replace file' : 'Upload file'}
                 <input
@@ -308,16 +250,16 @@ export default function DispatchExpenseModal({
                   }}
                 />
               </Button>
-            </Box>
+            </div>
             {formData.attachmentUrl ? (
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+              <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap'}}>
+                <div style={{display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0}}>
                   <Paperclip className="w-4 h-4" />
-                  <Typography sx={{ fontSize: '0.8rem', color: 'var(--text-primary)' }} noWrap>
+                  <p style={{whiteSpace: 'nowrap', fontSize: '0.8rem', color: 'var(--text-primary)'}} className="truncate">
                     {formData.attachmentName || 'Uploaded attachment'}
-                  </Typography>
-                </Box>
-                <Box sx={{ display: 'flex', gap: 1 }}>
+                  </p>
+                </div>
+                <div style={{display: 'flex', gap: '8px'}}>
                   <a href={formData.attachmentUrl} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>
                     <Button variant="ghost" size="sm">
                       Open
@@ -337,20 +279,13 @@ export default function DispatchExpenseModal({
                   >
                     Remove
                   </Button>
-                </Box>
-              </Box>
+                </div>
+              </div>
             ) : null}
-          </Box>
+          </div>
 
-          <TextField
-            size="small"
-            label="Notes"
-            value={formData.notes}
-            onChange={(e) => handleChange('notes', e.target.value)}
-            multiline
-            rows={3}
-          />
-      </Box>
+          <FormField label="Notes" value={formData.notes} onChange={(e) => handleChange('notes', e.target.value)} multiline rows={3} size="small" />
+      </form>
     </Modal>
   );
 }

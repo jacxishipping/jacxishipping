@@ -1,14 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
-import { Box, Typography, Menu, MenuItem, IconButton, Divider } from '@mui/material';
 import { Package, Ship, MapPin, TrendingUp, Calendar, FileText, DollarSign, Receipt, MoreVertical, Eye, Copy, Trash2, Download, PanelRightOpen, QrCode, Layers, Compass, Clock, AlertTriangle, ShieldCheck, RefreshCw } from 'lucide-react';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
-import { PageHeader, StatsCard, Button, EmptyState, FormField, Select, toast, SkeletonCard, DashboardPageSkeleton, CompactSkeleton, StatusBadge, CopyButton, StatusFilterPills, Tooltip } from '@/components/design-system';
+import { Button, CompactSkeleton, CopyButton, DashboardPageSkeleton, EmptyState, FormField, IconButton, PageHeader, Select, SkeletonCard, StatsCard, StatusBadge, StatusFilterPills, Tooltip, toast } from '@/components/design-system';
 import ContainerQuickPeek from '@/components/dashboard/ContainerQuickPeek';
 import { QRCodeModal, type QRCodeData } from '@/components/dashboard/QRCodeModal';
 import { SavedFilterPresets } from '@/components/dashboard/SavedFilterPresets';
@@ -20,6 +20,87 @@ import { exportToCSVWithHeaders } from '@/lib/export';
 import { useConfirmAction } from '@/components/ui/ConfirmActionProvider';
 import { getContainerDemurrageInfo } from '@/lib/container-demurrage';
 import { TrackingSourceBadge } from '@/components/tracking/TrackingSourceBadge';
+
+function AnchoredMenu({
+  anchorEl,
+  onClose,
+  children,
+}: {
+  anchorEl: HTMLElement | null;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+  useEffect(() => {
+    if (!anchorEl) return;
+    const r = anchorEl.getBoundingClientRect();
+    const width = 200;
+    const left = Math.max(8, Math.min(window.innerWidth - width - 8, r.right - width));
+    const estHeight = 380;
+    const top =
+      r.bottom + 4 + estHeight > window.innerHeight && r.top - estHeight > 8
+        ? Math.max(8, r.top - estHeight - 4)
+        : r.bottom + 4;
+    setPos({ top, left });
+  }, [anchorEl]);
+  useEffect(() => {
+    if (!anchorEl) return;
+    const handleDown = (e: MouseEvent) => {
+      if (panelRef.current && !panelRef.current.contains(e.target as Node)) onClose();
+    };
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("mousedown", handleDown);
+    window.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleDown);
+      window.removeEventListener("keydown", handleKey);
+    };
+  }, [anchorEl, onClose]);
+  if (!anchorEl) return null;
+  return (
+    <div
+      ref={panelRef}
+      role="menu"
+      className="fixed z-[1050] min-w-[200px] rounded-2xl border border-[var(--border)] bg-[var(--panel)] py-1 shadow-[0_8px_24px_rgba(0,0,0,0.15)]"
+      style={{ top: pos.top, left: pos.left }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function AnchoredMenuItem( {
+  onClick,
+  children,
+  danger = false,
+  disabled = false,
+}: {
+  onClick?: () => void;
+  children: React.ReactNode;
+  danger?: boolean;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      role="menuitem"
+      onClick={onClick}
+      disabled={disabled}
+      className={[
+        "flex w-full items-center px-4 py-2.5 text-left text-[0.875rem] transition-colors disabled:opacity-50",
+        danger
+          ? "text-[var(--error)] hover:bg-[rgba(var(--error-rgb),0.1)]"
+          : "text-[var(--text-primary)] hover:bg-[rgba(var(--border-rgb),0.4)]",
+      ].join(" ")}
+    >
+      {children}
+    </button>
+  );
+}
+
 
 interface Container {
   id: string;
@@ -550,7 +631,7 @@ export default function ContainersPage() {
           title="Containers"
           description="Manage shipping containers and tracking"
           actions={
-            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
               <Button
                 variant={showOceanTracker ? 'primary' : 'outline'}
                 onClick={() => setShowOceanTracker((prev) => !prev)}
@@ -596,7 +677,7 @@ export default function ContainersPage() {
                   New Container
                 </Button>
               )}
-            </Box>
+            </JXBox>
           }
         />
 
@@ -688,7 +769,7 @@ export default function ContainersPage() {
               Search containers
             </button>
           </form>
-          <Box sx={{ mt: 1.5, display: { xs: 'none', sm: 'block' } }}>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '12px'}} className="hidden sm:block">
             <SavedFilterPresets
               storageKey="containers"
               currentFilters={{ status: statusFilter, search: searchQuery }}
@@ -697,7 +778,7 @@ export default function ContainersPage() {
                 if (typeof filters.search === 'string') setSearchQuery(filters.search);
               }}
             />
-          </Box>
+          </JXBox>
         </DashboardPanel>
 
         {/* Status Filter Carousel */}
@@ -733,7 +814,7 @@ export default function ContainersPage() {
               description={searchQuery || statusFilter !== 'all' ? "No containers match your search or status filter criteria" : (isAdmin ? "Create your first container to get started" : "You have no containers with your shipments yet")}
               action={
                 searchQuery || statusFilter !== 'all' ? (
-                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', justifyContent: 'center' }}>
+                  <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'center'}}>
                     <Button variant="outline" size="sm" onClick={handleClearFilters}>
                       Clear Filters
                     </Button>
@@ -742,7 +823,7 @@ export default function ContainersPage() {
                         New Container
                       </Button>
                     )}
-                  </Box>
+                  </JXBox>
                 ) : isAdmin ? (
                   <Button href="/dashboard/containers/new" variant="primary" icon={<Package className="w-4 h-4" />}>
                     Create First Container
@@ -766,157 +847,76 @@ export default function ContainersPage() {
             <>
               <DashboardGrid className="grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                 {displayedContainers.map((container, index) => (
-                  <Box
-                    key={container.id}
-                    onClick={() => router.push(`/dashboard/containers/${container.id}`)}
-                    sx={{
-                      borderRadius: 2,
-                      border: '1px solid var(--border)',
-                      background: 'var(--panel)',
-                      boxShadow: '0 12px 30px rgba(var(--text-primary-rgb), 0.08)',
-                      p: 2,
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      '&:hover': {
-                        transform: 'translateY(-4px)',
-                        boxShadow: '0 20px 40px rgba(var(--text-primary-rgb), 0.12)',
-                      },
-                    }}
-                  >
+                  <JXBox padding="none" border={false} key={container.id} onClick={() => router.push(`/dashboard/containers/${container.id}`)} className="hover:-translate-y-1 hover:!shadow-[0_20px_40px_rgba(var(--text-primary-rgb),0.12)]" style={{borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--panel)', boxShadow: '0 12px 30px rgba(var(--text-primary-rgb), 0.08)', padding: '16px', cursor: 'pointer', transition: 'all 0.2s ease'}}>
                     {/* Header */}
-                    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'stretch', sm: 'flex-start' }, gap: 1.5, mb: 2 }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flex: 1, minWidth: 0 }}>
-                        <Box sx={{ minWidth: 0 }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Typography sx={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between', gap: '12px', marginBottom: '16px'}} className="flex-col sm:flex-row items-stretch sm:items-start">
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flex: 1, minWidth: '0px'}}>
+                        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, minWidth: '0px'}}>
+                          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px'}}>
+                            <p className="text-sm leading-relaxed" style={{fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis'}}>
                               {container.containerNumber}
-                            </Typography>
+                            </p>
                             <span onClick={(e) => e.stopPropagation()}>
                               <CopyButton value={container.containerNumber} label="Container #" />
                             </span>
-                          </Box>
+                          </JXBox>
                           {container.trackingNumber && (
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-                              <Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
+                            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px'}}>
+                              <p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', color: 'var(--text-secondary)', fontFamily: 'monospace'}}>
                                 {container.trackingNumber}
-                              </Typography>
+                              </p>
                               <span onClick={(e) => e.stopPropagation()}>
                                 <CopyButton value={container.trackingNumber} label="Tracking #" />
                               </span>
-                            </Box>
+                            </JXBox>
                           )}
                           {container.trackingEvents?.[0]?.source && (
-                            <Box sx={{ mt: 0.75 }} onClick={(e) => e.stopPropagation()}>
+                            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '6px'}} onClick={(e) => e.stopPropagation()}>
                               <TrackingSourceBadge source={container.trackingEvents[0].source} size="xs" />
-                            </Box>
+                            </JXBox>
                           )}
-                        </Box>
-                        <Box sx={{ display: { xs: 'block', sm: 'none' } }}>
+                        </JXBox>
+                        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}} className="block sm:hidden">
                           <StatusBadge status={container.status} size="sm" />
-                        </Box>
-                      </Box>
-                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: { xs: 'flex-end', sm: 'flex-start' }, gap: 0.5 }}>
-                        <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+                        </JXBox>
+                      </JXBox>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '4px'}} className="justify-end sm:justify-start">
+                        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}} className="hidden sm:block">
                           <StatusBadge status={container.status} size="sm" />
-                        </Box>
-                        <IconButton
-                          size="small"
-                          onClick={(e) => {
+                        </JXBox>
+                        <IconButton icon={<Compass style={{ width: 16, height: 16 }} />} ariaLabel="Track route on Ocean Map" variant="ghost" size="sm" onClick={(e) => {
                             e.stopPropagation();
                             setActiveOceanContainerId(container.id);
                             setShowOceanTracker(true);
                             window.scrollTo({ top: 0, behavior: 'smooth' });
                             toast.info(`Tracking route for container ${container.containerNumber}`);
-                          }}
-                          title="Track route on Ocean Map"
-                          sx={{
-                            color: 'var(--text-secondary)',
-                            '&:hover': {
-                              bgcolor: 'rgba(59, 130, 246, 0.12)',
-                              color: '#3B82F6',
-                            },
-                          }}
-                        >
-                          <Compass style={{ width: 16, height: 16 }} />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          onClick={(e) => {
+                          }} title="Track route on Ocean Map" style={{color: 'var(--text-secondary)'}} />
+                        <IconButton icon={<Layers style={{ width: 16, height: 16 }} />} ariaLabel="2D Visual Load Planner" variant="ghost" size="sm" onClick={(e) => {
                             e.stopPropagation();
                             setPlannerContainer(container);
-                          }}
-                          title="2D Visual Load Planner"
-                          sx={{
-                            color: 'var(--text-secondary)',
-                            '&:hover': {
-                              bgcolor: 'rgba(var(--accent-gold-rgb), 0.12)',
-                              color: 'var(--accent-gold)',
-                            },
-                          }}
-                        >
-                          <Layers style={{ width: 16, height: 16 }} />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          onClick={(e) => {
+                          }} title="2D Visual Load Planner" style={{color: 'var(--text-secondary)'}} />
+                        <IconButton icon={<PanelRightOpen style={{ width: 16, height: 16 }} />} ariaLabel="Quick peek container manifest" variant="ghost" size="sm" onClick={(e) => {
                             e.stopPropagation();
                             setQuickPeekContainerId(container.id);
-                          }}
-                          title="Quick peek container manifest"
-                          sx={{
-                            color: 'var(--text-secondary)',
-                            '&:hover': {
-                              bgcolor: 'rgba(var(--accent-gold-rgb), 0.12)',
-                              color: 'var(--accent-gold)',
-                            },
-                          }}
-                        >
-                          <PanelRightOpen style={{ width: 16, height: 16 }} />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          onClick={(e) => handleMenuOpen(e, container)}
-                          sx={{
-                            color: 'var(--text-secondary)',
-                            '&:hover': {
-                              bgcolor: 'rgba(var(--text-primary-rgb), 0.05)',
-                            },
-                          }}
-                        >
-                          <MoreVertical style={{ fontSize: 18 }} />
-                        </IconButton>
-                      </Box>
-                    </Box>
+                          }} title="Quick peek container manifest" style={{color: 'var(--text-secondary)'}} />
+                        <IconButton icon={<MoreVertical style={{ fontSize: 18 }} />} ariaLabel="Container actions" variant="ghost" size="sm" onClick={(e) => handleMenuOpen(e, container)} style={{color: 'var(--text-secondary)'}} />
+                      </JXBox>
+                    </JXBox>
 
                     {/* Progress */}
-                    <Box sx={{ mb: 2 }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                        <Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginBottom: '16px'}}>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between', marginBottom: '4px'}}>
+                        <p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', color: 'var(--text-secondary)'}}>
                           Progress
-                        </Typography>
-                        <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                        </p>
+                        <p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-primary)'}}>
                           {container.progress}%
-                        </Typography>
-                      </Box>
-                      <Box
-                        sx={{
-                          width: '100%',
-                          height: 6,
-                          borderRadius: 1,
-                          bgcolor: 'var(--background)',
-                          overflow: 'hidden',
-                        }}
-                      >
-                        <Box
-                          sx={{
-                            width: `${container.progress}%`,
-                            height: '100%',
-                            bgcolor: 'var(--accent-gold)',
-                            transition: 'width 0.3s ease',
-                          }}
-                        />
-                      </Box>
-                    </Box>
+                        </p>
+                      </JXBox>
+                      <JXBox padding="none" border={false} style={{width: '100%', height: '6px', borderRadius: '8px', backgroundColor: 'var(--background)', overflow: 'hidden'}}>
+                        <JXBox padding="none" border={false} style={{borderRadius: 0, width: `${container.progress}%`, height: '100%', backgroundColor: 'var(--accent-gold)', transition: 'width 0.3s ease'}} />
+                      </JXBox>
+                    </JXBox>
 
                     {/* Demurrage & Free-Time Risk Indicator */}
                     {(() => {
@@ -924,7 +924,7 @@ export default function ContainersPage() {
                       if (!demurrage.badgeLabel) return null;
 
                       return (
-                        <Box sx={{ mb: 1.5 }}>
+                        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginBottom: '12px'}}>
                           <Tooltip title={demurrage.tooltipText}>
                             <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs border font-medium ${demurrage.colorClass}`}>
                               {demurrage.level === 'critical' ? (
@@ -939,70 +939,62 @@ export default function ContainersPage() {
                               <span>{demurrage.badgeLabel}</span>
                             </div>
                           </Tooltip>
-                        </Box>
+                        </JXBox>
                       );
                     })()}
 
                     {/* Details */}
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 2 }}>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px'}}>
                       {container.vesselName && (
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px'}}>
                           <Ship style={{ fontSize: 14, color: 'var(--text-secondary)' }} />
-                          <Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                          <p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', color: 'var(--text-secondary)'}}>
                             {container.vesselName}
-                          </Typography>
-                        </Box>
+                          </p>
+                        </JXBox>
                       )}
                       {container.destinationPort && (
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px'}}>
                           <MapPin style={{ fontSize: 14, color: 'var(--text-secondary)' }} />
-                          <Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                          <p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', color: 'var(--text-secondary)'}}>
                             {container.destinationPort}
-                          </Typography>
-                        </Box>
+                          </p>
+                        </JXBox>
                       )}
                       {container.estimatedArrival && (
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px'}}>
                           <Calendar style={{ fontSize: 14, color: 'var(--text-secondary)' }} />
-                          <Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                          <p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', color: 'var(--text-secondary)'}}>
                             ETA: {new Date(container.estimatedArrival).toLocaleDateString()}
-                          </Typography>
-                        </Box>
+                          </p>
+                        </JXBox>
                       )}
-                    </Box>
+                    </JXBox>
 
                     {/* Stats */}
-                    <Box
-                      sx={{
-                        pt: 2,
-                        borderTop: '1px solid var(--border)',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                      }}
-                    >
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingTop: '16px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '4px'}}>
                         <Package style={{ fontSize: 14, color: 'var(--accent-gold)' }} />
-                        <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                        <p className="text-sm leading-relaxed" style={{fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)'}}>
                           {container._count.shipments}/{container.maxCapacity}
-                        </Typography>
-                      </Box>
-                      <Box sx={{ display: 'flex', gap: 2, fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        </p>
+                      </JXBox>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '16px', fontSize: '0.75rem', color: 'var(--text-secondary)'}}>
+                        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '4px'}}>
                           <FileText style={{ fontSize: 12 }} />
                           <span>{container._count.documents}</span>
-                        </Box>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        </JXBox>
+                        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '4px'}}>
                           <DollarSign style={{ fontSize: 12 }} />
                           <span>{container._count.expenses}</span>
-                        </Box>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        </JXBox>
+                        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '4px'}}>
                           <Receipt style={{ fontSize: 12 }} />
                           <span>{container._count.invoices}</span>
-                        </Box>
-                      </Box>
-                    </Box>
-                  </Box>
+                        </JXBox>
+                      </JXBox>
+                    </JXBox>
+                  </JXBox>
                 ))}
               </DashboardGrid>
             </>
@@ -1010,24 +1002,8 @@ export default function ContainersPage() {
         </DashboardPanel>
 
         {/* Quick Actions Menu */}
-        <Menu
-          anchorEl={anchorEl}
-          open={Boolean(anchorEl)}
-          onClose={handleMenuClose}
-          PaperProps={{
-            sx: {
-              bgcolor: 'var(--panel)',
-              border: '1px solid var(--border)',
-              borderRadius: 2,
-              minWidth: 180,
-              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
-            },
-          }}
-          transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-          anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-        >
-          <MenuItem
-            onClick={() => {
+        <AnchoredMenu anchorEl={anchorEl} onClose={handleMenuClose}>
+          <AnchoredMenuItem onClick={() => {
               if (selectedContainer) {
                 setActiveOceanContainerId(selectedContainer.id);
                 setShowOceanTracker(true);
@@ -1035,77 +1011,33 @@ export default function ContainersPage() {
                 toast.info(`Tracking route for container ${selectedContainer.containerNumber}`);
               }
               handleMenuClose();
-            }}
-            sx={{
-              fontSize: '0.875rem',
-              py: 1.5,
-              px: 2,
-              color: 'var(--text-primary)',
-              '&:hover': {
-                bgcolor: 'rgba(var(--accent-gold-rgb), 0.1)',
-              },
-            }}
-          >
+            }}>
             <Compass style={{ width: 16, height: 16, marginRight: 12, color: '#3B82F6' }} />
             Track Ocean Route
-          </MenuItem>
-          <MenuItem
-            onClick={() => {
+          </AnchoredMenuItem>
+          <AnchoredMenuItem onClick={() => {
               if (selectedContainer) {
                 setPlannerContainer(selectedContainer);
               }
               handleMenuClose();
-            }}
-            sx={{
-              fontSize: '0.875rem',
-              py: 1.5,
-              px: 2,
-              color: 'var(--text-primary)',
-              '&:hover': {
-                bgcolor: 'rgba(var(--accent-gold-rgb), 0.1)',
-              },
-            }}
-          >
+            }}>
             <Layers style={{ width: 16, height: 16, marginRight: 12, color: 'var(--accent-gold)' }} />
             2D Load Planner
-          </MenuItem>
-          <MenuItem
-            onClick={() => {
+          </AnchoredMenuItem>
+          <AnchoredMenuItem onClick={() => {
               if (selectedContainer) {
                 setQuickPeekContainerId(selectedContainer.id);
               }
               handleMenuClose();
-            }}
-            sx={{
-              fontSize: '0.875rem',
-              py: 1.5,
-              px: 2,
-              color: 'var(--text-primary)',
-              '&:hover': {
-                bgcolor: 'rgba(var(--accent-gold-rgb), 0.1)',
-              },
-            }}
-          >
+            }}>
             <PanelRightOpen style={{ width: 16, height: 16, marginRight: 12 }} />
             Quick Peek
-          </MenuItem>
-          <MenuItem
-            onClick={handleViewContainer}
-            sx={{
-              fontSize: '0.875rem',
-              py: 1.5,
-              px: 2,
-              color: 'var(--text-primary)',
-              '&:hover': {
-                bgcolor: 'rgba(var(--accent-gold-rgb), 0.1)',
-              },
-            }}
-          >
+          </AnchoredMenuItem>
+          <AnchoredMenuItem onClick={handleViewContainer}>
             <Eye style={{ fontSize: 16, marginRight: 12 }} />
             Full Details
-          </MenuItem>
-          <MenuItem
-            onClick={async () => {
+          </AnchoredMenuItem>
+          <AnchoredMenuItem onClick={async () => {
               if (selectedContainer) {
                 const cid = selectedContainer.id;
                 const cnum = selectedContainer.containerNumber;
@@ -1128,74 +1060,31 @@ export default function ContainersPage() {
                   toast.error('Failed to sync tracking');
                 }
               }
-            }}
-            sx={{
-              fontSize: '0.875rem',
-              py: 1.5,
-              px: 2,
-              color: 'var(--text-primary)',
-              '&:hover': {
-                bgcolor: 'rgba(var(--accent-gold-rgb), 0.1)',
-              },
-            }}
-          >
+            }}>
             <RefreshCw style={{ width: 16, height: 16, marginRight: 12 }} />
             Refresh Tracking
-          </MenuItem>
-          <MenuItem
-            onClick={() => {
+          </AnchoredMenuItem>
+          <AnchoredMenuItem onClick={() => {
               if (selectedContainer) handleOpenQR(selectedContainer);
               handleMenuClose();
-            }}
-            sx={{
-              fontSize: '0.875rem',
-              py: 1.5,
-              px: 2,
-              color: 'var(--text-primary)',
-              '&:hover': {
-                bgcolor: 'rgba(var(--accent-gold-rgb), 0.1)',
-              },
-            }}
-          >
+            }}>
             <QrCode style={{ width: 16, height: 16, marginRight: 12 }} />
             Yard QR Label
-          </MenuItem>
+          </AnchoredMenuItem>
           {session?.user?.role === 'admin' && (
-            <MenuItem
-              onClick={handleDuplicateContainer}
-              sx={{
-                fontSize: '0.875rem',
-                py: 1.5,
-                px: 2,
-                color: 'var(--text-primary)',
-                '&:hover': {
-                  bgcolor: 'rgba(var(--accent-gold-rgb), 0.1)',
-                },
-              }}
-            >
+            <AnchoredMenuItem onClick={handleDuplicateContainer}>
               <Copy style={{ fontSize: 16, marginRight: 12 }} />
               Duplicate
-            </MenuItem>
+            </AnchoredMenuItem>
           )}
-          {session?.user?.role === 'admin' && <Divider sx={{ my: 0.5, borderColor: 'var(--border)' }} />}
+          {session?.user?.role === 'admin' && <div aria-hidden="true" className="my-4 border-t border-[var(--border)]" style={{marginTop: '4px', marginBottom: '4px', borderColor: 'var(--border)'}} />}
           {session?.user?.role === 'admin' && (
-            <MenuItem
-              onClick={handleDeleteContainer}
-              sx={{
-                fontSize: '0.875rem',
-                py: 1.5,
-                px: 2,
-                color: 'var(--error)',
-                '&:hover': {
-                  bgcolor: 'rgba(var(--error-rgb), 0.1)',
-                },
-              }}
-            >
+            <AnchoredMenuItem onClick={handleDeleteContainer} danger>
               <Trash2 style={{ fontSize: 16, marginRight: 12 }} />
               Delete
-            </MenuItem>
+            </AnchoredMenuItem>
           )}
-        </Menu>
+        </AnchoredMenu>
 
         {/* Slide-over Quick Peek Drawer */}
         <ContainerQuickPeek

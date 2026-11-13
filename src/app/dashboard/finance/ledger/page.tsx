@@ -1,8 +1,9 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, forwardRef, type CSSProperties, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react';
 import {
   Plus,
   Check,
@@ -23,31 +24,83 @@ import {
   FileSpreadsheet,
   BookOpen,
 } from 'lucide-react';
-import {
-  Alert,
-  Box,
-  FormControl,
-  IconButton,
-  InputLabel,
-  MenuItem,
-  Select,
-  TextField,
-  Typography,
-} from '@mui/material';
-import {
-  Button,
-  toast,
-  Tooltip,
-  TableSkeleton,
-  StatsCard,
-  PageHeader,
-  Modal,
-} from '@/components/design-system';
+import { Alert, Button, FormField, IconButton, Modal, PageHeader, Select, StatsCard, TableSkeleton, Tooltip, toast } from '@/components/design-system';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { hasPermission } from '@/lib/rbac';
 import { formatMoney as formatCurrency } from '@/lib/format';
+
+/** Bare input with the Jacxi field look (no label) — search fields, table-cell editors. */
+const BareInput = forwardRef<HTMLInputElement | HTMLTextAreaElement, BareInputProps>(function BareInput(
+  { leftIcon, rightIcon, rightElement, error = false, helperText, size = 'small', multiline = false, rows, minRows, inputProps, className, style, ...rest },
+  ref,
+) {
+  const controlClass = [
+    'w-full rounded-lg border bg-[var(--background)] text-[var(--text-primary)] outline-none transition-colors placeholder:text-[var(--text-secondary)]',
+    size === 'small' ? 'px-2.5 py-1.5 text-[0.8125rem]' : 'px-3 py-2 text-[0.875rem]',
+    leftIcon ? 'pl-9' : '',
+    rightIcon || rightElement ? 'pr-9' : '',
+    error
+      ? 'border-[var(--error)] focus:border-[var(--error)] focus:ring-2 focus:ring-[rgba(var(--error-rgb),0.2)]'
+      : 'border-[rgba(var(--border-rgb),0.9)] hover:border-[var(--border)] focus:border-[var(--accent-gold)] focus:ring-2 focus:ring-[rgba(var(--accent-gold-rgb),0.2)]',
+    rest.disabled ? 'opacity-50' : '',
+    className,
+  ].filter(Boolean).join(' ');
+  return (
+    <div>
+      <div className="relative">
+        {leftIcon && (
+          <span className="pointer-events-none absolute left-3 top-1/2 flex -translate-y-1/2 text-[var(--text-secondary)]">{leftIcon}</span>
+        )}
+        {multiline ? (
+          <textarea
+            {...(rest as TextareaHTMLAttributes<HTMLTextAreaElement>)}
+            {...(inputProps as unknown as TextareaHTMLAttributes<HTMLTextAreaElement>)}
+            ref={ref as React.Ref<HTMLTextAreaElement>}
+            rows={rows ?? minRows ?? 3}
+            aria-invalid={error || undefined}
+            style={style}
+            className={`${controlClass} min-h-[80px] resize-y leading-[1.5]`}
+          />
+        ) : (
+          <input
+            {...rest}
+            {...inputProps}
+            ref={ref as React.Ref<HTMLInputElement>}
+            aria-invalid={error || undefined}
+            style={style}
+            className={controlClass}
+          />
+        )}
+        {rightIcon && (
+          <span className="pointer-events-none absolute right-3 top-1/2 flex -translate-y-1/2 text-[var(--text-secondary)]">{rightIcon}</span>
+        )}
+        {rightElement && (
+          <span className="absolute right-3 top-1/2 flex -translate-y-1/2 text-[var(--text-secondary)]">{rightElement}</span>
+        )}
+      </div>
+      {helperText && (
+        <p className="mt-0.5 text-[0.75rem]" style={{ color: error ? 'var(--error)' : 'var(--text-secondary)' }}>{helperText}</p>
+      )}
+    </div>
+  );
+});
+
+type BareInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> & {
+  leftIcon?: ReactNode;
+  rightIcon?: ReactNode;
+  /** Interactive element on the right (e.g. password visibility toggle). */
+  rightElement?: ReactNode;
+  error?: boolean;
+  helperText?: ReactNode;
+  size?: 'small' | 'medium';
+  multiline?: boolean;
+  rows?: number;
+  minRows?: number;
+  inputProps?: InputHTMLAttributes<HTMLInputElement>;
+};
+
 
 interface LedgerEntry {
   id: string;
@@ -393,91 +446,43 @@ export default function LedgerPage() {
         const isBankImport = isBankImportEntry(row);
 
         return (
-          <Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-              <Typography sx={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 500 }}>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap'}}>
+              <p className="text-sm leading-relaxed" style={{fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 500}}>
                 {normalizeShipmentReference(row)}
-              </Typography>
+              </p>
               {isBankImport && (
-                <Box
-                  component="span"
-                  sx={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    px: 0.75,
-                    py: 0.25,
-                    borderRadius: 1,
-                    fontSize: '0.65rem',
-                    fontWeight: 700,
-                    letterSpacing: '0.05em',
-                    backgroundColor: 'rgba(59, 130, 246, 0.12)',
-                    color: '#2563eb',
-                    border: '1px solid rgba(59, 130, 246, 0.22)',
-                    textTransform: 'uppercase',
-                  }}
-                >
+                <JXBox padding="none" border={false} component="span" style={{display: 'inline-flex', alignItems: 'center', paddingLeft: '6px', paddingRight: '6px', paddingTop: '2px', paddingBottom: '2px', borderRadius: '8px', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.05em', backgroundColor: 'rgba(59, 130, 246, 0.12)', color: '#2563eb', border: '1px solid rgba(59, 130, 246, 0.22)', textTransform: 'uppercase'}}>
                   Bank Import
-                </Box>
+                </JXBox>
               )}
               {isPending && (
-                <Box
-                  component="span"
-                  sx={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    px: 0.75,
-                    py: 0.25,
-                    borderRadius: 1,
-                    fontSize: '0.65rem',
-                    fontWeight: 700,
-                    letterSpacing: '0.05em',
-                    backgroundColor: 'rgba(234, 179, 8, 0.15)',
-                    color: '#ca8a04',
-                    border: '1px solid rgba(234, 179, 8, 0.3)',
-                    textTransform: 'uppercase',
-                  }}
-                >
+                <JXBox padding="none" border={false} component="span" style={{display: 'inline-flex', alignItems: 'center', paddingLeft: '6px', paddingRight: '6px', paddingTop: '2px', paddingBottom: '2px', borderRadius: '8px', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.05em', backgroundColor: 'rgba(234, 179, 8, 0.15)', color: '#ca8a04', border: '1px solid rgba(234, 179, 8, 0.3)', textTransform: 'uppercase'}}>
                   Pending Invoice
-                </Box>
+                </JXBox>
               )}
               {isInvoicePaid && (
-                <Box
-                  component="span"
-                  sx={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    px: 0.75,
-                    py: 0.25,
-                    borderRadius: 1,
-                    fontSize: '0.65rem',
-                    fontWeight: 700,
-                    letterSpacing: '0.05em',
-                    backgroundColor: 'rgba(34, 197, 94, 0.15)',
-                    color: '#16a34a',
-                    border: '1px solid rgba(34, 197, 94, 0.3)',
-                    textTransform: 'uppercase',
-                  }}
-                >
+                <JXBox padding="none" border={false} component="span" style={{display: 'inline-flex', alignItems: 'center', paddingLeft: '6px', paddingRight: '6px', paddingTop: '2px', paddingBottom: '2px', borderRadius: '8px', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.05em', backgroundColor: 'rgba(34, 197, 94, 0.15)', color: '#16a34a', border: '1px solid rgba(34, 197, 94, 0.3)', textTransform: 'uppercase'}}>
                   Invoice Paid
-                </Box>
+                </JXBox>
               )}
-            </Box>
-            <Typography sx={{ fontSize: '0.72rem', color: 'var(--accent-gold)', mt: 0.5, fontWeight: 600 }}>
+            </JXBox>
+            <p className="text-sm leading-relaxed" style={{fontSize: '0.72rem', color: 'var(--accent-gold)', marginTop: '4px', fontWeight: 600}}>
               {row.transactionInfoType ? transactionInfoTypeLabels[row.transactionInfoType] : 'Not specified'}
-            </Typography>
+            </p>
             {row.notes && (
-              <Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)', mt: 0.5 }}>
+              <p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '4px'}}>
                 {row.notes}
-              </Typography>
+              </p>
             )}
             {row.shipment && (
-              <Typography sx={{ fontSize: '0.75rem', color: 'var(--accent-gold)', mt: 0.5 }}>
+              <p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', color: 'var(--accent-gold)', marginTop: '4px'}}>
                 {row.shipment.vehicleVIN
                   ? `VIN: ${row.shipment.vehicleVIN}`
                   : `${row.shipment.vehicleMake || ''} ${row.shipment.vehicleModel || ''}`.trim() || row.shipment.id}
-              </Typography>
+              </p>
             )}
-          </Box>
+          </JXBox>
         );
       }
     },
@@ -488,23 +493,10 @@ export default function LedgerPage() {
       align: 'center' as const,
       width: '15%',
       render: (_, row) => (
-        <Box
-          sx={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 0.5,
-            px: 1.5,
-            py: 0.5,
-            borderRadius: 1,
-            fontSize: '0.75rem',
-            fontWeight: 600,
-            backgroundColor: row.type === 'DEBIT' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(34, 197, 94, 0.1)',
-            color: row.type === 'DEBIT' ? '#ef4444' : '#22c55e',
-          }}
-        >
+        <JXBox padding="none" border={false} style={{display: 'inline-flex', alignItems: 'center', gap: '4px', paddingLeft: '12px', paddingRight: '12px', paddingTop: '4px', paddingBottom: '4px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 600, backgroundColor: row.type === 'DEBIT' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(34, 197, 94, 0.1)', color: row.type === 'DEBIT' ? '#ef4444' : '#22c55e'}}>
           {row.type === 'DEBIT' ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
           {row.type}
-        </Box>
+        </JXBox>
       )
     },
     {
@@ -537,28 +529,14 @@ export default function LedgerPage() {
       align: 'center' as const,
       width: '12%',
       render: (_: unknown, row: LedgerEntry) => (
-        <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
+        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '4px', justifyContent: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap'}} onClick={(e) => e.stopPropagation()}>
           <Tooltip title="Edit transaction">
-            <IconButton
-              size="small"
-              aria-label={`Edit ${row.description}`}
-              onClick={() => openEditEntry(row)}
-              sx={{ color: 'var(--accent-gold)' }}
-            >
-              <Edit2 size={16} />
-            </IconButton>
+            <IconButton icon={<Edit2 size={16} />} ariaLabel={`Edit ${row.description}`} variant="ghost" size="sm" onClick={() => openEditEntry(row)} style={{color: 'var(--accent-gold)'}} />
           </Tooltip>
           <Tooltip title="Delete transaction">
-            <IconButton
-              size="small"
-              color="error"
-              aria-label={`Delete ${row.description}`}
-              onClick={() => void handleDeleteEntry(row.id)}
-            >
-              <Trash2 size={16} />
-            </IconButton>
+            <IconButton icon={<Trash2 size={16} />} ariaLabel={`Delete ${row.description}`} variant="ghost" size="sm" color="error" onClick={() => void handleDeleteEntry(row.id)} />
           </Tooltip>
-        </Box>
+        </JXBox>
       ),
     }] : [])
   ], [canManageLedger, ledgerScope]);
@@ -572,9 +550,9 @@ export default function LedgerPage() {
             description="Detailed double-entry records and transaction reconciliation"
             showBreadcrumbs
           />
-          <Box sx={{ px: 2 }}>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingLeft: '16px', paddingRight: '16px'}}>
             <TableSkeleton rows={5} />
-          </Box>
+          </JXBox>
         </DashboardSurface>
       </ProtectedRoute>
     );
@@ -588,7 +566,7 @@ export default function LedgerPage() {
           description="Detailed double-entry records and transaction reconciliation"
           showBreadcrumbs
           actions={
-            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
               {isAdmin && (
                 <Button
                   variant="primary"
@@ -623,7 +601,7 @@ export default function LedgerPage() {
               >
                 Excel
               </Button>
-            </Box>
+            </JXBox>
           }
         />
 
@@ -675,77 +653,18 @@ export default function LedgerPage() {
           }
         >
           {showFilters && (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <TextField
-                placeholder="Search transactions..."
-                size="small"
-                value={filters.search}
-                onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-                InputProps={{
-                  startAdornment: <Search size={18} style={{ marginRight: 8, color: 'var(--text-secondary)' }} />,
-                }}
-                fullWidth
-              />
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(4, 1fr)' }, gap: 2 }}>
-                <FormControl size="small" fullWidth>
-                  <InputLabel>Type</InputLabel>
-                  <Select
-                    value={filters.type}
-                    onChange={(e) => setFilters({ ...filters, type: e.target.value })}
-                    label="Type"
-                  >
-                    <MenuItem value="">All Types</MenuItem>
-                    <MenuItem value="DEBIT">Debit</MenuItem>
-                    <MenuItem value="CREDIT">Credit</MenuItem>
-                  </Select>
-                </FormControl>
-                <FormControl size="small" fullWidth>
-                  <InputLabel>Source</InputLabel>
-                  <Select
-                    value={filters.source}
-                    onChange={(e) => setFilters({ ...filters, source: e.target.value as LedgerSourceFilter })}
-                    label="Source"
-                  >
-                    <MenuItem value="">All Sources</MenuItem>
-                    <MenuItem value="BANK_IMPORT">Bank Imports</MenuItem>
-                    <MenuItem value="MANUAL">Manual Entries</MenuItem>
-                  </Select>
-                </FormControl>
-                <FormControl size="small" fullWidth>
-                  <InputLabel>Transaction Info</InputLabel>
-                  <Select
-                    value={filters.transactionInfoType}
-                    onChange={(e) => setFilters({ ...filters, transactionInfoType: e.target.value })}
-                    label="Transaction Info"
-                  >
-                    <MenuItem value="">All Transaction Types</MenuItem>
-                    {(Object.entries(transactionInfoTypeLabels) as Array<[TransactionInfoType, string]>).map(([value, label]) => (
-                      <MenuItem key={value} value={value}>{label}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-                <TextField
-                  label="Start Date"
-                  type="date"
-                  size="small"
-                  value={filters.startDate}
-                  onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
-                  InputLabelProps={{ shrink: true }}
-                  fullWidth
-                />
-              </Box>
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(4, 1fr)' }, gap: 2 }}>
-                <TextField
-                  label="End Date"
-                  type="date"
-                  size="small"
-                  value={filters.endDate}
-                  onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
-                  InputLabelProps={{ shrink: true }}
-                  fullWidth
-                />
-              </Box>
-            </Box>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '16px'}}>
+              <div className="min-w-0 flex-1"><BareInput placeholder="Search transactions..." value={filters.search} onChange={(e) => setFilters({ ...filters, search: e.target.value })} leftIcon={<Search size={18} style={{ marginRight: 8, color: 'var(--text-secondary)' }} />} size="small" /></div>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '16px'}} className="grid-cols-1 sm:grid-cols-4">
+                <div className="min-w-0 flex-1"><Select label="Type" options={[{ value: "", label: 'All Types' }, { value: "DEBIT", label: 'Debit' }, { value: "CREDIT", label: 'Credit' }]} value={filters.type} size="small" onChange={(val) => setFilters({ ...filters, type: val as string })} /></div>
+                <div className="min-w-0 flex-1"><Select label="Source" options={[{ value: "", label: 'All Sources' }, { value: "BANK_IMPORT", label: 'Bank Imports' }, { value: "MANUAL", label: 'Manual Entries' }]} value={filters.source} size="small" onChange={(val) => setFilters({ ...filters, source: val as LedgerSourceFilter })} /></div>
+                <div className="min-w-0 flex-1"><Select label="Transaction Info" options={[{ value: "", label: 'All Transaction Types' }, ...Object.entries(transactionInfoTypeLabels).map(([value, label]) => ({ value, label }))]} value={filters.transactionInfoType} size="small" onChange={(val) => setFilters({ ...filters, transactionInfoType: val as string })} /></div>
+                <div className="min-w-0 flex-1"><FormField label="Start Date" type="date" value={filters.startDate} onChange={(e) => setFilters({ ...filters, startDate: e.target.value })} InputLabelProps={{ shrink: true }} size="small" /></div>
+              </JXBox>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '16px'}} className="grid-cols-1 sm:grid-cols-4">
+                <div className="min-w-0 flex-1"><FormField label="End Date" type="date" value={filters.endDate} onChange={(e) => setFilters({ ...filters, endDate: e.target.value })} InputLabelProps={{ shrink: true }} size="small" /></div>
+              </JXBox>
+            </JXBox>
           )}
         </DashboardPanel>
 
@@ -763,11 +682,11 @@ export default function LedgerPage() {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 3, pt: 2, borderTop: '1px solid var(--border)' }}>
-              <Typography sx={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '24px', paddingTop: '16px', borderTop: '1px solid var(--border)'}}>
+              <p className="text-sm leading-relaxed" style={{fontSize: '0.85rem', color: 'var(--text-secondary)'}}>
                 Page {page} of {totalPages}
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 1 }}>
+              </p>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '8px'}}>
                 <Button
                   variant="outline"
                   size="sm"
@@ -786,8 +705,8 @@ export default function LedgerPage() {
                 >
                   Next
                 </Button>
-              </Box>
-            </Box>
+              </JXBox>
+            </JXBox>
           )}
         </DashboardPanel>
 
@@ -800,7 +719,7 @@ export default function LedgerPage() {
           size="md"
         >
           <form onSubmit={handleAddEntry}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 1 }}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '20px', paddingTop: '8px'}}>
               {(() => {
                 const enteredAmount = parseFloat(formData.amount) || 0;
                 const projectedBalance = formData.type === 'DEBIT'
@@ -817,81 +736,31 @@ export default function LedgerPage() {
                     ? `you will have ${formatCurrency(Math.abs(projectedBalance))} credit`
                     : 'account will be settled';
                 return (
-                  <Alert severity={formData.type === 'DEBIT' ? 'info' : 'success'} sx={{ fontSize: '0.85rem', borderRadius: 2 }}>
+                  <Alert severity={formData.type === 'DEBIT' ? 'info' : 'success'} variant="subtle">
                     Current Balance: <strong>{currentBalanceLabel}</strong>. {enteredAmount > 0 ? `After this transaction, ${projectedBalanceLabel}.` : 'Enter an amount to preview the new balance.'}
                   </Alert>
                 );
               })()}
 
-              <FormControl fullWidth size="small">
-                <InputLabel>Type *</InputLabel>
-                <Select
-                  value={formData.type}
-                  onChange={(e) => setFormData({ ...formData, type: e.target.value as 'DEBIT' | 'CREDIT' })}
-                  label="Type *"
-                  required
-                >
-                  <MenuItem value="DEBIT">Debit / Charge</MenuItem>
-                  <MenuItem value="CREDIT">Credit / Payment</MenuItem>
-                </Select>
-              </FormControl>
+              <div className="min-w-0 flex-1"><Select label="Type" options={[{ value: "DEBIT", label: 'Debit / Charge' }, { value: "CREDIT", label: 'Credit / Payment' }]} value={formData.type} size="small" required onChange={(val) => setFormData({ ...formData, type: val as 'DEBIT' | 'CREDIT' })} /></div>
 
-              <FormControl fullWidth size="small">
-                <InputLabel>Category *</InputLabel>
-                <Select
-                  value={formData.transactionInfoType}
-                  onChange={(e) => setFormData({ ...formData, transactionInfoType: e.target.value as TransactionInfoType })}
-                  label="Category *"
-                  required
-                >
-                  {Object.entries(transactionInfoTypeLabels).map(([value, label]) => (
-                    <MenuItem key={value} value={value}>{label}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+              <div className="min-w-0 flex-1"><Select label="Category" options={Object.entries(transactionInfoTypeLabels).map(([value, label]) => ({ value, label }))} value={formData.transactionInfoType} size="small" required onChange={(val) => setFormData({ ...formData, transactionInfoType: val as TransactionInfoType })} /></div>
 
-              <TextField
-                label="Description *"
-                size="small"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="e.g. Shipping charge, Payment"
-                required
-                fullWidth
-              />
+              <div className="min-w-0 flex-1"><FormField label="Description *" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder="e.g. Shipping charge, Payment" required size="small" /></div>
 
-              <TextField
-                label="Amount * (USD)"
-                size="small"
-                type="number"
-                value={formData.amount}
-                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                placeholder="0.00"
-                inputProps={{ step: '0.01', min: '0.01' }}
-                required
-                fullWidth
-              />
+              <div className="min-w-0 flex-1"><FormField label="Amount * (USD)" type="number" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} placeholder="0.00" inputProps={{ step: '0.01', min: '0.01' }} required size="small" /></div>
 
-              <TextField
-                label="Notes (Optional)"
-                size="small"
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                placeholder="Add any additional notes"
-                multiline
-                rows={3}
-                fullWidth
-              />
+              <div className="min-w-0 flex-1"><FormField label="Notes (Optional)" value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} placeholder="Add any additional notes" multiline rows={3} size="small" /></div>
 
-              <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 1 }}>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '8px'}}>
                 <Button type="button" variant="outline" size="sm" onClick={() => setShowAddModal(false)}>
                   Cancel
                 </Button>
                 <Button type="submit" variant="primary" size="sm" icon={<Check size={16} />}>
                   Add Transaction
                 </Button>
-              </Box>
-            </Box>
+              </JXBox>
+            </JXBox>
           </form>
         </Modal>
 
@@ -904,55 +773,28 @@ export default function LedgerPage() {
           size="md"
         >
           <form onSubmit={handleEditEntry}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 1 }}>
-              <Alert severity="warning" sx={{ fontSize: '0.85rem', borderRadius: 2 }}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '20px', paddingTop: '8px'}}>
+              <Alert severity="warning" variant="subtle">
                 Note: Type and amount cannot be edited to maintain ledger integrity. Only description and notes can be updated.
               </Alert>
 
-              <TextField
-                label="Type (Read-only)"
-                size="small"
-                value={editEntry?.type || ''}
-                disabled
-                fullWidth
-              />
+              <div className="min-w-0 flex-1"><FormField label="Type (Read-only)" value={editEntry?.type || ''} disabled size="small" /></div>
 
-              <TextField
-                label="Amount (Read-only)"
-                size="small"
-                value={editEntry ? formatCurrency(editEntry.amount) : ''}
-                disabled
-                fullWidth
-              />
+              <div className="min-w-0 flex-1"><FormField label="Amount (Read-only)" value={editEntry ? formatCurrency(editEntry.amount) : ''} disabled size="small" /></div>
 
-              <TextField
-                label="Description *"
-                size="small"
-                value={editForm.description}
-                onChange={(e) => setEditForm((prev) => ({ ...prev, description: e.target.value }))}
-                required
-                fullWidth
-              />
+              <div className="min-w-0 flex-1"><FormField label="Description *" value={editForm.description} onChange={(e) => setEditForm((prev) => ({ ...prev, description: e.target.value }))} required size="small" /></div>
 
-              <TextField
-                label="Notes"
-                size="small"
-                value={editForm.notes}
-                onChange={(e) => setEditForm((prev) => ({ ...prev, notes: e.target.value }))}
-                multiline
-                rows={3}
-                fullWidth
-              />
+              <div className="min-w-0 flex-1"><FormField label="Notes" value={editForm.notes} onChange={(e) => setEditForm((prev) => ({ ...prev, notes: e.target.value }))} multiline rows={3} size="small" /></div>
 
-              <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 1 }}>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '8px'}}>
                 <Button type="button" variant="outline" size="sm" onClick={() => setShowEditModal(false)}>
                   Cancel
                 </Button>
                 <Button type="submit" variant="primary" size="sm" icon={<Check size={16} />}>
                   Update Transaction
                 </Button>
-              </Box>
-            </Box>
+              </JXBox>
+            </JXBox>
           </form>
         </Modal>
       </DashboardSurface>

@@ -160,13 +160,45 @@ html {
 :root {
 	/* ===================================
 	   DESIGN SYSTEM TOKENS v1.0
-	   See: /src/lib/design-tokens/
+	   Single source of truth: this file. (The old src/lib/design-tokens/
+	   TS copies were deleted in the JXUI migration — they had zero imports.)
 	   =================================== */
 	
 	/* Primary Colors */
 	--accent-gold: #D4AF37;
 	--accent-gold-rgb: 212, 175, 55;
 	--accent-gold-text: #8D7A1F;
+
+	/* Gold tonal ramp (Jacxi-defined; JXUI has no gold palette). Centred on
+	   #D4AF37; used by Jacxi wrappers/CSS. Not brand-approved beyond the
+	   500 stop — confirm before using the extremes as brand colours. */
+	--jx-accent-50: #FBF7E8;
+	--jx-accent-100: #F7EFD2;
+	--jx-accent-200: #F0E1A6;
+	--jx-accent-300: #E7CF7A;
+	--jx-accent-400: #DDBE57;
+	--jx-accent-500: #D4AF37;
+	--jx-accent-600: #B89428;
+	--jx-accent-700: #96791F;
+	--jx-accent-800: #7A6118;
+	--jx-accent-900: #5F4C12;
+	--jx-accent-950: #3D300A;
+
+	/* JXUI surface/text/radius tokens mapped to Jacxi values. JXUI 3.0.0
+	   components do not read these at runtime (they hardcode slate), but
+	   Jacxi wrappers and future JXUI versions can; the live gold accent
+	   vars (--jx-accent / --jx-accent-halo / --jx-accent-soft) are
+	   re-applied by JxThemeSync after the provider mounts. */
+	--jx-surface-canvas: #F9FAFB;
+	--jx-surface-card: #FFFFFF;
+	--jx-surface-subtle: #F9FAFB;
+	--jx-surface-glass: #FFFFFF;
+	--jx-border-hairline: #E5E7EB;
+	--jx-text-primary: #1C1C1E;
+	--jx-text-secondary: #5F6368;
+	--jx-radius-control: 8px;
+	--jx-radius-card: 12px;
+	--jx-radius-pill: 9999px;
 	
 	/* Backgrounds & Surfaces */
 	--background: #F9FAFB;
@@ -238,6 +270,17 @@ html {
 	/* Primary Accent */
 	--accent-gold: #D4AF37;
 	--accent-gold-rgb: 212, 175, 55;
+	/* Dark-mode gold text: the light #8D7A1F is too dark on dark surfaces. */
+	--accent-gold-text: #E2C265;
+
+	/* JXUI surface/text mappings (dark). See :root note. */
+	--jx-surface-canvas: #09090B;
+	--jx-surface-card: #141416;
+	--jx-surface-subtle: #27272A;
+	--jx-surface-glass: #141416;
+	--jx-border-hairline: #27272A;
+	--jx-text-primary: #FAFAFA;
+	--jx-text-secondary: #A1A1AA;
 	
 	/* Backgrounds & Surfaces */
 	--background: #09090B;
@@ -471,9 +514,7 @@ html[data-density="compact"],
    Compact: Buttons, Inputs, Selects & Tabs
    -------------------------------------------------------------------------- */
 [data-density="compact"] .ds-button,
-.density-compact .ds-button,
-[data-density="compact"] .MuiButton-root:not(.mobile-nav-btn),
-.density-compact .MuiButton-root:not(.mobile-nav-btn) {
+.density-compact .ds-button {
 	min-height: 28px !important;
 	height: auto;
 	padding: 0.2rem 0.55rem !important;
@@ -482,27 +523,12 @@ html[data-density="compact"],
 }
 
 [data-density="compact"] .ds-icon-button,
-.density-compact .ds-icon-button,
-[data-density="compact"] .MuiIconButton-root:not(.mobile-nav-btn),
-.density-compact .MuiIconButton-root:not(.mobile-nav-btn) {
+.density-compact .ds-icon-button {
 	padding: 4px !important;
 	min-height: 26px !important;
 	min-width: 26px !important;
 	height: 26px !important;
 	width: 26px !important;
-}
-
-[data-density="compact"] .MuiOutlinedInput-root,
-.density-compact .MuiOutlinedInput-root {
-	font-size: 0.775rem !important;
-	border-radius: 6px !important;
-}
-
-[data-density="compact"] .MuiOutlinedInput-input,
-.density-compact .MuiOutlinedInput-input {
-	padding: 4px 8px !important;
-	min-height: 0 !important;
-	font-size: 0.775rem !important;
 }
 
 [data-density="compact"] input:not([type="checkbox"]):not([type="radio"]),
@@ -517,9 +543,7 @@ html[data-density="compact"],
 }
 
 [data-density="compact"] .status-badge,
-.density-compact .status-badge,
-[data-density="compact"] .MuiChip-root,
-.density-compact .MuiChip-root {
+.density-compact .status-badge {
 	height: 20px !important;
 	min-height: 20px !important;
 	padding: 0 6px !important;
@@ -528,34 +552,46 @@ html[data-density="compact"],
 	gap: 4px !important;
 }
 
-[data-density="compact"] .MuiTabs-root,
-.density-compact .MuiTabs-root {
-	min-height: 32px !important;
-	height: 32px !important;
-}
-
-[data-density="compact"] .MuiTab-root,
-.density-compact .MuiTab-root {
-	min-height: 32px !important;
-	height: 32px !important;
-	padding: 2px 8px !important;
-	font-size: 0.75rem !important;
-}
-
-[data-density="compact"] .MuiDialogTitle-root,
-.density-compact .MuiDialogTitle-root {
+[data-density="compact"] .ds-modal-title,
+.density-compact .ds-modal-title {
 	padding: 8px 14px !important;
 	font-size: 1rem !important;
 }
 
-[data-density="compact"] .MuiDialogContent-root,
-.density-compact .MuiDialogContent-root {
+[data-density="compact"] .ds-modal-content,
+.density-compact .ds-modal-content {
 	padding: 10px 14px !important;
 }
 
-[data-density="compact"] .MuiDialogActions-root,
-.density-compact .MuiDialogActions-root {
+[data-density="compact"] .ds-modal-actions,
+.density-compact .ds-modal-actions {
 	padding: 6px 12px !important;
+}
+
+/* Dashboard main scroll container (keeps the scroll affordance visible on
+   dense operational pages). Replaces the MUI Box sx scrollbar rules that
+   lived in src/app/dashboard/layout.tsx. */
+.dashboard-scroll::-webkit-scrollbar {
+	width: 10px;
+	height: 10px;
+}
+.dashboard-scroll::-webkit-scrollbar-thumb {
+	background-color: rgba(var(--text-primary-rgb), 0.24);
+	border: 3px solid var(--background);
+	border-radius: 10px;
+}
+.dashboard-scroll {
+	scrollbar-color: rgba(var(--text-primary-rgb), 0.24) var(--background);
+}
+
+/* Barcode scanner laser line (moved from the MUI sx '@keyframes scanLine'
+   that lived in BarcodeScannerModal). */
+@keyframes barcode-scan-line {
+	0% { transform: translateY(-60px); }
+	100% { transform: translateY(60px); }
+}
+.barcode-scan-line {
+	animation: barcode-scan-line 2s ease-in-out infinite alternate;
 }
 
 body {
@@ -597,6 +633,34 @@ body {
 }
 
 @theme {
+
+  /* Jacxi palette as Tailwind colour tokens. These utilities
+     (text-primary, bg-background, bg-panel, border-border, bg-accent-gold,
+     bg-success, …) are used across the app; without these --color-*
+     definitions Tailwind v4 silently generates nothing for them
+     (tailwind.config.ts is not loaded by the v4 PostCSS plugin — see the
+     deleted file's note in the phase-2 report). Values are var() references
+     so light/dark mode follows [data-theme] at runtime. */
+  --color-background: var(--background);
+  --color-panel: var(--panel);
+  --color-border: var(--border);
+  --color-card: var(--panel);
+  --color-ring: var(--border);
+  --color-primary: var(--text-primary);
+  --color-primary-foreground: var(--text-secondary);
+  --color-accent-gold: var(--accent-gold);
+  --color-success: var(--success);
+  --color-success-light: var(--success-light);
+  --color-success-dark: var(--success-dark);
+  --color-warning: var(--warning);
+  --color-warning-light: var(--warning-light);
+  --color-warning-dark: var(--warning-dark);
+  --color-error: var(--error);
+  --color-error-light: var(--error-light);
+  --color-error-dark: var(--error-dark);
+  --color-info: var(--info);
+  --color-info-light: var(--info-light);
+  --color-info-dark: var(--info-dark);
 
   /* Neutral palette */
 

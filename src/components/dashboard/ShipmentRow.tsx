@@ -1,10 +1,7 @@
 "use client";
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { Edit, LocalShipping, CreditCard, LocationOn, CalendarToday } from '@mui/icons-material';
-import { PanelRightOpen, QrCode, MessageSquare } from 'lucide-react';
-import { Box, Typography, LinearProgress, Chip } from '@mui/material';
+import { Calendar, CreditCard, MapPin, MessageSquare, PanelRightOpen, Pencil, QrCode, Truck } from 'lucide-react';
 import { StatusBadge, Button } from '@/components/design-system';
 
 interface ShipmentRowProps {
@@ -96,7 +93,6 @@ export default function ShipmentRow({
 	selected = false,
 	onToggleSelect,
 }: ShipmentRowProps) {
-	const router = useRouter();
 	const vehicleInfo = [vehicleMake, vehicleModel, vehicleYear].filter(Boolean).join(' ') || vehicleType;
 	const paidAmount = Math.max(0, purchasePricePaid || 0);
 	const totalPurchasePrice = Math.max(0, purchasePrice || 0);
@@ -105,7 +101,7 @@ export default function ShipmentRow({
 	const shipmentHref = `/dashboard/shipments/${id}`;
 	const editHref = `/dashboard/shipments/${id}/edit`;
     const statusRow = (
-		<Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, minWidth: 0, mt: 0.5 }}>
+		<div style={{display: 'flex', flexWrap: 'wrap', gap: '6px', minWidth: 0, marginTop: '4px'}}>
 			<StatusBadge 
 				status={status} 
 				variant="default" 
@@ -113,373 +109,233 @@ export default function ShipmentRow({
 				showIcon
 			/>
 			{yardReceived && (
-				<Chip
-					label={yardReceivedAt ? `Yard Received ${new Date(yardReceivedAt).toLocaleDateString()}` : 'Yard Received'}
-					size="small"
-					sx={{
-						height: 24,
-						fontSize: '0.7rem',
-						fontWeight: 700,
-						bgcolor: 'rgba(34, 197, 94, 0.12)',
-						color: 'rgb(21, 128, 61)',
-						border: '1px solid rgba(34, 197, 94, 0.28)',
-					}}
-				/>
+				<span style={{height: 24, fontSize: '0.7rem', fontWeight: 700, backgroundColor: 'rgba(34, 197, 94, 0.12)', color: 'rgb(21, 128, 61)', border: '1px solid rgba(34, 197, 94, 0.28)'}} className="inline-flex items-center gap-1 rounded-full font-medium text-[0.7rem] px-2 py-0.5 border border-[var(--border)] bg-[var(--background)] text-[var(--text-primary)]">{yardReceivedAt ? `Yard Received ${new Date(yardReceivedAt).toLocaleDateString()}` : 'Yard Received'}</span>
 			)}
 			{paymentStatus && (
 				<StatusBadge 
 					status={paymentStatus} 
 					variant="default" 
 					size="sm"
-					icon={<CreditCard sx={{ fontSize: 12 }} />}
+					icon={<CreditCard className="h-3 w-3"/>}
 				/>
 			)}
-		</Box>
+		</div>
 	);
 
 	// ⚡ Bolt: Removed `useState` and `useEffect` for visibility and replaced `<Slide>` with a pure CSS animation
 	// from `globals.css` (`className="animate-fade-in-up"`) applying the delay using inline styles.
 	// This eliminates the double-render on mount for each row, significantly boosting list rendering performance.
 	return (
-			<Box
-				component="article"
-				className="animate-fade-in-up"
-				tabIndex={0}
-				role="link"
-				onClick={() => router.push(shipmentHref)}
-				onKeyDown={(event) => {
-					if (event.key === 'Enter' || event.key === ' ') {
-						event.preventDefault();
-						router.push(shipmentHref);
-					}
-				}}
-				sx={{
-					animationDelay: `${delay}s`,
-					animationFillMode: 'both',
-					background: selected ? 'rgba(var(--accent-gold-rgb), 0.05)' : 'var(--panel)',
-					border: selected ? '1px solid var(--accent-gold)' : '1px solid rgba(var(--panel-rgb), 0.9)',
-					borderLeft: selected ? '3px solid var(--accent-gold)' : '3px solid transparent',
-					borderRadius: 2,
-					boxShadow: '0 18px 32px rgba(var(--text-primary-rgb), 0.08)',
-					padding: { xs: 1.25, sm: 1.5, md: 1.75 },
-					display: 'grid',
-					gridTemplateColumns: {
-						xs: '1fr',
-						md: purchasePrice != null
+			<article className="animate-fade-in-up" style={{animationDelay: `${delay}s`, animationFillMode: 'both', background: selected ? 'rgba(var(--accent-gold-rgb), 0.05)' : 'var(--panel)', border: selected ? '1px solid var(--accent-gold)' : '1px solid rgba(var(--panel-rgb), 0.9)', borderLeft: selected ? '3px solid var(--accent-gold)' : '3px solid transparent', borderRadius: '16px', boxShadow: '0 18px 32px rgba(var(--text-primary-rgb), 0.08)', padding: 1.75, display: 'grid', gridTemplateColumns: purchasePrice != null
 							? 'minmax(0, 1.6fr) minmax(0, 1.15fr) minmax(0, 0.95fr) minmax(0, 1fr) auto'
-							: 'minmax(0, 1.6fr) minmax(0, 1.15fr) minmax(0, 1fr) auto',
-					},
-					gap: { xs: 1.25, md: 1.5 },
-					alignItems: 'center',
-						minHeight: { xs: '120px', md: 'auto' },
-					minWidth: 0,
-					width: '100%',
-					boxSizing: 'border-box',
-					cursor: 'pointer',
-					textDecoration: 'none',
-					color: 'inherit',
-					transition: 'all 200ms ease',
-					outline: 'none',
-					'&:hover': {
-						borderColor: 'rgba(var(--accent-gold-rgb), 0.35)',
-						borderLeft: '3px solid var(--accent-gold)',
-						boxShadow: '0 8px 24px rgba(var(--text-primary-rgb), 0.10)',
-						transform: 'translateY(-1px)',
-					},
-					'&:focus-visible': {
-						borderColor: 'rgba(var(--accent-gold-rgb), 0.45)',
-						borderLeft: '3px solid var(--accent-gold)',
-						boxShadow: '0 0 0 3px rgba(var(--accent-gold-rgb), 0.14)',
-					},
-				}}
-			>
+							: 'minmax(0, 1.6fr) minmax(0, 1.15fr) minmax(0, 1fr) auto', gap: '12px', alignItems: 'center', minHeight: 'auto', minWidth: 0, width: '100%', boxSizing: 'border-box', color: 'inherit', transition: 'all 200ms ease', outline: 'none'}}>
 				{/* Column 1: Vehicle Info & Status */}
-				<Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, minWidth: 0, overflow: 'hidden' }}>
-					<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+				<div style={{display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0, overflow: 'hidden'}}>
+					<div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px'}}>
 						{selectable && (
-							<span
-								onClick={(e) => {
-									e.stopPropagation();
-									if (onToggleSelect) onToggleSelect(id);
-								}}
+							<label
 								className="p-1 min-w-[28px] min-h-[28px] justify-center rounded-md hover:bg-[var(--panel)] cursor-pointer inline-flex items-center shrink-0"
 								title={selected ? "Deselect" : "Select for batch action"}
 							>
 								<input
 									type="checkbox"
 									checked={selected}
-									onChange={() => {}}
+									onChange={() => {
+										if (onToggleSelect) onToggleSelect(id);
+									}}
+									aria-label={selected ? 'Deselect shipment for batch action' : 'Select shipment for batch action'}
 									className="w-4 h-4 rounded accent-[var(--accent-gold)] cursor-pointer"
 								/>
-							</span>
+							</label>
 						)}
-						<Typography
-							sx={{
-								fontSize: { xs: '0.9rem', sm: '0.92rem', md: '0.95rem' },
-								fontWeight: 700,
-								color: 'var(--text-primary)',
-								overflow: 'hidden',
-								textOverflow: 'ellipsis',
-								whiteSpace: 'nowrap',
-								flex: 1,
-							}}
-						>
+						<Link href={shipmentHref} style={{fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, display: 'block', textDecoration: 'none'}}>
 							{vehicleInfo}
-						</Typography>
-						<Box sx={{ display: { xs: 'flex', md: 'none' }, shrink: 0 }}>
+						</Link>
+						<div style={{display: 'none', flexShrink: 0}}>
 							<StatusBadge status={status} size="sm" showIcon />
-						</Box>
-					</Box>
+						</div>
+					</div>
 					{vehicleVIN && (
-						<Box
-							sx={{
-								display: 'inline-flex',
-								alignItems: 'center',
-								gap: 0.5,
-								width: 'fit-content',
-								px: 0.75,
-								py: 0.2,
-								borderRadius: '999px',
-								bgcolor: 'rgba(var(--border-rgb), 0.3)',
-							}}
-						>
-							<Typography sx={{ fontSize: { xs: '0.62rem', sm: '0.65rem', md: '0.68rem' }, color: 'var(--text-secondary)' }}>
+						<div style={{display: 'inline-flex', alignItems: 'center', gap: '4px', width: 'fit-content', paddingLeft: '6px', paddingRight: '6px', paddingTop: '1.6px', paddingBottom: '1.6px', borderRadius: '999px', backgroundColor: 'rgba(var(--border-rgb), 0.3)'}}>
+							<p style={{fontSize: '0.68rem', color: 'var(--text-secondary)'}}>
 								VIN:
-							</Typography>
-							<Typography sx={{ fontSize: { xs: '0.62rem', sm: '0.65rem', md: '0.68rem' }, color: 'var(--text-primary)', fontFamily: 'monospace' }}>
+							</p>
+							<p style={{fontSize: '0.68rem', color: 'var(--text-primary)', fontFamily: 'monospace'}}>
 								{vehicleVIN}
-							</Typography>
-						</Box>
+							</p>
+						</div>
 					)}
-					<Typography sx={{ fontSize: { xs: '0.62rem', sm: '0.65rem', md: '0.68rem' }, color: 'var(--text-secondary)' }}>
+					<p style={{fontSize: '0.68rem', color: 'var(--text-secondary)'}}>
 						Created: {new Date(createdAt).toLocaleDateString()}
-					</Typography>
-					<Box sx={{ display: { xs: 'none', md: 'flex' } }}>{statusRow}</Box>
-				</Box>
+					</p>
+					<div style={{display: 'flex'}}>{statusRow}</div>
+				</div>
 
 				{/* Column 2: Vehicle Type */}
-				<Box sx={{ minWidth: 0, overflow: 'hidden' }}>
-					<Typography sx={{ fontSize: { xs: '0.6rem', sm: '0.62rem', md: '0.65rem' }, textTransform: 'uppercase', letterSpacing: '0.18em', color: 'var(--text-secondary)', mb: 0.3 }}>
+				<div style={{minWidth: 0, overflow: 'hidden'}}>
+					<p style={{fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.18em', color: 'var(--text-secondary)', marginBottom: '2.4px'}}>
 						Vehicle Type
-					</Typography>
-					<Typography sx={{ fontSize: { xs: '0.75rem', sm: '0.78rem', md: '0.8rem' }, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{vehicleType}</Typography>
+					</p>
+					<p style={{fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{vehicleType}</p>
 					{showCustomer && user && (
-						<Typography sx={{ fontSize: { xs: '0.62rem', sm: '0.65rem', md: '0.68rem' }, color: 'var(--text-secondary)', mt: 0.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+						<p style={{fontSize: '0.68rem', color: 'var(--text-secondary)', marginTop: '2.4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
 							{user.name || user.email}
-						</Typography>
+						</p>
 					)}
-				</Box>
+				</div>
 
 				{/* Column 2b: Purchase Price (finance roles only) */}
 				{purchasePrice != null && (
-					<Box sx={{ minWidth: 0, overflow: 'hidden' }}>
-						<Typography sx={{ fontSize: { xs: '0.6rem', sm: '0.62rem', md: '0.65rem' }, textTransform: 'uppercase', letterSpacing: '0.18em', color: 'var(--text-secondary)', mb: 0.3 }}>
+					<div style={{minWidth: 0, overflow: 'hidden'}}>
+						<p style={{fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.18em', color: 'var(--text-secondary)', marginBottom: '2.4px'}}>
 							Purchase Price
-						</Typography>
-						<Typography sx={{ fontSize: { xs: '0.85rem', sm: '0.9rem', md: '0.95rem' }, fontWeight: 700, color: 'var(--accent-gold)' }}>
+						</p>
+						<p style={{fontSize: '0.95rem', fontWeight: 700, color: 'var(--accent-gold)'}}>
 							${purchasePrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-						</Typography>
+						</p>
 						{paidAmount > 0 ? (
 							<>
-								<Typography sx={{ fontSize: '0.68rem', fontWeight: 700, color: isPurchasePaidOff ? 'rgb(34, 197, 94)' : 'rgb(251, 191, 36)', mt: 0.3 }}>
+								<p style={{fontSize: '0.68rem', fontWeight: 700, color: isPurchasePaidOff ? 'rgb(34, 197, 94)' : 'rgb(251, 191, 36)', marginTop: '2.4px'}}>
 									Paid ${Math.min(paidAmount, totalPurchasePrice).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} of ${totalPurchasePrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-								</Typography>
-								<Typography sx={{ fontSize: '0.66rem', fontWeight: 600, color: isPurchasePaidOff ? 'rgb(34, 197, 94)' : 'var(--text-secondary)', mt: 0.2 }}>
+								</p>
+								<p style={{fontSize: '0.66rem', fontWeight: 600, color: isPurchasePaidOff ? 'rgb(34, 197, 94)' : 'var(--text-secondary)', marginTop: '1.6px'}}>
 									{isPurchasePaidOff ? '✓ Paid Off' : `Remaining $${remainingAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-								</Typography>
+								</p>
 							</>
 						) : (
-							<Typography sx={{ fontSize: '0.68rem', color: 'var(--text-secondary)', mt: 0.3 }}>Unpaid</Typography>
+							<p style={{fontSize: '0.68rem', color: 'var(--text-secondary)', marginTop: '2.4px'}}>Unpaid</p>
 						)}
-					</Box>
+					</div>
 				)}
 
 				{/* Column 3: Container Info or Status Info */}
-				<Box sx={{ minWidth: 0, overflow: 'hidden' }}>
+				<div style={{minWidth: 0, overflow: 'hidden'}}>
 					{transit ? (
-						<Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-							<Typography sx={{ fontSize: { xs: '0.6rem', sm: '0.62rem', md: '0.65rem' }, textTransform: 'uppercase', letterSpacing: '0.18em', color: 'var(--text-secondary)', mb: 0.3 }}>
+						<div style={{display: 'flex', flexDirection: 'column', gap: '4px'}}>
+							<p style={{fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.18em', color: 'var(--text-secondary)', marginBottom: '2.4px'}}>
 								Transit
-							</Typography>
-							<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-								<LocalShipping sx={{ fontSize: { xs: 14, sm: 16 }, color: 'var(--accent-gold)' }} />
-								<Typography
-									sx={{
-										fontSize: { xs: '0.72rem', sm: '0.75rem', md: '0.78rem' },
-										fontWeight: 600,
-										color: 'var(--accent-gold-text)',
-										overflow: 'hidden',
-										textOverflow: 'ellipsis',
-										whiteSpace: 'nowrap',
-									}}
-								>
+							</p>
+							<div style={{display: 'flex', alignItems: 'center', gap: '4px'}}>
+								<Truck className="h-4 w-4" style={{ color: 'var(--accent-gold)' }}/>
+								<p style={{fontSize: '0.78rem', fontWeight: 600, color: 'var(--accent-gold-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
 									{transit.referenceNumber}
-								</Typography>
-							</Box>
-							<Typography sx={{ fontSize: { xs: '0.62rem', sm: '0.65rem', md: '0.68rem' }, color: 'var(--text-secondary)', mt: 0.2 }}>
+								</p>
+							</div>
+							<p style={{fontSize: '0.68rem', color: 'var(--text-secondary)', marginTop: '1.6px'}}>
 								Final-mile delivery in progress
-							</Typography>
+							</p>
 							{transit.destination && (
-								<Typography sx={{ fontSize: { xs: '0.58rem', sm: '0.6rem', md: '0.62rem' }, color: 'var(--text-secondary)', mt: 0.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+								<p style={{fontSize: '0.62rem', color: 'var(--text-secondary)', marginTop: '1.6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
 									Destination: {transit.destination}
-								</Typography>
+								</p>
 							)}
-						</Box>
+						</div>
 					) : container ? (
-						<Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-							<Typography sx={{ fontSize: { xs: '0.6rem', sm: '0.62rem', md: '0.65rem' }, textTransform: 'uppercase', letterSpacing: '0.18em', color: 'var(--text-secondary)', mb: 0.3 }}>
+						<div style={{display: 'flex', flexDirection: 'column', gap: '4px'}}>
+							<p style={{fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.18em', color: 'var(--text-secondary)', marginBottom: '2.4px'}}>
 								Container Shipping
-							</Typography>
+							</p>
 							
 							{/* Container Number */}
-							<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-								<LocalShipping sx={{ fontSize: { xs: 14, sm: 16 }, color: 'var(--accent-gold)' }} />
-								<Typography
-									sx={{
-										fontSize: { xs: '0.72rem', sm: '0.75rem', md: '0.78rem' },
-										fontWeight: 600,
-										color: 'var(--accent-gold-text)',
-										overflow: 'hidden',
-										textOverflow: 'ellipsis',
-										whiteSpace: 'nowrap',
-									}}
-								>
+							<div style={{display: 'flex', alignItems: 'center', gap: '4px'}}>
+								<Truck className="h-4 w-4" style={{ color: 'var(--accent-gold)' }}/>
+								<p style={{fontSize: '0.78rem', fontWeight: 600, color: 'var(--accent-gold-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
 									{container.containerNumber}
-								</Typography>
-							</Box>
+								</p>
+							</div>
 
 							{/* Progress Bar */}
 							{typeof container.progress === 'number' && (
-								<Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.3, mt: 0.3 }}>
-									<Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-										<Typography
-											sx={{
-												fontSize: { xs: '0.58rem', sm: '0.6rem', md: '0.62rem' },
-												color: 'var(--text-secondary)',
-											}}
-										>
+								<div style={{display: 'flex', flexDirection: 'column', gap: '2.4px', marginTop: '2.4px'}}>
+									<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+										<p style={{fontSize: '0.62rem', color: 'var(--text-secondary)'}}>
 											Progress
-										</Typography>
-										<Typography
-											sx={{
-												fontSize: { xs: '0.62rem', sm: '0.65rem', md: '0.68rem' },
-												fontWeight: 600,
-												color: 'var(--accent-gold-text)',
-											}}
-										>
+										</p>
+										<p style={{fontSize: '0.68rem', fontWeight: 600, color: 'var(--accent-gold-text)'}}>
 											{container.progress}%
-										</Typography>
-									</Box>
-									<LinearProgress
-										variant="determinate"
-										value={container.progress}
-										sx={{
-											height: 4,
-											borderRadius: 1,
-											backgroundColor: 'rgba(var(--border-rgb), 0.3)',
-											'& .MuiLinearProgress-bar': {
-												backgroundColor: 'var(--accent-gold)',
-												borderRadius: 1,
-											},
-										}}
-									/>
-								</Box>
+										</p>
+									</div>
+									<div style={{height: 4, borderRadius: '8px', backgroundColor: 'rgba(var(--border-rgb), 0.3)'}} className="relative h-1.5 w-full overflow-hidden rounded-full bg-[var(--border)]" role="progressbar" aria-valuenow={container.progress} aria-valuemin={0} aria-valuemax={100}><div className="h-full rounded-full" style={{ width: `${container.progress}%`, backgroundColor: 'var(--accent-gold)' }} /></div>
+								</div>
 							)}
 
 							{/* Status */}
 							{container.status && (
-								<Typography sx={{ fontSize: { xs: '0.62rem', sm: '0.65rem', md: '0.68rem' }, color: 'var(--text-secondary)', mt: 0.2 }}>
+								<p style={{fontSize: '0.68rem', color: 'var(--text-secondary)', marginTop: '1.6px'}}>
 									Status: {formatStatus(container.status)}
-								</Typography>
+								</p>
 							)}
 
 							{/* Current Location */}
 							{container.currentLocation && (
-								<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.2 }}>
-									<LocationOn sx={{ fontSize: { xs: 12, sm: 14 }, color: 'var(--text-secondary)' }} />
-									<Typography sx={{ fontSize: { xs: '0.58rem', sm: '0.6rem', md: '0.62rem' }, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+								<div style={{display: 'flex', alignItems: 'center', gap: '4px', marginTop: '1.6px'}}>
+									<MapPin className="h-3.5 w-3.5" style={{ color: 'var(--text-secondary)' }}/>
+									<p style={{fontSize: '0.62rem', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
 										{container.currentLocation}
-									</Typography>
-								</Box>
+									</p>
+								</div>
 							)}
 
 							{/* Vessel Name */}
 							{container.vesselName && (
-								<Typography sx={{ fontSize: { xs: '0.58rem', sm: '0.6rem', md: '0.62rem' }, color: 'var(--text-secondary)', mt: 0.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+								<p style={{fontSize: '0.62rem', color: 'var(--text-secondary)', marginTop: '1.6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
 									🚢 {container.vesselName}
-								</Typography>
+								</p>
 							)}
 
 							{/* Estimated Arrival */}
 							{container.estimatedArrival && (
-								<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.2 }}>
-									<CalendarToday sx={{ fontSize: { xs: 12, sm: 14 }, color: 'var(--text-secondary)' }} />
-									<Typography sx={{ fontSize: { xs: '0.58rem', sm: '0.6rem', md: '0.62rem' }, color: 'var(--text-secondary)' }}>
+								<div style={{display: 'flex', alignItems: 'center', gap: '4px', marginTop: '1.6px'}}>
+									<Calendar className="h-3.5 w-3.5" style={{ color: 'var(--text-secondary)' }}/>
+									<p style={{fontSize: '0.62rem', color: 'var(--text-secondary)'}}>
 										ETA: {new Date(container.estimatedArrival).toLocaleDateString()}
-									</Typography>
-								</Box>
+									</p>
+								</div>
 							)}
 
 							{/* Shipping Line */}
 							{container.shippingLine && (
-								<Typography sx={{ fontSize: { xs: '0.58rem', sm: '0.6rem', md: '0.62rem' }, color: 'var(--text-secondary)', mt: 0.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+								<p style={{fontSize: '0.62rem', color: 'var(--text-secondary)', marginTop: '1.6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
 									Line: {container.shippingLine}
-									</Typography>
+									</p>
 							)}
-						</Box>
+						</div>
 					) : dispatch ? (
-						<Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-							<Typography sx={{ fontSize: { xs: '0.6rem', sm: '0.62rem', md: '0.65rem' }, textTransform: 'uppercase', letterSpacing: '0.18em', color: 'var(--text-secondary)', mb: 0.3 }}>
+						<div style={{display: 'flex', flexDirection: 'column', gap: '4px'}}>
+							<p style={{fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.18em', color: 'var(--text-secondary)', marginBottom: '2.4px'}}>
 								Dispatch To Port
-							</Typography>
-							<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-								<LocalShipping sx={{ fontSize: { xs: 14, sm: 16 }, color: 'var(--accent-gold)' }} />
-								<Typography
-									sx={{
-										fontSize: { xs: '0.72rem', sm: '0.75rem', md: '0.78rem' },
-										fontWeight: 600,
-										color: 'var(--accent-gold)',
-										overflow: 'hidden',
-										textOverflow: 'ellipsis',
-										whiteSpace: 'nowrap',
-									}}
-								>
+							</p>
+							<div style={{display: 'flex', alignItems: 'center', gap: '4px'}}>
+								<Truck className="h-4 w-4" style={{ color: 'var(--accent-gold)' }}/>
+								<p style={{fontSize: '0.78rem', fontWeight: 600, color: 'var(--accent-gold)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
 									{dispatch.referenceNumber}
-								</Typography>
-							</Box>
-							<Typography sx={{ fontSize: { xs: '0.62rem', sm: '0.65rem', md: '0.68rem' }, color: 'var(--text-secondary)', mt: 0.2 }}>
+								</p>
+							</div>
+							<p style={{fontSize: '0.68rem', color: 'var(--text-secondary)', marginTop: '1.6px'}}>
 								{dispatch.origin || 'USA Yard'} to {dispatch.destination || 'Port of Loading'}
-							</Typography>
+							</p>
 							{dispatch.status && (
-								<Typography sx={{ fontSize: { xs: '0.58rem', sm: '0.6rem', md: '0.62rem' }, color: 'var(--text-secondary)', mt: 0.2 }}>
+								<p style={{fontSize: '0.62rem', color: 'var(--text-secondary)', marginTop: '1.6px'}}>
 									Status: {formatStatus(dispatch.status)}
-								</Typography>
+								</p>
 							)}
-						</Box>
+						</div>
 					) : (
 						<>
-							<Typography sx={{ fontSize: { xs: '0.6rem', sm: '0.62rem', md: '0.65rem' }, textTransform: 'uppercase', letterSpacing: '0.18em', color: 'var(--text-secondary)', mb: 0.3 }}>
+							<p style={{fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.18em', color: 'var(--text-secondary)', marginBottom: '2.4px'}}>
 								Location
-							</Typography>
-							<Typography sx={{ fontSize: { xs: '0.75rem', sm: '0.78rem', md: '0.8rem' }, fontWeight: 600, color: 'var(--text-primary)' }}>
+							</p>
+							<p style={{fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)'}}>
 								Warehouse
-							</Typography>
-							<Typography sx={{ fontSize: { xs: '0.62rem', sm: '0.65rem', md: '0.68rem' }, color: 'var(--text-secondary)', mt: 0.2 }}>
+							</p>
+							<p style={{fontSize: '0.68rem', color: 'var(--text-secondary)', marginTop: '1.6px'}}>
 								{dispatchId ? 'Dispatch assigned' : 'On Hand'}
-							</Typography>
+							</p>
 						</>
 					)}
-				</Box>
+				</div>
 
-				<Box
-					sx={{
-						display: { xs: 'none', md: 'flex' },
-						justifyContent: 'flex-end',
-						alignItems: 'center',
-						gap: 0.75,
-						flexShrink: 0,
-					}}
-				>
+				<div style={{display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '6px', flexShrink: 0}}>
 					{onQuickPeek && (
 						<Button
 							variant="outline"
@@ -490,12 +346,7 @@ export default function ShipmentRow({
 								event.stopPropagation();
 								onQuickPeek(id);
 							}}
-							sx={{
-								borderRadius: '999px',
-								minWidth: 'auto',
-								px: 1.25,
-								fontSize: '0.75rem',
-							}}
+							style={{borderRadius: '999px', minWidth: 'auto', paddingLeft: '10px', paddingRight: '10px', fontSize: '0.75rem'}}
 						>
 							Quick Peek
 						</Button>
@@ -516,11 +367,7 @@ export default function ShipmentRow({
 								});
 							}}
 							title="Print Yard QR Sticker"
-							sx={{
-								borderRadius: '999px',
-								minWidth: 'auto',
-								px: 1,
-							}}
+							style={{borderRadius: '999px', minWidth: 'auto', paddingLeft: '8px', paddingRight: '8px'}}
 						/>
 					)}
 					{onNotify && (
@@ -533,12 +380,7 @@ export default function ShipmentRow({
 								onNotify(id);
 							}}
 							title="WhatsApp Business & Customer Notification Studio"
-							sx={{
-								borderRadius: '999px',
-								minWidth: 'auto',
-								px: 1,
-								borderColor: 'rgba(16, 185, 129, 0.35)',
-							}}
+							style={{borderRadius: '999px', minWidth: 'auto', paddingLeft: '8px', paddingRight: '8px', borderColor: 'rgba(16, 185, 129, 0.35)'}}
 						/>
 					)}
 					<Button
@@ -546,63 +388,32 @@ export default function ShipmentRow({
 						href={editHref}
 						variant="ghost"
 						size="sm"
-						icon={<Edit sx={{ fontSize: 14 }} />}
+						icon={<Pencil className="h-3.5 w-3.5"/>}
 						iconPosition="start"
 						onClick={(event) => {
 							event.stopPropagation();
 						}}
-						sx={{
-							borderRadius: '999px',
-							minWidth: 'auto',
-							minHeight: { xs: '44px', md: 'auto' },
-							px: 1.25,
-							color: 'var(--accent-gold-text)',
-							'&:hover': {
-								bgcolor: 'rgba(var(--accent-gold-rgb), 0.08)',
-								color: 'var(--accent-gold-text)',
-							},
-						}}
+						style={{borderRadius: '999px', minWidth: 'auto', minHeight: 'auto', paddingLeft: '10px', paddingRight: '10px', color: 'var(--accent-gold-text)'}}
 					>
-						Edit
+						Pencil
 					</Button>
-				</Box>
+				</div>
 
-				<Box
-					sx={{
-						display: { xs: 'flex', md: 'none' },
-						gridColumn: '1 / -1',
-						justifyContent: 'space-between',
-						alignItems: 'center',
-						gap: 1,
-						pt: 1,
-						mt: 0.5,
-						borderTop: '1px solid rgba(var(--border-rgb), 0.4)',
-					}}
-				>
-					<Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, minWidth: 0 }}>
+				<div style={{display: 'none', gridColumn: '1 / -1', justifyContent: 'space-between', alignItems: 'center', gap: '8px', paddingTop: '8px', marginTop: '4px', borderTop: '1px solid rgba(var(--border-rgb), 0.4)'}}>
+					<div style={{display: 'flex', flexWrap: 'wrap', gap: '4px', minWidth: 0}}>
 						{yardReceived && (
-							<Chip
-								label="Yard Received"
-								size="small"
-								sx={{
-									height: 22,
-									fontSize: '0.65rem',
-									fontWeight: 700,
-									bgcolor: 'rgba(34, 197, 94, 0.12)',
-									color: 'rgb(21, 128, 61)',
-								}}
-							/>
+							<span style={{height: 22, fontSize: '0.65rem', fontWeight: 700, backgroundColor: 'rgba(34, 197, 94, 0.12)', color: 'rgb(21, 128, 61)'}} className="inline-flex items-center gap-1 rounded-full font-medium text-[0.7rem] px-2 py-0.5 border border-[var(--border)] bg-[var(--background)] text-[var(--text-primary)]">"Yard Received"</span>
 						)}
 						{paymentStatus && (
 							<StatusBadge 
 								status={paymentStatus} 
 								variant="default" 
 								size="sm" 
-								icon={<CreditCard sx={{ fontSize: 11 }} />} 
+								icon={<CreditCard className="h-3 w-3"/>} 
 							/>
 						)}
-					</Box>
-					<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexShrink: 0 }}>
+					</div>
+					<div style={{display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0}}>
 						{onQuickPeek && (
 							<Button
 								variant="outline"
@@ -612,12 +423,7 @@ export default function ShipmentRow({
 									event.stopPropagation();
 									onQuickPeek(id);
 								}}
-								sx={{
-									minWidth: { xs: '44px', md: 'auto' },
-									minHeight: { xs: '44px', md: 'auto' },
-									borderRadius: '999px',
-									px: 1,
-								}}
+								style={{minWidth: 'auto', minHeight: 'auto', borderRadius: '999px', paddingLeft: '8px', paddingRight: '8px'}}
 							/>
 						)}
 						{onOpenQR && (
@@ -635,12 +441,7 @@ export default function ShipmentRow({
 										status,
 									});
 								}}
-								sx={{
-									minWidth: { xs: '44px', md: 'auto' },
-									minHeight: { xs: '44px', md: 'auto' },
-									borderRadius: '999px',
-									px: 1,
-								}}
+								style={{minWidth: 'auto', minHeight: 'auto', borderRadius: '999px', paddingLeft: '8px', paddingRight: '8px'}}
 							/>
 						)}
 						<Button
@@ -651,13 +452,7 @@ export default function ShipmentRow({
 							onClick={(event) => {
 								event.stopPropagation();
 							}}
-							sx={{
-								minHeight: { xs: '44px', md: 'auto' },
-								borderRadius: '999px',
-								px: 1.5,
-								fontSize: '0.75rem',
-								fontWeight: 600,
-							}}
+							style={{minHeight: 'auto', borderRadius: '999px', paddingLeft: '12px', paddingRight: '12px', fontSize: '0.75rem', fontWeight: 600}}
 						>
 							View
 						</Button>
@@ -666,24 +461,17 @@ export default function ShipmentRow({
 							href={editHref}
 							variant="ghost"
 							size="sm"
-							icon={<Edit sx={{ fontSize: 13 }} />}
+							icon={<Pencil className="h-3.5 w-3.5"/>}
 							iconPosition="start"
 							onClick={(event) => {
 								event.stopPropagation();
 							}}
-							sx={{
-								minHeight: { xs: '44px', md: 'auto' },
-								borderRadius: '999px',
-								px: 1.25,
-								fontSize: '0.75rem',
-								fontWeight: 600,
-								color: 'var(--accent-gold-text)',
-							}}
+							style={{minHeight: 'auto', borderRadius: '999px', paddingLeft: '10px', paddingRight: '10px', fontSize: '0.75rem', fontWeight: 600, color: 'var(--accent-gold-text)'}}
 						>
-							Edit
+							Pencil
 						</Button>
-					</Box>
-				</Box>
-			</Box>
+					</div>
+				</div>
+			</article>
 	);
 }

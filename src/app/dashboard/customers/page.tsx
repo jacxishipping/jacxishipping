@@ -1,21 +1,13 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { User, UserPlus, Eye, EyeOff, Copy, Check, Download, Users, Package, Mail, Key } from 'lucide-react';
 import ResetPasswordModal from '@/components/users/ResetPasswordModal';
-import { Box, Typography, IconButton, Tooltip } from '@mui/material';
-import { 
-  PageHeader, 
-  StatsCard, 
-  Button, 
-  SkeletonCard, 
-  CompactSkeleton, 
-  toast, 
-  CopyButton 
-} from '@/components/design-system';
+import { Button, CompactSkeleton, CopyButton, IconButton, PageHeader, SkeletonCard, StatsCard, Tooltip, toast } from '@/components/design-system';
 import { exportToCSVWithHeaders } from '@/lib/export';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import SmartSearch, { SearchFilters } from '@/components/dashboard/SmartSearch';
@@ -158,14 +150,14 @@ export default function CustomersPage() {
       header: 'Customer',
       sortable: true,
       render: (_, row) => (
-        <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-          <Typography sx={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--text-primary)' }} noWrap>
+        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', minWidth: '0px'}}>
+          <p className="text-sm leading-relaxed" style={{fontWeight: 700, fontSize: '0.875rem', color: 'var(--text-primary)'}}>
             {row.name || 'Unnamed Customer'}
-          </Typography>
-          <Typography variant="caption" color="text.secondary" noWrap>
+          </p>
+          <span className="text-xs text-[var(--text-secondary)] text-[var(--text-secondary)]">
             {formatRole(row.role)}
-          </Typography>
-        </Box>
+          </span>
+        </JXBox>
       ),
     },
     {
@@ -173,21 +165,19 @@ export default function CustomersPage() {
       header: 'Email',
       sortable: true,
       render: (_, row) => (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Typography sx={{ fontFamily: 'ui-monospace,SFMono-Regular,Menlo,monospace', fontSize: '0.8rem' }} noWrap>
+        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px'}}>
+          <p className="text-sm leading-relaxed" style={{fontFamily: 'ui-monospace,SFMono-Regular,Menlo,monospace', fontSize: '0.8rem'}}>
             {showEmailsFor.has(row.id) ? row.email : maskEmail(row.email)}
-          </Typography>
-          <Tooltip title={showEmailsFor.has(row.id) ? 'Hide email' : 'Show email'}>
-            <IconButton size="small" onClick={(e) => { e.stopPropagation(); toggleEmailVisibility(row.id); }} aria-label={showEmailsFor.has(row.id) ? 'Hide email' : 'Show email'}>
-              {showEmailsFor.has(row.id) ? <EyeOff style={{ width: 15, height: 15 }} /> : <Eye style={{ width: 15, height: 15 }} />}
-            </IconButton>
+          </p>
+          <Tooltip title={showEmailsFor.has(row.id) ? 'Hide email' : 'Show email'} arrow={false}>
+            <IconButton icon={showEmailsFor.has(row.id) ? <EyeOff style={{ width: 15, height: 15 }} /> : <Eye style={{ width: 15, height: 15 }} />} ariaLabel={showEmailsFor.has(row.id) ? 'Hide email' : 'Show email'} variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); toggleEmailVisibility(row.id); }} />
           </Tooltip>
           {showEmailsFor.has(row.id) && (
             <span onClick={(e) => e.stopPropagation()}>
               <CopyButton value={row.email} label="Email" />
             </span>
           )}
-        </Box>
+        </JXBox>
       ),
     },
     {
@@ -195,10 +185,10 @@ export default function CustomersPage() {
       header: 'Shipments',
       sortable: true,
       render: (_, row) => (
-        <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, px: 1.5, py: 0.5, borderRadius: '999px', bgcolor: 'rgba(var(--accent-gold-rgb), 0.1)', color: 'var(--accent-gold)', fontWeight: 700, fontSize: '0.75rem' }}>
+        <JXBox padding="none" border={false} style={{display: 'inline-flex', alignItems: 'center', gap: '6px', paddingLeft: '12px', paddingRight: '12px', paddingTop: '4px', paddingBottom: '4px', borderRadius: '999px', backgroundColor: 'rgba(var(--accent-gold-rgb), 0.1)', color: 'var(--accent-gold)', fontWeight: 700, fontSize: '0.75rem'}}>
           <Package className="w-3.5 h-3.5" />
           <span>{row._count?.shipments ?? 0}</span>
-        </Box>
+        </JXBox>
       ),
     },
     {
@@ -206,9 +196,9 @@ export default function CustomersPage() {
       header: 'Created',
       sortable: true,
       render: (_, row) => (
-        <Typography variant="caption" color="text.secondary">
+        <span className="text-xs text-[var(--text-secondary)] text-[var(--text-secondary)]">
           {row.createdAt ? new Date(row.createdAt).toLocaleDateString() : '-'}
-        </Typography>
+        </span>
       ),
     },
     {
@@ -216,7 +206,7 @@ export default function CustomersPage() {
       header: 'Actions',
       align: 'right',
       render: (_, row) => (
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 1, flexWrap: 'nowrap', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
+        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px', flexWrap: 'nowrap', whiteSpace: 'nowrap'}} onClick={(e) => e.stopPropagation()}>
           <Link href={`/dashboard/users/${row.id}`} style={{ textDecoration: 'none' }}>
             <Button variant="outline" size="sm">
               View Profile
@@ -248,7 +238,7 @@ export default function CustomersPage() {
               </Button>
             </>
           )}
-        </Box>
+        </JXBox>
       ),
     },
   ], [showEmailsFor, canManageCustomers]);
@@ -302,7 +292,7 @@ export default function CustomersPage() {
         title="Customers"
         description="All registered client accounts and shipping portfolios"
         actions={
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap'}}>
             <Button 
               variant="outline" 
               size="sm" 
@@ -318,7 +308,7 @@ export default function CustomersPage() {
                 </Button>
               </Link>
             )}
-          </Box>
+          </JXBox>
         }
       />
 
@@ -366,13 +356,13 @@ export default function CustomersPage() {
       {/* Customers Data Panel */}
       <DashboardPanel title={`Customer Directory (${totalCustomers})`} fullHeight>
         {loading ? (
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' }, gap: 2 }}>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '16px'}} className="grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
             {[...Array(6)].map((_, i) => <SkeletonCard key={i} />)}
-          </Box>
+          </JXBox>
         ) : customers.length === 0 ? (
-          <Box sx={{ minHeight: 240, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, minHeight: '240px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px'}}>
             <User style={{ width: 48, height: 48, color: 'var(--text-secondary)' }} />
-            <Typography sx={{ color: 'var(--text-secondary)' }}>No customers found</Typography>
+            <p className="text-sm leading-relaxed" style={{color: 'var(--text-secondary)'}}>No customers found</p>
             {canManageCustomers && (
               <Link href="/dashboard/customers/new" style={{ textDecoration: 'none' }}>
                 <Button variant="primary" size="sm" icon={<UserPlus className="w-4 h-4" />}>
@@ -380,7 +370,7 @@ export default function CustomersPage() {
                 </Button>
               </Link>
             )}
-          </Box>
+          </JXBox>
         ) : (
           <>
             <div className="hidden lg:block">
@@ -391,7 +381,7 @@ export default function CustomersPage() {
                 onRowClick={(row) => router.push(`/dashboard/users/${row.id}`)}
               />
             </div>
-            <Box sx={{ display: { xs: 'grid', lg: 'none' }, gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 2 }}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, gap: '16px'}} className="grid lg:hidden grid-cols-1 md:grid-cols-2">
               {customers.map((user, index) => (
                 <UserCard
                   key={user.id}
@@ -406,10 +396,10 @@ export default function CustomersPage() {
                   onResetPassword={canManageCustomers ? (targetUser) => setResetPasswordTarget(targetUser) : undefined}
                 />
               ))}
-            </Box>
+            </JXBox>
 
             {totalPages > 1 && (
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 3, pt: 2, borderTop: '1px solid var(--border)' }}>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '24px', paddingTop: '16px', borderTop: '1px solid var(--border)'}}>
                 <Button 
                   variant="outline" 
                   size="sm" 
@@ -418,9 +408,9 @@ export default function CustomersPage() {
                 >
                   Previous
                 </Button>
-                <Typography sx={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                <p className="text-sm leading-relaxed" style={{color: 'var(--text-secondary)', fontSize: '0.875rem'}}>
                   Page {currentPage} of {totalPages}
-                </Typography>
+                </p>
                 <Button 
                   variant="outline" 
                   size="sm" 
@@ -429,7 +419,7 @@ export default function CustomersPage() {
                 >
                   Next
                 </Button>
-              </Box>
+              </JXBox>
             )}
           </>
         )}

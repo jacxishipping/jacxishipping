@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Box, Typography } from '@mui/material';
 import {
   Package,
   Ship,
@@ -155,33 +154,33 @@ export default function ShipmentQuickPeek({
         size="lg"
         title={
           shipment ? (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
               <span className="font-bold tracking-tight text-base sm:text-lg">
                 {vehicleTitle}
               </span>
-            </Box>
+            </div>
           ) : (
             'Shipment Details'
           )
         }
         description={
           shipment?.vehicleVIN ? (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.25 }}>
+            <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px'}}>
               <span className="font-mono text-xs text-gray-500 font-semibold">
                 VIN: {shipment.vehicleVIN}
               </span>
               <CopyButton value={shipment.vehicleVIN} label="VIN" />
-            </Box>
+            </div>
           ) : undefined
         }
         badge={shipment ? <StatusBadge status={shipment.status} /> : undefined}
         actions={
           shipment && (
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: 1, flexWrap: 'wrap' }}>
+            <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '8px', flexWrap: 'wrap'}}>
               <Button variant="outline" size="sm" onClick={onClose}>
                 Close
               </Button>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+              <div style={{display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap'}}>
                 <Button
                   variant="outline"
                   size="sm"
@@ -220,74 +219,42 @@ export default function ShipmentQuickPeek({
                 >
                   Open Full View
                 </Button>
-              </Box>
-            </Box>
+              </div>
+            </div>
           )
         }
       >
         {loading ? (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <div style={{display: 'flex', flexDirection: 'column', gap: '16px'}}>
             <Skeleton variant="rounded" height={90} />
             <Skeleton variant="rounded" height={120} />
             <Skeleton variant="rounded" height={160} />
-          </Box>
+          </div>
         ) : shipment ? (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+          <div style={{display: 'flex', flexDirection: 'column', gap: '20px'}}>
             {/* Milestone Progression */}
-            <Box
-              sx={{
-                p: 2,
-                borderRadius: 2,
-                bgcolor: 'var(--background, #F9FAFB)',
-                border: '1px solid var(--border, #E5E7EB)',
-              }}
-            >
-              <Typography
-                variant="caption"
-                sx={{
-                  fontWeight: 700,
-                  color: 'var(--text-secondary, #6B7280)',
-                  mb: 1.5,
-                  display: 'block',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                }}
-              >
+            <div style={{padding: '16px', borderRadius: '16px', backgroundColor: 'var(--background, #F9FAFB)', border: '1px solid var(--border, #E5E7EB)'}}>
+              <span style={{fontWeight: 700, color: 'var(--text-secondary, #6B7280)', marginBottom: '12px', display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em'}} className="text-[0.75rem]">
                 Milestone Progression
-              </Typography>
+              </span>
               <MilestoneStepper
                 steps={SHIPMENT_STEPS}
                 currentStepId={shipment.status}
                 orientation="horizontal"
               />
-            </Box>
+            </div>
 
             {/* Key Details Cards Grid */}
-            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1.5 }}>
+            <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px'}}>
               {/* Customer */}
-              <Box
-                sx={{
-                  p: 2,
-                  borderRadius: 2,
-                  bgcolor: 'var(--background, #F9FAFB)',
-                  border: '1px solid var(--border, #E5E7EB)',
-                }}
-              >
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    color: 'var(--text-secondary, #6B7280)',
-                    mb: 0.5,
-                  }}
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <div style={{padding: '16px', borderRadius: '16px', backgroundColor: 'var(--background, #F9FAFB)', border: '1px solid var(--border, #E5E7EB)'}}>
+                <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--text-secondary, #6B7280)', marginBottom: '4px'}}>
+                  <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
                     <User className="w-4 h-4 text-blue-600" />
-                    <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                    <span style={{fontWeight: 600}} className="text-[0.75rem]">
                       Customer
-                    </Typography>
-                  </Box>
+                    </span>
+                  </div>
                   <button
                     type="button"
                     onClick={handleOpenWhatsAppStudio}
@@ -296,38 +263,20 @@ export default function ShipmentQuickPeek({
                     <MessageSquare className="w-2.5 h-2.5" />
                     Notify
                   </button>
-                </Box>
-                <Typography
-                  sx={{ fontWeight: 700, fontSize: '0.9375rem', color: 'var(--text-primary, #111827)' }}
-                  noWrap
-                >
+                </div>
+                <p style={{whiteSpace: 'nowrap', fontWeight: 700, fontSize: '0.9375rem', color: 'var(--text-primary, #111827)'}} className="truncate">
                   {shipment.user?.name || shipment.user?.email || 'Direct / Unassigned'}
-                </Typography>
-              </Box>
+                </p>
+              </div>
 
               {/* Container Assignment */}
-              <Box
-                sx={{
-                  p: 2,
-                  borderRadius: 2,
-                  bgcolor: 'var(--background, #F9FAFB)',
-                  border: '1px solid var(--border, #E5E7EB)',
-                }}
-              >
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1,
-                    color: 'var(--text-secondary, #6B7280)',
-                    mb: 0.5,
-                  }}
-                >
+              <div style={{padding: '16px', borderRadius: '16px', backgroundColor: 'var(--background, #F9FAFB)', border: '1px solid var(--border, #E5E7EB)'}}>
+                <div style={{display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary, #6B7280)', marginBottom: '4px'}}>
                   <Package className="w-4 h-4 text-amber-600" />
-                  <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                  <span style={{fontWeight: 600}} className="text-[0.75rem]">
                     Container
-                  </Typography>
-                </Box>
+                  </span>
+                </div>
                 {shipment.container ? (
                   <>
                     <Link
@@ -340,105 +289,57 @@ export default function ShipmentQuickPeek({
                       </span>
                     </Link>
                     {shipment.container.destinationPort && (
-                      <Typography sx={{ fontSize: '0.72rem', color: 'var(--text-secondary, #6B7280)', mt: 0.25 }} noWrap>
+                      <p style={{whiteSpace: 'nowrap', fontSize: '0.72rem', color: 'var(--text-secondary, #6B7280)', marginTop: '2px'}} className="truncate">
                         {shipment.container.destinationPort}
-                      </Typography>
+                      </p>
                     )}
                     {shipment.container.estimatedArrival && (
-                      <Typography sx={{ fontSize: '0.68rem', color: 'var(--text-secondary, #6B7280)' }} noWrap>
+                      <p style={{whiteSpace: 'nowrap', fontSize: '0.68rem', color: 'var(--text-secondary, #6B7280)'}} className="truncate">
                         ETA: {new Date(shipment.container.estimatedArrival).toLocaleDateString()}
-                      </Typography>
+                      </p>
                     )}
                   </>
                 ) : (
-                  <Typography sx={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-secondary, #6B7280)' }}>
+                  <p style={{fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-secondary, #6B7280)'}}>
                     Unallocated
-                  </Typography>
+                  </p>
                 )}
-              </Box>
+              </div>
 
               {/* Total Price */}
-              <Box
-                sx={{
-                  p: 2,
-                  borderRadius: 2,
-                  bgcolor: 'var(--background, #F9FAFB)',
-                  border: '1px solid var(--border, #E5E7EB)',
-                }}
-              >
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1,
-                    color: 'var(--text-secondary, #6B7280)',
-                    mb: 0.5,
-                  }}
-                >
+              <div style={{padding: '16px', borderRadius: '16px', backgroundColor: 'var(--background, #F9FAFB)', border: '1px solid var(--border, #E5E7EB)'}}>
+                <div style={{display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary, #6B7280)', marginBottom: '4px'}}>
                   <DollarSign className="w-4 h-4 text-emerald-600" />
-                  <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                  <span style={{fontWeight: 600}} className="text-[0.75rem]">
                     Total Price
-                  </Typography>
-                </Box>
-                <Typography sx={{ fontWeight: 700, fontSize: '0.9375rem', color: 'var(--text-primary, #111827)' }}>
+                  </span>
+                </div>
+                <p style={{fontWeight: 700, fontSize: '0.9375rem', color: 'var(--text-primary, #111827)'}}>
                   {formatCurrency(shipment.price || 0)}
-                </Typography>
-              </Box>
+                </p>
+              </div>
 
               {/* Payment Status */}
-              <Box
-                sx={{
-                  p: 2,
-                  borderRadius: 2,
-                  bgcolor: 'var(--background, #F9FAFB)',
-                  border: '1px solid var(--border, #E5E7EB)',
-                }}
-              >
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1,
-                    color: 'var(--text-secondary, #6B7280)',
-                    mb: 0.5,
-                  }}
-                >
+              <div style={{padding: '16px', borderRadius: '16px', backgroundColor: 'var(--background, #F9FAFB)', border: '1px solid var(--border, #E5E7EB)'}}>
+                <div style={{display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary, #6B7280)', marginBottom: '4px'}}>
                   <CreditCard className="w-4 h-4 text-purple-600" />
-                  <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                  <span style={{fontWeight: 600}} className="text-[0.75rem]">
                     Payment Status
-                  </Typography>
-                </Box>
-                <Box sx={{ mt: 0.25 }}>
+                  </span>
+                </div>
+                <div style={{marginTop: '2px'}}>
                   <StatusBadge status={shipment.paymentStatus || 'PENDING'} size="sm" />
-                </Box>
-              </Box>
-            </Box>
+                </div>
+              </div>
+            </div>
 
             {/* Vehicle Metadata Box */}
-            <Box
-              sx={{
-                p: 2,
-                borderRadius: 2,
-                bgcolor: 'var(--panel-bg, #FFFFFF)',
-                border: '1px solid var(--border, #E5E7EB)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 1.5,
-              }}
-            >
-              <Typography
-                sx={{
-                  fontSize: '0.8125rem',
-                  fontWeight: 700,
-                  color: 'var(--text-secondary, #6B7280)',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                }}
-              >
+            <div style={{padding: '16px', borderRadius: '16px', backgroundColor: 'var(--panel-bg, #FFFFFF)', border: '1px solid var(--border, #E5E7EB)', display: 'flex', flexDirection: 'column', gap: '12px'}}>
+              <p style={{fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.05em'}}>
                 Vehicle Specifications
-              </Typography>
+              </p>
 
-              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1.5 }}>
+              <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px'}}>
                 <div>
                   <span className="text-xs text-gray-500 block">Color</span>
                   <span className="text-sm font-semibold text-gray-900">{shipment.vehicleColor || 'Standard'}</span>
@@ -457,13 +358,13 @@ export default function ShipmentQuickPeek({
                   <span className="text-xs text-gray-500 block">Outstanding Balance</span>
                   <span className="text-sm font-semibold text-gray-900">{formatCurrency(remainingBalance)}</span>
                 </div>
-              </Box>
-            </Box>
-          </Box>
+              </div>
+            </div>
+          </div>
         ) : (
-          <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
+          <p style={{color: 'var(--text-secondary)', textAlign: 'center', paddingTop: '32px', paddingBottom: '32px'}} className="text-[0.875rem]">
             No shipment selected.
-          </Typography>
+          </p>
         )}
       </Drawer>
 

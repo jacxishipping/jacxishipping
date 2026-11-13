@@ -1,6 +1,6 @@
 "use client";
 
-import { Box, Typography, Fade } from '@mui/material';
+import { motion } from 'framer-motion';
 import { JXBox } from '@jacxishippingorg/jx-ui-react';
 import { ReactNode, useState, useEffect } from 'react';
 import { useTheme } from '@/hooks/useTheme';
@@ -110,7 +110,11 @@ export default function StatsCard({
 	const trendPrefix = isNeutralTrend ? '' : trend?.isPositive ? '+' : '−';
 
 	return (
-		<Fade in={isVisible} timeout={600}>
+		<motion.div
+			initial={{ opacity: 0 }}
+			animate={{ opacity: isVisible ? 1 : 0 }}
+			transition={{ duration: 0.6 }}
+		>
 			<JXBox
 				component="article"
 				surface="elevated"
@@ -125,107 +129,56 @@ export default function StatsCard({
 					fontFamily: 'inherit',
 				}}
 			>
-				<Box
-					sx={{
+				<div
+					className="relative flex shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[var(--border)]"
+					style={{
 						width: sizes.iconSize,
 						height: sizes.iconSize,
-						borderRadius: 3,
-						border: '1px solid var(--border)',
 						background: colors.iconBg,
-						display: 'flex',
-						alignItems: 'center',
-						justifyContent: 'center',
-						flexShrink: 0,
 						color: colors.iconColor,
-						position: 'relative',
-						overflow: 'hidden',
-						'&::after': {
-							content: '""',
-							position: 'absolute',
-							inset: 0,
-							background: 'linear-gradient(135deg, rgba(var(--accent-gold-rgb), 0.08), transparent 72%)',
-							pointerEvents: 'none',
-						},
-						'& > *': {
-							position: 'relative',
-							zIndex: 1,
-						},
 					}}
 				>
-					{icon}
-				</Box>
-				<Box sx={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
-					<Typography
-						sx={{
-							fontSize: { xs: '0.65rem', sm: '0.7rem', md: '0.75rem' },
-							textTransform: 'uppercase',
-							letterSpacing: '0.15em',
-							color: 'var(--text-secondary)',
-							marginBottom: 0.5,
-							overflow: 'hidden',
-							textOverflow: 'ellipsis',
-							whiteSpace: 'nowrap',
-						}}
-					>
+					<div
+						aria-hidden="true"
+						className="pointer-events-none absolute inset-0"
+						style={{ background: 'linear-gradient(135deg, rgba(var(--accent-gold-rgb), 0.08), transparent 72%)' }}
+					/>
+					<span className="relative z-[1] flex items-center justify-center">{icon}</span>
+				</div>
+				<div className="min-w-0 flex-1 overflow-hidden">
+					<p className="mb-0.5 overflow-hidden text-ellipsis whitespace-nowrap text-[0.65rem] uppercase tracking-[0.15em] text-[var(--text-secondary)] sm:text-[0.7rem] md:text-[0.75rem]">
 						{title}
-					</Typography>
-					<Typography
-						component="span"
+					</p>
+					<span
 						title={typeof value === 'string' && value.length > 12 ? value : undefined}
-						sx={{
-							display: 'block',
-							fontSize: sizes.fontSize,
-							fontWeight: 700,
-							fontVariantNumeric: 'tabular-nums',
-							letterSpacing: '-0.02em',
-							color: 'var(--text-primary)',
-							lineHeight: 1.15,
-							width: '100%',
-							overflow: 'hidden',
-							textOverflow: 'ellipsis',
-							whiteSpace: 'nowrap',
-						}}
+						className="block w-full overflow-hidden text-ellipsis whitespace-nowrap font-bold tabular-nums leading-[1.15] tracking-[-0.02em] text-[var(--text-primary)]"
+						style={{ fontSize: sizes.fontSize }}
 					>
 						{compactValue || value}
-					</Typography>
+					</span>
 					{subtitle && (
-						<Typography
-							sx={{
-								fontSize: { xs: '0.7rem', sm: '0.75rem', md: '0.8rem' },
-								color: 'var(--text-secondary)',
-								marginTop: 0.25,
-								overflow: 'hidden',
-								textOverflow: 'ellipsis',
-								whiteSpace: 'nowrap',
-							}}
-						>
+						<p className="mt-0.5 overflow-hidden text-ellipsis whitespace-nowrap text-[0.7rem] text-[var(--text-secondary)] sm:text-[0.75rem] md:text-[0.8rem]">
 							{subtitle}
-						</Typography>
+						</p>
 					)}
-				</Box>
+				</div>
 				{trend && (
-					<Box
+					<span
 						aria-label={`Trend: ${trendPrefix}${Math.abs(trend.value)}% ${
 							isNeutralTrend ? 'no change' : trend.isPositive ? 'increase' : 'decrease'
 						}`}
-						sx={{
-							fontSize: { xs: '0.65rem', sm: '0.7rem', md: '0.75rem' },
-							fontWeight: 700,
-							fontVariantNumeric: 'tabular-nums',
-							px: 1,
-							py: 0.5,
-							borderRadius: '999px',
+						className="shrink-0 rounded-full px-2 py-0.5 text-[0.65rem] font-bold tabular-nums sm:text-[0.7rem] md:text-[0.75rem]"
+						style={{
 							color: trendColor,
 							border: `1px solid ${trendBorderColor}`,
 							background: trendBackground,
-							flexShrink: 0,
 						}}
 					>
 						{trendPrefix}
 						{Math.abs(trend.value)}%
-					</Box>
+					</span>
 				)}
 			</JXBox>
-		</Fade>
+		</motion.div>
 	);
 }

@@ -3,17 +3,13 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
-import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
-import PeopleOutlineIcon from '@mui/icons-material/PeopleOutline';
-import BrandingWatermarkOutlinedIcon from '@mui/icons-material/BrandingWatermarkOutlined';
-import BadgeOutlinedIcon from '@mui/icons-material/BadgeOutlined';
-import AdminPanelSettingsOutlinedIcon from '@mui/icons-material/AdminPanelSettingsOutlined';
-import { Box, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, TextField, Typography } from '@mui/material';
 import { useSession } from 'next-auth/react';
 import { DashboardSurface, DashboardPanel, DashboardGrid, DashboardHeader } from '@/components/dashboard/DashboardSurface';
-import { Button, ConfirmDialog, EmptyState, Skeleton, SkeletonTable, toast } from '@/components/design-system';
+import { Button, ConfirmDialog, EmptyState, FormField, Modal, Select, Skeleton, SkeletonTable, toast } from '@/components/design-system';
 import { PortalActivityList } from '@/components/partner-portals/PortalActivityList';
 import { DataTable, type Column } from '@/components/ui/DataTable';
+import { Package as Inventory2OutlinedIcon, Users as PeopleOutlineIcon, Droplet as BrandingWatermarkOutlinedIcon, IdCard as BadgeOutlinedIcon, ShieldCheck as AdminPanelSettingsOutlinedIcon } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 
 type PortalInfo = {
   id: string;
@@ -128,26 +124,26 @@ export default function PortalMembersPage() {
     result: { loginCode: string; simpleLoginUrl: string; portalUrl: string; email: string; name: string | null },
     title: string,
   ) => (
-    <Box sx={{ border: '1px solid rgba(var(--accent-gold-rgb), 0.28)', bgcolor: 'rgba(var(--accent-gold-rgb), 0.08)', borderRadius: 2, p: 2, display: 'grid', gap: 0.75 }}>
-      <Typography sx={{ fontWeight: 700 }}>{title}</Typography>
-      <Typography sx={{ color: 'var(--text-secondary)' }}>
+    <div style={{ border: '1px solid rgba(var(--accent-gold-rgb), 0.28)', backgroundColor: 'rgba(var(--accent-gold-rgb), 0.08)', borderRadius: 16, padding: 16, display: 'grid', gap: 6 }}>
+      <p style={{ fontWeight: 700 }}>{title}</p>
+      <p style={{ color: 'var(--text-secondary)' }}>
         Share the sign-in page and code with this user. The workspace route is where they land after sign-in.
-      </Typography>
-      <Typography><strong>Name:</strong> {result.name || result.email}</Typography>
-      <Typography><strong>Email:</strong> {result.email}</Typography>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-        <Typography><strong>Login Code:</strong> {result.loginCode}</Typography>
+      </p>
+      <p><strong>Name:</strong> {result.name || result.email}</p>
+      <p><strong>Email:</strong> {result.email}</p>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <p><strong>Login Code:</strong> {result.loginCode}</p>
         <Button variant="outline" size="sm" onClick={() => void handleCopyValue(result.loginCode, 'Login code')}>Copy</Button>
-      </Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-        <Typography><strong>Sign-In Page:</strong> {result.simpleLoginUrl}</Typography>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <p><strong>Sign-In Page:</strong> {result.simpleLoginUrl}</p>
         <Button variant="outline" size="sm" onClick={() => void handleCopyValue(result.simpleLoginUrl, 'Sign-in page')}>Copy</Button>
-      </Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-        <Typography><strong>Workspace Route:</strong> {result.portalUrl}</Typography>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <p><strong>Workspace Route:</strong> {result.portalUrl}</p>
         <Button variant="outline" size="sm" onClick={() => void handleCopyValue(result.portalUrl, 'Workspace route')}>Copy</Button>
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 
   const handleUpdateMembershipRole = async (membership: PortalMembership) => {
@@ -288,16 +284,18 @@ export default function PortalMembersPage() {
       key: 'role',
       header: 'Portal Role',
       render: (_, row) => canManageMembers ? (
-        <TextField
-          select
-          size="small"
-          value={memberRoleDrafts[row.id] || row.role}
-          onChange={(event) => setMemberRoleDrafts((prev) => ({ ...prev, [row.id]: event.target.value }))}
-          sx={{ minWidth: 140 }}
-        >
-          <MenuItem value="ADMIN">ADMIN</MenuItem>
-          <MenuItem value="STAFF">STAFF</MenuItem>
-        </TextField>
+        <div style={{ minWidth: 140 }} className="relative">
+          <select
+            value={memberRoleDrafts[row.id] || row.role}
+            onChange={(event) => setMemberRoleDrafts((prev) => ({ ...prev, [row.id]: event.target.value }))}
+            aria-label="Portal role"
+            className="ds-select-control w-full appearance-none rounded-lg border bg-[var(--background)] text-[var(--text-primary)] outline-none transition-colors px-2.5 py-1.5 text-[0.8125rem] pr-9 border-[rgba(var(--border-rgb),0.9)] hover:border-[var(--border)] focus:border-[var(--accent-gold)] focus:ring-2 focus:ring-[rgba(var(--accent-gold-rgb),0.2)]"
+          >
+            <option value="ADMIN">ADMIN</option>
+            <option value="STAFF">STAFF</option>
+          </select>
+          <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-secondary)]" aria-hidden="true" />
+        </div>
       ) : row.role,
     },
     {
@@ -310,7 +308,7 @@ export default function PortalMembersPage() {
       header: 'Actions',
       align: 'right',
       render: (_, row) => canManageMembers ? (
-        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end', flexWrap: 'nowrap', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'nowrap', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
           <Button
             variant="outline"
             size="sm"
@@ -330,7 +328,7 @@ export default function PortalMembersPage() {
           <Button variant="outline" size="sm" onClick={() => setPendingRemoveMembership(row)} disabled={removingMembershipId === row.id}>
             {removingMembershipId === row.id ? 'Removing...' : 'Remove'}
           </Button>
-        </Box>
+        </div>
       ) : 'Read only',
     },
   ], [canManageMembers, memberRoleDrafts, regeneratingLoginCodeMembershipId, removingMembershipId, savingMembershipRoleId]);
@@ -346,7 +344,7 @@ export default function PortalMembersPage() {
           { label: 'Portal Users', value: customerAppUsers, helper: 'Customer-style accounts using login codes' },
         ]}
         actions={canManageMembers ? (
-          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <Button
               variant="primary"
               size="sm"
@@ -360,7 +358,7 @@ export default function PortalMembersPage() {
             <Link href={`/portal/${portalId}/settings`} style={{ textDecoration: 'none' }}>
               <Button variant="outline" size="sm">Open Settings</Button>
             </Link>
-          </Box>
+          </div>
         ) : undefined}
       />
 
@@ -373,7 +371,7 @@ export default function PortalMembersPage() {
           <EmptyState icon={<PeopleOutlineIcon />} title="No members" description="This portal does not have any members yet." />
         </DashboardPanel>
       ) : (
-        <Box sx={{ display: 'grid', gap: 3 }}>
+        <div style={{ display: 'grid', gap: 24 }}>
           {!canManageMembers ? (
             <DashboardPanel>
               <EmptyState icon={<Inventory2OutlinedIcon />} title="Portal admin access required" description="Only portal admins can invite members, change roles, remove members, regenerate access codes, or update branding." />
@@ -386,39 +384,39 @@ export default function PortalMembersPage() {
             </DashboardPanel>
 
             <DashboardPanel title="Access Snapshot" description="Keep an operational view of account ownership and recent portal changes.">
-              <Box sx={{ display: 'grid', gap: 1.5 }}>
-                <Box sx={{ p: 1.75, borderRadius: 2.5, bgcolor: 'rgba(var(--brand-primary-rgb),0.07)' }}>
-                  <Typography sx={{ fontSize: '0.75rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Admin Coverage</Typography>
-                  <Typography sx={{ fontSize: '1.45rem', fontWeight: 800 }}>{adminCount}</Typography>
-                  <Typography sx={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>At least one portal admin is always preserved for access continuity.</Typography>
-                </Box>
-                <Box sx={{ display: 'grid', gap: 1.2 }}>
+              <div style={{ display: 'grid', gap: 12 }}>
+                <div style={{ padding: 14, borderRadius: 20, backgroundColor: 'rgba(var(--brand-primary-rgb),0.07)' }}>
+                  <p style={{ fontSize: '0.75rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Admin Coverage</p>
+                  <p style={{ fontSize: '1.45rem', fontWeight: 800 }}>{adminCount}</p>
+                  <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>At least one portal admin is always preserved for access continuity.</p>
+                </div>
+                <div style={{ display: 'grid', gap: 9.6 }}>
                   {memberships.slice(0, 4).map((membership) => (
-                    <Box key={membership.id} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, p: 1.2, borderRadius: 2, bgcolor: 'rgba(var(--text-primary-rgb),0.04)' }}>
-                      <Box>
-                        <Typography sx={{ fontSize: '0.9rem', fontWeight: 700 }}>{membership.user.name || membership.user.email}</Typography>
-                        <Typography sx={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>{membership.user.email}</Typography>
-                      </Box>
-                      <Box sx={{ px: 1.1, py: 0.45, borderRadius: 999, bgcolor: membership.role === 'ADMIN' ? 'rgba(var(--brand-primary-rgb),0.12)' : 'rgba(var(--text-primary-rgb),0.06)', color: membership.role === 'ADMIN' ? 'var(--brand-primary)' : 'var(--text-secondary)', fontSize: '0.74rem', fontWeight: 700 }}>
+                    <div key={membership.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: 9.6, borderRadius: 16, backgroundColor: 'rgba(var(--text-primary-rgb),0.04)' }}>
+                      <div>
+                        <p style={{ fontSize: '0.9rem', fontWeight: 700 }}>{membership.user.name || membership.user.email}</p>
+                        <p style={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>{membership.user.email}</p>
+                      </div>
+                      <div style={{ paddingLeft: 8.8, paddingRight: 8.8, paddingTop: 3.6, paddingBottom: 3.6, borderRadius: 7992, backgroundColor: membership.role === 'ADMIN' ? 'rgba(var(--brand-primary-rgb),0.12)' : 'rgba(var(--text-primary-rgb),0.06)', color: membership.role === 'ADMIN' ? 'var(--brand-primary)' : 'var(--text-secondary)', fontSize: '0.74rem', fontWeight: 700 }}>
                         {membership.role}
-                      </Box>
-                    </Box>
+                      </div>
+                    </div>
                   ))}
-                </Box>
-              </Box>
+                </div>
+              </div>
             </DashboardPanel>
           </DashboardGrid>
 
           {canManageMembers ? (
             <DashboardGrid className="grid-cols-1 gap-3 xl:grid-cols-[1fr]">
               <DashboardPanel title="Member Actions" description="Launch the member creation flow from a dedicated action instead of editing fields inline.">
-                <Box sx={{ display: 'grid', gap: 2 }}>
-                  <Box sx={{ border: '1px solid rgba(var(--accent-gold-rgb), 0.24)', borderRadius: 2.5, p: 2.25, display: 'grid', gap: 1.25, bgcolor: 'rgba(var(--accent-gold-rgb), 0.08)' }}>
-                    <Typography sx={{ fontSize: '1rem', fontWeight: 700 }}>Create New Portal User</Typography>
-                    <Typography sx={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                <div style={{ display: 'grid', gap: 16 }}>
+                  <div style={{ border: '1px solid rgba(var(--accent-gold-rgb), 0.24)', borderRadius: 20, padding: 18, display: 'grid', gap: 10, backgroundColor: 'rgba(var(--accent-gold-rgb), 0.08)' }}>
+                    <p style={{ fontSize: '1rem', fontWeight: 700 }}>Create New Portal User</p>
+                    <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
                       Create a portal-ready user profile, assign the workspace role, and issue the initial access code from a single modal.
-                    </Typography>
-                    <Box sx={{ display: 'flex', justifyContent: 'flex-start' }}>
+                    </p>
+                    <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
                       <Button
                         variant="primary"
                         size="sm"
@@ -429,12 +427,12 @@ export default function PortalMembersPage() {
                       >
                         Add New Portal User
                       </Button>
-                    </Box>
-                  </Box>
+                    </div>
+                  </div>
 
                   {inviteResult ? renderAccessResult(inviteResult, 'Portal user created') : null}
                   {loginCodeResult ? renderAccessResult(loginCodeResult, 'Portal login code refreshed') : null}
-                </Box>
+                </div>
               </DashboardPanel>
 
             </DashboardGrid>
@@ -448,42 +446,42 @@ export default function PortalMembersPage() {
                   emptyTitle="No portal activity yet"
                   emptyDescription="Role changes, member invites, removals, and login-code refreshes will appear here."
                 />
-                <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
                   <Link href={`/portal/${portalId}/activity`} style={{ textDecoration: 'none' }}>
                     <Button variant="outline" size="sm">View All Activity</Button>
                   </Link>
-                </Box>
+                </div>
               </DashboardPanel>
             ) : null}
 
             <DashboardPanel title="Access Guidance" description="What this page controls inside the partner workspace.">
-              <Box sx={{ display: 'grid', gap: 1.5 }}>
-                <Box sx={{ display: 'flex', gap: 1.25, alignItems: 'flex-start' }}>
-                  <BadgeOutlinedIcon sx={{ color: 'var(--text-secondary)', mt: 0.3 }} />
-                  <Box>
-                    <Typography sx={{ fontSize: '0.92rem', fontWeight: 700 }}>Roles stay local to the portal</Typography>
-                    <Typography sx={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Portal ADMIN and STAFF only affect this workspace, not the broader app.</Typography>
-                  </Box>
-                </Box>
-                <Box sx={{ display: 'flex', gap: 1.25, alignItems: 'flex-start' }}>
-                  <AdminPanelSettingsOutlinedIcon sx={{ color: 'var(--text-secondary)', mt: 0.3 }} />
-                  <Box>
-                    <Typography sx={{ fontSize: '0.92rem', fontWeight: 700 }}>Access codes are customer-friendly</Typography>
-                    <Typography sx={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Portal admins can regenerate login codes for customer-style accounts without changing your main auth model.</Typography>
-                  </Box>
-                </Box>
-                <Box sx={{ display: 'flex', gap: 1.25, alignItems: 'flex-start' }}>
-                  <BrandingWatermarkOutlinedIcon sx={{ color: 'var(--text-secondary)', mt: 0.3 }} />
-                  <Box>
-                    <Typography sx={{ fontSize: '0.92rem', fontWeight: 700 }}>Branding moved into settings</Typography>
-                    <Typography sx={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Logo upload, accent color, and company label now live on the dedicated Settings page so member management stays focused.</Typography>
-                  </Box>
-                </Box>
-              </Box>
+              <div style={{ display: 'grid', gap: 12 }}>
+                <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                  <BadgeOutlinedIcon style={{ color: 'var(--text-secondary)', marginTop: 2.4 }} />
+                  <div>
+                    <p style={{ fontSize: '0.92rem', fontWeight: 700 }}>Roles stay local to the portal</p>
+                    <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Portal ADMIN and STAFF only affect this workspace, not the broader app.</p>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                  <AdminPanelSettingsOutlinedIcon style={{ color: 'var(--text-secondary)', marginTop: 2.4 }} />
+                  <div>
+                    <p style={{ fontSize: '0.92rem', fontWeight: 700 }}>Access codes are customer-friendly</p>
+                    <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Portal admins can regenerate login codes for customer-style accounts without changing your main auth model.</p>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                  <BrandingWatermarkOutlinedIcon style={{ color: 'var(--text-secondary)', marginTop: 2.4 }} />
+                  <div>
+                    <p style={{ fontSize: '0.92rem', fontWeight: 700 }}>Branding moved into settings</p>
+                    <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Logo upload, accent color, and company label now live on the dedicated Settings page so member management stays focused.</p>
+                  </div>
+                </div>
+              </div>
             </DashboardPanel>
           </DashboardGrid>
 
-          <Dialog
+          <Modal
             open={openCreatePortalUserDialog}
             onClose={() => {
               if (!inviting) {
@@ -491,43 +489,41 @@ export default function PortalMembersPage() {
                 setInviteForm(initialInviteForm);
               }
             }}
-            fullWidth
-            maxWidth="md"
+            title="Create Portal User"
+            size="md"
+            actions={
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setOpenCreatePortalUserDialog(false);
+                    setInviteForm(initialInviteForm);
+                  }}
+                  disabled={inviting}
+                >
+                  Cancel
+                </Button>
+                <Button variant="primary" onClick={() => void handleInvitePortalUser()} disabled={inviting}>
+                  {inviting ? 'Preparing...' : 'Create User And Access Code'}
+                </Button>
+              </>
+            }
           >
-            <DialogTitle>Create Portal User</DialogTitle>
-            <DialogContent sx={{ pt: 1.5, display: 'grid', gap: 2 }}>
-              <Typography sx={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+            <div style={{ paddingTop: 12, display: 'grid', gap: 16 }}>
+              <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
                 Create a portal-ready user profile and generate the initial access code in one step.
-              </Typography>
-              <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' } }}>
-                <TextField label="Name" value={inviteForm.name} onChange={(event) => setInviteForm((prev) => ({ ...prev, name: event.target.value }))} />
-                <TextField label="Email" value={inviteForm.email} onChange={(event) => setInviteForm((prev) => ({ ...prev, email: event.target.value }))} />
-                <TextField label="Phone" value={inviteForm.phone} onChange={(event) => setInviteForm((prev) => ({ ...prev, phone: event.target.value }))} />
-                <TextField label="City" value={inviteForm.city} onChange={(event) => setInviteForm((prev) => ({ ...prev, city: event.target.value }))} />
-                <TextField label="Country" value={inviteForm.country} onChange={(event) => setInviteForm((prev) => ({ ...prev, country: event.target.value }))} />
-                <TextField select label="Portal Role" value={inviteForm.membershipRole} onChange={(event) => setInviteForm((prev) => ({ ...prev, membershipRole: event.target.value }))}>
-                  <MenuItem value="ADMIN">ADMIN</MenuItem>
-                  <MenuItem value="STAFF">STAFF</MenuItem>
-                </TextField>
-              </Box>
-            </DialogContent>
-            <DialogActions sx={{ px: 3, pb: 3 }}>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setOpenCreatePortalUserDialog(false);
-                  setInviteForm(initialInviteForm);
-                }}
-                disabled={inviting}
-              >
-                Cancel
-              </Button>
-              <Button variant="primary" onClick={() => void handleInvitePortalUser()} disabled={inviting}>
-                {inviting ? 'Preparing...' : 'Create User And Access Code'}
-              </Button>
-            </DialogActions>
-          </Dialog>
-        </Box>
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2" style={{ display: 'grid', gap: 16 }}>
+                <FormField label="Name" value={inviteForm.name} onChange={(event) => setInviteForm((prev) => ({ ...prev, name: event.target.value }))} />
+                <FormField label="Email" value={inviteForm.email} onChange={(event) => setInviteForm((prev) => ({ ...prev, email: event.target.value }))} />
+                <FormField label="Phone" value={inviteForm.phone} onChange={(event) => setInviteForm((prev) => ({ ...prev, phone: event.target.value }))} />
+                <FormField label="City" value={inviteForm.city} onChange={(event) => setInviteForm((prev) => ({ ...prev, city: event.target.value }))} />
+                <FormField label="Country" value={inviteForm.country} onChange={(event) => setInviteForm((prev) => ({ ...prev, country: event.target.value }))} />
+                <Select label="Portal Role" value={inviteForm.membershipRole} onChange={(val) => setInviteForm((prev) => ({ ...prev, membershipRole: val as string }))} options={[{ value: 'ADMIN', label: 'ADMIN' }, { value: 'STAFF', label: 'STAFF' }]} />
+              </div>
+            </div>
+          </Modal>
+        </div>
       )}
 
       <ConfirmDialog
