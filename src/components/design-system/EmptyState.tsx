@@ -1,6 +1,6 @@
 "use client";
 
-import { JXBox, JXTypography } from '@jacxishippingorg/jx-ui-react';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
 import { ReactNode } from 'react';
 
 interface EmptyStateProps {
@@ -28,19 +28,17 @@ export default function EmptyState({ icon, title, description, action }: EmptySt
 			>
 				{icon}
 			</div>
-			<JXTypography
-				variant="h3"
-				className="!text-[0.98rem] sm:!text-[1rem] md:!text-[1.05rem] !font-semibold !text-[var(--text-primary)]"
+			<h3
+				className="text-[0.98rem] sm:text-[1rem] md:text-[1.05rem] font-semibold text-[var(--text-primary)]"
 			>
 				{title}
-			</JXTypography>
+			</h3>
 			{description && (
-				<JXTypography
-					variant="body"
-					className="max-w-[400px] !text-[0.8rem] sm:!text-[0.85rem] md:!text-[0.9rem] !text-[var(--text-secondary)]"
+				<p
+					className="max-w-[400px] text-[0.8rem] sm:text-[0.85rem] md:text-[0.9rem] text-[var(--text-secondary)]"
 				>
 					{description}
-				</JXTypography>
+				</p>
 			)}
 			{action && <div className="mt-2">{action}</div>}
 		</JXBox>

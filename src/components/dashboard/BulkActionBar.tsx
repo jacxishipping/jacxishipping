@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { JXBox, JXTypography } from '@jacxishippingorg/jx-ui-react';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
 import { CheckSquare, X, ChevronDown, Download, QrCode, Trash2, Layers, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/design-system';
 
@@ -61,12 +61,9 @@ export function BulkActionBar({
         >
           <CheckSquare size={16} />
         </div>
-        <JXTypography
-          variant="body"
-          className="!whitespace-nowrap !text-[0.85rem] !font-bold !text-[var(--text-primary)]"
-        >
+        <span className="whitespace-nowrap text-[0.85rem] font-bold text-[var(--text-primary)]">
           {selectedCount} selected
-        </JXTypography>
+        </span>
         <Button
           variant="outline"
           size="sm"

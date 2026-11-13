@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { JXBox, JXTypography } from '@jacxishippingorg/jx-ui-react';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
 import { ChevronRight, Home } from '@mui/icons-material';
 
 /**
@@ -109,12 +109,9 @@ export default function Breadcrumbs({
         return (
           <div key={itemKey} className="flex items-center gap-1">
             {isLast || !item.href ? (
-              <JXTypography
-                variant="body"
-                className="px-2 py-1 !text-[0.875rem] !font-semibold !text-[var(--text-primary)]"
-              >
+              <span className="px-2 py-1 text-[0.875rem] font-semibold text-[var(--text-primary)]">
                 {item.label}
-              </JXTypography>
+              </span>
             ) : (
               <>
                 <Link href={item.href} style={{ textDecoration: 'none' }}>
@@ -167,9 +164,9 @@ export function BreadcrumbsCompact({ className }: { className?: string }) {
           <ChevronRight sx={{ fontSize: 14, color: 'var(--text-secondary)' }} />
         </>
       )}
-      <JXTypography variant="body" className="!text-[0.8125rem] !font-semibold !text-[var(--text-primary)]">
+      <span className="text-[0.8125rem] font-semibold text-[var(--text-primary)]">
         {currentPage.label}
-      </JXTypography>
+      </span>
     </JXBox>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { JXBox, JXTypography } from '@jacxishippingorg/jx-ui-react';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
 import { ReactNode } from 'react';
 import { useTheme } from '@/hooks/useTheme';
 
@@ -48,8 +48,8 @@ export function Table<T extends Record<string, any>>({
           fontFamily: 'inherit',
         }}
       >
-        <JXTypography variant="body" className="!text-[0.9rem] !font-bold !text-[var(--text-primary)]">{emptyTitle}</JXTypography>
-        <JXTypography variant="body" className="mt-1 !text-[0.82rem] !text-[var(--text-secondary)]">{emptyMessage}</JXTypography>
+        <p className="text-[0.9rem] font-bold text-[var(--text-primary)]">{emptyTitle}</p>
+        <p className="mt-1 text-[0.82rem] text-[var(--text-secondary)]">{emptyMessage}</p>
       </JXBox>
     );
   }

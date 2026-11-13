@@ -1,6 +1,6 @@
 'use client';
 
-import { JXBox, JXTypography } from '@jacxishippingorg/jx-ui-react';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
 import { cn } from '@/lib/utils';
 
 interface MobileCardProps {
@@ -43,13 +43,13 @@ export function MobileCard({
         <div className="flex-1 min-w-0">
           <div className="flex justify-between items-start">
             <div className="min-w-0">
-              <JXTypography variant="h3" className="!text-base !font-semibold !text-[var(--text-primary)] truncate pr-2">
+              <h3 className="text-base font-semibold text-[var(--text-primary)] truncate pr-2">
                 {title}
-              </JXTypography>
+              </h3>
               {subtitle && (
-                <JXTypography variant="body" className="!text-sm !text-[var(--text-secondary)] truncate">
+                <p className="text-sm text-[var(--text-secondary)] truncate">
                   {subtitle}
-                </JXTypography>
+                </p>
               )}
             </div>
             {status}

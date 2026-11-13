@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { ArrowForward, LocalShipping, LocationOn, CalendarToday } from '@mui/icons-material';
 import { Slide } from '@mui/material';
-import { JXBox, JXTypography } from '@jacxishippingorg/jx-ui-react';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
 import { useState, useEffect } from 'react';
 import { Button, StatusBadge } from '@/components/design-system';
 
@@ -67,19 +67,13 @@ export default function ShipmentCard({
 					{/* Header: Vehicle Info & Status */}
 					<div className="flex min-w-0 justify-between gap-2">
 						<div className="min-w-0 flex-1 overflow-hidden">
-							<JXTypography
-								variant="body"
-								className="!truncate !text-[0.75rem] sm:!text-[0.8rem] !font-semibold !text-[var(--text-primary)]"
-							>
+							<span className="block truncate text-[0.75rem] sm:text-[0.8rem] font-semibold text-[var(--text-primary)]">
 								{vehicleInfo}
-							</JXTypography>
+							</span>
 							{vehicleVIN && (
-								<JXTypography
-									variant="caption"
-									className="!mt-[1.6px] !block !truncate !text-[0.6rem] sm:!text-[0.65rem] !text-[var(--text-secondary)]"
-								>
+								<span className="mt-[1.6px] block truncate text-[0.6rem] sm:text-[0.65rem] text-[var(--text-secondary)]">
 									VIN: {vehicleVIN}
-								</JXTypography>
+								</span>
 							)}
 						</div>
 						<StatusBadge 
@@ -91,18 +85,12 @@ export default function ShipmentCard({
 
 					{/* Vehicle Details */}
 					<div className="flex min-w-0 flex-col gap-1">
-						<JXTypography
-							variant="caption"
-							className="!block !text-[0.6rem] sm:!text-[0.65rem] !uppercase !tracking-[0.18em] !text-[var(--text-secondary)]"
-						>
+						<span className="block text-[0.6rem] sm:text-[0.65rem] uppercase tracking-[0.18em] text-[var(--text-secondary)]">
 							Vehicle Type
-						</JXTypography>
-						<JXTypography
-							variant="body"
-							className="!truncate !text-[0.72rem] sm:!text-[0.78rem] !font-medium !text-[var(--text-primary)]"
-						>
+						</span>
+						<span className="truncate text-[0.72rem] sm:text-[0.78rem] font-medium text-[var(--text-primary)]">
 							{vehicleType}
-						</JXTypography>
+						</span>
 					</div>
 
 					{/* Container Shipping Info */}
@@ -113,12 +101,9 @@ export default function ShipmentCard({
 								<div className="flex min-w-0 flex-1 items-center gap-1">
 									<LocalShipping sx={{ fontSize: { xs: 14, sm: 16 }, color: 'var(--accent-gold)', flexShrink: 0 }} />
 									<Link href={`/dashboard/containers/${containerId}`} style={{ textDecoration: 'none', minWidth: 0, overflow: 'hidden' }}>
-										<JXTypography
-											variant="body"
-											className="!truncate !text-[0.7rem] sm:!text-[0.75rem] !font-semibold !text-[var(--accent-gold-text)] hover:!underline"
-										>
+										<span className="truncate text-[0.7rem] sm:text-[0.75rem] font-semibold text-[var(--accent-gold-text)] hover:underline">
 											{container.containerNumber}
-										</JXTypography>
+										</span>
 									</Link>
 								</div>
 								{container.status && (
@@ -134,18 +119,12 @@ export default function ShipmentCard({
 							{typeof container.progress === 'number' && (
 								<div className="flex min-w-0 flex-col gap-[2.4px]">
 									<div className="flex items-center justify-between">
-										<JXTypography
-											variant="caption"
-											className="!text-[0.6rem] sm:!text-[0.65rem] !uppercase !tracking-[0.15em] !text-[var(--text-secondary)]"
-										>
+										<span className="text-[0.6rem] sm:text-[0.65rem] uppercase tracking-[0.15em] text-[var(--text-secondary)]">
 											Shipping Progress
-										</JXTypography>
-										<JXTypography
-											variant="caption"
-											className="!text-[0.65rem] sm:!text-[0.7rem] !font-semibold !text-[var(--accent-gold-text)]"
-										>
+										</span>
+										<span className="text-[0.65rem] sm:text-[0.7rem] font-semibold text-[var(--accent-gold-text)]">
 											{container.progress}%
-										</JXTypography>
+										</span>
 									</div>
 									<div
 										className="h-1 sm:h-[5px] w-full overflow-hidden rounded"
@@ -166,34 +145,25 @@ export default function ShipmentCard({
 							{container.currentLocation && (
 								<div className="flex min-w-0 items-center gap-1">
 									<LocationOn sx={{ fontSize: { xs: 12, sm: 14 }, color: 'var(--text-secondary)', flexShrink: 0 }} />
-									<JXTypography
-										variant="caption"
-										className="!truncate !text-[0.65rem] sm:!text-[0.7rem] !text-[var(--text-secondary)]"
-									>
+									<span className="truncate text-[0.65rem] sm:text-[0.7rem] text-[var(--text-secondary)]">
 										{container.currentLocation}
-									</JXTypography>
+									</span>
 								</div>
 							)}
 
 							{/* Vessel and ETA */}
 							<div className="flex min-w-0 flex-col gap-1">
 								{container.vesselName && (
-									<JXTypography
-										variant="caption"
-										className="!truncate !text-[0.65rem] sm:!text-[0.7rem] !text-[var(--text-secondary)]"
-									>
+									<span className="truncate text-[0.65rem] sm:text-[0.7rem] text-[var(--text-secondary)]">
 										<span style={{ fontWeight: 600 }}>Vessel:</span> {container.vesselName}
-									</JXTypography>
+									</span>
 								)}
 								{container.estimatedArrival && (
 									<div className="flex min-w-0 items-center gap-1">
 										<CalendarToday sx={{ fontSize: { xs: 12, sm: 14 }, color: 'var(--text-secondary)', flexShrink: 0 }} />
-										<JXTypography
-											variant="caption"
-											className="!truncate !text-[0.65rem] sm:!text-[0.7rem] !text-[var(--text-secondary)]"
-										>
+										<span className="truncate text-[0.65rem] sm:text-[0.7rem] text-[var(--text-secondary)]">
 											ETA: {new Date(container.estimatedArrival).toLocaleDateString()}
-										</JXTypography>
+										</span>
 									</div>
 								)}
 							</div>

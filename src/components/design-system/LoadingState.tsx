@@ -1,6 +1,6 @@
 "use client";
 
-import { JXBox, JXTypography } from '@jacxishippingorg/jx-ui-react';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
 import { CompactSkeleton } from './PageSkeletons';
 
 interface LoadingStateProps {
@@ -38,9 +38,9 @@ export default function LoadingState({ message = 'Loading...', fullScreen = fals
 				<CompactSkeleton />
 			</div>
 			{message && message !== 'Loading...' && (
-				<JXTypography variant="caption" className="mt-4 !text-[var(--text-secondary)]">
+				<p className="mt-4 text-xs text-[var(--text-secondary)]">
 					{message}
-				</JXTypography>
+				</p>
 			)}
 		</JXBox>
 	);

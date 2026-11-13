@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { JXBox, JXTypography } from '@jacxishippingorg/jx-ui-react';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
 import { DollarSign, TrendingUp, TrendingDown, Layers, Receipt, ShieldCheck, AlertTriangle } from 'lucide-react';
 import { formatMoney as formatCurrency } from '@/lib/format';
 
@@ -52,9 +52,9 @@ export function ContainerProfitabilityCard({
       <div className="flex justify-between items-center mb-5">
         <div className="flex items-center gap-2">
           <DollarSign size={18} style={{ color: 'var(--accent-gold)' }} />
-          <JXTypography variant="body" className="!font-bold !text-[0.95rem] !text-[var(--text-primary)]">
+          <span className="font-bold text-[0.95rem] text-[var(--text-primary)]">
             Container Unit Economics &amp; Profitability
-          </JXTypography>
+          </span>
         </div>
         <div
           className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[0.75rem] font-bold"
@@ -95,31 +95,31 @@ export function ContainerProfitabilityCard({
         <JXBox surface="subtle" padding="none" className="p-3.5 !rounded-lg !bg-[var(--background)] !border-[var(--border)] shadow-none">
           <div className="flex items-center gap-1.5 mb-1">
             <Receipt size={15} style={{ color: 'var(--text-secondary)' }} />
-            <JXTypography variant="caption" className="!text-[0.75rem] !font-semibold !text-[var(--text-secondary)]">
+            <span className="text-[0.75rem] font-semibold text-[var(--text-secondary)]">
               Total Cargo Revenue
-            </JXTypography>
+            </span>
           </div>
-          <JXTypography variant="h2" className="!text-[1.25rem] !font-extrabold !text-[#16a34a]">
+          <div className="text-[1.25rem] font-extrabold text-[#16a34a]">
             {formatCurrency(totalRevenue)}
-          </JXTypography>
-          <JXTypography variant="caption" className="!block !text-[0.7rem] !text-[var(--text-secondary)] !mt-0.5">
+          </div>
+          <span className="block text-[0.7rem] text-[var(--text-secondary)] mt-0.5">
             {itemRevenues.length > 0 ? `${itemRevenues.length} freight invoices` : 'Estimated manifest total'}
-          </JXTypography>
+          </span>
         </JXBox>
 
         <JXBox surface="subtle" padding="none" className="p-3.5 !rounded-lg !bg-[var(--background)] !border-[var(--border)] shadow-none">
           <div className="flex items-center gap-1.5 mb-1">
             <Layers size={15} style={{ color: 'var(--text-secondary)' }} />
-            <JXTypography variant="caption" className="!text-[0.75rem] !font-semibold !text-[var(--text-secondary)]">
+            <span className="text-[0.75rem] font-semibold text-[var(--text-secondary)]">
               Total Container Costs
-            </JXTypography>
+            </span>
           </div>
-          <JXTypography variant="h2" className="!text-[1.25rem] !font-extrabold !text-[var(--error)]">
+          <div className="text-[1.25rem] font-extrabold text-[var(--error)]">
             {formatCurrency(totalExpenses)}
-          </JXTypography>
-          <JXTypography variant="caption" className="!block !text-[0.7rem] !text-[var(--text-secondary)] !mt-0.5">
+          </div>
+          <span className="block text-[0.7rem] text-[var(--text-secondary)] mt-0.5">
             Ocean + Drayage + Port fees
-          </JXTypography>
+          </span>
         </JXBox>
 
         <JXBox
@@ -137,52 +137,50 @@ export function ContainerProfitabilityCard({
             ) : (
               <TrendingDown size={15} style={{ color: '#ef4444' }} />
             )}
-            <JXTypography variant="caption" className="!text-[0.75rem] !font-semibold !text-[var(--text-secondary)]">
+            <span className="text-[0.75rem] font-semibold text-[var(--text-secondary)]">
               Net Operating Margin
-            </JXTypography>
+            </span>
           </div>
-          <JXTypography
-            variant="h2"
+          <div
             className={[
-              '!text-[1.25rem] !font-extrabold',
-              isProfitable ? '!text-[#16a34a]' : '!text-[var(--error)]',
+              'text-[1.25rem] font-extrabold',
+              isProfitable ? 'text-[#16a34a]' : 'text-[var(--error)]',
             ].join(' ')}
           >
             {formatCurrency(netProfit)}
-          </JXTypography>
-          <JXTypography
-            variant="caption"
+          </div>
+          <span
             className={[
-              '!block !text-[0.7rem] !font-bold !mt-0.5',
-              isProfitable ? '!text-[#16a34a]' : '!text-[var(--error)]',
+              'block text-[0.7rem] font-bold mt-0.5',
+              isProfitable ? 'text-[#16a34a]' : 'text-[var(--error)]',
             ].join(' ')}
           >
             {marginPercent.toFixed(1)}% gross margin
-          </JXTypography>
+          </span>
         </JXBox>
       </div>
 
       {/* Cost Breakdown Accordion / Grid */}
       <JXBox surface="subtle" padding="none" className="p-3 !rounded-lg !bg-[var(--background)] !border-[var(--border)] shadow-none">
-        <JXTypography variant="caption" className="!block !text-[0.75rem] !font-bold !uppercase !text-[var(--text-secondary)] !mb-2">
+        <span className="block text-[0.75rem] font-bold uppercase text-[var(--text-secondary)] mb-2">
           Direct Cost Breakdown
-        </JXTypography>
+        </span>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div>
-            <JXTypography variant="caption" className="!block !text-[0.72rem] !text-[var(--text-secondary)]">Ocean Freight</JXTypography>
-            <JXTypography variant="body" className="!text-[0.85rem] !font-bold">{formatCurrency(oceanFreightCost)}</JXTypography>
+            <span className="block text-[0.72rem] text-[var(--text-secondary)]">Ocean Freight</span>
+            <div className="text-[0.85rem] font-bold">{formatCurrency(oceanFreightCost)}</div>
           </div>
           <div>
-            <JXTypography variant="caption" className="!block !text-[0.72rem] !text-[var(--text-secondary)]">Drayage / Hauling</JXTypography>
-            <JXTypography variant="body" className="!text-[0.85rem] !font-bold">{formatCurrency(drayageCost)}</JXTypography>
+            <span className="block text-[0.72rem] text-[var(--text-secondary)]">Drayage / Hauling</span>
+            <div className="text-[0.85rem] font-bold">{formatCurrency(drayageCost)}</div>
           </div>
           <div>
-            <JXTypography variant="caption" className="!block !text-[0.72rem] !text-[var(--text-secondary)]">Terminal Handling</JXTypography>
-            <JXTypography variant="body" className="!text-[0.85rem] !font-bold">{formatCurrency(terminalHandlingCost)}</JXTypography>
+            <span className="block text-[0.72rem] text-[var(--text-secondary)]">Terminal Handling</span>
+            <div className="text-[0.85rem] font-bold">{formatCurrency(terminalHandlingCost)}</div>
           </div>
           <div>
-            <JXTypography variant="caption" className="!block !text-[0.72rem] !text-[var(--text-secondary)]">Customs &amp; Port Fees</JXTypography>
-            <JXTypography variant="body" className="!text-[0.85rem] !font-bold">{formatCurrency(customsCost)}</JXTypography>
+            <span className="block text-[0.72rem] text-[var(--text-secondary)]">Customs &amp; Port Fees</span>
+            <div className="text-[0.85rem] font-bold">{formatCurrency(customsCost)}</div>
           </div>
         </div>
       </JXBox>

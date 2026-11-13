@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { JXBox, JXTypography, SpringButton } from '@jacxishippingorg/jx-ui-react';
+import { JXBox, SpringButton } from '@jacxishippingorg/jx-ui-react';
 import { Bookmark, Plus, X, Check } from 'lucide-react';
 import { Button } from '@/components/design-system';
 
@@ -95,12 +95,9 @@ export function SavedFilterPresets<T extends Record<string, any>>({
     >
       <div className="flex items-center gap-1 mr-1">
         <Bookmark size={14} style={{ color: 'var(--accent-gold)' }} />
-        <JXTypography
-          variant="caption"
-          className="!text-[0.75rem] !font-bold !text-[var(--text-secondary)]"
-        >
+        <span className="text-[0.75rem] font-bold text-[var(--text-secondary)]">
           Saved Views:
-        </JXTypography>
+        </span>
       </div>
 
       {presets.map((preset) => {

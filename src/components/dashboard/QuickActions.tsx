@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Add, Search, Inventory2, Description } from '@mui/icons-material';
 import { Fade } from '@mui/material';
-import { JXBox, JXTypography } from '@jacxishippingorg/jx-ui-react';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
 import type { SvgIconComponent } from '@mui/icons-material';
 
 const actions = [
@@ -75,18 +75,12 @@ export default function QuickActions({ showHeading = false }: QuickActionsProps 
 			<div>
 				{showHeading && (
 					<div className="mb-2">
-						<JXTypography
-							variant="caption"
-							className="!block !text-[0.8rem] !uppercase !tracking-[0.2em] !text-[var(--text-secondary)]"
-						>
+						<span className="block text-[0.8rem] uppercase tracking-[0.2em] text-[var(--text-secondary)]">
 							Action Center
-						</JXTypography>
-						<JXTypography
-							variant="body"
-							className="!block !text-[0.85rem] !font-semibold !text-[var(--text-primary)]"
-						>
+						</span>
+						<span className="block text-[0.85rem] font-semibold text-[var(--text-primary)]">
 							Start a workflow
-						</JXTypography>
+						</span>
 					</div>
 				)}
 				<div className="grid grid-cols-2 gap-2">
@@ -138,19 +132,13 @@ function ActionCard({ icon: Icon, title, description, href, colorValues }: Actio
 					>
 						<Icon sx={{ fontSize: 16, color: colorValues.text }} />
 					</div>
-					<JXTypography
-						variant="body"
-						className="!truncate !text-[0.78rem] !font-semibold !text-[var(--text-primary)]"
-					>
+					<span className="truncate text-[0.78rem] font-semibold text-[var(--text-primary)]">
 						{title}
-					</JXTypography>
+					</span>
 				</div>
-				<JXTypography
-					variant="caption"
-					className="!flex-1 !text-[0.68rem] !leading-[1.4] !text-[var(--text-secondary)]"
-				>
+				<span className="flex-1 text-[0.68rem] leading-[1.4] text-[var(--text-secondary)]">
 					{description}
-				</JXTypography>
+				</span>
 			</JXBox>
 		</Link>
 	);

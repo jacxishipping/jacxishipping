@@ -1,6 +1,6 @@
 "use client";
 
-import { JXBox, JXButton, JXTypography } from "@jacxishippingorg/jx-ui-react";
+import { JXBox, JXButton } from "@jacxishippingorg/jx-ui-react";
 import { ReactNode } from "react";
 import Tooltip from "./Tooltip";
 import {
@@ -129,27 +129,25 @@ export default function Alert({
       {/* Content */}
       <div className="min-w-0 flex-1">
         {title && (
-          <JXTypography
-            variant="h3"
+          <h4
             className={[
-              "!text-[0.9375rem] !font-semibold",
-              message || children ? "!mb-1" : "!mb-0",
-              variant === "filled" ? "!text-white" : "!text-[var(--text-primary)]",
+              "text-[0.9375rem] font-semibold",
+              message || children ? "mb-1" : "mb-0",
+              variant === "filled" ? "text-white" : "text-[var(--text-primary)]",
             ].join(" ")}
           >
             {title}
-          </JXTypography>
+          </h4>
         )}
         {message && (
-          <JXTypography
-            variant="body"
+          <p
             className={[
-              "!text-[0.875rem] !leading-[1.5]",
-              variant === "filled" ? "!text-white/90" : "!text-[var(--text-secondary)]",
+              "text-[0.875rem] leading-[1.5]",
+              variant === "filled" ? "text-white/90" : "text-[var(--text-secondary)]",
             ].join(" ")}
           >
             {message}
-          </JXTypography>
+          </p>
         )}
         {children && (
           <div

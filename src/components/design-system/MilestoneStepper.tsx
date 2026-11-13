@@ -1,6 +1,6 @@
 "use client";
 
-import { JXBox, JXTypography } from '@jacxishippingorg/jx-ui-react';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
 import { Check } from 'lucide-react';
 import React, { ReactNode } from 'react';
 
@@ -101,24 +101,22 @@ export default function MilestoneStepper({
 
                 {/* Step Text Info */}
                 <div className="min-w-0">
-                  <JXTypography
-                    variant="body"
+                  <span
                     className={[
-                      '!text-[0.8125rem] !leading-[1.2]',
+                      'block text-[0.8125rem] leading-[1.2]',
                       isCurrent || isCompleted
-                        ? '!font-bold !text-[var(--text-primary,#111827)]'
-                        : '!font-medium !text-[var(--text-secondary,#6B7280)]',
+                        ? 'font-bold text-[var(--text-primary,#111827)]'
+                        : 'font-medium text-[var(--text-secondary,#6B7280)]',
                     ].join(' ')}
                   >
                     {step.label}
-                  </JXTypography>
+                  </span>
                   {step.timestamp && (
-                    <JXTypography
-                      variant="caption"
-                      className="!block !text-[0.6875rem] !text-[var(--text-secondary,#9CA3AF)]"
+                    <span
+                      className="block text-[0.6875rem] text-[var(--text-secondary,#9CA3AF)]"
                     >
                       {step.timestamp}
-                    </JXTypography>
+                    </span>
                   )}
                 </div>
               </div>

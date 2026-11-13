@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { User, Eye, EyeOff, Copy, Check, Package, Key } from 'lucide-react';
 import { Slide, Tooltip } from '@mui/material';
-import { JXBox, JXTypography, SpringButton } from '@jacxishippingorg/jx-ui-react';
+import { JXBox, SpringButton } from '@jacxishippingorg/jx-ui-react';
 import { Button } from '@/components/design-system';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import EditIcon from '@mui/icons-material/Edit';
@@ -89,18 +89,12 @@ export default function UserCard({
               />
             </div>
             <div className="flex-1 min-w-0">
-              <JXTypography
-                variant="body"
-                className="!truncate !text-[0.9rem] !font-bold !text-[var(--text-primary)]"
-              >
+              <span className="block truncate text-[0.9rem] font-bold text-[var(--text-primary)]">
                 {user.name || "Unnamed User"}
-              </JXTypography>
-              <JXTypography
-                variant="caption"
-                className="!block !truncate !text-[var(--text-secondary)]"
-              >
+              </span>
+              <span className="block truncate text-xs text-[var(--text-secondary)]">
                 {formatRole(user.role)}
-              </JXTypography>
+              </span>
             </div>
             <div>
               <Tooltip title={showEmail ? "Hide email" : "Show email"}>
@@ -126,19 +120,13 @@ export default function UserCard({
           </div>
 
           <div className="flex items-center gap-2 mb-2">
-            <JXTypography
-              variant="caption"
-              className="!min-w-[90px] !text-[var(--text-secondary)]"
-            >
+            <span className="min-w-[90px] text-xs text-[var(--text-secondary)]">
               Email
-            </JXTypography>
+            </span>
             <div className="flex flex-1 items-center gap-2 min-w-0">
-              <JXTypography
-                variant="code"
-                className="!truncate !border-0 !bg-transparent !p-0 !text-[var(--text-primary)]"
-              >
+              <span className="truncate font-mono text-xs text-[var(--text-primary)]">
                 {showEmail ? user.email : maskEmail(user.email)}
-              </JXTypography>
+              </span>
               {showEmail && (
                 <Tooltip title={copiedEmail === user.id ? "Email copied" : "Copy email"}>
                   <span className="inline-flex">
@@ -163,22 +151,16 @@ export default function UserCard({
             </div>
           </div>
           <div className="flex items-center gap-2 mb-2">
-            <JXTypography
-              variant="caption"
-              className="!min-w-[90px] !text-[var(--text-secondary)]"
-            >
+            <span className="min-w-[90px] text-xs text-[var(--text-secondary)]">
               Shipments
-            </JXTypography>
+            </span>
             <div className="flex items-center gap-1">
               <Package
                 style={{ width: 14, height: 14, color: "var(--text-secondary)" }}
               />
-              <JXTypography
-                variant="body"
-                className="!text-[0.875rem] !font-semibold !text-[var(--text-primary)]"
-              >
+              <span className="text-[0.875rem] font-semibold text-[var(--text-primary)]">
                 {user._count?.shipments ?? 0}
-              </JXTypography>
+              </span>
             </div>
           </div>
 
@@ -187,9 +169,9 @@ export default function UserCard({
               className="mt-2 pt-2"
               style={{ borderTop: "1px solid rgba(255,255,255,0.03)" }}
             >
-              <JXTypography variant="caption" className="!text-[var(--text-secondary)]">
+              <span className="text-xs text-[var(--text-secondary)]">
                 Joined {new Date(user.createdAt).toLocaleDateString()}
-              </JXTypography>
+              </span>
             </div>
           )}
 

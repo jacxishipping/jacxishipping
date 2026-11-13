@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { JXBox, JXTypography } from '@jacxishippingorg/jx-ui-react';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
 import { Keyboard } from '@mui/icons-material';
 import Modal from './Modal';
 import { useKeyboardShortcut, ShortcutRegistry } from '@/lib/hooks/useKeyboardShortcut';
@@ -76,9 +76,9 @@ export default function KeyboardShortcutHelp() {
       title={
         <div className="flex items-center gap-3">
           <Keyboard sx={{ color: 'var(--accent-gold)' }} />
-          <JXTypography variant="h3" className="!font-bold !text-[var(--text-primary)]">
+          <h3 className="font-bold text-[var(--text-primary)]">
             Keyboard Shortcuts
-          </JXTypography>
+          </h3>
         </div>
       }
       description="Global shortcuts are listed first, followed by any page-specific shortcuts currently registered."
@@ -86,24 +86,18 @@ export default function KeyboardShortcutHelp() {
       <JXBox padding="none" border={false} className="flex flex-col gap-8 !rounded-none !bg-transparent" style={{ fontFamily: 'inherit' }}>
           {defaultShortcuts.map((category) => (
             <div key={category.name}>
-              <JXTypography
-                variant="caption"
-                className="!mb-4 !block !text-[0.75rem] !font-bold !uppercase !tracking-[0.1em] !text-[var(--text-secondary)]"
-              >
+              <span className="mb-4 block text-[0.75rem] font-bold uppercase tracking-[0.1em] text-[var(--text-secondary)]">
                 {category.name}
-              </JXTypography>
+              </span>
               <div className="flex flex-col gap-3">
                 {category.shortcuts.map((shortcut) => (
-                  <div
+                   <div
                     key={shortcut.key}
                     className="flex items-center justify-between py-2"
                   >
-                    <JXTypography
-                      variant="body"
-                      className="!text-[0.875rem] !text-[var(--text-primary)]"
-                    >
+                    <span className="text-[0.875rem] text-[var(--text-primary)]">
                       {shortcut.description}
-                    </JXTypography>
+                    </span>
                     <kbd
                       className="rounded-md px-3 py-1 font-mono text-[0.75rem] font-semibold whitespace-nowrap"
                       style={{
@@ -123,24 +117,18 @@ export default function KeyboardShortcutHelp() {
           {/* Dynamic shortcuts from registry */}
           {ShortcutRegistry.getAll().length > 0 && (
             <div>
-              <JXTypography
-                variant="caption"
-                className="!mb-4 !block !text-[0.75rem] !font-bold !uppercase !tracking-[0.1em] !text-[var(--text-secondary)]"
-              >
+              <span className="mb-4 block text-[0.75rem] font-bold uppercase tracking-[0.1em] text-[var(--text-secondary)]">
                 Page Specific
-              </JXTypography>
+              </span>
               <div className="flex flex-col gap-3">
                 {ShortcutRegistry.getAll().map((shortcut) => (
                   <div
                     key={shortcut.id}
                     className="flex items-center justify-between py-2"
                   >
-                    <JXTypography
-                      variant="body"
-                      className="!text-[0.875rem] !text-[var(--text-primary)]"
-                    >
+                    <span className="text-[0.875rem] text-[var(--text-primary)]">
                       {shortcut.description}
-                    </JXTypography>
+                    </span>
                     <kbd
                       className="rounded-md px-3 py-1 font-mono text-[0.75rem] font-semibold"
                       style={{

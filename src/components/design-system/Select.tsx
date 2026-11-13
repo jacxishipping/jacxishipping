@@ -8,7 +8,7 @@ import {
   SelectChangeEvent,
   InputAdornment,
 } from '@mui/material';
-import { JXBox, JXTypography } from '@jacxishippingorg/jx-ui-react';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
 import { ReactNode } from 'react';
 import { ExpandMore } from '@mui/icons-material';
 import { useTheme } from '@/hooks/useTheme';
@@ -138,9 +138,9 @@ export default function Select({
         >
           {placeholder && (
             <MenuItem value="" disabled>
-              <JXTypography variant="body" className="!text-[0.875rem] !text-[var(--text-secondary)]">
+              <span className="text-[0.875rem] text-[var(--text-secondary)]">
                 {placeholder}
-              </JXTypography>
+              </span>
             </MenuItem>
           )}
           {options.map((option) => (
@@ -179,15 +179,14 @@ export default function Select({
 
       {/* Helper Text */}
       {helperText && (
-        <JXTypography
-          variant="caption"
+        <span
           className={[
-            "!mt-1 !block !text-[0.75rem]",
-            error ? "!text-[var(--error)]" : "!text-[var(--text-secondary)]",
+            "mt-1 block text-[0.75rem]",
+            error ? "text-[var(--error)]" : "text-[var(--text-secondary)]",
           ].join(" ")}
         >
           {helperText}
-        </JXTypography>
+        </span>
       )}
     </JXBox>
   );

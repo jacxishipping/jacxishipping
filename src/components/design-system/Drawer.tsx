@@ -6,7 +6,7 @@ import {
   SxProps,
   Theme,
 } from "@mui/material";
-import { JXBox, JXTypography, SpringButton } from "@jacxishippingorg/jx-ui-react";
+import { JXBox, SpringButton } from "@jacxishippingorg/jx-ui-react";
 import { X } from "lucide-react";
 import { ReactNode, useEffect } from "react";
 import Tooltip from "./Tooltip";
@@ -130,24 +130,22 @@ export default function Drawer({
               ].join(" ")}
             >
               {typeof title === "string" ? (
-                <JXTypography
-                  variant="h3"
-                  className="!truncate !text-[1.125rem] !font-bold !leading-[1.3] !text-[var(--text-primary,#111827)]"
+                <h3
+                  className="truncate text-[1.125rem] font-bold leading-[1.3] text-[var(--text-primary,#111827)]"
                 >
                   {title}
-                </JXTypography>
+                </h3>
               ) : (
                 title
               )}
               {badge}
             </div>
             {description && (
-              <JXTypography
-                variant="body"
-                className="!text-[0.8125rem] !leading-[1.4] !text-[var(--text-secondary,#6B7280)]"
+              <p
+                className="text-[0.8125rem] leading-[1.4] text-[var(--text-secondary,#6B7280)]"
               >
                 {description}
-              </JXTypography>
+              </p>
             )}
           </div>
 

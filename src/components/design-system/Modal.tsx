@@ -8,7 +8,7 @@ import {
   SxProps,
   Theme,
 } from "@mui/material";
-import { JXBox, JXTypography, SpringButton } from "@jacxishippingorg/jx-ui-react";
+import { JXBox, SpringButton } from "@jacxishippingorg/jx-ui-react";
 import { Close } from "@mui/icons-material";
 import { ReactNode } from "react";
 import Tooltip from "./Tooltip";
@@ -115,22 +115,20 @@ export default function Modal({
         >
           <JXBox padding="none" border={false} className="min-w-0 flex-1 !rounded-none !bg-transparent" style={{ fontFamily: "inherit" }}>
             {typeof title === "string" ? (
-              <JXTypography
-                variant="h3"
-                className="!text-[1rem] sm:!text-[1.125rem] !font-semibold !text-[var(--text-primary)]"
+              <h3
+                className="text-[1rem] sm:text-[1.125rem] font-semibold text-[var(--text-primary)]"
               >
                 {title}
-              </JXTypography>
+              </h3>
             ) : (
               title
             )}
             {description ? (
-              <JXTypography
-                variant="body"
-                className="!mt-1 !text-[0.8125rem] sm:!text-[0.875rem] !leading-[1.5] !text-[var(--text-secondary)]"
+              <p
+                className="mt-1 text-[0.8125rem] sm:text-[0.875rem] leading-[1.5] text-[var(--text-secondary)]"
               >
                 {description}
-              </JXTypography>
+              </p>
             ) : null}
           </JXBox>
           {showCloseButton && (
@@ -257,9 +255,9 @@ export function ConfirmDialog({
         </>
       }
     >
-      <JXTypography variant="body" className="!leading-[1.6] !text-[var(--text-secondary)]">
+      <p className="leading-[1.6] text-[var(--text-secondary)]">
         {message}
-      </JXTypography>
+      </p>
     </Modal>
   );
 }

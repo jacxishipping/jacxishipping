@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { JXBox, JXTypography } from '@jacxishippingorg/jx-ui-react';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
 import { Box as BoxIcon, Car, Scale, ShieldAlert, Sparkles, CheckCircle2 } from 'lucide-react';
 
 export interface ContainerCapacityGaugeProps {
@@ -52,9 +52,9 @@ export function ContainerCapacityGauge({
       <div className="flex justify-between items-center mb-4">
         <div className="flex items-center gap-2">
           <BoxIcon size={18} style={{ color: 'var(--accent-gold)' }} />
-          <JXTypography variant="body" className="!font-bold !text-[0.92rem] !text-[var(--text-primary)]">
+          <span className="font-bold text-[0.92rem] text-[var(--text-primary)]">
             Stowing &amp; Capacity Utilization
-          </JXTypography>
+          </span>
         </div>
         <div
           className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[0.72rem] font-bold"
@@ -97,13 +97,13 @@ export function ContainerCapacityGauge({
           <div className="flex justify-between items-center mb-2">
             <div className="flex items-center gap-1.5">
               <Car size={15} style={{ color: 'var(--text-secondary)' }} />
-              <JXTypography variant="caption" className="!text-[0.75rem] !font-semibold !text-[var(--text-secondary)]">
+              <span className="text-[0.75rem] font-semibold text-[var(--text-secondary)]">
                 Vehicle Slots
-              </JXTypography>
+              </span>
             </div>
-            <JXTypography variant="body" className="!text-[0.82rem] !font-extrabold !text-[var(--text-primary)]">
+            <span className="text-[0.82rem] font-extrabold text-[var(--text-primary)]">
               {itemCount} / {spec.maxCars}
-            </JXTypography>
+            </span>
           </div>
           <div className="h-1.5 w-full overflow-hidden rounded-full bg-[rgba(var(--text-primary-rgb),0.08)]">
             <div
@@ -114,9 +114,9 @@ export function ContainerCapacityGauge({
               }}
             />
           </div>
-          <JXTypography variant="caption" className="!block !text-[0.68rem] !text-[var(--text-secondary)] !mt-1.5">
+          <span className="block text-[0.68rem] text-[var(--text-secondary)] mt-1.5">
             {spec.label} standard limit
-          </JXTypography>
+          </span>
         </JXBox>
 
         {/* CBM Volume */}
@@ -124,13 +124,13 @@ export function ContainerCapacityGauge({
           <div className="flex justify-between items-center mb-2">
             <div className="flex items-center gap-1.5">
               <BoxIcon size={15} style={{ color: 'var(--text-secondary)' }} />
-              <JXTypography variant="caption" className="!text-[0.75rem] !font-semibold !text-[var(--text-secondary)]">
+              <span className="text-[0.75rem] font-semibold text-[var(--text-secondary)]">
                 Volume (CBM)
-              </JXTypography>
+              </span>
             </div>
-            <JXTypography variant="body" className="!text-[0.82rem] !font-extrabold !text-[var(--text-primary)]">
+            <span className="text-[0.82rem] font-extrabold text-[var(--text-primary)]">
               {estimatedCBM.toFixed(1)} / {spec.maxCBM} m³
-            </JXTypography>
+            </span>
           </div>
           <div className="h-1.5 w-full overflow-hidden rounded-full bg-[rgba(var(--text-primary-rgb),0.08)]">
             <div
@@ -141,9 +141,9 @@ export function ContainerCapacityGauge({
               }}
             />
           </div>
-          <JXTypography variant="caption" className="!block !text-[0.68rem] !text-[var(--text-secondary)] !mt-1.5">
+          <span className="block text-[0.68rem] text-[var(--text-secondary)] mt-1.5">
             {cbmPercent}% volumetric occupancy
-          </JXTypography>
+          </span>
         </JXBox>
 
         {/* Payload Weight */}
@@ -151,13 +151,13 @@ export function ContainerCapacityGauge({
           <div className="flex justify-between items-center mb-2">
             <div className="flex items-center gap-1.5">
               <Scale size={15} style={{ color: 'var(--text-secondary)' }} />
-              <JXTypography variant="caption" className="!text-[0.75rem] !font-semibold !text-[var(--text-secondary)]">
+              <span className="text-[0.75rem] font-semibold text-[var(--text-secondary)]">
                 Payload Weight
-              </JXTypography>
+              </span>
             </div>
-            <JXTypography variant="body" className="!text-[0.82rem] !font-extrabold !text-[var(--text-primary)]">
+            <span className="text-[0.82rem] font-extrabold text-[var(--text-primary)]">
               {(estimatedWeight / 1000).toFixed(1)} / {(spec.maxWeightKg / 1000).toFixed(1)} T
-            </JXTypography>
+            </span>
           </div>
           <div className="h-1.5 w-full overflow-hidden rounded-full bg-[rgba(var(--text-primary-rgb),0.08)]">
             <div
@@ -168,9 +168,9 @@ export function ContainerCapacityGauge({
               }}
             />
           </div>
-          <JXTypography variant="caption" className="!block !text-[0.68rem] !text-[var(--text-secondary)] !mt-1.5">
+          <span className="block text-[0.68rem] text-[var(--text-secondary)] mt-1.5">
             {weightPercent}% max permissible mass
-          </JXTypography>
+          </span>
         </JXBox>
       </div>
     </JXBox>
