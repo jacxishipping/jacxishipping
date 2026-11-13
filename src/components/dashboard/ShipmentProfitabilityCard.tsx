@@ -42,7 +42,7 @@ export function ShipmentProfitabilityCard({
       surface="elevated"
       padding="none"
       className={[
-        '!rounded-xl !border-[var(--border)] !bg-[var(--panel)] shadow-[0_4px_16px_rgba(0,0,0,0.03)]',
+        '!rounded-xl !border-[var(--border)] !bg-[var(--panel)] jx-elevation-1 jx-spring',
         compact ? 'p-4' : 'p-5',
       ].join(' ')}
       style={{ fontFamily: 'inherit' }}

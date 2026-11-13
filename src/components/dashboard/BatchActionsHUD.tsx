@@ -94,7 +94,7 @@ export function BatchActionsHUD({
       <JXBox
         surface="elevated"
         padding="none"
-        className="flex flex-wrap items-center justify-between gap-3 p-3 px-4 !rounded-2xl !bg-[var(--panel)] !border-2 !border-[var(--accent-gold)] shadow-2xl backdrop-blur-lg"
+        className="flex flex-wrap items-center justify-between gap-3 p-3 px-4 !rounded-2xl !bg-[var(--panel)] !border-2 !border-[var(--accent-gold)] jx-elevation-3 jx-spring shadow-2xl backdrop-blur-lg"
         style={{ fontFamily: 'inherit' }}
       >
         {/* Selection Count Badge */}

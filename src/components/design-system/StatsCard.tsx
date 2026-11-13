@@ -115,14 +115,13 @@ export default function StatsCard({
 				component="article"
 				surface="elevated"
 				padding="none"
-				className="stats-card hover-lift relative z-[1] hover:z-[2] flex h-full w-full min-w-0 items-center overflow-hidden !bg-[var(--panel)] !border-[var(--border)] hover:!border-[rgba(var(--accent-gold-rgb),0.35)]"
+				className="stats-card hover-lift relative z-[1] hover:z-[2] flex h-full w-full min-w-0 items-center overflow-hidden !bg-[var(--panel)] !border-[var(--border)] hover:!border-[rgba(var(--accent-gold-rgb),0.35)] jx-elevation-1 jx-spring"
 				style={{
 					borderRadius: isCompact ? '12px' : '16px',
 					borderLeft: variant === 'default' ? '3px solid var(--accent-gold)' : undefined,
 					padding: `${sizes.padding * 8}px`,
 					gap: isCompact ? '8px' : '12px',
-					boxShadow: '0 1px 3px rgba(15, 23, 42, 0.05), 0 1px 2px rgba(15, 23, 42, 0.03)',
-					transition: 'transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease',
+					transition: 'transform 200ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 200ms cubic-bezier(0.22, 1, 0.36, 1), border-color 200ms ease',
 					fontFamily: 'inherit',
 				}}
 			>

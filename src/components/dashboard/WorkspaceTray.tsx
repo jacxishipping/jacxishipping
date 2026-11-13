@@ -101,7 +101,7 @@ export function WorkspaceTray() {
       <JXBox
         surface="elevated"
         padding="none"
-        className="!rounded-2xl !bg-[var(--panel)] !border-[var(--border)] shadow-xl overflow-hidden backdrop-blur-md transition-all duration-300"
+        className="!rounded-2xl !bg-[var(--panel)] !border-[var(--border)] jx-elevation-2 jx-spring shadow-xl overflow-hidden backdrop-blur-md transition-all duration-300"
         style={{ fontFamily: 'inherit' }}
       >
         {/* Collapsed Header Bar */}
@@ -119,16 +119,21 @@ export function WorkspaceTray() {
 
           <div className="flex items-center gap-2">
             {expanded && (
-              <button
+              <SpringButton
+                type="button"
                 onClick={clearAll}
-                className="text-[10px] font-semibold text-[var(--text-secondary)] hover:text-[var(--error)] transition-colors"
+                className="text-[10px] font-semibold text-[var(--text-secondary)] hover:text-[var(--error)] transition-colors px-1.5 py-0.5 rounded"
               >
                 Clear
-              </button>
+              </SpringButton>
             )}
-            <button className="p-1 text-[var(--text-secondary)]">
+            <SpringButton
+              type="button"
+              aria-label={expanded ? "Collapse workspace tray" : "Expand workspace tray"}
+              className="p-1 text-[var(--text-secondary)] rounded"
+            >
               {expanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
-            </button>
+            </SpringButton>
           </div>
         </div>
 

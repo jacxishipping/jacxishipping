@@ -57,11 +57,10 @@ export default function ShipmentCard({
 					component="article"
 					surface="elevated"
 					padding="none"
-					className="flex w-full min-w-0 flex-col gap-[8.8px] !rounded-lg p-2 sm:p-2.5 box-border text-[var(--text-primary)]"
+					className="flex w-full min-w-0 flex-col gap-[8.8px] !rounded-lg p-2 sm:p-2.5 box-border text-[var(--text-primary)] jx-elevation-1 jx-spring hover:-translate-y-0.5 hover:!border-[rgba(var(--accent-gold-rgb),0.4)] transition-all duration-200"
 					style={{
 						border: '1px solid var(--border)',
 						background: 'var(--panel)',
-						boxShadow: '0 16px 32px rgba(var(--text-primary-rgb),0.08)',
 						fontFamily: 'inherit',
 					}}
 				>

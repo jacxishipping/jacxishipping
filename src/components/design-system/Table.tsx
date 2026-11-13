@@ -60,7 +60,7 @@ export function Table<T extends Record<string, any>>({
     <JXBox
       surface="elevated"
       padding="none"
-      className="overflow-x-auto !rounded-[12px] !border-[var(--border)] !bg-[var(--panel)] shadow-none"
+      className="overflow-x-auto !rounded-[12px] !border-[var(--border)] !bg-[var(--panel)] jx-elevation-1 shadow-none"
       style={{ fontFamily: 'inherit' }}
     >
       <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0 }}>

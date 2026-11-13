@@ -45,7 +45,7 @@ export function ContainerProfitabilityCard({
     <JXBox
       surface="elevated"
       padding="none"
-      className="p-5 !rounded-xl !border-[var(--border)] !bg-[var(--panel)] shadow-[0_8px_24px_rgba(0,0,0,0.04)]"
+      className="p-5 !rounded-xl !border-[var(--border)] !bg-[var(--panel)] jx-elevation-1 jx-spring"
       style={{ fontFamily: 'inherit' }}
     >
       {/* Header */}

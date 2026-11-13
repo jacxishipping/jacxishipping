@@ -42,7 +42,7 @@ export function BulkActionBar({
     <JXBox
       surface="elevated"
       padding="none"
-      className="fixed bottom-6 left-1/2 z-[1000] flex max-w-[92vw] -translate-x-1/2 items-center gap-4 !rounded-xl px-5 py-3 shadow-[0_16px_40px_rgba(0,0,0,0.16)]"
+      className="fixed bottom-6 left-1/2 z-[1000] flex max-w-[92vw] -translate-x-1/2 items-center gap-4 !rounded-xl px-5 py-3 jx-elevation-3 jx-spring shadow-[0_16px_40px_rgba(0,0,0,0.16)]"
       style={{
         backgroundColor: 'var(--panel)',
         border: '1px solid var(--border)',
