@@ -1531,32 +1531,161 @@ export default function SettingsPage() {
         <div className="max-w-3xl">
           <DashboardPanel 
             title="Notification Rules" 
-            description="Manage your alert preferences"
+            description="Manage your alert preferences — configure per-channel and per-event type"
           >
-            <form onSubmit={handleSaveNotifications} className="space-y-4">
-              {[
-                { key: 'notifyShipmentEmail', label: 'Email: Shipment Updates' },
-                { key: 'notifyShipmentPush', label: 'Push: Shipment Updates' },
-                { key: 'notifyPaymentEmail', label: 'Email: Payment Reminders' },
-                { key: 'notifyCriticalSms', label: 'SMS: Critical Alerts' },
-              ].map((item) => (
-                <div key={item.key} className="flex items-center justify-between p-3 border border-[var(--border)] rounded-lg">
-                  <Typography variant="body2" color="text.primary">
-                    {item.label}
-                  </Typography>
-                  <Button
-                    type="button"
-                    variant={settingsForm[item.key as keyof typeof settingsForm] ? 'primary' : 'outline'}
-                    size="sm"
-                    onClick={() => setSettingsForm(prev => ({ 
-                      ...prev, 
-                      [item.key]: !prev[item.key as keyof typeof settingsForm] 
-                    }))}
-                  >
-                    {settingsForm[item.key as keyof typeof settingsForm] ? 'Enabled' : 'Disabled'}
-                  </Button>
+            <form onSubmit={handleSaveNotifications} className="space-y-5">
+              {/* Channel Overview */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="flex items-center gap-3 p-3 rounded-lg border border-[var(--border)] bg-[var(--background)]">
+                  <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-blue-500/10 text-blue-500">
+                    <Mail className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-semibold text-[var(--text-primary)]">Email</div>
+                    <div className="text-[10px] text-[var(--text-secondary)]">
+                      {['notifyShipmentEmail', 'notifyPaymentEmail'].filter(k => settingsForm[k as keyof typeof settingsForm]).length}/2 enabled
+                    </div>
+                  </div>
                 </div>
-              ))}
+                <div className="flex items-center gap-3 p-3 rounded-lg border border-[var(--border)] bg-[var(--background)]">
+                  <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-amber-500/10 text-amber-500">
+                    <Bell className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-semibold text-[var(--text-primary)]">Push</div>
+                    <div className="text-[10px] text-[var(--text-secondary)]">
+                      {settingsForm.notifyShipmentPush ? '1/1 enabled' : '0/1 enabled'}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-3 rounded-lg border border-[var(--border)] bg-[var(--background)]">
+                  <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-emerald-500/10 text-emerald-500">
+                    <MessageSquare className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-semibold text-[var(--text-primary)]">SMS</div>
+                    <div className="text-[10px] text-[var(--text-secondary)]">
+                      {settingsForm.notifyCriticalSms ? '1/1 enabled' : '0/1 enabled'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Email Events */}
+              <div className="rounded-lg border border-[var(--border)] overflow-hidden">
+                <div className="px-4 py-2.5 bg-[var(--background)] border-b border-[var(--border)] flex items-center gap-2">
+                  <Mail className="h-4 w-4 text-blue-500" />
+                  <span className="text-xs font-semibold text-[var(--text-primary)]">Email Notifications</span>
+                </div>
+                <div className="divide-y divide-[var(--border)]">
+                  {[
+                    { key: 'notifyShipmentEmail', label: 'Shipment Updates', desc: 'Status changes, dispatch, transit, and delivery events' },
+                    { key: 'notifyPaymentEmail', label: 'Payment Reminders', desc: 'Invoice due dates, overdue notices, and payment confirmations' },
+                    { key: 'notifyMilestoneEmail', label: 'Milestone Alerts', desc: 'Key container milestones and tracking events' },
+                    { key: 'notifyDocumentEmail', label: 'Document Updates', desc: 'New documents, photos, or damage reports added' },
+                  ].map((item) => (
+                    <div key={item.key} className="flex items-center justify-between px-4 py-3 hover:bg-[var(--background)]/50 transition-colors">
+                      <div className="min-w-0 flex-1">
+                        <Typography variant="body2" fontWeight={600} color="text.primary">
+                          {item.label}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {item.desc}
+                        </Typography>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer ml-3 shrink-0">
+                        <input
+                          type="checkbox"
+                          className="sr-only peer"
+                          checked={!!(settingsForm[item.key as keyof typeof settingsForm] ?? false)}
+                          onChange={() => setSettingsForm(prev => ({
+                            ...prev,
+                            [item.key]: !prev[item.key as keyof typeof settingsForm],
+                          }))}
+                        />
+                        <div className="w-9 h-5 rounded-full peer bg-[var(--border)] peer-checked:bg-blue-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-4" />
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Push Events */}
+              <div className="rounded-lg border border-[var(--border)] overflow-hidden">
+                <div className="px-4 py-2.5 bg-[var(--background)] border-b border-[var(--border)] flex items-center gap-2">
+                  <Bell className="h-4 w-4 text-amber-500" />
+                  <span className="text-xs font-semibold text-[var(--text-primary)]">Push Notifications</span>
+                </div>
+                <div className="divide-y divide-[var(--border)]">
+                  {[
+                    { key: 'notifyShipmentPush', label: 'Shipment Updates', desc: 'Real-time status changes and workflow events' },
+                    { key: 'notifyTrackingPush', label: 'Tracking Events', desc: 'Container tracking milestones and AIS position updates' },
+                    { key: 'notifyPaymentPush', label: 'Payment Alerts', desc: 'Payment confirmations and invoice status changes' },
+                  ].map((item) => (
+                    <div key={item.key} className="flex items-center justify-between px-4 py-3 hover:bg-[var(--background)]/50 transition-colors">
+                      <div className="min-w-0 flex-1">
+                        <Typography variant="body2" fontWeight={600} color="text.primary">
+                          {item.label}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {item.desc}
+                        </Typography>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer ml-3 shrink-0">
+                        <input
+                          type="checkbox"
+                          className="sr-only peer"
+                          checked={!!(settingsForm[item.key as keyof typeof settingsForm] ?? false)}
+                          onChange={() => setSettingsForm(prev => ({
+                            ...prev,
+                            [item.key]: !prev[item.key as keyof typeof settingsForm],
+                          }))}
+                        />
+                        <div className="w-9 h-5 rounded-full peer bg-[var(--border)] peer-checked:bg-amber-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-4" />
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* SMS Events */}
+              <div className="rounded-lg border border-[var(--border)] overflow-hidden">
+                <div className="px-4 py-2.5 bg-[var(--background)] border-b border-[var(--border)] flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4 text-emerald-500" />
+                  <span className="text-xs font-semibold text-[var(--text-primary)]">SMS Notifications</span>
+                </div>
+                <div className="divide-y divide-[var(--border)]">
+                  {[
+                    { key: 'notifyCriticalSms', label: 'Critical Alerts', desc: 'Urgent issues requiring immediate attention' },
+                    { key: 'notifyShipmentSms', label: 'Shipment SMS', desc: 'Key shipment status milestones via text message' },
+                    { key: 'notifyPaymentSms', label: 'Payment SMS', desc: 'Payment confirmations and overdue reminders' },
+                  ].map((item) => (
+                    <div key={item.key} className="flex items-center justify-between px-4 py-3 hover:bg-[var(--background)]/50 transition-colors">
+                      <div className="min-w-0 flex-1">
+                        <Typography variant="body2" fontWeight={600} color="text.primary">
+                          {item.label}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {item.desc}
+                        </Typography>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer ml-3 shrink-0">
+                        <input
+                          type="checkbox"
+                          className="sr-only peer"
+                          checked={!!(settingsForm[item.key as keyof typeof settingsForm] ?? false)}
+                          onChange={() => setSettingsForm(prev => ({
+                            ...prev,
+                            [item.key]: !prev[item.key as keyof typeof settingsForm],
+                          }))}
+                        />
+                        <div className="w-9 h-5 rounded-full peer bg-[var(--border)] peer-checked:bg-emerald-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-4" />
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               <div className="flex justify-end pt-2">
                 <Button type="submit" disabled={savingNotifications} variant="primary">
                   {savingNotifications ? 'Saving...' : 'Save Rules'}

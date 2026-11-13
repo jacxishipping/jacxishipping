@@ -592,7 +592,7 @@ export default async function DashboardPage() {
                     <DashboardHeader
                         title="My Dashboard"
                         description="Your shipments, invoices and account overview."
-                        actions={<OnboardingTour autoStart={true} />}
+                        actions={<OnboardingTour autoStart={true} role={role} />}
                     />
                 </div>
                 <CustomerDashboardSummary role={role} />

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Box, Typography } from '@mui/material';
-import { AlertCircle, Calendar, CheckCircle2, Clock, Copy, MapPin, Package, Search, Ship, XCircle, Camera } from 'lucide-react';
+import { AlertCircle, Calendar, CheckCircle2, Clock, Copy, MapPin, Package, Search, Ship, XCircle, Camera, Plus, Minus, Layers, List, Loader2 } from 'lucide-react';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
 import { PageHeader, Button, EmptyState, FormField, Breadcrumbs, toast, DashboardPageSkeleton, StatusBadge } from '@/components/design-system';
 import TrackingRouteMap from '@/components/tracking/TrackingRouteMap';
@@ -79,6 +79,10 @@ export default function DashboardTrackingPage() {
 	const [recentTrackingNumbers, setRecentTrackingNumbers] = useState<string[]>([]);
 	const [scannerOpen, setScannerOpen] = useState(false);
 	const [showRouteMap, setShowRouteMap] = useState(false);
+	const [batchMode, setBatchMode] = useState(false);
+	const [batchNumbers, setBatchNumbers] = useState<string[]>(['']);
+	const [batchResults, setBatchResults] = useState<Array<{ number: string; details: TrackingDetails | null; error?: string }>>([]);
+	const [batchLoading, setBatchLoading] = useState(false);
 
 	useEffect(() => {
 		if (status === 'unauthenticated') {
@@ -159,6 +163,42 @@ export default function DashboardTrackingPage() {
 		}
 	};
 
+	const handleBatchTrack = async () => {
+		const numbers = batchNumbers.map((n) => sanitizeTrackNumber(n.trim()) || n.trim()).filter(Boolean);
+		if (numbers.length === 0) {
+			setErrorMessage('Enter at least one container or tracking number to continue.');
+			return;
+		}
+
+		setBatchLoading(true);
+		setErrorMessage(null);
+		setBatchResults(numbers.map((n) => ({ number: n, details: null })));
+
+		const results: Array<{ number: string; details: TrackingDetails | null; error?: string }> = [];
+		for (const number of numbers) {
+			try {
+				const response = await fetch('/api/tracking', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ trackNumber: number, needRoute: true }),
+				});
+				const payload = (await response.json()) as { tracking?: TrackingDetails; message?: string };
+				if (!response.ok) {
+					results.push({ number, details: null, error: payload?.message || 'Unable to fetch tracking information.' });
+				} else if (!payload?.tracking) {
+					results.push({ number, details: null, error: 'No tracking data returned.' });
+				} else {
+					results.push({ number, details: payload.tracking });
+				}
+			} catch (error: unknown) {
+				results.push({ number, details: null, error: error instanceof Error ? error.message : 'Failed to fetch tracking information.' });
+			}
+		}
+
+		setBatchResults(results);
+		setBatchLoading(false);
+	};
+
 	if (status === 'loading') {
 		return <DashboardPageSkeleton />;
 	}
@@ -184,6 +224,141 @@ export default function DashboardTrackingPage() {
 
 			{/* Search Panel */}
 			<DashboardPanel title="Track Shipment" description="Enter container or tracking number">
+				{/* Batch Mode Toggle */}
+				<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+					<Typography sx={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+						{batchMode ? 'Batch Tracking Mode' : 'Single Tracking Mode'}
+					</Typography>
+					<Button
+						variant="outline"
+						size="sm"
+						icon={batchMode ? <Search className="w-4 h-4" /> : <Layers className="w-4 h-4" />}
+						onClick={() => {
+							setBatchMode(!batchMode);
+							setBatchResults([]);
+							setTrackingDetails(null);
+							setErrorMessage(null);
+						}}
+					>
+						{batchMode ? 'Single Mode' : 'Batch Mode'}
+					</Button>
+				</Box>
+
+				{batchMode ? (
+					<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+						{batchNumbers.map((num, idx) => (
+							<Box key={idx} sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+								<Box sx={{ flex: 1 }}>
+									<FormField
+										label=""
+										type="text"
+										value={num}
+										onChange={(e) => {
+											const next = [...batchNumbers];
+											next[idx] = e.target.value;
+											setBatchNumbers(next);
+										}}
+										placeholder={`Container or tracking #${idx + 1}`}
+										leftIcon={<Search style={{ fontSize: 20, color: 'var(--text-secondary)' }} />}
+										onKeyPress={(e) => {
+											if (e.key === 'Enter' && !batchLoading) {
+												void handleBatchTrack();
+											}
+										}}
+									/>
+								</Box>
+								{batchNumbers.length > 1 && (
+									<Button
+										variant="ghost"
+										size="sm"
+										icon={<Minus className="w-4 h-4 text-[var(--error)]" />}
+										onClick={() => {
+											setBatchNumbers(prev => prev.filter((_, i) => i !== idx));
+										}}
+									/>
+								)}
+							</Box>
+						))}
+						<Box sx={{ display: 'flex', gap: 1 }}>
+							<Button
+								variant="outline"
+								size="sm"
+								icon={<Plus className="w-4 h-4" />}
+								onClick={() => setBatchNumbers(prev => [...prev, ''])}
+							>
+								Add Another
+							</Button>
+							<Button
+								variant="primary"
+								onClick={() => void handleBatchTrack()}
+								disabled={batchLoading || batchNumbers.every(n => !n.trim())}
+								icon={batchLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Layers className="w-4 h-4" />}
+							>
+								{batchLoading ? 'Tracking...' : `Track All (${batchNumbers.filter(n => n.trim()).length})`}
+							</Button>
+						</Box>
+
+						{/* Batch Results */}
+						{batchResults.length > 0 && (
+							<Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+								{batchResults.map((result, idx) => (
+									<Box
+										key={idx}
+										sx={{
+											p: 2,
+											borderRadius: 2,
+											border: `1px solid ${result.error ? 'rgba(239, 68, 68, 0.3)' : result.details ? 'rgba(34, 211, 238, 0.3)' : 'var(--border)'}`,
+											bgcolor: result.error ? 'rgba(239, 68, 68, 0.05)' : result.details ? 'rgba(34, 211, 238, 0.05)' : 'var(--background)',
+										}}
+									>
+										<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+											<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0 }}>
+												{result.error ? (
+													<XCircle className="w-4 h-4 text-[var(--error)] shrink-0" />
+												) : result.details ? (
+													<CheckCircle2 className="w-4 h-4 text-[var(--success)] shrink-0" />
+												) : (
+													<Clock className="w-4 h-4 text-[var(--text-secondary)] shrink-0" />
+												)}
+												<Box sx={{ minWidth: 0 }}>
+													<Typography sx={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+														{result.number}
+													</Typography>
+													{result.error && (
+														<Typography sx={{ fontSize: '0.75rem', color: 'var(--error)' }}>
+															{result.error}
+														</Typography>
+													)}
+													{result.details && (
+														<Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+															{result.details.origin || 'N/A'} → {result.details.destination || 'N/A'}
+															{result.details.shipmentStatus && ` • ${result.details.shipmentStatus.replace(/_/g, ' ')}`}
+														</Typography>
+													)}
+												</Box>
+											</Box>
+											{result.details && (
+												<Button
+													variant="outline"
+													size="sm"
+													icon={<Search className="w-4 h-4" />}
+													onClick={() => {
+														setBatchMode(false);
+														setTrackingNumber(result.number);
+														setTrackingDetails(result.details);
+													}}
+												>
+													View Details
+												</Button>
+											)}
+										</Box>
+									</Box>
+								))}
+							</Box>
+						)}
+					</Box>
+				) : (
+					<>
 				<Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
 					<Box sx={{ flex: 1 }}>
 						<FormField
@@ -291,6 +466,8 @@ export default function DashboardTrackingPage() {
 							{errorMessage}
 						</Typography>
 					</Box>
+				)}
+					</>
 				)}
 			</DashboardPanel>
 

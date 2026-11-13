@@ -537,8 +537,8 @@ export function TrackingDiagnosticsPanel() {
           <>
             <DashboardGrid className="grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
               <StatsCard title="Total Containers" value={stats.totalContainers.toLocaleString()} icon={<Package className="w-5 h-5" />} />
-              <StatsCard title="Active" value={stats.activeContainers.toLocaleString()} icon={<Activity className="w-5 h-5" />} trend={stats.activeContainers > 0 ? 'positive' : undefined} />
-              <StatsCard title="Auto-Tracking" value={stats.autoTrackingEnabled.toLocaleString()} icon={<Radio className="w-5 h-5" />} trend={stats.autoTrackingEnabled > 0 ? 'positive' : undefined} />
+              <StatsCard title="Active" value={stats.activeContainers.toLocaleString()} icon={<Activity className="w-5 h-5" />} trend={stats.activeContainers > 0 ? { value: stats.activeContainers, isPositive: true } : undefined} />
+              <StatsCard title="Auto-Tracking" value={stats.autoTrackingEnabled.toLocaleString()} icon={<Radio className="w-5 h-5" />} trend={stats.autoTrackingEnabled > 0 ? { value: stats.autoTrackingEnabled, isPositive: true } : undefined} />
               <StatsCard title="With Events" value={stats.containersWithTrackingEvents.toLocaleString()} icon={<Database className="w-5 h-5" />} />
               <StatsCard title="Updated (24h)" value={stats.containersLast24h.toLocaleString()} icon={<Clock className="w-5 h-5" />} />
               <StatsCard title="Tracking Rate" value={stats.totalContainers > 0 ? `${Math.round((stats.autoTrackingEnabled / stats.totalContainers) * 100)}%` : '0%'} icon={<TrendingUp className="w-5 h-5" />} />
@@ -635,7 +635,7 @@ export function TrackingDiagnosticsPanel() {
               </Box>
             }
             icon={<Wifi className="w-5 h-5" />}
-            trend={s?.hasAnonKey ? 'positive' : 'negative'}
+            trend={s?.hasAnonKey ? { value: 1, isPositive: true } : { value: 0, isPositive: false }}
           />
           <StatsCard
             title="Access Token"
@@ -651,7 +651,7 @@ export function TrackingDiagnosticsPanel() {
               </Box>
             }
             icon={<Shield className="w-5 h-5" />}
-            trend={isTokenValid ? 'positive' : s?.isTokenExpired ? 'warning' : 'negative'}
+            trend={isTokenValid ? { value: 1, isPositive: true } : s?.isTokenExpired ? { value: 0, isPositive: false } : { value: 0, isPositive: false }}
           />
           <StatsCard
             title="Token Expiry"

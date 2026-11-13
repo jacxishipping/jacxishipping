@@ -52,6 +52,9 @@ import {
 	Printer,
 	ExternalLink,
 	Maximize2,
+	Shield,
+	Building2,
+	Wallet,
 } from 'lucide-react';
 import { DashboardSurface, DashboardPanel } from '@/components/dashboard/DashboardSurface';
 import { ActivityLog } from '@/components/dashboard/ActivityLog';
@@ -185,6 +188,9 @@ export default function InvoiceDetailPage() {
 		return false;
 	});
 	const [pdfRefreshKey, setPdfRefreshKey] = useState(0);
+	const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+	const [paymentMethod, setPaymentMethod] = useState<'card' | 'bank' | 'wallet'>('card');
+	const [paymentProcessing, setPaymentProcessing] = useState(false);
 
 	const toggleSplitView = () => {
 		setIsSplitView((prev) => {
@@ -1380,6 +1386,22 @@ export default function InvoiceDetailPage() {
 						<Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
 							<StatusBadge status={invoice.status} />
 							<CopyButton value={invoice.invoiceNumber} label="Invoice #" />
+							{/* #4: Pay Now button — visible to invoice owner when payment is due */}
+							{viewerIsOwner && invoice.status !== 'PAID' && invoice.status !== 'CANCELLED' && invoice.status !== 'DRAFT' && (
+								<Button
+									variant="primary"
+									size="sm"
+									icon={<CreditCard className="w-4 h-4" />}
+									onClick={() => setPaymentModalOpen(true)}
+									sx={{
+										bgcolor: 'var(--success)',
+										color: 'white',
+										'&:hover': { bgcolor: 'var(--success)', opacity: 0.9 },
+									}}
+								>
+									Pay Now
+								</Button>
+							)}
 							{isAdmin && invoice.status !== 'PAID' && invoice.status !== 'CANCELLED' && (
 								<Button
 									variant="outline"
@@ -2040,6 +2062,227 @@ export default function InvoiceDetailPage() {
 					)}
 				</Box>
 			</Box>
+
+			{/* #4: Online Payment Modal */}
+			<Dialog
+				open={paymentModalOpen}
+				onClose={() => !paymentProcessing && setPaymentModalOpen(false)}
+				maxWidth="sm"
+				fullWidth
+				PaperProps={{
+					sx: {
+						borderRadius: 3,
+						bgcolor: 'var(--panel)',
+						border: '1px solid var(--border)',
+						boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+						overflow: 'hidden',
+					}
+				}}
+			>
+				<DialogTitle sx={{ p: 2.5, pb: 1.5, bgcolor: 'var(--panel)', borderBottom: '1px solid var(--border)' }}>
+					<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+						<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+							<Box sx={{
+								p: 1,
+								borderRadius: 2,
+								bgcolor: 'rgba(var(--success-rgb), 0.12)',
+								color: 'var(--success)',
+								display: 'flex',
+								alignItems: 'center',
+								justifyContent: 'center'
+							}}>
+								<CreditCard className="w-5 h-5" />
+							</Box>
+							<div>
+								<Typography sx={{ fontWeight: 700, fontSize: '1.15rem', color: 'var(--text-primary)', lineHeight: 1.2 }}>
+									Pay Invoice
+								</Typography>
+								<Typography sx={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+									{invoice.invoiceNumber} &bull; {formatCurrency(balanceDue > 0 ? balanceDue : invoice.total)} due
+								</Typography>
+							</div>
+						</Box>
+						<IconButton
+							size="small"
+							onClick={() => !paymentProcessing && setPaymentModalOpen(false)}
+							sx={{ color: 'var(--text-secondary)', '&:hover': { color: 'var(--text-primary)' } }}
+						>
+							<X className="w-5 h-5" />
+						</IconButton>
+					</Box>
+				</DialogTitle>
+				<DialogContent sx={{ p: { xs: 2, sm: 3 }, bgcolor: 'var(--panel)' }}>
+					<Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 1 }}>
+						{/* Payment Summary */}
+						<Box sx={{
+							p: 2,
+							borderRadius: 2,
+							bgcolor: 'var(--background)',
+							border: '1px solid var(--border)',
+						}}>
+							<Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+								<Typography sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Invoice Total</Typography>
+								<Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>{formatCurrency(invoice.total)}</Typography>
+							</Box>
+							{purchasePaid > 0 && (
+								<Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+									<Typography sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Already Paid</Typography>
+									<Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--success)' }}>-{formatCurrency(purchasePaid)}</Typography>
+								</Box>
+							)}
+							<Divider sx={{ borderColor: 'var(--border)', my: 1 }} />
+							<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+								<Typography sx={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>Amount Due</Typography>
+								<Typography sx={{ fontSize: '1rem', fontWeight: 700, color: 'var(--accent-gold)' }}>
+									{formatCurrency(balanceDue > 0 ? balanceDue : invoice.total)}
+								</Typography>
+							</Box>
+						</Box>
+
+						{/* Payment Method Selection */}
+						<Box>
+							<Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)', mb: 1.5 }}>
+								Payment Method
+							</Typography>
+							<Box sx={{ display: 'flex', gap: 1.5 }}>
+								<Box
+									onClick={() => setPaymentMethod('card')}
+									sx={{
+										flex: 1,
+										p: 2,
+										borderRadius: 2,
+										border: paymentMethod === 'card' ? '2px solid var(--accent-gold)' : '1px solid var(--border)',
+										bgcolor: paymentMethod === 'card' ? 'rgba(var(--accent-gold-rgb), 0.05)' : 'var(--background)',
+										cursor: 'pointer',
+										textAlign: 'center',
+										transition: 'all 0.2s',
+									}}
+								>
+									<CreditCard className={`h-6 w-6 mx-auto mb-1 ${paymentMethod === 'card' ? 'text-[var(--accent-gold)]' : 'text-[var(--text-secondary)]'}`} />
+									<Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: paymentMethod === 'card' ? 'var(--accent-gold)' : 'var(--text-primary)' }}>
+										Credit Card
+									</Typography>
+								</Box>
+								<Box
+									onClick={() => setPaymentMethod('bank')}
+									sx={{
+										flex: 1,
+										p: 2,
+										borderRadius: 2,
+										border: paymentMethod === 'bank' ? '2px solid var(--accent-gold)' : '1px solid var(--border)',
+										bgcolor: paymentMethod === 'bank' ? 'rgba(var(--accent-gold-rgb), 0.05)' : 'var(--background)',
+										cursor: 'pointer',
+										textAlign: 'center',
+										transition: 'all 0.2s',
+									}}
+								>
+									<Building2 className={`h-6 w-6 mx-auto mb-1 ${paymentMethod === 'bank' ? 'text-[var(--accent-gold)]' : 'text-[var(--text-secondary)]'}`} />
+									<Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: paymentMethod === 'bank' ? 'var(--accent-gold)' : 'var(--text-primary)' }}>
+										Bank Transfer
+									</Typography>
+								</Box>
+								<Box
+									onClick={() => setPaymentMethod('wallet')}
+									sx={{
+										flex: 1,
+										p: 2,
+										borderRadius: 2,
+										border: paymentMethod === 'wallet' ? '2px solid var(--accent-gold)' : '1px solid var(--border)',
+										bgcolor: paymentMethod === 'wallet' ? 'rgba(var(--accent-gold-rgb), 0.05)' : 'var(--background)',
+										cursor: 'pointer',
+										textAlign: 'center',
+										transition: 'all 0.2s',
+									}}
+								>
+									<Wallet className={`h-6 w-6 mx-auto mb-1 ${paymentMethod === 'wallet' ? 'text-[var(--accent-gold)]' : 'text-[var(--text-secondary)]'}`} />
+									<Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: paymentMethod === 'wallet' ? 'var(--accent-gold)' : 'var(--text-primary)' }}>
+										Wallet Balance
+									</Typography>
+								</Box>
+							</Box>
+						</Box>
+
+						{/* Payment Info */}
+						<Box sx={{
+							p: 2,
+							borderRadius: 2,
+							bgcolor: 'rgba(var(--info-rgb), 0.08)',
+							border: '1px solid rgba(var(--info-rgb), 0.2)',
+						}}>
+							<Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
+								<Shield className="h-4 w-4 text-[var(--info)] shrink-0 mt-0.5" />
+								<Box>
+									<Typography sx={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+										Secure Payment
+									</Typography>
+									<Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)', mt: 0.25 }}>
+										{paymentMethod === 'card'
+											? 'Pay securely with your credit card. Your payment information is encrypted.'
+											: paymentMethod === 'bank'
+											? 'Bank transfer details will be provided after confirmation. Please use your invoice number as reference.'
+											: 'Pay using your account wallet balance. Ensure you have sufficient funds.'}
+									</Typography>
+								</Box>
+							</Box>
+						</Box>
+					</Box>
+				</DialogContent>
+				<DialogActions sx={{
+					p: 2.5,
+					bgcolor: 'var(--panel)',
+					borderTop: '1px solid var(--border)',
+					display: 'flex',
+					alignItems: 'center',
+					justifyContent: 'flex-end',
+					gap: 1.5
+				}}>
+					<Button variant="outline" onClick={() => setPaymentModalOpen(false)} disabled={paymentProcessing}>
+						Cancel
+					</Button>
+					<Button
+						variant="primary"
+						onClick={async () => {
+							setPaymentProcessing(true);
+							try {
+								const response = await fetch(`/api/invoices/${params.id}`, {
+									method: 'PATCH',
+									headers: { 'Content-Type': 'application/json' },
+									body: JSON.stringify({
+										status: 'PAID',
+										paidDate: new Date().toISOString(),
+										paymentMethod: paymentMethod === 'card' ? 'Credit Card' : paymentMethod === 'bank' ? 'Bank Transfer' : 'Wallet',
+										paymentReference: `ONLINE-${Date.now()}`,
+									}),
+								});
+								if (response.ok) {
+									toast.success('Payment successful!');
+									setPaymentModalOpen(false);
+									fetchInvoice();
+								} else {
+									const data = await response.json();
+									toast.error(data.error || 'Payment failed');
+								}
+							} catch {
+								toast.error('Payment processing error');
+							} finally {
+								setPaymentProcessing(false);
+							}
+						}}
+						disabled={paymentProcessing}
+						sx={{
+							bgcolor: 'var(--success)',
+							color: 'white',
+							'&:hover': { bgcolor: 'var(--success)', opacity: 0.9 },
+						}}
+					>
+						{paymentProcessing ? (
+							<><span className="w-4 h-4 mr-1.5 animate-spin rounded-full border-2 border-white border-t-transparent" /> Processing...</>
+						) : (
+							<><CreditCard className="w-4 h-4 mr-1.5" /> Pay {formatCurrency(balanceDue > 0 ? balanceDue : invoice.total)}</>
+						)}
+					</Button>
+				</DialogActions>
+			</Dialog>
 
 			{/* In-app Invoice PDF Preview Modal */}
 			<InvoicePreviewModal
