@@ -47,6 +47,12 @@ export interface OceanRouteMapProps {
   onSelectContainer?: (id: string) => void;
   className?: string;
   defaultView?: 'live-radar' | 'vector';
+  containerEvents?: Array<{
+    type: string;
+    location?: string;
+    date?: string | Date;
+    description?: string;
+  }>;
 }
 
 export function OceanRouteMap({
@@ -65,6 +71,7 @@ export function OceanRouteMap({
   onSelectContainer,
   className = '',
   defaultView = 'live-radar',
+  containerEvents = [],
 }: OceanRouteMapProps) {
   const [viewMode, setViewMode] = useState<'live-radar' | 'vector'>(defaultView);
   const [selectedWaypoint, setSelectedWaypoint] = useState<number | null>(1);
@@ -146,6 +153,7 @@ export function OceanRouteMap({
           containersList={containersList}
           selectedContainerId={selectedContainerId}
           onSelectContainer={onSelectContainer}
+          containerEvents={containerEvents}
         />
       ) : (
         /* Legacy Vector Schematic View */

@@ -2166,7 +2166,7 @@ export default function ContainerDetailPage() {
 									vesselName={container.vesselName || 'MAERSK VOYAGER'}
 									voyageNumber={container.voyageNumber || container.trackingNumber || 'V-2409W'}
 									containerNumber={container.containerNumber}
-									currentProgressPct={container.progress ?? 68}
+									currentProgressPct={container.status === 'ARRIVED_PORT' || container.status === 'CUSTOMS_CLEARANCE' || container.status === 'RELEASED' || container.status === 'CLOSED' ? 100 : (container.progress ?? 68)}
 									departureDate={container.departureDate}
 									estimatedArrival={container.estimatedArrival}
 									etaDays={container.estimatedArrival 

@@ -42,6 +42,52 @@ export function calculateProgress(status: string): number {
 }
 
 /**
+ * Haversine distance between two coordinates in nautical miles.
+ */
+export function haversineDistanceNM(
+  lat1: number, lng1: number,
+  lat2: number, lng2: number
+): number {
+  const R = 3440.065; // Earth radius in NM
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+/**
+ * Calculate progress percentage based on distance traveled vs total distance.
+ * Falls back to keyword-based progress if coordinates are not available.
+ */
+export function calculateDistanceBasedProgress(
+  status: string,
+  currentLat?: number,
+  currentLng?: number,
+  originLat?: number,
+  originLng?: number,
+  destLat?: number,
+  destLng?: number,
+): number {
+  // If we have valid coordinates, use distance-based calculation
+  if (
+    currentLat != null && currentLng != null &&
+    originLat != null && originLng != null &&
+    destLat != null && destLng != null
+  ) {
+    const totalDist = haversineDistanceNM(originLat, originLng, destLat, destLng);
+    if (totalDist > 1) {
+      const traveledDist = haversineDistanceNM(originLat, originLng, currentLat, currentLng);
+      const pct = Math.round((traveledDist / totalDist) * 100);
+      return Math.min(100, Math.max(0, pct));
+    }
+  }
+  // Fallback to keyword-based progress
+  return calculateProgress(status);
+}
+
+/**
  * Calculate progress from a status string (alias used by tracking-api).
  * Merges the same logic as calculateProgress for consistency.
  */

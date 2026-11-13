@@ -616,7 +616,7 @@ export default function ContainersPage() {
               vesselName={activeContainer.vesselName || 'MAERSK VOYAGER'}
               voyageNumber={activeContainer.voyageNumber || activeContainer.trackingNumber || 'V-2409W'}
               containerNumber={activeContainer.containerNumber}
-              currentProgressPct={activeContainer.progress ?? 68}
+              currentProgressPct={activeContainer.status === 'ARRIVED_PORT' || activeContainer.status === 'CUSTOMS_CLEARANCE' || activeContainer.status === 'RELEASED' || activeContainer.status === 'CLOSED' ? 100 : (activeContainer.progress ?? 68)}
               departureDate={activeContainer.departureDate}
               estimatedArrival={activeContainer.estimatedArrival}
               etaDays={etaDays}
@@ -624,7 +624,7 @@ export default function ContainersPage() {
               containersList={containers.map((c) => ({
                 id: c.id,
                 containerNumber: c.containerNumber,
-                progress: c.progress,
+                progress: c.status === 'ARRIVED_PORT' || c.status === 'CUSTOMS_CLEARANCE' || c.status === 'RELEASED' || c.status === 'CLOSED' ? 100 : c.progress,
                 vesselName: c.vesselName,
                 destinationPort: c.destinationPort,
                 status: c.status,

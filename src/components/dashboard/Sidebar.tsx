@@ -80,6 +80,12 @@ const shipmentNavigation: NavigationItem[] = [
 		icon: Search,
 		requiredPermission: 'tracking:view',
 	},
+	{
+		name: 'Tracking Diagnostics',
+		href: '/dashboard/tracking-diagnostics',
+		icon: Analytics,
+		requiredPermission: 'shipments:read_all',
+	},
 ];
 
 const financeNavigation: NavigationItem[] = [
