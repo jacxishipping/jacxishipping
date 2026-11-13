@@ -202,7 +202,7 @@ export default function ShipmentRow({
 									e.stopPropagation();
 									if (onToggleSelect) onToggleSelect(id);
 								}}
-								className="p-1 rounded-md hover:bg-[var(--panel)] cursor-pointer inline-flex items-center shrink-0"
+								className="p-1 min-w-[28px] min-h-[28px] justify-center rounded-md hover:bg-[var(--panel)] cursor-pointer inline-flex items-center shrink-0"
 								title={selected ? "Deselect" : "Select for batch action"}
 							>
 								<input
@@ -307,7 +307,7 @@ export default function ShipmentRow({
 									sx={{
 										fontSize: { xs: '0.72rem', sm: '0.75rem', md: '0.78rem' },
 										fontWeight: 600,
-										color: 'var(--accent-gold)',
+										color: 'var(--accent-gold-text)',
 										overflow: 'hidden',
 										textOverflow: 'ellipsis',
 										whiteSpace: 'nowrap',
@@ -338,7 +338,7 @@ export default function ShipmentRow({
 									sx={{
 										fontSize: { xs: '0.72rem', sm: '0.75rem', md: '0.78rem' },
 										fontWeight: 600,
-										color: 'var(--accent-gold)',
+										color: 'var(--accent-gold-text)',
 										overflow: 'hidden',
 										textOverflow: 'ellipsis',
 										whiteSpace: 'nowrap',
@@ -364,7 +364,7 @@ export default function ShipmentRow({
 											sx={{
 												fontSize: { xs: '0.62rem', sm: '0.65rem', md: '0.68rem' },
 												fontWeight: 600,
-												color: 'var(--accent-gold)',
+												color: 'var(--accent-gold-text)',
 											}}
 										>
 											{container.progress}%
@@ -556,10 +556,10 @@ export default function ShipmentRow({
 							minWidth: 'auto',
 							minHeight: { xs: '44px', md: 'auto' },
 							px: 1.25,
-							color: 'var(--accent-gold)',
+							color: 'var(--accent-gold-text)',
 							'&:hover': {
 								bgcolor: 'rgba(var(--accent-gold-rgb), 0.08)',
-								color: 'var(--accent-gold)',
+								color: 'var(--accent-gold-text)',
 							},
 						}}
 					>
@@ -613,7 +613,8 @@ export default function ShipmentRow({
 									onQuickPeek(id);
 								}}
 								sx={{
-									minHeight: { xs: '36px', md: 'auto' },
+									minWidth: { xs: '44px', md: 'auto' },
+									minHeight: { xs: '44px', md: 'auto' },
 									borderRadius: '999px',
 									px: 1,
 								}}
@@ -635,7 +636,8 @@ export default function ShipmentRow({
 									});
 								}}
 								sx={{
-									minHeight: { xs: '36px', md: 'auto' },
+									minWidth: { xs: '44px', md: 'auto' },
+									minHeight: { xs: '44px', md: 'auto' },
 									borderRadius: '999px',
 									px: 1,
 								}}
@@ -650,7 +652,7 @@ export default function ShipmentRow({
 								event.stopPropagation();
 							}}
 							sx={{
-								minHeight: { xs: '36px', md: 'auto' },
+								minHeight: { xs: '44px', md: 'auto' },
 								borderRadius: '999px',
 								px: 1.5,
 								fontSize: '0.75rem',
@@ -670,12 +672,12 @@ export default function ShipmentRow({
 								event.stopPropagation();
 							}}
 							sx={{
-								minHeight: { xs: '36px', md: 'auto' },
+								minHeight: { xs: '44px', md: 'auto' },
 								borderRadius: '999px',
 								px: 1.25,
 								fontSize: '0.75rem',
 								fontWeight: 600,
-								color: 'var(--accent-gold)',
+								color: 'var(--accent-gold-text)',
 							}}
 						>
 							Edit

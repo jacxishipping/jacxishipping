@@ -114,4 +114,39 @@ xychart-beta
 flowchart LR
     A["Stage A (P0): Fix Hero Card Invisible Icon & Dark-Mode Artifacts"] --> B["Stage B (P1): Fix /#contact Link, ARIA Labels, Gold Text Contrast & Touch Targets"]
     B --> C["Stage C (P2): Fix Heading Hierarchy (h1->h2) & Header Mobile Polish"]
+    C --> D["Stage D (Pass 2 Dashboard): Fix Timeline & Mobile Badge Touch Targets + Gold Badge Text Contrast"]
 ```
+
+---
+
+## 9. Pass 2: Inner Operational Dashboard Audit (`/dashboard/*`)
+
+> [!NOTE]
+> **Pass 2 Scope:** Authenticated operational routes (`/dashboard`, `/dashboard/shipments`, `/dashboard/containers`, `/dashboard/finance`) tested across Desktop (`1440x900`), Tablet/iPad (`768x1024`), and Mobile (`375x812`) via [Multi-Viewport UI/UX Auditor](conversation://76f7dc9d-ca31-4b99-841e-54cbfdb553b5) (host-verified origin `http://localhost:3000`).
+
+### Host-Verified Dashboard Screenshot
+
+![Finance Overview Mobile 375x812](/C:/Users/RDP/.gemini/antigravity/brain/223f64fd-cdec-45dd-8a79-efdb235d23c9/audit_dashboard_finance_step_128.png)
+
+### Operational Route Coverage Matrix
+
+| Route | Source File | Desktop (`1440x900`) | iPad (`768x1024`) | Mobile (`375x812`) | Interactive Controls & Layout Verified | Mobile Sticky Ratio |
+| :--- | :--- | :---: | :---: | :---: | :--- | :---: |
+| `/dashboard` | [page.tsx](file:///c:/Users/RDP/Documents/GitHub/jacxishipping/src/app/dashboard/page.tsx) | `WORKING` | `WORKING` | `PARTIALLY WORKING` | 5-step onboarding tour modal dismissed (`Close`), Desktop sidebar collapse (`240px` -> `64px`) & expand, Chart period tabs (`7D`, `30D`, `90D`, `1Y`), Mobile drawer (`aria-label="Open navigation menu"`) | `15.5%` (`57px` header + `69px` bottom nav / `812px`) |
+| `/dashboard/shipments` | [page.tsx](file:///c:/Users/RDP/Documents/GitHub/jacxishipping/src/app/dashboard/shipments/page.tsx) | `WORKING` | `WORKING` | `PARTIALLY WORKING` | Status filter pills (`All Statuses`, `On Hand`, `In Transit`, `Customs Hold`), Filters popover (`120x44px`), Cards/Table view switcher (`overflow-x-auto`), pagination (`44px`), Search (`268x43px`), Scan Barcode (`99x44px`) | `15.5%` |
+| `/dashboard/containers` | [page.tsx](file:///c:/Users/RDP/Documents/GitHub/jacxishipping/src/app/dashboard/containers/page.tsx) | `WORKING` | `WORKING` | `WORKING` | Status tabs (`All Statuses`, `Planning`, `Loading`, `Loaded`, `Delivered`), Search (`248x43px`), `New Container` CTA (`44px`) | `15.5%` |
+| `/dashboard/finance` | [page.tsx](file:///c:/Users/RDP/Documents/GitHub/jacxishipping/src/app/dashboard/finance/page.tsx) | `WORKING` | `WORKING` | `WORKING` | 8-item Quick Actions grid (4-col desktop -> 1-col mobile), `Cards`/`Table`/`Columns` view controls, `Record Payment` CTA (`44px`), breadcrumbs (`Home > Dashboard > Finance`) | `15.5%` |
+
+### Pass 2 Findings (`UI-008` – `UI-010`) & Operational Notes
+
+| ID | Severity | Route & Viewport | Source File | Observed Evidence | Recommended Fix Spec | Acceptance Criteria |
+| :--- | :---: | :--- | :--- | :--- | :--- | :--- |
+| **`UI-008`** | `P1` | `/dashboard` (`375x812`) | [DashboardTodayWork.tsx](file:///c:/Users/RDP/Documents/GitHub/jacxishipping/src/components/dashboard/DashboardTodayWork.tsx#L441-L451) | The 3 recent activity timeline links (`Container Assigned`, `Status Change`, `User Reassigned`) use `py-0.5` with `text-xs`, measuring **`20px`** vertical height (`< 24px` WCAG 2.2 SC 2.5.8 minimum). | Add `min-h-[32px] py-1.5` (or `min-h-[44px] sm:min-h-[32px]`) to the `<Link>` in `DashboardTodayWork.tsx:445`. | Every recent-activity link measures `>= 32px` height on `375x812` mobile. |
+| **`UI-009`** | `P1` | `/dashboard/shipments` (`375x812`) | [ShipmentRow.tsx](file:///c:/Users/RDP/Documents/GitHub/jacxishipping/src/components/dashboard/ShipmentRow.tsx#L200-L214), [ShipmentRow.tsx](file:///c:/Users/RDP/Documents/GitHub/jacxishipping/src/components/dashboard/ShipmentRow.tsx#L583-L643) | Mobile card view interactive checkbox wrapper (`p-1` around `w-4 h-4` -> `~23x23px`) and compact mobile badges/chips (`height: 22`) fall below the `24x24px` WCAG 2.2 AA touch target minimum; mobile Quick Peek / QR buttons use `minHeight: 36px` instead of `44px`. | Give the selectable checkbox wrapper `min-w-[28px] min-h-[28px] justify-center` (`>= 24x24px`) and raise mobile `Quick Peek` / `QR` / `View` / `Edit` buttons in `ShipmentRow.tsx:616-673` to `minHeight: { xs: '44px', md: 'auto' }` with `minWidth: { xs: '44px', md: 'auto' }` for icon-only buttons. | Zero interactive targets `< 24x24px` on `/dashboard/shipments` at `375x812`. |
+| **`UI-010`** | `P1` | `/dashboard/shipments` (All viewports) | [ShipmentsResultsPanel.tsx](file:///c:/Users/RDP/Documents/GitHub/jacxishipping/src/components/shipments/ShipmentsResultsPanel.tsx#L148-L166), [ShipmentRow.tsx](file:///c:/Users/RDP/Documents/GitHub/jacxishipping/src/components/dashboard/ShipmentRow.tsx#L306-L370), [ShipmentRow.tsx](file:///c:/Users/RDP/Documents/GitHub/jacxishipping/src/components/dashboard/ShipmentRow.tsx#L559-L678) | Results count badge (`bgcolor: 'rgba(var(--accent-gold-rgb), 0.12)', color: 'var(--accent-gold)'`), container/transit label text (`var(--accent-gold)`), and `Edit` button text use `#D4AF37` on light surfaces (`~2.1:1` contrast, failing 4.5:1 AA). | Switch text `color` in those light-surface badges and labels from `'var(--accent-gold)'` to `'var(--accent-gold-text)'` (`#8D7A1F`, `4.54:1` on white). | Results count badge, container numbers, progress `%`, and `Edit` CTA meet `>= 4.5:1` contrast. |
+
+> [!WARNING]
+> **Backend & Telemetry Observations (Non-UI):**
+> - **Cold-Start Prisma Notice:** Initial cold-start server log emitted `Invalid prisma.container.count() invocation... The column containers.notes does not exist in the current database` before subsequent queries returned HTTP 200. Verify `npx prisma migrate status` / `npx prisma db push` so the database schema matches `prisma/schema.prisma`.
+> - **SSE Stream Behavior:** `/api/notifications/stream` remains open continuously for real-time updates; Playwright/automated probes should wait for `domcontentloaded` rather than `networkidle`.
+> - **Unlabeled SVG Buttons:** `0` unlabeled SVG icon buttons were detected across all 4 operational routes (`/dashboard`, `/dashboard/shipments`, `/dashboard/containers`, `/dashboard/finance`), and `hasHorizontalOverflow` was `false` (`0px` overflow) at `1440x900`, `768x1024`, and `375x812`.

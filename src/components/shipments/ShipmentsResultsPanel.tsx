@@ -155,7 +155,7 @@ export default function ShipmentsResultsPanel({
 							py: 0.25,
 							borderRadius: '999px',
 							bgcolor: 'rgba(var(--accent-gold-rgb), 0.12)',
-							color: 'var(--accent-gold)',
+							color: 'var(--accent-gold-text)',
 							border: '1px solid rgba(var(--accent-gold-rgb), 0.25)',
 							fontSize: '0.72rem',
 							fontWeight: 700,

@@ -442,7 +442,7 @@ export default function DashboardTodayWork({
               <Link
                 key={activity.id}
                 href={activity.href}
-                className="flex items-center gap-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors py-0.5"
+                className="flex min-h-[32px] items-center gap-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors py-1.5"
               >
                 <Bot className="h-3 w-3 text-[var(--accent-gold)] shrink-0" />
                 <span className="truncate">{activity.label}: {activity.description}</span>

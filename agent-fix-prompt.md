@@ -89,12 +89,33 @@ In [globals.css](file:///c:/Users/RDP/Documents/GitHub/jacxishipping/src/app/glo
   - **Required Code Change:** Change scrolled header shadow on line 43 to `shadow-[0_4px_24px_rgba(15,23,42,0.06)]` and mobile menu trigger on line 109 to `bg-white/90 border border-black/10 shadow-sm text-gray-900 backdrop-blur-md transition-colors hover:bg-white`.
   - **Verification:** Mobile menu trigger is clearly visible on `/` at `375x812` before and after scrolling.
 
+### Batch 5: Pass 2 Operational Dashboard Fixes (`/dashboard` & `/dashboard/shipments`)
+
+- **[UI-008]** Recent Activity Timeline Touch Targets (`20px` -> `>= 32px`) — [DashboardTodayWork.tsx](file:///c:/Users/RDP/Documents/GitHub/jacxishipping/src/components/dashboard/DashboardTodayWork.tsx#L441-L451) (`/dashboard` at `375x812`)
+  - **Observed Bug:** Recent activity `<Link>` rows use `py-0.5` with `text-xs`, measuring `20px` tall on mobile (`< 24px` WCAG 2.2 SC 2.5.8 minimum).
+  - **Required Code Change:** Update line 445 from `py-0.5` to `min-h-[32px] py-1.5` so each timeline link has at least `32px` vertical hit height.
+  - **Verification:** Mobile touch-target probe on `/dashboard` reports `0` links `< 24px`.
+
+- **[UI-009]** Mobile Card View Checkbox & Action Touch Targets (`23x23px` -> `>= 24px` / `44px`) — [ShipmentRow.tsx](file:///c:/Users/RDP/Documents/GitHub/jacxishipping/src/components/dashboard/ShipmentRow.tsx#L200-L214), [ShipmentRow.tsx](file:///c:/Users/RDP/Documents/GitHub/jacxishipping/src/components/dashboard/ShipmentRow.tsx#L605-L683) (`/dashboard/shipments` at `375x812`)
+  - **Observed Bug:** The batch-select checkbox container (`p-1` around `w-4 h-4`) measures `~23x23px` on mobile, and mobile `Quick Peek` / `QR` / `View` / `Edit` buttons use `minHeight: { xs: '36px', md: 'auto' }` instead of `44px`.
+  - **Required Code Change:**
+    - On line 205: Add `min-w-[28px] min-h-[28px] justify-center` to the selectable checkbox wrapper `<span>`.
+    - On lines 616, 638, 653, 673: Raise mobile button minimum height to `minHeight: { xs: '44px', md: 'auto' }` and add `minWidth: { xs: '44px', md: 'auto' }` on the icon-only `Quick Peek` and `QR` buttons.
+  - **Verification:** Mobile probe at `375x812` on `/dashboard/shipments` reports zero interactive targets `< 24x24px`.
+
+- **[UI-010]** Gold Text Contrast on Light Dashboard Surfaces (`2.12:1` -> `>= 4.5:1`) — [ShipmentsResultsPanel.tsx](file:///c:/Users/RDP/Documents/GitHub/jacxishipping/src/components/shipments/ShipmentsResultsPanel.tsx#L148-L166), [ShipmentRow.tsx](file:///c:/Users/RDP/Documents/GitHub/jacxishipping/src/components/dashboard/ShipmentRow.tsx#L306-L370), [ShipmentRow.tsx](file:///c:/Users/RDP/Documents/GitHub/jacxishipping/src/components/dashboard/ShipmentRow.tsx#L559-L678)
+  - **Observed Bug:** Results count badge, container/transit labels, progress percentage, and `Edit` button text use `var(--accent-gold)` (`#D4AF37`) on light backgrounds (`~2.1:1` contrast).
+  - **Required Code Change:** Replace `color: 'var(--accent-gold)'` on text elements in `ShipmentsResultsPanel.tsx:158` and `ShipmentRow.tsx:310,341,367,559,562,678` with `color: 'var(--accent-gold-text)'` (`#8D7A1F`). Keep `var(--accent-gold)` for icons, borders, and progress bar fills.
+  - **Verification:** All small text badges and labels on `/dashboard/shipments` achieve `>= 4.5:1` contrast.
+
+- **[Infra Note — Prisma Schema Sync]** Check `containers.notes` column against `prisma/schema.prisma` (`npx prisma migrate status`) to eliminate the cold-start `prisma.container.count()` error logged during first boot.
+
 ---
 
 ## Post-Fix Verification Checklist
 
 1. Run `npx tsc --noEmit` to confirm zero TypeScript errors.
-2. Re-run the **Unified Single-Pass Mega-Probe** at `1440x900`, `768x1024`, and `375x812` across `/`, `/services`, `/tracking`, and `/auth/signin` and verify:
+2. Re-run the **Unified Single-Pass Mega-Probe** at `1440x900`, `768x1024`, and `375x812` across `/`, `/services`, `/tracking`, `/auth/signin`, `/dashboard`, `/dashboard/shipments`, `/dashboard/containers`, and `/dashboard/finance` (using `domcontentloaded` due to `/api/notifications/stream` SSE) and verify:
    - `hasHorizontalOverflow === false` (`overflowCount === 0`)
    - `headingSkips.length === 0` on `/` and `/tracking`
    - Zero `belowWcag24px: true` interactive elements
