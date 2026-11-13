@@ -119,6 +119,7 @@ export function Table<T extends Record<string, any>>({
                     style={{
                       padding: `${verticalPadding} 16px`,
                       fontSize: '0.85rem',
+                      fontVariantNumeric: 'tabular-nums',
                       color: 'var(--text-primary)',
                       textAlign: column.align || 'left',
                       borderBottom: '1px solid var(--border)',

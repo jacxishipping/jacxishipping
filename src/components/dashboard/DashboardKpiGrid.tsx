@@ -21,7 +21,7 @@ export default function DashboardKpiGrid({
 }: DashboardKpiGridProps) {
   return (
     <div id="kpi-grid" className="animate-fade-in-up" style={{ animationDelay: '0.05s' }}>
-      <DashboardGrid className={`${canManageDispatches ? 'grid-cols-2 lg:grid-cols-4' : 'grid-cols-2 lg:grid-cols-3'} gap-3.5`}>
+      <DashboardGrid className={`${canManageDispatches ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'} gap-3.5`}>
         <StatsCard
           title="Active Shipments"
           value={activeShipmentsCount}

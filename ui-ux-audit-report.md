@@ -150,3 +150,24 @@ flowchart LR
 > - **Cold-Start Prisma Notice:** Initial cold-start server log emitted `Invalid prisma.container.count() invocation... The column containers.notes does not exist in the current database` before subsequent queries returned HTTP 200. Verify `npx prisma migrate status` / `npx prisma db push` so the database schema matches `prisma/schema.prisma`.
 > - **SSE Stream Behavior:** `/api/notifications/stream` remains open continuously for real-time updates; Playwright/automated probes should wait for `domcontentloaded` rather than `networkidle`.
 > - **Unlabeled SVG Buttons:** `0` unlabeled SVG icon buttons were detected across all 4 operational routes (`/dashboard`, `/dashboard/shipments`, `/dashboard/containers`, `/dashboard/finance`), and `hasHorizontalOverflow` was `false` (`0px` overflow) at `1440x900`, `768x1024`, and `375x812`.
+
+---
+
+## 10. Pass 3: Remaining Operational Sub-Routes (`/dashboard/invoices`, `/customers`, `/dispatches`, `/transits`, `/users`, `/settings`)
+
+> [!TIP]
+> **Pass 3 Verdict — All 6 Routes Passed:** Across Desktop (`1440x900`), Tablet (`768x1024`), and Mobile (`375x812`), all 6 remaining operational sub-routes achieved **`0px` horizontal overflow**, **`0` unlabeled buttons**, **`0` heading skips**, **`13%` mobile sticky-bar ratio**, and **`>= 44px` primary mobile CTAs** (`Create Customer`, `Export VINs`, `New Transit`, `Save Profile`, `Export Shipments`).
+
+![Pass 3 Operational Sub-Routes Verification](/C:/Users/RDP/.gemini/antigravity/brain/223f64fd-cdec-45dd-8a79-efdb235d23c9/audit_dashboard_settings_step_177.png)
+
+| Route | Desktop (`1440x900`) | iPad (`768x1024`) | Mobile (`375x812`) | Sticky Ratio (Mobile) | Unlabeled Buttons | Interactive Controls Verified |
+| :--- | :---: | :---: | :---: | :---: | :---: | :--- |
+| `/dashboard/invoices` | `WORKING` | `WORKING` | `WORKING` | `13%` | `0` | Status filter pills (`Paid`, `Pending`, `Overdue`) |
+| `/dashboard/customers` | `WORKING` | `WORKING` | `WORKING` | `13%` | `0` | Live search (`Amprator`), `Create Customer` CTA |
+| `/dashboard/dispatches` | `WORKING` | `WORKING` | `WORKING` | `13%` | `0` | Status filter tabs, `Export VINs` CTA |
+| `/dashboard/transits` | `WORKING` | `WORKING` | `WORKING` | `13%` | `0` | Reference copy buttons, status pills (`Pending`, `Delivered`), `New Transit` CTA |
+| `/dashboard/users` | `WORKING` | `WORKING` | `WORKING` | `13%` | `0` | User search input, role filters |
+| `/dashboard/settings` | `WORKING` | `WORKING` | `WORKING` | `13%` | `0` | Tablist navigation (`Profile` tab), `Save Profile` CTA |
+
+> [!NOTE]
+> Only a desktop-only `18x18px` sidebar collapse icon and a decorative `12x4px` indicator bar measured `< 24px`; no interactive mobile/tablet controls or unlabeled icon buttons failed WCAG 2.2 AA.

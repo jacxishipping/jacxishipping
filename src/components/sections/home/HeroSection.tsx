@@ -212,7 +212,7 @@ export default function HeroSection() {
               const Icon = card.icon;
               return (
                 <div key={card.title} className="flex items-start gap-4 flex-1 group">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#F9FAFB]/[0.03] backdrop-blur-sm border border-black/5 group-hover:border-[var(--accent-gold)] group-hover:bg-[rgba(var(--accent-gold-rgb),0.1)] transition-all duration-300">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/90 shadow-sm backdrop-blur-sm border border-black/10 group-hover:border-[var(--accent-gold)] group-hover:bg-[rgba(var(--accent-gold-rgb),0.1)] transition-all duration-300">
                     <Icon className="h-4 w-4 text-[var(--accent-gold)]" />
                   </div>
                   <div>

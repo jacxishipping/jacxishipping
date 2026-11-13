@@ -64,7 +64,7 @@ export default function Header({ isAuthenticated = false }: { isAuthenticated?: 
           </div>
 
           {/* Desktop Nav */}
-          <nav className="hidden lg:flex items-center gap-1 rounded-full border border-black/5 bg-[#F9FAFB]/[0.03] px-2 py-1.5 backdrop-blur-md">
+          <nav className="hidden lg:flex items-center gap-1 rounded-full border border-black/10 bg-white/80 shadow-sm px-2 py-1.5 backdrop-blur-md">
             {navigation.map((item) => (
               <Magnetic key={item.name} strength={0.2} intensity={0.1}>
                 <Link

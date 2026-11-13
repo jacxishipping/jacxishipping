@@ -51,7 +51,7 @@ export default function StatsCard({
 	// Variant colors
 	const variantConfig = {
 		default: {
-			iconColor: 'var(--accent-gold)',
+			iconColor: 'var(--accent-gold-text)',
 			iconBg: 'rgba(var(--accent-gold-rgb), 0.15)',
 		},
 		secondary: {
@@ -129,9 +129,12 @@ export default function StatsCard({
 				minWidth: 0,
 				width: '100%',
 				boxSizing: 'border-box',
-				boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+				boxShadow: '0 1px 3px rgba(15, 23, 42, 0.05), 0 1px 2px rgba(15, 23, 42, 0.03)',
+				transition: 'transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease',
 				'&:hover': {
 					zIndex: 2,
+					borderColor: 'rgba(var(--accent-gold-rgb), 0.35)',
+					boxShadow: '0 10px 24px -6px rgba(15, 23, 42, 0.08)',
 				},
 				}}
 			>
@@ -183,8 +186,11 @@ export default function StatsCard({
 						component="span"
 						title={typeof value === 'string' && value.length > 12 ? value : undefined}
 						sx={{
+							display: 'block',
 							fontSize: sizes.fontSize,
 							fontWeight: 700,
+							fontVariantNumeric: 'tabular-nums',
+							letterSpacing: '-0.02em',
 							color: 'var(--text-primary)',
 							lineHeight: 1.15,
 							width: '100%',
@@ -218,6 +224,7 @@ export default function StatsCard({
 						sx={{
 							fontSize: { xs: '0.65rem', sm: '0.7rem', md: '0.75rem' },
 							fontWeight: 700,
+							fontVariantNumeric: 'tabular-nums',
 							px: 1,
 							py: 0.5,
 							borderRadius: '999px',

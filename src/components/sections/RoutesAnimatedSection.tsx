@@ -94,7 +94,7 @@ export default function RoutesAnimatedSection() {
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 1, ease: 'easeOut' }}
-            className="relative w-full rounded-[2.5rem] border border-black/5 bg-[#F9FAFB]/[0.02] p-2 backdrop-blur-xl shadow-2xl"
+            className="relative w-full rounded-[2.5rem] border border-black/10 bg-white/90 p-2 backdrop-blur-xl shadow-xl"
           >
             <div className="absolute inset-0 rounded-[2.5rem] bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
             <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[2rem] bg-[#F9FAFB]">
@@ -137,7 +137,7 @@ export default function RoutesAnimatedSection() {
                   <g key={node.id}>
                     <circle cx={node.x} cy={node.y} r="6" fill="#D4AF37" className="animate-pulse" />
                     <circle cx={node.x} cy={node.y} r="14" fill="none" stroke="rgba(212,175,55,0.3)" strokeWidth="1" />
-                    <text x={node.x} y={node.y - 20} fill="#ffffff" fontSize="14" fontWeight="600" textAnchor="middle" style={{ textShadow: '0px 2px 4px rgba(0,0,0,0.8)' }}>
+                    <text x={node.x} y={node.y - 20} fill="#111827" fontSize="14" fontWeight="700" textAnchor="middle" style={{ textShadow: '0px 1px 3px rgba(255,255,255,0.9)' }}>
                       {node.label}
                     </text>
                   </g>
@@ -173,7 +173,7 @@ export default function RoutesAnimatedSection() {
                 viewport={{ once: true, margin: '-50px' }}
                 transition={{ duration: 0.6, delay: 0.2 + (index * 0.1), ease: "easeOut" }}
                 whileHover={{ y: -8, transition: { duration: 0.3 } }}
-                className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-black/5 bg-[#F9FAFB]/[0.03] p-6 backdrop-blur-sm transition-all hover:bg-[#F9FAFB]/[0.05]"
+                className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-black/10 bg-white p-6 shadow-sm transition-all hover:shadow-md hover:border-[#D4AF37]/40"
               >
                 <div className="mb-8 flex items-start justify-between">
                   <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-white/10 to-transparent shadow-inner border border-black/[0.03] group-hover:border-[#D4AF37]/50 transition-colors">
@@ -183,7 +183,7 @@ export default function RoutesAnimatedSection() {
                 </div>
                 
                 <div>
-                  <p className="mb-2 inline-block rounded-full bg-[#D4AF37]/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[#D4AF37]">
+                  <p className="mb-2 inline-block rounded-full bg-[#D4AF37]/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[#8D7A1F]">
                     {step.location}
                   </p>
                   <h3 className="mb-3 text-xl font-semibold text-gray-900">{step.title}</h3>

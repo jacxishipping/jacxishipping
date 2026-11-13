@@ -151,12 +151,12 @@ export default function ProcessSection() {
                       {step.number}
                     </div>
 
-                    <div className="flex h-16 w-16 items-center justify-center rounded-[1.5rem] bg-[#F9FAFB]/[0.03] border border-black/5 group-hover:border-[#D4AF37]/50 group-hover:text-[#D4AF37] transition-colors shadow-lg">
-                      <Icon className="h-7 w-7 text-gray-900 group-hover:text-[#D4AF37] transition-colors" />
+                    <div className="flex h-16 w-16 items-center justify-center rounded-[1.5rem] bg-white border border-black/10 group-hover:border-[#D4AF37]/50 group-hover:text-[#8D7A1F] transition-colors shadow-sm">
+                      <Icon className="h-7 w-7 text-gray-900 group-hover:text-[#8D7A1F] transition-colors" />
                     </div>
 
                     <div className="mt-20">
-                      <span className="inline-block rounded-full bg-[#F9FAFB]/[0.03] px-3 py-1 font-mono text-[10px] uppercase tracking-widest text-[#D4AF37] mb-4">
+                      <span className="inline-block rounded-full bg-[#D4AF37]/10 px-3 py-1 font-mono text-[10px] uppercase tracking-widest text-[#8D7A1F] mb-4">
                         {step.location}
                       </span>
                       <h3 className="text-2xl font-bold text-gray-900 mb-4">
@@ -167,7 +167,7 @@ export default function ProcessSection() {
                       </p>
                       
                       <div className="mt-auto border-t border-black/5 pt-6">
-                        <p className="text-xs uppercase tracking-widest text-black/40 font-mono mb-2">Key checkpoint</p>
+                        <p className="text-xs uppercase tracking-widest text-black/60 font-mono mb-2">Key checkpoint</p>
                         <p className="text-sm font-bold text-black/80">{step.checkpoint}</p>
                       </div>
                     </div>

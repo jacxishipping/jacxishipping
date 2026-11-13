@@ -100,7 +100,7 @@ function ServiceCard({ service, index, progress, total }: { service: any, index:
     >
        {/* Left side text */}
        <div className={`flex flex-col justify-center ${index % 2 === 1 ? 'lg:order-2 lg:pl-16' : 'lg:pr-16'}`}>
-          <div className="mb-8 flex h-16 w-16 items-center justify-center rounded-[2rem] bg-[#F9FAFB]/[0.03] border border-black/5 text-[#D4AF37] shadow-[0_0_30px_rgba(212,175,55,0.1)]">
+          <div className="mb-8 flex h-16 w-16 items-center justify-center rounded-[2rem] bg-white border border-black/10 text-[#8D7A1F] shadow-sm">
             {service.icon}
           </div>
           
@@ -114,7 +114,7 @@ function ServiceCard({ service, index, progress, total }: { service: any, index:
 
           <Link href="/services" className="mt-10 group inline-flex items-center gap-3 text-sm font-bold uppercase tracking-widest text-black/70 hover:text-gray-900 transition-colors w-fit">
             Explore service
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#F9FAFB]/[0.03] border border-black/5 group-hover:bg-[#D4AF37] group-hover:border-[#D4AF37] group-hover:text-black transition-all">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white border border-black/10 shadow-sm group-hover:bg-[#D4AF37] group-hover:border-[#D4AF37] group-hover:text-black transition-all">
               <ExternalLink className="h-3 w-3" />
             </div>
           </Link>
