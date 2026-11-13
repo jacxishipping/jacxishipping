@@ -14,23 +14,7 @@ import {
   ExternalLink,
   PhoneCall
 } from 'lucide-react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Box,
-  Typography,
-  TextField,
-  Chip,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow
-} from '@mui/material';
-import { Button, toast } from '@/components/design-system';
+import { Button, FormField, Modal, toast } from '@/components/design-system';
 import { 
   generateCustomsPacketPDF, 
   downloadCustomsPacketPDF, 
@@ -97,61 +81,47 @@ export function CustomsDocumentPacketModal({
   };
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="md"
-      fullWidth
-      PaperProps={{
-        sx: {
-          borderRadius: 3,
-          bgcolor: 'var(--panel)',
-          color: 'var(--text-primary)',
-          border: '1px solid var(--border)',
-          overflow: 'hidden',
-        },
-      }}
-    >
-      <DialogTitle
-        sx={{
-          p: 2.5,
-          borderBottom: '1px solid var(--border)',
-          bgcolor: 'var(--background)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <Box
-            sx={{
-              p: 1,
-              borderRadius: 2,
-              bgcolor: 'rgba(var(--accent-gold-rgb), 0.15)',
-              color: 'var(--accent-gold)',
-            }}
-          >
+    <Modal open={open} onClose={onClose} size="md" title={<><div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+          <div style={{padding: '8px', borderRadius: '16px', backgroundColor: 'rgba(var(--accent-gold-rgb), 0.15)', color: 'var(--accent-gold)'}}>
             <ShieldCheck className="w-5 h-5" />
-          </Box>
-          <Box>
-            <Typography sx={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+          </div>
+          <div>
+            <p style={{fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)'}}>
               Export Customs Document Packet
-            </Typography>
-            <Typography sx={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+            </p>
+            <p style={{fontSize: '0.78rem', color: 'var(--text-secondary)'}}>
               Auto-pack manifest, titles, and bills of sale for destination border clearance
-            </Typography>
-          </Box>
-        </Box>
+            </p>
+          </div>
+        </div>
         <button
           onClick={onClose}
-          className="p-1 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors"
+          className="p-1 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--background)] transition-colors"
         >
           <X className="w-5 h-5" />
-        </button>
-      </DialogTitle>
+        </button></>} actions={<><Button variant="outline" size="sm" onClick={onClose}>
+          Close
+        </Button>
 
-      <DialogContent sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
-        {/* Container & Voyage Summary Bar */}
+        <div style={{display: 'flex', gap: '12px'}}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleDownload}
+            icon={<Download className="w-4 h-4" />}
+          >
+            Download PDF Packet
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={handleEmailAgent}
+            loading={isEmailing}
+            icon={<Send className="w-4 h-4" />}
+          >
+            Email Customs Agent
+          </Button>
+        </div></>} showCloseButton={false} contentSx={{padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px'}} actionsSx={{padding: '20px', borderTop: '1px solid var(--border)', backgroundColor: 'var(--background)', display: 'flex', justifyContent: 'space-between', gap: '12px'}}>{/* Container & Voyage Summary Bar */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3 rounded-xl bg-[var(--background)] border border-[var(--border)] text-xs">
           <div>
             <span className="text-[10px] uppercase font-bold text-[var(--text-secondary)] block">Container</span>
@@ -172,120 +142,62 @@ export function CustomsDocumentPacketModal({
         </div>
 
         {/* Destination Clearing Agent Form */}
-        <Box sx={{ p: 2, border: '1px solid var(--border)', borderRadius: 2, bgcolor: 'var(--background)' }}>
-          <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)', mb: 1.5 }}>
+        <div style={{padding: '16px', border: '1px solid var(--border)', borderRadius: '16px', backgroundColor: 'var(--background)'}}>
+          <p style={{fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '12px'}}>
             Destination Customs Broker & Consignee
-          </Typography>
+          </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <TextField
-              label="Clearing Agent Name"
-              size="small"
-              value={agentInfo.agentName}
-              onChange={(e) => setAgentInfo({ ...agentInfo, agentName: e.target.value })}
-            />
-            <TextField
-              label="Agent Email Address"
-              size="small"
-              type="email"
-              value={agentInfo.agentEmail}
-              onChange={(e) => setAgentInfo({ ...agentInfo, agentEmail: e.target.value })}
-            />
-            <TextField
-              label="Agent Telephone"
-              size="small"
-              value={agentInfo.agentPhone}
-              onChange={(e) => setAgentInfo({ ...agentInfo, agentPhone: e.target.value })}
-            />
+            <FormField label="Clearing Agent Name" value={agentInfo.agentName} onChange={(e) => setAgentInfo({ ...agentInfo, agentName: e.target.value })} size="small" />
+            <FormField label="Agent Email Address" type="email" value={agentInfo.agentEmail} onChange={(e) => setAgentInfo({ ...agentInfo, agentEmail: e.target.value })} size="small" />
+            <FormField label="Agent Telephone" value={agentInfo.agentPhone} onChange={(e) => setAgentInfo({ ...agentInfo, agentPhone: e.target.value })} size="small" />
           </div>
-        </Box>
+        </div>
 
         {/* Vehicle Cargo Manifest Preview Table */}
-        <Box sx={{ border: '1px solid var(--border)', borderRadius: 2, overflow: 'hidden' }}>
-          <Box sx={{ p: 1.5, bgcolor: 'var(--background)', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+        <div style={{border: '1px solid var(--border)', borderRadius: '16px', overflow: 'hidden'}}>
+          <div style={{padding: '12px', backgroundColor: 'var(--background)', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+            <p style={{fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)'}}>
               Loaded Vehicles Manifest ({container.shipments.length} Units)
-            </Typography>
+            </p>
             <span className="text-xs text-emerald-400 font-semibold">
               All Titles & Documents Verified
             </span>
-          </Box>
+          </div>
 
-          <TableContainer sx={{ maxHeight: 220 }}>
-            <Table size="small">
-              <TableHead>
-                <TableRow sx={{ bgcolor: 'var(--background)' }}>
-                  <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>Vehicle</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>VIN (17 Digits)</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>Lot / Source</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>Title Status</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }} align="right">Declared Value</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
+          <div style={{maxHeight: 220, overflow: 'auto'}}>
+            <table className="w-full border-collapse text-left">
+              <thead className="sticky top-0">
+                <tr style={{backgroundColor: 'var(--background)'}}>
+                  <th className="px-3 py-2 text-left" style={{fontWeight: 700, fontSize: '0.75rem'}}>Vehicle</th>
+                  <th className="px-3 py-2 text-left" style={{fontWeight: 700, fontSize: '0.75rem'}}>VIN (17 Digits)</th>
+                  <th className="px-3 py-2 text-left" style={{fontWeight: 700, fontSize: '0.75rem'}}>Lot / Source</th>
+                  <th className="px-3 py-2 text-left" style={{fontWeight: 700, fontSize: '0.75rem'}}>Title Status</th>
+                  <th className="px-3 py-2 text-right" style={{fontWeight: 700, fontSize: '0.75rem'}}>Declared Value</th>
+                </tr>
+              </thead>
+              <tbody>
                 {container.shipments.map((s, idx) => (
-                  <TableRow key={s.id || idx} hover>
-                    <TableCell sx={{ fontSize: '0.75rem', fontWeight: 600 }}>
+                  <tr key={s.id || idx} className="border-t border-[var(--border)] transition-colors hover:bg-[var(--background)]">
+                    <td className="px-3 py-2" style={{fontSize: '0.75rem', fontWeight: 600}}>
                       {[s.vehicleYear, s.vehicleMake, s.vehicleModel].filter(Boolean).join(' ') || 'Motor Vehicle'}
-                    </TableCell>
-                    <TableCell sx={{ fontSize: '0.75rem', fontFamily: 'monospace', fontWeight: 700, color: 'var(--accent-gold)' }}>
+                    </td>
+                    <td className="px-3 py-2" style={{fontSize: '0.75rem', fontFamily: 'monospace', fontWeight: 700, color: 'var(--accent-gold)'}}>
                       {s.vehicleVIN || 'N/A'}
-                    </TableCell>
-                    <TableCell sx={{ fontSize: '0.75rem' }}>
+                    </td>
+                    <td className="px-3 py-2" style={{fontSize: '0.75rem'}}>
                       {s.lotNumber ? `${s.lotNumber} (${s.auctionName || 'Auction'})` : 'N/A'}
-                    </TableCell>
-                    <TableCell sx={{ fontSize: '0.75rem' }}>
-                      <Chip
-                        size="small"
-                        label={s.titleStatus || (s.hasTitle ? 'Title Present' : 'Pending')}
-                        sx={{ fontSize: '0.7rem', height: 20 }}
-                        color={s.hasTitle ? 'success' : 'warning'}
-                      />
-                    </TableCell>
-                    <TableCell align="right" sx={{ fontSize: '0.75rem', fontWeight: 700, color: '#16a34a' }}>
+                    </td>
+                    <td className="px-3 py-2" style={{fontSize: '0.75rem'}}>
+                      <span style={{fontSize: '0.7rem', height: 20}} className="inline-flex items-center gap-1 rounded-full font-medium text-[0.7rem] px-2 py-0.5 border border-[var(--border)] bg-[var(--background)] text-[var(--text-primary)]">{s.titleStatus || (s.hasTitle ? 'Title Present' : 'Pending')}</span>
+                    </td>
+                    <td className="px-3 py-2 text-right" style={{fontSize: '0.75rem', fontWeight: 700, color: '#16a34a'}}>
                       {s.purchasePrice ? `$${s.purchasePrice.toLocaleString()}` : '$0.00'}
-                    </TableCell>
-                  </TableRow>
+                    </td>
+                  </tr>
                 ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Box>
-      </DialogContent>
-
-      <DialogActions
-        sx={{
-          p: 2.5,
-          borderTop: '1px solid var(--border)',
-          bgcolor: 'var(--background)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          gap: 1.5,
-        }}
-      >
-        <Button variant="outline" size="sm" onClick={onClose}>
-          Close
-        </Button>
-
-        <Box sx={{ display: 'flex', gap: 1.5 }}>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleDownload}
-            icon={<Download className="w-4 h-4" />}
-          >
-            Download PDF Packet
-          </Button>
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={handleEmailAgent}
-            loading={isEmailing}
-            icon={<Send className="w-4 h-4" />}
-          >
-            Email Customs Agent
-          </Button>
-        </Box>
-      </DialogActions>
-    </Dialog>
+              </tbody>
+            </table>
+          </div>
+        </div></Modal>
   );
 }

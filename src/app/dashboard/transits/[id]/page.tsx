@@ -1,20 +1,10 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import {
-  Box,
-  Checkbox,
-  CircularProgress,
-  IconButton,
-  MenuItem,
-  Tab,
-  Tabs,
-  TextField,
-  Tooltip,
-} from '@mui/material';
 import {
   ArrowLeft,
   DollarSign,
@@ -30,7 +20,7 @@ import {
 } from 'lucide-react';
 import PermissionRoute from '@/components/auth/PermissionRoute';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
-import { Breadcrumbs, Button, StatsCard, TableSkeleton, toast, CopyButton, PageHeader, MilestoneStepper, Modal } from '@/components/design-system';
+import { Breadcrumbs, Button, CopyButton, FormField, IconButton, MilestoneStepper, Modal, PageHeader, Select, StatsCard, TableSkeleton, Tooltip, toast } from '@/components/design-system';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import AddShipmentExpenseModal from '@/components/shipments/AddShipmentExpenseModal';
 import AddTransitExpenseModal from '@/components/transits/AddTransitExpenseModal';
@@ -139,7 +129,7 @@ const statusColors: Record<string, { bg: string; text: string; border: string }>
 const statusLabels: Record<string, string> = { PENDING: 'Pending', DISPATCHED: 'Dispatched', IN_TRANSIT: 'In Transit', ARRIVED: 'Arrived', DELIVERED: 'Delivered', CANCELLED: 'Cancelled' };
 
 const TabPanel = ({ children, value, index }: { children: React.ReactNode; value: number; index: number }) => (
-  <div hidden={value !== index}>{value === index && <Box sx={{ pt: 2 }}>{children}</Box>}</div>
+  <div hidden={value !== index}>{value === index && <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingTop: '16px'}}>{children}</JXBox>}</div>
 );
 
 export default function TransitDetailPage() {
@@ -515,23 +505,23 @@ export default function TransitDetailPage() {
       key: 'vehicleMake',
       header: 'Vehicle',
       render: (_, row) => (
-        <Box>
-          <Box sx={{ fontWeight: 600 }}>{`${row.vehicleYear || ''} ${row.vehicleMake || ''} ${row.vehicleModel || ''}`.trim() || 'Unknown'}</Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 600}}>{`${row.vehicleYear || ''} ${row.vehicleMake || ''} ${row.vehicleModel || ''}`.trim() || 'Unknown'}</JXBox>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem', color: 'var(--text-secondary)'}}>
             <span style={{ fontFamily: 'monospace' }}>{row.vehicleVIN || '-'}</span>
             {row.vehicleVIN && <CopyButton value={row.vehicleVIN} label="VIN" />}
-          </Box>
-        </Box>
+          </JXBox>
+        </JXBox>
       ),
     },
     {
       key: 'user',
       header: 'Customer',
       render: (_, row) => (
-        <Box>
-          <Box sx={{ fontWeight: 500 }}>{row.user.name || row.user.email}</Box>
-          <Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{row.user.phone || row.user.email}</Box>
-        </Box>
+        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 500}}>{row.user.name || row.user.email}</JXBox>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.75rem', color: 'var(--text-secondary)'}}>{row.user.phone || row.user.email}</JXBox>
+        </JXBox>
       ),
     },
     {
@@ -553,35 +543,24 @@ export default function TransitDetailPage() {
       header: 'Actions',
       align: 'center',
       render: (_, row) => (
-        <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
+        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '4px', justifyContent: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap'}} onClick={(e) => e.stopPropagation()}>
           {canManageExpenses ? (
-            <Tooltip title="Add expense">
-              <IconButton
-                size="small"
-                onClick={() => {
+            <Tooltip title="Add expense" arrow={false}>
+              <IconButton icon={<DollarSign className="w-4 h-4" />} ariaLabel="Add expense" variant="ghost" size="sm" onClick={() => {
                   setSelectedShipmentForExpense(row.id);
                   setShipmentExpenseModalOpen(true);
-                }}
-                sx={{ color: 'var(--accent-gold)' }}
-                disabled={isTransitWorkflowLocked}
-              >
-                <DollarSign className="w-4 h-4" />
-              </IconButton>
+                }} disabled={isTransitWorkflowLocked} style={{color: 'var(--accent-gold)'}} />
             </Tooltip>
           ) : null}
-          <Tooltip title="View shipment">
-            <IconButton size="small" component="a" href={`/dashboard/shipments/${row.id}`} target="_blank">
-              <Package className="w-4 h-4" />
-            </IconButton>
+          <Tooltip title="View shipment" arrow={false}>
+            <IconButton icon={<Package className="w-4 h-4" />} ariaLabel="View shipment" variant="ghost" size="sm" />
           </Tooltip>
           {canManageWorkflow ? (
-            <Tooltip title="Remove from transit">
-              <IconButton size="small" color="error" onClick={() => void handleRemoveShipment(row.id)} disabled={isTransitWorkflowLocked}>
-                <Trash2 className="w-4 h-4" />
-              </IconButton>
+            <Tooltip title="Remove from transit" arrow={false}>
+              <IconButton icon={<Trash2 className="w-4 h-4" />} ariaLabel="Remove from transit" variant="ghost" size="sm" color="error" onClick={() => void handleRemoveShipment(row.id)} disabled={isTransitWorkflowLocked} />
             </Tooltip>
           ) : null}
-        </Box>
+        </JXBox>
       ),
     },
   ];
@@ -592,10 +571,10 @@ export default function TransitDetailPage() {
       key: 'origin',
       header: 'Leg',
       render: (_, row) => (
-        <Box>
-          <Box sx={{ fontWeight: 600 }}>{row.origin}</Box>
-          <Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>→ {row.destination}</Box>
-        </Box>
+        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 600}}>{row.origin}</JXBox>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.75rem', color: 'var(--text-secondary)'}}>→ {row.destination}</JXBox>
+        </JXBox>
       ),
     },
     {
@@ -603,7 +582,7 @@ export default function TransitDetailPage() {
       header: 'Company',
       render: (_, row) => row.company.name,
     },
-    { key: 'status', header: 'Status', render: (_, row) => <Box sx={{ fontWeight: 600 }}>{row.status}</Box> },
+    { key: 'status', header: 'Status', render: (_, row) => <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 600}}>{row.status}</JXBox> },
     { key: 'location', header: 'Location', render: (_, row) => row.location || '-' },
     { key: 'description', header: 'Description', render: (_, row) => row.description || '-' },
   ];
@@ -614,22 +593,22 @@ export default function TransitDetailPage() {
       key: 'type',
       header: 'Type',
       render: (_, row) => (
-        <Box>
-          <Box sx={{ fontWeight: 500 }}>{row.type.replace(/_/g, ' ')}</Box>
-          {row.vendor && <Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{row.vendor}</Box>}
-        </Box>
+        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 500}}>{row.type.replace(/_/g, ' ')}</JXBox>
+          {row.vendor && <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.75rem', color: 'var(--text-secondary)'}}>{row.vendor}</JXBox>}
+        </JXBox>
       ),
     },
     {
       key: 'transitEvent',
       header: 'Transit Leg',
       render: (_, row) => row.transitEvent ? (
-        <Box>
-          <Box sx={{ fontWeight: 500, fontSize: '0.875rem' }}>{row.transitEvent.origin} → {row.transitEvent.destination}</Box>
-          <Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{row.transitEvent.company.name}</Box>
-        </Box>
+        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 500, fontSize: '0.875rem'}}>{row.transitEvent.origin} → {row.transitEvent.destination}</JXBox>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.75rem', color: 'var(--text-secondary)'}}>{row.transitEvent.company.name}</JXBox>
+        </JXBox>
       ) : (
-        <Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>No linked event</Box>
+        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.75rem', color: 'var(--text-secondary)'}}>No linked event</JXBox>
       ),
     },
     {
@@ -641,16 +620,16 @@ export default function TransitDetailPage() {
       key: 'shipment',
       header: 'Shipment',
       render: (_, row) => row.shipment ? (
-        <Box>
-          <Box sx={{ fontWeight: 500, fontSize: '0.875rem' }}>
+        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 500, fontSize: '0.875rem'}}>
             {[row.shipment.vehicleMake, row.shipment.vehicleModel].filter(Boolean).join(' ') || 'Vehicle'}
-          </Box>
+          </JXBox>
           {row.shipment.vehicleVIN && (
-            <Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{row.shipment.vehicleVIN}</Box>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.75rem', color: 'var(--text-secondary)'}}>{row.shipment.vehicleVIN}</JXBox>
           )}
-        </Box>
+        </JXBox>
       ) : (
-        <Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontStyle: 'italic' }}>General transit expense</Box>
+        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.75rem', color: 'var(--text-secondary)', fontStyle: 'italic'}}>General transit expense</JXBox>
       ),
     },
     {
@@ -659,28 +638,19 @@ export default function TransitDetailPage() {
       align: 'center',
       render: (_, row) => (
         canManageExpenses ? (
-          <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '4px', justifyContent: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap'}} onClick={(e) => e.stopPropagation()}>
             {row.source === 'TRANSIT_EXPENSE' && (
-              <Tooltip title="Edit expense">
-                <IconButton
-                  size="small"
-                  onClick={() => {
+              <Tooltip title="Edit expense" arrow={false}>
+                <IconButton icon={<Pencil className="w-4 h-4" />} ariaLabel="Edit expense" variant="ghost" size="sm" onClick={() => {
                     setSelectedTransitExpense(row);
                     setTransitExpenseModalOpen(true);
-                  }}
-                  disabled={isTransitWorkflowLocked}
-                  sx={{ color: 'var(--accent-gold)' }}
-                >
-                  <Pencil className="w-4 h-4" />
-                </IconButton>
+                  }} disabled={isTransitWorkflowLocked} style={{color: 'var(--accent-gold)'}} />
               </Tooltip>
             )}
-            <Tooltip title="Delete expense">
-              <IconButton size="small" color="error" onClick={() => void handleDeleteExpense(row)} disabled={isTransitWorkflowLocked}>
-                <Trash2 className="w-4 h-4" />
-              </IconButton>
+            <Tooltip title="Delete expense" arrow={false}>
+              <IconButton icon={<Trash2 className="w-4 h-4" />} ariaLabel="Delete expense" variant="ghost" size="sm" color="error" onClick={() => void handleDeleteExpense(row)} disabled={isTransitWorkflowLocked} />
             </Tooltip>
-          </Box>
+          </JXBox>
         ) : null
       ),
     },
@@ -699,7 +669,7 @@ export default function TransitDetailPage() {
       <PermissionRoute anyOf={['transits:manage', 'finance:manage']}>
         <DashboardSurface>
           <DashboardPanel title="Transit not found">
-            <Box sx={{ color: 'var(--text-secondary)' }}>The requested transit could not be found.</Box>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, color: 'var(--text-secondary)'}}>The requested transit could not be found.</JXBox>
             <Link href="/dashboard/transits"><Button variant="outline">Back to Transits</Button></Link>
           </DashboardPanel>
         </DashboardSurface>
@@ -717,15 +687,15 @@ export default function TransitDetailPage() {
   return (
     <PermissionRoute anyOf={['transits:manage', 'finance:manage']}>
       <DashboardSurface>
-        <Box sx={{ px: 2, pt: 2 }}>
+        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingLeft: '16px', paddingRight: '16px', paddingTop: '16px'}}>
           <Breadcrumbs />
-        </Box>
+        </JXBox>
 
         <PageHeader
           title={transit.referenceNumber}
           description={`${currentLegLabel} • ${currentCompanyLabel}`}
           actions={
-            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap'}}>
               <CopyButton value={transit.referenceNumber} label="Transit #" />
               <Button
                 variant="outline"
@@ -753,20 +723,20 @@ export default function TransitDetailPage() {
                 </Button>
               )}
               {canManageWorkflow && (!isClosedTransitState || canOverrideClosedStages) ? <Button variant="outline" size="sm" icon={<Pencil className="w-4 h-4" />} onClick={openEditDialog} disabled={isTransitWorkflowLocked}>Edit</Button> : null}
-            </Box>
+            </JXBox>
           }
         />
 
         {/* Milestone Progression Stepper */}
-        <Box sx={{ px: 2, mb: 3 }}>
-          <Box sx={{ p: 2.5, borderRadius: 2, border: '1px solid var(--border)', background: 'var(--panel)', boxShadow: '0 4px 20px rgba(0,0,0,0.04)' }}>
+        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingLeft: '16px', paddingRight: '16px', marginBottom: '24px'}}>
+          <JXBox padding="none" border={false} style={{padding: '20px', borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--panel)', boxShadow: '0 4px 20px rgba(0,0,0,0.04)'}}>
             <MilestoneStepper
               steps={transitMilestones}
               currentStepId={transit.status}
               status={transit.status === 'DELIVERED' || transit.status === 'ARRIVED' ? 'completed' : transit.status === 'CANCELLED' ? 'cancelled' : 'default'}
             />
-          </Box>
-        </Box>
+          </JXBox>
+        </JXBox>
 
         <DashboardPanel>
           <DashboardGrid className="grid-cols-2 md:grid-cols-4 mb-4">
@@ -777,98 +747,125 @@ export default function TransitDetailPage() {
           </DashboardGrid>
 
           {isClosedTransitState && (
-            <Box sx={{ mb: 2, p: 2, borderRadius: 2, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
+            <JXBox padding="none" border={false} style={{marginBottom: '16px', padding: '16px', borderRadius: '16px', background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text-secondary)'}}>
               {canOverrideClosedStages
                 ? 'This transit is closed. Admin override is enabled for workflow corrections and protected expense changes.'
                 : 'This transit is closed. Workflow changes are locked and expense updates are limited to admin overrides.'}
-            </Box>
+            </JXBox>
           )}
 
           {/* Status Badge + Info */}
-          <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap', mb: 2, p: 2, borderRadius: 2, background: 'var(--surface)', border: '1px solid var(--border)' }}>
-            <Box>
-              <Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)', mb: 0.5 }}>STATUS</Box>
+          <JXBox padding="none" border={false} style={{display: 'flex', gap: '24px', flexWrap: 'wrap', marginBottom: '16px', padding: '16px', borderRadius: '16px', background: 'var(--surface)', border: '1px solid var(--border)'}}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px'}}>STATUS</JXBox>
               <span style={{ display: 'inline-flex', padding: '3px 12px', borderRadius: 9999, fontSize: '0.8rem', fontWeight: 600, background: statusColor.bg, color: statusColor.text, border: `1px solid ${statusColor.border}` }}>
                 {statusLabels[transit.status] || transit.status}
               </span>
-            </Box>
-            <Box>
-              <Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)', mb: 0.5 }}>CURRENT LEG</Box>
-              <Box sx={{ fontWeight: 600 }}>{currentLegLabel}</Box>
-            </Box>
-            <Box>
-              <Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)', mb: 0.5 }}>CURRENT COMPANY</Box>
-              <Box sx={{ fontWeight: 600 }}>{currentCompanyLabel}</Box>
-            </Box>
+            </JXBox>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px'}}>CURRENT LEG</JXBox>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 600}}>{currentLegLabel}</JXBox>
+            </JXBox>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px'}}>CURRENT COMPANY</JXBox>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 600}}>{currentCompanyLabel}</JXBox>
+            </JXBox>
             {transit.dispatchDate && (
-              <Box>
-                <Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)', mb: 0.5 }}>DISPATCHED</Box>
-                <Box sx={{ fontWeight: 600 }}>{new Date(transit.dispatchDate).toLocaleDateString()}</Box>
-              </Box>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px'}}>DISPATCHED</JXBox>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 600}}>{new Date(transit.dispatchDate).toLocaleDateString()}</JXBox>
+              </JXBox>
             )}
             {transit.estimatedDelivery && (
-              <Box>
-                <Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)', mb: 0.5 }}>EST. DELIVERY</Box>
-                <Box sx={{ fontWeight: 600 }}>{new Date(transit.estimatedDelivery).toLocaleDateString()}</Box>
-              </Box>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px'}}>EST. DELIVERY</JXBox>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 600}}>{new Date(transit.estimatedDelivery).toLocaleDateString()}</JXBox>
+              </JXBox>
             )}
             {transit.actualDelivery && (
-              <Box>
-                <Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)', mb: 0.5 }}>DELIVERED</Box>
-                <Box sx={{ fontWeight: 600, color: 'var(--success)' }}>{new Date(transit.actualDelivery).toLocaleDateString()}</Box>
-              </Box>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px'}}>DELIVERED</JXBox>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 600, color: 'var(--success)'}}>{new Date(transit.actualDelivery).toLocaleDateString()}</JXBox>
+              </JXBox>
             )}
             {transit.deliveryReceiverName && (
-              <Box>
-                <Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)', mb: 0.5 }}>RECEIVED BY</Box>
-                <Box sx={{ fontWeight: 600 }}>{transit.deliveryReceiverName}</Box>
-              </Box>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px'}}>RECEIVED BY</JXBox>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 600}}>{transit.deliveryReceiverName}</JXBox>
+              </JXBox>
             )}
             {transit.deliveryProofUrl && (
-              <Box>
-                <Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)', mb: 0.5 }}>PROOF OF DELIVERY</Box>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px'}}>PROOF OF DELIVERY</JXBox>
                 <a href={transit.deliveryProofUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--accent-gold)', fontWeight: 600, textDecoration: 'none' }}>
                   {transit.deliveryProofName || 'Open proof file'}
                 </a>
-              </Box>
+              </JXBox>
             )}
-          </Box>
+          </JXBox>
 
           {transit.status === 'DELIVERED' && (transit.deliveryNotes || transit.deliveryProofType) && (
-            <Box sx={{ mb: 2, p: 2, borderRadius: 2, background: 'var(--surface)', border: '1px solid var(--border)' }}>
-              <Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)', mb: 1 }}>DELIVERY CONFIRMATION</Box>
+            <JXBox padding="none" border={false} style={{marginBottom: '16px', padding: '16px', borderRadius: '16px', background: 'var(--surface)', border: '1px solid var(--border)'}}>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '8px'}}>DELIVERY CONFIRMATION</JXBox>
               {transit.deliveryProofType && (
-                <Box sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)', mb: 0.5 }}>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '4px'}}>
                   Proof type: {transit.deliveryProofType}
-                </Box>
+                </JXBox>
               )}
-              {transit.deliveryNotes && <Box sx={{ whiteSpace: 'pre-wrap' }}>{transit.deliveryNotes}</Box>}
-            </Box>
+              {transit.deliveryNotes && <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, whiteSpace: 'pre-wrap'}}>{transit.deliveryNotes}</JXBox>}
+            </JXBox>
           )}
 
           {/* Tabs */}
-          <Box sx={{ borderBottom: 1, borderColor: 'var(--border)', mb: 2 }}>
-            <Tabs
-              value={activeTab}
-              onChange={(_, v) => setActiveTab(v)}
-              variant="scrollable"
-              scrollButtons="auto"
-              sx={{
-                '& .MuiTab-root': { textTransform: 'none', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-secondary)', minHeight: 44, '&:hover': { color: 'var(--accent-gold)' } },
-                '& .Mui-selected': { color: 'var(--accent-gold) !important' },
-                '& .MuiTabs-indicator': { backgroundColor: 'var(--accent-gold)' },
-              }}
-            >
-              <Tab icon={<Package className="h-4 w-4" />} iconPosition="start" label={`Shipments (${transit._count.shipments})`} />
-              <Tab icon={<History className="h-4 w-4" />} iconPosition="start" label={`Events (${transit._count.events})`} />
-              <Tab icon={<DollarSign className="h-4 w-4" />} iconPosition="start" label={`Expenses (${transit._count.expenses})`} />
-              <Tab icon={<User className="h-4 w-4" />} iconPosition="start" label="Company Info" />
-            </Tabs>
-          </Box>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, borderBottom: 1, borderColor: 'var(--border)', marginBottom: '16px'}}>
+            <div role="tablist" className="flex gap-1 overflow-x-auto border-b border-[var(--border)]">
+              <button
+                key={0}
+                type="button"
+                role="tab"
+                aria-selected={activeTab === 0}
+                onClick={() => { const v = 0; setActiveTab(v); }}
+                className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === 0 ? 'border-[var(--accent-gold)] text-[var(--accent-gold-text)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+              >
+                {<Package className="h-4 w-4" />} {`Shipments (${transit._count.shipments})`}
+              </button>
+              <button
+                key={1}
+                type="button"
+                role="tab"
+                aria-selected={activeTab === 1}
+                onClick={() => { const v = 1; setActiveTab(v); }}
+                className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === 1 ? 'border-[var(--accent-gold)] text-[var(--accent-gold-text)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+              >
+                {<History className="h-4 w-4" />} {`Events (${transit._count.events})`}
+              </button>
+              <button
+                key={2}
+                type="button"
+                role="tab"
+                aria-selected={activeTab === 2}
+                onClick={() => { const v = 2; setActiveTab(v); }}
+                className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === 2 ? 'border-[var(--accent-gold)] text-[var(--accent-gold-text)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+              >
+                {<DollarSign className="h-4 w-4" />} {`Expenses (${transit._count.expenses})`}
+              </button>
+              <button
+                key={3}
+                type="button"
+                role="tab"
+                aria-selected={activeTab === 3}
+                onClick={() => { const v = 3; setActiveTab(v); }}
+                className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === 3 ? 'border-[var(--accent-gold)] text-[var(--accent-gold-text)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+              >
+                {<User className="h-4 w-4" />} {"Company Info"}
+              </button>
+            
+            </div>
+          </JXBox>
 
           <TabPanel value={activeTab} index={0}>
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1.5 }}>
-              <Box sx={{ display: 'flex', gap: 1 }}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'flex-end', marginBottom: '12px'}}>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '8px'}}>
                 {canManageExpenses ? (
                   <Button
                     variant="outline"
@@ -886,49 +883,49 @@ export default function TransitDetailPage() {
                 {canManageWorkflow ? <Button variant="primary" size="sm" icon={<Plus className="w-4 h-4" />} onClick={() => setOpenAddShipment(true)} disabled={isTransitWorkflowLocked}>
                   Add Shipment
                 </Button> : null}
-              </Box>
-            </Box>
+              </JXBox>
+            </JXBox>
             <DataTable data={transit.shipments} columns={shipmentColumns} keyField="id" />
           </TabPanel>
 
           <TabPanel value={activeTab} index={1}>
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1.5 }}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'flex-end', marginBottom: '12px'}}>
               {canManageWorkflow ? <Button variant="primary" size="sm" icon={<Plus className="w-4 h-4" />} onClick={() => setOpenEvent(true)} disabled={isTransitWorkflowLocked}>
                 Add Event
               </Button> : null}
-            </Box>
+            </JXBox>
             <DataTable data={transit.events} columns={eventColumns} keyField="id" />
           </TabPanel>
 
           <TabPanel value={activeTab} index={2}>
-            <Box sx={{ p: 2, background: 'var(--surface-secondary)', borderRadius: 2, border: '1px solid var(--border)' }}>
-              <Box sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+            <JXBox padding="none" border={false} style={{padding: '16px', background: 'var(--surface-secondary)', borderRadius: '16px', border: '1px solid var(--border)'}}>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', color: 'var(--text-secondary)'}}>
                 Transit expenses and shipment transit expenses post against the latest transit event. Add a new event whenever the route or company changes.
-              </Box>
-            </Box>
-            <Box sx={{ mt: 2 }}>
+              </JXBox>
+            </JXBox>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '16px'}}>
               <DataTable data={transit.expenses} columns={expenseColumns} keyField="id" />
-            </Box>
+            </JXBox>
           </TabPanel>
 
           <TabPanel value={activeTab} index={3}>
             {transit.currentCompany ? (
-              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, p: 2, background: 'var(--surface)', borderRadius: 2, border: '1px solid var(--border)' }}>
-                <Box><Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>COMPANY NAME</Box><Box sx={{ fontWeight: 600, mt: 0.5 }}>{transit.currentCompany.name}</Box></Box>
-                {transit.currentCompany.code && <Box><Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>CODE</Box><Box sx={{ fontWeight: 600, mt: 0.5 }}>{transit.currentCompany.code}</Box></Box>}
-                {transit.currentCompany.phone && <Box><Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>PHONE</Box><Box sx={{ fontWeight: 600, mt: 0.5 }}>{transit.currentCompany.phone}</Box></Box>}
-                {transit.currentCompany.email && <Box><Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>EMAIL</Box><Box sx={{ fontWeight: 600, mt: 0.5 }}>{transit.currentCompany.email}</Box></Box>}
-              </Box>
+              <JXBox padding="none" border={false} style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', padding: '16px', background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border)'}}>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}><JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.75rem', color: 'var(--text-secondary)'}}>COMPANY NAME</JXBox><JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 600, marginTop: '4px'}}>{transit.currentCompany.name}</JXBox></JXBox>
+                {transit.currentCompany.code && <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}><JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.75rem', color: 'var(--text-secondary)'}}>CODE</JXBox><JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 600, marginTop: '4px'}}>{transit.currentCompany.code}</JXBox></JXBox>}
+                {transit.currentCompany.phone && <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}><JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.75rem', color: 'var(--text-secondary)'}}>PHONE</JXBox><JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 600, marginTop: '4px'}}>{transit.currentCompany.phone}</JXBox></JXBox>}
+                {transit.currentCompany.email && <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}><JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.75rem', color: 'var(--text-secondary)'}}>EMAIL</JXBox><JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 600, marginTop: '4px'}}>{transit.currentCompany.email}</JXBox></JXBox>}
+              </JXBox>
             ) : (
-              <Box sx={{ p: 2, background: 'var(--surface)', borderRadius: 2, border: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
+              <JXBox padding="none" border={false} style={{padding: '16px', background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border)', color: 'var(--text-secondary)'}}>
                 No transit company is assigned yet. Add a transit event to set the active leg company.
-              </Box>
+              </JXBox>
             )}
             {transit.notes && (
-              <Box sx={{ mt: 2, p: 2, background: 'var(--surface)', borderRadius: 2, border: '1px solid var(--border)' }}>
-                <Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)', mb: 0.5 }}>NOTES</Box>
-                <Box sx={{ whiteSpace: 'pre-wrap' }}>{transit.notes}</Box>
-              </Box>
+              <JXBox padding="none" border={false} style={{marginTop: '16px', padding: '16px', background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border)'}}>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px'}}>NOTES</JXBox>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, whiteSpace: 'pre-wrap'}}>{transit.notes}</JXBox>
+              </JXBox>
             )}
           </TabPanel>
         </DashboardPanel>
@@ -946,24 +943,15 @@ export default function TransitDetailPage() {
             </>
           }
         >
-          <Box sx={{ display: 'grid', gap: 2, pt: 1.5 }}>
-            <TextField
-              select
-              label="Status"
-              value={editForm.status}
-              onChange={(e) => setEditForm(prev => ({ ...prev, status: e.target.value }))}
-            >
-              {STATUS_OPTIONS.map(s => (
-                <MenuItem key={s} value={s}>{statusLabels[s] || s}</MenuItem>
-              ))}
-            </TextField>
-            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
-              <TextField label="Dispatch Date" type="date" InputLabelProps={{ shrink: true }} value={editForm.dispatchDate} onChange={(e) => setEditForm(prev => ({ ...prev, dispatchDate: e.target.value }))} />
-              <TextField label="Est. Delivery" type="date" InputLabelProps={{ shrink: true }} value={editForm.estimatedDelivery} onChange={(e) => setEditForm(prev => ({ ...prev, estimatedDelivery: e.target.value }))} />
-            </Box>
-            <TextField label="Agreed Cost (USD)" type="number" inputProps={{ min: 0, step: 0.01 }} value={editForm.cost} onChange={(e) => setEditForm(prev => ({ ...prev, cost: e.target.value }))} />
-            <TextField label="Notes" multiline rows={3} value={editForm.notes} onChange={(e) => setEditForm(prev => ({ ...prev, notes: e.target.value }))} />
-          </Box>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '16px', paddingTop: '12px'}}>
+            <Select label="Status" options={STATUS_OPTIONS.map((s) => ({ value: s, label: statusLabels[s] || s }))} value={editForm.status} onChange={(val) => setEditForm(prev => ({ ...prev, status: val as string }))} />
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
+              <FormField label="Dispatch Date" type="date" InputLabelProps={{ shrink: true }} value={editForm.dispatchDate} onChange={(e) => setEditForm(prev => ({ ...prev, dispatchDate: e.target.value }))} />
+              <FormField label="Est. Delivery" type="date" InputLabelProps={{ shrink: true }} value={editForm.estimatedDelivery} onChange={(e) => setEditForm(prev => ({ ...prev, estimatedDelivery: e.target.value }))} />
+            </JXBox>
+            <FormField label="Agreed Cost (USD)" type="number" inputProps={{ min: 0, step: 0.01 }} value={editForm.cost} onChange={(e) => setEditForm(prev => ({ ...prev, cost: e.target.value }))} />
+            <FormField label="Notes" multiline rows={3} value={editForm.notes} onChange={(e) => setEditForm(prev => ({ ...prev, notes: e.target.value }))} />
+          </JXBox>
         </Modal>
 
         {/* Add Event Dialog */}
@@ -979,30 +967,17 @@ export default function TransitDetailPage() {
             </>
           }
         >
-          <Box sx={{ display: 'grid', gap: 2, pt: 1.5 }}>
-            <TextField
-              select
-              label="Transit Company"
-              value={eventForm.companyId}
-              onChange={(e) => setEventForm(prev => ({ ...prev, companyId: e.target.value }))}
-              required
-            >
-              <MenuItem value="">Select a company...</MenuItem>
-              {transitCompanies.map((company) => (
-                <MenuItem key={company.id} value={company.id}>
-                  {company.name}{company.code ? ` (${company.code})` : ''}
-                </MenuItem>
-              ))}
-            </TextField>
-            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
-              <TextField label="From" value={eventForm.origin} onChange={(e) => setEventForm(prev => ({ ...prev, origin: e.target.value }))} required placeholder="e.g. Herat" />
-              <TextField label="To" value={eventForm.destination} onChange={(e) => setEventForm(prev => ({ ...prev, destination: e.target.value }))} required placeholder="e.g. Kabul" />
-            </Box>
-            <TextField label="Status / Event" value={eventForm.status} onChange={(e) => setEventForm(prev => ({ ...prev, status: e.target.value }))} required placeholder="e.g. Loaded, Border Crossed, Arrived Kabul" />
-            <TextField label="Location" value={eventForm.location} onChange={(e) => setEventForm(prev => ({ ...prev, location: e.target.value }))} placeholder="e.g. Islam Qala Border" />
-            <TextField label="Description" multiline rows={2} value={eventForm.description} onChange={(e) => setEventForm(prev => ({ ...prev, description: e.target.value }))} />
-            <TextField label="Event Date" type="datetime-local" InputLabelProps={{ shrink: true }} value={eventForm.eventDate} onChange={(e) => setEventForm(prev => ({ ...prev, eventDate: e.target.value }))} />
-          </Box>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '16px', paddingTop: '12px'}}>
+            <Select label="Transit Company" options={[{ value: "", label: 'Select a company...' }, ...transitCompanies.map((company) => ({ value: company.id, label: `${company.name}${company.code ? ` (${company.code})` : ''}` }))]} value={eventForm.companyId} onChange={(val) => setEventForm(prev => ({ ...prev, companyId: val as string }))} />
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
+              <FormField label="From" value={eventForm.origin} onChange={(e) => setEventForm(prev => ({ ...prev, origin: e.target.value }))} required placeholder="e.g. Herat" />
+              <FormField label="To" value={eventForm.destination} onChange={(e) => setEventForm(prev => ({ ...prev, destination: e.target.value }))} required placeholder="e.g. Kabul" />
+            </JXBox>
+            <FormField label="Status / Event" value={eventForm.status} onChange={(e) => setEventForm(prev => ({ ...prev, status: e.target.value }))} required placeholder="e.g. Loaded, Border Crossed, Arrived Kabul" />
+            <FormField label="Location" value={eventForm.location} onChange={(e) => setEventForm(prev => ({ ...prev, location: e.target.value }))} placeholder="e.g. Islam Qala Border" />
+            <FormField label="Description" multiline rows={2} value={eventForm.description} onChange={(e) => setEventForm(prev => ({ ...prev, description: e.target.value }))} />
+            <FormField label="Event Date" type="datetime-local" InputLabelProps={{ shrink: true }} value={eventForm.eventDate} onChange={(e) => setEventForm(prev => ({ ...prev, eventDate: e.target.value }))} />
+          </JXBox>
         </Modal>
 
         {/* Add Shipment Expense Modal */}
@@ -1052,70 +1027,41 @@ export default function TransitDetailPage() {
             </>
           }
         >
-          <Box sx={{ pt: 1.5 }}>
-            <TextField
-              fullWidth
-              size="small"
-              label="Search shipments"
-              value={shipmentSearch}
-              onChange={(e) => setShipmentSearch(e.target.value)}
-              helperText={loadingAvailableShipments ? 'Loading released shipments...' : 'Search by vehicle, VIN, or customer - released shipments only'}
-              sx={{ mb: 1.5 }}
-              InputProps={{
-                endAdornment: loadingAvailableShipments ? <CircularProgress color="inherit" size={16} /> : undefined,
-              }}
-            />
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingTop: '12px'}}>
+            <div className="min-w-0 flex-1"><FormField label="Search shipments" value={shipmentSearch} onChange={(e) => setShipmentSearch(e.target.value)} helperText={loadingAvailableShipments ? 'Loading released shipments...' : 'Search by vehicle, VIN, or customer - released shipments only'} rightIcon={loadingAvailableShipments ? <span role="status" aria-label="Loading" className="inline-block shrink-0 animate-spin rounded-full border-2 border-[var(--border)] border-t-current h-[16px] w-[16px]" /> : undefined} size="small" style={{marginBottom: '12px'}} /></div>
             {loadingAvailableShipments ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-                <CircularProgress size={24} />
-              </Box>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'center', paddingTop: '32px', paddingBottom: '32px'}}>
+                <span role="status" aria-label="Loading" className="inline-block shrink-0 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--accent-gold)] h-[24px] w-[24px]" />
+              </JXBox>
             ) : availableShipments.length === 0 ? (
-              <Box sx={{ py: 4, textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingTop: '32px', paddingBottom: '32px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.875rem'}}>
                 No released shipments found.
-              </Box>
+              </JXBox>
             ) : (
-              <Box sx={{ maxHeight: 320, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 1 }}>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', maxHeight: '320px', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: '8px'}}>
                 {availableShipments.map((shipment) => {
                   const vehicle = `${shipment.vehicleYear || ''} ${shipment.vehicleMake || ''} ${shipment.vehicleModel || ''}`.trim() || 'Vehicle';
                   const checked = selectedShipmentIds.includes(shipment.id);
                   return (
-                    <Box
-                      key={shipment.id}
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 1,
-                        px: 1,
-                        py: 0.75,
-                        borderBottom: '1px solid var(--border)',
-                        '&:hover': { bgcolor: 'var(--panel)' },
-                        cursor: 'pointer',
-                      }}
-                      onClick={() => toggleShipmentSelection(shipment.id)}
-                    >
-                      <Checkbox
-                        size="small"
-                        checked={checked}
-                        onClick={(e) => e.stopPropagation()}
-                        onChange={() => toggleShipmentSelection(shipment.id)}
-                      />
-                      <Box sx={{ minWidth: 0 }}>
-                        <Box sx={{ fontWeight: 600, fontSize: '0.875rem' }}>{vehicle}</Box>
-                        <Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                    <JXBox padding="none" border={false} key={shipment.id} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px', paddingLeft: '8px', paddingRight: '8px', paddingTop: '6px', paddingBottom: '6px', borderBottom: '1px solid var(--border)', cursor: 'pointer'}} onClick={() => toggleShipmentSelection(shipment.id)}>
+                      <input type="checkbox" onChange={() => toggleShipmentSelection(shipment.id)} checked={checked} className="h-4 w-4 shrink-0 cursor-pointer accent-[var(--accent-gold)] disabled:cursor-not-allowed disabled:opacity-50" />
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, minWidth: '0px'}}>
+                        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 600, fontSize: '0.875rem'}}>{vehicle}</JXBox>
+                        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.75rem', color: 'var(--text-secondary)'}}>
                           {shipment.vehicleVIN ? `VIN ${shipment.vehicleVIN}` : shipment.id} - {shipment.user.name || shipment.user.email}
-                        </Box>
-                      </Box>
-                    </Box>
+                        </JXBox>
+                      </JXBox>
+                    </JXBox>
                   );
                 })}
-              </Box>
+              </JXBox>
             )}
-            <Box sx={{ mt: 1, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '8px', fontSize: '0.8rem', color: 'var(--text-secondary)'}}>
               {selectedShipmentIds.length > 0
                 ? `${selectedShipmentIds.length} shipment(s) selected - release tokens are verified automatically.`
                 : 'Select one or more released shipments to add. You can add another batch right after.'}
-            </Box>
-          </Box>
+            </JXBox>
+          </JXBox>
         </Modal>
 
         {/* Confirm Final Delivery Modal */}
@@ -1133,21 +1079,10 @@ export default function TransitDetailPage() {
             </>
           }
         >
-          <Box sx={{ display: 'grid', gap: 2, pt: 1.5 }}>
-            <TextField
-              label="Delivered Date"
-              type="datetime-local"
-              InputLabelProps={{ shrink: true }}
-              value={deliveryForm.deliveredDate}
-              onChange={(e) => setDeliveryForm((prev) => ({ ...prev, deliveredDate: e.target.value }))}
-            />
-            <TextField
-              label="Receiver Name"
-              value={deliveryForm.receiverName}
-              onChange={(e) => setDeliveryForm((prev) => ({ ...prev, receiverName: e.target.value }))}
-              helperText="Person who accepted the vehicle(s)"
-            />
-            <Box sx={{ p: 2, borderRadius: 2, border: '1px dashed var(--border)', background: 'var(--surface)' }}>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '16px', paddingTop: '12px'}}>
+            <FormField label="Delivered Date" type="datetime-local" InputLabelProps={{ shrink: true }} value={deliveryForm.deliveredDate} onChange={(e) => setDeliveryForm((prev) => ({ ...prev, deliveredDate: e.target.value }))} />
+            <FormField label="Receiver Name" value={deliveryForm.receiverName} onChange={(e) => setDeliveryForm((prev) => ({ ...prev, receiverName: e.target.value }))} helperText="Person who accepted the vehicle(s)" />
+            <JXBox padding="none" border={false} style={{padding: '16px', borderRadius: '16px', border: '1px dashed var(--border)', background: 'var(--surface)'}}>
               <input
                 ref={proofInputRef}
                 type="file"
@@ -1161,16 +1096,16 @@ export default function TransitDetailPage() {
                   e.currentTarget.value = '';
                 }}
               />
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-                <Box>
-                  <Box sx={{ fontWeight: 600 }}>Proof of Delivery</Box>
-                  <Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px', flexWrap: 'wrap'}}>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+                  <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 600}}>Proof of Delivery</JXBox>
+                  <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.75rem', color: 'var(--text-secondary)'}}>
                     Upload a delivery photo, signed PDF, or receiver document.
-                  </Box>
+                  </JXBox>
                   {deliveryForm.proofName && (
-                    <Box sx={{ mt: 1, fontSize: '0.875rem', color: 'var(--success)' }}>{deliveryForm.proofName}</Box>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '8px', fontSize: '0.875rem', color: 'var(--success)'}}>{deliveryForm.proofName}</JXBox>
                   )}
-                </Box>
+                </JXBox>
                 <Button
                   variant="outline"
                   icon={<Upload className="w-4 h-4" />}
@@ -1179,17 +1114,10 @@ export default function TransitDetailPage() {
                 >
                   {uploadingProof ? 'Uploading...' : deliveryForm.proofUrl ? 'Replace File' : 'Upload File'}
                 </Button>
-              </Box>
-            </Box>
-            <TextField
-              label="Delivery Notes"
-              multiline
-              rows={3}
-              value={deliveryForm.notes}
-              onChange={(e) => setDeliveryForm((prev) => ({ ...prev, notes: e.target.value }))}
-              helperText="Optional notes for support, disputes, or handover context"
-            />
-          </Box>
+              </JXBox>
+            </JXBox>
+            <FormField label="Delivery Notes" multiline rows={3} value={deliveryForm.notes} onChange={(e) => setDeliveryForm((prev) => ({ ...prev, notes: e.target.value }))} helperText="Optional notes for support, disputes, or handover context" />
+          </JXBox>
         </Modal>
 
 

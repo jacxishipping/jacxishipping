@@ -1,11 +1,11 @@
 "use client";
 
 import Link from 'next/link';
-import { ArrowForward, LocalShipping, LocationOn, CalendarToday } from '@mui/icons-material';
-import { Slide } from '@mui/material';
+import { motion } from 'framer-motion';
 import { JXBox } from '@jacxishippingorg/jx-ui-react';
 import { useState, useEffect } from 'react';
 import { Button, StatusBadge } from '@/components/design-system';
+import { ArrowRight, Calendar, MapPin, Truck } from 'lucide-react';
 
 type ShipmentCardProps = {
 	id: string;
@@ -51,7 +51,7 @@ export default function ShipmentCard({
 	const vehicleInfo = [vehicleMake, vehicleModel, vehicleYear].filter(Boolean).join(' ') || vehicleType;
 
 	return (
-		<Slide in={isVisible} direction="up" timeout={400}>
+		<motion.div initial={{ opacity: 0, y: 24 }} animate={isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 24 }} transition={{ duration: 0.4 }}>
 			<div>
 				<JXBox
 					component="article"
@@ -99,7 +99,7 @@ export default function ShipmentCard({
 							{/* Container Number and Status */}
 							<div className="flex min-w-0 items-center justify-between gap-2">
 								<div className="flex min-w-0 flex-1 items-center gap-1">
-									<LocalShipping sx={{ fontSize: { xs: 14, sm: 16 }, color: 'var(--accent-gold)', flexShrink: 0 }} />
+									<Truck className="h-4 w-4" style={{ color: 'var(--accent-gold)' }}/>
 									<Link href={`/dashboard/containers/${containerId}`} style={{ textDecoration: 'none', minWidth: 0, overflow: 'hidden' }}>
 										<span className="truncate text-[0.7rem] sm:text-[0.75rem] font-semibold text-[var(--accent-gold-text)] hover:underline">
 											{container.containerNumber}
@@ -144,7 +144,7 @@ export default function ShipmentCard({
 							{/* Current Location */}
 							{container.currentLocation && (
 								<div className="flex min-w-0 items-center gap-1">
-									<LocationOn sx={{ fontSize: { xs: 12, sm: 14 }, color: 'var(--text-secondary)', flexShrink: 0 }} />
+									<MapPin className="h-3.5 w-3.5" style={{ color: 'var(--text-secondary)' }}/>
 									<span className="truncate text-[0.65rem] sm:text-[0.7rem] text-[var(--text-secondary)]">
 										{container.currentLocation}
 									</span>
@@ -160,7 +160,7 @@ export default function ShipmentCard({
 								)}
 								{container.estimatedArrival && (
 									<div className="flex min-w-0 items-center gap-1">
-										<CalendarToday sx={{ fontSize: { xs: 12, sm: 14 }, color: 'var(--text-secondary)', flexShrink: 0 }} />
+										<Calendar className="h-3.5 w-3.5" style={{ color: 'var(--text-secondary)' }}/>
 										<span className="truncate text-[0.65rem] sm:text-[0.7rem] text-[var(--text-secondary)]">
 											ETA: {new Date(container.estimatedArrival).toLocaleDateString()}
 										</span>
@@ -176,7 +176,7 @@ export default function ShipmentCard({
 							href={`/dashboard/shipments/${id}`}
 							variant="ghost"
 							size="sm"
-							icon={<ArrowForward sx={{ fontSize: { xs: 12, sm: 14 } }} />}
+							icon={<ArrowRight className="h-3.5 w-3.5"/>}
 							iconPosition="end"
 							className="!min-w-0 !p-0 !text-[0.65rem] sm:!text-[0.7rem] !font-semibold !normal-case !text-[var(--accent-gold-text)] shrink-0"
 						>
@@ -185,6 +185,6 @@ export default function ShipmentCard({
 					</div>
 				</JXBox>
 			</div>
-		</Slide>
+		</motion.div>
 	);
 }

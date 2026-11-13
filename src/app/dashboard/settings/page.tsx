@@ -1,6 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+
+import { Suspense, useCallback, useEffect, useMemo, useState, type ReactNode, forwardRef, type CSSProperties, type InputHTMLAttributes, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -39,7 +41,6 @@ import {
   Car,
   Clock,
 } from 'lucide-react';
-import { Box, Switch, Tab, Tabs, TextField, Typography } from '@mui/material';
 import { useTheme, type ThemeMode, type DensityMode } from '@/hooks/useTheme';
 
 import { 
@@ -47,16 +48,7 @@ import {
   DashboardPanel, 
   DashboardGrid 
 } from '@/components/dashboard/DashboardSurface';
-import { 
-  Button, 
-  toast, 
-  PageHeader, 
-  StatsCard, 
-  FormField,
-  Select,
-  FormPageSkeleton,
-  StatusBadge,
-} from '@/components/design-system';
+import { Button, FormField, FormPageSkeleton, PageHeader, Select, StatsCard, StatusBadge, toast } from '@/components/design-system';
 import {
   DEFAULT_SHIPPING_RATE_CONFIG,
   normalizeShippingRateConfig,
@@ -67,6 +59,77 @@ import { TrackingApisTab } from '@/components/dashboard/settings/TrackingApisTab
 import { BackupDatabaseTab } from '@/components/dashboard/settings/BackupDatabaseTab';
 import { BrandingSettingsCard } from '@/components/dashboard/settings/BrandingSettingsCard';
 import { GoogleVoiceLiveCallPanel } from '@/components/voice/GoogleVoiceLiveCallPanel';
+
+/** Bare input with the Jacxi field look (no label) — search fields, table-cell editors. */
+const BareInput = forwardRef<HTMLInputElement | HTMLTextAreaElement, BareInputProps>(function BareInput(
+  { leftIcon, rightIcon, rightElement, error = false, helperText, size = 'small', multiline = false, rows, minRows, inputProps, className, style, ...rest },
+  ref,
+) {
+  const controlClass = [
+    'w-full rounded-lg border bg-[var(--background)] text-[var(--text-primary)] outline-none transition-colors placeholder:text-[var(--text-secondary)]',
+    size === 'small' ? 'px-2.5 py-1.5 text-[0.8125rem]' : 'px-3 py-2 text-[0.875rem]',
+    leftIcon ? 'pl-9' : '',
+    rightIcon || rightElement ? 'pr-9' : '',
+    error
+      ? 'border-[var(--error)] focus:border-[var(--error)] focus:ring-2 focus:ring-[rgba(var(--error-rgb),0.2)]'
+      : 'border-[rgba(var(--border-rgb),0.9)] hover:border-[var(--border)] focus:border-[var(--accent-gold)] focus:ring-2 focus:ring-[rgba(var(--accent-gold-rgb),0.2)]',
+    rest.disabled ? 'opacity-50' : '',
+    className,
+  ].filter(Boolean).join(' ');
+  return (
+    <div>
+      <div className="relative">
+        {leftIcon && (
+          <span className="pointer-events-none absolute left-3 top-1/2 flex -translate-y-1/2 text-[var(--text-secondary)]">{leftIcon}</span>
+        )}
+        {multiline ? (
+          <textarea
+            {...(rest as TextareaHTMLAttributes<HTMLTextAreaElement>)}
+            {...(inputProps as unknown as TextareaHTMLAttributes<HTMLTextAreaElement>)}
+            ref={ref as React.Ref<HTMLTextAreaElement>}
+            rows={rows ?? minRows ?? 3}
+            aria-invalid={error || undefined}
+            style={style}
+            className={`${controlClass} min-h-[80px] resize-y leading-[1.5]`}
+          />
+        ) : (
+          <input
+            {...rest}
+            {...inputProps}
+            ref={ref as React.Ref<HTMLInputElement>}
+            aria-invalid={error || undefined}
+            style={style}
+            className={controlClass}
+          />
+        )}
+        {rightIcon && (
+          <span className="pointer-events-none absolute right-3 top-1/2 flex -translate-y-1/2 text-[var(--text-secondary)]">{rightIcon}</span>
+        )}
+        {rightElement && (
+          <span className="absolute right-3 top-1/2 flex -translate-y-1/2 text-[var(--text-secondary)]">{rightElement}</span>
+        )}
+      </div>
+      {helperText && (
+        <p className="mt-0.5 text-[0.75rem]" style={{ color: error ? 'var(--error)' : 'var(--text-secondary)' }}>{helperText}</p>
+      )}
+    </div>
+  );
+});
+
+type BareInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> & {
+  leftIcon?: ReactNode;
+  rightIcon?: ReactNode;
+  /** Interactive element on the right (e.g. password visibility toggle). */
+  rightElement?: ReactNode;
+  error?: boolean;
+  helperText?: ReactNode;
+  size?: 'small' | 'medium';
+  multiline?: boolean;
+  rows?: number;
+  minRows?: number;
+  inputProps?: InputHTMLAttributes<HTMLInputElement>;
+};
+
 
 const DEFAULT_SETTINGS = {
   theme: 'light',
@@ -88,7 +151,7 @@ const adminSettingsTabSlugs = ['ai', 'communications', 'call-agent', 'price-calc
 function TabPanel({ children, value, index }: { children: ReactNode; value: number; index: number }) {
   return (
     <div role="tabpanel" hidden={value !== index} id={`settings-tabpanel-${index}`} aria-labelledby={`settings-tab-${index}`}>
-      {value === index && <Box sx={{ pt: 2 }}>{children}</Box>}
+      {value === index && <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingTop: '16px'}}>{children}</JXBox>}
     </div>
   );
 }
@@ -360,7 +423,7 @@ const parseJsonResponse = async (response: Response) => {
   }
 };
 
-export default function SettingsPage() {
+function SettingsPageContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -1059,71 +1122,29 @@ export default function SettingsPage() {
         description={isAdmin ? 'Manage your profile, preferences, and system configuration' : 'Manage your profile, preferences, and account settings'}
       />
 
-      <Box
-        sx={{
-          position: 'sticky',
-          top: 0,
-          zIndex: 15,
-          border: '1px solid var(--border)',
-          borderRadius: '12px',
-          backgroundColor: 'var(--panel)',
-          boxShadow: '0 12px 28px rgba(var(--text-primary-rgb),0.08)',
-          overflow: 'hidden',
-        }}
-      >
-        <Tabs
-          value={activeTab}
-          onChange={(_, newValue) => {
-            setActiveTab(newValue);
+      <JXBox padding="none" border={false} style={{position: 'sticky', top: '0px', zIndex: 15, border: '1px solid var(--border)', borderRadius: '12px', backgroundColor: 'var(--panel)', boxShadow: '0 12px 28px rgba(var(--text-primary-rgb),0.08)', overflow: 'hidden'}}>
+        <div role="tablist" className="flex gap-1 overflow-x-auto border-b border-[var(--border)]">
+          {settingsTabs.map((tab, index) => (
+            <button
+              key={tab.label}
+              type="button"
+              role="tab"
+              id={`settings-tab-${index}`}
+              aria-selected={activeTab === index}
+              aria-controls={`settings-tabpanel-${index}`}
+              onClick={() => { const newValue = index; setActiveTab(newValue);
             const slugs = isAdmin ? [...baseSettingsTabSlugs, ...adminSettingsTabSlugs] : baseSettingsTabSlugs;
             const nextParams = new URLSearchParams(searchParams.toString());
             nextParams.set('tab', slugs[newValue] || slugs[0]);
-            router.replace(`?${nextParams.toString()}`, { scroll: false });
-          }}
-          variant="scrollable"
-          scrollButtons="auto"
-          sx={{
-            minHeight: 52,
-            '& .MuiTabs-flexContainer': {
-              gap: 0.25,
-              px: 1,
-            },
-            '& .MuiTab-root': {
-              textTransform: 'none',
-              fontSize: '0.875rem',
-              fontWeight: 650,
-              color: 'var(--text-secondary)',
-              minHeight: 52,
-              borderRadius: '10px',
-              my: 0.75,
-              px: 1.5,
-              '&:hover': {
-                color: 'var(--accent-gold)',
-                backgroundColor: 'rgba(var(--accent-gold-rgb), 0.08)',
-              },
-            },
-            '& .Mui-selected': {
-              color: 'var(--accent-gold) !important',
-              backgroundColor: 'rgba(var(--accent-gold-rgb), 0.1)',
-            },
-            '& .MuiTabs-indicator': {
-              backgroundColor: 'var(--accent-gold)',
-              height: 3,
-            },
-          }}
-        >
-          {settingsTabs.map((tab, index) => (
-            <Tab
-              key={tab.label}
-              id={`settings-tab-${index}`}
-              aria-controls={`settings-tabpanel-${index}`}
-              icon={tab.icon}
-              iconPosition="start"
-              label={tab.label}
-            />
+            router.replace(`?${nextParams.toString()}`, { scroll: false }); }}
+              className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === index ? 'border-[var(--accent-gold)] text-[var(--accent-gold-text)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+            >
+              {tab.icon} {tab.label}
+            </button>
           ))}
-        </Tabs>
-      </Box>
+        
+        </div>
+      </JXBox>
 
       {/* Tab 0: Profile */}
       <TabPanel value={activeTab} index={0}>
@@ -1473,18 +1494,15 @@ export default function SettingsPage() {
                     </span>
                   </div>
                 </div>
-                <Switch
-                  checked={settingsForm.animationsEnabled}
-                  onChange={(e) => setSettingsForm(prev => ({ ...prev, animationsEnabled: e.target.checked }))}
-                  sx={{
-                    '& .MuiSwitch-switchBase.Mui-checked': {
-                      color: 'var(--accent-gold)',
-                    },
-                    '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                      backgroundColor: 'var(--accent-gold)',
-                    },
-                  }}
-                />
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={settingsForm.animationsEnabled}
+                  onClick={() => setSettingsForm(prev => ({ ...prev, animationsEnabled: !(settingsForm.animationsEnabled) }))}
+                  className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${settingsForm.animationsEnabled ? 'bg-[var(--accent-gold)]' : 'bg-[var(--border)]'} disabled:opacity-50`}
+                >
+                  <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${settingsForm.animationsEnabled ? 'left-[22px]' : 'left-0.5'}`} />
+                </button>
               </div>
               
               {/* Regional & Language Settings */}
@@ -1586,12 +1604,12 @@ export default function SettingsPage() {
                   ].map((item) => (
                     <div key={item.key} className="flex items-center justify-between px-4 py-3 hover:bg-[var(--background)]/50 transition-colors">
                       <div className="min-w-0 flex-1">
-                        <Typography variant="body2" fontWeight={600} color="text.primary">
+                        <p className="text-sm leading-relaxed font-semibold text-[var(--text-primary)]">
                           {item.label}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
+                        </p>
+                        <span className="text-xs text-[var(--text-secondary)] text-[var(--text-secondary)]">
                           {item.desc}
-                        </Typography>
+                        </span>
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer ml-3 shrink-0">
                         <input
@@ -1624,12 +1642,12 @@ export default function SettingsPage() {
                   ].map((item) => (
                     <div key={item.key} className="flex items-center justify-between px-4 py-3 hover:bg-[var(--background)]/50 transition-colors">
                       <div className="min-w-0 flex-1">
-                        <Typography variant="body2" fontWeight={600} color="text.primary">
+                        <p className="text-sm leading-relaxed font-semibold text-[var(--text-primary)]">
                           {item.label}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
+                        </p>
+                        <span className="text-xs text-[var(--text-secondary)] text-[var(--text-secondary)]">
                           {item.desc}
-                        </Typography>
+                        </span>
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer ml-3 shrink-0">
                         <input
@@ -1662,12 +1680,12 @@ export default function SettingsPage() {
                   ].map((item) => (
                     <div key={item.key} className="flex items-center justify-between px-4 py-3 hover:bg-[var(--background)]/50 transition-colors">
                       <div className="min-w-0 flex-1">
-                        <Typography variant="body2" fontWeight={600} color="text.primary">
+                        <p className="text-sm leading-relaxed font-semibold text-[var(--text-primary)]">
                           {item.label}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
+                        </p>
+                        <span className="text-xs text-[var(--text-secondary)] text-[var(--text-secondary)]">
                           {item.desc}
-                        </Typography>
+                        </span>
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer ml-3 shrink-0">
                         <input
@@ -1705,7 +1723,7 @@ export default function SettingsPage() {
           >
             <div className="p-4 border border-[var(--border)] rounded-lg bg-[var(--background)]">
               <div className="flex items-center justify-between mb-2">
-                <Typography variant="subtitle2" fontWeight="600">Two-Factor Authentication</Typography>
+                <p className="text-sm font-semibold">Two-Factor Authentication</p>
                 <Button 
                   variant={settingsForm.twoFactorEnabled ? 'primary' : 'outline'} 
                   size="sm"
@@ -1715,9 +1733,9 @@ export default function SettingsPage() {
                   {settingsForm.twoFactorEnabled ? 'Enabled' : 'Disabled'}
                 </Button>
               </div>
-              <Typography variant="caption" color="text.secondary">
+              <span className="text-xs text-[var(--text-secondary)] text-[var(--text-secondary)]">
                 {isAdmin ? 'Require authenticator verification for admin dashboard sign-in.' : 'Require extra verification for your account sign-in.'}
-              </Typography>
+              </span>
             </div>
           </DashboardPanel>
 
@@ -1732,7 +1750,7 @@ export default function SettingsPage() {
           title="AI Connectivity"
           description="TokenRouter provider status, recent usage, fallbacks, and a live connectivity test."
           actions={
-            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
               <Button
                 variant="outline"
                 size="sm"
@@ -1751,131 +1769,65 @@ export default function SettingsPage() {
               >
                 Test AI
               </Button>
-            </Box>
+            </JXBox>
           }
         >
           <div className="space-y-4">
-            <Box
-              component="form"
-              onSubmit={handleSaveAiProviderSettings}
-              sx={{
-                p: 2,
-                border: '1px solid var(--border)',
-                borderRadius: 2,
-                bgcolor: 'var(--background)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 2,
-              }}
-            >
-              <Box sx={{ display: 'flex', alignItems: { xs: 'flex-start', md: 'center' }, justifyContent: 'space-between', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
-                <Box>
-                  <Typography sx={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+            <JXBox padding="none" border={false} component="form" onSubmit={handleSaveAiProviderSettings} style={{padding: '16px', border: '1px solid var(--border)', borderRadius: '16px', backgroundColor: 'var(--background)', display: 'flex', flexDirection: 'column', gap: '16px'}}>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between', gap: '16px'}} className="items-start md:items-center flex-col md:flex-row">
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+                  <p className="text-sm leading-relaxed" style={{fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)'}}>
                     Editable AI Provider
-                  </Typography>
-                  <Typography sx={{ fontSize: '0.82rem', color: 'var(--text-secondary)', mt: 0.5 }}>
+                  </p>
+                  <p className="text-sm leading-relaxed" style={{fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '4px'}}>
                     These values power dashboard AI, document extraction, OCR, and price-list parsing. Environment variables are only used as fallback defaults.
-                  </Typography>
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Typography sx={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                  </p>
+                </JXBox>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px'}}>
+                  <p className="text-sm leading-relaxed" style={{fontSize: '0.82rem', color: 'var(--text-secondary)'}}>
                     {aiProviderSettings.enabled ? 'Enabled' : 'Disabled'}
-                  </Typography>
-                  <Switch
-                    checked={aiProviderSettings.enabled}
-                    onChange={(event) => handleAiProviderFieldChange('enabled', event.target.checked)}
+                  </p>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={aiProviderSettings.enabled}
                     disabled={savingAiProviderSettings}
-                  />
-                </Box>
-              </Box>
+                    onClick={() => handleAiProviderFieldChange('enabled', !(aiProviderSettings.enabled))}
+                    className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${aiProviderSettings.enabled ? 'bg-[var(--accent-gold)]' : 'bg-[var(--border)]'} disabled:opacity-50`}
+                  >
+                    <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${aiProviderSettings.enabled ? 'left-[22px]' : 'left-0.5'}`} />
+                  </button>
+                </JXBox>
+              </JXBox>
 
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' }, gap: 2 }}>
-                <TextField
-                  size="small"
-                  label="Provider"
-                  value={aiProviderSettings.provider}
-                  onChange={(event) => handleAiProviderFieldChange('provider', event.target.value)}
-                  disabled={savingAiProviderSettings}
-                />
-                <TextField
-                  size="small"
-                  label="Model"
-                  value={aiProviderSettings.model}
-                  onChange={(event) => handleAiProviderFieldChange('model', event.target.value)}
-                  disabled={savingAiProviderSettings}
-                />
-                <TextField
-                  size="small"
-                  label="API Key"
-                  type="password"
-                  value={aiProviderSettings.apiKey}
-                  onChange={(event) => handleAiProviderFieldChange('apiKey', event.target.value)}
-                  placeholder={aiProviderSettings.apiKeyConfigured ? `Saved: ${aiProviderSettings.apiKeyMasked}` : 'Paste API key'}
-                  helperText={
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '16px'}} className="grid-cols-1 md:grid-cols-2">
+                <FormField label="Provider" value={aiProviderSettings.provider} onChange={(event) => handleAiProviderFieldChange('provider', event.target.value)} disabled={savingAiProviderSettings} size="small" />
+                <FormField label="Model" value={aiProviderSettings.model} onChange={(event) => handleAiProviderFieldChange('model', event.target.value)} disabled={savingAiProviderSettings} size="small" />
+                <FormField label="API Key" type="password" value={aiProviderSettings.apiKey} onChange={(event) => handleAiProviderFieldChange('apiKey', event.target.value)} placeholder={aiProviderSettings.apiKeyConfigured ? `Saved: ${aiProviderSettings.apiKeyMasked}` : 'Paste API key'} helperText={
                     aiProviderSettings.apiKeyNeedsReset
                       ? 'Stored key cannot be decrypted with the current app secret. Paste the API key again and save.'
                       : aiProviderSettings.apiKeyConfigured
                       ? 'Leave blank to keep the saved encrypted key.'
                       : 'Saved encrypted using the app secret.'
-                  }
-                  disabled={savingAiProviderSettings}
-                />
-                <TextField
-                  size="small"
-                  label="Max Tokens"
-                  type="number"
-                  value={aiProviderSettings.maxTokens}
-                  onChange={(event) => handleAiProviderFieldChange('maxTokens', Number(event.target.value))}
-                  inputProps={{ min: 1, max: 4000 }}
-                  disabled={savingAiProviderSettings}
-                />
-                <TextField
-                  size="small"
-                  label="Chat Completions URL"
-                  value={aiProviderSettings.chatCompletionsUrl}
-                  onChange={(event) => handleAiProviderFieldChange('chatCompletionsUrl', event.target.value)}
-                  disabled={savingAiProviderSettings}
-                  sx={{ gridColumn: { xs: '1', md: '1 / -1' } }}
-                />
-                <TextField
-                  size="small"
-                  label="Models URL"
-                  value={aiProviderSettings.modelsUrl}
-                  onChange={(event) => handleAiProviderFieldChange('modelsUrl', event.target.value)}
-                  disabled={savingAiProviderSettings}
-                  sx={{ gridColumn: { xs: '1', md: '1 / -1' } }}
-                />
-                <TextField
-                  size="small"
-                  label="Temperature"
-                  type="number"
-                  value={aiProviderSettings.temperature}
-                  onChange={(event) => handleAiProviderFieldChange('temperature', Number(event.target.value))}
-                  inputProps={{ min: 0, max: 2, step: 0.1 }}
-                  disabled={savingAiProviderSettings}
-                />
-              </Box>
+                  } disabled={savingAiProviderSettings} size="small" />
+                <FormField label="Max Tokens" type="number" value={aiProviderSettings.maxTokens} onChange={(event) => handleAiProviderFieldChange('maxTokens', Number(event.target.value))} inputProps={{ min: 1, max: 4000 }} disabled={savingAiProviderSettings} size="small" />
+                <FormField label="Chat Completions URL" value={aiProviderSettings.chatCompletionsUrl} onChange={(event) => handleAiProviderFieldChange('chatCompletionsUrl', event.target.value)} disabled={savingAiProviderSettings} size="small" />
+                <FormField label="Models URL" value={aiProviderSettings.modelsUrl} onChange={(event) => handleAiProviderFieldChange('modelsUrl', event.target.value)} disabled={savingAiProviderSettings} size="small" />
+                <FormField label="Temperature" type="number" value={aiProviderSettings.temperature} onChange={(event) => handleAiProviderFieldChange('temperature', Number(event.target.value))} inputProps={{ min: 0, max: 2, step: 0.1 }} disabled={savingAiProviderSettings} size="small" />
+              </JXBox>
 
               {aiProviderSettings.apiKeyNeedsReset ? (
-                <Box
-                  sx={{
-                    border: '1px solid rgba(245, 158, 11, 0.4)',
-                    borderRadius: 2,
-                    bgcolor: 'rgba(245, 158, 11, 0.12)',
-                    px: 1.5,
-                    py: 1,
-                  }}
-                >
-                  <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: 'rgb(146, 64, 14)' }}>
+                <JXBox padding="none" border={false} style={{border: '1px solid rgba(245, 158, 11, 0.4)', borderRadius: '16px', backgroundColor: 'rgba(245, 158, 11, 0.12)', paddingLeft: '12px', paddingRight: '12px', paddingTop: '8px', paddingBottom: '8px'}}>
+                  <p className="text-sm leading-relaxed" style={{fontSize: '0.8rem', fontWeight: 700, color: 'rgb(146, 64, 14)'}}>
                     AI key needs reset
-                  </Typography>
-                  <Typography sx={{ fontSize: '0.78rem', color: 'rgb(146, 64, 14)' }}>
+                  </p>
+                  <p className="text-sm leading-relaxed" style={{fontSize: '0.78rem', color: 'rgb(146, 64, 14)'}}>
                     The saved AI API key cannot be decrypted in this environment. Re-enter the key in the API Key field and save.
-                  </Typography>
-                </Box>
+                  </p>
+                </JXBox>
               ) : null}
 
-              <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, flexWrap: 'wrap' }}>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'flex-end', gap: '8px', flexWrap: 'wrap'}}>
                 <Button
                   type="submit"
                   variant="primary"
@@ -1885,8 +1837,8 @@ export default function SettingsPage() {
                 >
                   Save AI Settings
                 </Button>
-              </Box>
-            </Box>
+              </JXBox>
+            </JXBox>
 
             <DashboardGrid className="grid-cols-1 md:grid-cols-2 xl:grid-cols-4">
               <StatsCard
@@ -1923,58 +1875,50 @@ export default function SettingsPage() {
               />
             </DashboardGrid>
 
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' }, gap: 2 }}>
-              <Box sx={{ p: 2, border: '1px solid var(--border)', borderRadius: 2, bgcolor: 'var(--background)' }}>
-                <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-secondary)', mb: 1 }}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '16px'}} className="grid-cols-1 grid lg:grid-cols-[1fr_1fr]">
+              <JXBox padding="none" border={false} style={{padding: '16px', border: '1px solid var(--border)', borderRadius: '16px', backgroundColor: 'var(--background)'}}>
+                <p className="text-sm leading-relaxed" style={{fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-secondary)', marginBottom: '8px'}}>
                   Latest activity
-                </Typography>
-                <Typography sx={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                </p>
+                <p className="text-sm leading-relaxed" style={{fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-primary)'}}>
                   {aiConnectivity?.latestLog
                     ? `${aiConnectivity.latestLog.provider} · ${aiConnectivity.latestLog.status}`
                     : 'No AI activity logged yet'}
-                </Typography>
-                <Typography sx={{ fontSize: '0.82rem', color: 'var(--text-secondary)', mt: 0.75 }}>
+                </p>
+                <p className="text-sm leading-relaxed" style={{fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '6px'}}>
                   {aiConnectivity?.latestLog
                     ? `${aiConnectivity.latestLog.model || 'Unknown model'} · ${formatRelativeTime(aiConnectivity.latestLog.createdAt)}`
                     : 'Run a dashboard brief, document extraction, shipment draft, or connectivity test to create a log.'}
-                </Typography>
-              </Box>
+                </p>
+              </JXBox>
 
               {aiConnectivity?.latestFailure?.reason && (
-                <Box
-                  sx={{
-                    gridColumn: { xs: '1', lg: '1 / -1' },
-                    p: 2,
-                    border: '1px solid rgba(245, 158, 11, 0.35)',
-                    borderRadius: 2,
-                    bgcolor: 'rgba(245, 158, 11, 0.08)',
-                  }}
-                >
-                  <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'rgb(146, 64, 14)', mb: 0.75 }}>
+                <JXBox padding="none" border={false} style={{padding: '16px', border: '1px solid rgba(245, 158, 11, 0.35)', borderRadius: '16px', backgroundColor: 'rgba(245, 158, 11, 0.08)'}} className="col-start-1 lg:col-span-full">
+                  <p className="text-sm leading-relaxed" style={{fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'rgb(146, 64, 14)', marginBottom: '6px'}}>
                     Latest AI failure reason
-                  </Typography>
-                  <Typography sx={{ fontSize: '0.88rem', color: 'rgb(146, 64, 14)' }}>
+                  </p>
+                  <p className="text-sm leading-relaxed" style={{fontSize: '0.88rem', color: 'rgb(146, 64, 14)'}}>
                     {aiConnectivity.latestFailure.reason}
-                  </Typography>
-                </Box>
+                  </p>
+                </JXBox>
               )}
 
-              <Box sx={{ p: 2, border: '1px solid var(--border)', borderRadius: 2, bgcolor: 'var(--background)' }}>
-                <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-secondary)', mb: 1 }}>
+              <JXBox padding="none" border={false} style={{padding: '16px', border: '1px solid var(--border)', borderRadius: '16px', backgroundColor: 'var(--background)'}}>
+                <p className="text-sm leading-relaxed" style={{fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-secondary)', marginBottom: '8px'}}>
                   Last test result
-                </Typography>
-                <Typography sx={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                </p>
+                <p className="text-sm leading-relaxed" style={{fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-primary)'}}>
                   {aiTestResult ? `${aiTestResult.latencyMs} ms · ${aiTestResult.model}` : 'No test run this session'}
-                </Typography>
-                <Typography sx={{ fontSize: '0.82rem', color: 'var(--text-secondary)', mt: 0.75 }}>
+                </p>
+                <p className="text-sm leading-relaxed" style={{fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '6px'}}>
                   {aiTestResult
                     ? `${aiTestResult.responsePreview} · ${formatRelativeTime(aiTestResult.testedAt)}`
                     : aiConnectivity?.configured
                       ? 'Use Test AI to verify live provider connectivity.'
                       : 'Save an API key in Settings > AI to enable live testing.'}
-                </Typography>
-              </Box>
-            </Box>
+                </p>
+              </JXBox>
+            </JXBox>
           </div>
         </DashboardPanel>
       ) : null}
@@ -1987,7 +1931,7 @@ export default function SettingsPage() {
           title="Communications & WhatsApp Business Hub"
           description="Configure official WhatsApp Business (Meta Cloud API / Twilio / Direct wa.me), Email, and SMS providers for customer notifications."
           actions={
-            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
               <Button
                 variant="outline"
                 size="sm"
@@ -2018,10 +1962,10 @@ export default function SettingsPage() {
               >
                 Test SMS
               </Button>
-            </Box>
+            </JXBox>
           }
         >
-          <Box component="form" onSubmit={handleSaveCommunicationSettings} sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <JXBox padding="none" border={false} component="form" onSubmit={handleSaveCommunicationSettings} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '24px'}}>
             <DashboardGrid className="grid-cols-1 md:grid-cols-3">
               <StatsCard
                 icon={communicationSettings.whatsappConfigured ? <CheckCircle2 style={{ fontSize: 18 }} /> : <XCircle style={{ fontSize: 18 }} />}
@@ -2050,28 +1994,33 @@ export default function SettingsPage() {
             </DashboardGrid>
 
             {/* WhatsApp Business Hub Configuration Card */}
-            <Box sx={{ p: 2.5, border: '1px solid rgba(16, 185, 129, 0.35)', borderRadius: 2, bgcolor: 'var(--background)' }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, alignItems: { xs: 'flex-start', md: 'center' }, flexDirection: { xs: 'column', md: 'row' }, mb: 2 }}>
-                <Box>
-                  <Typography sx={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 1 }}>
+            <JXBox padding="none" border={false} style={{padding: '20px', border: '1px solid rgba(16, 185, 129, 0.35)', borderRadius: '16px', backgroundColor: 'var(--background)'}}>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between', gap: '16px', marginBottom: '16px'}} className="items-start md:items-center flex-col md:flex-row">
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+                  <p className="text-sm leading-relaxed" style={{fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px'}}>
                     <MessageSquare className="w-4 h-4 text-emerald-500" />
                     WhatsApp Business Integration
-                  </Typography>
-                  <Typography sx={{ fontSize: '0.82rem', color: 'var(--text-secondary)', mt: 0.5 }}>
+                  </p>
+                  <p className="text-sm leading-relaxed" style={{fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '4px'}}>
                     Powers the multi-lingual WhatsApp Business Studio, signed PDF document sharing, and automated milestone dispatches.
-                  </Typography>
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Typography sx={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                  </p>
+                </JXBox>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px'}}>
+                  <p className="text-sm leading-relaxed" style={{fontSize: '0.82rem', color: 'var(--text-secondary)'}}>
                     {communicationSettings.whatsappEnabled ? 'Enabled' : 'Disabled'}
-                  </Typography>
-                  <Switch
-                    checked={communicationSettings.whatsappEnabled}
-                    onChange={(event) => handleCommunicationFieldChange('whatsappEnabled', event.target.checked)}
+                  </p>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={communicationSettings.whatsappEnabled}
                     disabled={savingCommunicationSettings}
-                  />
-                </Box>
-              </Box>
+                    onClick={() => handleCommunicationFieldChange('whatsappEnabled', !(communicationSettings.whatsappEnabled))}
+                    className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${communicationSettings.whatsappEnabled ? 'bg-[var(--accent-gold)]' : 'bg-[var(--border)]'} disabled:opacity-50`}
+                  >
+                    <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${communicationSettings.whatsappEnabled ? 'left-[22px]' : 'left-0.5'}`} />
+                  </button>
+                </JXBox>
+              </JXBox>
 
               {/* Provider Mode Selector */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-4">
@@ -2114,281 +2063,221 @@ export default function SettingsPage() {
                 })}
               </div>
 
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, minmax(0, 1fr))' }, gap: 2 }}>
-                <TextField
-                  size="small"
-                  label="Business Display Name"
-                  value={communicationSettings.whatsappBusinessName}
-                  onChange={(event) => handleCommunicationFieldChange('whatsappBusinessName', event.target.value)}
-                  placeholder="JACXI Shipping & Logistics"
-                  disabled={savingCommunicationSettings}
-                />
-                <TextField
-                  size="small"
-                  label="WhatsApp Business Sender Number"
-                  value={communicationSettings.whatsappFromNumber}
-                  onChange={(event) => handleCommunicationFieldChange('whatsappFromNumber', event.target.value)}
-                  placeholder="+93704117413"
-                  disabled={savingCommunicationSettings}
-                />
-                <TextField
-                  size="small"
-                  label="Default Country Code (E.164)"
-                  value={communicationSettings.whatsappDefaultCountryCode}
-                  onChange={(event) => handleCommunicationFieldChange('whatsappDefaultCountryCode', event.target.value)}
-                  placeholder="+93"
-                  helperText="Used when normalizing local numbers (e.g. +93, +971, +1)"
-                  disabled={savingCommunicationSettings}
-                />
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '16px'}} className="grid-cols-1 md:grid-cols-3">
+                <FormField label="Business Display Name" value={communicationSettings.whatsappBusinessName} onChange={(event) => handleCommunicationFieldChange('whatsappBusinessName', event.target.value)} placeholder="JACXI Shipping & Logistics" disabled={savingCommunicationSettings} size="small" />
+                <FormField label="WhatsApp Business Sender Number" value={communicationSettings.whatsappFromNumber} onChange={(event) => handleCommunicationFieldChange('whatsappFromNumber', event.target.value)} placeholder="+93704117413" disabled={savingCommunicationSettings} size="small" />
+                <FormField label="Default Country Code (E.164)" value={communicationSettings.whatsappDefaultCountryCode} onChange={(event) => handleCommunicationFieldChange('whatsappDefaultCountryCode', event.target.value)} placeholder="+93" helperText="Used when normalizing local numbers (e.g. +93, +971, +1)" disabled={savingCommunicationSettings} size="small" />
 
                 {communicationSettings.whatsappProvider === 'meta_cloud' && (
                   <>
-                    <TextField
-                      size="small"
-                      label="Meta Phone Number ID"
-                      value={communicationSettings.whatsappPhoneNumberId}
-                      onChange={(event) => handleCommunicationFieldChange('whatsappPhoneNumberId', event.target.value)}
-                      placeholder="109283746510293"
-                      disabled={savingCommunicationSettings}
-                    />
-                    <TextField
-                      size="small"
-                      label="WhatsApp Business Account ID (WABA)"
-                      value={communicationSettings.whatsappBusinessAccountId}
-                      onChange={(event) => handleCommunicationFieldChange('whatsappBusinessAccountId', event.target.value)}
-                      placeholder="203948576192834"
-                      disabled={savingCommunicationSettings}
-                    />
-                    <TextField
-                      size="small"
-                      label="Meta Permanent Access Token"
-                      type="password"
-                      value={communicationSettings.whatsappAccessToken}
-                      onChange={(event) => handleCommunicationFieldChange('whatsappAccessToken', event.target.value)}
-                      placeholder={
+                    <FormField label="Meta Phone Number ID" value={communicationSettings.whatsappPhoneNumberId} onChange={(event) => handleCommunicationFieldChange('whatsappPhoneNumberId', event.target.value)} placeholder="109283746510293" disabled={savingCommunicationSettings} size="small" />
+                    <FormField label="WhatsApp Business Account ID (WABA)" value={communicationSettings.whatsappBusinessAccountId} onChange={(event) => handleCommunicationFieldChange('whatsappBusinessAccountId', event.target.value)} placeholder="203948576192834" disabled={savingCommunicationSettings} size="small" />
+                    <FormField label="Meta Permanent Access Token" type="password" value={communicationSettings.whatsappAccessToken} onChange={(event) => handleCommunicationFieldChange('whatsappAccessToken', event.target.value)} placeholder={
                         communicationSettings.whatsappAccessTokenConfigured
                           ? `Saved: ${communicationSettings.whatsappAccessTokenMasked}`
                           : 'EAA...'
-                      }
-                      helperText={
+                      } helperText={
                         communicationSettings.whatsappAccessTokenConfigured
                           ? 'Leave blank to keep encrypted token.'
                           : 'Encrypted at rest using app secret.'
-                      }
-                      disabled={savingCommunicationSettings}
-                    />
+                      } disabled={savingCommunicationSettings} size="small" />
                   </>
                 )}
 
-                <TextField
-                  size="small"
-                  label="Test WhatsApp Recipient Phone"
-                  value={communicationTestTarget.whatsapp}
-                  onChange={(event) => setCommunicationTestTarget((prev) => ({ ...prev, whatsapp: event.target.value }))}
-                  placeholder="+93704117413"
-                  sx={{ gridColumn: { xs: '1', md: '1 / -1' } }}
-                />
-              </Box>
-            </Box>
+                <FormField label="Test WhatsApp Recipient Phone" value={communicationTestTarget.whatsapp} onChange={(event) => setCommunicationTestTarget((prev) => ({ ...prev, whatsapp: event.target.value }))} placeholder="+93704117413" size="small" />
+              </JXBox>
+            </JXBox>
 
-            <Box sx={{ p: 2, border: '1px solid var(--border)', borderRadius: 2, bgcolor: 'var(--background)' }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, alignItems: { xs: 'flex-start', md: 'center' }, flexDirection: { xs: 'column', md: 'row' }, mb: 2 }}>
-                <Box>
-                  <Typography sx={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 1 }}>
+            <JXBox padding="none" border={false} style={{padding: '16px', border: '1px solid var(--border)', borderRadius: '16px', backgroundColor: 'var(--background)'}}>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between', gap: '16px', marginBottom: '16px'}} className="items-start md:items-center flex-col md:flex-row">
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+                  <p className="text-sm leading-relaxed" style={{fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px'}}>
                     <Mail className="w-4 h-4" />
                     Email API
-                  </Typography>
-                  <Typography sx={{ fontSize: '0.82rem', color: 'var(--text-secondary)', mt: 0.5 }}>
+                  </p>
+                  <p className="text-sm leading-relaxed" style={{fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '4px'}}>
                     Used by invoice generation, payment reminders, shipment emails, and invoice templates.
-                  </Typography>
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Typography sx={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{communicationSettings.emailEnabled ? 'Enabled' : 'Disabled'}</Typography>
-                  <Switch checked={communicationSettings.emailEnabled} onChange={(event) => handleCommunicationFieldChange('emailEnabled', event.target.checked)} disabled={savingCommunicationSettings} />
-                </Box>
-              </Box>
+                  </p>
+                </JXBox>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px'}}>
+                  <p className="text-sm leading-relaxed" style={{fontSize: '0.82rem', color: 'var(--text-secondary)'}}>{communicationSettings.emailEnabled ? 'Enabled' : 'Disabled'}</p>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={communicationSettings.emailEnabled}
+                    disabled={savingCommunicationSettings}
+                    onClick={() => handleCommunicationFieldChange('emailEnabled', !(communicationSettings.emailEnabled))}
+                    className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${communicationSettings.emailEnabled ? 'bg-[var(--accent-gold)]' : 'bg-[var(--border)]'} disabled:opacity-50`}
+                  >
+                    <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${communicationSettings.emailEnabled ? 'left-[22px]' : 'left-0.5'}`} />
+                  </button>
+                </JXBox>
+              </JXBox>
 
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' }, gap: 2 }}>
-                <TextField size="small" label="Email Provider" value={communicationSettings.emailProvider} onChange={(event) => handleCommunicationFieldChange('emailProvider', event.target.value)} disabled={savingCommunicationSettings} />
-                <TextField
-                  size="small"
-                  label="Resend API Key"
-                  type="password"
-                  value={communicationSettings.emailApiKey}
-                  onChange={(event) => handleCommunicationFieldChange('emailApiKey', event.target.value)}
-                  placeholder={communicationSettings.emailApiKeyConfigured ? `Saved: ${communicationSettings.emailApiKeyMasked}` : 'Paste API key'}
-                  helperText={communicationSettings.emailApiKeyConfigured ? 'Leave blank to keep the saved encrypted key.' : 'Saved encrypted using the app secret.'}
-                  disabled={savingCommunicationSettings}
-                />
-                <TextField size="small" label="From Email" value={communicationSettings.emailFromAddress} onChange={(event) => handleCommunicationFieldChange('emailFromAddress', event.target.value)} disabled={savingCommunicationSettings} />
-                <TextField size="small" label="Reply-To Email" value={communicationSettings.emailReplyToAddress} onChange={(event) => handleCommunicationFieldChange('emailReplyToAddress', event.target.value)} disabled={savingCommunicationSettings} />
-                <TextField
-                  size="small"
-                  label="Test Email Recipient"
-                  value={communicationTestTarget.email}
-                  onChange={(event) => setCommunicationTestTarget((prev) => ({ ...prev, email: event.target.value }))}
-                  placeholder="admin@example.com"
-                  sx={{ gridColumn: { xs: '1', md: '1 / -1' } }}
-                />
-              </Box>
-            </Box>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '16px'}} className="grid-cols-1 md:grid-cols-2">
+                <FormField label="Email Provider" value={communicationSettings.emailProvider} onChange={(event) => handleCommunicationFieldChange('emailProvider', event.target.value)} disabled={savingCommunicationSettings} size="small" />
+                <FormField label="Resend API Key" type="password" value={communicationSettings.emailApiKey} onChange={(event) => handleCommunicationFieldChange('emailApiKey', event.target.value)} placeholder={communicationSettings.emailApiKeyConfigured ? `Saved: ${communicationSettings.emailApiKeyMasked}` : 'Paste API key'} helperText={communicationSettings.emailApiKeyConfigured ? 'Leave blank to keep the saved encrypted key.' : 'Saved encrypted using the app secret.'} disabled={savingCommunicationSettings} size="small" />
+                <FormField label="From Email" value={communicationSettings.emailFromAddress} onChange={(event) => handleCommunicationFieldChange('emailFromAddress', event.target.value)} disabled={savingCommunicationSettings} size="small" />
+                <FormField label="Reply-To Email" value={communicationSettings.emailReplyToAddress} onChange={(event) => handleCommunicationFieldChange('emailReplyToAddress', event.target.value)} disabled={savingCommunicationSettings} size="small" />
+                <FormField label="Test Email Recipient" value={communicationTestTarget.email} onChange={(event) => setCommunicationTestTarget((prev) => ({ ...prev, email: event.target.value }))} placeholder="admin@example.com" size="small" />
+              </JXBox>
+            </JXBox>
 
-            <Box sx={{ p: 2, border: '1px solid var(--border)', borderRadius: 2, bgcolor: 'var(--background)' }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, alignItems: { xs: 'flex-start', md: 'center' }, flexDirection: { xs: 'column', md: 'row' }, mb: 2 }}>
-                <Box>
-                  <Typography sx={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 1 }}>
+            <JXBox padding="none" border={false} style={{padding: '16px', border: '1px solid var(--border)', borderRadius: '16px', backgroundColor: 'var(--background)'}}>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between', gap: '16px', marginBottom: '16px'}} className="items-start md:items-center flex-col md:flex-row">
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+                  <p className="text-sm leading-relaxed" style={{fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px'}}>
                     <Smartphone className="w-4 h-4" />
                     SMS / Cellular Messages
-                  </Typography>
-                  <Typography sx={{ fontSize: '0.82rem', color: 'var(--text-secondary)', mt: 0.5 }}>
+                  </p>
+                  <p className="text-sm leading-relaxed" style={{fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '4px'}}>
                     Used for critical alerts and Twilio WhatsApp fallback credentials.
-                  </Typography>
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Typography sx={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{communicationSettings.smsEnabled ? 'Enabled' : 'Disabled'}</Typography>
-                  <Switch checked={communicationSettings.smsEnabled} onChange={(event) => handleCommunicationFieldChange('smsEnabled', event.target.checked)} disabled={savingCommunicationSettings} />
-                </Box>
-              </Box>
+                  </p>
+                </JXBox>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px'}}>
+                  <p className="text-sm leading-relaxed" style={{fontSize: '0.82rem', color: 'var(--text-secondary)'}}>{communicationSettings.smsEnabled ? 'Enabled' : 'Disabled'}</p>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={communicationSettings.smsEnabled}
+                    disabled={savingCommunicationSettings}
+                    onClick={() => handleCommunicationFieldChange('smsEnabled', !(communicationSettings.smsEnabled))}
+                    className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${communicationSettings.smsEnabled ? 'bg-[var(--accent-gold)]' : 'bg-[var(--border)]'} disabled:opacity-50`}
+                  >
+                    <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${communicationSettings.smsEnabled ? 'left-[22px]' : 'left-0.5'}`} />
+                  </button>
+                </JXBox>
+              </JXBox>
 
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' }, gap: 2 }}>
-                <TextField size="small" label="SMS Provider" value={communicationSettings.smsProvider} onChange={(event) => handleCommunicationFieldChange('smsProvider', event.target.value)} disabled={savingCommunicationSettings} />
-                <TextField size="small" label="Twilio Account SID" value={communicationSettings.smsAccountSid} onChange={(event) => handleCommunicationFieldChange('smsAccountSid', event.target.value)} disabled={savingCommunicationSettings} />
-                <TextField
-                  size="small"
-                  label="Twilio Auth Token"
-                  type="password"
-                  value={communicationSettings.smsAuthToken}
-                  onChange={(event) => handleCommunicationFieldChange('smsAuthToken', event.target.value)}
-                  placeholder={communicationSettings.smsAuthTokenConfigured ? `Saved: ${communicationSettings.smsAuthTokenMasked}` : 'Paste auth token'}
-                  helperText={communicationSettings.smsAuthTokenConfigured ? 'Leave blank to keep the saved encrypted token.' : 'Saved encrypted using the app secret.'}
-                  disabled={savingCommunicationSettings}
-                />
-                <TextField size="small" label="From Number" value={communicationSettings.smsFromNumber} onChange={(event) => handleCommunicationFieldChange('smsFromNumber', event.target.value)} disabled={savingCommunicationSettings} />
-                <TextField size="small" label="Messaging Service SID" value={communicationSettings.smsMessagingServiceSid} onChange={(event) => handleCommunicationFieldChange('smsMessagingServiceSid', event.target.value)} disabled={savingCommunicationSettings} />
-                <TextField size="small" label="Test Phone Number" value={communicationTestTarget.sms} onChange={(event) => setCommunicationTestTarget((prev) => ({ ...prev, sms: event.target.value }))} placeholder="+15555555555" />
-              </Box>
-            </Box>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '16px'}} className="grid-cols-1 md:grid-cols-2">
+                <FormField label="SMS Provider" value={communicationSettings.smsProvider} onChange={(event) => handleCommunicationFieldChange('smsProvider', event.target.value)} disabled={savingCommunicationSettings} size="small" />
+                <FormField label="Twilio Account SID" value={communicationSettings.smsAccountSid} onChange={(event) => handleCommunicationFieldChange('smsAccountSid', event.target.value)} disabled={savingCommunicationSettings} size="small" />
+                <FormField label="Twilio Auth Token" type="password" value={communicationSettings.smsAuthToken} onChange={(event) => handleCommunicationFieldChange('smsAuthToken', event.target.value)} placeholder={communicationSettings.smsAuthTokenConfigured ? `Saved: ${communicationSettings.smsAuthTokenMasked}` : 'Paste auth token'} helperText={communicationSettings.smsAuthTokenConfigured ? 'Leave blank to keep the saved encrypted token.' : 'Saved encrypted using the app secret.'} disabled={savingCommunicationSettings} size="small" />
+                <FormField label="From Number" value={communicationSettings.smsFromNumber} onChange={(event) => handleCommunicationFieldChange('smsFromNumber', event.target.value)} disabled={savingCommunicationSettings} size="small" />
+                <FormField label="Messaging Service SID" value={communicationSettings.smsMessagingServiceSid} onChange={(event) => handleCommunicationFieldChange('smsMessagingServiceSid', event.target.value)} disabled={savingCommunicationSettings} size="small" />
+                <FormField label="Test Phone Number" value={communicationTestTarget.sms} onChange={(event) => setCommunicationTestTarget((prev) => ({ ...prev, sms: event.target.value }))} placeholder="+15555555555" size="small" />
+              </JXBox>
+            </JXBox>
 
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'flex-end'}}>
               <Button type="submit" variant="primary" loading={savingCommunicationSettings} icon={<CheckCircle2 className="w-4 h-4" />}>
                 Save Communications
               </Button>
-            </Box>
-          </Box>
+            </JXBox>
+          </JXBox>
 
           {/* Automated Shipment Milestone Alerts Subpanel */}
-          <Box sx={{ mt: 4, pt: 3, borderTop: '1px solid var(--border)' }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2.5, flexWrap: 'wrap', gap: 2 }}>
-              <Box>
-                <Typography sx={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 1 }}>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '32px', paddingTop: '24px', borderTop: '1px solid var(--border)'}}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px', flexWrap: 'wrap', gap: '16px'}}>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+                <p className="text-sm leading-relaxed" style={{fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px'}}>
                   <Smartphone className="w-5 h-5 text-[var(--accent-gold)]" />
                   Automated WhatsApp & SMS Milestone Alerts
-                </Typography>
-                <Typography sx={{ fontSize: '0.82rem', color: 'var(--text-secondary)', mt: 0.5 }}>
+                </p>
+                <p className="text-sm leading-relaxed" style={{fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '4px'}}>
                   Automatic trigger notifications dispatched to clients as vehicle cargo advances through global milestones.
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                </p>
+              </JXBox>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '12px'}}>
+                <p className="text-sm leading-relaxed" style={{fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)'}}>
                   {milestoneConfig.enabled ? 'Automations Active' : 'Automations Paused'}
-                </Typography>
-                <Switch
-                  checked={milestoneConfig.enabled}
-                  onChange={(e) => setMilestoneConfig(prev => ({ ...prev, enabled: e.target.checked }))}
-                />
-              </Box>
-            </Box>
+                </p>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={milestoneConfig.enabled}
+                  onClick={() => setMilestoneConfig(prev => ({ ...prev, enabled: !(milestoneConfig.enabled) }))}
+                  className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${milestoneConfig.enabled ? 'bg-[var(--accent-gold)]' : 'bg-[var(--border)]'} disabled:opacity-50`}
+                >
+                  <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${milestoneConfig.enabled ? 'left-[22px]' : 'left-0.5'}`} />
+                </button>
+              </JXBox>
+            </JXBox>
 
             <form onSubmit={handleSaveMilestoneConfig} className="space-y-4">
               {/* Channel Toggles Grid */}
               <DashboardGrid className="grid-cols-1 sm:grid-cols-3">
-                <Box sx={{ p: 2, borderRadius: 2, border: '1px solid var(--border)', bgcolor: 'var(--background)' }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-                    <Typography sx={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                <JXBox padding="none" border={false} style={{padding: '16px', borderRadius: '16px', border: '1px solid var(--border)', backgroundColor: 'var(--background)'}}>
+                  <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px'}}>
+                    <p className="text-sm leading-relaxed" style={{fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)'}}>
                       WhatsApp Business
-                    </Typography>
-                    <Switch
-                      size="small"
-                      checked={milestoneConfig.enableWhatsApp}
-                      onChange={(e) => setMilestoneConfig(prev => ({ ...prev, enableWhatsApp: e.target.checked }))}
-                    />
-                  </Box>
-                  <Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                    </p>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={milestoneConfig.enableWhatsApp}
+                      onClick={() => setMilestoneConfig(prev => ({ ...prev, enableWhatsApp: !(milestoneConfig.enableWhatsApp) }))}
+                      className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${milestoneConfig.enableWhatsApp ? 'bg-[var(--accent-gold)]' : 'bg-[var(--border)]'} disabled:opacity-50`}
+                    >
+                      <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all ${milestoneConfig.enableWhatsApp ? 'left-[18px]' : 'left-0.5'}`} />
+                    </button>
+                  </JXBox>
+                  <p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', color: 'var(--text-secondary)'}}>
                     Direct WhatsApp notifications via Meta Cloud API / Twilio.
-                  </Typography>
-                </Box>
+                  </p>
+                </JXBox>
 
-                <Box sx={{ p: 2, borderRadius: 2, border: '1px solid var(--border)', bgcolor: 'var(--background)' }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-                    <Typography sx={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                <JXBox padding="none" border={false} style={{padding: '16px', borderRadius: '16px', border: '1px solid var(--border)', backgroundColor: 'var(--background)'}}>
+                  <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px'}}>
+                    <p className="text-sm leading-relaxed" style={{fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)'}}>
                       Twilio SMS
-                    </Typography>
-                    <Switch
-                      size="small"
-                      checked={milestoneConfig.enableSms}
-                      onChange={(e) => setMilestoneConfig(prev => ({ ...prev, enableSms: e.target.checked }))}
-                    />
-                  </Box>
-                  <Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                    </p>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={milestoneConfig.enableSms}
+                      onClick={() => setMilestoneConfig(prev => ({ ...prev, enableSms: !(milestoneConfig.enableSms) }))}
+                      className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${milestoneConfig.enableSms ? 'bg-[var(--accent-gold)]' : 'bg-[var(--border)]'} disabled:opacity-50`}
+                    >
+                      <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all ${milestoneConfig.enableSms ? 'left-[18px]' : 'left-0.5'}`} />
+                    </button>
+                  </JXBox>
+                  <p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', color: 'var(--text-secondary)'}}>
                     Cellular text messaging for instant mobile notifications.
-                  </Typography>
-                </Box>
+                  </p>
+                </JXBox>
 
-                <Box sx={{ p: 2, borderRadius: 2, border: '1px solid var(--border)', bgcolor: 'var(--background)' }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-                    <Typography sx={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                <JXBox padding="none" border={false} style={{padding: '16px', borderRadius: '16px', border: '1px solid var(--border)', backgroundColor: 'var(--background)'}}>
+                  <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px'}}>
+                    <p className="text-sm leading-relaxed" style={{fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)'}}>
                       Telegram Bot
-                    </Typography>
-                    <Switch
-                      size="small"
-                      checked={milestoneConfig.enableTelegram}
-                      onChange={(e) => setMilestoneConfig(prev => ({ ...prev, enableTelegram: e.target.checked }))}
-                    />
-                  </Box>
-                  <Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                    </p>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={milestoneConfig.enableTelegram}
+                      onClick={() => setMilestoneConfig(prev => ({ ...prev, enableTelegram: !(milestoneConfig.enableTelegram) }))}
+                      className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${milestoneConfig.enableTelegram ? 'bg-[var(--accent-gold)]' : 'bg-[var(--border)]'} disabled:opacity-50`}
+                    >
+                      <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all ${milestoneConfig.enableTelegram ? 'left-[18px]' : 'left-0.5'}`} />
+                    </button>
+                  </JXBox>
+                  <p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', color: 'var(--text-secondary)'}}>
                     Instant dispatch to company Telegram bot / channels.
-                  </Typography>
-                </Box>
+                  </p>
+                </JXBox>
               </DashboardGrid>
 
               {/* Webhook & Telegram Optional Credentials */}
-              <Box sx={{ p: 2, border: '1px solid var(--border)', borderRadius: 2, bgcolor: 'var(--background)' }}>
-                <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)', mb: 1.5 }}>
+              <JXBox padding="none" border={false} style={{padding: '16px', border: '1px solid var(--border)', borderRadius: '16px', backgroundColor: 'var(--background)'}}>
+                <p className="text-sm leading-relaxed" style={{fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '12px'}}>
                   Telegram & Webhook Integrations
-                </Typography>
+                </p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <TextField
-                    label="Telegram Bot Token"
-                    size="small"
-                    value={milestoneConfig.telegramBotToken || ''}
-                    onChange={(e) => setMilestoneConfig(prev => ({ ...prev, telegramBotToken: e.target.value }))}
-                    placeholder="bot123456:ABC-DEF..."
-                  />
-                  <TextField
-                    label="Telegram Chat / Channel ID"
-                    size="small"
-                    value={milestoneConfig.telegramChatId || ''}
-                    onChange={(e) => setMilestoneConfig(prev => ({ ...prev, telegramChatId: e.target.value }))}
-                    placeholder="-100123456789"
-                  />
-                  <TextField
-                    label="Custom Webhook URL"
-                    size="small"
-                    value={milestoneConfig.webhookUrl || ''}
-                    onChange={(e) => setMilestoneConfig(prev => ({ ...prev, webhookUrl: e.target.value }))}
-                    placeholder="https://hooks.zapier.com/..."
-                  />
+                  <FormField label="Telegram Bot Token" value={milestoneConfig.telegramBotToken || ''} onChange={(e) => setMilestoneConfig(prev => ({ ...prev, telegramBotToken: e.target.value }))} placeholder="bot123456:ABC-DEF..." size="small" />
+                  <FormField label="Telegram Chat / Channel ID" value={milestoneConfig.telegramChatId || ''} onChange={(e) => setMilestoneConfig(prev => ({ ...prev, telegramChatId: e.target.value }))} placeholder="-100123456789" size="small" />
+                  <FormField label="Custom Webhook URL" value={milestoneConfig.webhookUrl || ''} onChange={(e) => setMilestoneConfig(prev => ({ ...prev, webhookUrl: e.target.value }))} placeholder="https://hooks.zapier.com/..." size="small" />
                 </div>
-              </Box>
+              </JXBox>
 
               {/* Milestone Template Cards */}
-              <Box sx={{ spaceY: 3 }}>
-                <Typography sx={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', mb: 0.5 }}>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}} className="space-y-6">
+                <p className="text-sm leading-relaxed" style={{fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px'}}>
                   Configurable Milestone Message Templates
-                </Typography>
-                <Typography sx={{ fontSize: '0.78rem', color: 'var(--text-secondary)', mb: 2 }}>
+                </p>
+                <p className="text-sm leading-relaxed" style={{fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '16px'}}>
                   Click any variable token inside a card to insert it into the WhatsApp/SMS template.
-                </Typography>
+                </p>
 
                 <div className="space-y-3">
                   {[
@@ -2400,12 +2289,12 @@ export default function SettingsPage() {
                   ].map((m) => {
                     const currentVal = milestoneConfig.customTemplates[m.key] || defaultMilestoneTemplates[m.key]?.defaultTemplate || '';
                     return (
-                      <Box key={m.key} sx={{ p: 2, border: '1px solid var(--border)', borderRadius: 2, bgcolor: 'var(--background)' }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1, flexWrap: 'wrap', gap: 1 }}>
-                          <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                      <JXBox padding="none" border={false} key={m.key} style={{padding: '16px', border: '1px solid var(--border)', borderRadius: '16px', backgroundColor: 'var(--background)'}}>
+                        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '8px'}}>
+                          <p className="text-sm leading-relaxed" style={{fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)'}}>
                             {m.label}
-                          </Typography>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          </p>
+                          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px'}}>
                             {milestoneConfig.customTemplates[m.key] && (
                               <Button
                                 type="button"
@@ -2434,8 +2323,8 @@ export default function SettingsPage() {
                             >
                               Send Test
                             </Button>
-                          </Box>
-                        </Box>
+                          </JXBox>
+                        </JXBox>
 
                         <div className="flex flex-wrap gap-1 mb-2">
                           {[
@@ -2469,13 +2358,7 @@ export default function SettingsPage() {
                           ))}
                         </div>
 
-                        <TextField
-                          fullWidth
-                          multiline
-                          rows={2}
-                          size="small"
-                          value={currentVal}
-                          onChange={(e) => {
+                        <div className="min-w-0 flex-1"><BareInput multiline rows={2} value={currentVal} onChange={(e) => {
                             const val = e.target.value;
                             setMilestoneConfig(prev => ({
                               ...prev,
@@ -2484,21 +2367,20 @@ export default function SettingsPage() {
                                 [m.key]: val,
                               },
                             }));
-                          }}
-                        />
-                      </Box>
+                          }} size="small" /></div>
+                      </JXBox>
                     );
                   })}
                 </div>
-              </Box>
+              </JXBox>
 
-              <Box sx={{ display: 'flex', justifyContent: 'flex-end', pt: 1 }}>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'flex-end', paddingTop: '8px'}}>
                 <Button type="submit" variant="primary" loading={savingMilestoneConfig} icon={<CheckCircle2 className="w-4 h-4" />}>
                   Save Milestone Automations
                 </Button>
-              </Box>
+              </JXBox>
             </form>
-          </Box>
+          </JXBox>
         </DashboardPanel>
       ) : null}
       </TabPanel>
@@ -2520,7 +2402,7 @@ export default function SettingsPage() {
           <div className="mb-6">
             <GoogleVoiceLiveCallPanel />
           </div>
-          <Box component="form" onSubmit={handleSaveCallAgentSettings} sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <JXBox padding="none" border={false} component="form" onSubmit={handleSaveCallAgentSettings} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '24px'}}>
             <DashboardGrid className="grid-cols-1 md:grid-cols-4">
               <StatsCard
                 icon={callAgentConfig?.status.geminiLiveConfigured ? <CheckCircle2 style={{ fontSize: 18 }} /> : <XCircle style={{ fontSize: 18 }} />}
@@ -2557,72 +2439,72 @@ export default function SettingsPage() {
             </DashboardGrid>
 
             <DashboardGrid className="grid-cols-1 lg:grid-cols-2">
-              <Box sx={{ p: 2, border: '1px solid var(--border)', borderRadius: '8px', bgcolor: 'var(--background)' }}>
-                <Typography sx={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+              <JXBox padding="none" border={false} style={{padding: '16px', border: '1px solid var(--border)', borderRadius: '8px', backgroundColor: 'var(--background)'}}>
+                <p className="text-sm leading-relaxed" style={{fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px'}}>
                   <PhoneCall className="w-4 h-4" />
                   Twilio Voice
-                </Typography>
-                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
-                  <TextField size="small" label="Account SID" value={callAgentSettings.twilioAccountSid} onChange={(event) => handleCallAgentFieldChange('twilioAccountSid', event.target.value)} disabled={savingCallAgentSettings} />
-                  <TextField size="small" label="Auth Token" type="password" value={callAgentSettings.twilioAuthToken} onChange={(event) => handleCallAgentFieldChange('twilioAuthToken', event.target.value)} disabled={savingCallAgentSettings} />
-                  <TextField size="small" label="API Key" value={callAgentSettings.twilioApiKey} onChange={(event) => handleCallAgentFieldChange('twilioApiKey', event.target.value)} disabled={savingCallAgentSettings} />
-                  <TextField size="small" label="API Secret" type="password" value={callAgentSettings.twilioApiSecret} onChange={(event) => handleCallAgentFieldChange('twilioApiSecret', event.target.value)} disabled={savingCallAgentSettings} />
-                  <TextField size="small" label="Phone Number" value={callAgentSettings.twilioPhoneNumber} onChange={(event) => handleCallAgentFieldChange('twilioPhoneNumber', event.target.value)} disabled={savingCallAgentSettings} />
-                  <TextField size="small" label="Phone Number SID" value={callAgentSettings.twilioPhoneNumberSid} onChange={(event) => handleCallAgentFieldChange('twilioPhoneNumberSid', event.target.value)} disabled={savingCallAgentSettings} />
-                </Box>
-                <Typography sx={{ fontSize: '0.78rem', color: 'var(--text-secondary)', mt: 2, lineHeight: 1.6 }}>
+                </p>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '16px'}} className="grid-cols-1 grid md:grid-cols-[1fr_1fr]">
+                  <FormField label="Account SID" value={callAgentSettings.twilioAccountSid} onChange={(event) => handleCallAgentFieldChange('twilioAccountSid', event.target.value)} disabled={savingCallAgentSettings} size="small" />
+                  <FormField label="Auth Token" type="password" value={callAgentSettings.twilioAuthToken} onChange={(event) => handleCallAgentFieldChange('twilioAuthToken', event.target.value)} disabled={savingCallAgentSettings} size="small" />
+                  <FormField label="API Key" value={callAgentSettings.twilioApiKey} onChange={(event) => handleCallAgentFieldChange('twilioApiKey', event.target.value)} disabled={savingCallAgentSettings} size="small" />
+                  <FormField label="API Secret" type="password" value={callAgentSettings.twilioApiSecret} onChange={(event) => handleCallAgentFieldChange('twilioApiSecret', event.target.value)} disabled={savingCallAgentSettings} size="small" />
+                  <FormField label="Phone Number" value={callAgentSettings.twilioPhoneNumber} onChange={(event) => handleCallAgentFieldChange('twilioPhoneNumber', event.target.value)} disabled={savingCallAgentSettings} size="small" />
+                  <FormField label="Phone Number SID" value={callAgentSettings.twilioPhoneNumberSid} onChange={(event) => handleCallAgentFieldChange('twilioPhoneNumberSid', event.target.value)} disabled={savingCallAgentSettings} size="small" />
+                </JXBox>
+                <p className="text-sm leading-relaxed" style={{fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '16px', lineHeight: 1.6}}>
                   Use either Account SID + Auth Token or Account SID + API Key + API Secret. The phone number fields help the app inspect the live Twilio webhook target.
-                </Typography>
-              </Box>
+                </p>
+              </JXBox>
 
-              <Box sx={{ p: 2, border: '1px solid var(--border)', borderRadius: '8px', bgcolor: 'var(--background)' }}>
-                <Typography sx={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+              <JXBox padding="none" border={false} style={{padding: '16px', border: '1px solid var(--border)', borderRadius: '8px', backgroundColor: 'var(--background)'}}>
+                <p className="text-sm leading-relaxed" style={{fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px'}}>
                   <Bot className="w-4 h-4" />
                   Gemini Live
-                </Typography>
-                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
-                  <TextField size="small" label="Gemini API Key" type="password" value={callAgentSettings.geminiApiKey} onChange={(event) => handleCallAgentFieldChange('geminiApiKey', event.target.value)} disabled={savingCallAgentSettings} />
-                  <TextField size="small" label="Gemini Live API Key" type="password" value={callAgentSettings.geminiLiveApiKey} onChange={(event) => handleCallAgentFieldChange('geminiLiveApiKey', event.target.value)} disabled={savingCallAgentSettings} />
-                  <TextField size="small" label="Fallback Voice Model" value={callAgentSettings.geminiVoiceModel} onChange={(event) => handleCallAgentFieldChange('geminiVoiceModel', event.target.value)} disabled={savingCallAgentSettings} />
-                  <TextField size="small" label="Live Audio Model" value={callAgentSettings.geminiLiveModel} onChange={(event) => handleCallAgentFieldChange('geminiLiveModel', event.target.value)} disabled={savingCallAgentSettings} />
-                </Box>
-                <Typography sx={{ fontSize: '0.78rem', color: 'var(--text-secondary)', mt: 2, lineHeight: 1.6 }}>
+                </p>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '16px'}} className="grid-cols-1 grid md:grid-cols-[1fr_1fr]">
+                  <FormField label="Gemini API Key" type="password" value={callAgentSettings.geminiApiKey} onChange={(event) => handleCallAgentFieldChange('geminiApiKey', event.target.value)} disabled={savingCallAgentSettings} size="small" />
+                  <FormField label="Gemini Live API Key" type="password" value={callAgentSettings.geminiLiveApiKey} onChange={(event) => handleCallAgentFieldChange('geminiLiveApiKey', event.target.value)} disabled={savingCallAgentSettings} size="small" />
+                  <FormField label="Fallback Voice Model" value={callAgentSettings.geminiVoiceModel} onChange={(event) => handleCallAgentFieldChange('geminiVoiceModel', event.target.value)} disabled={savingCallAgentSettings} size="small" />
+                  <FormField label="Live Audio Model" value={callAgentSettings.geminiLiveModel} onChange={(event) => handleCallAgentFieldChange('geminiLiveModel', event.target.value)} disabled={savingCallAgentSettings} size="small" />
+                </JXBox>
+                <p className="text-sm leading-relaxed" style={{fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '16px', lineHeight: 1.6}}>
                   The live key and model power the caller audio bridge. The fallback key/model handle the IVR assistant when live audio is unavailable.
-                </Typography>
-              </Box>
+                </p>
+              </JXBox>
             </DashboardGrid>
 
-            <Box sx={{ p: 2, border: '1px solid var(--border)', borderRadius: '8px', bgcolor: 'var(--background)', display: 'grid', gap: 2 }}>
-              <Box>
-                <Typography sx={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase' }}>Inbound Voice Webhook</Typography>
-                <Typography sx={{ fontSize: '0.86rem', color: 'var(--text-primary)', wordBreak: 'break-all', mt: 0.5 }}>
+            <JXBox padding="none" border={false} style={{padding: '16px', border: '1px solid var(--border)', borderRadius: '8px', backgroundColor: 'var(--background)', display: 'grid', gap: '16px'}}>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+                <p className="text-sm leading-relaxed" style={{fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase'}}>Inbound Voice Webhook</p>
+                <p className="text-sm leading-relaxed" style={{fontSize: '0.86rem', color: 'var(--text-primary)', wordBreak: 'break-all', marginTop: '4px'}}>
                   {callAgentConfig?.urls.webhookUrl || 'Load settings to see the webhook URL'}
-                </Typography>
-                <Typography sx={{ fontSize: '0.78rem', color: 'var(--text-secondary)', mt: 0.5 }}>Method: {callAgentConfig?.urls.webhookMethod || 'POST'}</Typography>
-              </Box>
-              <Box>
-                <Typography sx={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase' }}>Live Media WebSocket</Typography>
-                <Typography sx={{ fontSize: '0.86rem', color: 'var(--text-primary)', wordBreak: 'break-all', mt: 0.5 }}>
+                </p>
+                <p className="text-sm leading-relaxed" style={{fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '4px'}}>Method: {callAgentConfig?.urls.webhookMethod || 'POST'}</p>
+              </JXBox>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+                <p className="text-sm leading-relaxed" style={{fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase'}}>Live Media WebSocket</p>
+                <p className="text-sm leading-relaxed" style={{fontSize: '0.86rem', color: 'var(--text-primary)', wordBreak: 'break-all', marginTop: '4px'}}>
                   {callAgentConfig?.urls.websocketUrl || 'Load settings to see the WebSocket URL'}
-                </Typography>
-              </Box>
+                </p>
+              </JXBox>
               {callAgentConfig?.twilioInspection.error ? (
-                <Typography sx={{ fontSize: '0.82rem', color: 'var(--warning)', lineHeight: 1.6 }}>
+                <p className="text-sm leading-relaxed" style={{fontSize: '0.82rem', color: 'var(--warning)', lineHeight: 1.6}}>
                   Twilio inspection: {callAgentConfig.twilioInspection.error}
-                </Typography>
+                </p>
               ) : (
-                <Typography sx={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                <p className="text-sm leading-relaxed" style={{fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.6}}>
                   Twilio inspection: {callAgentConfig?.twilioInspection.inspected ? `${callAgentConfig.twilioInspection.phoneNumber || callAgentConfig.twilioInspection.target || 'Configured number'} is ${callAgentConfig.twilioInspection.matchesExpectedWebhook ? 'pointing to this webhook' : 'not pointing to this webhook yet'}.` : 'Add Twilio credentials and a phone target to inspect webhook routing.'}
-                </Typography>
+                </p>
               )}
-            </Box>
+            </JXBox>
 
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'flex-end'}}>
               <Button type="submit" variant="primary" loading={savingCallAgentSettings}>
                 Save Live Call Agent
               </Button>
-            </Box>
-          </Box>
+            </JXBox>
+          </JXBox>
         </DashboardPanel>
       ) : null}
       </TabPanel>
@@ -2660,10 +2542,10 @@ export default function SettingsPage() {
             <div className="p-4 border border-[var(--border)] rounded-lg bg-[var(--background)]">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                 <div>
-                  <Typography variant="subtitle2" fontWeight="600">Import Rates From PDF</Typography>
-                  <Typography variant="caption" color="text.secondary" display="block">
+                  <p className="text-sm font-semibold">Import Rates From PDF</p>
+                  <span className="block text-xs text-[var(--text-secondary)] text-[var(--text-secondary)]">
                     Reads rows like CA $1300, California 1300, or similar state/rate pairs.
-                  </Typography>
+                  </span>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-2">
                   <input
@@ -2690,9 +2572,9 @@ export default function SettingsPage() {
                 </div>
               </div>
               {rateConfig.updatedFromPdfName ? (
-                <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 2 }}>
+                <span className="block text-xs text-[var(--text-secondary)] text-[var(--text-secondary)]" style={{marginTop: '16px'}}>
                   Last imported from {rateConfig.updatedFromPdfName}
-                </Typography>
+                </span>
               ) : null}
             </div>
 
@@ -2724,5 +2606,15 @@ export default function SettingsPage() {
         {isAdmin ? <TrackingApisTab /> : null}
       </TabPanel>
     </DashboardSurface>
+  );
+}
+
+// useSearchParams() must sit under a Suspense boundary or static
+// prerendering fails (missing-suspense-with-csr-bailout).
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={<div aria-busy="true" style={{ minHeight: '50vh' }} />}>
+      <SettingsPageContent />
+    </Suspense>
   );
 }

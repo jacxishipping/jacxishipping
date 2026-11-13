@@ -1,39 +1,135 @@
 'use client';
 
-import { useState } from 'react';
+
+import { Suspense, useState, forwardRef, type CSSProperties, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
+import { Badge as BadgeIcon, Building as LocationCityIcon, ChevronDown, Eye as Visibility, EyeOff as VisibilityOff, Globe as PublicIcon, House as HomeIcon, Lock as LockIcon, Mail as EmailIcon, Phone as PhoneIcon, User as PersonIcon } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import PersonIcon from '@mui/icons-material/Person';
-import EmailIcon from '@mui/icons-material/Email';
-import LockIcon from '@mui/icons-material/Lock';
-import PhoneIcon from '@mui/icons-material/Phone';
-import HomeIcon from '@mui/icons-material/Home';
-import LocationCityIcon from '@mui/icons-material/LocationCity';
-import PublicIcon from '@mui/icons-material/Public';
-import BadgeIcon from '@mui/icons-material/Badge';
-import Visibility from '@mui/icons-material/Visibility';
-import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import Link from 'next/link';
 
-import {
-	Box,
-	Typography,
-	TextField,
-	InputAdornment,
-	IconButton,
-	Button as MuiButton,
-	MenuItem,
-	Stepper,
-	Step,
-	StepLabel,
-} from '@mui/material';
-import { Breadcrumbs, PageHeader, Button, toast, FormPageSkeleton } from '@/components/design-system';
+import { Breadcrumbs, Button, FormPageSkeleton, IconButton, PageHeader, toast, MilestoneStepper } from '@/components/design-system';
 import { DashboardSurface, DashboardPanel } from '@/components/dashboard/DashboardSurface';
 import { hasPermission } from '@/lib/rbac';
 
+/** Bare input with the Jacxi field look (no label) — search fields, table-cell editors. */
+const BareInput = forwardRef<HTMLInputElement | HTMLTextAreaElement, BareInputProps>(function BareInput(
+  { leftIcon, rightIcon, rightElement, error = false, helperText, size = 'small', multiline = false, rows, minRows, inputProps, className, style, ...rest },
+  ref,
+) {
+  const controlClass = [
+    'w-full rounded-lg border bg-[var(--background)] text-[var(--text-primary)] outline-none transition-colors placeholder:text-[var(--text-secondary)]',
+    size === 'small' ? 'px-2.5 py-1.5 text-[0.8125rem]' : 'px-3 py-2 text-[0.875rem]',
+    leftIcon ? 'pl-9' : '',
+    rightIcon || rightElement ? 'pr-9' : '',
+    error
+      ? 'border-[var(--error)] focus:border-[var(--error)] focus:ring-2 focus:ring-[rgba(var(--error-rgb),0.2)]'
+      : 'border-[rgba(var(--border-rgb),0.9)] hover:border-[var(--border)] focus:border-[var(--accent-gold)] focus:ring-2 focus:ring-[rgba(var(--accent-gold-rgb),0.2)]',
+    rest.disabled ? 'opacity-50' : '',
+    className,
+  ].filter(Boolean).join(' ');
+  return (
+    <div>
+      <div className="relative">
+        {leftIcon && (
+          <span className="pointer-events-none absolute left-3 top-1/2 flex -translate-y-1/2 text-[var(--text-secondary)]">{leftIcon}</span>
+        )}
+        {multiline ? (
+          <textarea
+            {...(rest as TextareaHTMLAttributes<HTMLTextAreaElement>)}
+            {...(inputProps as unknown as TextareaHTMLAttributes<HTMLTextAreaElement>)}
+            ref={ref as React.Ref<HTMLTextAreaElement>}
+            rows={rows ?? minRows ?? 3}
+            aria-invalid={error || undefined}
+            style={style}
+            className={`${controlClass} min-h-[80px] resize-y leading-[1.5]`}
+          />
+        ) : (
+          <input
+            {...rest}
+            {...inputProps}
+            ref={ref as React.Ref<HTMLInputElement>}
+            aria-invalid={error || undefined}
+            style={style}
+            className={controlClass}
+          />
+        )}
+        {rightIcon && (
+          <span className="pointer-events-none absolute right-3 top-1/2 flex -translate-y-1/2 text-[var(--text-secondary)]">{rightIcon}</span>
+        )}
+        {rightElement && (
+          <span className="absolute right-3 top-1/2 flex -translate-y-1/2 text-[var(--text-secondary)]">{rightElement}</span>
+        )}
+      </div>
+      {helperText && (
+        <p className="mt-0.5 text-[0.75rem]" style={{ color: error ? 'var(--error)' : 'var(--text-secondary)' }}>{helperText}</p>
+      )}
+    </div>
+  );
+});
+
+type BareInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> & {
+  leftIcon?: ReactNode;
+  rightIcon?: ReactNode;
+  /** Interactive element on the right (e.g. password visibility toggle). */
+  rightElement?: ReactNode;
+  error?: boolean;
+  helperText?: ReactNode;
+  size?: 'small' | 'medium';
+  multiline?: boolean;
+  rows?: number;
+  minRows?: number;
+  inputProps?: InputHTMLAttributes<HTMLInputElement>;
+};
+
+
+/** Bare select with the Jacxi field look (no label) — filter dropdowns. Keeps the native event onChange. */
+function BareSelect({ options, placeholder, error = false, size = 'small', leftIcon, className, style, ...rest }: BareSelectProps) {
+  return (
+    <div className="relative">
+      {leftIcon && (
+        <span className="pointer-events-none absolute left-3 top-1/2 flex -translate-y-1/2 text-[var(--text-secondary)]">{leftIcon}</span>
+      )}
+      <select
+        {...rest}
+        aria-invalid={error || undefined}
+        style={style}
+        className={[
+          'w-full appearance-none rounded-lg border bg-[var(--background)] text-[var(--text-primary)] outline-none transition-colors',
+          size === 'small' ? 'px-2.5 py-1.5 text-[0.8125rem]' : 'px-3 py-2 text-[0.875rem]',
+          leftIcon ? 'pl-9' : '',
+          'pr-9',
+          error
+            ? 'border-[var(--error)] focus:border-[var(--error)] focus:ring-2 focus:ring-[rgba(var(--error-rgb),0.2)]'
+            : 'border-[rgba(var(--border-rgb),0.9)] hover:border-[var(--border)] focus:border-[var(--accent-gold)] focus:ring-2 focus:ring-[rgba(var(--accent-gold-rgb),0.2)]',
+          rest.disabled ? 'opacity-50' : '',
+          className,
+        ].filter(Boolean).join(' ')}
+      >
+        {placeholder && (
+          <option value="" disabled>{placeholder}</option>
+        )}
+        {options.map((option) => (
+          <option key={option.value} value={String(option.value)} disabled={option.disabled}>{option.label}</option>
+        ))}
+      </select>
+      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-secondary)]" aria-hidden="true" />
+    </div>
+  );
+}
+
+type BareSelectProps = Omit<SelectHTMLAttributes<HTMLSelectElement>, 'size'> & {
+  options: { value: string | number; label: string; disabled?: boolean }[];
+  placeholder?: string;
+  error?: boolean;
+  size?: 'small' | 'medium';
+  leftIcon?: ReactNode;
+};
+
+
 const steps = ['Basic Info', 'Contact Details', 'Security'];
 
-export default function CreateUserPage() {
+function CreateUserPageContent() {
 	const router = useRouter();
 	const searchParams = useSearchParams();
 	const { data: session, status } = useSession();
@@ -68,9 +164,9 @@ export default function CreateUserPage() {
 	if (!session || !hasAccess) {
 		return (
 			<DashboardSurface>
-				<Box sx={{ px: 2, pt: 1 }}>
+				<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingLeft: '16px', paddingRight: '16px', paddingTop: '8px'}}>
 					<Breadcrumbs />
-				</Box>
+				</JXBox>
 				<DashboardPanel>
 					<div className="py-12 text-center">
 						<h2 className="text-xl font-bold text-[var(--text-primary)] mb-2">Access Restricted</h2>
@@ -189,197 +285,118 @@ export default function CreateUserPage() {
 
 			<div className="max-w-3xl">
 				<DashboardPanel>
-					<Box sx={{ mb: 4 }}>
-						<Stepper activeStep={activeStep} alternativeLabel>
-							{steps.map((label) => (
-								<Step key={label}>
-									<StepLabel
-										sx={{
-											'& .MuiStepLabel-label': { color: 'var(--text-secondary)' },
-											'& .MuiStepLabel-label.Mui-active': { color: 'var(--accent-gold)', fontWeight: 600 },
-											'& .MuiStepLabel-label.Mui-completed': { color: 'var(--text-primary)' },
-											'& .MuiStepIcon-root': { color: 'var(--border)' },
-											'& .MuiStepIcon-root.Mui-active': { color: 'var(--accent-gold)' },
-											'& .MuiStepIcon-root.Mui-completed': { color: 'var(--accent-gold)' },
-										}}
-									>
-										{label}
-									</StepLabel>
-								</Step>
-							))}
-						</Stepper>
-					</Box>
+					<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginBottom: '32px'}}>
+						<MilestoneStepper steps={steps.map((label, index) => ({ id: String(index), label: label }))} currentStepId={String(activeStep)} />
+					</JXBox>
 
 					{/* Form Content */}
-					<Box sx={{ minHeight: 280 }}>
+					<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, minHeight: '280px'}}>
 						{activeStep === 0 && (
-							<Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2.5 }}>
+							<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '20px'}} className="grid-cols-1 grid sm:grid-cols-[1fr_1fr]">
 								{/* Name */}
-								<Box sx={{ gridColumn: '1 / -1' }}>
-									<Typography component="label" htmlFor="name" sx={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)', mb: 1 }}>Full Name</Typography>
-									<TextField
-										id="name" name="name" type="text" fullWidth value={formData.name} onChange={handleChange} required
-										placeholder="Enter full name"
-										InputProps={{ startAdornment: (<InputAdornment position="start"><PersonIcon sx={{ fontSize: 20, color: 'var(--text-secondary)' }} /></InputAdornment>) }}
-										sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'var(--background)', borderRadius: 2, color: 'var(--text-primary)' } }}
-									/>
-								</Box>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, gridColumn: '1 / -1'}}>
+									<label className="text-sm leading-relaxed" htmlFor="name" style={{display: 'block', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '8px'}}>Full Name</label>
+									<div className="min-w-0 flex-1"><BareInput id="name" name="name" type="text" value={formData.name} onChange={handleChange} required placeholder="Enter full name" leftIcon={<PersonIcon className="h-[20px] w-[20px]" style={{color: 'var(--text-secondary)'}} />} /></div>
+								</JXBox>
 								{/* Email */}
-								<Box sx={{ gridColumn: '1 / -1' }}>
-									<Typography component="label" htmlFor="email" sx={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)', mb: 1 }}>Email</Typography>
-									<TextField
-										id="email" name="email" type="email" fullWidth value={formData.email} onChange={handleChange} required
-										placeholder="Enter email address"
-										InputProps={{ startAdornment: (<InputAdornment position="start"><EmailIcon sx={{ fontSize: 20, color: 'var(--text-secondary)' }} /></InputAdornment>) }}
-										sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'var(--background)', borderRadius: 2, color: 'var(--text-primary)' } }}
-									/>
-								</Box>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, gridColumn: '1 / -1'}}>
+									<label className="text-sm leading-relaxed" htmlFor="email" style={{display: 'block', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '8px'}}>Email</label>
+									<div className="min-w-0 flex-1"><BareInput id="email" name="email" type="email" value={formData.email} onChange={handleChange} required placeholder="Enter email address" leftIcon={<EmailIcon className="h-[20px] w-[20px]" style={{color: 'var(--text-secondary)'}} />} /></div>
+								</JXBox>
 								{/* Role */}
-								<Box sx={{ gridColumn: '1 / -1' }}>
-									<Typography component="label" htmlFor="role" sx={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)', mb: 1 }}>Role</Typography>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, gridColumn: '1 / -1'}}>
+									<label className="text-sm leading-relaxed" htmlFor="role" style={{display: 'block', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '8px'}}>Role</label>
 									{accountType === 'customer' ? (
-										<TextField
-											id="role"
-											name="role"
-											fullWidth
-											value="Customer"
-											disabled
-											InputProps={{ startAdornment: (<InputAdornment position="start"><BadgeIcon sx={{ fontSize: 20, color: 'var(--text-secondary)' }} /></InputAdornment>) }}
-											sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'var(--background)', borderRadius: 2, color: 'var(--text-primary)' } }}
-										/>
+										<div className="min-w-0 flex-1"><BareInput id="role" name="role" value="Customer" disabled leftIcon={<BadgeIcon className="h-[20px] w-[20px]" style={{color: 'var(--text-secondary)'}} />} /></div>
 									) : (
-										<TextField
-											id="role" name="role" select fullWidth value={formData.role} onChange={handleChange} required
-											InputProps={{ startAdornment: (<InputAdornment position="start"><BadgeIcon sx={{ fontSize: 20, color: 'var(--text-secondary)' }} /></InputAdornment>) }}
-											sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'var(--background)', borderRadius: 2, color: 'var(--text-primary)' } }}
-										>
-											<MenuItem value="admin">Admin</MenuItem>
-											<MenuItem value="manager">Manager</MenuItem>
-											<MenuItem value="finance">Finance</MenuItem>
-											<MenuItem value="operations">Operations</MenuItem>
-											<MenuItem value="customer_service">Customer Service</MenuItem>
-										</TextField>
+										<div className="min-w-0 flex-1"><BareSelect options={[{ value: "admin", label: 'Admin' }, { value: "manager", label: 'Manager' }, { value: "finance", label: 'Finance' }, { value: "operations", label: 'Operations' }, { value: "customer_service", label: 'Customer Service' }]} value={formData.role} id="role" name="role" leftIcon={<BadgeIcon className="h-[20px] w-[20px]" style={{color: 'var(--text-secondary)'}} />} onChange={handleChange as unknown as React.ChangeEventHandler<HTMLSelectElement>} /></div>
 									)}
-								</Box>
-							</Box>
+								</JXBox>
+							</JXBox>
 						)}
 
 						{activeStep === 1 && (
-							<Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2.5 }}>
+							<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '20px'}} className="grid-cols-1 grid sm:grid-cols-[1fr_1fr]">
 								{/* Phone */}
-								<Box sx={{ gridColumn: '1 / -1' }}>
-									<Typography component="label" htmlFor="phone" sx={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)', mb: 1 }}>Phone</Typography>
-									<TextField
-										id="phone" name="phone" type="tel" fullWidth value={formData.phone} onChange={handleChange}
-										placeholder="Enter phone number"
-										InputProps={{ startAdornment: (<InputAdornment position="start"><PhoneIcon sx={{ fontSize: 20, color: 'var(--text-secondary)' }} /></InputAdornment>) }}
-										sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'var(--background)', borderRadius: 2, color: 'var(--text-primary)' } }}
-									/>
-								</Box>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, gridColumn: '1 / -1'}}>
+									<label className="text-sm leading-relaxed" htmlFor="phone" style={{display: 'block', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '8px'}}>Phone</label>
+									<div className="min-w-0 flex-1"><BareInput id="phone" name="phone" type="tel" value={formData.phone} onChange={handleChange} placeholder="Enter phone number" leftIcon={<PhoneIcon className="h-[20px] w-[20px]" style={{color: 'var(--text-secondary)'}} />} /></div>
+								</JXBox>
 								{/* Address */}
-								<Box sx={{ gridColumn: '1 / -1' }}>
-									<Typography component="label" htmlFor="address" sx={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)', mb: 1 }}>Address</Typography>
-									<TextField
-										id="address" name="address" type="text" fullWidth value={formData.address} onChange={handleChange}
-										placeholder="Enter address"
-										InputProps={{ startAdornment: (<InputAdornment position="start"><HomeIcon sx={{ fontSize: 20, color: 'var(--text-secondary)' }} /></InputAdornment>) }}
-										sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'var(--background)', borderRadius: 2, color: 'var(--text-primary)' } }}
-									/>
-								</Box>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, gridColumn: '1 / -1'}}>
+									<label className="text-sm leading-relaxed" htmlFor="address" style={{display: 'block', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '8px'}}>Address</label>
+									<div className="min-w-0 flex-1"><BareInput id="address" name="address" type="text" value={formData.address} onChange={handleChange} placeholder="Enter address" leftIcon={<HomeIcon className="h-[20px] w-[20px]" style={{color: 'var(--text-secondary)'}} />} /></div>
+								</JXBox>
 								{/* City */}
-								<Box>
-									<Typography component="label" htmlFor="city" sx={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)', mb: 1 }}>City</Typography>
-									<TextField
-										id="city" name="city" type="text" fullWidth value={formData.city} onChange={handleChange}
-										placeholder="Enter city"
-										InputProps={{ startAdornment: (<InputAdornment position="start"><LocationCityIcon sx={{ fontSize: 20, color: 'var(--text-secondary)' }} /></InputAdornment>) }}
-										sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'var(--background)', borderRadius: 2, color: 'var(--text-primary)' } }}
-									/>
-								</Box>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+									<label className="text-sm leading-relaxed" htmlFor="city" style={{display: 'block', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '8px'}}>City</label>
+									<div className="min-w-0 flex-1"><BareInput id="city" name="city" type="text" value={formData.city} onChange={handleChange} placeholder="Enter city" leftIcon={<LocationCityIcon className="h-[20px] w-[20px]" style={{color: 'var(--text-secondary)'}} />} /></div>
+								</JXBox>
 								{/* Country */}
-								<Box>
-									<Typography component="label" htmlFor="country" sx={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)', mb: 1 }}>Country</Typography>
-									<TextField
-										id="country" name="country" type="text" fullWidth value={formData.country} onChange={handleChange}
-										placeholder="Enter country"
-										InputProps={{ startAdornment: (<InputAdornment position="start"><PublicIcon sx={{ fontSize: 20, color: 'var(--text-secondary)' }} /></InputAdornment>) }}
-										sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'var(--background)', borderRadius: 2, color: 'var(--text-primary)' } }}
-									/>
-								</Box>
-							</Box>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+									<label className="text-sm leading-relaxed" htmlFor="country" style={{display: 'block', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '8px'}}>Country</label>
+									<div className="min-w-0 flex-1"><BareInput id="country" name="country" type="text" value={formData.country} onChange={handleChange} placeholder="Enter country" leftIcon={<PublicIcon className="h-[20px] w-[20px]" style={{color: 'var(--text-secondary)'}} />} /></div>
+								</JXBox>
+							</JXBox>
 						)}
 
 						{activeStep === 2 && (
-							<Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2.5 }}>
+							<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '20px'}} className="grid-cols-1 grid sm:grid-cols-[1fr_1fr]">
 								{/* Password */}
-								<Box sx={{ gridColumn: '1 / -1' }}>
-									<Typography component="label" htmlFor="password" sx={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)', mb: 1 }}>Password</Typography>
-									<TextField
-										id="password" name="password" type={showPassword ? 'text' : 'password'} fullWidth value={formData.password} onChange={handleChange} required
-										placeholder="Enter password (min. 6 characters)"
-										InputProps={{
-											startAdornment: (<InputAdornment position="start"><LockIcon sx={{ fontSize: 20, color: 'var(--text-secondary)' }} /></InputAdornment>),
-											endAdornment: (<InputAdornment position="end"><IconButton onClick={() => setShowPassword(!showPassword)} edge="end" sx={{ color: 'var(--accent-gold)' }}>{showPassword ? <VisibilityOff sx={{ fontSize: 20 }} /> : <Visibility sx={{ fontSize: 20 }} />}</IconButton></InputAdornment>)
-										}}
-										sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'var(--background)', borderRadius: 2, color: 'var(--text-primary)' } }}
-									/>
-								</Box>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, gridColumn: '1 / -1'}}>
+									<label className="text-sm leading-relaxed" htmlFor="password" style={{display: 'block', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '8px'}}>Password</label>
+									<div className="min-w-0 flex-1"><BareInput id="password" name="password" type={showPassword ? 'text' : 'password'} value={formData.password} onChange={handleChange} required placeholder="Enter password (min. 6 characters)" leftIcon={<LockIcon className="h-[20px] w-[20px]" style={{color: 'var(--text-secondary)'}} />} rightElement={<IconButton icon={showPassword ? <VisibilityOff className="h-[20px] w-[20px]" /> : <Visibility className="h-[20px] w-[20px]" />} ariaLabel={showPassword ? 'Hide password' : 'Show password'} variant="ghost" size="md" onClick={() => setShowPassword(!showPassword)} style={{color: 'var(--accent-gold)'}} />} /></div>
+								</JXBox>
 								{/* Confirm Password */}
-								<Box sx={{ gridColumn: '1 / -1' }}>
-									<Typography component="label" htmlFor="confirmPassword" sx={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)', mb: 1 }}>Confirm Password</Typography>
-									<TextField
-										id="confirmPassword" name="confirmPassword" type={showConfirmPassword ? 'text' : 'password'} fullWidth value={formData.confirmPassword} onChange={handleChange} required
-										placeholder="Confirm password"
-										InputProps={{
-											startAdornment: (<InputAdornment position="start"><LockIcon sx={{ fontSize: 20, color: 'var(--text-secondary)' }} /></InputAdornment>),
-											endAdornment: (<InputAdornment position="end"><IconButton onClick={() => setShowConfirmPassword(!showConfirmPassword)} edge="end" sx={{ color: 'var(--accent-gold)' }}>{showConfirmPassword ? <VisibilityOff sx={{ fontSize: 20 }} /> : <Visibility sx={{ fontSize: 20 }} />}</IconButton></InputAdornment>)
-										}}
-										sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'var(--background)', borderRadius: 2, color: 'var(--text-primary)' } }}
-									/>
-								</Box>
-							</Box>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, gridColumn: '1 / -1'}}>
+									<label className="text-sm leading-relaxed" htmlFor="confirmPassword" style={{display: 'block', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '8px'}}>Confirm Password</label>
+									<div className="min-w-0 flex-1"><BareInput id="confirmPassword" name="confirmPassword" type={showConfirmPassword ? 'text' : 'password'} value={formData.confirmPassword} onChange={handleChange} required placeholder="Confirm password" leftIcon={<LockIcon className="h-[20px] w-[20px]" style={{color: 'var(--text-secondary)'}} />} rightElement={<IconButton icon={showConfirmPassword ? <VisibilityOff className="h-[20px] w-[20px]" /> : <Visibility className="h-[20px] w-[20px]" />} ariaLabel={showConfirmPassword ? 'Hide password' : 'Show password'} variant="ghost" size="md" onClick={() => setShowConfirmPassword(!showConfirmPassword)} style={{color: 'var(--accent-gold)'}} />} /></div>
+								</JXBox>
+							</JXBox>
 						)}
-					</Box>
+					</JXBox>
 
 					{/* Actions */}
-					<Box sx={{ display: 'flex', flexDirection: 'row', pt: 4, gap: 2, borderTop: '1px solid var(--border)', mt: 3 }}>
-						<MuiButton
-							color="inherit"
+					<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'row', paddingTop: '32px', gap: '16px', borderTop: '1px solid var(--border)', marginTop: '24px'}}>
+						<Button
+							variant="outline"
 							disabled={activeStep === 0}
 							onClick={handleBack}
-							sx={{
-								color: 'var(--text-secondary)',
-								'&:disabled': { opacity: 0.5 },
-							}}
+							style={{color: 'var(--text-secondary)'}}
 						>
 							Back
-						</MuiButton>
-						<Box sx={{ flex: '1 1 auto' }} />
+						</Button>
+						<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, flex: '1 1 auto'}} />
 						{activeStep === 0 && (
-							<MuiButton
+							<Button
+								variant="ghost"
 								onClick={() => router.push(successRedirect)}
-								color="inherit"
-								sx={{ color: 'var(--text-secondary)', mr: 1 }}
+								style={{color: 'var(--text-secondary)', marginRight: '8px'}}
 							>
 								Cancel
-							</MuiButton>
+							</Button>
 						)}
-						<MuiButton
+						<Button
 							onClick={handleNext}
-							variant="contained"
+							variant="primary"
 							disabled={isLoading}
-							sx={{
-								bgcolor: 'var(--accent-gold)',
-								color: '#000000',
-								fontWeight: 600,
-								'&:hover': { bgcolor: 'var(--accent-gold)' },
-							}}
+							style={{backgroundColor: 'var(--accent-gold)', color: '#000000', fontWeight: 600}}
 						>
 							{activeStep === steps.length - 1 ? (isLoading ? 'Creating...' : 'Create Account') : 'Next'}
-						</MuiButton>
-					</Box>
+						</Button>
+					</JXBox>
 				</DashboardPanel>
 			</div>
 		</DashboardSurface>
 	);
+}
+
+// useSearchParams() must sit under a Suspense boundary or static
+// prerendering fails (missing-suspense-with-csr-bailout).
+export default function CreateUserPage() {
+  return (
+    <Suspense fallback={<div aria-busy="true" style={{ minHeight: '50vh' }} />}>
+      <CreateUserPageContent />
+    </Suspense>
+  );
 }

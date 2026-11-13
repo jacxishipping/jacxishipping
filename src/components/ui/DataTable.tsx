@@ -3,9 +3,45 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { ArrowUpDown, ArrowUp, ArrowDown, Trash2, Download, Edit, Columns, Eye, Search, AlignJustify, ListFilter, X, LayoutGrid, Table as TableIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Checkbox } from '@mui/material';
 import { EmptyState } from '@/components/design-system';
 import { useTheme } from '@/hooks/useTheme';
+
+/**
+ * GoldCheckbox — native checkbox with Jacxi gold accent.
+ * JXCheckbox's checked state uses JXUI's indigo palette.bg on an inner
+ * element the wrapper className cannot reach, so the table keeps a native
+ * control (also supports the indeterminate state the select-all header
+ * needs, via ref).
+ */
+function GoldCheckbox({
+  checked,
+  indeterminate = false,
+  onChange,
+  disabled = false,
+  label,
+}: {
+  checked: boolean;
+  indeterminate?: boolean;
+  onChange: (checked: boolean) => void;
+  disabled?: boolean;
+  label: string;
+}) {
+  const ref = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (ref.current) ref.current.indeterminate = indeterminate;
+  }, [indeterminate]);
+  return (
+    <input
+      ref={ref}
+      type="checkbox"
+      checked={checked}
+      disabled={disabled}
+      aria-label={label}
+      onChange={(e) => onChange(e.target.checked)}
+      className="h-4 w-4 shrink-0 cursor-pointer accent-[var(--accent-gold)] disabled:cursor-not-allowed disabled:opacity-50"
+    />
+  );
+}
 
 export interface Column<T> {
   key: string;
@@ -344,16 +380,11 @@ export function DataTable<T extends Record<string, any>>({
                       key={column.key}
                       className="flex items-center gap-2 rounded-md px-2 py-1.5 text-xs text-[var(--text-primary)] hover:bg-[var(--background)] cursor-pointer"
                     >
-                      <Checkbox
+                      <GoldCheckbox
                         checked={isVisible}
                         onChange={() => toggleColumnVisibility(column.key)}
-                        size="small"
                         disabled={isLastVisible}
-                        sx={{
-                          p: 0.5,
-                          color: 'var(--text-secondary)',
-                          '&.Mui-checked': { color: 'var(--accent-gold)' },
-                        }}
+                        label={`Toggle ${column.header} column`}
                       />
                       <span className="truncate">{column.header}</span>
                     </label>
@@ -439,17 +470,11 @@ export function DataTable<T extends Record<string, any>>({
           {selectable && sortedData.length > 0 && (
             <div className="flex items-center justify-between px-3 py-1.5 bg-[var(--panel)] border border-[var(--border)] rounded-lg text-xs">
               <label className="flex items-center gap-2 cursor-pointer font-medium text-[var(--text-secondary)]">
-                <Checkbox
+                <GoldCheckbox
                   checked={isAllSelected}
                   indeterminate={isSomeSelected}
-                  onChange={(e) => handleSelectAll(e.target.checked)}
-                  size="small"
-                  sx={{
-                    p: 0.2,
-                    color: 'var(--text-secondary)',
-                    '&.Mui-checked': { color: 'var(--accent-gold)' },
-                    '&.MuiCheckbox-indeterminate': { color: 'var(--accent-gold)' },
-                  }}
+                  onChange={(e) => handleSelectAll(e)}
+                  label="Select all rows"
                 />
                 <span>Select All ({sortedData.length})</span>
               </label>
@@ -503,15 +528,10 @@ export function DataTable<T extends Record<string, any>>({
                     <div className="flex items-center gap-2 min-w-0 flex-1">
                       {selectable && (
                         <div onClick={(e) => e.stopPropagation()} className="-ml-1">
-                          <Checkbox
+                          <GoldCheckbox
                             checked={isSelected}
-                            onChange={(e) => handleSelectRow(rowId, e.target.checked)}
-                            size="small"
-                            sx={{
-                              p: 0.2,
-                              color: 'var(--text-secondary)',
-                              '&.Mui-checked': { color: 'var(--accent-gold)' },
-                            }}
+                            onChange={(checked) => handleSelectRow(rowId, checked)}
+                            label="Select row"
                           />
                         </div>
                       )}
@@ -605,21 +625,11 @@ export function DataTable<T extends Record<string, any>>({
             <tr>
               {selectable && (
                 <th className={cn("w-10 text-left", density === 'compact' ? 'px-2 py-1' : 'px-4 py-3')}>
-                  <Checkbox
+                  <GoldCheckbox
                     checked={isAllSelected}
                     indeterminate={isSomeSelected}
-                    onChange={(e) => handleSelectAll(e.target.checked)}
-                    size="small"
-                    sx={{
-                      p: density === 'compact' ? 0.1 : 0.5,
-                      color: 'var(--text-secondary)',
-                      '&.Mui-checked': {
-                        color: 'var(--accent-gold)',
-                      },
-                      '&.MuiCheckbox-indeterminate': {
-                        color: 'var(--accent-gold)',
-                      },
-                    }}
+                    onChange={(checked) => handleSelectAll(checked)}
+                    label="Select all rows"
                   />
                 </th>
               )}
@@ -715,17 +725,10 @@ export function DataTable<T extends Record<string, any>>({
                   >
                     {selectable && (
                       <td className={cn(density === 'compact' ? 'px-2 py-0.5' : 'px-4 py-3')} onClick={(e) => e.stopPropagation()}>
-                        <Checkbox
+                        <GoldCheckbox
                           checked={isSelected}
-                          onChange={(e) => handleSelectRow(rowId, e.target.checked)}
-                          size="small"
-                          sx={{
-                            p: density === 'compact' ? 0.1 : 0.5,
-                            color: 'var(--text-secondary)',
-                            '&.Mui-checked': {
-                              color: 'var(--accent-gold)',
-                            },
-                          }}
+                          onChange={(checked) => handleSelectRow(rowId, checked)}
+                          label="Select row"
                         />
                       </td>
                     )}

@@ -1,9 +1,9 @@
 'use client';
 import { formatMoney as formatCurrency } from '@/lib/format';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Box } from '@mui/material';
 import { Eye, Package, Pencil, Plus, Search, Trash2, Truck } from 'lucide-react';
 import AdminRoute from '@/components/auth/AdminRoute';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
@@ -353,12 +353,12 @@ export default function TransitsPage() {
       header: 'Reference',
       sortable: true,
       render: (_, row) => (
-        <Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px'}}>
             <span style={{ fontWeight: 600, fontFamily: 'monospace' }}>{row.referenceNumber}</span>
             <CopyButton value={row.referenceNumber} label="Transit #" />
-          </Box>
-          <Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+          </JXBox>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.75rem', color: 'var(--text-secondary)'}}>
             {row.currentCompany?.name ? (
               <span className="inline-flex items-center gap-1 font-medium text-emerald-600 dark:text-emerald-400">
                 🚚 {row.currentCompany.name} {row.currentCompany.code ? `(${row.currentCompany.code})` : ''}
@@ -366,18 +366,18 @@ export default function TransitsPage() {
             ) : (
               'Unassigned Carrier'
             )}
-          </Box>
-        </Box>
+          </JXBox>
+        </JXBox>
       ),
     },
     {
       key: 'origin',
       header: 'Route',
       render: (_, row) => (
-        <Box sx={{ fontSize: '0.8rem' }}>
-          <Box>{row.currentEvent?.origin || row.origin}</Box>
-          <Box sx={{ color: 'var(--text-secondary)' }}>→ {row.currentEvent?.destination || row.destination}</Box>
-        </Box>
+        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.8rem'}}>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>{row.currentEvent?.origin || row.origin}</JXBox>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, color: 'var(--text-secondary)'}}>→ {row.currentEvent?.destination || row.destination}</JXBox>
+        </JXBox>
       ),
     },
     {
@@ -411,7 +411,7 @@ export default function TransitsPage() {
       header: 'Actions',
       align: 'right',
       render: (_, row) => (
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.75, flexWrap: 'nowrap', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
+        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'flex-end', gap: '6px', flexWrap: 'nowrap', whiteSpace: 'nowrap'}} onClick={(e) => e.stopPropagation()}>
           <Button
             variant="outline"
             size="sm"
@@ -444,17 +444,11 @@ export default function TransitsPage() {
               void handleDeleteTransit(row);
             }}
             disabled={deletingTransitId === row.id}
-            sx={{
-              color: 'var(--error)',
-              borderColor: 'var(--error)',
-              '&:hover': {
-                bgcolor: 'rgba(var(--error-rgb), 0.1)',
-              },
-            }}
+            style={{color: 'var(--error)', borderColor: 'var(--error)'}}
           >
             {deletingTransitId === row.id ? 'Deleting...' : 'Delete'}
           </Button>
-        </Box>
+        </JXBox>
       ),
     },
   ], [deletingTransitId, router]);
@@ -512,7 +506,7 @@ export default function TransitsPage() {
         {/* Data Table Panel */}
         <DashboardPanel title={`Transits List (${transits.length})`} fullHeight>
           {loading ? (
-            <Box sx={{ py: 4, textAlign: 'center', color: 'var(--text-secondary)' }}>Loading transits...</Box>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingTop: '32px', paddingBottom: '32px', textAlign: 'center', color: 'var(--text-secondary)'}}>Loading transits...</JXBox>
           ) : (
             <DataTable
               data={transits}

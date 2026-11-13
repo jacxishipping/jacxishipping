@@ -1,10 +1,11 @@
 'use client';
-import { Box } from '@mui/material';
+
 
 import { useSession } from 'next-auth/react';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
 import { hasPermission } from '@/lib/rbac';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { Button, Breadcrumbs, PageHeader, toast, LoadingState } from '@/components/design-system';
@@ -33,7 +34,7 @@ type ContainerResponse = {
 	container?: ContainerDetail;
 };
 
-export default function NewInvoicePage() {
+function NewInvoicePageContent() {
 	const { data: session, status } = useSession();
 	const router = useRouter();
 	const searchParams = useSearchParams();
@@ -139,9 +140,9 @@ export default function NewInvoicePage() {
 	if (!container) {
 		return (
 			<DashboardSurface>
-				<Box sx={{ px: 2, pt: 1 }}>
+				<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingLeft: '16px', paddingRight: '16px', paddingTop: '8px'}}>
 					<Breadcrumbs />
-				</Box>
+				</JXBox>
 				<DashboardPanel>
 					<div className="py-12 text-center">
 						<p className="text-base text-[var(--text-secondary)] mb-4">Container not found or invalid container ID.</p>
@@ -309,3 +310,12 @@ export default function NewInvoicePage() {
 	);
 }
 
+// useSearchParams() must sit under a Suspense boundary or static
+// prerendering fails (missing-suspense-with-csr-bailout).
+export default function NewInvoicePage() {
+  return (
+    <Suspense fallback={<div aria-busy="true" style={{ minHeight: '50vh' }} />}>
+      <NewInvoicePageContent />
+    </Suspense>
+  );
+}

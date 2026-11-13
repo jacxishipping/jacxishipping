@@ -19,19 +19,7 @@ import {
   RefreshCw,
   X
 } from 'lucide-react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Box,
-  Typography,
-  Chip,
-  TextField,
-  MenuItem,
-  CircularProgress
-} from '@mui/material';
-import { Button, toast } from '@/components/design-system';
+import { Button, FormField, Modal, Select, toast } from '@/components/design-system';
 
 export interface ExtractedDocumentData {
   vin?: string;
@@ -270,266 +258,30 @@ export function AiDocumentOcrModal({
   };
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="md"
-      fullWidth
-      PaperProps={{
-        sx: {
-          borderRadius: 3,
-          bgcolor: 'var(--panel)',
-          color: 'var(--text-primary)',
-          border: '1px solid var(--border)',
-          overflow: 'hidden',
-        },
-      }}
-    >
-      <DialogTitle
-        sx={{
-          p: 2.5,
-          borderBottom: '1px solid var(--border)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          bgcolor: 'var(--background)',
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <Box
-            sx={{
-              p: 1,
-              borderRadius: 2,
-              bgcolor: 'rgba(var(--accent-gold-rgb), 0.15)',
-              color: 'var(--accent-gold)',
-            }}
-          >
+    <Modal open={open} onClose={onClose} size="md" title={<><div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+          <div style={{padding: '8px', borderRadius: '16px', backgroundColor: 'rgba(var(--accent-gold-rgb), 0.15)', color: 'var(--accent-gold)'}}>
             <Sparkles className="w-5 h-5" />
-          </Box>
-          <Box>
-            <Typography sx={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+          </div>
+          <div>
+            <p style={{fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)'}}>
               AI Document OCR & Auto-Intake
-            </Typography>
-            <Typography sx={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+            </p>
+            <p style={{fontSize: '0.78rem', color: 'var(--text-secondary)'}}>
               Auto-extract VIN, specs, weights & consignee from Copart, IAAI, Manheim, BOL or Title
-            </Typography>
-          </Box>
-        </Box>
+            </p>
+          </div>
+        </div>
         <button
           onClick={onClose}
-          className="p-1 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors"
+          className="p-1 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--background)] transition-colors"
         >
           <X className="w-5 h-5" />
-        </button>
-      </DialogTitle>
-
-      <DialogContent sx={{ p: 3 }}>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".pdf,.png,.jpg,.jpeg,.webp"
-          className="hidden"
-          onChange={(e) => {
-            if (e.target.files && e.target.files[0]) {
-              handleFileSelect(e.target.files[0]);
-            }
-          }}
-        />
-
-        {!file && (
-          <Box
-            onDragOver={(e) => {
-              e.preventDefault();
-              setIsDragging(true);
-            }}
-            onDragLeave={() => setIsDragging(false)}
-            onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
-            sx={{
-              border: '2px dashed',
-              borderColor: isDragging ? 'var(--accent-gold)' : 'var(--border)',
-              borderRadius: 3,
-              p: 5,
-              textAlign: 'center',
-              cursor: 'pointer',
-              bgcolor: isDragging ? 'rgba(var(--accent-gold-rgb), 0.05)' : 'var(--background)',
-              transition: 'all 0.2s ease',
-              '&:hover': {
-                borderColor: 'var(--accent-gold)',
-                bgcolor: 'rgba(var(--accent-gold-rgb), 0.02)',
-              },
-            }}
-          >
-            <Box
-              sx={{
-                width: 56,
-                height: 56,
-                borderRadius: '50%',
-                bgcolor: 'rgba(var(--accent-gold-rgb), 0.1)',
-                color: 'var(--accent-gold)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                mx: 'auto',
-                mb: 2,
-              }}
-            >
-              <UploadCloud className="w-7 h-7" />
-            </Box>
-            <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)', mb: 0.5 }}>
-              Click to upload or drag & drop shipping documents
-            </Typography>
-            <Typography sx={{ fontSize: '0.8rem', color: 'var(--text-secondary)', maxW: '400px', mx: 'auto' }}>
-              Supported: Copart Sales Receipts, IAAI Invoices, Manheim Gate Passes, Carrier Bills of Lading, Dock Receipts, Certificate of Titles (PDF, PNG, JPG up to 20MB)
-            </Typography>
-          </Box>
-        )}
-
-        {isProcessing && (
-          <Box sx={{ py: 6, textAlign: 'center' }}>
-            <CircularProgress size={36} sx={{ color: 'var(--accent-gold)', mb: 2 }} />
-            <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)' }}>
-              Analyzing Document with Multimodal OCR...
-            </Typography>
-            <Typography sx={{ fontSize: '0.8rem', color: 'var(--text-secondary)', mt: 0.5 }}>
-              Extracting 17-digit VIN, vehicle year/make/model, buyer specs, and pricing
-            </Typography>
-          </Box>
-        )}
-
-        {file && !isProcessing && extractedData && (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-            {/* Success Banner */}
-            <Box
-              sx={{
-                p: 2,
-                borderRadius: 2,
-                bgcolor: 'rgba(34, 197, 94, 0.08)',
-                border: '1px solid rgba(34, 197, 94, 0.3)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              }}
-            >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
-                <Box>
-                  <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                    AI Extraction Successful: {file.name}
-                  </Typography>
-                  <Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                    {extractedData.confidenceNotes || 'All primary fields extracted. Please review below.'}
-                  </Typography>
-                </Box>
-              </Box>
-              <Button size="sm" variant="ghost" onClick={resetModal} className="text-xs">
-                <RefreshCw className="w-3.5 h-3.5 mr-1" />
-                Scan Another
-              </Button>
-            </Box>
-
-            {/* Extracted Fields Form */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <TextField
-                label="VIN (17 Characters)"
-                size="small"
-                fullWidth
-                value={formData.vin}
-                onChange={(e) => setFormData({ ...formData, vin: e.target.value.toUpperCase() })}
-                slotProps={{
-                  input: {
-                    style: { fontFamily: 'monospace', fontWeight: 700 },
-                  },
-                }}
-              />
-              <TextField
-                label="Vehicle Year"
-                size="small"
-                fullWidth
-                type="number"
-                value={formData.year}
-                onChange={(e) => setFormData({ ...formData, year: e.target.value })}
-              />
-              <TextField
-                label="Vehicle Make"
-                size="small"
-                fullWidth
-                value={formData.make}
-                onChange={(e) => setFormData({ ...formData, make: e.target.value })}
-              />
-              <TextField
-                label="Vehicle Model"
-                size="small"
-                fullWidth
-                value={formData.model}
-                onChange={(e) => setFormData({ ...formData, model: e.target.value })}
-              />
-              <TextField
-                label="Lot / Stock #"
-                size="small"
-                fullWidth
-                value={formData.lotNumber}
-                onChange={(e) => setFormData({ ...formData, lotNumber: e.target.value })}
-              />
-              <TextField
-                label="Auction / Source"
-                size="small"
-                select
-                fullWidth
-                value={formData.auctionName}
-                onChange={(e) => setFormData({ ...formData, auctionName: e.target.value as any })}
-              >
-                {['Copart', 'IAAI', 'Impact', 'Manheim', 'Other'].map((name) => (
-                  <MenuItem key={name} value={name}>{name}</MenuItem>
-                ))}
-              </TextField>
-              <TextField
-                label="Purchase Price ($ USD)"
-                size="small"
-                fullWidth
-                value={formData.purchasePrice}
-                onChange={(e) => setFormData({ ...formData, purchasePrice: e.target.value })}
-              />
-              <TextField
-                label="Title Document Status"
-                size="small"
-                fullWidth
-                value={formData.titleStatus}
-                onChange={(e) => setFormData({ ...formData, titleStatus: e.target.value })}
-              />
-              <TextField
-                label="Document Category"
-                size="small"
-                select
-                fullWidth
-                value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              >
-                {['INVOICE', 'BILL_OF_LADING', 'TITLE', 'CUSTOMS', 'INSURANCE', 'OTHER'].map((c) => (
-                  <MenuItem key={c} value={c}>{c.replace(/_/g, ' ')}</MenuItem>
-                ))}
-              </TextField>
-            </div>
-          </Box>
-        )}
-      </DialogContent>
-
-      <DialogActions
-        sx={{
-          p: 2.5,
-          borderTop: '1px solid var(--border)',
-          bgcolor: 'var(--background)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          gap: 1.5,
-        }}
-      >
-        <Button variant="outline" size="sm" onClick={onClose}>
+        </button></>} actions={<><Button variant="outline" size="sm" onClick={onClose}>
           Cancel
         </Button>
 
         {extractedData && (
-          <Box sx={{ display: 'flex', gap: 1.5 }}>
+          <div style={{display: 'flex', gap: '12px'}}>
             <Button
               variant="outline"
               size="sm"
@@ -547,9 +299,82 @@ export function AiDocumentOcrModal({
             >
               1-Click Create Shipment
             </Button>
-          </Box>
+          </div>
+        )}</>} showCloseButton={false} contentSx={{padding: '24px'}} actionsSx={{padding: '20px', borderTop: '1px solid var(--border)', backgroundColor: 'var(--background)', display: 'flex', justifyContent: 'space-between', gap: '12px'}}><input
+          ref={fileInputRef}
+          type="file"
+          accept=".pdf,.png,.jpg,.jpeg,.webp"
+          className="hidden"
+          onChange={(e) => {
+            if (e.target.files && e.target.files[0]) {
+              handleFileSelect(e.target.files[0]);
+            }
+          }}
+        />
+
+        {!file && (
+          <div onDragOver={(e) => {
+              e.preventDefault();
+              setIsDragging(true);
+            }} onDragLeave={() => setIsDragging(false)} onDrop={handleDrop} onClick={() => fileInputRef.current?.click()} style={{border: '2px dashed', borderColor: isDragging ? 'var(--accent-gold)' : 'var(--border)', borderRadius: '24px', padding: '40px', textAlign: 'center', cursor: 'pointer', backgroundColor: isDragging ? 'rgba(var(--accent-gold-rgb), 0.05)' : 'var(--background)', transition: 'all 0.2s ease'}}>
+            <div style={{width: 56, height: 56, borderRadius: '50%', backgroundColor: 'rgba(var(--accent-gold-rgb), 0.1)', color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: 'auto', marginRight: 'auto', marginBottom: '16px'}}>
+              <UploadCloud className="w-7 h-7" />
+            </div>
+            <p style={{fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)', marginBottom: '4px'}}>
+              Click to upload or drag & drop shipping documents
+            </p>
+            <p style={{fontSize: '0.8rem', color: 'var(--text-secondary)', maxWidth: '400px', marginLeft: 'auto', marginRight: 'auto'}}>
+              Supported: Copart Sales Receipts, IAAI Invoices, Manheim Gate Passes, Carrier Bills of Lading, Dock Receipts, Certificate of Titles (PDF, PNG, JPG up to 20MB)
+            </p>
+          </div>
         )}
-      </DialogActions>
-    </Dialog>
+
+        {isProcessing && (
+          <div style={{paddingTop: '48px', paddingBottom: '48px', textAlign: 'center'}}>
+            <span role="status" aria-label="Loading" style={{width: 36, height: 36, borderTopColor: 'var(--accent-gold)', color: 'var(--accent-gold)', marginBottom: '16px'}} className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-[var(--border)]" />
+            <p style={{fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)'}}>
+              Analyzing Document with Multimodal OCR...
+            </p>
+            <p style={{fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px'}}>
+              Extracting 17-digit VIN, vehicle year/make/model, buyer specs, and pricing
+            </p>
+          </div>
+        )}
+
+        {file && !isProcessing && extractedData && (
+          <div style={{display: 'flex', flexDirection: 'column', gap: '20px'}}>
+            {/* Success Banner */}
+            <div style={{padding: '16px', borderRadius: '16px', backgroundColor: 'rgba(34, 197, 94, 0.08)', border: '1px solid rgba(34, 197, 94, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
+              <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+                <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
+                <div>
+                  <p style={{fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)'}}>
+                    AI Extraction Successful: {file.name}
+                  </p>
+                  <p style={{fontSize: '0.75rem', color: 'var(--text-secondary)'}}>
+                    {extractedData.confidenceNotes || 'All primary fields extracted. Please review below.'}
+                  </p>
+                </div>
+              </div>
+              <Button size="sm" variant="ghost" onClick={resetModal} className="text-xs">
+                <RefreshCw className="w-3.5 h-3.5 mr-1" />
+                Scan Another
+              </Button>
+            </div>
+
+            {/* Extracted Fields Form */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <FormField label="VIN (17 Characters)" value={formData.vin} onChange={(e) => setFormData({ ...formData, vin: e.target.value.toUpperCase() })} style={{ fontFamily: 'monospace', fontWeight: 700 }} size="small" />
+              <FormField label="Vehicle Year" type="number" value={formData.year} onChange={(e) => setFormData({ ...formData, year: e.target.value })} size="small" />
+              <FormField label="Vehicle Make" value={formData.make} onChange={(e) => setFormData({ ...formData, make: e.target.value })} size="small" />
+              <FormField label="Vehicle Model" value={formData.model} onChange={(e) => setFormData({ ...formData, model: e.target.value })} size="small" />
+              <FormField label="Lot / Stock #" value={formData.lotNumber} onChange={(e) => setFormData({ ...formData, lotNumber: e.target.value })} size="small" />
+              <Select label="Auction / Source" value={formData.auctionName} onChange={(val) => setFormData({ ...formData, auctionName: String(val) as any })} size="small" options={['Copart', 'IAAI', 'Impact', 'Manheim', 'Other'].map((name) => ({ value: name, label: name }))} />
+              <FormField label="Purchase Price ($ USD)" value={formData.purchasePrice} onChange={(e) => setFormData({ ...formData, purchasePrice: e.target.value })} size="small" />
+              <FormField label="Title Document Status" value={formData.titleStatus} onChange={(e) => setFormData({ ...formData, titleStatus: e.target.value })} size="small" />
+              <Select label="Document Category" value={formData.category} onChange={(val) => setFormData({ ...formData, category: String(val) })} size="small" options={['INVOICE', 'BILL_OF_LADING', 'TITLE', 'CUSTOMS', 'INSURANCE', 'OTHER'].map((c) => ({ value: c, label: c.replace(/_/g, ' ') }))} />
+            </div>
+          </div>
+        )}</Modal>
   );
 }

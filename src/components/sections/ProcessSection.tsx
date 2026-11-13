@@ -1,7 +1,7 @@
 'use client';
 
 import { FileText, Anchor, Ship, Truck, CheckCircle } from 'lucide-react';
-import { Fade, Slide, Box } from '@mui/material';
+import { motion } from 'framer-motion';
 
 const steps = [
 	{
@@ -32,21 +32,22 @@ const steps = [
 ];
 
 export default function ProcessSection() {
-	const show = true;
-
 	return (
 		<section className="py-24 bg-white">
 			<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-				<Fade in={show} timeout={800}>
-					<Box className="text-center mb-16">
+				<motion.div
+					initial={{ opacity: 0 }}
+					animate={{ opacity: 1 }}
+					transition={{ duration: 0.8 }}
+					className="text-center mb-16"
+				>
 						<h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
 							The <span className="text-[rgb(var(--jacxi-blue))]">Journey</span>
 						</h2>
 						<p className="text-xl text-gray-600 max-w-3xl mx-auto">
 							From the USA or Canada through either Mersin or UAE to Afghanistan - here is what happens after you book
 						</p>
-					</Box>
-				</Fade>
+				</motion.div>
 
 				<div className="relative">
 					{/* Timeline Line */}
@@ -57,20 +58,23 @@ export default function ProcessSection() {
 						{steps.map((step, index) => {
 							const Icon = step.icon;
 							return (
-								<Slide
+								<motion.div
 									key={index}
-									in={show}
-									direction="up"
-									timeout={600}
-									style={{ transitionDelay: `${index * 100}ms` }}
+									initial={{ opacity: 0, y: 24 }}
+									animate={{ opacity: 1, y: 0 }}
+									transition={{ duration: 0.6, delay: index * 0.1 }}
 								>
-									<Box
+									<div
 										className="relative p-6 bg-white rounded-2xl border-2 border-gray-200 shadow-md hover:shadow-2xl hover:border-blue-300 hover:-translate-y-2 transition-all duration-300"
 									>
 										<div className="flex flex-col items-center text-center group">
 											{/* Icon Circle */}
-											<Fade in={show} timeout={800} style={{ transitionDelay: `${index * 100 + 200}ms` }}>
-												<div className="relative mb-6">
+											<motion.div
+												initial={{ opacity: 0 }}
+												animate={{ opacity: 1 }}
+												transition={{ duration: 0.8, delay: index * 0.1 + 0.2 }}
+												className="relative mb-6"
+											>
 													<div className="w-20 h-20 rounded-full bg-gradient-to-br from-[rgb(var(--jacxi-blue))] to-[rgb(var(--jacxi-blue))]/80 flex items-center justify-center text-white shadow-xl shadow-[rgb(var(--jacxi-blue))]/30 group-hover:scale-110 transition-all duration-300 relative z-10">
 														<Icon className="w-10 h-10" />
 													</div>
@@ -80,23 +84,24 @@ export default function ProcessSection() {
 													</div>
 													{/* Glow Effect */}
 													<div className="absolute inset-0 bg-[rgb(var(--jacxi-blue))]/20 rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-												</div>
-											</Fade>
+											</motion.div>
 
 											{/* Content */}
-											<Fade in={show} timeout={600} style={{ transitionDelay: `${index * 100 + 400}ms` }}>
-												<Box>
+											<motion.div
+												initial={{ opacity: 0 }}
+												animate={{ opacity: 1 }}
+												transition={{ duration: 0.6, delay: index * 0.1 + 0.4 }}
+											>
 													<h3 className="text-lg font-bold text-gray-900 mb-2">
 														{step.title}
 													</h3>
 													<p className="text-sm text-gray-600">
 														{step.description}
 													</p>
-												</Box>
-											</Fade>
+											</motion.div>
 										</div>
-									</Box>
-								</Slide>
+									</div>
+								</motion.div>
 							);
 						})}
 					</div>

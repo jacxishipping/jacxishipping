@@ -1,73 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+
+import { Suspense, useState, useEffect, forwardRef, type CSSProperties, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react';
+import { JXBox, JXChip } from '@jacxishippingorg/jx-ui-react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
-import { 
-	Box, 
-	Tabs, 
-	Tab, 
-	Table, 
-	TableBody, 
-	TableCell, 
-	TableContainer, 
-	TableHead, 
-	TableRow,
-	LinearProgress,
-	Divider,
-	Chip,
-	Typography,
-	TextField,
-	MenuItem,
-	Checkbox,
-	CircularProgress,
-} from '@mui/material';
-import {
-	ArrowLeft,
-	Package,
-	Ship,
-	Calendar,
-	DollarSign,
-	FileText,
-	MapPin,
-	TrendingUp,
-	Download,
-	Eye,
-	Plus,
-	Trash2,
-	AlertTriangle,
-	Copy,
-	Printer,
-	FileDown,
-    Activity,
-    QrCode,
-    RefreshCw,
-    Search,
-    Pencil,
-    Layers,
-    Compass,
-    ShieldCheck
-} from 'lucide-react';
+import { Activity, AlertTriangle, ArrowLeft, Calendar, ChevronDown, Compass, Copy, DollarSign, Download, Eye, FileDown, FileText, Layers, MapPin, Package, Pencil, Plus, Printer, QrCode, RefreshCw, Search, ShieldCheck, Ship, Trash2, TrendingUp } from 'lucide-react';
 import QRCode from 'react-qr-code';
 import { formatMoney as formatCurrency } from '@/lib/format';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
-import { 
-	PageHeader, 
-	Button, 
-	Breadcrumbs, 
-	toast, 
-	LoadingState, 
-	EmptyState, 
-	StatsCard,
-	DashboardPageSkeleton, 
-	DetailPageSkeleton, 
-	FormPageSkeleton,
-	CopyButton,
-	MilestoneStepper,
-	StatusBadge,
-	type MilestoneStep
-} from '@/components/design-system';
+import { PageHeader, Button, Breadcrumbs, toast, LoadingState, EmptyState, StatsCard, DashboardPageSkeleton, DetailPageSkeleton, FormPageSkeleton, CopyButton, MilestoneStepper, StatusBadge, type MilestoneStep, Modal } from '@/components/design-system';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import AddExpenseModal from '@/components/containers/AddExpenseModal';
 import AddDamageModal from '@/components/containers/AddDamageModal';
@@ -75,7 +18,6 @@ import AddInvoiceModal from '@/components/containers/AddInvoiceModal';
 import AddTrackingEventModal from '@/components/containers/AddTrackingEventModal';
 import { TrackingSourceBadge } from '@/components/tracking/TrackingSourceBadge';
 import AddShipmentExpenseModal from '@/components/shipments/AddShipmentExpenseModal';
-import { Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { DocumentManager } from '@/components/dashboard/DocumentManager';
 import { ActivityLog } from '@/components/dashboard/ActivityLog';
 import { ContainerCapacityGauge } from '@/components/dashboard/ContainerCapacityGauge';
@@ -87,6 +29,50 @@ import { CustomsDocumentPacketModal } from '@/components/containers/CustomsDocum
 import { ContainerLoadPlanner } from '@/components/dashboard/ContainerLoadPlanner';
 import { hasAnyPermission, hasPermission } from '@/lib/rbac';
 import { openUniversalShipmentExport } from '@/components/shipments/UniversalShipmentExportModal';
+
+/** Bare select with the Jacxi field look (no label) — filter dropdowns. Keeps the native event onChange. */
+function BareSelect({ options, placeholder, error = false, size = 'small', leftIcon, className, style, ...rest }: BareSelectProps) {
+  return (
+    <div className="relative">
+      {leftIcon && (
+        <span className="pointer-events-none absolute left-3 top-1/2 flex -translate-y-1/2 text-[var(--text-secondary)]">{leftIcon}</span>
+      )}
+      <select
+        {...rest}
+        aria-invalid={error || undefined}
+        style={style}
+        className={[
+          'w-full appearance-none rounded-lg border bg-[var(--background)] text-[var(--text-primary)] outline-none transition-colors',
+          size === 'small' ? 'px-2.5 py-1.5 text-[0.8125rem]' : 'px-3 py-2 text-[0.875rem]',
+          leftIcon ? 'pl-9' : '',
+          'pr-9',
+          error
+            ? 'border-[var(--error)] focus:border-[var(--error)] focus:ring-2 focus:ring-[rgba(var(--error-rgb),0.2)]'
+            : 'border-[rgba(var(--border-rgb),0.9)] hover:border-[var(--border)] focus:border-[var(--accent-gold)] focus:ring-2 focus:ring-[rgba(var(--accent-gold-rgb),0.2)]',
+          rest.disabled ? 'opacity-50' : '',
+          className,
+        ].filter(Boolean).join(' ')}
+      >
+        {placeholder && (
+          <option value="" disabled>{placeholder}</option>
+        )}
+        {options.map((option) => (
+          <option key={option.value} value={String(option.value)} disabled={option.disabled}>{option.label}</option>
+        ))}
+      </select>
+      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-secondary)]" aria-hidden="true" />
+    </div>
+  );
+}
+
+type BareSelectProps = Omit<SelectHTMLAttributes<HTMLSelectElement>, 'size'> & {
+  options: { value: string | number; label: string; disabled?: boolean }[];
+  placeholder?: string;
+  error?: boolean;
+  size?: 'small' | 'medium';
+  leftIcon?: ReactNode;
+};
+
 
 interface Shipment {
 	id: string;
@@ -261,7 +247,7 @@ const containerTabSlugs = [
 	'activity',
 ];
 
-export default function ContainerDetailPage() {
+function ContainerDetailPageContent() {
 	const params = useParams();
 	const router = useRouter();
 	const searchParams = useSearchParams();
@@ -888,16 +874,16 @@ export default function ContainerDetailPage() {
 		<ProtectedRoute>
 			<DashboardSurface>
 				{/* Breadcrumbs */}
-				<Box sx={{ px: 2, pt: 2 }}>
+				<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingLeft: '16px', paddingRight: '16px', paddingTop: '16px'}}>
 					<Breadcrumbs />
-				</Box>
+				</JXBox>
 
 				{/* Page Header */}
 				<PageHeader
 					title={container.containerNumber}
 					description={container.trackingNumber ? `Tracking: ${container.trackingNumber}` : 'Container details and management'}
 					actions={
-						<Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+						<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center'}}>
 							<StatusBadge 
 								status={container.status}
 								className="no-print"
@@ -968,14 +954,7 @@ export default function ContainerDetailPage() {
 								icon={<FileDown className="w-4 h-4" />}
 								onClick={handleDownloadPDF}
 								className="no-print"
-								sx={{
-									bgcolor: 'var(--accent-gold)',
-									color: 'white',
-									'&:hover': {
-										bgcolor: 'var(--accent-gold)',
-										opacity: 0.9,
-									}
-								}}
+								style={{backgroundColor: 'var(--accent-gold)', color: 'white'}}
 							>
 								Download PDF
 							</Button>
@@ -994,14 +973,7 @@ export default function ContainerDetailPage() {
                                     size="sm" 
                                     icon={<Trash2 className="w-4 h-4" />}
                                     onClick={() => setDeleteModalOpen(true)}
-                                    sx={{
-                                        borderColor: 'var(--error)',
-                                        color: 'var(--error)',
-                                        '&:hover': {
-                                            bgcolor: 'rgba(var(--error-rgb), 0.1)',
-                                            borderColor: 'var(--error)',
-                                        }
-                                    }}
+                                    style={{borderColor: 'var(--error)', color: 'var(--error)'}}
                                     className="no-print"
                                 >
                                     Delete
@@ -1010,34 +982,16 @@ export default function ContainerDetailPage() {
 							<Button href="/dashboard/containers" variant="outline" size="sm" icon={<ArrowLeft className="w-4 h-4" />} className="no-print">
 								Back
 							</Button>
-						</Box>
+						</JXBox>
 					}
 				/>
 
 				{/* Container Milestone Progression Stepper */}
-				<Box sx={{ px: 2, mb: 3 }}>
-					<Box
-						sx={{
-							p: 2.5,
-							borderRadius: 2,
-							bgcolor: 'var(--panel)',
-							border: '1px solid var(--border)',
-							boxShadow: '0 4px 16px rgba(0, 0, 0, 0.04)',
-						}}
-					>
-						<Typography
-							variant="caption"
-							sx={{
-								fontWeight: 700,
-								color: 'var(--text-secondary)',
-								mb: 1.5,
-								display: 'block',
-								textTransform: 'uppercase',
-								letterSpacing: '0.05em',
-							}}
-						>
+				<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingLeft: '16px', paddingRight: '16px', marginBottom: '24px'}}>
+					<JXBox padding="none" border={false} style={{padding: '20px', borderRadius: '16px', backgroundColor: 'var(--panel)', border: '1px solid var(--border)', boxShadow: '0 4px 16px rgba(0, 0, 0, 0.04)'}}>
+						<span className="text-xs text-[var(--text-secondary)]" style={{fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '12px', display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em'}}>
 							Container Lifecycle Progression
-						</Typography>
+						</span>
 						<MilestoneStepper
 							steps={[
 								{ id: 'CREATED', label: 'Created' },
@@ -1051,11 +1005,11 @@ export default function ContainerDetailPage() {
 							currentStepId={container.status}
 							orientation="horizontal"
 						/>
-					</Box>
-				</Box>
+					</JXBox>
+				</JXBox>
 
 				{/* Stats Overview */}
-				<Box sx={{ px: 2, mb: 3 }}>
+				<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingLeft: '16px', paddingRight: '16px', marginBottom: '24px'}}>
 					<DashboardGrid className="grid-cols-1 md:grid-cols-4">
 						<StatsCard
 							icon={<Package style={{ fontSize: 18 }} />}
@@ -1088,75 +1042,163 @@ export default function ContainerDetailPage() {
 							size="md"
 						/>
 					</DashboardGrid>
-				</Box>
+				</JXBox>
 
 				{/* Progress Bar */}
 				{container.progress > 0 && (
-					<Box sx={{ px: 2, mb: 3 }}>
+					<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingLeft: '16px', paddingRight: '16px', marginBottom: '24px'}}>
 						<DashboardPanel noHeaderBorder>
-							<Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-								<Box sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+							<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between', marginBottom: '8px'}}>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)'}}>
 									Shipping Progress
-								</Box>
-								<Box sx={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--accent-gold)' }}>
+								</JXBox>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', fontWeight: 700, color: 'var(--accent-gold)'}}>
 									{container.progress}%
-								</Box>
-							</Box>
-							<LinearProgress 
-								variant="determinate" 
-								value={container.progress} 
-								sx={{
-									height: 8,
-									borderRadius: 1,
-									bgcolor: 'rgba(201, 155, 47, 0.1)',
-									'& .MuiLinearProgress-bar': {
-										bgcolor: 'var(--accent-gold)',
-									},
-								}}
-							/>
+								</JXBox>
+							</JXBox>
+							<div role="progressbar" aria-valuenow={container.progress} aria-valuemin={0} aria-valuemax={100} className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--border)]" style={{height: '8px', borderRadius: '8px', backgroundColor: 'rgba(201, 155, 47, 0.1)'}}><div className="h-full rounded-full transition-all duration-300" style={{ width: `${container.progress}%`, backgroundColor: 'var(--accent-gold)' }} /></div>
 						</DashboardPanel>
-					</Box>
+					</JXBox>
 				)}
 
 				{/* Tabs */}
-				<Box sx={{ px: 2, mb: 2 }}>
-					<Tabs 
-						value={activeTab} 
-						onChange={(_, newValue) => {
-							setActiveTab(newValue);
+				<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingLeft: '16px', paddingRight: '16px', marginBottom: '16px'}}>
+					<div role="tablist" className="flex gap-1 overflow-x-auto border-b border-[var(--border)]">
+						<button
+						  key={"overview"}
+						  type="button"
+						  role="tab"
+						  aria-selected={activeTab === "overview"}
+						  onClick={() => { const newValue = "overview"; setActiveTab(newValue);
 							const nextParams = new URLSearchParams(searchParams.toString());
 							nextParams.set('tab', newValue);
-							router.replace(`?${nextParams.toString()}`, { scroll: false });
-						}}
-						variant="scrollable"
-						scrollButtons="auto"
-						sx={{
-							borderBottom: 1,
-							borderColor: 'divider',
-							'& .MuiTab-root': {
-								textTransform: 'none',
-								fontWeight: 600,
-								fontSize: '0.875rem',
-							},
-						}}
-					>
-						<Tab label="Overview" value="overview" />
-						<Tab label={`Shipments (${container.shipments.length})`} value="shipments" />
-						{canViewExpenses && <Tab label={`Expenses (${container.expenses.length})`} value="expenses" />}
-						{isAdmin && <Tab label={`Shipment Damages (${container.damages?.length || 0})`} value="damages" />}
-						{canViewInvoices && <Tab label={`Invoices (${container.invoices.length})`} value="invoices" />}
-						{canViewInvoices && <Tab label={`User Invoices (${container.userInvoices?.length || 0})`} value="user-invoices" />}
-						<Tab label={`Documents (${container.documents.length})`} value="documents" />
-						<Tab label={`Tracking (${container.trackingEvents?.length || 0})`} value="tracking" />
-                        {isAdmin && <Tab label="Activity" icon={<Activity className="w-4 h-4" />} iconPosition="start" value="activity" />}
-					</Tabs>
-				</Box>
+							router.replace(`?${nextParams.toString()}`, { scroll: false }); }}
+						  className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === "overview" ? 'border-[var(--accent-gold)] text-[var(--accent-gold-text)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+						>
+						  {"Overview"}
+						</button>
+						<button
+						  key={"shipments"}
+						  type="button"
+						  role="tab"
+						  aria-selected={activeTab === "shipments"}
+						  onClick={() => { const newValue = "shipments"; setActiveTab(newValue);
+							const nextParams = new URLSearchParams(searchParams.toString());
+							nextParams.set('tab', newValue);
+							router.replace(`?${nextParams.toString()}`, { scroll: false }); }}
+						  className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === "shipments" ? 'border-[var(--accent-gold)] text-[var(--accent-gold-text)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+						>
+						  {`Shipments (${container.shipments.length})`}
+						</button>
+						{canViewExpenses && (
+						<button
+						  key={"expenses"}
+						  type="button"
+						  role="tab"
+						  aria-selected={activeTab === "expenses"}
+						  onClick={() => { const newValue = "expenses"; setActiveTab(newValue);
+							const nextParams = new URLSearchParams(searchParams.toString());
+							nextParams.set('tab', newValue);
+							router.replace(`?${nextParams.toString()}`, { scroll: false }); }}
+						  className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === "expenses" ? 'border-[var(--accent-gold)] text-[var(--accent-gold-text)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+						>
+						  {`Expenses (${container.expenses.length})`}
+						</button>
+						)}
+						{isAdmin && (
+						<button
+						  key={"damages"}
+						  type="button"
+						  role="tab"
+						  aria-selected={activeTab === "damages"}
+						  onClick={() => { const newValue = "damages"; setActiveTab(newValue);
+							const nextParams = new URLSearchParams(searchParams.toString());
+							nextParams.set('tab', newValue);
+							router.replace(`?${nextParams.toString()}`, { scroll: false }); }}
+						  className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === "damages" ? 'border-[var(--accent-gold)] text-[var(--accent-gold-text)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+						>
+						  {`Shipment Damages (${container.damages?.length || 0})`}
+						</button>
+						)}
+						{canViewInvoices && (
+						<button
+						  key={"invoices"}
+						  type="button"
+						  role="tab"
+						  aria-selected={activeTab === "invoices"}
+						  onClick={() => { const newValue = "invoices"; setActiveTab(newValue);
+							const nextParams = new URLSearchParams(searchParams.toString());
+							nextParams.set('tab', newValue);
+							router.replace(`?${nextParams.toString()}`, { scroll: false }); }}
+						  className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === "invoices" ? 'border-[var(--accent-gold)] text-[var(--accent-gold-text)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+						>
+						  {`Invoices (${container.invoices.length})`}
+						</button>
+						)}
+						{canViewInvoices && (
+						<button
+						  key={"user-invoices"}
+						  type="button"
+						  role="tab"
+						  aria-selected={activeTab === "user-invoices"}
+						  onClick={() => { const newValue = "user-invoices"; setActiveTab(newValue);
+							const nextParams = new URLSearchParams(searchParams.toString());
+							nextParams.set('tab', newValue);
+							router.replace(`?${nextParams.toString()}`, { scroll: false }); }}
+						  className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === "user-invoices" ? 'border-[var(--accent-gold)] text-[var(--accent-gold-text)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+						>
+						  {`User Invoices (${container.userInvoices?.length || 0})`}
+						</button>
+						)}
+						<button
+						  key={"documents"}
+						  type="button"
+						  role="tab"
+						  aria-selected={activeTab === "documents"}
+						  onClick={() => { const newValue = "documents"; setActiveTab(newValue);
+							const nextParams = new URLSearchParams(searchParams.toString());
+							nextParams.set('tab', newValue);
+							router.replace(`?${nextParams.toString()}`, { scroll: false }); }}
+						  className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === "documents" ? 'border-[var(--accent-gold)] text-[var(--accent-gold-text)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+						>
+						  {`Documents (${container.documents.length})`}
+						</button>
+						<button
+						  key={"tracking"}
+						  type="button"
+						  role="tab"
+						  aria-selected={activeTab === "tracking"}
+						  onClick={() => { const newValue = "tracking"; setActiveTab(newValue);
+							const nextParams = new URLSearchParams(searchParams.toString());
+							nextParams.set('tab', newValue);
+							router.replace(`?${nextParams.toString()}`, { scroll: false }); }}
+						  className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === "tracking" ? 'border-[var(--accent-gold)] text-[var(--accent-gold-text)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+						>
+						  {`Tracking (${container.trackingEvents?.length || 0})`}
+						</button>
+                        {isAdmin && (
+                        <button
+                          key={"activity"}
+                          type="button"
+                          role="tab"
+                          aria-selected={activeTab === "activity"}
+                          onClick={() => { const newValue = "activity"; setActiveTab(newValue);
+							const nextParams = new URLSearchParams(searchParams.toString());
+							nextParams.set('tab', newValue);
+							router.replace(`?${nextParams.toString()}`, { scroll: false }); }}
+                          className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === "activity" ? 'border-[var(--accent-gold)] text-[var(--accent-gold-text)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                        >
+                          {<Activity className="w-4 h-4" />} {"Activity"}
+                        </button>
+                        )}
+					</div>
+				</JXBox>
 
 				{/* Tab Content */}
-				<Box sx={{ px: 2, pb: 4 }}>
+				<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingLeft: '16px', paddingRight: '16px', paddingBottom: '32px'}}>
 					{/* Overview Tab */}
 					{activeTab === 'overview' && (
-						<Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+						<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '24px'}}>
 							{/* Stowing Capacity Meter */}
 							<ContainerCapacityGauge
 								containerType="40HC"
@@ -1213,36 +1255,23 @@ export default function ContainerDetailPage() {
 								/>
 							)}
 
-							<Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
+							<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '24px'}} className="grid-cols-1 grid md:grid-cols-[1fr_1fr]">
 								{/* Container Information */}
 								<DashboardPanel 
 									title="Container Information"
 									description="Basic container details"
 								>
-									<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-										<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-											<Box sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Container Number</Box>
-											<Box sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '16px'}}>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between'}}>
+											<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', color: 'var(--text-secondary)'}}>Container Number</JXBox>
+											<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)'}}>
 												{container.containerNumber}
-											</Box>
-										</Box>
+											</JXBox>
+										</JXBox>
 										{isAdmin && (
-											<Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-												<Box sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Assigned Company</Box>
-												<TextField
-													select
-													size="small"
-													value={selectedCompanyId}
-													onChange={(e) => setSelectedCompanyId(e.target.value)}
-													disabled={updating}
-												>
-													<MenuItem value="">Select a company...</MenuItem>
-													{companies.map((company) => (
-														<MenuItem key={company.id} value={company.id}>
-															{company.name}{company.code ? ` (${company.code})` : ''}
-														</MenuItem>
-													))}
-												</TextField>
+											<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '8px'}}>
+												<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', color: 'var(--text-secondary)'}}>Assigned Company</JXBox>
+												<BareSelect options={[{ value: "", label: 'Select a company...' }, ...companies.map((company) => ({ value: company.id, label: `${company.name}${company.code ? ` (${company.code})` : ''}` }))]} value={selectedCompanyId} disabled={updating} size="small" onChange={(e) => setSelectedCompanyId(e.target.value)} />
 												<Button
 													variant="outline"
 													size="sm"
@@ -1251,38 +1280,38 @@ export default function ContainerDetailPage() {
 												>
 													{updating ? 'Saving...' : 'Save Company'}
 												</Button>
-											</Box>
+											</JXBox>
 										)}
 										{container.trackingNumber && (
-											<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-												<Box sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Tracking Number</Box>
-												<Box sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+											<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between'}}>
+												<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', color: 'var(--text-secondary)'}}>Tracking Number</JXBox>
+												<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)'}}>
 													{container.trackingNumber}
-												</Box>
-											</Box>
+												</JXBox>
+											</JXBox>
 										)}
 										{container.bookingNumber && (
-											<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-												<Box sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Booking Number</Box>
-												<Box sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+											<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between'}}>
+												<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', color: 'var(--text-secondary)'}}>Booking Number</JXBox>
+												<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)'}}>
 													{container.bookingNumber}
-												</Box>
-											</Box>
+												</JXBox>
+											</JXBox>
 										)}
-										<Divider sx={{ borderColor: 'var(--border)' }} />
-										<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-											<Box sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Capacity</Box>
-											<Box sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+										<div aria-hidden="true" className="my-4 border-t border-[var(--border)]" style={{borderColor: 'var(--border)'}} />
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between'}}>
+											<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', color: 'var(--text-secondary)'}}>Capacity</JXBox>
+											<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)'}}>
 												{container.currentCount} / {container.maxCapacity} vehicles ({capacityPercentage.toFixed(0)}%)
-											</Box>
-										</Box>
-										<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-											<Box sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Created</Box>
-											<Box sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+											</JXBox>
+										</JXBox>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between'}}>
+											<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', color: 'var(--text-secondary)'}}>Created</JXBox>
+											<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)'}}>
 												{formatDate(container.createdAt)}
-											</Box>
-										</Box>
-									</Box>
+											</JXBox>
+										</JXBox>
+									</JXBox>
 								</DashboardPanel>
 
 								{/* Shipping Details */}
@@ -1290,57 +1319,57 @@ export default function ContainerDetailPage() {
 									title="Shipping Details"
 									description="Vessel and shipping information"
 								>
-									<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '16px'}}>
 										{container.vesselName && (
-											<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-												<Box sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Vessel Name</Box>
-												<Box sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+											<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between'}}>
+												<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', color: 'var(--text-secondary)'}}>Vessel Name</JXBox>
+												<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)'}}>
 													{container.vesselName}
-												</Box>
-											</Box>
+												</JXBox>
+											</JXBox>
 										)}
 										{container.voyageNumber && (
-											<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-												<Box sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Voyage Number</Box>
-												<Box sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+											<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between'}}>
+												<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', color: 'var(--text-secondary)'}}>Voyage Number</JXBox>
+												<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)'}}>
 													{container.voyageNumber}
-												</Box>
-											</Box>
+												</JXBox>
+											</JXBox>
 										)}
 										{container.shippingLine && (
-											<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-												<Box sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Shipping Line</Box>
-												<Box sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+											<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between'}}>
+												<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', color: 'var(--text-secondary)'}}>Shipping Line</JXBox>
+												<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)'}}>
 													{container.shippingLine}
-												</Box>
-											</Box>
+												</JXBox>
+											</JXBox>
 										)}
-										<Divider sx={{ borderColor: 'var(--border)' }} />
+										<div aria-hidden="true" className="my-4 border-t border-[var(--border)]" style={{borderColor: 'var(--border)'}} />
 										{container.loadingPort && (
-											<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-												<Box sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Loading Port</Box>
-												<Box sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+											<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between'}}>
+												<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', color: 'var(--text-secondary)'}}>Loading Port</JXBox>
+												<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)'}}>
 													{container.loadingPort}
-												</Box>
-											</Box>
+												</JXBox>
+											</JXBox>
 										)}
 										{container.destinationPort && (
-											<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-												<Box sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Destination Port</Box>
-												<Box sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+											<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between'}}>
+												<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', color: 'var(--text-secondary)'}}>Destination Port</JXBox>
+												<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)'}}>
 													{container.destinationPort}
-												</Box>
-											</Box>
+												</JXBox>
+											</JXBox>
 										)}
 										{container.currentLocation && (
-											<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-												<Box sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Current Location</Box>
-												<Box sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+											<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between'}}>
+												<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', color: 'var(--text-secondary)'}}>Current Location</JXBox>
+												<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)'}}>
 													{container.currentLocation}
-												</Box>
-											</Box>
+												</JXBox>
+											</JXBox>
 										)}
-									</Box>
+									</JXBox>
 								</DashboardPanel>
 
 								{/* Important Dates */}
@@ -1348,40 +1377,40 @@ export default function ContainerDetailPage() {
 									title="Important Dates"
 									description="Shipping timeline"
 								>
-									<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '16px'}}>
 										{container.loadingDate && (
-											<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-												<Box sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Loading Date</Box>
-												<Box sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+											<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between'}}>
+												<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', color: 'var(--text-secondary)'}}>Loading Date</JXBox>
+												<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)'}}>
 													{formatDate(container.loadingDate)}
-												</Box>
-											</Box>
+												</JXBox>
+											</JXBox>
 										)}
 										{container.departureDate && (
-											<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-												<Box sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Departure Date</Box>
-												<Box sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+											<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between'}}>
+												<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', color: 'var(--text-secondary)'}}>Departure Date</JXBox>
+												<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)'}}>
 													{formatDate(container.departureDate)}
-												</Box>
-											</Box>
+												</JXBox>
+											</JXBox>
 										)}
 										{container.estimatedArrival && (
-											<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-												<Box sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Estimated Arrival</Box>
-												<Box sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+											<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between'}}>
+												<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', color: 'var(--text-secondary)'}}>Estimated Arrival</JXBox>
+												<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)'}}>
 													{formatDate(container.estimatedArrival)}
-												</Box>
-											</Box>
+												</JXBox>
+											</JXBox>
 										)}
 										{container.actualArrival && (
-											<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-												<Box sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Actual Arrival</Box>
-												<Box sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+											<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between'}}>
+												<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', color: 'var(--text-secondary)'}}>Actual Arrival</JXBox>
+												<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)'}}>
 													{formatDate(container.actualArrival)}
-												</Box>
-											</Box>
+												</JXBox>
+											</JXBox>
 										)}
-									</Box>
+									</JXBox>
 								</DashboardPanel>
 
 								{/* Financial Summary */}
@@ -1389,45 +1418,36 @@ export default function ContainerDetailPage() {
 									title="Financial Summary"
 									description="Revenue and expenses"
 								>
-									<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-										<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-											<Box sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Total Expenses</Box>
-											<Box sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--error)' }}>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '16px'}}>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between'}}>
+											<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', color: 'var(--text-secondary)'}}>Total Expenses</JXBox>
+											<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', fontWeight: 600, color: 'var(--error)'}}>
 												{formatCurrency(container.totals.expenses)}
-											</Box>
-										</Box>
-										<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-											<Box sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Total Revenue</Box>
-											<Box sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--success)' }}>
+											</JXBox>
+										</JXBox>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between'}}>
+											<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', color: 'var(--text-secondary)'}}>Total Revenue</JXBox>
+											<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', fontWeight: 600, color: 'var(--success)'}}>
 												{formatCurrency(container.totals.invoices)}
-											</Box>
-										</Box>
-										<Divider sx={{ borderColor: 'var(--border)' }} />
-										<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-											<Box sx={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>Net Profit</Box>
-											<Box sx={{ 
-												fontSize: '1rem', 
-												fontWeight: 700, 
-												color: netProfit >= 0 ? 'var(--success)' : 'var(--error)' 
-											}}>
+											</JXBox>
+										</JXBox>
+										<div aria-hidden="true" className="my-4 border-t border-[var(--border)]" style={{borderColor: 'var(--border)'}} />
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between'}}>
+											<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)'}}>Net Profit</JXBox>
+											<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '1rem', fontWeight: 700, color: netProfit >= 0 ? 'var(--success)' : 'var(--error)'}}>
 												{formatCurrency(netProfit)}
-											</Box>
-										</Box>
-									</Box>
+											</JXBox>
+										</JXBox>
+									</JXBox>
 								</DashboardPanel>
-							</Box>
+							</JXBox>
 
 							{/* Notes */}
 							{container.notes && (
 								<DashboardPanel title="Notes" description="Additional information">
-									<Box sx={{ 
-										fontSize: '0.875rem', 
-										color: 'var(--text-secondary)', 
-										lineHeight: 1.6,
-										whiteSpace: 'pre-wrap',
-									}}>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', color: 'var(--text-secondary)', lineHeight: 1.6, whiteSpace: 'pre-wrap'}}>
 										{container.notes}
-									</Box>
+									</JXBox>
 								</DashboardPanel>
 							)}
 
@@ -1438,22 +1458,22 @@ export default function ContainerDetailPage() {
 									description="Change the container's current status"
 								>
 									{isContainerWorkflowLocked && (
-										<Box sx={{ mb: 1.5, p: 1.25, borderRadius: 1.5, border: '1px solid rgba(234, 179, 8, 0.35)', background: 'rgba(234, 179, 8, 0.08)', display: 'flex', gap: 1, alignItems: 'flex-start' }}>
+										<JXBox padding="none" border={false} style={{marginBottom: '12px', padding: '10px', borderRadius: '12px', border: '1px solid rgba(234, 179, 8, 0.35)', background: 'rgba(234, 179, 8, 0.08)', display: 'flex', gap: '8px', alignItems: 'flex-start'}}>
 											<AlertTriangle className="w-4 h-4" style={{ color: 'rgb(180, 83, 9)', marginTop: 2 }} />
-											<Typography sx={{ fontSize: '0.85rem', color: 'rgb(146, 64, 14)' }}>
+											<p className="text-sm leading-relaxed" style={{fontSize: '0.85rem', color: 'rgb(146, 64, 14)'}}>
 												This container is closed. Status changes require workflow override permission.
-											</Typography>
-										</Box>
+											</p>
+										</JXBox>
 									)}
 									{statusUpdateError && (
-										<Box sx={{ mb: 1.5, p: 1.25, borderRadius: 1.5, border: '1px solid rgba(220, 38, 38, 0.25)', background: 'rgba(220, 38, 38, 0.06)', display: 'flex', gap: 1, alignItems: 'flex-start' }}>
+										<JXBox padding="none" border={false} style={{marginBottom: '12px', padding: '10px', borderRadius: '12px', border: '1px solid rgba(220, 38, 38, 0.25)', background: 'rgba(220, 38, 38, 0.06)', display: 'flex', gap: '8px', alignItems: 'flex-start'}}>
 											<AlertTriangle className="w-4 h-4" style={{ color: 'rgb(185, 28, 28)', marginTop: 2 }} />
-											<Typography sx={{ fontSize: '0.85rem', color: 'rgb(153, 27, 27)' }}>
+											<p className="text-sm leading-relaxed" style={{fontSize: '0.85rem', color: 'rgb(153, 27, 27)'}}>
 												{statusUpdateError}
-											</Typography>
-										</Box>
+											</p>
+										</JXBox>
 									)}
-									<Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexWrap: 'wrap', gap: '12px'}}>
 										{Object.entries(statusConfig).map(([status, config]) => (
 											<Button
 												key={status}
@@ -1465,10 +1485,10 @@ export default function ContainerDetailPage() {
 												{config.label}
 											</Button>
 										))}
-									</Box>
+									</JXBox>
 								</DashboardPanel>
 							)}
-						</Box>
+						</JXBox>
 					)}
 
 					{/* Shipments Tab */}
@@ -1496,65 +1516,50 @@ export default function ContainerDetailPage() {
 									description="This container doesn't have any vehicles assigned yet"
 								/>
 							) : (
-								<TableContainer>
-									<Table size="small">
-										<TableHead>
-											<TableRow>
-												<TableCell sx={{ fontWeight: 600 }}>Vehicle</TableCell>
-												<TableCell sx={{ fontWeight: 600 }}>VIN</TableCell>
-												<TableCell sx={{ fontWeight: 600 }}>Payment</TableCell>
-												<TableCell sx={{ fontWeight: 600 }} align="right">Price</TableCell>
-												<TableCell sx={{ fontWeight: 600 }} align="right">Insurance</TableCell>
-												<TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-												<TableCell sx={{ fontWeight: 600 }} align="right">Actions</TableCell>
-											</TableRow>
-										</TableHead>
-										<TableBody>
+								<div className="w-full overflow-x-auto">
+									<table className="w-full border-collapse text-sm [&_td]:py-1.5 [&_th]:py-1.5">
+										<thead>
+											<tr className="hover:bg-[rgba(var(--border-rgb),0.25)]">
+												<th style={{fontWeight: 600}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Vehicle</th>
+												<th style={{fontWeight: 600}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">VIN</th>
+												<th style={{fontWeight: 600}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Payment</th>
+												<th style={{fontWeight: 600}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-right">Price</th>
+												<th style={{fontWeight: 600}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-right">Insurance</th>
+												<th style={{fontWeight: 600}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Status</th>
+												<th style={{fontWeight: 600}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-right">Actions</th>
+											</tr>
+										</thead>
+										<tbody>
 											{container.shipments.map((shipment) => (
-												<TableRow 
-													key={shipment.id}
-													hover
-													sx={{ cursor: 'pointer' }}
-													onClick={() => router.push(`/dashboard/shipments/${shipment.id}`)}
-												>
-													<TableCell>
+												<tr key={shipment.id} style={{cursor: 'pointer'}} onClick={() => router.push(`/dashboard/shipments/${shipment.id}`)} className="hover:bg-[rgba(var(--border-rgb),0.25)]">
+													<th className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
 														{shipment.vehicleMake} {shipment.vehicleModel}
-													</TableCell>
-													<TableCell sx={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>
+													</th>
+													<th style={{fontFamily: 'monospace', fontSize: '0.75rem'}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
 														{shipment.vehicleVIN || 'N/A'}
-													</TableCell>
-													<TableCell>
-														<Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+													</th>
+													<th className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
+														<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '4px'}}>
 															{(shipment as any).paymentMode && (
-																<Chip 
-																	label={(shipment as any).paymentMode} 
-																	size="small"
-																	color={(shipment as any).paymentMode === 'CASH' ? 'success' : 'warning'}
-																	sx={{ fontSize: '0.7rem', width: 'fit-content' }}
-																/>
+																<span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5" style={{fontSize: '0.7rem', width: 'fit-content', backgroundColor: (shipment as any).paymentMode === 'CASH' ? 'rgba(var(--success-rgb), 0.1)' : 'rgba(var(--warning-rgb), 0.1)', color: (shipment as any).paymentMode === 'CASH' ? 'var(--success)' : 'var(--warning)'}}>{(shipment as any).paymentMode}</span>
 															)}
-															<Chip 
-																label={(shipment as any).paymentStatus || 'PENDING'} 
-																size="small"
-																color={(shipment as any).paymentStatus === 'COMPLETED' ? 'success' : 'default'}
-																sx={{ fontSize: '0.7rem', width: 'fit-content' }}
-															/>
-														</Box>
-													</TableCell>
-													<TableCell align="right" sx={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+															<span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5" style={{fontSize: '0.7rem', width: 'fit-content', backgroundColor: (shipment as any).paymentStatus === 'COMPLETED' ? 'rgba(var(--success-rgb), 0.1)' : 'rgba(var(--text-secondary-rgb), 0.1)', color: (shipment as any).paymentStatus === 'COMPLETED' ? 'var(--success)' : 'var(--text-secondary)'}}>{(shipment as any).paymentStatus || 'PENDING'}</span>
+														</JXBox>
+													</th>
+													<th style={{fontWeight: 600, color: 'var(--text-primary)'}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-right">
 														{(shipment as any).price ? formatCurrency((shipment as any).price) : 'N/A'}
-													</TableCell>
-													<TableCell align="right" sx={{ fontWeight: 600, color: 'var(--accent-gold)' }}>
+													</th>
+													<th style={{fontWeight: 600, color: 'var(--accent-gold)'}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-right">
 														{(shipment as any).insuranceValue ? formatCurrency((shipment as any).insuranceValue) : 'N/A'}
-													</TableCell>
-													<TableCell>
+													</th>
+													<th className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
 														<StatusBadge 
 															status={shipment.status} 
 															size="sm"
 														/>
-													</TableCell>
-													<TableCell align="right">
-														<Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end' }}>
+													</th>
+													<th className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-right">
+														<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '4px', justifyContent: 'flex-end'}}>
 															{canManageExpenses && (
 																<Button
 																	variant="outline"
@@ -1566,10 +1571,7 @@ export default function ContainerDetailPage() {
 																		setShipmentExpenseModalOpen(true);
 																	}}
 																	disabled={isContainerWorkflowLocked}
-																	sx={{
-																		color: 'var(--accent-gold)',
-																		borderColor: 'var(--accent-gold)',
-																	}}
+																	style={{color: 'var(--accent-gold)', borderColor: 'var(--accent-gold)'}}
 																>
 																	Expense
 																</Button>
@@ -1585,26 +1587,26 @@ export default function ContainerDetailPage() {
 															>
 																View
 															</Button>
-														</Box>
-													</TableCell>
-												</TableRow>
+														</JXBox>
+													</th>
+												</tr>
 											))}
 											{/* Totals Row */}
-											<TableRow sx={{ bgcolor: 'var(--surface)' }}>
-												<TableCell colSpan={3} sx={{ fontWeight: 700, borderTop: '2px solid var(--border)' }}>
+											<tr style={{backgroundColor: 'var(--surface)'}} className="hover:bg-[rgba(var(--border-rgb),0.25)]">
+												<th colSpan={3} style={{fontWeight: 700, borderTop: '2px solid var(--border)'}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
 													Total Revenue from Shipments
-												</TableCell>
-												<TableCell align="right" sx={{ fontWeight: 700, borderTop: '2px solid var(--border)', color: 'var(--success)' }}>
+												</th>
+												<th style={{fontWeight: 700, borderTop: '2px solid var(--border)', color: 'var(--success)'}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-right">
 													{formatCurrency(container.shipments.reduce((sum, s) => sum + ((s as any).price || 0), 0))}
-												</TableCell>
-												<TableCell align="right" sx={{ fontWeight: 700, borderTop: '2px solid var(--border)', color: 'var(--accent-gold)' }}>
+												</th>
+												<th style={{fontWeight: 700, borderTop: '2px solid var(--border)', color: 'var(--accent-gold)'}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-right">
 													{formatCurrency(container.shipments.reduce((sum, s) => sum + ((s as any).insuranceValue || 0), 0))}
-												</TableCell>
-												<TableCell colSpan={2} sx={{ borderTop: '2px solid var(--border)' }}></TableCell>
-											</TableRow>
-										</TableBody>
-									</Table>
-								</TableContainer>
+												</th>
+												<th colSpan={2} style={{borderTop: '2px solid var(--border)'}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]"></th>
+											</tr>
+										</tbody>
+									</table>
+								</div>
 							)}
 						</DashboardPanel>
 					)}
@@ -1615,7 +1617,7 @@ export default function ContainerDetailPage() {
 							title="Container Expenses"
 							description="All costs and expenses for this container"
 						>
-							<Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mb: 2 }}>
+							<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'flex-end', gap: '8px', marginBottom: '16px'}}>
 								{canManageExpenses && (
 									<Button
 										variant="outline"
@@ -1644,32 +1646,33 @@ export default function ContainerDetailPage() {
 										Add Container Expense
 									</Button>
 								)}
-							</Box>
+							</JXBox>
 
-							<Box sx={{ borderBottom: '1px solid var(--border)', mb: 2 }}>
-								<Tabs
-									value={expenseView}
-									onChange={(_, value) => setExpenseView(value)}
-									sx={{
-										'& .MuiTab-root': {
-											textTransform: 'none',
-											fontSize: '0.875rem',
-											fontWeight: 600,
-											color: 'var(--text-secondary)',
-											minHeight: 40,
-										},
-										'& .Mui-selected': {
-											color: 'var(--accent-gold) !important',
-										},
-										'& .MuiTabs-indicator': {
-											backgroundColor: 'var(--accent-gold)',
-										},
-									}}
-								>
-									<Tab label={`Container Expenses (${containerOnlyExpenses.length})`} value="CONTAINER" />
-									<Tab label={`Shipment Expenses (${shipmentOnlyExpenses.length})`} value="SHIPMENT" />
-								</Tabs>
-							</Box>
+							<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, borderBottom: '1px solid var(--border)', marginBottom: '16px'}}>
+								<div role="tablist" className="flex gap-1 overflow-x-auto border-b border-[var(--border)]">
+									<button
+									  key={"CONTAINER"}
+									  type="button"
+									  role="tab"
+									  aria-selected={expenseView === "CONTAINER"}
+									  onClick={() => { const value = "CONTAINER"; setExpenseView(value); }}
+									  className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors flex items-center gap-2 ${expenseView === "CONTAINER" ? 'border-[var(--accent-gold)] text-[var(--accent-gold-text)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+									>
+									  {`Container Expenses (${containerOnlyExpenses.length})`}
+									</button>
+									<button
+									  key={"SHIPMENT"}
+									  type="button"
+									  role="tab"
+									  aria-selected={expenseView === "SHIPMENT"}
+									  onClick={() => { const value = "SHIPMENT"; setExpenseView(value); }}
+									  className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors flex items-center gap-2 ${expenseView === "SHIPMENT" ? 'border-[var(--accent-gold)] text-[var(--accent-gold-text)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+									>
+									  {`Shipment Expenses (${shipmentOnlyExpenses.length})`}
+									</button>
+								
+								</div>
+							</JXBox>
 
 							{displayedExpenses.length === 0 ? (
 								<EmptyState
@@ -1680,29 +1683,29 @@ export default function ContainerDetailPage() {
 										: 'No shipment-level expenses found for this container'}
 								/>
 							) : (
-								<TableContainer>
-									<Table size="small">
-										<TableHead>
-											<TableRow>
-												<TableCell sx={{ fontWeight: 600 }}>Type</TableCell>
-												<TableCell sx={{ fontWeight: 600 }}>Vendor</TableCell>
-												<TableCell sx={{ fontWeight: 600 }}>Date</TableCell>
-												<TableCell sx={{ fontWeight: 600 }} align="right">Amount</TableCell>
-												<TableCell sx={{ fontWeight: 600 }} align="right">Actions</TableCell>
-											</TableRow>
-										</TableHead>
-										<TableBody>
+								<div className="w-full overflow-x-auto">
+									<table className="w-full border-collapse text-sm [&_td]:py-1.5 [&_th]:py-1.5">
+										<thead>
+											<tr className="hover:bg-[rgba(var(--border-rgb),0.25)]">
+												<th style={{fontWeight: 600}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Type</th>
+												<th style={{fontWeight: 600}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Vendor</th>
+												<th style={{fontWeight: 600}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Date</th>
+												<th style={{fontWeight: 600}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-right">Amount</th>
+												<th style={{fontWeight: 600}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-right">Actions</th>
+											</tr>
+										</thead>
+										<tbody>
 											{displayedExpenses.map((expense) => (
-												<TableRow key={expense.id} hover>
-													<TableCell>{expense.type}</TableCell>
-													<TableCell>{expense.vendor || 'N/A'}</TableCell>
-													<TableCell>{formatDate(expense.date)}</TableCell>
-													<TableCell align="right" sx={{ fontWeight: 600, color: 'var(--error)' }}>
+												<tr key={expense.id} className="hover:bg-[rgba(var(--border-rgb),0.25)]">
+													<th className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">{expense.type}</th>
+													<th className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">{expense.vendor || 'N/A'}</th>
+													<th className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">{formatDate(expense.date)}</th>
+													<th style={{fontWeight: 600, color: 'var(--error)'}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-right">
 														{formatCurrency(expense.amount, expense.currency)}
-													</TableCell>
-													<TableCell align="right">
+													</th>
+													<th className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-right">
 														{isShipmentExpense(expense) ? (
-															<Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+															<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '8px', justifyContent: 'flex-end'}}>
 																<Button
 																	variant="outline"
 																	size="sm"
@@ -1721,19 +1724,15 @@ export default function ContainerDetailPage() {
 																		icon={<Trash2 className="w-3 h-3" />}
 																		onClick={() => handleDeleteExpense(expense.id)}
 																		disabled={deletingExpenseId === expense.id || isContainerWorkflowLocked}
-																		sx={{
-																			color: 'var(--error)',
-																			borderColor: 'var(--error)',
-																			'&:hover': { bgcolor: 'rgba(var(--error-rgb), 0.1)' }
-																		}}
+																		style={{color: 'var(--error)', borderColor: 'var(--error)'}}
 																	>
 																		{deletingExpenseId === expense.id ? 'Deleting...' : 'Delete'}
 																	</Button>
 																)}
-															</Box>
+															</JXBox>
 														) : (
 															canManageExpenses ? (
-																<Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+																<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '8px', justifyContent: 'flex-end'}}>
 																	<Button
 																		variant="outline"
 																		size="sm"
@@ -1752,37 +1751,33 @@ export default function ContainerDetailPage() {
 																		icon={<Trash2 className="w-3 h-3" />}
 																		onClick={() => handleDeleteExpense(expense.id)}
 																		disabled={deletingExpenseId === expense.id || isContainerWorkflowLocked}
-																		sx={{ 
-																			color: 'var(--error)',
-																			borderColor: 'var(--error)',
-																			'&:hover': { bgcolor: 'rgba(var(--error-rgb), 0.1)' }
-																		}}
+																		style={{color: 'var(--error)', borderColor: 'var(--error)'}}
 																	>
 																		{deletingExpenseId === expense.id ? 'Deleting...' : 'Delete'}
 																	</Button>
-																</Box>
+																</JXBox>
 															) : null
 														)}
-													</TableCell>
-												</TableRow>
+													</th>
+												</tr>
 											))}
-											<TableRow>
-												<TableCell colSpan={4} sx={{ fontWeight: 700 }}>
+											<tr className="hover:bg-[rgba(var(--border-rgb),0.25)]">
+												<th colSpan={4} style={{fontWeight: 700}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
 													{expenseView === 'CONTAINER' ? 'Total Container Expenses' : 'Total Shipment Expenses'}
-												</TableCell>
-												<TableCell align="right" sx={{ fontWeight: 700, color: 'var(--error)' }}>
+												</th>
+												<th style={{fontWeight: 700, color: 'var(--error)'}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-right">
 													{formatCurrency(displayedExpenseTotal)}
-												</TableCell>
-											</TableRow>
-											<TableRow>
-												<TableCell colSpan={4} sx={{ fontWeight: 700 }}>Grand Total (All Expenses)</TableCell>
-												<TableCell align="right" sx={{ fontWeight: 700, color: 'var(--error)' }}>
+												</th>
+											</tr>
+											<tr className="hover:bg-[rgba(var(--border-rgb),0.25)]">
+												<th colSpan={4} style={{fontWeight: 700}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Grand Total (All Expenses)</th>
+												<th style={{fontWeight: 700, color: 'var(--error)'}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-right">
 													{formatCurrency(container.totals.expenses)}
-												</TableCell>
-											</TableRow>
-										</TableBody>
-									</Table>
-								</TableContainer>
+												</th>
+											</tr>
+										</tbody>
+									</table>
+								</div>
 							)}
 						</DashboardPanel>
 					)}
@@ -1793,7 +1788,7 @@ export default function ContainerDetailPage() {
 							title="Shipment Damages"
 							description="Damage records for shipments in this container"
 						>
-							<Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+							<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'flex-end', marginBottom: '16px'}}>
 								{isAdmin && (
 									<Button
 										variant="primary"
@@ -1810,14 +1805,14 @@ export default function ContainerDetailPage() {
 										Add Damage
 									</Button>
 								)}
-							</Box>
+							</JXBox>
 
 							{!container.companyId && (
-								<Box sx={{ p: 2, mb: 2, bgcolor: 'rgba(var(--warning-rgb), 0.1)', border: '1px solid rgba(var(--warning-rgb), 0.3)', borderRadius: 1 }}>
-									<Typography sx={{ fontSize: '0.875rem', color: 'var(--warning)' }}>
+								<JXBox padding="none" border={false} style={{padding: '16px', marginBottom: '16px', backgroundColor: 'rgba(var(--warning-rgb), 0.1)', border: '1px solid rgba(var(--warning-rgb), 0.3)', borderRadius: '8px'}}>
+									<p className="text-sm leading-relaxed" style={{fontSize: '0.875rem', color: 'var(--warning)'}}>
 										⚠ This container must be assigned to a shipping company before adding expenses or damages.
-									</Typography>
-								</Box>
+									</p>
+								</JXBox>
 							)}
 
 							{!container.damages || container.damages.length === 0 ? (
@@ -1827,68 +1822,60 @@ export default function ContainerDetailPage() {
 									description="No damage records have been added to this container yet"
 								/>
 							) : (
-								<TableContainer>
-									<Table size="small">
-										<TableHead>
-											<TableRow>
-												<TableCell sx={{ fontWeight: 600 }}>Shipment</TableCell>
-												<TableCell sx={{ fontWeight: 600 }}>Damage Type</TableCell>
-												<TableCell sx={{ fontWeight: 600 }}>Description</TableCell>
-												<TableCell sx={{ fontWeight: 600 }} align="right">Amount</TableCell>
-												<TableCell sx={{ fontWeight: 600 }}>Date</TableCell>
-												<TableCell sx={{ fontWeight: 600 }} align="right">Actions</TableCell>
-											</TableRow>
-										</TableHead>
-										<TableBody>
+								<div className="w-full overflow-x-auto">
+									<table className="w-full border-collapse text-sm [&_td]:py-1.5 [&_th]:py-1.5">
+										<thead>
+											<tr className="hover:bg-[rgba(var(--border-rgb),0.25)]">
+												<th style={{fontWeight: 600}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Shipment</th>
+												<th style={{fontWeight: 600}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Damage Type</th>
+												<th style={{fontWeight: 600}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Description</th>
+												<th style={{fontWeight: 600}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-right">Amount</th>
+												<th style={{fontWeight: 600}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Date</th>
+												<th style={{fontWeight: 600}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-right">Actions</th>
+											</tr>
+										</thead>
+										<tbody>
 											{container.damages.map((damage) => (
-												<TableRow key={damage.id} hover>
-													<TableCell>
-														<Box sx={{ fontSize: '0.8rem' }}>
+												<tr key={damage.id} className="hover:bg-[rgba(var(--border-rgb),0.25)]">
+													<th className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
+														<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.8rem'}}>
 															{damage.shipment
 																? [damage.shipment.vehicleMake, damage.shipment.vehicleModel].filter(Boolean).join(' ') || 'Vehicle'
 																: damage.shipmentId}
 															{damage.shipment?.vehicleVIN && (
-																<Box component="span" sx={{ color: 'var(--text-secondary)', ml: 0.5 }}>
+																<JXBox padding="none" border={false} component="span" style={{backgroundColor: 'transparent', borderRadius: 0, color: 'var(--text-secondary)', marginLeft: '4px'}}>
 																	({damage.shipment.vehicleVIN})
-																</Box>
+																</JXBox>
 															)}
-														</Box>
-													</TableCell>
-													<TableCell>
-														<Chip
-															label={damage.damageType === 'WE_PAY' ? 'We Pay' : 'Company Pays'}
-															size="small"
-															color={damage.damageType === 'WE_PAY' ? 'warning' : 'error'}
-														/>
-													</TableCell>
-													<TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+														</JXBox>
+													</th>
+													<th className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
+														<JXChip label={damage.damageType === 'WE_PAY' ? 'We Pay' : 'Company Pays'} tone="neutral" />
+													</th>
+													<th style={{maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
 														{damage.description}
-													</TableCell>
-													<TableCell align="right" sx={{ fontWeight: 600, color: 'var(--error)' }}>
+													</th>
+													<th style={{fontWeight: 600, color: 'var(--error)'}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-right">
 														{formatCurrency(damage.amount)}
-													</TableCell>
-													<TableCell>{formatDate(damage.createdAt)}</TableCell>
-													<TableCell align="right">
+													</th>
+													<th className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">{formatDate(damage.createdAt)}</th>
+													<th className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-right">
 														<Button
 															variant="outline"
 															size="sm"
 															icon={<Trash2 className="w-3 h-3" />}
 															onClick={() => handleDeleteDamage(damage.id)}
 															disabled={deletingDamageId === damage.id}
-															sx={{
-																color: 'var(--error)',
-																borderColor: 'var(--error)',
-																'&:hover': { bgcolor: 'rgba(var(--error-rgb), 0.1)' }
-															}}
+															style={{color: 'var(--error)', borderColor: 'var(--error)'}}
 														>
 															{deletingDamageId === damage.id ? 'Deleting...' : 'Delete'}
 														</Button>
-													</TableCell>
-												</TableRow>
+													</th>
+												</tr>
 											))}
-										</TableBody>
-									</Table>
-								</TableContainer>
+										</tbody>
+									</table>
+								</div>
 							)}
 						</DashboardPanel>
 					)}
@@ -1899,7 +1886,7 @@ export default function ContainerDetailPage() {
 							title="Container Invoices"
 							description="Billing and revenue for this container"
 						>
-							<Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+							<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'flex-end', marginBottom: '16px'}}>
 								{canManageInvoices && (
 									<Button
 										variant="primary"
@@ -1910,7 +1897,7 @@ export default function ContainerDetailPage() {
 										Create Invoice
 									</Button>
 								)}
-							</Box>
+							</JXBox>
 
 							{container.invoices.length === 0 ? (
 								<EmptyState
@@ -1919,32 +1906,32 @@ export default function ContainerDetailPage() {
 									description="No invoices have been created for this container yet"
 								/>
 							) : (
-								<TableContainer>
-									<Table size="small">
-										<TableHead>
-											<TableRow>
-												<TableCell sx={{ fontWeight: 600 }}>Invoice #</TableCell>
-												<TableCell sx={{ fontWeight: 600 }}>Date</TableCell>
-												<TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-												<TableCell sx={{ fontWeight: 600 }} align="right">Amount</TableCell>
-												<TableCell sx={{ fontWeight: 600 }} align="right">Actions</TableCell>
-											</TableRow>
-										</TableHead>
-										<TableBody>
+								<div className="w-full overflow-x-auto">
+									<table className="w-full border-collapse text-sm [&_td]:py-1.5 [&_th]:py-1.5">
+										<thead>
+											<tr className="hover:bg-[rgba(var(--border-rgb),0.25)]">
+												<th style={{fontWeight: 600}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Invoice #</th>
+												<th style={{fontWeight: 600}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Date</th>
+												<th style={{fontWeight: 600}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Status</th>
+												<th style={{fontWeight: 600}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-right">Amount</th>
+												<th style={{fontWeight: 600}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-right">Actions</th>
+											</tr>
+										</thead>
+										<tbody>
 											{container.invoices.map((invoice) => (
-												<TableRow key={invoice.id} hover>
-													<TableCell sx={{ fontFamily: 'monospace' }}>{invoice.invoiceNumber}</TableCell>
-													<TableCell>{formatDate(invoice.date)}</TableCell>
-													<TableCell>
+												<tr key={invoice.id} className="hover:bg-[rgba(var(--border-rgb),0.25)]">
+													<th style={{fontFamily: 'monospace'}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">{invoice.invoiceNumber}</th>
+													<th className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">{formatDate(invoice.date)}</th>
+													<th className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
 														<StatusBadge 
 															status={invoice.status} 
 															size="sm"
 														/>
-													</TableCell>
-													<TableCell align="right" sx={{ fontWeight: 600, color: 'var(--success)' }}>
+													</th>
+													<th style={{fontWeight: 600, color: 'var(--success)'}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-right">
 														{formatCurrency(invoice.amount, invoice.currency)}
-													</TableCell>
-													<TableCell align="right">
+													</th>
+													<th className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-right">
 														{canManageInvoices && (
 															<Button
 																variant="outline"
@@ -1952,27 +1939,23 @@ export default function ContainerDetailPage() {
 																icon={<Trash2 className="w-3 h-3" />}
 																onClick={() => handleDeleteInvoice(invoice.id)}
 																disabled={deletingInvoiceId === invoice.id}
-																sx={{ 
-																	color: 'var(--error)',
-																	borderColor: 'var(--error)',
-																	'&:hover': { bgcolor: 'rgba(var(--error-rgb), 0.1)' }
-																}}
+																style={{color: 'var(--error)', borderColor: 'var(--error)'}}
 															>
 																{deletingInvoiceId === invoice.id ? 'Deleting...' : 'Delete'}
 															</Button>
 														)}
-													</TableCell>
-												</TableRow>
+													</th>
+												</tr>
 											))}
-											<TableRow>
-												<TableCell colSpan={4} sx={{ fontWeight: 700 }}>Total Revenue</TableCell>
-												<TableCell align="right" sx={{ fontWeight: 700, color: 'var(--success)' }}>
+											<tr className="hover:bg-[rgba(var(--border-rgb),0.25)]">
+												<th colSpan={4} style={{fontWeight: 700}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Total Revenue</th>
+												<th style={{fontWeight: 700, color: 'var(--success)'}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-right">
 													{formatCurrency(container.totals.invoices)}
-												</TableCell>
-											</TableRow>
-										</TableBody>
-									</Table>
-								</TableContainer>
+												</th>
+											</tr>
+										</tbody>
+									</table>
+								</div>
 							)}
 						</DashboardPanel>
 					)}
@@ -1985,42 +1968,33 @@ export default function ContainerDetailPage() {
 						>
 							{/* Info box explaining invoice generation */}
 							{isAdmin && (!container.userInvoices || container.userInvoices.length === 0) && container.shipments.length > 0 && (
-								<Box sx={{ 
-									mb: 3, 
-									p: 2, 
-									bgcolor: 'rgba(var(--info-rgb), 0.1)', 
-									border: '1px solid rgba(var(--info-rgb), 0.3)',
-									borderRadius: 2,
-									display: 'flex',
-									gap: 2,
-									alignItems: 'flex-start'
-								}}>
+								<JXBox padding="none" border={false} style={{marginBottom: '24px', padding: '16px', backgroundColor: 'rgba(var(--info-rgb), 0.1)', border: '1px solid rgba(var(--info-rgb), 0.3)', borderRadius: '16px', display: 'flex', gap: '16px', alignItems: 'flex-start'}}>
 									<FileText className="w-5 h-5" style={{ color: 'var(--info)', marginTop: '2px', flexShrink: 0 }} />
-									<Box sx={{ flex: 1 }}>
-										<Typography sx={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.875rem', mb: 0.5 }}>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, flex: 1}}>
+										<p className="text-sm leading-relaxed" style={{fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.875rem', marginBottom: '4px'}}>
 											Batch Invoice Shortcut
-										</Typography>
-										<Typography sx={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+										</p>
+										<p className="text-sm leading-relaxed" style={{fontSize: '0.8125rem', color: 'var(--text-secondary)', lineHeight: 1.5}}>
 											The primary workflow is now shipment-first billing from each shipment&apos;s Billing tab. 
 											Use the batch action here only when you want to process all approved shipment charges across this container in one run.
 											{container.expenses && container.expenses.length > 0 && (
 												<> Container expenses will be allocated using the <strong>{container.expenseAllocationMethod || 'EQUAL'}</strong> method.</>
 											)}
-										</Typography>
-										<Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)', mt: 1, fontStyle: 'italic' }}>
+										</p>
+										<p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '8px', fontStyle: 'italic'}}>
 											Shipment-level invoice generation remains the recommended path when reviewing one shipment at a time.
-										</Typography>
-									</Box>
-								</Box>
+										</p>
+									</JXBox>
+								</JXBox>
 							)}
 
-							<Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-								<Box sx={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+							<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px'}}>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, color: 'var(--text-secondary)', fontSize: '0.875rem'}}>
 									{container.shipments.length > 0 
 										? `${new Set(container.shipments.map(s => s.user?.id)).size} unique customer(s) with shipments`
 										: 'No shipments in container'
 									}
-								</Box>
+								</JXBox>
 								{isAdmin && (
 									<Button
 										variant="outline"
@@ -2032,7 +2006,7 @@ export default function ContainerDetailPage() {
 										Batch Generate Invoices
 									</Button>
 								)}
-							</Box>
+							</JXBox>
 
 							{!container.userInvoices || container.userInvoices.length === 0 ? (
 								<EmptyState
@@ -2045,42 +2019,42 @@ export default function ContainerDetailPage() {
 									}
 								/>
 							) : (
-								<TableContainer>
-									<Table size="small">
-										<TableHead>
-											<TableRow>
-												<TableCell sx={{ fontWeight: 600 }}>Invoice #</TableCell>
-												<TableCell sx={{ fontWeight: 600 }}>Customer</TableCell>
-												<TableCell sx={{ fontWeight: 600 }}>Issue Date</TableCell>
-												<TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-												<TableCell sx={{ fontWeight: 600 }} align="right">Total</TableCell>
-												<TableCell sx={{ fontWeight: 600 }} align="right">Actions</TableCell>
-											</TableRow>
-										</TableHead>
-										<TableBody>
+								<div className="w-full overflow-x-auto">
+									<table className="w-full border-collapse text-sm [&_td]:py-1.5 [&_th]:py-1.5">
+										<thead>
+											<tr className="hover:bg-[rgba(var(--border-rgb),0.25)]">
+												<th style={{fontWeight: 600}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Invoice #</th>
+												<th style={{fontWeight: 600}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Customer</th>
+												<th style={{fontWeight: 600}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Issue Date</th>
+												<th style={{fontWeight: 600}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Status</th>
+												<th style={{fontWeight: 600}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-right">Total</th>
+												<th style={{fontWeight: 600}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-right">Actions</th>
+											</tr>
+										</thead>
+										<tbody>
 											{container.userInvoices.map((invoice) => (
-												<TableRow key={invoice.id} hover>
-													<TableCell sx={{ fontFamily: 'monospace' }}>{invoice.invoiceNumber}</TableCell>
-													<TableCell>
-														<Box>
-															<Box sx={{ fontWeight: 600 }}>{invoice.user.name || 'N/A'}</Box>
-															<Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+												<tr key={invoice.id} className="hover:bg-[rgba(var(--border-rgb),0.25)]">
+													<th style={{fontFamily: 'monospace'}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">{invoice.invoiceNumber}</th>
+													<th className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
+														<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+															<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 600}}>{invoice.user.name || 'N/A'}</JXBox>
+															<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.75rem', color: 'var(--text-secondary)'}}>
 																{invoice.user.email}
-															</Box>
-														</Box>
-													</TableCell>
-													<TableCell>{formatDate(invoice.issueDate)}</TableCell>
-													<TableCell>
+															</JXBox>
+														</JXBox>
+													</th>
+													<th className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">{formatDate(invoice.issueDate)}</th>
+													<th className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
 														<StatusBadge 
 															status={invoice.status} 
 															size="sm"
 														/>
-													</TableCell>
-													<TableCell align="right" sx={{ fontWeight: 600, color: 'var(--success)' }}>
+													</th>
+													<th style={{fontWeight: 600, color: 'var(--success)'}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-right">
 														{formatCurrency(invoice.total)}
-													</TableCell>
-													<TableCell align="right">
-														<Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+													</th>
+													<th className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-right">
+														<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '8px', justifyContent: 'flex-end'}}>
 															<Button
 																variant="outline"
 																size="sm"
@@ -2089,13 +2063,13 @@ export default function ContainerDetailPage() {
 															>
 																View
 															</Button>
-														</Box>
-													</TableCell>
-												</TableRow>
+														</JXBox>
+													</th>
+												</tr>
 											))}
-										</TableBody>
-									</Table>
-								</TableContainer>
+										</tbody>
+									</table>
+								</div>
 							)}
 						</DashboardPanel>
 					)}
@@ -2131,7 +2105,7 @@ export default function ContainerDetailPage() {
 
 					{/* Tracking Tab */}
 					{activeTab === 'tracking' && (
-						<Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+						<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '24px'}}>
 							<OceanCarrierSyncCard
 								containerId={container.id}
 								containerNumber={container.containerNumber}
@@ -2148,7 +2122,7 @@ export default function ContainerDetailPage() {
 								}}
 							/>
 
-							<Box sx={{ display: 'flex', justifyContent: 'flex-start', mb: 1 }}>
+							<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'flex-start', marginBottom: '8px'}}>
 								<Button
 									variant={showMaritimeMap ? 'primary' : 'outline'}
 									size="sm"
@@ -2157,7 +2131,7 @@ export default function ContainerDetailPage() {
 								>
 									{showMaritimeMap ? 'Hide Maritime Map' : 'View Live Vessel Map'}
 								</Button>
-							</Box>
+							</JXBox>
 
 							{showMaritimeMap && (
 								<OceanRouteMap 
@@ -2181,7 +2155,7 @@ export default function ContainerDetailPage() {
 								description="Location updates and status changes"
 							>
 
-							<Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mb: 2 }}>
+							<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'flex-end', gap: '16px', marginBottom: '16px'}}>
 								{canManageWorkflow && (container.trackingNumber || container.containerNumber) && (
                                     <Button
                                         variant="outline"
@@ -2204,7 +2178,7 @@ export default function ContainerDetailPage() {
 										Add Tracking Event
 									</Button>
 								)}
-							</Box>
+							</JXBox>
 
 							{(!container.trackingEvents || container.trackingEvents.length === 0) ? (
 								<EmptyState
@@ -2213,81 +2187,56 @@ export default function ContainerDetailPage() {
 									description="No tracking updates have been recorded yet"
 								/>
 							) : (
-								<Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '24px'}}>
 									{container.trackingEvents.map((event, index) => (
-										<Box 
-											key={event.id}
-											sx={{ 
-												position: 'relative',
-												pl: 4,
-												borderLeft: index < container.trackingEvents.length - 1 ? '2px solid var(--border)' : 'none',
-												pb: index < container.trackingEvents.length - 1 ? 3 : 0,
-											}}
-										>
-											<Box
-												sx={{
-													position: 'absolute',
-													left: -9,
-													top: 0,
-													width: 16,
-													height: 16,
-													borderRadius: '50%',
-													bgcolor: (event as any).completed ? 'var(--success)' : 'var(--accent-gold)',
-													border: '2px solid var(--background)',
-												}}
-											/>
-											<Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5, alignItems: 'start' }}>
-												<Box>
-													<Box sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+										<JXBox padding="none" border={false} key={event.id} style={{backgroundColor: 'transparent', borderRadius: 0, position: 'relative', paddingLeft: '32px', borderLeft: index < container.trackingEvents.length - 1 ? '2px solid var(--border)' : 'none', paddingBottom: index < container.trackingEvents.length - 1 ? 3 : 0}}>
+											<JXBox padding="none" border={false} style={{position: 'absolute', left: '-9px', top: '0px', width: '16px', height: '16px', borderRadius: '50%', backgroundColor: (event as any).completed ? 'var(--success)' : 'var(--accent-gold)', border: '2px solid var(--background)'}} />
+											<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between', marginBottom: '4px', alignItems: 'start'}}>
+												<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+													<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)'}}>
 														{event.status}
-													</Box>
+													</JXBox>
 													{(event as any).vesselName && (
-														<Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)', mt: 0.5 }}>
+														<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '4px'}}>
 															🚢 {(event as any).vesselName}
-														</Box>
+														</JXBox>
 													)}
-												</Box>
-												<Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-													<Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+												</JXBox>
+												<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '8px', alignItems: 'center'}}>
+													<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.75rem', color: 'var(--text-secondary)'}}>
 														{new Date(event.eventDate).toLocaleString()}
-													</Box>
+													</JXBox>
 													<Button
 														variant="outline"
 														size="sm"
 														icon={<Trash2 className="w-3 h-3" />}
 														onClick={() => handleDeleteTrackingEvent(event.id)}
 														disabled={deletingEventId === event.id || !canManageWorkflow || isContainerWorkflowLocked}
-														sx={{ 
-															color: 'var(--error)',
-															borderColor: 'var(--error)',
-															'&:hover': { bgcolor: 'rgba(var(--error-rgb), 0.1)' },
-															minWidth: 'auto',
-															px: 1,
-														}}
+														style={{color: 'var(--error)', borderColor: 'var(--error)', minWidth: 'auto', paddingLeft: '8px', paddingRight: '8px'}}
 													/>
-												</Box>
-											</Box>
+												</JXBox>
+											</JXBox>
 											{event.location && (
-												<Box sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)', mb: 0.5 }}>
+												<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '4px'}}>
 													📍 {event.location}
-												</Box>
+												</JXBox>
 											)}
 											{event.description && (
-												<Box sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)', mb: 0.5 }}>
+												<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '4px'}}>
 													{event.description}
-												</Box>
+												</JXBox>
 											)}
 											{(event as any).source && (
-												<Box sx={{ mt: 1 }}>
+												<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '8px'}}>
 													<TrackingSourceBadge source={(event as any).source} size="sm" />
-												</Box>
+												</JXBox>
 											)}
-										</Box>
+										</JXBox>
 									))}
-								</Box>
+								</JXBox>
 							)}
 						</DashboardPanel>
-						</Box>
+						</JXBox>
 					)}
 
                     {/* Activity Log Tab */}
@@ -2299,7 +2248,7 @@ export default function ContainerDetailPage() {
                             <ActivityLog logs={container.auditLogs} />
                         </DashboardPanel>
                     )}
-				</Box>
+				</JXBox>
 
 				{/* Add / Edit Container Expense Modal */}
 				<AddExpenseModal
@@ -2365,143 +2314,118 @@ export default function ContainerDetailPage() {
 				/>
 
 				{/* QR Code Modal */}
-				<Dialog
-					open={qrModalOpen}
-					onClose={() => setQrModalOpen(false)}
-					maxWidth="xs"
-					fullWidth
-					PaperProps={{
-						sx: {
-							bgcolor: 'white',
-							backgroundImage: 'none',
-							borderRadius: 2,
-							p: 2
-						}
-					}}
+				<Modal
+				  open={qrModalOpen}
+				  onClose={() => setQrModalOpen(false)}
+				  size="sm"
 				>
-					<Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, py: 2 }}>
-						<Typography variant="h6" sx={{ fontWeight: 700, color: 'black' }}>
+					<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', paddingTop: '16px', paddingBottom: '16px'}}>
+						<h6 className="text-sm font-semibold" style={{fontWeight: 700, color: 'black'}}>
 							Container QR Code
-						</Typography>
-						<Box sx={{ p: 2, bgcolor: 'white', borderRadius: 2, border: '1px solid #eee' }}>
-							<QRCode 
+						</h6>
+						<JXBox padding="none" border={false} style={{padding: '16px', backgroundColor: 'white', borderRadius: '16px', border: '1px solid #eee'}}>
+							<QRCode
 								value={`${window.location.origin}/tracking?container=${container.containerNumber}`}
 								size={200}
 								style={{ height: "auto", maxWidth: "100%", width: "100%" }}
 								viewBox={`0 0 256 256`}
 							/>
-						</Box>
-						<Box sx={{ textAlign: 'center' }}>
-							<Typography sx={{ fontWeight: 700, fontSize: '1.1rem', color: 'black' }}>
+						</JXBox>
+						<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, textAlign: 'center'}}>
+							<p className="text-sm leading-relaxed" style={{fontWeight: 700, fontSize: '1.1rem', color: 'black'}}>
 								{container.containerNumber}
-							</Typography>
+							</p>
 							{container.trackingNumber && (
-								<Typography sx={{ color: 'gray', fontSize: '0.9rem' }}>
+								<p className="text-sm leading-relaxed" style={{color: 'gray', fontSize: '0.9rem'}}>
 									Tracking: {container.trackingNumber}
-								</Typography>
+								</p>
 							)}
-						</Box>
-						<Typography sx={{ fontSize: '0.8rem', color: 'gray', textAlign: 'center', maxWidth: '80%' }}>
+						</JXBox>
+						<p className="text-sm leading-relaxed" style={{fontSize: '0.8rem', color: 'gray', textAlign: 'center', maxWidth: '80%'}}>
 							Scan to view container status and tracking details on mobile.
-						</Typography>
-						<Button 
-							variant="outline" 
+						</p>
+						<Button
+							variant="outline"
 							onClick={() => setQrModalOpen(false)}
-							sx={{ mt: 1, minWidth: 100 }}
+							style={{marginTop: '8px', minWidth: '100px'}}
 						>
 							Close
 						</Button>
-					</Box>
-				</Dialog>
+					</JXBox>
+				</Modal>
 
 				{/* Duplicate Container Modal */}
-				<Dialog
-					open={duplicateModalOpen}
-					onClose={() => !duplicating && setDuplicateModalOpen(false)}
-					maxWidth="sm"
-					fullWidth
-					PaperProps={{
-						sx: {
-							bgcolor: 'var(--panel)',
-							backgroundImage: 'none',
-							border: '1px solid var(--border)',
-							borderRadius: 2,
-						}
-					}}
-				>
-					<DialogTitle
-						sx={{
-							color: 'var(--text-primary)',
-							fontWeight: 700,
-							fontSize: '1.25rem',
-							borderBottom: '1px solid var(--border)',
-							display: 'flex',
-							alignItems: 'center',
-							gap: 1.5,
-						}}
-					>
-						<Box
-							sx={{
-								width: 40,
-								height: 40,
-								borderRadius: '50%',
-								bgcolor: 'rgba(var(--accent-gold-rgb), 0.1)',
-								display: 'flex',
-								alignItems: 'center',
-								justifyContent: 'center',
-							}}
-						>
+				<Modal
+				  open={duplicateModalOpen}
+				  onClose={() => !duplicating && setDuplicateModalOpen(false)}
+				  title={<div style={{color: 'var(--text-primary)', fontWeight: 700, fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '12px'}}><JXBox padding="none" border={false} style={{width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'rgba(var(--accent-gold-rgb), 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
 							<Copy className="w-5 h-5" style={{ color: 'var(--accent-gold)' }} />
-						</Box>
-						Duplicate Container
-					</DialogTitle>
-					<DialogContent sx={{ py: 3 }}>
-						<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-							<Box sx={{ color: 'var(--text-primary)', fontSize: '0.95rem', lineHeight: 1.6 }}>
+						</JXBox>
+						Duplicate Container</div>}
+				  size="sm"
+				  contentSx={{paddingTop: '24px', paddingBottom: '24px'}}
+				  actionsSx={{paddingLeft: '24px', paddingRight: '24px', paddingTop: '16px', paddingBottom: '16px', borderTop: '1px solid var(--border)', gap: '8px'}}
+				  actions={<>
+
+						<Button
+							variant="outline"
+							onClick={() => setDuplicateModalOpen(false)}
+							disabled={duplicating}
+							style={{color: 'var(--text-secondary)', borderColor: 'var(--border)'}}
+						>
+							Cancel
+						</Button>
+						<Button
+							variant="primary"
+							onClick={handleDuplicateContainer}
+							disabled={duplicating || !newContainerNumber.trim()}
+							style={{backgroundColor: 'var(--accent-gold)', color: 'white'}}
+						>
+							{duplicating ? (
+								<>
+									<JXBox padding="none" border={false} component="span" className="animate-spin" style={{backgroundColor: 'transparent', display: 'inline-block', width: '16px', height: '16px', marginRight: '8px', border: '2px solid white', borderTopColor: 'transparent', borderRadius: '50%'}} />
+									Duplicating...
+								</>
+							) : (
+								<>
+									<Copy className="w-4 h-4 mr-2" />
+									Duplicate Container
+								</>
+							)}
+						</Button>
+				  </>}
+				>
+
+						<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '16px'}}>
+							<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, color: 'var(--text-primary)', fontSize: '0.95rem', lineHeight: 1.6}}>
 								Create a copy of container <strong>{container.containerNumber}</strong> with all settings.
-							</Box>
+							</JXBox>
 							
-							<Box
-								sx={{
-									p: 2,
-									borderRadius: 1,
-									bgcolor: 'rgba(99, 102, 241, 0.1)',
-									border: '1px solid rgba(99, 102, 241, 0.3)',
-								}}
-							>
-								<Box sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+							<JXBox padding="none" border={false} style={{padding: '16px', borderRadius: '8px', backgroundColor: 'rgba(99, 102, 241, 0.1)', border: '1px solid rgba(99, 102, 241, 0.3)'}}>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', color: 'var(--text-secondary)'}}>
 									<strong style={{ color: 'var(--text-primary)' }}>What will be copied:</strong>
-								</Box>
-								<Box component="ul" sx={{ mt: 1, pl: 2.5, fontSize: '0.875rem', color: 'var(--text-secondary)', '& li': { mb: 0.5 } }}>
+								</JXBox>
+								<JXBox padding="none" border={false} component="ul" style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '8px', paddingLeft: '20px', fontSize: '0.875rem', color: 'var(--text-secondary)'}}>
 									<li>Vessel and voyage information</li>
 									<li>Shipping line and ports</li>
 									<li>Dates and capacity settings</li>
 									<li>Notes and preferences</li>
-								</Box>
-								<Box sx={{ mt: 1.5, fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+								</JXBox>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '12px', fontSize: '0.875rem', color: 'var(--text-secondary)'}}>
 									<strong style={{ color: 'var(--text-primary)' }}>What won&apos;t be copied:</strong>
-								</Box>
-								<Box component="ul" sx={{ mt: 0.5, pl: 2.5, fontSize: '0.875rem', color: 'var(--text-secondary)', '& li': { mb: 0.5 } }}>
+								</JXBox>
+								<JXBox padding="none" border={false} component="ul" style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '4px', paddingLeft: '20px', fontSize: '0.875rem', color: 'var(--text-secondary)'}}>
 									<li>Assigned shipments</li>
 									<li>Expenses and invoices</li>
 									<li>Documents and tracking events</li>
 									<li>Booking number</li>
-								</Box>
-							</Box>
+								</JXBox>
+							</JXBox>
 
-							<Box>
-								<Box
-									component="label"
-									sx={{
-										display: 'block',
-										fontSize: '0.875rem',
-										fontWeight: 600,
-										color: 'var(--text-primary)',
-										mb: 1,
-									}}
-								>
+							<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+								<JXBox padding="none" border={false} component="label" style={{backgroundColor: 'transparent', borderRadius: 0, display: 'block', fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px'}}>
 									New Container Number <span style={{ color: 'var(--error)' }}>*</span>
-								</Box>
+								</JXBox>
 								<input
 									type="text"
 									value={newContainerNumber}
@@ -2519,185 +2443,20 @@ export default function ContainerDetailPage() {
 									}}
 									autoFocus
 								/>
-							</Box>
-						</Box>
-					</DialogContent>
-					<DialogActions
-						sx={{
-							px: 3,
-							py: 2,
-							borderTop: '1px solid var(--border)',
-							gap: 1,
-						}}
-					>
-						<Button
-							variant="outline"
-							onClick={() => setDuplicateModalOpen(false)}
-							disabled={duplicating}
-							sx={{
-								color: 'var(--text-secondary)',
-								borderColor: 'var(--border)',
-								'&:hover': {
-									bgcolor: 'var(--background)',
-								}
-							}}
-						>
-							Cancel
-						</Button>
-						<Button
-							variant="primary"
-							onClick={handleDuplicateContainer}
-							disabled={duplicating || !newContainerNumber.trim()}
-							sx={{
-								bgcolor: 'var(--accent-gold)',
-								color: 'white',
-								'&:hover': {
-									bgcolor: 'var(--accent-gold)',
-									opacity: 0.9,
-								},
-								'&:disabled': {
-									opacity: 0.5,
-									cursor: 'not-allowed',
-									}
-							}}
-						>
-							{duplicating ? (
-								<>
-									<Box
-										component="span"
-										sx={{
-											display: 'inline-block',
-											width: 16,
-											height: 16,
-											mr: 1,
-											border: '2px solid white',
-											borderTopColor: 'transparent',
-											borderRadius: '50%',
-											animation: 'spin 0.6s linear infinite',
-											'@keyframes spin': {
-												'0%': { transform: 'rotate(0deg)' },
-												'100%': { transform: 'rotate(360deg)' },
-											},
-										}}
-									/>
-									Duplicating...
-								</>
-							) : (
-								<>
-									<Copy className="w-4 h-4 mr-2" />
-									Duplicate Container
-								</>
-							)}
-						</Button>
-					</DialogActions>
-				</Dialog>
+							</JXBox>
+						</JXBox>
+				</Modal>
 
 				{/* Generate Invoices Modal */}
-				<Dialog
-					open={invoiceGenerationModalOpen}
-					onClose={() => !generatingInvoices && setInvoiceGenerationModalOpen(false)}
-					maxWidth="md"
-					fullWidth
-					PaperProps={{
-						sx: {
-							bgcolor: 'var(--panel)',
-							backgroundImage: 'none',
-							border: '1px solid var(--border)',
-							borderRadius: 2,
-						}
-					}}
-				>
-					<DialogTitle
-						sx={{
-							color: 'var(--text-primary)',
-							fontWeight: 700,
-							fontSize: '1.25rem',
-							borderBottom: '1px solid var(--border)',
-						}}
-					>
-						Batch Generate User Invoices
-					</DialogTitle>
-					<DialogContent sx={{ py: 3 }}>
-						<Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-							<Box sx={{ color: 'var(--text-primary)', fontSize: '0.95rem', lineHeight: 1.6 }}>
-								This is a container-wide batch shortcut for container <strong>{container.containerNumber}</strong>. Shipment Billing tabs remain the primary place to review and generate invoices one shipment at a time.
-							</Box>
+				<Modal
+				  open={invoiceGenerationModalOpen}
+				  onClose={() => !generatingInvoices && setInvoiceGenerationModalOpen(false)}
+				  title="Batch Generate User Invoices"
+				  size="md"
+				  contentSx={{paddingTop: '24px', paddingBottom: '24px'}}
+				  actionsSx={{padding: '24px', borderTop: '1px solid var(--border)'}}
+				  actions={<>
 
-							{/* Summary */}
-							<Box
-								sx={{
-									p: 2,
-									bgcolor: 'var(--background)',
-									border: '1px solid var(--border)',
-									borderRadius: 1,
-								}}
-							>
-								<Box sx={{ fontWeight: 600, mb: 1.5, color: 'var(--text-primary)' }}>
-									Invoice Summary
-								</Box>
-								<Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-									<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-										<Box sx={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-											Total Shipments:
-										</Box>
-										<Box sx={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.875rem' }}>
-											{container.shipments.length}
-										</Box>
-									</Box>
-									<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-										<Box sx={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-											Unique Customers:
-										</Box>
-										<Box sx={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.875rem' }}>
-											{new Set(container.shipments.map(s => s.user?.id)).size}
-										</Box>
-									</Box>
-									<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-										<Box sx={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-											Container Expenses:
-										</Box>
-										<Box sx={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.875rem' }}>
-											{formatCurrency(container.totals.expenses)}
-										</Box>
-									</Box>
-									<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-										<Box sx={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-											Expense per Vehicle:
-										</Box>
-										<Box sx={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.875rem' }}>
-											{formatCurrency(
-												container.shipments.length > 0
-													? container.totals.expenses / container.shipments.length
-													: 0
-											)}
-										</Box>
-									</Box>
-								</Box>
-							</Box>
-
-							{/* Info */}
-							<Box
-								sx={{
-									p: 2,
-									bgcolor: 'rgba(var(--info-rgb), 0.1)',
-									border: '1px solid rgba(var(--info-rgb), 0.3)',
-									borderRadius: 1,
-									fontSize: '0.875rem',
-									color: 'var(--text-secondary)',
-									lineHeight: 1.6,
-								}}
-							>
-								<strong>What this batch action does:</strong>
-								<ul style={{ margin: '8px 0', paddingLeft: '20px' }}>
-									<li>Processes approved uninvoiced shipment charges across this container</li>
-									<li>Refreshes only draft or pending invoices</li>
-									<li>Creates supplemental invoices or credit notes when prior invoices are already issued</li>
-									<li>Still respects shipment-level charge approval and dispute states</li>
-								</ul>
-							</Box>
-						</Box>
-					</DialogContent>
-					<DialogActions sx={{ p: 3, borderTop: '1px solid var(--border)' }}>
 						<Button
 							variant="outline"
 							onClick={() => setInvoiceGenerationModalOpen(false)}
@@ -2713,122 +2472,90 @@ export default function ContainerDetailPage() {
 						>
 							{generatingInvoices ? 'Generating...' : 'Run Batch Generation'}
 						</Button>
-					</DialogActions>
-				</Dialog>
+				  </>}
+				>
+
+						<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '24px'}}>
+							<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, color: 'var(--text-primary)', fontSize: '0.95rem', lineHeight: 1.6}}>
+								This is a container-wide batch shortcut for container <strong>{container.containerNumber}</strong>. Shipment Billing tabs remain the primary place to review and generate invoices one shipment at a time.
+							</JXBox>
+
+							{/* Summary */}
+							<JXBox padding="none" border={false} style={{padding: '16px', backgroundColor: 'var(--background)', border: '1px solid var(--border)', borderRadius: '8px'}}>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 600, marginBottom: '12px', color: 'var(--text-primary)'}}>
+									Invoice Summary
+								</JXBox>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '8px'}}>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between'}}>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, color: 'var(--text-secondary)', fontSize: '0.875rem'}}>
+											Total Shipments:
+										</JXBox>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.875rem'}}>
+											{container.shipments.length}
+										</JXBox>
+									</JXBox>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between'}}>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, color: 'var(--text-secondary)', fontSize: '0.875rem'}}>
+											Unique Customers:
+										</JXBox>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.875rem'}}>
+											{new Set(container.shipments.map(s => s.user?.id)).size}
+										</JXBox>
+									</JXBox>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between'}}>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, color: 'var(--text-secondary)', fontSize: '0.875rem'}}>
+											Container Expenses:
+										</JXBox>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.875rem'}}>
+											{formatCurrency(container.totals.expenses)}
+										</JXBox>
+									</JXBox>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between'}}>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, color: 'var(--text-secondary)', fontSize: '0.875rem'}}>
+											Expense per Vehicle:
+										</JXBox>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.875rem'}}>
+											{formatCurrency(
+												container.shipments.length > 0
+													? container.totals.expenses / container.shipments.length
+													: 0
+											)}
+										</JXBox>
+									</JXBox>
+								</JXBox>
+							</JXBox>
+
+							{/* Info */}
+							<JXBox padding="none" border={false} style={{padding: '16px', backgroundColor: 'rgba(var(--info-rgb), 0.1)', border: '1px solid rgba(var(--info-rgb), 0.3)', borderRadius: '8px', fontSize: '0.875rem', color: 'var(--text-secondary)', lineHeight: 1.6}}>
+								<strong>What this batch action does:</strong>
+								<ul style={{ margin: '8px 0', paddingLeft: '20px' }}>
+									<li>Processes approved uninvoiced shipment charges across this container</li>
+									<li>Refreshes only draft or pending invoices</li>
+									<li>Creates supplemental invoices or credit notes when prior invoices are already issued</li>
+									<li>Still respects shipment-level charge approval and dispute states</li>
+								</ul>
+							</JXBox>
+						</JXBox>
+				</Modal>
 
 				{/* Delete Confirmation Modal */}
-				<Dialog
-					open={deleteModalOpen}
-					onClose={() => !deleting && setDeleteModalOpen(false)}
-					maxWidth="sm"
-					fullWidth
-					PaperProps={{
-						sx: {
-							bgcolor: 'var(--panel)',
-							backgroundImage: 'none',
-							border: '1px solid var(--border)',
-							borderRadius: 2,
-						}
-					}}
-				>
-					<DialogTitle
-						sx={{
-							color: 'var(--text-primary)',
-							fontWeight: 700,
-							fontSize: '1.25rem',
-							borderBottom: '1px solid var(--border)',
-							display: 'flex',
-							alignItems: 'center',
-							gap: 1.5,
-						}}
-					>
-						<Box
-							sx={{
-								width: 40,
-								height: 40,
-								borderRadius: '50%',
-								bgcolor: 'rgba(var(--error-rgb), 0.1)',
-								display: 'flex',
-								alignItems: 'center',
-								justifyContent: 'center',
-							}}
-						>
+				<Modal
+				  open={deleteModalOpen}
+				  onClose={() => !deleting && setDeleteModalOpen(false)}
+				  title={<div style={{color: 'var(--text-primary)', fontWeight: 700, fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '12px'}}><JXBox padding="none" border={false} style={{width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'rgba(var(--error-rgb), 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
 							<AlertTriangle className="w-5 h-5" style={{ color: 'var(--error)' }} />
-						</Box>
-						Delete Container
-					</DialogTitle>
-					<DialogContent sx={{ py: 3 }}>
-						<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-							<Box sx={{ color: 'var(--text-primary)', fontSize: '0.95rem', lineHeight: 1.6 }}>
-								Are you sure you want to delete container <strong>{container.containerNumber}</strong>?
-							</Box>
-							
-							{container.shipments.length > 0 && (
-								<Box
-									sx={{
-										p: 2,
-										borderRadius: 1,
-										bgcolor: 'rgba(var(--error-rgb), 0.1)',
-										border: '1px solid rgba(var(--error-rgb), 0.3)',
-									}}
-								>
-									<Box sx={{ display: 'flex', alignItems: 'start', gap: 1.5 }}>
-										<AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: 'var(--error)' }} />
-										<Box>
-											<Box sx={{ fontWeight: 600, color: 'var(--error)', fontSize: '0.875rem', mb: 0.5 }}>
-												Warning: Container has {container.shipments.length} assigned shipment{container.shipments.length !== 1 ? 's' : ''}
-											</Box>
-											<Box sx={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-												You must remove all shipments from this container before deleting it.
-											</Box>
-										</Box>
-									</Box>
-								</Box>
-							)}
+						</JXBox>
+						Delete Container</div>}
+				  size="sm"
+				  contentSx={{paddingTop: '24px', paddingBottom: '24px'}}
+				  actionsSx={{paddingLeft: '24px', paddingRight: '24px', paddingTop: '16px', paddingBottom: '16px', borderTop: '1px solid var(--border)', gap: '8px'}}
+				  actions={<>
 
-							{container.shipments.length === 0 && (
-								<Box
-									sx={{
-										p: 2,
-										borderRadius: 1,
-										bgcolor: 'rgba(251, 191, 36, 0.1)',
-										border: '1px solid rgba(251, 191, 36, 0.3)',
-									}}
-								>
-									<Box sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-										<strong style={{ color: 'var(--text-primary)' }}>This action cannot be undone.</strong> This will permanently delete:
-									</Box>
-									<Box component="ul" sx={{ mt: 1, pl: 2.5, fontSize: '0.875rem', color: 'var(--text-secondary)', '& li': { mb: 0.5 } }}>
-										<li>Container details and tracking information</li>
-										<li>All tracking events ({container.trackingEvents?.length || 0} events)</li>
-										<li>All expenses ({container.expenses.length} expenses)</li>
-										<li>All invoices ({container.invoices.length} invoices)</li>
-										<li>All documents ({container.documents.length} documents)</li>
-										<li>All audit logs</li>
-									</Box>
-								</Box>
-							)}
-						</Box>
-					</DialogContent>
-					<DialogActions
-						sx={{
-							px: 3,
-							py: 2,
-							borderTop: '1px solid var(--border)',
-							gap: 1,
-						}}
-					>
 						<Button
 							variant="outline"
 							onClick={() => setDeleteModalOpen(false)}
 							disabled={deleting}
-							sx={{
-								color: 'var(--text-secondary)',
-								borderColor: 'var(--border)',
-								'&:hover': {
-									bgcolor: 'var(--background)',
-								}
-							}}
+							style={{color: 'var(--text-secondary)', borderColor: 'var(--border)'}}
 						>
 							Cancel
 						</Button>
@@ -2836,38 +2563,11 @@ export default function ContainerDetailPage() {
 							variant="primary"
 							onClick={handleDeleteContainer}
 							disabled={deleting || container.shipments.length > 0}
-							sx={{
-								bgcolor: 'var(--error)',
-								color: 'white',
-								'&:hover': {
-									bgcolor: 'var(--error)',
-									opacity: 0.9,
-								},
-								'&:disabled': {
-									opacity: 0.5,
-									cursor: 'not-allowed',
-								}
-							}}
+							style={{backgroundColor: 'var(--error)', color: 'white'}}
 						>
 							{deleting ? (
 								<>
-									<Box
-										component="span"
-										sx={{
-											display: 'inline-block',
-											width: 16,
-											height: 16,
-											mr: 1,
-											border: '2px solid white',
-											borderTopColor: 'transparent',
-											borderRadius: '50%',
-											animation: 'spin 0.6s linear infinite',
-											'@keyframes spin': {
-												'0%': { transform: 'rotate(0deg)' },
-												'100%': { transform: 'rotate(360deg)' },
-											},
-										}}
-									/>
+									<JXBox padding="none" border={false} component="span" className="animate-spin" style={{backgroundColor: 'transparent', display: 'inline-block', width: '16px', height: '16px', marginRight: '8px', border: '2px solid white', borderTopColor: 'transparent', borderRadius: '50%'}} />
 									Deleting...
 								</>
 							) : (
@@ -2877,110 +2577,133 @@ export default function ContainerDetailPage() {
 								</>
 							)}
 						</Button>
-					</DialogActions>
-				</Dialog>
+				  </>}
+				>
+
+						<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '16px'}}>
+							<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, color: 'var(--text-primary)', fontSize: '0.95rem', lineHeight: 1.6}}>
+								Are you sure you want to delete container <strong>{container.containerNumber}</strong>?
+							</JXBox>
+							
+							{container.shipments.length > 0 && (
+								<JXBox padding="none" border={false} style={{padding: '16px', borderRadius: '8px', backgroundColor: 'rgba(var(--error-rgb), 0.1)', border: '1px solid rgba(var(--error-rgb), 0.3)'}}>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'start', gap: '12px'}}>
+										<AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: 'var(--error)' }} />
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+											<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 600, color: 'var(--error)', fontSize: '0.875rem', marginBottom: '4px'}}>
+												Warning: Container has {container.shipments.length} assigned shipment{container.shipments.length !== 1 ? 's' : ''}
+											</JXBox>
+											<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.8rem', color: 'var(--text-secondary)'}}>
+												You must remove all shipments from this container before deleting it.
+											</JXBox>
+										</JXBox>
+									</JXBox>
+								</JXBox>
+							)}
+
+							{container.shipments.length === 0 && (
+								<JXBox padding="none" border={false} style={{padding: '16px', borderRadius: '8px', backgroundColor: 'rgba(251, 191, 36, 0.1)', border: '1px solid rgba(251, 191, 36, 0.3)'}}>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', color: 'var(--text-secondary)'}}>
+										<strong style={{ color: 'var(--text-primary)' }}>This action cannot be undone.</strong> This will permanently delete:
+									</JXBox>
+									<JXBox padding="none" border={false} component="ul" style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '8px', paddingLeft: '20px', fontSize: '0.875rem', color: 'var(--text-secondary)'}}>
+										<li>Container details and tracking information</li>
+										<li>All tracking events ({container.trackingEvents?.length || 0} events)</li>
+										<li>All expenses ({container.expenses.length} expenses)</li>
+										<li>All invoices ({container.invoices.length} invoices)</li>
+										<li>All documents ({container.documents.length} documents)</li>
+										<li>All audit logs</li>
+									</JXBox>
+								</JXBox>
+							)}
+						</JXBox>
+				</Modal>
 
 				{/* Assign Shipment Modal */}
-				<Dialog
-					open={assignShipmentModalOpen}
-					onClose={() => !assigningShipments && setAssignShipmentModalOpen(false)}
-					maxWidth="md"
-					fullWidth
-					PaperProps={{
-						sx: {
-							bgcolor: 'var(--panel)',
-							backgroundImage: 'none',
-							border: '1px solid var(--border)',
-							borderRadius: 2,
-						},
-					}}
-				>
-					<DialogTitle
-						sx={{
-							color: 'var(--text-primary)',
-							fontWeight: 700,
-							fontSize: '1.25rem',
-							borderBottom: '1px solid var(--border)',
-							display: 'flex',
-							alignItems: 'center',
-							gap: 1.5,
-						}}
-					>
-						<Box
-							sx={{
-								width: 40,
-								height: 40,
-								borderRadius: '50%',
-								bgcolor: 'rgba(var(--accent-gold-rgb), 0.1)',
-								display: 'flex',
-								alignItems: 'center',
-								justifyContent: 'center',
-							}}
-						>
+				<Modal
+				  open={assignShipmentModalOpen}
+				  onClose={() => !assigningShipments && setAssignShipmentModalOpen(false)}
+				  title={<div style={{color: 'var(--text-primary)', fontWeight: 700, fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '12px'}}><JXBox padding="none" border={false} style={{width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'rgba(var(--accent-gold-rgb), 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
 							<Package className="w-5 h-5" style={{ color: 'var(--accent-gold)' }} />
-						</Box>
-						Assign Shipments to Container
-					</DialogTitle>
-					<DialogContent sx={{ py: 3 }}>
-						<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-							<Box sx={{ color: 'var(--text-primary)', fontSize: '0.95rem', lineHeight: 1.6 }}>
+						</JXBox>
+						Assign Shipments to Container</div>}
+				  size="md"
+				  contentSx={{paddingTop: '24px', paddingBottom: '24px'}}
+				  actionsSx={{paddingLeft: '24px', paddingRight: '24px', paddingTop: '16px', paddingBottom: '16px', borderTop: '1px solid var(--border)', gap: '8px'}}
+				  actions={<>
+
+						<Button
+							variant="outline"
+							onClick={() => setAssignShipmentModalOpen(false)}
+							disabled={assigningShipments}
+							style={{color: 'var(--text-secondary)', borderColor: 'var(--border)'}}
+						>
+							Cancel
+						</Button>
+						<Button
+							variant="primary"
+							onClick={handleAssignShipments}
+							disabled={selectedShipmentIds.length === 0 || assigningShipments}
+							style={{backgroundColor: 'var(--accent-gold)', color: 'white'}}
+						>
+							{assigningShipments ? (
+								<>
+									<JXBox padding="none" border={false} component="span" className="animate-spin" style={{backgroundColor: 'transparent', display: 'inline-block', width: '16px', height: '16px', marginRight: '8px', border: '2px solid white', borderTopColor: 'transparent', borderRadius: '50%'}} />
+									Assigning...
+								</>
+							) : (
+								<>
+									<Package className="w-4 h-4 mr-2" />
+									Assign{selectedShipmentIds.length > 0 ? ` (${selectedShipmentIds.length})` : ''}
+								</>
+							)}
+						</Button>
+				  </>}
+				>
+
+						<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '16px'}}>
+							<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, color: 'var(--text-primary)', fontSize: '0.95rem', lineHeight: 1.6}}>
 								Select shipments to assign to container <strong>{container.containerNumber}</strong>.
-							</Box>
+							</JXBox>
 
 							{/* Capacity Info */}
-							<Box
-								sx={{
-									p: 2,
-									bgcolor: 'var(--background)',
-									border: '1px solid var(--border)',
-									borderRadius: 1,
-								}}
-							>
-								<Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-									<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-										<Box sx={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+							<JXBox padding="none" border={false} style={{padding: '16px', backgroundColor: 'var(--background)', border: '1px solid var(--border)', borderRadius: '8px'}}>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '8px'}}>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between'}}>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, color: 'var(--text-secondary)', fontSize: '0.875rem'}}>
 											Current Vehicles:
-										</Box>
-										<Box sx={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.875rem' }}>
+										</JXBox>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.875rem'}}>
 											{container.currentCount} / {container.maxCapacity}
-										</Box>
-									</Box>
-									<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-										<Box sx={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+										</JXBox>
+									</JXBox>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between'}}>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, color: 'var(--text-secondary)', fontSize: '0.875rem'}}>
 											Remaining Capacity:
-										</Box>
-										<Box sx={{ fontWeight: 600, color: 'var(--success)', fontSize: '0.875rem' }}>
+										</JXBox>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 600, color: 'var(--success)', fontSize: '0.875rem'}}>
 											{container.maxCapacity - container.currentCount}
-										</Box>
-									</Box>
+										</JXBox>
+									</JXBox>
 									{selectedShipmentIds.length > 0 && (
-										<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-											<Box sx={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between'}}>
+											<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, color: 'var(--text-secondary)', fontSize: '0.875rem'}}>
 												Selected:
-											</Box>
-											<Box sx={{ fontWeight: 600, color: 'var(--accent-gold)', fontSize: '0.875rem' }}>
+											</JXBox>
+											<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 600, color: 'var(--accent-gold)', fontSize: '0.875rem'}}>
 												{selectedShipmentIds.length} shipment{selectedShipmentIds.length !== 1 ? 's' : ''}
-											</Box>
-										</Box>
+											</JXBox>
+										</JXBox>
 									)}
-								</Box>
-							</Box>
+								</JXBox>
+							</JXBox>
 
 							{/* Search */}
-							<Box>
-								<Box
-									component="label"
-									sx={{
-										display: 'block',
-										fontSize: '0.875rem',
-										fontWeight: 600,
-										color: 'var(--text-primary)',
-										mb: 1,
-									}}
-								>
+							<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+								<JXBox padding="none" border={false} component="label" style={{backgroundColor: 'transparent', borderRadius: 0, display: 'block', fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px'}}>
 									Search Shipments
-								</Box>
-								<Box sx={{ position: 'relative' }}>
+								</JXBox>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, position: 'relative'}}>
 									<Search className="w-4 h-4" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
 									<input
 										type="text"
@@ -2997,196 +2720,80 @@ export default function ContainerDetailPage() {
 											fontSize: '0.875rem',
 										}}
 									/>
-								</Box>
-							</Box>
+								</JXBox>
+							</JXBox>
 
 							{/* Shipments List */}
 							{loadingAvailableShipments ? (
-								<Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-									<Box
-										component="span"
-										sx={{
-											display: 'inline-block',
-											width: 24,
-											height: 24,
-											border: '3px solid var(--border)',
-											borderTopColor: 'var(--accent-gold)',
-											borderRadius: '50%',
-											animation: 'spin 0.6s linear infinite',
-											'@keyframes spin': {
-												'0%': { transform: 'rotate(0deg)' },
-												'100%': { transform: 'rotate(360deg)' },
-											},
-										}}
-									/>
-								</Box>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'center', paddingTop: '32px', paddingBottom: '32px'}}>
+									<JXBox padding="none" border={false} component="span" className="animate-spin" style={{backgroundColor: 'transparent', display: 'inline-block', width: '24px', height: '24px', border: '3px solid var(--border)', borderTopColor: 'var(--accent-gold)', borderRadius: '50%'}} />
+								</JXBox>
 							) : filteredAvailableShipments.length === 0 ? (
-								<Box
-									sx={{
-										p: 3,
-										textAlign: 'center',
-										color: 'var(--text-secondary)',
-										fontSize: '0.875rem',
-										bgcolor: 'var(--background)',
-										borderRadius: 1,
-										border: '1px solid var(--border)',
-									}}
-								>
+								<JXBox padding="none" border={false} style={{padding: '24px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.875rem', backgroundColor: 'var(--background)', borderRadius: '8px', border: '1px solid var(--border)'}}>
 									{shipmentSearchQuery ? 'No shipments match your search' : 'No available shipments found'}
-								</Box>
+								</JXBox>
 							) : (
-								<Box sx={{ maxHeight: '40vh', overflow: 'auto', borderRadius: 1, border: '1px solid var(--border)' }}>
-									<TableContainer>
-										<Table size="small" stickyHeader>
-											<TableHead>
-												<TableRow>
-													<TableCell padding="checkbox" sx={{ bgcolor: 'var(--background)' }}>
-														<Checkbox
-															size="small"
-															indeterminate={selectedShipmentIds.length > 0 && selectedShipmentIds.length < filteredAvailableShipments.length}
-															checked={filteredAvailableShipments.length > 0 && selectedShipmentIds.length === filteredAvailableShipments.length}
-															onChange={(e) => {
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', maxHeight: '40vh', overflow: 'auto', borderRadius: '8px', border: '1px solid var(--border)'}}>
+									<div className="w-full overflow-x-auto">
+										<table className="w-full border-collapse text-sm [&_td]:py-1.5 [&_th]:py-1.5">
+											<thead>
+												<tr className="hover:bg-[rgba(var(--border-rgb),0.25)]">
+													<th style={{backgroundColor: 'var(--background)'}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] w-10 px-2">
+														<input type="checkbox" ref={(el) => { if (el) el.indeterminate = selectedShipmentIds.length > 0 && selectedShipmentIds.length < filteredAvailableShipments.length; }} onChange={(e) => {
 																if (e.target.checked) {
 																	const remaining = container.maxCapacity - container.currentCount;
 																	setSelectedShipmentIds(filteredAvailableShipments.slice(0, remaining).map((s: any) => s.id));
 																} else {
 																	setSelectedShipmentIds([]);
 																}
-															}}
-															sx={{ color: 'var(--text-secondary)', '&.Mui-checked': { color: 'var(--accent-gold)' }, '&.MuiCheckbox-indeterminate': { color: 'var(--accent-gold)' } }}
-														/>
-													</TableCell>
-													<TableCell sx={{ fontWeight: 600, fontSize: '0.8rem', color: 'var(--text-secondary)', bgcolor: 'var(--background)' }}>Vehicle</TableCell>
-													<TableCell sx={{ fontWeight: 600, fontSize: '0.8rem', color: 'var(--text-secondary)', bgcolor: 'var(--background)' }}>VIN</TableCell>
-													<TableCell sx={{ fontWeight: 600, fontSize: '0.8rem', color: 'var(--text-secondary)', bgcolor: 'var(--background)' }}>Customer</TableCell>
-													<TableCell sx={{ fontWeight: 600, fontSize: '0.8rem', color: 'var(--text-secondary)', bgcolor: 'var(--background)' }}>Status</TableCell>
-												</TableRow>
-											</TableHead>
-											<TableBody>
+															}} checked={filteredAvailableShipments.length > 0 && selectedShipmentIds.length === filteredAvailableShipments.length} style={{color: 'var(--text-secondary)'}} className="h-4 w-4 shrink-0 cursor-pointer accent-[var(--accent-gold)] disabled:cursor-not-allowed disabled:opacity-50" />
+													</th>
+													<th style={{fontWeight: 600, fontSize: '0.8rem', color: 'var(--text-secondary)', backgroundColor: 'var(--background)'}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Vehicle</th>
+													<th style={{fontWeight: 600, fontSize: '0.8rem', color: 'var(--text-secondary)', backgroundColor: 'var(--background)'}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">VIN</th>
+													<th style={{fontWeight: 600, fontSize: '0.8rem', color: 'var(--text-secondary)', backgroundColor: 'var(--background)'}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Customer</th>
+													<th style={{fontWeight: 600, fontSize: '0.8rem', color: 'var(--text-secondary)', backgroundColor: 'var(--background)'}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Status</th>
+												</tr>
+											</thead>
+											<tbody>
 												{filteredAvailableShipments.map((shipment: any) => {
 													const isSelected = selectedShipmentIds.includes(shipment.id);
 													const remaining = container.maxCapacity - container.currentCount;
 													const isDisabled = !isSelected && selectedShipmentIds.length >= remaining;
 													return (
-														<TableRow
-															key={shipment.id}
-															hover
-															selected={isSelected}
-															sx={{
-																cursor: isDisabled ? 'not-allowed' : 'pointer',
-																opacity: isDisabled ? 0.5 : 1,
-																'&.Mui-selected': { bgcolor: 'rgba(var(--accent-gold-rgb), 0.08)' },
-																'&.Mui-selected:hover': { bgcolor: 'rgba(var(--accent-gold-rgb), 0.12)' },
-															}}
-															onClick={() => {
+														<tr key={shipment.id} style={{cursor: isDisabled ? 'not-allowed' : 'pointer', opacity: isDisabled ? 0.5 : 1}} onClick={() => {
 																if (isDisabled) return;
 																setSelectedShipmentIds((prev) =>
 																	isSelected ? prev.filter((id) => id !== shipment.id) : [...prev, shipment.id]
 																);
-															}}
-														>
-															<TableCell padding="checkbox">
-																<Checkbox
-																	size="small"
-																	checked={isSelected}
-																	disabled={isDisabled}
-																	sx={{ color: 'var(--text-secondary)', '&.Mui-checked': { color: 'var(--accent-gold)' } }}
-																/>
-															</TableCell>
-															<TableCell sx={{ fontSize: '0.875rem', color: 'var(--text-primary)' }}>
+															}} className="hover:bg-[rgba(var(--border-rgb),0.25)]">
+															<th className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] w-10 px-2">
+																<input type="checkbox" checked={isSelected} disabled={isDisabled} style={{color: 'var(--text-secondary)'}} className="h-4 w-4 shrink-0 cursor-pointer accent-[var(--accent-gold)] disabled:cursor-not-allowed disabled:opacity-50" />
+															</th>
+															<th style={{fontSize: '0.875rem', color: 'var(--text-primary)'}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
 																{shipment.vehicleMake} {shipment.vehicleModel}
-															</TableCell>
-															<TableCell sx={{ fontFamily: 'monospace', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+															</th>
+															<th style={{fontFamily: 'monospace', fontSize: '0.75rem', color: 'var(--text-secondary)'}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
 																{shipment.vehicleVIN || 'N/A'}
-															</TableCell>
-															<TableCell sx={{ fontSize: '0.875rem', color: 'var(--text-primary)' }}>
+															</th>
+															<th style={{fontSize: '0.875rem', color: 'var(--text-primary)'}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
 																{shipment.user?.name || shipment.user?.email || 'N/A'}
-															</TableCell>
-															<TableCell>
+															</th>
+															<th className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
 																<StatusBadge
 																	status={shipment.status}
 																	size="sm"
 																/>
-															</TableCell>
-														</TableRow>
+															</th>
+														</tr>
 													);
 												})}
-											</TableBody>
-										</Table>
-									</TableContainer>
-								</Box>
+											</tbody>
+										</table>
+									</div>
+								</JXBox>
 							)}
-						</Box>
-					</DialogContent>
-					<DialogActions
-						sx={{
-							px: 3,
-							py: 2,
-							borderTop: '1px solid var(--border)',
-							gap: 1,
-						}}
-					>
-						<Button
-							variant="outline"
-							onClick={() => setAssignShipmentModalOpen(false)}
-							disabled={assigningShipments}
-							sx={{
-								color: 'var(--text-secondary)',
-								borderColor: 'var(--border)',
-								'&:hover': {
-									bgcolor: 'var(--background)',
-								}
-							}}
-						>
-							Cancel
-						</Button>
-						<Button
-							variant="primary"
-							onClick={handleAssignShipments}
-							disabled={selectedShipmentIds.length === 0 || assigningShipments}
-							sx={{
-								bgcolor: 'var(--accent-gold)',
-								color: 'white',
-								'&:hover': {
-									bgcolor: 'var(--accent-gold)',
-									opacity: 0.9,
-								},
-								'&:disabled': {
-									opacity: 0.5,
-									cursor: 'not-allowed',
-								}
-							}}
-						>
-							{assigningShipments ? (
-								<>
-									<Box
-										component="span"
-										sx={{
-											display: 'inline-block',
-											width: 16,
-											height: 16,
-											mr: 1,
-											border: '2px solid white',
-											borderTopColor: 'transparent',
-											borderRadius: '50%',
-											animation: 'spin 0.6s linear infinite',
-											'@keyframes spin': {
-												'0%': { transform: 'rotate(0deg)' },
-												'100%': { transform: 'rotate(360deg)' },
-											},
-										}}
-									/>
-									Assigning...
-								</>
-							) : (
-								<>
-									<Package className="w-4 h-4 mr-2" />
-									Assign{selectedShipmentIds.length > 0 ? ` (${selectedShipmentIds.length})` : ''}
-								</>
-							)}
-						</Button>
-					</DialogActions>
-				</Dialog>
+						</JXBox>
+				</Modal>
 				{/* 2D Visual Container Load Planner Modal */}
 				{loadPlannerOpen && (
 					<div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
@@ -3231,4 +2838,14 @@ export default function ContainerDetailPage() {
 			</DashboardSurface>
 		</ProtectedRoute>
 	);
+}
+
+// useSearchParams() must sit under a Suspense boundary or static
+// prerendering fails (missing-suspense-with-csr-bailout).
+export default function ContainerDetailPage() {
+  return (
+    <Suspense fallback={<div aria-busy="true" style={{ minHeight: '50vh' }} />}>
+      <ContainerDetailPageContent />
+    </Suspense>
+  );
 }

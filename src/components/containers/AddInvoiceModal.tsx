@@ -1,19 +1,8 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import {
-	TextField,
-	FormControl,
-	InputLabel,
-	Select,
-	MenuItem,
-	Box,
-	InputAdornment,
-	Typography,
-	Chip,
-} from '@mui/material';
 import { AlertTriangle, FileText, Upload } from 'lucide-react';
-import { Button, Modal, toast } from '@/components/design-system';
+import { Button, FormField, Modal, Select, toast } from '@/components/design-system';
 
 interface AddInvoiceModalProps {
 	open: boolean;
@@ -229,10 +218,10 @@ export default function AddInvoiceModal({
 			onClose={handleClose}
 			size="sm"
 			title={
-				<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+				<div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
 					<FileText style={{ fontSize: 24, color: 'var(--accent-gold)' }} />
 					<span>Create Invoice</span>
-				</Box>
+				</div>
 			}
 			description="Create a container invoice manually or prefill it from an uploaded source file."
 			showCloseButton={!loading && !extracting}
@@ -248,15 +237,15 @@ export default function AddInvoiceModal({
 				</>
 			}
 		>
-			<Box component="form" id={formId} onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-					<Box sx={{ border: '1px dashed var(--border)', borderRadius: 2, p: 2, bgcolor: 'var(--background)' }}>
-						<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
-							<Box>
-								<Typography sx={{ fontWeight: 600, color: 'var(--text-primary)' }}>Import From Invoice File</Typography>
-								<Typography sx={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
+			<form id={formId} onSubmit={handleSubmit} style={{display: 'flex', flexDirection: 'column', gap: '20px'}}>
+					<div style={{border: '1px dashed var(--border)', borderRadius: '16px', padding: '16px', backgroundColor: 'var(--background)'}}>
+						<div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap'}}>
+							<div>
+								<p style={{fontWeight: 600, color: 'var(--text-primary)'}}>Import From Invoice File</p>
+								<p style={{fontSize: '0.8125rem', color: 'var(--text-secondary)'}}>
 									Upload a PDF, image, DOCX, XLSX, CSV, or text invoice source to prefill the form before saving.
-								</Typography>
-							</Box>
+								</p>
+							</div>
 							<Button
 								variant="secondary"
 								size="sm"
@@ -273,132 +262,54 @@ export default function AddInvoiceModal({
 								onChange={handleInvoiceImport}
 								hidden
 							/>
-						</Box>
+						</div>
 
 						{invoiceSource && (
-							<Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
-								<Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
+							<div style={{marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px'}}>
+								<div style={{display: 'flex', gap: '6px', flexWrap: 'wrap'}}>
 									{invoiceSource.extractionMethod && (
-										<Chip size="small" label={`Extraction: ${invoiceSource.extractionMethod}`} />
+										<span className="inline-flex items-center gap-1 rounded-full font-medium text-[0.7rem] px-2 py-0.5 border border-[var(--border)] bg-[var(--background)] text-[var(--text-primary)]">{`Extraction: ${invoiceSource.extractionMethod}`}</span>
 									)}
 									{invoiceSource.ocrAttempted && (
-										<Chip size="small" color="warning" label="OCR attempted" />
+										<span className="inline-flex items-center gap-1 rounded-full font-medium text-[0.7rem] px-2 py-0.5 border border-[rgba(var(--warning-rgb),0.4)] bg-[rgba(var(--warning-rgb),0.12)] text-[var(--warning-dark)]">"OCR attempted"</span>
 									)}
-								</Box>
-								<Typography sx={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
+								</div>
+								<p style={{fontSize: '0.8125rem', color: 'var(--text-secondary)'}}>
 									{invoiceSource.confidenceNotes}
-								</Typography>
-								<Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+								</p>
+								<p style={{fontSize: '0.75rem', color: 'var(--text-secondary)'}}>
 									{invoiceSource.extractedTextPreview}
-								</Typography>
+								</p>
 								{invoiceSource.failureReason && (
-									<Box
-										sx={{
-											display: 'flex',
-											alignItems: 'flex-start',
-											gap: 1,
-											p: 1,
-											borderRadius: 1,
-											bgcolor: 'rgba(245, 158, 11, 0.08)',
-											border: '1px solid rgba(245, 158, 11, 0.35)',
-										}}
-									>
+									<div style={{display: 'flex', alignItems: 'flex-start', gap: '8px', padding: '8px', borderRadius: '8px', backgroundColor: 'rgba(245, 158, 11, 0.08)', border: '1px solid rgba(245, 158, 11, 0.35)'}}>
 										<AlertTriangle className="w-4 h-4" style={{ color: 'rgb(180, 83, 9)', marginTop: 2 }} />
-										<Typography sx={{ fontSize: '0.78rem', color: 'rgb(146, 64, 14)' }}>
+										<p style={{fontSize: '0.78rem', color: 'rgb(146, 64, 14)'}}>
 											{invoiceSource.failureReason}
-										</Typography>
-									</Box>
+										</p>
+									</div>
 								)}
-							</Box>
+							</div>
 						)}
-					</Box>
+					</div>
 
-					<TextField
-						size="small"
-						label="Invoice Number"
-						value={formData.invoiceNumber}
-						onChange={(e) => handleChange('invoiceNumber', e.target.value)}
-						required
-						placeholder="e.g., INV-2025-001"
-						helperText="Unique invoice identifier"
-					/>
+					<FormField label="Invoice Number" value={formData.invoiceNumber} onChange={(e) => handleChange('invoiceNumber', e.target.value)} required placeholder="e.g., INV-2025-001" helperText="Unique invoice identifier" size="small" />
 
-					<Box sx={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 2 }}>
-						<TextField
-							size="small"
-							label="Amount"
-							type="number"
-							value={formData.amount}
-							onChange={(e) => handleChange('amount', e.target.value)}
-							required
-							inputProps={{ min: 0, step: 0.01 }}
-							InputProps={{
-								startAdornment: <InputAdornment position="start">$</InputAdornment>,
-							}}
-						/>
-						<TextField
-							size="small"
-							label="Currency"
-							value={formData.currency}
-							onChange={(e) => handleChange('currency', e.target.value)}
-							disabled
-						/>
-					</Box>
+					<div style={{display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px'}}>
+						<FormField label="Amount" type="number" value={formData.amount} onChange={(e) => handleChange('amount', e.target.value)} required inputProps={{ min: 0, step: 0.01 }} size="small" leftIcon={'$'} />
+						<FormField label="Currency" value={formData.currency} onChange={(e) => handleChange('currency', e.target.value)} disabled size="small" />
+					</div>
 
-					<FormControl fullWidth size="small" required>
-						<InputLabel>Status</InputLabel>
-						<Select
-							value={formData.status}
-							onChange={(e) => handleChange('status', e.target.value)}
-							label="Status"
-						>
-							{invoiceStatuses.map((status) => (
-								<MenuItem key={status.value} value={status.value}>
-									{status.label}
-								</MenuItem>
-							))}
-						</Select>
-					</FormControl>
+					<Select label="Status" value={formData.status} onChange={(val) => handleChange('status', String(val))} options={invoiceStatuses.map((status) => ({ value: status.value, label: status.label }))} />
 
-					<TextField
-						size="small"
-						label="Customer/Vendor"
-						value={formData.vendor}
-						onChange={(e) => handleChange('vendor', e.target.value)}
-						placeholder="Who will pay this invoice"
-					/>
+					<FormField label="Customer/Vendor" value={formData.vendor} onChange={(e) => handleChange('vendor', e.target.value)} placeholder="Who will pay this invoice" size="small" />
 
-					<Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
-						<TextField
-							size="small"
-							label="Invoice Date"
-							type="date"
-							value={formData.date}
-							onChange={(e) => handleChange('date', e.target.value)}
-							required
-							InputLabelProps={{ shrink: true }}
-						/>
-						<TextField
-							size="small"
-							label="Due Date"
-							type="date"
-							value={formData.dueDate}
-							onChange={(e) => handleChange('dueDate', e.target.value)}
-							InputLabelProps={{ shrink: true }}
-							helperText="Optional"
-						/>
-					</Box>
+					<div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
+						<FormField label="Invoice Date" type="date" value={formData.date} onChange={(e) => handleChange('date', e.target.value)} required InputLabelProps={{ shrink: true }} size="small" />
+						<FormField label="Due Date" type="date" value={formData.dueDate} onChange={(e) => handleChange('dueDate', e.target.value)} InputLabelProps={{ shrink: true }} helperText="Optional" size="small" />
+					</div>
 
-					<TextField
-						size="small"
-						label="Notes"
-						value={formData.notes}
-						onChange={(e) => handleChange('notes', e.target.value)}
-						multiline
-						rows={3}
-						placeholder="Additional details..."
-					/>
-			</Box>
+					<FormField label="Notes" value={formData.notes} onChange={(e) => handleChange('notes', e.target.value)} multiline rows={3} placeholder="Additional details..." size="small" />
+			</form>
 		</Modal>
 	);
 }

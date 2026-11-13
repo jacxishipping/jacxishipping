@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Box, Tooltip, Typography } from '@mui/material';
+import { Tooltip } from '@/components/design-system';
 import { 
   Zap, 
   Ship, 
@@ -162,33 +162,10 @@ export function TrackingSourceBadge({
 
   return (
     <Tooltip title={info.description} arrow placement="top">
-      <Box
-        component="span"
-        className={className}
-        sx={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 0.75,
-          py: paddingY,
-          px: paddingX,
-          borderRadius: '9999px',
-          bgcolor: info.bg,
-          color: info.color,
-          border: `1px solid ${info.border}`,
-          fontWeight: 600,
-          fontSize,
-          lineHeight: 1.2,
-          userSelect: 'none',
-          cursor: 'default',
-          transition: 'all 0.15s ease-in-out',
-          '&:hover': {
-            filter: 'brightness(1.1)',
-          },
-        }}
-      >
+      <span className={className} style={{display: 'inline-flex', alignItems: 'center', gap: '6px', paddingTop: paddingY, paddingBottom: paddingY, paddingLeft: paddingX, paddingRight: paddingX, borderRadius: '9999px', backgroundColor: info.bg, color: info.color, border: `1px solid ${info.border}`, fontWeight: 600, lineHeight: 1.2, userSelect: 'none', cursor: 'default', transition: 'all 0.15s ease-in-out'}}>
         {info.icon}
         <span>{info.label}</span>
-      </Box>
+      </span>
     </Tooltip>
   );
 }

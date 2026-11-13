@@ -2,7 +2,6 @@
 
 import { usePathname } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
-import { Box, Chip, List, ListItem, ListItemIcon, ListItemText, TextField, Typography } from '@mui/material';
 import { 
   ArrowRight,
   BadgeDollarSign,
@@ -405,175 +404,93 @@ export function ActivityLog({ logs }: ActivityLogProps) {
     }
 
     return (
-      <Chip
-        label={value}
-        size="small"
-        sx={{
-          height: 24,
-          fontSize: '0.72rem',
-          fontWeight: 600,
-          bgcolor: variant === 'old' ? 'rgba(239, 68, 68, 0.08)' : 'rgba(34, 197, 94, 0.08)',
-          color: variant === 'old' ? 'rgb(248, 113, 113)' : 'rgb(74, 222, 128)',
-          border: variant === 'old' ? '1px solid rgba(248, 113, 113, 0.18)' : '1px solid rgba(74, 222, 128, 0.18)',
-          '& .MuiChip-label': {
-            px: 1.2,
-          },
-        }}
-      />
+      <span style={{height: 24, fontSize: '0.72rem', fontWeight: 600, backgroundColor: variant === 'old' ? 'rgba(239, 68, 68, 0.08)' : 'rgba(34, 197, 94, 0.08)', color: variant === 'old' ? 'rgb(248, 113, 113)' : 'rgb(74, 222, 128)', border: variant === 'old' ? '1px solid rgba(248, 113, 113, 0.18)' : '1px solid rgba(74, 222, 128, 0.18)'}} className="inline-flex items-center gap-1 rounded-full font-medium text-[0.7rem] px-2 py-0.5 border border-[var(--border)] bg-[var(--background)] text-[var(--text-primary)]">{value}</span>
     );
   };
 
   return (
-    <Box>
-      <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+    <div>
+      <h6 style={{fontWeight: 600, marginBottom: '16px'}} className="text-[0.95rem] font-semibold leading-tight">
         Activity Log
-      </Typography>
+      </h6>
 
       {availableCategories.length > 1 && (
-        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
+        <div style={{display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px'}}>
           {availableCategories.map((category) => (
-            <Chip
-              key={category}
-              clickable
-              label={`${categoryLabels[category]}${category === 'all' ? ` (${logs.length})` : ` (${logs.filter((log) => getActionCategory(log.action) === category).length})`}`}
-              color={selectedCategory === category ? 'primary' : 'default'}
-              onClick={() => setSelectedCategory(category)}
-              variant={selectedCategory === category ? 'filled' : 'outlined'}
-              sx={{
-                fontWeight: 600,
-                bgcolor: selectedCategory === category ? 'rgba(var(--accent-gold-rgb), 0.14)' : 'transparent',
-                color: selectedCategory === category ? 'var(--accent-gold)' : 'var(--text-secondary)',
-                borderColor: selectedCategory === category ? 'rgba(var(--accent-gold-rgb), 0.28)' : 'var(--border)',
-              }}
-            />
+            <button type="button" key={category} onClick={() => setSelectedCategory(category)} style={{fontWeight: 600, backgroundColor: selectedCategory === category ? 'rgba(var(--accent-gold-rgb), 0.14)' : 'transparent', color: selectedCategory === category ? 'var(--accent-gold)' : 'var(--text-secondary)', borderColor: selectedCategory === category ? 'rgba(var(--accent-gold-rgb), 0.28)' : 'var(--border)'}} className="inline-flex items-center gap-1 rounded-full font-medium text-xs px-2.5 py-1 border border-[var(--border)] bg-[var(--background)] text-[var(--text-primary)]">{`${categoryLabels[category]}${category === 'all' ? ` (${logs.length})` : ` (${logs.filter((log) => getActionCategory(log.action) === category).length})`}`}</button>
           ))}
-        </Box>
+        </div>
       )}
 
-      <TextField
-        fullWidth
-        size="small"
-        placeholder="Search actor, status, invoice fields, or container reference"
-        value={searchTerm}
-        onChange={(event) => setSearchTerm(event.target.value)}
-        sx={{
-          mb: 2,
-          '& .MuiOutlinedInput-root': {
-            bgcolor: 'var(--panel)',
-          },
-        }}
-        InputProps={{
-          startAdornment: <Search className="mr-2 h-4 w-4 text-[var(--text-secondary)]" />,
-        }}
-      />
+      <div style={{marginBottom: '16px'}}><div className="relative"><span className="pointer-events-none absolute left-3 top-1/2 flex -translate-y-1/2 text-[var(--text-secondary)]"><Search className="mr-2 h-4 w-4 text-[var(--text-secondary)]" /></span><input placeholder="Search actor, status, invoice fields, or container reference" value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} className="ds-form-field-control w-full rounded-lg border bg-[var(--background)] text-[var(--text-primary)] outline-none transition-colors placeholder:text-[var(--text-secondary)] px-2.5 py-1.5 text-[0.8125rem] pl-9 border-[rgba(var(--border-rgb),0.9)] hover:border-[var(--border)] focus:border-[var(--accent-gold)] focus:ring-2 focus:ring-[rgba(var(--accent-gold-rgb),0.2)]" /></div></div>
 
-      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
+      <div style={{display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px'}}>
         {(['all', 'today', '7d', '30d'] as ActivityDateRange[]).map((range) => (
-          <Chip
-            key={range}
-            clickable
-            label={getDateRangeLabel(range)}
-            onClick={() => setSelectedDateRange(range)}
-            variant={selectedDateRange === range ? 'filled' : 'outlined'}
-            sx={{
-              fontWeight: 600,
-              bgcolor: selectedDateRange === range ? 'rgba(59, 130, 246, 0.14)' : 'transparent',
-              color: selectedDateRange === range ? 'rgb(96, 165, 250)' : 'var(--text-secondary)',
-              borderColor: selectedDateRange === range ? 'rgba(96, 165, 250, 0.28)' : 'var(--border)',
-            }}
-          />
+          <button type="button" key={range} onClick={() => setSelectedDateRange(range)} style={{fontWeight: 600, backgroundColor: selectedDateRange === range ? 'rgba(59, 130, 246, 0.14)' : 'transparent', color: selectedDateRange === range ? 'rgb(96, 165, 250)' : 'var(--text-secondary)', borderColor: selectedDateRange === range ? 'rgba(96, 165, 250, 0.28)' : 'var(--border)'}} className="inline-flex items-center gap-1 rounded-full font-medium text-xs px-2.5 py-1 border border-[var(--border)] bg-[var(--background)] text-[var(--text-primary)]">{getDateRangeLabel(range)}</button>
         ))}
-      </Box>
+      </div>
       
       {filteredLogs.length === 0 ? (
-        <Typography color="textSecondary" sx={{ fontStyle: 'italic', fontSize: '0.875rem' }}>
+        <p style={{color: 'var(--text-secondary)', fontStyle: 'italic', fontSize: '0.875rem'}}>
           {logs.length === 0 ? 'No activity recorded yet.' : 'No activity matches the selected filter.'}
-        </Typography>
+        </p>
       ) : (
-        <List sx={{ 
-            bgcolor: 'var(--panel)', 
-            borderRadius: 2, 
-            border: '1px solid var(--border)',
-            py: 0
-        }}>
+        <ul style={{backgroundColor: 'var(--panel)', borderRadius: '16px', border: '1px solid var(--border)', paddingTop: '0px', paddingBottom: '0px'}} className="list-none">
           {filteredLogs.map((log, index) => (
             (() => {
               const actionMeta = getActionMeta(log.action);
               const subtitles = getMetadataSubtitles(log);
               return (
-            <ListItem 
-                key={log.id} 
-                sx={{ 
-                    borderBottom: index < filteredLogs.length - 1 ? '1px solid var(--border)' : 'none',
-                    py: 1.5
-                }}
-            >
-              <ListItemIcon sx={{ minWidth: 36 }}>
+            <li key={log.id} style={{borderBottom: index < filteredLogs.length - 1 ? '1px solid var(--border)' : 'none', paddingTop: '12px', paddingBottom: '12px'}}>
+              <span style={{minWidth: 36}} className="flex shrink-0 items-center justify-center text-[var(--text-secondary)]">
                 {getIcon(log.action)}
-              </ListItemIcon>
-              <ListItemText
-                primaryTypographyProps={{ component: 'div' }}
-                secondaryTypographyProps={{ component: 'div' }}
-                primary={
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                      <Chip
-                        label={actionMeta.label}
-                        size="small"
-                        sx={{
-                          height: 22,
-                          fontSize: '0.7rem',
-                          fontWeight: 700,
-                          letterSpacing: '0.02em',
-                          bgcolor: actionMeta.color,
-                          color: actionMeta.textColor,
-                          border: '1px solid rgba(255,255,255,0.06)',
-                        }}
-                      />
-                    </Box>
-                    <Typography variant="body2" sx={{ color: 'var(--text-primary)', fontWeight: 500 }}>
+              </span>
+              <div><span className="block text-[0.875rem] font-medium text-[var(--text-primary)]">{
+                  <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
+                    <div style={{display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap'}}>
+                      <span style={{height: 22, fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.02em', backgroundColor: actionMeta.color, color: actionMeta.textColor, border: '1px solid rgba(255,255,255,0.06)'}} className="inline-flex items-center gap-1 rounded-full font-medium text-[0.7rem] px-2 py-0.5 border border-[var(--border)] bg-[var(--background)] text-[var(--text-primary)]">{actionMeta.label}</span>
+                    </div>
+                    <p style={{color: 'var(--text-primary)', fontWeight: 500}} className="text-[0.875rem]">
                       {log.description}
-                    </Typography>
+                    </p>
                     {subtitles.length > 0 && (
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.4 }}>
+                      <div style={{display: 'flex', flexDirection: 'column', gap: '3.2px'}}>
                         {subtitles.map((subtitle) => (
-                          <Typography key={subtitle} variant="caption" sx={{ color: 'var(--text-secondary)' }}>
+                          <span key={subtitle} style={{color: 'var(--text-secondary)'}} className="text-[0.75rem]">
                             {subtitle}
-                          </Typography>
+                          </span>
                         ))}
-                      </Box>
+                      </div>
                     )}
                     {(log.oldValue || log.newValue) && (
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
-                        <Typography variant="caption" sx={{ color: 'var(--text-secondary)', fontWeight: 700 }}>
+                      <div style={{display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap'}}>
+                        <span style={{color: 'var(--text-secondary)', fontWeight: 700}} className="text-[0.75rem]">
                           Change
-                        </Typography>
+                        </span>
                         {renderValuePill(log.oldValue, 'old')}
                         <ArrowRight className="w-3 h-3 text-[var(--text-secondary)]" />
                         {renderValuePill(log.newValue, 'new')}
-                      </Box>
+                      </div>
                     )}
-                  </Box>
-                }
-                secondary={
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+                  </div>
+                }</span><span className="block text-[0.75rem] text-[var(--text-secondary)]">{
+                  <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px'}}>
                     <User className="w-3 h-3 text-[var(--text-secondary)]" />
-                    <Typography variant="caption" color="textSecondary">
+                    <span className="text-[0.75rem]" style={{color: 'var(--text-secondary)'}}>
                       {log.performedBy}
-                    </Typography>
-                    <Typography variant="caption" color="textSecondary">
+                    </span>
+                    <span className="text-[0.75rem]" style={{color: 'var(--text-secondary)'}}>
                       • {formatTime(log.timestamp)}
-                    </Typography>
-                  </Box>
-                }
-              />
-            </ListItem>
+                    </span>
+                  </div>
+                }</span></div>
+            </li>
               );
             })()
           ))}
-        </List>
+        </ul>
       )}
-    </Box>
+    </div>
   );
 }
 

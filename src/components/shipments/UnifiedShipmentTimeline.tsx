@@ -1,7 +1,6 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Box, Chip, TextField, Typography } from '@mui/material';
 import { ArrowRight, BadgeDollarSign, MapPin, Search, ShipWheel, Truck, Warehouse, CheckCircle2, Clock, AlertCircle, Package, Anchor, FileText, DollarSign, User } from 'lucide-react';
 import type { UnifiedShipmentTimelineItem } from '@/lib/shipment-timeline';
 
@@ -112,16 +111,7 @@ export default function UnifiedShipmentTimeline({ items, onOpenCompanyLedgerEntr
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 rounded-lg border border-[var(--border)] bg-[var(--background)] p-4">
-        <TextField
-          fullWidth
-          size="small"
-          placeholder="Search timeline by stage, note, location, or ledger description"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          InputProps={{
-            startAdornment: <Search className="mr-2 h-4 w-4 text-[var(--text-secondary)]" />,
-          }}
-        />
+        <div className="relative"><span className="pointer-events-none absolute left-3 top-1/2 flex -translate-y-1/2 text-[var(--text-secondary)]"><Search className="mr-2 h-4 w-4 text-[var(--text-secondary)]" /></span><input placeholder="Search timeline by stage, note, location, or ledger description" value={query} onChange={(event) => setQuery(event.target.value)} className="ds-form-field-control w-full rounded-lg border bg-[var(--background)] text-[var(--text-primary)] outline-none transition-colors placeholder:text-[var(--text-secondary)] px-2.5 py-1.5 text-[0.8125rem] pl-9 border-[rgba(var(--border-rgb),0.9)] hover:border-[var(--border)] focus:border-[var(--accent-gold)] focus:ring-2 focus:ring-[rgba(var(--accent-gold-rgb),0.2)]" /></div>
         <div className="flex flex-wrap gap-2">
           {(Object.keys(filterLabels) as TimelineFilter[]).map((value) => (
             <button
@@ -195,18 +185,7 @@ export default function UnifiedShipmentTimeline({ items, onOpenCompanyLedgerEntr
                             {filterLabels[item.category]}
                           </span>
                           {/* Source badge */}
-                          <Chip
-                            label={item.source.replace(/_/g, ' ')}
-                            size="small"
-                            sx={{
-                              height: 22,
-                              fontSize: '0.68rem',
-                              fontWeight: 700,
-                              bgcolor: sourceStyle.bg,
-                              color: sourceStyle.color,
-                              border: `1px solid ${sourceStyle.border}`,
-                            }}
-                          />
+                          <span style={{height: 22, fontSize: '0.68rem', fontWeight: 700, backgroundColor: sourceStyle.bg, color: sourceStyle.color, border: `1px solid ${sourceStyle.border}`}} className="inline-flex items-center gap-1 rounded-full font-medium text-[0.7rem] px-2 py-0.5 border border-[var(--border)] bg-[var(--background)] text-[var(--text-primary)]">{item.source.replace(/_/g, ' ')}</span>
                           {/* Latest indicator */}
                           {isLatest && (
                             <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-500">
@@ -215,16 +194,16 @@ export default function UnifiedShipmentTimeline({ items, onOpenCompanyLedgerEntr
                             </span>
                           )}
                         </div>
-                        <Typography sx={{ mt: 1.5, fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.95rem' }}>
+                        <p style={{marginTop: '12px', fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.95rem'}}>
                           {item.title}
-                        </Typography>
-                        <Typography sx={{ mt: 0.5, color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.5 }}>
+                        </p>
+                        <p style={{marginTop: '4px', color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.5}}>
                           {item.description}
-                        </Typography>
+                        </p>
                       </div>
-                      <Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap', fontFamily: 'monospace' }}>
+                      <p style={{fontSize: '0.75rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap', fontFamily: 'monospace'}}>
                         {new Date(item.occurredAt).toLocaleString()}
-                      </Typography>
+                      </p>
                     </div>
 
                     <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-[var(--text-secondary)]">

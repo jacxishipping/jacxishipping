@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
 import Link from 'next/link';
-import { Box } from '@mui/material';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { DashboardSurface, DashboardPanel } from '@/components/dashboard/DashboardSurface';
 import { Breadcrumbs, Button } from '@/components/design-system';
@@ -70,9 +70,9 @@ export default function FinicityReturnPage() {
   return (
     <ProtectedRoute>
       <DashboardSurface>
-        <Box sx={{ px: 2, pt: 2 }}>
+        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingLeft: '16px', paddingRight: '16px', paddingTop: '16px'}}>
           <Breadcrumbs />
-        </Box>
+        </JXBox>
 
         <DashboardPanel
           title="Finicity Connection"
@@ -83,25 +83,16 @@ export default function FinicityReturnPage() {
             </Link>
           }
         >
-          <Box
-            sx={{
-              p: 2,
-              borderRadius: 2,
-              border: '1px solid var(--border)',
-              background:
-                state === 'error'
+          <JXBox padding="none" border={false} style={{padding: '16px', borderRadius: '16px', border: '1px solid var(--border)', background: state === 'error'
                   ? 'rgba(239, 68, 68, 0.08)'
                   : state === 'success'
                     ? 'rgba(16, 185, 129, 0.06)'
-                    : 'rgba(59, 130, 246, 0.06)',
-              color: 'var(--text-primary)',
-            }}
-          >
-            <Box sx={{ fontWeight: 700, mb: 1 }}>
+                    : 'rgba(59, 130, 246, 0.06)', color: 'var(--text-primary)'}}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 700, marginBottom: '8px'}}>
               {state === 'syncing' ? 'Syncing bank accounts...' : state === 'success' ? 'Connection complete' : 'Connection needs attention'}
-            </Box>
-            <Box sx={{ color: 'var(--text-secondary)' }}>{message}</Box>
-          </Box>
+            </JXBox>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, color: 'var(--text-secondary)'}}>{message}</JXBox>
+          </JXBox>
         </DashboardPanel>
       </DashboardSurface>
     </ProtectedRoute>

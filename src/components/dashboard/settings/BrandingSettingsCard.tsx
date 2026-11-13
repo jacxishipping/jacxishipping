@@ -17,7 +17,6 @@ import {
   Link as LinkIcon,
   Image as ImageIcon
 } from 'lucide-react';
-import { Box, TextField, Typography, CircularProgress } from '@mui/material';
 import { DashboardPanel } from '@/components/dashboard/DashboardSurface';
 import { Button, toast } from '@/components/design-system';
 import { useSiteBranding } from '@/hooks/useSiteBranding';
@@ -325,86 +324,25 @@ export function BrandingSettingsCard({ canEdit = true }: BrandingSettingsCardPro
               <label className="block text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] mb-1.5">
                 Company Display Name
               </label>
-              <TextField
-                fullWidth
-                size="small"
-                value={form.companyName}
-                onChange={(e) => setForm((prev) => ({ ...prev, companyName: e.target.value }))}
-                placeholder="e.g. JACXI SHIPPING"
-                disabled={!canEdit || saving}
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    backgroundColor: 'var(--panel)',
-                    borderRadius: '10px',
-                    '& fieldset': { borderColor: 'var(--border)' },
-                    '&:hover fieldset': { borderColor: 'var(--accent-gold)' },
-                    '&.Mui-focused fieldset': { borderColor: 'var(--accent-gold)' },
-                  },
-                  '& .MuiInputBase-input': {
-                    color: 'var(--text-primary)',
-                    fontSize: '0.875rem',
-                  },
-                }}
-              />
+              <input value={form.companyName} onChange={(e) => setForm((prev) => ({ ...prev, companyName: e.target.value }))} placeholder="e.g. JACXI SHIPPING" disabled={!canEdit || saving} className="ds-form-field-control w-full rounded-lg border bg-[var(--background)] text-[var(--text-primary)] outline-none transition-colors placeholder:text-[var(--text-secondary)] px-2.5 py-1.5 text-[0.8125rem] border-[rgba(var(--border-rgb),0.9)] hover:border-[var(--border)] focus:border-[var(--accent-gold)] focus:ring-2 focus:ring-[rgba(var(--accent-gold-rgb),0.2)]" />
             </div>
 
             <div className="md:col-span-1">
               <label className="block text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] mb-1.5">
                 Tagline / Caption
               </label>
-              <TextField
-                fullWidth
-                size="small"
-                value={form.companyTagline}
-                onChange={(e) => setForm((prev) => ({ ...prev, companyTagline: e.target.value }))}
-                placeholder="e.g. Vehicle Logistics"
-                disabled={!canEdit || saving}
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    backgroundColor: 'var(--panel)',
-                    borderRadius: '10px',
-                    '& fieldset': { borderColor: 'var(--border)' },
-                    '&:hover fieldset': { borderColor: 'var(--accent-gold)' },
-                    '&.Mui-focused fieldset': { borderColor: 'var(--accent-gold)' },
-                  },
-                  '& .MuiInputBase-input': {
-                    color: 'var(--text-primary)',
-                    fontSize: '0.875rem',
-                  },
-                }}
-              />
+              <input value={form.companyTagline} onChange={(e) => setForm((prev) => ({ ...prev, companyTagline: e.target.value }))} placeholder="e.g. Vehicle Logistics" disabled={!canEdit || saving} className="ds-form-field-control w-full rounded-lg border bg-[var(--background)] text-[var(--text-primary)] outline-none transition-colors placeholder:text-[var(--text-secondary)] px-2.5 py-1.5 text-[0.8125rem] border-[rgba(var(--border-rgb),0.9)] hover:border-[var(--border)] focus:border-[var(--accent-gold)] focus:ring-2 focus:ring-[rgba(var(--accent-gold-rgb),0.2)]" />
             </div>
 
             <div className="md:col-span-1">
               <label className="block text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] mb-1.5">
                 Logo Public Path / URL
               </label>
-              <TextField
-                fullWidth
-                size="small"
-                value={form.logoUrl}
-                onChange={(e) => {
+              <input value={form.logoUrl} onChange={(e) => {
                   setPendingFile(null);
                   setLocalPreviewUrl(null);
                   setForm((prev) => ({ ...prev, logoUrl: e.target.value }));
-                }}
-                placeholder="/main-logo.png or https://..."
-                disabled={!canEdit || saving}
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    backgroundColor: 'var(--panel)',
-                    borderRadius: '10px',
-                    '& fieldset': { borderColor: 'var(--border)' },
-                    '&:hover fieldset': { borderColor: 'var(--accent-gold)' },
-                    '&.Mui-focused fieldset': { borderColor: 'var(--accent-gold)' },
-                  },
-                  '& .MuiInputBase-input': {
-                    color: 'var(--text-primary)',
-                    fontSize: '0.875rem',
-                    fontFamily: 'monospace',
-                  },
-                }}
-              />
+                }} placeholder="/main-logo.png or https://..." disabled={!canEdit || saving} className="ds-form-field-control w-full rounded-lg border bg-[var(--background)] text-[var(--text-primary)] outline-none transition-colors placeholder:text-[var(--text-secondary)] px-2.5 py-1.5 text-[0.8125rem] border-[rgba(var(--border-rgb),0.9)] hover:border-[var(--border)] focus:border-[var(--accent-gold)] focus:ring-2 focus:ring-[rgba(var(--accent-gold-rgb),0.2)]" />
             </div>
           </div>
 
@@ -438,7 +376,7 @@ export function BrandingSettingsCard({ canEdit = true }: BrandingSettingsCardPro
                 >
                   {saving || uploading ? (
                     <>
-                      <CircularProgress size={16} color="inherit" className="mr-2" />
+                      <span role="status" aria-label="Loading" className="mr-2 inline-block h-5 w-5 animate-spin rounded-full border-2 border-[var(--border)]" style={{width: 16, height: 16, borderTopColor: 'currentColor'}} />
                       Saving & Propagating...
                     </>
                   ) : (

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { JXBox } from '@jacxishippingorg/jx-ui-react';
-import { ChevronRight, Home } from '@mui/icons-material';
+import { ChevronRight, House } from 'lucide-react';
 
 /**
  * Breadcrumbs Component
@@ -91,13 +91,13 @@ export default function Breadcrumbs({
         <>
           <Link href="/dashboard" style={{ textDecoration: 'none' }}>
             <span className="inline-flex min-h-[28px] items-center gap-1 rounded-md px-2 py-1 transition-all duration-200 hover:bg-[rgba(var(--accent-gold-rgb),0.1)]">
-              <Home sx={{ fontSize: 16, color: 'var(--text-secondary)' }} />
+              <House className="h-4 w-4 text-[var(--text-secondary)]" />
               <span className="text-[0.875rem] font-medium text-[var(--text-secondary)]">
                 {homeLabel}
               </span>
             </span>
           </Link>
-          <ChevronRight sx={{ fontSize: 16, color: 'var(--text-secondary)' }} />
+          <ChevronRight className="h-4 w-4 text-[var(--text-secondary)]" />
         </>
       )}
 
@@ -119,7 +119,7 @@ export default function Breadcrumbs({
                     {item.label}
                   </span>
                 </Link>
-                <ChevronRight sx={{ fontSize: 16, color: 'var(--text-secondary)' }} />
+                <ChevronRight className="h-4 w-4 text-[var(--text-secondary)]" />
               </>
             )}
           </div>
@@ -161,7 +161,7 @@ export function BreadcrumbsCompact({ className }: { className?: string }) {
               {parentPage.label}
             </span>
           )}
-          <ChevronRight sx={{ fontSize: 14, color: 'var(--text-secondary)' }} />
+          <ChevronRight className="h-3.5 w-3.5 text-[var(--text-secondary)]" />
         </>
       )}
       <span className="text-[0.8125rem] font-semibold text-[var(--text-primary)]">

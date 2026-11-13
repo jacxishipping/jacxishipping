@@ -4,11 +4,41 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import type { Session } from 'next-auth';
-import type { SvgIconComponent } from '@mui/icons-material';
-import { Dashboard, Inventory2, Description, Search, Analytics, Group, AllInbox, Receipt, ReceiptLong, AccountBalance, Payment, Business, LocalShipping, SmartToy, Hub, PhoneInTalk, Route, ExpandLess, ExpandMore, AdminPanelSettings, CompareArrows, SwapHoriz, Settings, Timer, ChevronLeft, ChevronRight, Logout, Close } from '@mui/icons-material';
+import type { LucideIcon } from 'lucide-react';
+import {
+	LayoutDashboard,
+	Package,
+	FileText,
+	Search,
+	ChartBar,
+	Users,
+	Inbox,
+	Receipt,
+	ReceiptText,
+	Landmark,
+	CreditCard,
+	Building2,
+	Truck,
+	Bot,
+	Network,
+	PhoneCall,
+	Route,
+	ChevronUp,
+	ChevronDown,
+	ShieldCheck,
+	ArrowLeftRight,
+	Settings,
+	Timer,
+	ChevronLeft,
+	ChevronRight,
+	LogOut,
+	X,
+} from 'lucide-react';
 import { signOut, useSession } from 'next-auth/react';
-import { Drawer, Box, List, ListItemButton, ListItemIcon, ListItemText, Typography, Collapse, Avatar, Tooltip } from '@mui/material';
-import { JXBox, JXButton, JXDivider, SpringButton } from '@jacxishippingorg/jx-ui-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { JXBox, JXButton, JXDivider, JXAvatar } from "@jacxishippingorg/jx-ui-react";
+import { JacxiButton } from '@/components/design-system/JacxiButton';
+import Tooltip from '@/components/design-system/Tooltip';
 import { hasPermission, type Permission } from '@/lib/rbac';
 import { useTheme } from '@/hooks/useTheme';
 import SiteLogo from '@/components/brand/SiteLogo';
@@ -16,7 +46,7 @@ import SiteLogo from '@/components/brand/SiteLogo';
 type NavigationItem = {
 	name: string;
 	href: string;
-	icon: SvgIconComponent;
+	icon: LucideIcon;
 	requiredPermission?: Permission;
 	allowedRoles?: string[];
 };
@@ -34,7 +64,7 @@ const mainNavigation: NavigationItem[] = [
 	{
 		name: 'Dashboard',
 		href: '/dashboard',
-		icon: Dashboard,
+		icon: LayoutDashboard,
 	},
 ];
 
@@ -42,7 +72,7 @@ const shipmentNavigation: NavigationItem[] = [
 	{
 		name: 'Shipments',
 		href: '/dashboard/shipments',
-		icon: Inventory2,
+		icon: Package,
 		requiredPermission: 'shipments:view',
 	},
 	{
@@ -54,19 +84,19 @@ const shipmentNavigation: NavigationItem[] = [
 	{
 		name: 'Containers',
 		href: '/dashboard/containers',
-		icon: AllInbox,
+		icon: Inbox,
 		requiredPermission: 'containers:view',
 	},
 	{
 		name: 'Dispatches',
 		href: '/dashboard/dispatches',
-		icon: LocalShipping,
+		icon: Truck,
 		requiredPermission: 'dispatches:manage',
 	},
 	{
 		name: 'Operations Board',
 		href: '/dashboard/operations',
-		icon: CompareArrows,
+		icon: ArrowLeftRight,
 		requiredPermission: 'shipments:manage',
 	},
 	{
@@ -84,7 +114,7 @@ const shipmentNavigation: NavigationItem[] = [
 	{
 		name: 'Tracking Diagnostics',
 		href: '/dashboard/tracking-diagnostics',
-		icon: Analytics,
+		icon: ChartBar,
 		requiredPermission: 'shipments:read_all',
 	},
 ];
@@ -93,19 +123,19 @@ const financeNavigation: NavigationItem[] = [
 	{
 		name: 'Finance',
 		href: '/dashboard/finance',
-		icon: AccountBalance,
+		icon: Landmark,
 		requiredPermission: 'finance:view',
 	},
 	{
 		name: 'Office Expenses',
 		href: '/dashboard/finance/office-expenses',
-		icon: ReceiptLong,
+		icon: ReceiptText,
 		requiredPermission: 'finance:view',
 	},
 	{
 		name: 'Banking',
 		href: '/dashboard/finance/banking',
-		icon: Payment,
+		icon: CreditCard,
 		requiredPermission: 'finance:view',
 	},
 	{
@@ -117,19 +147,19 @@ const financeNavigation: NavigationItem[] = [
 	{
 		name: 'Company Ledgers',
 		href: '/dashboard/finance/companies',
-		icon: Business,
+		icon: Building2,
 		requiredPermission: 'finance:manage',
 	},
 	{
 		name: 'Ledger Transfers',
 		href: '/dashboard/finance/transfers',
-		icon: SwapHoriz,
+		icon: ArrowLeftRight,
 		requiredPermission: 'finance:manage',
 	},
 	{
 		name: 'Price Comparison',
 		href: '/dashboard/finance/price-comparison',
-		icon: CompareArrows,
+		icon: ArrowLeftRight,
 		requiredPermission: 'finance:view',
 	},
 ];
@@ -138,13 +168,13 @@ const companyNavigation: NavigationItem[] = [
 	{
 		name: 'Customers',
 		href: '/dashboard/customers',
-		icon: Group,
+		icon: Users,
 		requiredPermission: 'customers:view',
 	},
 	{
 		name: 'Partner Portals',
 		href: '/dashboard/partner-portals',
-		icon: Group,
+		icon: Users,
 		requiredPermission: 'customers:manage',
 	},
 ];
@@ -153,25 +183,25 @@ const aiDocumentNavigation: NavigationItem[] = [
 	{
 		name: 'Documents',
 		href: '/dashboard/documents',
-		icon: Description,
+		icon: FileText,
 		requiredPermission: 'documents:view',
 	},
 	{
 		name: 'MCP Server',
 		href: '/dashboard/mcp',
-		icon: Hub,
+		icon: Network,
 		requiredPermission: 'shipments:read_all',
 	},
 	{
 		name: 'AI Logs',
 		href: '/dashboard/ai-logs',
-		icon: SmartToy,
+		icon: Bot,
 		requiredPermission: 'shipments:read_all',
 	},
 	{
 		name: 'Call Agent',
 		href: '/dashboard/settings/call-agent',
-		icon: PhoneInTalk,
+		icon: PhoneCall,
 		requiredPermission: 'users:manage',
 		allowedRoles: ['admin'],
 	},
@@ -189,13 +219,13 @@ const adminNavigation: NavigationItem[] = [
 	{
 		name: 'Analytics',
 		href: '/dashboard/analytics',
-		icon: Analytics,
+		icon: ChartBar,
 		requiredPermission: 'analytics:view',
 	},
 	{
 		name: 'Users',
 		href: '/dashboard/users',
-		icon: Group,
+		icon: Users,
 		requiredPermission: 'users:manage',
 	},
 ];
@@ -251,57 +281,52 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }: SidebarPr
 	return (
 		<>
 			{/* Mobile Drawer */}
-			<Drawer
-				variant="temporary"
-				open={mobileOpen}
-				onClose={onMobileClose}
-				ModalProps={{
-					keepMounted: true,
-				}}
-				sx={{
-					display: { xs: 'block', lg: 'none' },
-					'& .MuiDrawer-paper': {
-						width: 'min(300px, 85vw)',
-						height: '100%',
-						boxSizing: 'border-box',
-						background: 'linear-gradient(180deg, var(--panel) 0%, rgba(var(--panel-rgb), 0.97) 100%)',
-						color: 'var(--text-primary)',
-						borderRight: '1px solid var(--border)',
-						boxShadow: '0 10px 30px rgba(var(--text-primary-rgb),0.2)',
-					},
-				}}
-			>
-				<SidebarContent
-					pathname={pathname}
-					session={session}
-					adminCollapsed={adminCollapsed}
-					onToggleAdminCollapsed={toggleAdminCollapsed}
-					onNavClick={onMobileClose}
-					isMobile
-				/>
-			</Drawer>
+			<AnimatePresence>
+				{mobileOpen && (
+					<div className="fixed inset-0 z-[1030] lg:hidden" role="presentation">
+						<motion.div
+							aria-hidden="true"
+							className="absolute inset-0 bg-black/50 backdrop-blur-[2px]"
+							initial={{ opacity: 0 }}
+							animate={{ opacity: 1 }}
+							exit={{ opacity: 0 }}
+							onClick={onMobileClose}
+						/>
+						<motion.aside
+							role="dialog"
+							aria-modal="true"
+							aria-label="Navigation menu"
+							initial={{ x: '-100%' }}
+							animate={{ x: 0 }}
+							exit={{ x: '-100%' }}
+							transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+							className="absolute bottom-0 left-0 top-0 flex w-[min(300px,85vw)] flex-col overflow-hidden border-r border-[var(--border)] text-[var(--text-primary)] shadow-[0_10px_30px_rgba(var(--text-primary-rgb),0.2)]"
+							style={{
+								background: 'linear-gradient(180deg, var(--panel) 0%, rgba(var(--panel-rgb), 0.97) 100%)',
+							}}
+						>
+							<SidebarContent
+								pathname={pathname}
+								session={session}
+								adminCollapsed={adminCollapsed}
+								onToggleAdminCollapsed={toggleAdminCollapsed}
+								onNavClick={onMobileClose}
+								isMobile
+							/>
+						</motion.aside>
+					</div>
+				)}
+			</AnimatePresence>
 
-			{/* Desktop Drawer */}
-			<Drawer
-				variant="permanent"
-				sx={{
-					display: { xs: 'none', lg: 'block' },
+			{/* Desktop Sidebar */}
+			<aside
+				aria-label="Sidebar navigation"
+				className="hidden shrink-0 overflow-hidden border-r border-[var(--border)] text-[var(--text-primary)] transition-[width] duration-200 lg:block"
+				style={{
 					width: desktopDrawerWidth,
-					flexShrink: 0,
-					transition: 'width 200ms cubic-bezier(0.4, 0, 0.2, 1)',
-					'& .MuiDrawer-paper': {
-						width: desktopDrawerWidth,
-						boxSizing: 'border-box',
-						background: 'linear-gradient(180deg, var(--panel) 0%, rgba(var(--panel-rgb), 0.97) 100%)',
-						color: 'var(--text-primary)',
-						borderRight: '1px solid var(--border)',
-						borderTop: '2px solid rgba(var(--accent-gold-rgb), 0.15)',
-						boxShadow: 'inset -1px 0 0 var(--border)',
-						position: 'relative',
-						height: '100%',
-						overflow: 'hidden',
-						transition: 'width 200ms cubic-bezier(0.4, 0, 0.2, 1)',
-					},
+					background: 'linear-gradient(180deg, var(--panel) 0%, rgba(var(--panel-rgb), 0.97) 100%)',
+					borderTop: '2px solid rgba(var(--accent-gold-rgb), 0.15)',
+					boxShadow: 'inset -1px 0 0 var(--border)',
 				}}
 			>
 				<SidebarContent
@@ -312,7 +337,7 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }: SidebarPr
 					collapsed={isDesktopCollapsed}
 					onToggleCollapse={toggleDesktopCollapsed}
 				/>
-			</Drawer>
+			</aside>
 		</>
 	);
 }
@@ -354,120 +379,84 @@ function NavItem({ item, isActive, badge, badgeColor, onNavClick, collapsed }: N
 	const badgeStyle = badgeColor ? badgeStyles[badgeColor] : null;
 	const badgeLabel = typeof badge === 'number' && badge > 99 ? '99+' : badge;
 
-	const itemButton = (
-		<ListItemButton
-			component={Link}
+	const itemLink = (
+		<Link
 			href={item.href}
 			onClick={onNavClick}
 			onMouseEnter={handlePrefetch}
 			onFocus={handlePrefetch}
-			selected={active}
 			aria-current={active ? 'page' : undefined}
-			sx={{
-				position: 'relative',
-				borderRadius: isCompact ? 1.25 : 1.5,
-				mx: collapsed ? 0.5 : (isCompact ? 0.75 : 1),
-				my: isCompact ? 0.125 : 0.25,
-				py: isCompact ? 0.45 : 0.75,
-				px: collapsed ? (isCompact ? 0.75 : 1) : (isCompact ? 1.25 : 1.5),
-				justifyContent: collapsed ? 'center' : 'initial',
-				minHeight: 0,
-				transition: 'all 150ms ease',
-				color: active ? 'var(--accent-gold)' : 'var(--text-secondary)',
-				bgcolor: active ? 'rgba(var(--accent-gold-rgb), 0.15)' : 'transparent',
-				boxShadow: active ? 'inset 0 0 0 1px rgba(var(--accent-gold-rgb), 0.2)' : 'none',
-				'&:hover': {
-					bgcolor: 'rgba(var(--accent-gold-rgb), 0.08)',
-					color: 'var(--text-primary)',
-				},
-				'&::before': active
-					? {
-							content: '""',
-							position: 'absolute',
-							left: 0,
-							top: 4,
-							bottom: 4,
-							width: 4,
-							borderRadius: '0 2px 2px 0',
-							backgroundColor: 'var(--accent-gold)',
-							boxShadow: '2px 0 8px rgba(var(--accent-gold-rgb), 0.4)',
-					  }
-					: {},
-			}}
+			className={[
+				'group relative flex w-full items-center rounded-lg transition-all duration-150',
+				collapsed
+					? isCompact
+						? 'mx-1 my-0.5 justify-center px-1.5 py-1'
+						: 'mx-1 my-0.5 justify-center px-2 py-2'
+					: isCompact
+						? 'mx-1.5 my-0.5 px-2.5 py-1.5'
+						: 'mx-2 my-1 px-3 py-2',
+				active
+					? 'bg-[rgba(var(--accent-gold-rgb),0.15)] text-[var(--accent-gold)] shadow-[inset_0_0_0_1px_rgba(var(--accent-gold-rgb),0.2)]'
+					: 'text-[var(--text-secondary)] hover:bg-[rgba(var(--accent-gold-rgb),0.08)] hover:text-[var(--text-primary)]',
+			].join(' ')}
 		>
-			<ListItemIcon
-				sx={{
-					minWidth: collapsed ? 0 : 32,
-					justifyContent: 'center',
-					color: active ? 'var(--accent-gold)' : 'var(--text-secondary)',
-					'.MuiListItemButton-root:hover &': {
-						color: 'var(--text-primary)',
-					},
-				}}
-			>
-				<Icon sx={{ fontSize: 18, filter: active ? 'drop-shadow(0 0 4px rgba(var(--accent-gold-rgb), 0.5))' : 'none' }} />
-				{collapsed && typeof badge === 'number' && badge > 0 && (
-					<Box
-						component="span"
-						sx={{
-							position: 'absolute',
-							top: 6,
-							right: 14,
-							width: 7,
-							height: 7,
-							borderRadius: '50%',
-							bgcolor: badgeColor === 'error' ? 'var(--error)' : 'var(--warning)',
-						}}
-					/>
-				)}
-			</ListItemIcon>
-			{!collapsed && (
-				<ListItemText
-					primary={item.name}
-					primaryTypographyProps={{
-						fontSize: isCompact ? '0.8125rem' : '0.9rem',
-						fontWeight: 500,
-						color: 'inherit',
-					}}
+			{active && (
+				<span
+					aria-hidden="true"
+					className="absolute bottom-1 left-0 top-1 w-1 rounded-r-[2px] bg-[var(--accent-gold)] shadow-[2px_0_8px_rgba(var(--accent-gold-rgb),0.4)]"
 				/>
 			)}
+			<span
+				className={[
+					'flex shrink-0 items-center justify-center text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]',
+					active ? '!text-[var(--accent-gold)]' : '',
+					collapsed ? '' : 'w-8',
+				].join(' ')}
+			>
+				<Icon
+					className="h-[18px] w-[18px]"
+					style={active ? { filter: 'drop-shadow(0 0 4px rgba(var(--accent-gold-rgb), 0.5))' } : undefined}
+				/>
+				{collapsed && typeof badge === 'number' && badge > 0 && (
+					<span
+						aria-hidden="true"
+						className="absolute right-[14px] top-[6px] h-[7px] w-[7px] rounded-full"
+						style={{ backgroundColor: badgeColor === 'error' ? 'var(--error)' : 'var(--warning)' }}
+					/>
+				)}
+			</span>
+			{!collapsed && (
+				<span
+					className="truncate text-[0.9rem] font-medium"
+					style={isCompact ? { fontSize: '0.8125rem' } : undefined}
+				>
+					{item.name}
+				</span>
+			)}
 			{!collapsed && typeof badge === 'number' && badge > 0 && badgeStyle && (
-				<Box
-					component="span"
-					sx={{
-						borderRadius: '999px',
-						px: 0.75,
-						py: 0.125,
-						fontSize: '0.625rem',
-						fontWeight: 800,
-						lineHeight: 1.6,
-						minWidth: '18px',
-						textAlign: 'center',
-						ml: 'auto',
-						display: 'inline-flex',
-						alignItems: 'center',
-						justifyContent: 'center',
-						flexShrink: 0,
+				<span
+					className="ml-auto inline-flex min-w-[18px] shrink-0 items-center justify-center rounded-full px-1.5 py-0.5 text-center text-[0.625rem] font-extrabold leading-[1.6]"
+					style={{
 						background: badgeStyle.background,
 						color: badgeStyle.color,
 						border: badgeStyle.border,
 					}}
 				>
 					{badgeLabel}
-				</Box>
+				</span>
 			)}
-		</ListItemButton>
+		</Link>
 	);
 
 	if (collapsed) {
 		return (
-			<Tooltip title={item.name} placement="right" arrow>
-				{itemButton}
+			<Tooltip title={item.name} placement="right" arrow wrapperClassName="flex w-full">
+				{itemLink}
 			</Tooltip>
 		);
 	}
 
-	return itemButton;
+	return itemLink;
 }
 
 type NavSectionProps = {
@@ -482,13 +471,13 @@ type NavSectionProps = {
 
 const ADMIN_SECTION_STORAGE_KEY = 'sidebar_admin_collapsed';
 
-const sectionIcons: Partial<Record<string, typeof Inventory2>> = {
-	Operations: Inventory2,
-	Finance: AccountBalance,
-	'Companies & Customers': Business,
-	'AI & Documents': SmartToy,
+const sectionIcons: Partial<Record<string, LucideIcon>> = {
+	Operations: Package,
+	Finance: Landmark,
+	'Companies & Customers': Building2,
+	'AI & Documents': Bot,
 	Settings,
-	Admin: AdminPanelSettings,
+	Admin: ShieldCheck,
 };
 
 function isNavigationItemActive(pathname: string, href: string) {
@@ -515,44 +504,33 @@ function NavSection({ title, items, role, isActive, badgeMap, onNavClick, collap
 	const SectionIcon = title ? sectionIcons[title] : undefined;
 
 	return (
-		<Box sx={{ mb: 0.5 }}>
+		<div className="mb-0.5">
 			{title && !collapsed && (
-				<Box sx={{ px: 2, py: 0.5, mt: 1 }}>
-					<Typography
-						variant="caption"
-						sx={{
-							fontSize: '0.6875rem',
-							fontWeight: 600,
-							color: 'var(--text-secondary)',
-							textTransform: 'uppercase',
-							letterSpacing: 0.5,
-							display: 'inline-flex',
-							alignItems: 'center',
-							gap: 0.5,
-						}}
-					>
-						{SectionIcon && <SectionIcon sx={{ fontSize: 12 }} />}
+				<div className="mt-1 px-4 py-1">
+					<span className="inline-flex items-center gap-1 text-[0.6875rem] font-semibold uppercase tracking-[0.5px] text-[var(--text-secondary)]">
+						{SectionIcon && <SectionIcon className="h-3 w-3" />}
 						{title}
-					</Typography>
-				</Box>
+					</span>
+				</div>
 			)}
 			{title && collapsed && (
 				<JXDivider className="my-1.5 mx-2.5 !border-[var(--border)]" />
 			)}
-			<List sx={{ py: 0 }}>
+			<ul className="py-0">
 				{filterNavigationItems(items, role).map((item) => (
-					<NavItem
-						key={item.name}
-						item={item}
-						isActive={isActive}
-						badge={badgeMap?.[item.href]?.count}
-						badgeColor={badgeMap?.[item.href]?.color}
-						onNavClick={onNavClick}
-						collapsed={collapsed}
-					/>
+					<li key={item.name}>
+						<NavItem
+							item={item}
+							isActive={isActive}
+							badge={badgeMap?.[item.href]?.count}
+							badgeColor={badgeMap?.[item.href]?.color}
+							onNavClick={onNavClick}
+							collapsed={collapsed}
+						/>
+					</li>
 				))}
-			</List>
-		</Box>
+			</ul>
+		</div>
 	);
 }
 
@@ -575,56 +553,37 @@ function CollapsibleAdminSection({
 
 	if (isSidebarCollapsed) {
 		return (
-			<Box sx={{ mb: 0.5 }}>
+			<div className="mb-0.5">
 				<JXDivider className="my-1.5 mx-2.5 !border-[var(--border)]" />
-				<List sx={{ py: 0 }}>
+				<ul className="py-0">
 					{visibleItems.map((item) => (
-						<NavItem
-							key={item.name}
-							item={item}
-							isActive={isActive}
-							badge={badgeMap?.[item.href]?.count}
-							badgeColor={badgeMap?.[item.href]?.color}
-							onNavClick={onNavClick}
-							collapsed={true}
-						/>
+						<li key={item.name}>
+							<NavItem
+								item={item}
+								isActive={isActive}
+								badge={badgeMap?.[item.href]?.count}
+								badgeColor={badgeMap?.[item.href]?.color}
+								onNavClick={onNavClick}
+								collapsed={true}
+							/>
+						</li>
 					))}
-				</List>
-			</Box>
+				</ul>
+			</div>
 		);
 	}
 
 	return (
-		<Box sx={{ mb: 0.5 }}>
-			<Box
-				sx={{
-					px: 2,
-					py: 0.5,
-					mt: 1,
-					display: 'flex',
-					alignItems: 'center',
-					justifyContent: 'space-between',
-					cursor: 'pointer',
-				}}
+		<div className="mb-0.5">
+			<div
+				className="mt-1 flex cursor-pointer items-center justify-between px-4 py-1"
 				onClick={onToggleCollapsed}
 			>
-				<Typography
-					variant="caption"
-					sx={{
-						fontSize: '0.6875rem',
-						fontWeight: 600,
-						color: 'var(--text-secondary)',
-						textTransform: 'uppercase',
-						letterSpacing: 0.5,
-						display: 'inline-flex',
-						alignItems: 'center',
-						gap: 0.5,
-					}}
-				>
-					{SectionIcon && <SectionIcon sx={{ fontSize: 12 }} />}
+				<span className="inline-flex items-center gap-1 text-[0.6875rem] font-semibold uppercase tracking-[0.5px] text-[var(--text-secondary)]">
+					{SectionIcon && <SectionIcon className="h-3 w-3" />}
 					Admin
-				</Typography>
-				<SpringButton
+				</span>
+				<JacxiButton
 					type="button"
 					variant="outline"
 					tone="primary"
@@ -636,24 +595,35 @@ function CollapsibleAdminSection({
 					className="!h-6 !w-6 !min-h-0 !min-w-0 !rounded-md !border-0 !bg-transparent !p-0.5 !text-[var(--text-secondary)] hover:!bg-[rgba(var(--accent-gold-rgb),0.1)] hover:!text-[var(--text-primary)] !shadow-none"
 					aria-label={collapsed ? 'Expand admin navigation' : 'Collapse admin navigation'}
 				>
-					{collapsed ? <ExpandMore sx={{ fontSize: 14 }} /> : <ExpandLess sx={{ fontSize: 14 }} />}
-				</SpringButton>
-			</Box>
-			<Collapse in={!collapsed}>
-				<List sx={{ py: 0 }}>
-					{visibleItems.map((item) => (
-						<NavItem
-							key={item.name}
-							item={item}
-							isActive={isActive}
-							badge={badgeMap?.[item.href]?.count}
-							badgeColor={badgeMap?.[item.href]?.color}
-							onNavClick={onNavClick}
-						/>
-					))}
-				</List>
-			</Collapse>
-		</Box>
+					{collapsed ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronUp className="h-3.5 w-3.5" />}
+				</JacxiButton>
+			</div>
+			<AnimatePresence initial={false}>
+				{!collapsed && (
+					<motion.div
+						initial={{ height: 0, opacity: 0 }}
+						animate={{ height: 'auto', opacity: 1 }}
+						exit={{ height: 0, opacity: 0 }}
+						transition={{ duration: 0.2 }}
+						className="overflow-hidden"
+					>
+						<ul className="py-0">
+							{visibleItems.map((item) => (
+								<li key={item.name}>
+									<NavItem
+										item={item}
+										isActive={isActive}
+										badge={badgeMap?.[item.href]?.count}
+										badgeColor={badgeMap?.[item.href]?.color}
+										onNavClick={onNavClick}
+									/>
+								</li>
+							))}
+						</ul>
+					</motion.div>
+				)}
+			</AnimatePresence>
+		</div>
 	);
 }
 
@@ -680,7 +650,6 @@ function SidebarContent({
 	const appUser = session?.user as AppUser | undefined;
 	const userRole = appUser?.role;
 	const userName = appUser?.name || 'User';
-	const userInitial = userName.charAt(0).toUpperCase();
 	const userImage = appUser?.image || undefined;
 	const [navBadges, setNavBadges] = useState<NavBadges | null>(null);
 
@@ -724,14 +693,7 @@ function SidebarContent({
 	};
 
 	return (
-		<Box
-			sx={{
-				display: 'flex',
-				flexDirection: 'column',
-				height: '100%',
-				overflow: 'hidden',
-			}}
-		>
+		<div className="flex h-full flex-col overflow-hidden">
 			{/* Mobile Drawer Header */}
 			{isMobile && (
 				<JXBox
@@ -745,7 +707,7 @@ function SidebarContent({
 					}}
 				>
 					<SiteLogo variant="dashboard" className="w-[84px]" priority />
-					<SpringButton
+					<JacxiButton
 						type="button"
 						variant="outline"
 						tone="primary"
@@ -754,22 +716,13 @@ function SidebarContent({
 						style={{ fontFamily: 'inherit' }}
 						className="!h-8 !w-8 !min-h-0 !min-w-0 !rounded-lg !border-0 !bg-transparent !p-1.5 !text-[var(--text-secondary)] hover:!bg-[rgba(var(--border-rgb),0.3)] hover:!text-[var(--text-primary)] !shadow-none"
 					>
-						<Close sx={{ fontSize: 20 }} />
-					</SpringButton>
+						<X className="h-5 w-5" />
+					</JacxiButton>
 				</JXBox>
 			)}
 
 			{/* Navigation - scrollable */}
-			<Box
-				sx={{
-					flex: 1,
-					px: 0.5,
-					py: 1.5,
-					overflow: 'auto',
-					display: 'flex',
-					flexDirection: 'column',
-				}}
-			>
+			<div className="flex flex-1 flex-col overflow-auto px-1 py-3">
 				{/* Main */}
 				<NavSection items={mainNavigation} role={userRole} isActive={isActive} onNavClick={onNavClick} collapsed={collapsed} />
 
@@ -791,7 +744,7 @@ function SidebarContent({
 				{/* Admin / Internal Section */}
 				<CollapsibleAdminSection items={adminNavigation} role={userRole} isActive={isActive} badgeMap={badgeMap} onNavClick={onNavClick} collapsed={adminCollapsed} onToggleCollapsed={onToggleAdminCollapsed} isSidebarCollapsed={collapsed} />
 
-			</Box>
+			</div>
 			{collapsed ? (
 				<JXBox
 					padding="none"
@@ -804,25 +757,19 @@ function SidebarContent({
 					}}
 				>
 					<Tooltip title={`${userName} (${userRole || 'user'})`} placement="right">
-						<Avatar
+						<JXAvatar
+							name={userName}
 							src={userImage}
-							sx={{
-								width: 32,
-								height: 32,
-								bgcolor: 'var(--accent-gold)',
-								fontSize: '0.875rem',
-								fontWeight: 600,
-								color: 'var(--background)',
-								flexShrink: 0,
-							}}
-						>
-							{userInitial}
-						</Avatar>
+							shape="circle"
+							size="sm"
+							gradientClass="from-[#D4AF37] to-[#96791F]"
+							className="!h-8 !w-8 !text-[0.875rem]"
+						/>
 					</Tooltip>
 					{onToggleCollapse && (
 						<Tooltip title="Expand sidebar" placement="right">
 							<span className="inline-flex">
-								<SpringButton
+								<JacxiButton
 									type="button"
 									variant="outline"
 									tone="primary"
@@ -831,14 +778,14 @@ function SidebarContent({
 									style={{ fontFamily: 'inherit' }}
 									className="!h-7 !w-7 !min-h-0 !min-w-0 !rounded-md !border-0 !bg-transparent !p-1 !text-[var(--text-secondary)] hover:!bg-[rgba(var(--accent-gold-rgb),0.1)] hover:!text-[var(--accent-gold-text)] !shadow-none"
 								>
-									<ChevronRight sx={{ fontSize: 18 }} />
-								</SpringButton>
+									<ChevronRight className="h-[18px] w-[18px]" />
+								</JacxiButton>
 							</span>
 						</Tooltip>
 					)}
 					<Tooltip title="Sign Out" placement="right">
 						<span className="inline-flex">
-							<SpringButton
+							<JacxiButton
 								type="button"
 								variant="outline"
 								tone="danger"
@@ -847,8 +794,8 @@ function SidebarContent({
 								style={{ fontFamily: 'inherit' }}
 								className="!h-7 !w-7 !min-h-0 !min-w-0 !rounded-md !border-0 !bg-transparent !p-1 !text-[var(--text-secondary)] hover:!bg-[rgba(239,68,68,0.1)] hover:!text-[var(--error,#ef4444)] !shadow-none"
 							>
-								<Logout sx={{ fontSize: 18 }} />
-							</SpringButton>
+								<LogOut className="h-[18px] w-[18px]" />
+							</JacxiButton>
 						</span>
 					</Tooltip>
 				</JXBox>
@@ -864,50 +811,29 @@ function SidebarContent({
 						fontFamily: 'inherit',
 					}}
 				>
-					<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.25 }}>
-						<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0, flex: 1 }}>
-							<Avatar
+					<div className="mb-5 flex items-center justify-between">
+						<div className="flex min-w-0 flex-1 items-center gap-3">
+							<JXAvatar
+								name={userName}
 								src={userImage}
-								sx={{
-									width: 32,
-									height: 32,
-									bgcolor: 'var(--accent-gold)',
-									fontSize: '0.875rem',
-									fontWeight: 600,
-									color: 'var(--background)',
-									flexShrink: 0,
-								}}
-							>
-								{userInitial}
-							</Avatar>
-							<Box sx={{ minWidth: 0 }}>
-								<Typography
-									sx={{
-										fontSize: '0.875rem',
-										fontWeight: 600,
-										color: 'var(--text-primary)',
-										overflow: 'hidden',
-										textOverflow: 'ellipsis',
-										whiteSpace: 'nowrap',
-									}}
-								>
+								shape="circle"
+								size="sm"
+								gradientClass="from-[#D4AF37] to-[#96791F]"
+								className="!h-8 !w-8 !text-[0.875rem]"
+							/>
+							<div className="min-w-0">
+								<p className="overflow-hidden text-ellipsis whitespace-nowrap text-[0.875rem] font-semibold text-[var(--text-primary)]">
 									{userName}
-								</Typography>
-								<Typography
-									sx={{
-										fontSize: '0.75rem',
-										color: 'var(--text-secondary)',
-										textTransform: 'capitalize',
-									}}
-								>
+								</p>
+								<p className="text-[0.75rem] capitalize text-[var(--text-secondary)]">
 									{userRole || 'user'}
-								</Typography>
-							</Box>
-						</Box>
+								</p>
+							</div>
+						</div>
 						{onToggleCollapse && (
 							<Tooltip title="Collapse sidebar" placement="right">
 								<span className="inline-flex">
-									<SpringButton
+									<JacxiButton
 										type="button"
 										variant="outline"
 										tone="primary"
@@ -916,12 +842,12 @@ function SidebarContent({
 										style={{ fontFamily: 'inherit' }}
 										className="!h-7 !w-7 !min-h-0 !min-w-0 !rounded-md !border-0 !bg-transparent !p-1 !text-[var(--text-secondary)] hover:!bg-[rgba(var(--accent-gold-rgb),0.1)] hover:!text-[var(--text-primary)] !shadow-none"
 									>
-										<ChevronLeft sx={{ fontSize: 18 }} />
-									</SpringButton>
+										<ChevronLeft className="h-[18px] w-[18px]" />
+									</JacxiButton>
 								</span>
 							</Tooltip>
 						)}
-					</Box>
+					</div>
 					<JXButton
 						fullWidth
 						size="sm"
@@ -935,6 +861,6 @@ function SidebarContent({
 					</JXButton>
 				</JXBox>
 			)}
-		</Box>
+		</div>
 	);
 }

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { JXBox } from '@jacxishippingorg/jx-ui-react';
-import { Keyboard } from '@mui/icons-material';
+import { Keyboard } from 'lucide-react';
 import Modal from './Modal';
 import { useKeyboardShortcut, ShortcutRegistry } from '@/lib/hooks/useKeyboardShortcut';
 
@@ -75,7 +75,7 @@ export default function KeyboardShortcutHelp() {
       size="lg"
       title={
         <div className="flex items-center gap-3">
-          <Keyboard sx={{ color: 'var(--accent-gold)' }} />
+          <Keyboard className="h-5 w-5 text-[var(--accent-gold)]" />
           <h3 className="font-bold text-[var(--text-primary)]">
             Keyboard Shortcuts
           </h3>

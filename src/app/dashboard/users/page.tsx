@@ -1,12 +1,12 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { User, UserPlus, Eye, EyeOff, Copy, Check, Pencil, Trash2, Shield, Users as UsersIcon } from 'lucide-react';
-import { Box, Typography, IconButton, Tooltip } from '@mui/material';
-import { PageHeader, StatsCard, toast, SkeletonCard, StatusBadge, Button, CompactSkeleton } from '@/components/design-system';
+import { Button, CompactSkeleton, IconButton, PageHeader, SkeletonCard, StatsCard, StatusBadge, Tooltip, toast } from '@/components/design-system';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import SmartSearch, { SearchFilters } from '@/components/dashboard/SmartSearch';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
@@ -212,32 +212,19 @@ export default function UsersPage() {
 			header: 'Name',
 			sortable: true,
 			render: (_, row) => (
-				<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-					<Box
-						sx={{
-							width: 32,
-							height: 32,
-							borderRadius: '50%',
-							bgcolor: 'rgba(var(--accent-gold-rgb), 0.15)',
-							color: 'var(--accent-gold)',
-							display: 'flex',
-							alignItems: 'center',
-							justifyContent: 'center',
-							fontWeight: 600,
-							fontSize: '0.8rem',
-						}}
-					>
+				<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '12px'}}>
+					<JXBox padding="none" border={false} style={{width: '32px', height: '32px', borderRadius: '50%', backgroundColor: 'rgba(var(--accent-gold-rgb), 0.15)', color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, fontSize: '0.8rem'}}>
 						{(row.name || row.email || 'U')[0].toUpperCase()}
-					</Box>
-					<Box>
-						<Typography sx={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-primary)' }}>
+					</JXBox>
+					<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+						<p className="text-sm leading-relaxed" style={{fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-primary)'}}>
 							{row.name || 'Unnamed User'}
-						</Typography>
-						<Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+						</p>
+						<p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', color: 'var(--text-secondary)'}}>
 							{formatRole(row.role)}
-						</Typography>
-					</Box>
-				</Box>
+						</p>
+					</JXBox>
+				</JXBox>
 			),
 		},
 		{
@@ -256,39 +243,27 @@ export default function UsersPage() {
 			header: 'Email',
 			sortable: true,
 			render: (_, row) => (
-				<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-					<Typography sx={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>
+				<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px'}}>
+					<p className="text-sm leading-relaxed" style={{fontSize: '0.85rem', color: 'var(--text-primary)'}}>
 						{showEmailsFor.has(row.id) ? row.email : maskEmail(row.email)}
-					</Typography>
-					<Tooltip title={showEmailsFor.has(row.id) ? 'Hide email' : 'Show email'}>
-						<IconButton
-							size="small"
-							onClick={() => toggleEmailVisibility(row.id)}
-							aria-label={showEmailsFor.has(row.id) ? 'Hide email' : 'Show email'}
-						>
-							{showEmailsFor.has(row.id) ? (
+					</p>
+					<Tooltip title={showEmailsFor.has(row.id) ? 'Hide email' : 'Show email'} arrow={false}>
+						<IconButton icon={showEmailsFor.has(row.id) ? (
 								<EyeOff style={{ width: 15, height: 15 }} />
 							) : (
 								<Eye style={{ width: 15, height: 15 }} />
-							)}
-						</IconButton>
+							)} ariaLabel={showEmailsFor.has(row.id) ? 'Hide email' : 'Show email'} variant="ghost" size="sm" onClick={() => toggleEmailVisibility(row.id)} />
 					</Tooltip>
 					{showEmailsFor.has(row.id) && (
-						<Tooltip title={copiedEmail === row.id ? 'Copied!' : 'Copy email'}>
-							<IconButton
-								size="small"
-								onClick={() => copyToClipboard(row.email, row.id)}
-								aria-label={copiedEmail === row.id ? 'Copied!' : 'Copy email'}
-							>
-								{copiedEmail === row.id ? (
+						<Tooltip title={copiedEmail === row.id ? 'Copied!' : 'Copy email'} arrow={false}>
+							<IconButton icon={copiedEmail === row.id ? (
 									<Check style={{ color: 'green', width: 15, height: 15 }} />
 								) : (
 									<Copy style={{ color: 'var(--accent-gold)', width: 15, height: 15 }} />
-								)}
-							</IconButton>
+								)} ariaLabel={copiedEmail === row.id ? 'Copied!' : 'Copy email'} variant="ghost" size="sm" onClick={() => copyToClipboard(row.email, row.id)} />
 						</Tooltip>
 					)}
-				</Box>
+				</JXBox>
 			),
 		},
 		{
@@ -296,9 +271,9 @@ export default function UsersPage() {
 			header: 'Shipments',
 			sortable: true,
 			render: (_, row) => (
-				<Typography sx={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+				<p className="text-sm leading-relaxed" style={{fontWeight: 600, color: 'var(--text-primary)'}}>
 					{row._count?.shipments ?? 0}
-				</Typography>
+				</p>
 			),
 		},
 		{
@@ -306,9 +281,9 @@ export default function UsersPage() {
 			header: 'Joined',
 			sortable: true,
 			render: (_, row) => (
-				<Typography sx={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+				<p className="text-sm leading-relaxed" style={{fontSize: '0.8rem', color: 'var(--text-secondary)'}}>
 					{row.createdAt ? new Date(row.createdAt).toLocaleDateString() : '—'}
-				</Typography>
+				</p>
 			),
 		},
 		{
@@ -316,7 +291,7 @@ export default function UsersPage() {
 			header: 'Actions',
 			align: 'right',
 			render: (_, row) => (
-				<Box sx={{ display: 'flex', gap: 0.75, justifyContent: 'flex-end', flexWrap: 'nowrap', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
+				<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '6px', justifyContent: 'flex-end', flexWrap: 'nowrap', whiteSpace: 'nowrap'}} onClick={(e) => e.stopPropagation()}>
 					<Link href={`/dashboard/users/${row.id}`} style={{ textDecoration: 'none' }}>
 						<Button
 							variant="outline"
@@ -340,17 +315,11 @@ export default function UsersPage() {
 						size="sm"
 						icon={<Trash2 className="w-3.5 h-3.5" />}
 						onClick={() => void handleDeleteUser(row)}
-						sx={{
-							color: 'var(--error)',
-							borderColor: 'var(--error)',
-							'&:hover': {
-								bgcolor: 'rgba(var(--error-rgb), 0.1)',
-							},
-						}}
+						style={{color: 'var(--error)', borderColor: 'var(--error)'}}
 					>
 						Delete
 					</Button>
-				</Box>
+				</JXBox>
 			),
 		},
 	], [showEmailsFor, copiedEmail]);
@@ -436,21 +405,21 @@ export default function UsersPage() {
 			{/* Results Panel */}
 			<DashboardPanel title={`All Internal Users (${totalUsers})`} fullHeight>
 				{loading ? (
-					<Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' }, gap: 2 }}>
+					<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '16px'}} className="grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
 						{[...Array(6)].map((_, i) => (
 							<SkeletonCard key={i} />
 						))}
-					</Box>
+					</JXBox>
 				) : paginatedUsers.length === 0 ? (
-					<Box sx={{ minHeight: 240, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+					<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, minHeight: '240px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px'}}>
 						<User style={{ width: 48, height: 48, color: 'var(--text-secondary)', opacity: 0.5 }} />
-						<Typography sx={{ color: 'var(--text-secondary)' }}>No internal users found</Typography>
+						<p className="text-sm leading-relaxed" style={{color: 'var(--text-secondary)'}}>No internal users found</p>
 						<Link href="/dashboard/users/new?accountType=user" style={{ textDecoration: 'none' }}>
 							<Button variant="primary" size="sm" icon={<UserPlus className="w-4 h-4" />}>
 								Create Internal User
 							</Button>
 						</Link>
-					</Box>
+					</JXBox>
 				) : (
 					<>
 						<div className="hidden lg:block">
@@ -460,13 +429,7 @@ export default function UsersPage() {
 								keyField="id"
 							/>
 						</div>
-						<Box
-							sx={{
-								display: { xs: 'grid', lg: 'none' },
-								gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' },
-								gap: 2,
-							}}
-						>
+						<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, gap: '16px'}} className="grid lg:hidden grid-cols-1 md:grid-cols-2">
 							{paginatedUsers.map((user, index) => (
 								<UserCard
 									key={user.id}
@@ -480,18 +443,18 @@ export default function UsersPage() {
 									onDelete={() => void handleDeleteUser(user)}
 								/>
 							))}
-						</Box>
+						</JXBox>
 
 						{/* Pagination Controls */}
-						<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 3, pt: 2, borderTop: '1px solid var(--border)' }}>
+						<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '24px', paddingTop: '16px', borderTop: '1px solid var(--border)'}}>
 							<Button variant="outline" size="sm" onClick={() => { setCurrentPage((p) => Math.max(1, p - 1)); fetchUsers(currentPage - 1, searchFilters.query); }} disabled={currentPage === 1}>
 								Previous
 							</Button>
-							<Typography sx={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Page {currentPage} of {totalPages}</Typography>
+							<p className="text-sm leading-relaxed" style={{color: 'var(--text-secondary)', fontSize: '0.875rem'}}>Page {currentPage} of {totalPages}</p>
 							<Button variant="outline" size="sm" onClick={() => { setCurrentPage((p) => Math.min(totalPages, p + 1)); fetchUsers(currentPage + 1, searchFilters.query); }} disabled={currentPage === totalPages}>
 								Next
 							</Button>
-						</Box>
+						</JXBox>
 					</>
 				)}
 			</DashboardPanel>

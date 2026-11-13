@@ -1,9 +1,9 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Box } from '@mui/material';
 import { SearchFilters } from '@/components/dashboard/SmartSearch';
 import { DashboardSurface } from '@/components/dashboard/DashboardSurface';
 import { toast, StatusBadge, ConfirmDialog, StatusFilterPills, PageHeader, Button } from '@/components/design-system';
@@ -255,7 +255,7 @@ export default function ShipmentsListPage() {
 				const isPaidOff = total > 0 && remaining <= 0;
 
 				return (
-					<Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.2 }}>
+					<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '1.6px'}}>
 						<span style={{ fontWeight: 700, color: 'var(--accent-gold)' }}>
 							${total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
 						</span>
@@ -271,7 +271,7 @@ export default function ShipmentsListPage() {
 						) : (
 							<span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Unpaid</span>
 						)}
-					</Box>
+					</JXBox>
 				);
 			},
 		}] : []),
@@ -280,27 +280,14 @@ export default function ShipmentsListPage() {
 			key: 'status',
 			header: 'Status',
 			render: (value, row) => (
-				<Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+				<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexWrap: 'wrap', gap: '6px'}}>
 					<StatusBadge status={String(value)} size="sm" />
 					{row.yardReceived && (
-						<Box
-							sx={{
-								display: 'inline-flex',
-								alignItems: 'center',
-								px: 1,
-								py: 0.35,
-								borderRadius: 999,
-								fontSize: '0.72rem',
-								fontWeight: 700,
-								bgcolor: 'rgba(34, 197, 94, 0.12)',
-								color: 'rgb(21, 128, 61)',
-								border: '1px solid rgba(34, 197, 94, 0.28)',
-							}}
-						>
+						<JXBox padding="none" border={false} style={{display: 'inline-flex', alignItems: 'center', paddingLeft: '8px', paddingRight: '8px', paddingTop: '2.8px', paddingBottom: '2.8px', borderRadius: '7992px', fontSize: '0.72rem', fontWeight: 700, backgroundColor: 'rgba(34, 197, 94, 0.12)', color: 'rgb(21, 128, 61)', border: '1px solid rgba(34, 197, 94, 0.28)'}}>
 							Yard Received
-						</Box>
+						</JXBox>
 					)}
-				</Box>
+				</JXBox>
 			),
 		},
 		{
@@ -486,7 +473,7 @@ export default function ShipmentsListPage() {
 						setCurrentPage(1);
 					}}
 				/>
-				<Box sx={{ mt: 1, px: 0.5, display: { xs: 'none', sm: 'block' } }}>
+				<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '8px', paddingLeft: '4px', paddingRight: '4px'}} className="hidden sm:block">
 					<SavedFilterPresets
 						storageKey="shipments"
 						currentFilters={searchFilters}
@@ -495,7 +482,7 @@ export default function ShipmentsListPage() {
 							setCurrentPage(1);
 						}}
 					/>
-				</Box>
+				</JXBox>
 			</div>
 
 			<ShipmentsResultsPanel

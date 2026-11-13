@@ -25,20 +25,9 @@ import {
   Settings as SettingsIcon,
   HelpCircle,
 } from 'lucide-react';
-import {
-  Box,
-  Typography,
-  Chip,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Checkbox,
-  FormControlLabel,
-  LinearProgress,
-} from '@mui/material';
 import { DashboardGrid, DashboardPanel } from '@/components/dashboard/DashboardSurface';
-import { Button, StatusBadge, toast } from '@/components/design-system';
+import { Button, Modal, StatusBadge, toast } from '@/components/design-system';
+import { motion } from 'framer-motion';
 
 interface BackupCategory {
   id: string;
@@ -468,53 +457,53 @@ export function BackupDatabaseTab() {
         <div className="p-4 rounded-xl border border-[var(--border)] bg-[var(--panel)]">
           <div className="flex items-center gap-2 mb-1 text-[var(--text-secondary)]">
             <Clock className="w-4 h-4 text-[var(--accent-gold)]" />
-            <Typography variant="caption" fontWeight="600">LAST BACKUP</Typography>
+            <span className="text-[0.75rem]" style={{fontWeight: "600"}}>LAST BACKUP</span>
           </div>
-          <Typography variant="h6" fontWeight="700" className="text-[var(--text-primary)]">
+          <h6 className="text-[var(--text-primary)] text-[0.95rem] font-semibold leading-tight" style={{fontWeight: "700"}}>
             {lastBackupAt ? new Date(lastBackupAt).toLocaleDateString() : 'Never'}
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
+          </h6>
+          <span className="text-[0.75rem]" style={{color: 'var(--text-secondary)'}}>
             {lastBackupAt ? new Date(lastBackupAt).toLocaleTimeString() : 'No recorded backups'}
-          </Typography>
+          </span>
         </div>
 
         <div className="p-4 rounded-xl border border-[var(--border)] bg-[var(--panel)]">
           <div className="flex items-center gap-2 mb-1 text-[var(--text-secondary)]">
             <Car className="w-4 h-4 text-amber-500" />
-            <Typography variant="caption" fontWeight="600">LIVE SHIPMENTS</Typography>
+            <span className="text-[0.75rem]" style={{fontWeight: "600"}}>LIVE SHIPMENTS</span>
           </div>
-          <Typography variant="h6" fontWeight="700" className="text-[var(--text-primary)]">
+          <h6 className="text-[var(--text-primary)] text-[0.95rem] font-semibold leading-tight" style={{fontWeight: "700"}}>
             {dbStats.shipments ?? 0}
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
+          </h6>
+          <span className="text-[0.75rem]" style={{color: 'var(--text-secondary)'}}>
             Vehicles in database
-          </Typography>
+          </span>
         </div>
 
         <div className="p-4 rounded-xl border border-[var(--border)] bg-[var(--panel)]">
           <div className="flex items-center gap-2 mb-1 text-[var(--text-secondary)]">
             <Package className="w-4 h-4 text-emerald-500" />
-            <Typography variant="caption" fontWeight="600">LIVE CONTAINERS</Typography>
+            <span className="text-[0.75rem]" style={{fontWeight: "600"}}>LIVE CONTAINERS</span>
           </div>
-          <Typography variant="h6" fontWeight="700" className="text-[var(--text-primary)]">
+          <h6 className="text-[var(--text-primary)] text-[0.95rem] font-semibold leading-tight" style={{fontWeight: "700"}}>
             {dbStats.containers ?? 0}
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
+          </h6>
+          <span className="text-[0.75rem]" style={{color: 'var(--text-secondary)'}}>
             Ocean freight containers
-          </Typography>
+          </span>
         </div>
 
         <div className="p-4 rounded-xl border border-[var(--border)] bg-[var(--panel)]">
           <div className="flex items-center gap-2 mb-1 text-[var(--text-secondary)]">
             <DollarSign className="w-4 h-4 text-purple-500" />
-            <Typography variant="caption" fontWeight="600">LIVE INVOICES</Typography>
+            <span className="text-[0.75rem]" style={{fontWeight: "600"}}>LIVE INVOICES</span>
           </div>
-          <Typography variant="h6" fontWeight="700" className="text-[var(--text-primary)]">
+          <h6 className="text-[var(--text-primary)] text-[0.95rem] font-semibold leading-tight" style={{fontWeight: "700"}}>
             {dbStats.invoices ?? 0}
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
+          </h6>
+          <span className="text-[0.75rem]" style={{color: 'var(--text-secondary)'}}>
             Customer invoice records
-          </Typography>
+          </span>
         </div>
       </DashboardGrid>
 
@@ -558,16 +547,16 @@ export function BackupDatabaseTab() {
                   <CheckCircle2 className="w-4 h-4 shrink-0" />
                   Full System Snapshot
                 </div>
-                <Typography variant="caption" className="text-[var(--text-secondary)]">
+                <span className="text-[var(--text-secondary)] text-[0.75rem]">
                   Backs up all 8 business categories (Shipments, Containers, Financials, Companies, Logistics, Partners, Settings, and Users).
-                </Typography>
+                </span>
               </div>
             ) : (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <Typography variant="caption" className="text-[var(--text-secondary)] font-medium">
+                  <span className="text-[var(--text-secondary)] font-medium text-[0.75rem]">
                     Select categories to include in custom backup:
-                  </Typography>
+                  </span>
                   <div className="flex gap-2">
                     <button
                       type="button"
@@ -600,19 +589,15 @@ export function BackupDatabaseTab() {
                             : 'border-[var(--border)] hover:border-[var(--border-hover)] bg-[var(--background)]'
                         }`}
                       >
-                        <Checkbox
-                          checked={isChecked}
-                          size="small"
-                          sx={{ p: 0, mt: 0.25, color: 'var(--border)', '&.Mui-checked': { color: 'var(--accent-gold)' } }}
-                        />
+                        <input type="checkbox" checked={isChecked} className="h-4 w-4 shrink-0 cursor-pointer accent-[var(--accent-gold)] disabled:cursor-not-allowed disabled:opacity-50" />
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5 font-semibold text-xs text-[var(--text-primary)]">
                             {getCategoryIcon(cat.id)}
                             <span>{cat.name}</span>
                           </div>
-                          <Typography variant="caption" className="text-[var(--text-secondary)] line-clamp-1 block mt-0.5 text-[11px]">
+                          <span className="text-[var(--text-secondary)] line-clamp-1 block mt-0.5 text-[11px] text-[0.75rem]">
                             {cat.description}
-                          </Typography>
+                          </span>
                         </div>
                       </div>
                     );
@@ -665,12 +650,12 @@ export function BackupDatabaseTab() {
               <div className="w-12 h-12 rounded-full bg-[var(--panel)] border border-[var(--border)] flex items-center justify-center mx-auto mb-3 group-hover:scale-105 transition-transform">
                 <UploadCloud className="w-6 h-6 text-[var(--accent-gold)]" />
               </div>
-              <Typography variant="subtitle2" fontWeight="600" className="text-[var(--text-primary)] mb-1">
+              <p className="text-[var(--text-primary)] mb-1 text-[0.875rem] font-medium" style={{fontWeight: "600"}}>
                 Click to browse or drop backup JSON
-              </Typography>
-              <Typography variant="caption" className="text-[var(--text-secondary)]">
+              </p>
+              <span className="text-[var(--text-secondary)] text-[0.75rem]">
                 Accepts official `jacxi-backup-*.json` files. Content will be analyzed before applying.
-              </Typography>
+              </span>
             </div>
 
             <div className="p-3.5 rounded-lg border border-amber-500/20 bg-amber-500/5 flex items-start gap-2.5 text-xs text-[var(--text-secondary)]">
@@ -703,7 +688,7 @@ export function BackupDatabaseTab() {
         {storedBackups.length === 0 ? (
           <div className="text-center py-8 text-[var(--text-secondary)]">
             <Database className="w-8 h-8 mx-auto mb-2 opacity-40" />
-            <Typography variant="body2">No stored backups found on server.</Typography>
+            <p className="text-[0.875rem]">No stored backups found on server.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -730,17 +715,7 @@ export function BackupDatabaseTab() {
                       {new Date(b.timestamp).toLocaleString()}
                     </td>
                     <td className="py-3 px-3">
-                      <Chip
-                        label={b.scope === 'full' ? 'Full Backup' : 'Custom'}
-                        size="small"
-                        sx={{
-                          height: 20,
-                          fontSize: '10px',
-                          bgcolor: b.scope === 'full' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
-                          color: b.scope === 'full' ? '#10B981' : '#F59E0B',
-                          fontWeight: 600,
-                        }}
-                      />
+                      <span style={{height: 20, fontSize: '10px', backgroundColor: b.scope === 'full' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)', color: b.scope === 'full' ? '#10B981' : '#F59E0B', fontWeight: 600}} className="inline-flex items-center gap-1 rounded-full font-medium text-[0.7rem] px-2 py-0.5 border border-[var(--border)] bg-[var(--background)] text-[var(--text-primary)]">{b.scope === 'full' ? 'Full Backup' : 'Custom'}</span>
                     </td>
                     <td className="py-3 px-3 text-[var(--text-secondary)] font-mono">
                       {b.sizeFormatted}
@@ -783,60 +758,55 @@ export function BackupDatabaseTab() {
       </DashboardPanel>
 
       {/* RESTORE PREVIEW & CONFIRMATION MODAL */}
-      <Dialog
-        open={previewModalOpen}
-        onClose={() => !restoringBackup && setPreviewModalOpen(false)}
-        maxWidth="md"
-        fullWidth
-        PaperProps={{
-          sx: {
-            bgcolor: 'var(--panel)',
-            border: '1px solid var(--border)',
-            borderRadius: 3,
-            color: 'var(--text-primary)',
-          },
-        }}
-      >
-        <DialogTitle sx={{ borderBottom: '1px solid var(--border)', pb: 2 }}>
-          <div className="flex items-center justify-between">
+      <Modal open={previewModalOpen} onClose={() => !restoringBackup && setPreviewModalOpen(false)} size="md" title={<div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <RotateCcw className="w-5 h-5 text-[var(--accent-gold)]" />
-              <Typography variant="h6" fontWeight="700">Restore Database from Backup</Typography>
+              <h6 className="text-[0.95rem] font-semibold leading-tight" style={{fontWeight: "700"}}>Restore Database from Backup</h6>
             </div>
             {previewData?.version && (
-              <Chip label={`v${previewData.version}`} size="small" variant="outlined" />
+              <span className="inline-flex items-center gap-1 rounded-full font-medium text-[0.7rem] px-2 py-0.5 border border-[var(--border)] bg-[var(--background)] text-[var(--text-primary)]">{`v${previewData.version}`}</span>
             )}
-          </div>
-        </DialogTitle>
-
-        <DialogContent sx={{ py: 3 }}>
-          {previewData && (
+          </div>} actions={<><Button
+            variant="outline"
+            onClick={() => setPreviewModalOpen(false)}
+            disabled={restoringBackup}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="danger"
+            onClick={handleExecuteRestore}
+            disabled={restoringBackup || selectedRestoreCats.length === 0}
+            icon={restoringBackup ? <RefreshCw className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />}
+          >
+            {restoringBackup ? 'Restoring Records...' : `Confirm & Restore (${selectedRestoreCats.length} Categories)`}
+          </Button></>} showCloseButton={false} contentSx={{paddingTop: '24px', paddingBottom: '24px'}} actionsSx={{borderTop: '1px solid var(--border)', padding: '16px'}}>{previewData && (
             <div className="space-y-4">
               {/* File Summary Card */}
               <div className="p-3.5 rounded-lg border border-[var(--border)] bg-[var(--background)] text-xs flex flex-wrap gap-4 items-center justify-between">
                 <div>
-                  <Typography variant="caption" className="text-[var(--text-secondary)] block">Source File / Snapshot</Typography>
+                  <span className="text-[var(--text-secondary)] block text-[0.75rem]">Source File / Snapshot</span>
                   <span className="font-mono font-semibold text-[var(--text-primary)]">{previewData.filename || 'Uploaded Backup'}</span>
                 </div>
                 <div>
-                  <Typography variant="caption" className="text-[var(--text-secondary)] block">Created At</Typography>
+                  <span className="text-[var(--text-secondary)] block text-[0.75rem]">Created At</span>
                   <span className="text-[var(--text-primary)]">{new Date(previewData.timestamp).toLocaleString()}</span>
                 </div>
                 <div>
-                  <Typography variant="caption" className="text-[var(--text-secondary)] block">Scope</Typography>
+                  <span className="text-[var(--text-secondary)] block text-[0.75rem]">Scope</span>
                   <span className="capitalize text-[var(--text-primary)] font-medium">{previewData.scope}</span>
                 </div>
                 <div>
-                  <Typography variant="caption" className="text-[var(--text-secondary)] block">Total Records Found</Typography>
+                  <span className="text-[var(--text-secondary)] block text-[0.75rem]">Total Records Found</span>
                   <span className="font-bold text-[var(--accent-gold)]">{previewData.totalRecords}</span>
                 </div>
               </div>
 
               {/* Selective Categories Checkbox List */}
               <div>
-                <Typography variant="subtitle2" fontWeight="600" className="mb-2">
+                <p className="mb-2 text-[0.875rem] font-medium" style={{fontWeight: "600"}}>
                   Select categories to restore into database:
-                </Typography>
+                </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-56 overflow-y-auto pr-1">
                   {categories.map((cat) => {
                     const isAvailable = (previewData.categoriesAvailable || []).includes(cat.id);
@@ -860,12 +830,7 @@ export function BackupDatabaseTab() {
                             : 'border-[var(--border)] bg-[var(--background)] cursor-pointer hover:border-[var(--border-hover)]'
                         }`}
                       >
-                        <Checkbox
-                          checked={isChecked}
-                          disabled={!isAvailable}
-                          size="small"
-                          sx={{ p: 0, mt: 0.25, color: 'var(--border)', '&.Mui-checked': { color: 'var(--accent-gold)' } }}
-                        />
+                        <input type="checkbox" checked={isChecked} disabled={!isAvailable} className="h-4 w-4 shrink-0 cursor-pointer accent-[var(--accent-gold)] disabled:cursor-not-allowed disabled:opacity-50" />
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-1.5 font-semibold text-xs text-[var(--text-primary)]">
@@ -876,9 +841,9 @@ export function BackupDatabaseTab() {
                               {countInCat} records
                             </span>
                           </div>
-                          <Typography variant="caption" className="text-[var(--text-secondary)] block mt-0.5 text-[11px]">
+                          <span className="text-[var(--text-secondary)] block mt-0.5 text-[11px] text-[0.75rem]">
                             {isAvailable ? cat.description : 'Not included in this backup snapshot'}
-                          </Typography>
+                          </span>
                         </div>
                       </div>
                     );
@@ -901,35 +866,11 @@ export function BackupDatabaseTab() {
                     <span className="font-medium text-[var(--accent-gold)]">{restoreProgressText || 'Executing database restore...'}</span>
                     <span>{restoreProgressPercent > 0 ? `${restoreProgressPercent}%` : 'Processing...'}</span>
                   </div>
-                  <LinearProgress
-                    variant={restoreProgressPercent > 0 ? 'determinate' : 'indeterminate'}
-                    value={restoreProgressPercent}
-                    sx={{ bgcolor: 'var(--background)', '& .MuiLinearProgress-bar': { bgcolor: 'var(--accent-gold)' } }}
-                  />
+                  <div style={{backgroundColor: 'var(--background)'}} className="relative h-1.5 w-full overflow-hidden rounded-full bg-[var(--border)]" role="progressbar" aria-valuenow={restoreProgressPercent} aria-valuemin={0} aria-valuemax={100}><motion.div className="absolute inset-y-0 w-1/2 rounded-full" style={{ backgroundColor: 'var(--accent-gold)' }} animate={{ x: ['-100%', '300%'] }} transition={{ repeat: Infinity, duration: 1.4, ease: 'easeInOut' }} /></div>
                 </div>
               )}
             </div>
-          )}
-        </DialogContent>
-
-        <DialogActions sx={{ borderTop: '1px solid var(--border)', p: 2 }}>
-          <Button
-            variant="outline"
-            onClick={() => setPreviewModalOpen(false)}
-            disabled={restoringBackup}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="danger"
-            onClick={handleExecuteRestore}
-            disabled={restoringBackup || selectedRestoreCats.length === 0}
-            icon={restoringBackup ? <RefreshCw className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />}
-          >
-            {restoringBackup ? 'Restoring Records...' : `Confirm & Restore (${selectedRestoreCats.length} Categories)`}
-          </Button>
-        </DialogActions>
-      </Dialog>
+          )}</Modal>
     </div>
   );
 }

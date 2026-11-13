@@ -3,23 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
-  Box, 
-  Typography, 
-  Button,
-  Checkbox,
-  FormControlLabel,
-  Paper,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  ListItemSecondaryAction,
-  IconButton,
-  Divider,
-  Chip,
-  TextField,
-} from '@mui/material';
-import { 
   FileText, 
   Upload, 
   Download, 
@@ -29,7 +12,7 @@ import {
   Eye,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { Modal, FormField, Select } from '@/components/design-system';
+import { Button, FormField, IconButton, Modal, Select } from '@/components/design-system';
 import { FileUpload } from '@/components/ui/FileUpload';
 import DocumentPreviewModal from '@/components/documents/DocumentPreviewModal';
 
@@ -328,114 +311,65 @@ export function DocumentManager({
   };
 
   return (
-    <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h6" sx={{ fontWeight: 600 }}>
+    <div>
+      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px'}}>
+        <h6 style={{fontWeight: 600}} className="text-[0.95rem] font-semibold leading-tight">
           Documents
-        </Typography>
+        </h6>
         {!readOnly && (
-          <Button
-            variant="contained"
-            startIcon={<Upload size={18} />}
-            onClick={() => setIsUploadOpen(true)}
-            sx={{
-                bgcolor: 'var(--accent-gold)',
-                color: 'var(--background)',
-                '&:hover': { bgcolor: 'var(--accent-gold-hover)' }
-            }}
-          >
+          <Button onClick={() => setIsUploadOpen(true)} style={{backgroundColor: 'var(--accent-gold)', color: 'var(--background)'}} variant="primary" size="md" icon={<Upload size={18} />} iconPosition="start">
             Upload
           </Button>
         )}
-      </Box>
+      </div>
 
       {documents.length === 0 ? (
-        <Paper 
-          variant="outlined" 
-          sx={{ 
-            p: 4, 
-            textAlign: 'center', 
-            bgcolor: 'var(--background)',
-            borderStyle: 'dashed' 
-          }}
-        >
+        <div style={{padding: '32px', textAlign: 'center', backgroundColor: 'var(--background)', borderStyle: 'dashed'}} className="rounded-xl border border-[var(--border)] bg-[var(--panel)]">
           <FileText className="w-12 h-12 text-[var(--text-secondary)] mx-auto mb-2 opacity-50" />
-          <Typography color="textSecondary">
+          <p style={{color: 'var(--text-secondary)'}}>
             No documents attached yet
-          </Typography>
-        </Paper>
+          </p>
+        </div>
       ) : (
-        <List sx={{ bgcolor: 'var(--panel)', borderRadius: 2, border: '1px solid var(--border)' }}>
+        <ul style={{backgroundColor: 'var(--panel)', borderRadius: '16px', border: '1px solid var(--border)'}} className="list-none">
           {documents.map((doc, index) => (
             <div key={doc.id}>
-              <ListItem>
-                <ListItemIcon>
+              <li>
+                <span className="flex shrink-0 items-center justify-center text-[var(--text-secondary)]">
                   {getIcon(doc.type)}
-                </ListItemIcon>
-                <ListItemText
-                  primaryTypographyProps={{ component: 'div' }}
-                  primary={
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Typography variant="subtitle2" sx={{ fontWeight: 500 }}>
+                </span>
+                <div><span className="block text-[0.875rem] font-medium text-[var(--text-primary)]">{
+                    <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                        <p style={{fontWeight: 500}} className="text-[0.875rem] font-medium">
                             {doc.name}
-                        </Typography>
-                        <Chip 
-                            label={doc.category.replace('_', ' ')} 
-                            size="small" 
-                            sx={{ fontSize: '0.65rem', height: 20 }} 
-                        />
+                        </p>
+                        <span style={{fontSize: '0.65rem', height: 20}} className="inline-flex items-center gap-1 rounded-full font-medium text-[0.7rem] px-2 py-0.5 border border-[var(--border)] bg-[var(--background)] text-[var(--text-primary)]">{doc.category.replace('_', ' ')}</span>
                         {doc.isPublic === false ? (
-                          <Chip
-                            label="Company Only"
-                            size="small"
-                            color="warning"
-                            sx={{ fontSize: '0.65rem', height: 20 }}
-                          />
+                          <span style={{fontSize: '0.65rem', height: 20}} className="inline-flex items-center gap-1 rounded-full font-medium text-[0.7rem] px-2 py-0.5 border border-[rgba(var(--warning-rgb),0.4)] bg-[rgba(var(--warning-rgb),0.12)] text-[var(--warning-dark)]">"Company Only"</span>
                         ) : null}
-                    </Box>
-                  }
-                  secondary={
-                    <Typography variant="caption" color="textSecondary">
+                    </div>
+                  }</span><span className="block text-[0.75rem] text-[var(--text-secondary)]">{
+                    <span className="text-[0.75rem]" style={{color: 'var(--text-secondary)'}}>
                       {formatSize(doc.size)} • Uploaded by {doc.uploadedBy} • {new Date(doc.createdAt).toLocaleDateString()}
-                    </Typography>
-                  }
-                />
-                <ListItemSecondaryAction>
+                    </span>
+                  }</span></div>
+                <span className="ml-auto flex shrink-0 items-center">
                   {!readOnly && entityType === 'shipment' && (
-                    <IconButton edge="end" aria-label="edit status" sx={{ mr: 1 }} onClick={() => handleOpenStatusEditor(doc)}>
-                      <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                    <IconButton  style={{marginRight: '8px'}} onClick={() => handleOpenStatusEditor(doc)} variant="ghost" size="md" ariaLabel="edit status" icon={<span style={{fontWeight: 600}} className="text-[0.75rem]">
                         Edit Status
-                      </Typography>
-                    </IconButton>
+                      </span>}></IconButton>
                   )}
-                  <IconButton 
-                    edge="end" 
-                    aria-label="preview" 
-                    sx={{ mr: 1, color: 'var(--accent-gold)' }} 
-                    onClick={() => setPreviewDoc(doc)}
-                    title="Preview document"
-                  >
-                    <Eye className="w-4 h-4" />
-                  </IconButton>
-                  <IconButton edge="end" aria-label="download" sx={{ mr: 1 }} href={doc.fileUrl} target="_blank">
-                    <Download className="w-4 h-4" />
-                  </IconButton>
+                  <IconButton  style={{marginRight: '8px', color: 'var(--accent-gold)'}} onClick={() => setPreviewDoc(doc)} title="Preview document" variant="ghost" size="md" ariaLabel="preview" icon={<Eye className="w-4 h-4" />}></IconButton>
+                  <IconButton  style={{marginRight: '8px'}} href={doc.fileUrl} target="_blank" variant="ghost" size="md" ariaLabel="download" icon={<Download className="w-4 h-4" />}></IconButton>
                   {!readOnly && (
-                    <IconButton 
-                        edge="end" 
-                        aria-label="delete" 
-                        color="error"
-                        onClick={() => handleDelete(doc.id)}
-                    >
-                        <Trash2 className="w-4 h-4" />
-                    </IconButton>
+                    <IconButton  onClick={() => handleDelete(doc.id)} variant="ghost" size="md" ariaLabel="delete" className="!text-[var(--error)]" icon={<Trash2 className="w-4 h-4" />}></IconButton>
                   )}
-                </ListItemSecondaryAction>
-              </ListItem>
-              {index < documents.length - 1 && <Divider component="li" />}
+                </span>
+              </li>
+              {index < documents.length - 1 && <li role="separator" className="border-t border-[var(--border)]" />}
             </div>
           ))}
-        </List>
+        </ul>
       )}
 
       {/* Upload Modal */}
@@ -452,25 +386,15 @@ export function DocumentManager({
         disableBackdropClick={true}
         showCloseButton={!isProcessing}
       >
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            <Paper
-              variant="outlined"
-              sx={{
-                p: 2,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 1,
-                borderRadius: 3,
-                bgcolor: 'var(--background)',
-              }}
-            >
-              <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+        <div style={{display: 'flex', flexDirection: 'column', gap: '24px'}}>
+            <div style={{padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px', borderRadius: '24px', backgroundColor: 'var(--background)'}} className="rounded-xl border border-[var(--border)] bg-[var(--panel)]">
+              <p style={{fontWeight: 700, color: 'var(--text-primary)'}} className="text-[0.875rem] font-medium">
                 Supported formats
-              </Typography>
-              <Typography variant="body2" sx={{ color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+              </p>
+              <p style={{color: 'var(--text-secondary)', lineHeight: 1.6}} className="text-[0.875rem]">
                 PDF, JPG, PNG, DOC, DOCX, XLS, and XLSX. Upload one document at a time so the category and extracted details stay accurate.
-              </Typography>
-            </Paper>
+              </p>
+            </div>
             
             <FormField label="Document Category">
                 <Select
@@ -495,18 +419,15 @@ export function DocumentManager({
             </FormField>
 
             {entityType === 'shipment' && (
-              <Box>
-                <FormControlLabel
-                  control={<Checkbox checked={isCompanyDocument} onChange={(event) => setIsCompanyDocument(event.target.checked)} />}
-                  label="Company document (hide from customer)"
-                />
-                <Typography variant="caption" sx={{ color: 'var(--text-secondary)' }}>
+              <div>
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-[var(--text-primary)]"><input type="checkbox" checked={isCompanyDocument} onChange={(event) => setIsCompanyDocument(event.target.checked)} className="h-4 w-4 shrink-0 cursor-pointer accent-[var(--accent-gold)] disabled:cursor-not-allowed disabled:opacity-50" /><span>Company document (hide from customer)</span></label>
+                <span style={{color: 'var(--text-secondary)'}} className="text-[0.75rem]">
                   Checked documents are visible to internal users only.
-                </Typography>
-              </Box>
+                </span>
+              </div>
             )}
 
-            <Box sx={{ border: '1px solid var(--border)', borderRadius: 3, p: 2, bgcolor: 'var(--panel)' }}>
+            <div style={{border: '1px solid var(--border)', borderRadius: '24px', padding: '16px', backgroundColor: 'var(--panel)'}}>
               <FileUpload 
                 multiple={false}
                 maxFiles={1}
@@ -514,21 +435,17 @@ export function DocumentManager({
                 onProcessingChange={setIsProcessing}
                 accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx"
               />
-            </Box>
+            </div>
 
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 2 }}>
-                <Button 
-                    onClick={() => {
+            <div style={{display: 'flex', justifyContent: 'flex-end', gap: '16px', marginTop: '16px'}}>
+                <Button onClick={() => {
                       setIsUploadOpen(false);
                       setIsCompanyDocument(false);
-                    }} 
-                    disabled={isProcessing}
-                    sx={{ color: 'var(--text-secondary)' }}
-                >
+                    }} disabled={isProcessing} style={{color: 'var(--text-secondary)'}} variant="primary" size="md">
                     {isProcessing ? 'Uploading...' : 'Done'}
                 </Button>
-            </Box>
-        </Box>
+            </div>
+        </div>
       </Modal>
 
       <Modal
@@ -540,10 +457,10 @@ export function DocumentManager({
         showCloseButton={!savingStatus}
       >
         {statusEditor && (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-            <Typography variant="body2" sx={{ color: 'var(--text-secondary)' }}>
+          <div style={{display: 'flex', flexDirection: 'column', gap: '20px'}}>
+            <p style={{color: 'var(--text-secondary)'}} className="text-[0.875rem]">
               {statusEditor.name}
-            </Typography>
+            </p>
 
             <FormField label="Visibility Status">
               <Select
@@ -566,15 +483,15 @@ export function DocumentManager({
               />
             </FormField>
 
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
-              <Button variant="outlined" onClick={() => setStatusEditor(null)} disabled={savingStatus}>
+            <div style={{display: 'flex', justifyContent: 'flex-end', gap: '16px'}}>
+              <Button onClick={() => setStatusEditor(null)} disabled={savingStatus} variant="outline" size="md">
                 Cancel
               </Button>
-              <Button variant="contained" onClick={handleSaveStatus} disabled={savingStatus}>
+              <Button onClick={handleSaveStatus} disabled={savingStatus} variant="primary" size="md">
                 {savingStatus ? 'Saving...' : 'Save Status'}
               </Button>
-            </Box>
-          </Box>
+            </div>
+          </div>
         )}
       </Modal>
 
@@ -586,52 +503,37 @@ export function DocumentManager({
         showCloseButton={!savingReview}
       >
         {review && (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-            <Paper variant="outlined" sx={{ p: 2, bgcolor: 'var(--background)' }}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+          <div style={{display: 'flex', flexDirection: 'column', gap: '20px'}}>
+            <div style={{padding: '16px', backgroundColor: 'var(--background)'}} className="rounded-xl border border-[var(--border)] bg-[var(--panel)]">
+              <p style={{fontWeight: 600, marginBottom: '8px'}} className="text-[0.875rem] font-medium">
                 AI Summary
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', mb: 1 }}>
+              </p>
+              <div style={{display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '8px'}}>
                 {review.extractionMethod && (
-                  <Chip size="small" label={`Extraction: ${review.extractionMethod}`} />
+                  <span className="inline-flex items-center gap-1 rounded-full font-medium text-[0.7rem] px-2 py-0.5 border border-[var(--border)] bg-[var(--background)] text-[var(--text-primary)]">{`Extraction: ${review.extractionMethod}`}</span>
                 )}
                 {review.ocrAttempted && (
-                  <Chip size="small" color="warning" label="OCR attempted" />
+                  <span className="inline-flex items-center gap-1 rounded-full font-medium text-[0.7rem] px-2 py-0.5 border border-[rgba(var(--warning-rgb),0.4)] bg-[rgba(var(--warning-rgb),0.12)] text-[var(--warning-dark)]">"OCR attempted"</span>
                 )}
-              </Box>
-              <Typography variant="body2" sx={{ color: 'var(--text-secondary)', mb: 1.5 }}>
+              </div>
+              <p style={{color: 'var(--text-secondary)', marginBottom: '12px'}} className="text-[0.875rem]">
                 {review.summary}
-              </Typography>
-              <Typography variant="caption" sx={{ color: 'var(--text-secondary)' }}>
+              </p>
+              <span style={{color: 'var(--text-secondary)'}} className="text-[0.75rem]">
                 {review.extractedTextPreview}
-              </Typography>
-            </Paper>
+              </span>
+            </div>
 
             {review.failureReason && (
-              <Paper
-                variant="outlined"
-                sx={{
-                  p: 1.5,
-                  display: 'flex',
-                  gap: 1,
-                  alignItems: 'flex-start',
-                  bgcolor: 'rgba(245, 158, 11, 0.08)',
-                  borderColor: 'rgba(245, 158, 11, 0.35)',
-                }}
-              >
+              <div style={{padding: '12px', display: 'flex', gap: '8px', alignItems: 'flex-start', backgroundColor: 'rgba(245, 158, 11, 0.08)', borderColor: 'rgba(245, 158, 11, 0.35)'}} className="rounded-xl border border-[var(--border)] bg-[var(--panel)]">
                 <AlertTriangle className="w-4 h-4" style={{ color: 'rgb(180, 83, 9)', marginTop: 2 }} />
-                <Typography variant="body2" sx={{ color: 'rgb(146, 64, 14)' }}>
+                <p style={{color: 'rgb(146, 64, 14)'}} className="text-[0.875rem]">
                   {review.failureReason}
-                </Typography>
-              </Paper>
+                </p>
+              </div>
             )}
 
-            <TextField
-              size="small"
-              label="Document Name"
-              value={review.name}
-              onChange={(event) => setReview((prev) => (prev ? { ...prev, name: event.target.value } : prev))}
-            />
+            <FormField label="Document Name" value={review.name} onChange={(event) => setReview((prev) => (prev ? { ...prev, name: event.target.value } : prev))} size="small" />
 
             <FormField label="Document Category">
               <Select
@@ -654,59 +556,34 @@ export function DocumentManager({
               />
             </FormField>
 
-            <TextField
-              size="small"
-              label="Description"
-              value={review.description}
-              onChange={(event) => setReview((prev) => (prev ? { ...prev, description: event.target.value } : prev))}
-              multiline
-              minRows={3}
-            />
+            <FormField label="Description" value={review.description} onChange={(event) => setReview((prev) => (prev ? { ...prev, description: event.target.value } : prev))} multiline minRows={3} size="small" />
 
             {entityType === 'shipment' && (
               <>
-                <TextField
-                  size="small"
-                  label="Tags"
-                  value={reviewTags}
-                  onChange={(event) => setReviewTags(event.target.value)}
-                  helperText="Comma-separated tags"
-                />
-                <Box>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={review.isCompanyDocument}
-                        onChange={(event) =>
+                <FormField label="Tags" value={reviewTags} onChange={(event) => setReviewTags(event.target.value)} helperText="Comma-separated tags" size="small" />
+                <div>
+                  <label className="flex cursor-pointer items-center gap-2 text-sm text-[var(--text-primary)]"><input type="checkbox" checked={review.isCompanyDocument} onChange={(event) =>
                           setReview((prev) => (prev ? { ...prev, isCompanyDocument: event.target.checked } : prev))
-                        }
-                      />
-                    }
-                    label="Company document (hide from customer)"
-                  />
-                  <Typography variant="caption" sx={{ color: 'var(--text-secondary)' }}>
+                        } className="h-4 w-4 shrink-0 cursor-pointer accent-[var(--accent-gold)] disabled:cursor-not-allowed disabled:opacity-50" /><span>Company document (hide from customer)</span></label>
+                  <span style={{color: 'var(--text-secondary)'}} className="text-[0.75rem]">
                     Checked documents are stored as internal-only and hidden from customer shipment views.
-                  </Typography>
-                </Box>
+                  </span>
+                </div>
               </>
             )}
 
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
-              <Button
-                variant="outlined"
-                onClick={() => {
+            <div style={{display: 'flex', justifyContent: 'flex-end', gap: '16px'}}>
+              <Button onClick={() => {
                   setReview(null);
                   setIsCompanyDocument(false);
-                }}
-                disabled={savingReview}
-              >
+                }} disabled={savingReview} variant="outline" size="md">
                 Cancel
               </Button>
-              <Button variant="contained" onClick={saveReviewedDocument} disabled={savingReview}>
+              <Button onClick={saveReviewedDocument} disabled={savingReview} variant="primary" size="md">
                 {savingReview ? 'Saving...' : 'Save Document'}
               </Button>
-            </Box>
-          </Box>
+            </div>
+          </div>
         )}
       </Modal>
 
@@ -729,7 +606,7 @@ export function DocumentManager({
         onNavigatePrev={handlePrevDoc}
         onNavigateNext={handleNextDoc}
       />
-    </Box>
+    </div>
   );
 }
 

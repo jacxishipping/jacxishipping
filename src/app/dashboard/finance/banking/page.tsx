@@ -1,17 +1,14 @@
 'use client';
 import { formatMoney as formatCurrency } from '@/lib/format';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
 
 import { ChangeEvent, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
-import {
-  Box,
-  TextField,
-} from '@mui/material';
 import { ArrowRightLeft, ExternalLink, Landmark, Link2, ReceiptText, RefreshCcw, Upload } from 'lucide-react';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
-import { PageHeader, Button, StatsCard, TableSkeleton, Modal, toast } from '@/components/design-system';
+import { Button, FormField, Modal, PageHeader, StatsCard, TableSkeleton, toast } from '@/components/design-system';
 import { DataTable, type Column } from '@/components/ui/DataTable';
 
 interface BankingSummary {
@@ -337,37 +334,21 @@ export default function BankingFinancePage() {
         header: 'Description',
         sortable: true,
         render: (_, row) => (
-          <Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-              <Box sx={{ fontWeight: 600 }}>{row.description}</Box>
-              <Box
-                component="span"
-                sx={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  px: 0.75,
-                  py: 0.25,
-                  borderRadius: 1,
-                  fontSize: '0.65rem',
-                  fontWeight: 700,
-                  letterSpacing: '0.05em',
-                  backgroundColor: 'rgba(59, 130, 246, 0.12)',
-                  color: '#2563eb',
-                  border: '1px solid rgba(59, 130, 246, 0.22)',
-                  textTransform: 'uppercase',
-                }}
-              >
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap'}}>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 600}}>{row.description}</JXBox>
+              <JXBox padding="none" border={false} component="span" style={{display: 'inline-flex', alignItems: 'center', paddingLeft: '6px', paddingRight: '6px', paddingTop: '2px', paddingBottom: '2px', borderRadius: '8px', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.05em', backgroundColor: 'rgba(59, 130, 246, 0.12)', color: '#2563eb', border: '1px solid rgba(59, 130, 246, 0.22)', textTransform: 'uppercase'}}>
                 Bank Import
-              </Box>
-            </Box>
-            <Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+              </JXBox>
+            </JXBox>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.75rem', color: 'var(--text-secondary)'}}>
               {typeof row.metadata?.category === 'string' ? row.metadata.category : row.category || 'Bank Statement'}
               {row.reference ? ` • Ref: ${row.reference}` : ''}
-            </Box>
+            </JXBox>
             {row.notes && (
-              <Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)', mt: 0.5 }}>{row.notes}</Box>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '4px'}}>{row.notes}</JXBox>
             )}
-          </Box>
+          </JXBox>
         ),
       },
       {
@@ -414,7 +395,7 @@ export default function BankingFinancePage() {
           title="Banking & Statement Reconciliation"
           description="Import your bank CSV into your ledger or sync connected accounts"
           actions={
-            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
               <Link href="/dashboard/finance/ledger" style={{ textDecoration: 'none' }}>
                 <Button variant="outline" size="sm" icon={<ExternalLink className="w-4 h-4" />}>
                   My Ledger
@@ -441,7 +422,7 @@ export default function BankingFinancePage() {
               <Button variant="primary" size="sm" icon={<Upload className="w-4 h-4" />} onClick={() => setOpenImportDialog(true)}>
                 Import Bank CSV
               </Button>
-            </Box>
+            </JXBox>
           }
         />
 
@@ -449,62 +430,44 @@ export default function BankingFinancePage() {
           title="Account Overview"
           description="Bank imports and active integrations"
         >
-          <Box sx={{ mb: 2, color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginBottom: '16px', color: 'var(--text-secondary)', fontSize: '0.9rem'}}>
             Bank imports now post into <strong>{session?.user?.name || session?.user?.email || 'your account'}</strong> instead of a company ledger. Use Finicity to auto-sync a Bank of America account or keep using CSV uploads when needed.
-          </Box>
+          </JXBox>
 
-          <Box
-            sx={{
-              mb: 2,
-              p: 1.5,
-              borderRadius: 2,
-              border: '1px solid var(--border)',
-              background: bankProviderConfigured ? 'rgba(16, 185, 129, 0.06)' : 'rgba(234, 179, 8, 0.08)',
-              color: 'var(--text-secondary)',
-              fontSize: '0.82rem',
-            }}
-          >
+          <JXBox padding="none" border={false} style={{marginBottom: '16px', padding: '12px', borderRadius: '16px', border: '1px solid var(--border)', background: bankProviderConfigured ? 'rgba(16, 185, 129, 0.06)' : 'rgba(234, 179, 8, 0.08)', color: 'var(--text-secondary)', fontSize: '0.82rem'}}>
             {bankProviderConfigured
               ? `Connected bank accounts: ${loadingBankItems ? 'Loading...' : bankItems.length}. Background auto-sync is available through the protected cron endpoint once Finicity credentials and CRON_SECRET are configured in deployment.`
               : 'Finicity is not configured yet. Add FINICITY_PARTNER_ID, FINICITY_PARTNER_SECRET, FINICITY_APP_KEY, and FINICITY_ENCRYPTION_KEY to enable automatic Bank of America sync.'}
-          </Box>
+          </JXBox>
 
           <DashboardPanel
             title="Connected Accounts"
             description="Linked bank accounts that can auto-sync into this ledger"
           >
             {loadingBankItems ? (
-              <Box sx={{ py: 2, color: 'var(--text-secondary)' }}>Loading connected accounts...</Box>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingTop: '16px', paddingBottom: '16px', color: 'var(--text-secondary)'}}>Loading connected accounts...</JXBox>
             ) : bankItems.length === 0 ? (
-              <Box sx={{ py: 2, color: 'var(--text-secondary)' }}>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingTop: '16px', paddingBottom: '16px', color: 'var(--text-secondary)'}}>
                 No connected bank account yet. Use <strong>Connect Bank</strong> to link Bank of America through Finicity.
-              </Box>
+              </JXBox>
             ) : (
-              <Box sx={{ display: 'grid', gap: 1.5, mb: 2 }}>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '12px', marginBottom: '16px'}}>
                 {bankItems.map((item) => (
-                  <Box
-                    key={item.id}
-                    sx={{
-                      p: 1.5,
-                      borderRadius: 2,
-                      border: '1px solid var(--border)',
-                      background: 'var(--panel)',
-                    }}
-                  >
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
-                      <Box>
-                        <Box sx={{ fontWeight: 700 }}>{item.institutionName || 'Connected Bank'}</Box>
-                        <Box sx={{ fontSize: '0.78rem', color: 'var(--text-secondary)', mt: 0.5 }}>
+                  <JXBox padding="none" border={false} key={item.id} style={{padding: '12px', borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--panel)'}}>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap'}}>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+                        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 700}}>{item.institutionName || 'Connected Bank'}</JXBox>
+                        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '4px'}}>
                           Last sync: {item.lastSyncAt ? new Date(item.lastSyncAt).toLocaleString() : 'Not synced yet'}
-                        </Box>
-                      </Box>
-                      <Box sx={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                        </JXBox>
+                      </JXBox>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.78rem', color: 'var(--text-secondary)'}}>
                         {item.selectedAccounts?.map((account) => `${account.name}${account.mask ? ` • ${account.mask}` : ''}`).join(', ') || 'Accounts not captured yet'}
-                      </Box>
-                    </Box>
-                  </Box>
+                      </JXBox>
+                    </JXBox>
+                  </JXBox>
                 ))}
-              </Box>
+              </JXBox>
             )}
           </DashboardPanel>
 
@@ -515,19 +478,9 @@ export default function BankingFinancePage() {
             <StatsCard icon={<Landmark className="w-5 h-5" />} title="Imported Net" value={formatCurrency(summary.netChange)} variant="info" />
           </DashboardGrid>
 
-          <Box
-            sx={{
-              mb: 2,
-              p: 1.5,
-              borderRadius: 2,
-              border: '1px solid var(--border)',
-              background: 'rgba(59, 130, 246, 0.06)',
-              color: 'var(--text-secondary)',
-              fontSize: '0.82rem',
-            }}
-          >
+          <JXBox padding="none" border={false} style={{marginBottom: '16px', padding: '12px', borderRadius: '16px', border: '1px solid var(--border)', background: 'rgba(59, 130, 246, 0.06)', color: 'var(--text-secondary)', fontSize: '0.82rem'}}>
             Imported bank rows are stored on your ledger with bank-import metadata, but CSV upload starts here in Banking instead of from the ledger screen.
-          </Box>
+          </JXBox>
 
           <DashboardPanel
             title="Bank Ledger"
@@ -535,9 +488,9 @@ export default function BankingFinancePage() {
             fullHeight
           >
             {entries.length === 0 ? (
-              <Box sx={{ py: 3, textAlign: 'center', color: 'var(--text-secondary)' }}>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingTop: '24px', paddingBottom: '24px', textAlign: 'center', color: 'var(--text-secondary)'}}>
                 No bank-imported transactions yet.
-              </Box>
+              </JXBox>
             ) : (
               <DataTable data={entries} columns={columns} keyField="id" />
             )}
@@ -557,7 +510,7 @@ export default function BankingFinancePage() {
           title="Import Bank of America CSV"
           description="Upload statements to post debit and credit transactions into your ledger"
           actions={
-            <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end', width: '100%' }}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '8px', justifyContent: 'flex-end', width: '100%'}}>
               <Button
                 variant="outline"
                 size="sm"
@@ -585,94 +538,72 @@ export default function BankingFinancePage() {
               >
                 {importing ? 'Importing...' : 'Confirm & Post'}
               </Button>
-            </Box>
+            </JXBox>
           }
         >
-          <Box sx={{ display: 'grid', gap: 2 }}>
-            <Box sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '16px'}}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', color: 'var(--text-secondary)'}}>
               This import will post directly into your ledger. Money in is imported as <strong>DEBIT</strong>. Money out is imported as <strong>CREDIT</strong>.
-            </Box>
-            <TextField
-              size="small"
-              label="Ledger Category"
-              value={importForm.category}
-              onChange={(event) => {
+            </JXBox>
+            <div className="min-w-0 flex-1"><FormField label="Ledger Category" value={importForm.category} onChange={(event) => {
                 setImportForm((prev) => ({ ...prev, category: event.target.value }));
                 setImportPreview(null);
-              }}
-              placeholder="Bank Statement"
-              fullWidth
-            />
-            <TextField
-              size="small"
-              label="Statement Ending Balance"
-              value={importForm.statementEndingBalance}
-              onChange={(event) => {
+              }} placeholder="Bank Statement" size="small" /></div>
+            <div className="min-w-0 flex-1"><FormField label="Statement Ending Balance" value={importForm.statementEndingBalance} onChange={(event) => {
                 setImportForm((prev) => ({ ...prev, statementEndingBalance: event.target.value }));
                 setImportPreview(null);
-              }}
-              placeholder="0.00"
-              helperText="Optional, but recommended so the preview can reconcile against the statement total"
-              fullWidth
-            />
-            <Box>
-              <Box sx={{ fontSize: '0.8rem', color: 'var(--text-secondary)', mb: 1, fontWeight: 600 }}>CSV File</Box>
+              }} placeholder="0.00" helperText="Optional, but recommended so the preview can reconcile against the statement total" size="small" /></div>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '8px', fontWeight: 600}}>CSV File</JXBox>
               <input type="file" accept=".csv,text/csv" onChange={handleImportFileChange} className="text-sm" />
               {importFile && (
-                <Box sx={{ mt: 1, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '8px', fontSize: '0.8rem', color: 'var(--text-secondary)'}}>
                   Selected: <strong>{importFile.name}</strong>
-                </Box>
+                </JXBox>
               )}
-            </Box>
+            </JXBox>
 
             {importPreview && (
-              <Box sx={{ display: 'grid', gap: 2 }}>
-                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }, gap: 1.5 }}>
-                  <Box sx={{ p: 1.5, borderRadius: 2, border: '1px solid var(--border)', background: 'var(--panel)' }}>
-                    <Box sx={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Rows</Box>
-                    <Box sx={{ mt: 0.5, fontWeight: 700, fontSize: '1rem' }}>{importPreview.totalCount}</Box>
-                    <Box sx={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>{importPreview.importableCount} ready to import</Box>
-                  </Box>
-                  <Box sx={{ p: 1.5, borderRadius: 2, border: '1px solid var(--border)', background: 'var(--panel)' }}>
-                    <Box sx={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Duplicates</Box>
-                    <Box sx={{ mt: 0.5, fontWeight: 700, fontSize: '1rem' }}>{importPreview.duplicateCount}</Box>
-                    <Box sx={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Already in ledger</Box>
-                  </Box>
-                  <Box sx={{ p: 1.5, borderRadius: 2, border: '1px solid var(--border)', background: 'var(--panel)' }}>
-                    <Box sx={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Net Change</Box>
-                    <Box sx={{ mt: 0.5, fontWeight: 700, fontSize: '1rem' }}>{formatCurrency(importPreview.importableNetChange)}</Box>
-                    <Box sx={{ mt: 0.5, fontWeight: 700, fontSize: '1rem' }}>{formatCurrency(importPreview.projectedEndingBalance)}</Box>
-                    <Box sx={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '16px'}}>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '12px'}}>
+                  <JXBox padding="none" border={false} style={{padding: '12px', borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--panel)'}}>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700}}>Rows</JXBox>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '4px', fontWeight: 700, fontSize: '1rem'}}>{importPreview.totalCount}</JXBox>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.78rem', color: 'var(--text-secondary)'}}>{importPreview.importableCount} ready to import</JXBox>
+                  </JXBox>
+                  <JXBox padding="none" border={false} style={{padding: '12px', borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--panel)'}}>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700}}>Duplicates</JXBox>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '4px', fontWeight: 700, fontSize: '1rem'}}>{importPreview.duplicateCount}</JXBox>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.78rem', color: 'var(--text-secondary)'}}>Already in ledger</JXBox>
+                  </JXBox>
+                  <JXBox padding="none" border={false} style={{padding: '12px', borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--panel)'}}>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700}}>Net Change</JXBox>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '4px', fontWeight: 700, fontSize: '1rem'}}>{formatCurrency(importPreview.importableNetChange)}</JXBox>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '4px', fontWeight: 700, fontSize: '1rem'}}>{formatCurrency(importPreview.projectedEndingBalance)}</JXBox>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.78rem', color: 'var(--text-secondary)'}}>
                       {importPreview.reconciliationStatus === 'MATCH' ? 'Reconciles with statement' : 'Variance detected'}
-                    </Box>
-                  </Box>
-                </Box>
+                    </JXBox>
+                  </JXBox>
+                </JXBox>
 
                 {importPreview.statementEndingBalance !== null && (
-                  <Box
-                    sx={{
-                      p: 1.5,
-                      borderRadius: 2,
-                      border: '1px solid var(--border)',
-                      background: importPreview.reconciliationStatus === 'MATCH' ? 'rgba(34, 197, 94, 0.08)' : 'rgba(239, 68, 68, 0.08)',
-                    }}
-                  >
-                    <Box sx={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+                  <JXBox padding="none" border={false} style={{padding: '12px', borderRadius: '16px', border: '1px solid var(--border)', background: importPreview.reconciliationStatus === 'MATCH' ? 'rgba(34, 197, 94, 0.08)' : 'rgba(239, 68, 68, 0.08)'}}>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 700, color: 'var(--text-primary)'}}>
                       Statement ending balance: {formatCurrency(importPreview.statementEndingBalance)}
-                    </Box>
-                    <Box sx={{ fontSize: '0.82rem', color: 'var(--text-secondary)', mt: 0.5 }}>
+                    </JXBox>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '4px'}}>
                       {importPreview.reconciliationStatus === 'MATCH'
                         ? 'Projected ledger ending balance matches the statement total.'
                         : `Projected ledger ending balance differs by ${formatCurrency(Math.abs(importPreview.reconciliationDifference || 0))}. Review duplicates and source data before importing.`}
-                    </Box>
-                  </Box>
+                    </JXBox>
+                  </JXBox>
                 )}
 
-                <Box sx={{ border: '1px solid var(--border)', borderRadius: 2, overflow: 'hidden' }}>
-                  <Box sx={{ px: 2, py: 1.25, fontWeight: 700, borderBottom: '1px solid var(--border)', background: 'var(--panel)' }}>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', border: '1px solid var(--border)', borderRadius: '16px', overflow: 'hidden'}}>
+                  <JXBox padding="none" border={false} style={{borderRadius: 0, paddingLeft: '16px', paddingRight: '16px', paddingTop: '10px', paddingBottom: '10px', fontWeight: 700, borderBottom: '1px solid var(--border)', background: 'var(--panel)'}}>
                     Preview Rows
-                  </Box>
-                  <Box sx={{ maxHeight: 320, overflow: 'auto' }}>
+                  </JXBox>
+                  <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, maxHeight: '320px', overflow: 'auto'}}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                       <thead>
                         <tr style={{ background: 'var(--panel)', borderBottom: '1px solid var(--border)' }}>
@@ -719,11 +650,11 @@ export default function BankingFinancePage() {
                         ))}
                       </tbody>
                     </table>
-                  </Box>
-                </Box>
-              </Box>
+                  </JXBox>
+                </JXBox>
+              </JXBox>
             )}
-          </Box>
+          </JXBox>
         </Modal>
       </DashboardSurface>
     </ProtectedRoute>

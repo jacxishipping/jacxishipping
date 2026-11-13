@@ -1,37 +1,12 @@
 'use client';
 import { formatMoney as formatCurrency } from '@/lib/format';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
+import { Search } from 'lucide-react';
 
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, forwardRef, type CSSProperties, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react';
 import Link from 'next/link';
-import { 
-  Box, 
-  TextField, 
-  Select, 
-  MenuItem, 
-  FormControl, 
-  InputLabel, 
-  Checkbox, 
-  Divider, 
-  InputAdornment,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Stepper,
-  Step,
-  StepLabel,
-  Alert,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Chip
-} from '@mui/material';
 import { 
   ArrowLeft, 
   DollarSign, 
@@ -43,10 +18,80 @@ import {
   ArrowRight,
   Info
 } from 'lucide-react';
-import { Search } from '@mui/icons-material';
 import { DashboardSurface, DashboardPanel } from '@/components/dashboard/DashboardSurface';
-import { PageHeader, Button, Breadcrumbs, toast, LoadingState, EmptyState, DashboardPageSkeleton } from '@/components/design-system';
+import { Alert, Breadcrumbs, Button, DashboardPageSkeleton, EmptyState, FormField, LoadingState, PageHeader, Select, toast, Modal, MilestoneStepper } from '@/components/design-system';
 import AdminRoute from '@/components/auth/AdminRoute';
+
+/** Bare input with the Jacxi field look (no label) — search fields, table-cell editors. */
+const BareInput = forwardRef<HTMLInputElement | HTMLTextAreaElement, BareInputProps>(function BareInput(
+  { leftIcon, rightIcon, rightElement, error = false, helperText, size = 'small', multiline = false, rows, minRows, inputProps, className, style, ...rest },
+  ref,
+) {
+  const controlClass = [
+    'w-full rounded-lg border bg-[var(--background)] text-[var(--text-primary)] outline-none transition-colors placeholder:text-[var(--text-secondary)]',
+    size === 'small' ? 'px-2.5 py-1.5 text-[0.8125rem]' : 'px-3 py-2 text-[0.875rem]',
+    leftIcon ? 'pl-9' : '',
+    rightIcon || rightElement ? 'pr-9' : '',
+    error
+      ? 'border-[var(--error)] focus:border-[var(--error)] focus:ring-2 focus:ring-[rgba(var(--error-rgb),0.2)]'
+      : 'border-[rgba(var(--border-rgb),0.9)] hover:border-[var(--border)] focus:border-[var(--accent-gold)] focus:ring-2 focus:ring-[rgba(var(--accent-gold-rgb),0.2)]',
+    rest.disabled ? 'opacity-50' : '',
+    className,
+  ].filter(Boolean).join(' ');
+  return (
+    <div>
+      <div className="relative">
+        {leftIcon && (
+          <span className="pointer-events-none absolute left-3 top-1/2 flex -translate-y-1/2 text-[var(--text-secondary)]">{leftIcon}</span>
+        )}
+        {multiline ? (
+          <textarea
+            {...(rest as TextareaHTMLAttributes<HTMLTextAreaElement>)}
+            {...(inputProps as unknown as TextareaHTMLAttributes<HTMLTextAreaElement>)}
+            ref={ref as React.Ref<HTMLTextAreaElement>}
+            rows={rows ?? minRows ?? 3}
+            aria-invalid={error || undefined}
+            style={style}
+            className={`${controlClass} min-h-[80px] resize-y leading-[1.5]`}
+          />
+        ) : (
+          <input
+            {...rest}
+            {...inputProps}
+            ref={ref as React.Ref<HTMLInputElement>}
+            aria-invalid={error || undefined}
+            style={style}
+            className={controlClass}
+          />
+        )}
+        {rightIcon && (
+          <span className="pointer-events-none absolute right-3 top-1/2 flex -translate-y-1/2 text-[var(--text-secondary)]">{rightIcon}</span>
+        )}
+        {rightElement && (
+          <span className="absolute right-3 top-1/2 flex -translate-y-1/2 text-[var(--text-secondary)]">{rightElement}</span>
+        )}
+      </div>
+      {helperText && (
+        <p className="mt-0.5 text-[0.75rem]" style={{ color: error ? 'var(--error)' : 'var(--text-secondary)' }}>{helperText}</p>
+      )}
+    </div>
+  );
+});
+
+type BareInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> & {
+  leftIcon?: ReactNode;
+  rightIcon?: ReactNode;
+  /** Interactive element on the right (e.g. password visibility toggle). */
+  rightElement?: ReactNode;
+  error?: boolean;
+  helperText?: ReactNode;
+  size?: 'small' | 'medium';
+  multiline?: boolean;
+  rows?: number;
+  minRows?: number;
+  inputProps?: InputHTMLAttributes<HTMLInputElement>;
+};
+
 
 interface User {
   id: string;
@@ -353,9 +398,9 @@ export default function RecordPaymentPage() {
   return (
     <AdminRoute>
       <DashboardSurface>
-        <Box sx={{ px: 2, pt: 2 }}>
+        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingLeft: '16px', paddingRight: '16px', paddingTop: '16px'}}>
           <Breadcrumbs />
-        </Box>
+        </JXBox>
 
         <PageHeader
           title="Record Shipment Payment"
@@ -370,64 +415,38 @@ export default function RecordPaymentPage() {
         />
 
         {/* Progress Stepper */}
-        <Box sx={{ px: 4, py: 3, bgcolor: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
-          <Stepper activeStep={activeStep} alternativeLabel>
-            {steps.map((label) => (
-              <Step key={label}>
-                <StepLabel>{label}</StepLabel>
-              </Step>
-            ))}
-          </Stepper>
-        </Box>
+        <JXBox padding="none" border={false} style={{borderRadius: 0, paddingLeft: '32px', paddingRight: '32px', paddingTop: '24px', paddingBottom: '24px', backgroundColor: 'var(--surface)', borderBottom: '1px solid var(--border)'}}>
+          <MilestoneStepper steps={steps.map((label, index) => ({ id: String(index), label: label }))} currentStepId={String(activeStep)} />
+        </JXBox>
 
-        <Box sx={{ px: 2, pb: 4, pt: 3 }}>
+        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingLeft: '16px', paddingRight: '16px', paddingBottom: '32px', paddingTop: '24px'}}>
           {/* Step 1: Customer Selection */}
           {activeStep === 0 && (
             <DashboardPanel
               title="Step 1: Select Customer"
               description="Choose the customer who made the payment"
             >
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '16px'}}>
                 {/* Search field */}
-                <TextField
-                  placeholder="Search by name or email..."
-                  size="small"
-                  value={customerSearch}
-                  onChange={(e) => {
+                <div className="min-w-0 flex-1"><BareInput placeholder="Search by name or email..." value={customerSearch} onChange={(e) => {
                     setCustomerSearch(e.target.value);
                     if (selectedUserId) setSelectedUserId('');
-                  }}
-                  InputProps={{
-                    startAdornment: <Search sx={{ mr: 1, color: 'var(--text-secondary)', fontSize: 20 }} />,
-                  }}
-                  fullWidth
-                  autoComplete="off"
-                />
+                  }} autoComplete="off" leftIcon={<Search className="mr-2 h-[20px] w-[20px]" style={{color: 'var(--text-secondary)'}} />} size="small" /></div>
 
                 {/* Selected customer display */}
                 {selectedUserId && (() => {
                   const sel = users.find(u => u.id === selectedUserId);
                   return sel ? (
                     <>
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          p: 2,
-                          borderRadius: 2,
-                          border: '2px solid var(--accent-gold)',
-                          bgcolor: 'rgba(201,155,47,0.08)',
-                        }}
-                      >
-                        <Box>
-                          <Box sx={{ fontWeight: 600, fontSize: '0.95rem', color: 'var(--text-primary)' }}>
+                      <JXBox padding="none" border={false} style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', borderRadius: '16px', border: '2px solid var(--accent-gold)', backgroundColor: 'rgba(201,155,47,0.08)'}}>
+                        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+                          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 600, fontSize: '0.95rem', color: 'var(--text-primary)'}}>
                             {sel.name || sel.email}
-                          </Box>
+                          </JXBox>
                           {sel.name && (
-                            <Box sx={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{sel.email}</Box>
+                            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.8rem', color: 'var(--text-secondary)'}}>{sel.email}</JXBox>
                           )}
-                        </Box>
+                        </JXBox>
                         <Button
                           variant="outline"
                           size="sm"
@@ -435,13 +454,13 @@ export default function RecordPaymentPage() {
                         >
                           Change
                         </Button>
-                      </Box>
+                      </JXBox>
 
                       {/* Account balance status */}
                       {loadingBalance ? (
-                        <Box sx={{ fontSize: '0.85rem', color: 'var(--text-secondary)', py: 1 }}>Checking account balance...</Box>
+                        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.85rem', color: 'var(--text-secondary)', paddingTop: '8px', paddingBottom: '8px'}}>Checking account balance...</JXBox>
                       ) : customerBalance !== null && (
-                        <Alert severity={customerBalance > 0 ? 'warning' : 'info'} sx={{ fontSize: '0.9rem', fontWeight: 500 }}>
+                        <Alert severity={customerBalance > 0 ? 'warning' : 'info'} variant="subtle" className="font-medium">
                           {customerBalance > 0
                             ? `Outstanding balance: ${formatCurrency(customerBalance)} — record payment to reduce the balance.`
                             : customerBalance < 0
@@ -461,58 +480,35 @@ export default function RecordPaymentPage() {
                       (u.name?.toLowerCase().includes(q) || u.email.toLowerCase().includes(q))
                   );
                   return (
-                    <Box
-                      sx={{
-                        border: '1px solid var(--border)',
-                        borderRadius: 2,
-                        overflow: 'hidden',
-                        maxHeight: 280,
-                        overflowY: 'auto',
-                      }}
-                    >
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', border: '1px solid var(--border)', borderRadius: '16px', overflow: 'hidden', maxHeight: '280px', overflowY: 'auto'}}>
                       {results.length === 0 ? (
-                        <Box sx={{ p: 2, textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, padding: '16px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.875rem'}}>
                           No customers found
-                        </Box>
+                        </JXBox>
                       ) : (
                         results.map((user, idx) => (
-                          <Box
-                            key={user.id}
-                            onClick={() => {
+                          <JXBox padding="none" border={false} key={user.id} onClick={() => {
                               setSelectedUserId(user.id);
                               setCustomerSearch('');
-                            }}
-                            sx={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 1.5,
-                              px: 2,
-                              py: 1.5,
-                              cursor: 'pointer',
-                              borderTop: idx > 0 ? '1px solid var(--border)' : 'none',
-                              bgcolor: 'var(--surface)',
-                              '&:hover': { bgcolor: 'rgba(201,155,47,0.08)' },
-                              transition: 'background 0.15s',
-                            }}
-                          >
+                            }} style={{borderRadius: 0, display: 'flex', alignItems: 'center', gap: '12px', paddingLeft: '16px', paddingRight: '16px', paddingTop: '12px', paddingBottom: '12px', cursor: 'pointer', borderTop: idx > 0 ? '1px solid var(--border)' : 'none', backgroundColor: 'var(--surface)', transition: 'background 0.15s'}}>
                             <User className="w-4 h-4" style={{ color: 'var(--text-secondary)', flexShrink: 0 }} />
-                            <Box>
-                              <Box sx={{ fontWeight: 500, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+                            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+                              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 500, fontSize: '0.9rem', color: 'var(--text-primary)'}}>
                                 {user.name || user.email}
-                              </Box>
+                              </JXBox>
                               {user.name && (
-                                <Box sx={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>{user.email}</Box>
+                                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.78rem', color: 'var(--text-secondary)'}}>{user.email}</JXBox>
                               )}
-                            </Box>
-                          </Box>
+                            </JXBox>
+                          </JXBox>
                         ))
                       )}
-                    </Box>
+                    </JXBox>
                   );
                 })()}
 
                 {selectedUserId && (
-                  <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
+                  <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '16px', display: 'flex', justifyContent: 'flex-end'}}>
                     <Button
                       onClick={handleNext}
                       variant="primary"
@@ -521,9 +517,9 @@ export default function RecordPaymentPage() {
                     >
                       Continue to Shipments
                     </Button>
-                  </Box>
+                  </JXBox>
                 )}
-              </Box>
+              </JXBox>
             </DashboardPanel>
           )}
 
@@ -534,9 +530,9 @@ export default function RecordPaymentPage() {
               description={`Choose the shipment and payment category — ${selectedUser?.name || selectedUser?.email}`}
             >
               {loadingShipments ? (
-                <Box sx={{ textAlign: 'center', py: 4 }}>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, textAlign: 'center', paddingTop: '32px', paddingBottom: '32px'}}>
                   <LoadingState message="Loading shipments..." />
-                </Box>
+                </JXBox>
               ) : shipments.length === 0 ? (
                 <EmptyState
                   icon={<AlertCircle className="w-12 h-12" />}
@@ -544,19 +540,8 @@ export default function RecordPaymentPage() {
                   description="This customer has no shipments with an outstanding balance"
                 />
               ) : (
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <FormControl fullWidth size="small">
-                    <InputLabel>Payment Category *</InputLabel>
-                    <Select
-                      value={paymentCategory}
-                      onChange={(e) => setPaymentCategory(e.target.value as PaymentCategory)}
-                      label="Payment Category *"
-                    >
-                      {Object.entries(paymentCategoryLabels).map(([value, label]) => (
-                        <MenuItem key={value} value={value}>{label}</MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '16px'}}>
+                  <div className="min-w-0 flex-1"><Select label="Payment Category" options={Object.entries(paymentCategoryLabels).map(([value, label]) => ({ value, label }))} value={paymentCategory} size="small" required onChange={(val) => setPaymentCategory(val as PaymentCategory)} /></div>
 
                   {(() => {
                     const q = shipmentSearch.trim().toLowerCase();
@@ -571,106 +556,68 @@ export default function RecordPaymentPage() {
                       : shipments.filter((shipment) => getShipmentDueForCategory(shipment) > 0);
                     return (
                       <>
-                        <Alert severity="info" icon={<Info className="w-5 h-5" />}>
+                        <Alert severity="info" icon={<Info className="w-5 h-5" />} variant="subtle">
                           Enter VIN or Lot Number to find the vehicle. The list shows shipments with outstanding {paymentCategoryLabels[paymentCategory].toLowerCase()} balances.
                         </Alert>
 
-                        <TextField
-                          placeholder="Enter VIN or Lot Number..."
-                          size="small"
-                          value={shipmentSearch}
-                          onChange={(e) => setShipmentSearch(e.target.value)}
-                          InputProps={{
-                            startAdornment: <Search sx={{ mr: 1, color: 'var(--text-secondary)', fontSize: 20 }} />,
-                          }}
-                          fullWidth
-                          autoComplete="off"
-                        />
+                        <div className="min-w-0 flex-1"><BareInput placeholder="Enter VIN or Lot Number..." value={shipmentSearch} onChange={(e) => setShipmentSearch(e.target.value)} autoComplete="off" leftIcon={<Search className="mr-2 h-[20px] w-[20px]" style={{color: 'var(--text-secondary)'}} />} size="small" /></div>
 
                         {filtered.length === 0 ? (
-                          <Box sx={{ py: 3, textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingTop: '24px', paddingBottom: '24px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.875rem'}}>
                             {q ? 'No shipment matches this VIN or Lot Number for this payment category' : `No shipments have outstanding ${paymentCategoryLabels[paymentCategory].toLowerCase()} balances`}
-                          </Box>
+                          </JXBox>
                         ) : filtered.map((shipment) => (
-                    <Box
-                      key={shipment.id}
-                      sx={{
-                        p: 2.5,
-                        border: '2px solid',
-                        borderColor: selectedShipmentIds.includes(shipment.id) 
+                    <JXBox padding="none" border={false} key={shipment.id} style={{padding: '20px', border: '2px solid', borderColor: selectedShipmentIds.includes(shipment.id) 
                           ? 'var(--accent-gold)' 
-                          : 'var(--border)',
-                        borderRadius: 2,
-                        bgcolor: selectedShipmentIds.includes(shipment.id) 
+                          : 'var(--border)', borderRadius: '16px', backgroundColor: selectedShipmentIds.includes(shipment.id) 
                           ? 'rgba(201, 155, 47, 0.08)' 
-                          : 'transparent',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s',
-                        '&:hover': {
-                          borderColor: 'var(--accent-gold)',
-                          bgcolor: 'rgba(201, 155, 47, 0.05)',
-                        },
-                      }}
-                      onClick={() => handleShipmentToggle(shipment.id)}
-                    >
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <Checkbox
-                          checked={selectedShipmentIds.includes(shipment.id)}
-                          onChange={() => handleShipmentToggle(shipment.id)}
-                          sx={{ 
-                            color: 'var(--accent-gold)',
-                            '&.Mui-checked': { color: 'var(--accent-gold)' },
-                          }}
-                        />
-                        <Box sx={{ flex: 1 }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
-                            <Box sx={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                          : 'transparent', cursor: 'pointer', transition: 'all 0.2s'}} onClick={() => handleShipmentToggle(shipment.id)}>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '16px'}}>
+                        <input type="checkbox" onChange={() => handleShipmentToggle(shipment.id)} checked={selectedShipmentIds.includes(shipment.id)} style={{color: 'var(--accent-gold)'}} className="h-5 w-5 shrink-0 cursor-pointer accent-[var(--accent-gold)] disabled:cursor-not-allowed disabled:opacity-50" />
+                        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, flex: 1}}>
+                          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '8px'}}>
+                            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)'}}>
                               {shipment.trackingNumber}
-                            </Box>
-                            <Chip 
-                              label={shipment.paymentStatus} 
-                              size="small" 
-                              color={shipment.paymentStatus === 'FAILED' ? 'error' : 'warning'}
-                              sx={{ fontSize: '0.7rem' }}
-                            />
-                          </Box>
-                          <Box sx={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                            </JXBox>
+                            <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5" style={{fontSize: '0.7rem', backgroundColor: shipment.paymentStatus === 'FAILED' ? 'rgba(var(--error-rgb), 0.1)' : 'rgba(var(--warning-rgb), 0.1)', color: shipment.paymentStatus === 'FAILED' ? 'var(--error)' : 'var(--warning)'}}>{shipment.paymentStatus}</span>
+                          </JXBox>
+                          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.85rem', color: 'var(--text-secondary)'}}>
                             {shipment.vehicleMake} {shipment.vehicleModel}
-                          </Box>
+                          </JXBox>
                           {shipment.vehicleVIN && (
-                            <Box sx={{ fontSize: '0.78rem', color: 'var(--text-secondary)', mt: 0.5 }}>
+                            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '4px'}}>
                               VIN: {shipment.vehicleVIN}
-                            </Box>
+                            </JXBox>
                           )}
                           {shipment.lotNumber && (
-                            <Box sx={{ fontSize: '0.78rem', color: 'var(--text-secondary)', mt: 0.5 }}>
+                            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '4px'}}>
                               Lot: {shipment.lotNumber}
-                            </Box>
+                            </JXBox>
                           )}
-                        </Box>
-                        <Box sx={{ textAlign: 'right' }}>
+                        </JXBox>
+                        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, textAlign: 'right'}}>
                           <>
-                            <Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)', mb: 0.5 }}>
+                            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px'}}>
                               {paymentCategoryLabels[paymentCategory]} Due
-                            </Box>
-                            <Box sx={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--accent-gold)' }}>
+                            </JXBox>
+                            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--accent-gold)'}}>
                               {formatCurrency(getShipmentDueForCategory(shipment))}
-                            </Box>
-                            <Box sx={{ mt: 0.75, display: 'flex', flexDirection: 'column', gap: 0.35 }}>
-                              <Box sx={{ fontSize: '0.72rem', color: paymentCategory === 'PURCHASE_PRICE' ? 'var(--accent-gold)' : 'var(--text-secondary)', fontWeight: paymentCategory === 'PURCHASE_PRICE' ? 700 : 500 }}>
+                            </JXBox>
+                            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '2.8px'}}>
+                              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.72rem', color: paymentCategory === 'PURCHASE_PRICE' ? 'var(--accent-gold)' : 'var(--text-secondary)', fontWeight: paymentCategory === 'PURCHASE_PRICE' ? 700 : 500}}>
                                 Purchase due: {formatCurrency(shipment.purchaseAmountDue || 0)}
-                              </Box>
-                              <Box sx={{ fontSize: '0.72rem', color: paymentCategory === 'EXPENSES' ? 'var(--accent-gold)' : 'var(--text-secondary)', fontWeight: paymentCategory === 'EXPENSES' ? 700 : 500 }}>
+                              </JXBox>
+                              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.72rem', color: paymentCategory === 'EXPENSES' ? 'var(--accent-gold)' : 'var(--text-secondary)', fontWeight: paymentCategory === 'EXPENSES' ? 700 : 500}}>
                                 Expense due: {formatCurrency(shipment.expenseAmountDue || 0)}
-                              </Box>
-                              <Box sx={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                              </JXBox>
+                              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.72rem', color: 'var(--text-secondary)'}}>
                                 Total shipment due: {formatCurrency(shipment.amountDue || 0)}
-                              </Box>
-                            </Box>
+                              </JXBox>
+                            </JXBox>
                           </>
-                        </Box>
-                      </Box>
-                    </Box>
+                        </JXBox>
+                      </JXBox>
+                    </JXBox>
                         ))}
                       </>
                     );
@@ -678,33 +625,26 @@ export default function RecordPaymentPage() {
 
                   {selectedShipmentIds.length > 0 && (
                     <>
-                      <Divider sx={{ my: 2, borderColor: 'var(--border)' }} />
-                      <Box
-                        sx={{
-                          p: 3,
-                          borderRadius: 2,
-                          bgcolor: 'rgba(201, 155, 47, 0.12)',
-                          border: '2px solid var(--accent-gold)',
-                        }}
-                      >
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <Box>
-                            <Box sx={{ fontSize: '0.85rem', color: 'var(--text-secondary)', mb: 0.5 }}>
+                      <div aria-hidden="true" className="my-4 border-t border-[var(--border)]" style={{marginTop: '16px', marginBottom: '16px', borderColor: 'var(--border)'}} />
+                      <JXBox padding="none" border={false} style={{padding: '24px', borderRadius: '16px', backgroundColor: 'rgba(201, 155, 47, 0.12)', border: '2px solid var(--accent-gold)'}}>
+                        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+                            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '4px'}}>
                               {paymentCategoryLabels[paymentCategory]} Remaining Due
-                            </Box>
-                            <Box sx={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+                            </JXBox>
+                            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.9rem', color: 'var(--text-primary)'}}>
                               {selectedShipmentIds.length} shipment{selectedShipmentIds.length !== 1 ? 's' : ''} selected
-                            </Box>
-                          </Box>
-                          <Box sx={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--accent-gold)' }}>
+                            </JXBox>
+                          </JXBox>
+                          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '1.75rem', fontWeight: 700, color: 'var(--accent-gold)'}}>
                             {formatCurrency(totalSelectedAmount)}
-                          </Box>
-                        </Box>
-                      </Box>
+                          </JXBox>
+                        </JXBox>
+                      </JXBox>
                     </>
                   )}
 
-                  <Box sx={{ mt: 3, display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+                  <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '24px', display: 'flex', gap: '16px', justifyContent: 'flex-end'}}>
                     <Button
                       onClick={handleBack}
                       variant="outline"
@@ -719,8 +659,8 @@ export default function RecordPaymentPage() {
                     >
                       Continue to Payment
                     </Button>
-                  </Box>
-                </Box>
+                  </JXBox>
+                </JXBox>
               )}
             </DashboardPanel>
           )}
@@ -731,32 +671,25 @@ export default function RecordPaymentPage() {
               title="Step 3: Enter Payment Details"
               description={`Enter the amount to apply against the shipment's ${paymentCategoryLabels[paymentCategory].toLowerCase()} balance`}
             >
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '24px'}}>
                 {/* Payment Summary */}
-                <Box
-                  sx={{
-                    p: 2.5,
-                    borderRadius: 2,
-                    bgcolor: 'rgba(201, 155, 47, 0.08)',
-                    border: '1px solid var(--accent-gold)',
-                  }}
-                >
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                    <Box sx={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                <JXBox padding="none" border={false} style={{padding: '20px', borderRadius: '16px', backgroundColor: 'rgba(201, 155, 47, 0.08)', border: '1px solid var(--accent-gold)'}}>
+                  <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px'}}>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)'}}>
                       {paymentCategoryLabels[paymentCategory]} Payment Summary
-                    </Box>
-                    <Box sx={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                    </JXBox>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.85rem', color: 'var(--text-secondary)'}}>
                       {selectedShipmentIds.length} shipment{selectedShipmentIds.length !== 1 ? 's' : ''}
-                    </Box>
-                  </Box>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Box sx={{ fontSize: '0.95rem', color: 'var(--text-secondary)' }}>
+                    </JXBox>
+                  </JXBox>
+                  <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.95rem', color: 'var(--text-secondary)'}}>
                       {paymentCategoryLabels[paymentCategory]} Outstanding:
-                    </Box>
-                    <Box sx={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--accent-gold)' }}>
+                    </JXBox>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '1.5rem', fontWeight: 700, color: 'var(--accent-gold)'}}>
                       {formatCurrency(totalSelectedAmount)}
-                    </Box>
-                  </Box>
+                    </JXBox>
+                  </JXBox>
                   {selectedShipmentIds.length === 1 && (() => {
                     const selectedShipment = shipments.find((shipment) => shipment.id === selectedShipmentIds[0]);
                     if (!selectedShipment) {
@@ -764,107 +697,31 @@ export default function RecordPaymentPage() {
                     }
 
                     return (
-                      <Box sx={{ mt: 1.5, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                        <Box sx={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '4px'}}>
+                        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.78rem', color: 'var(--text-secondary)'}}>
                           Purchase due: {formatCurrency(selectedShipment.purchaseAmountDue || 0)}
-                        </Box>
-                        <Box sx={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                        </JXBox>
+                        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.78rem', color: 'var(--text-secondary)'}}>
                           Expense due: {formatCurrency(selectedShipment.expenseAmountDue || 0)}
-                        </Box>
-                      </Box>
+                        </JXBox>
+                      </JXBox>
                     );
                   })()}
-                </Box>
+                </JXBox>
 
                 {/* Amount Input */}
-                <TextField
-                  fullWidth
-                  label="Payment Amount (USD) *"
-                  type="number"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="0.00"
-                  required
-                  size="medium"
-                  inputProps={{ step: '0.01', min: '0.01' }}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <DollarSign className="w-5 h-5 text-[var(--text-secondary)]" />
-                      </InputAdornment>
-                    ),
-                  }}
-                  helperText={`Enter the amount to apply against the shipment's ${paymentCategoryLabels[paymentCategory].toLowerCase()} balance`}
-                />
+                <div className="min-w-0 flex-1"><FormField label="Payment Amount (USD) *" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" required inputProps={{ step: '0.01', min: '0.01' }} helperText={`Enter the amount to apply against the shipment's ${paymentCategoryLabels[paymentCategory].toLowerCase()} balance`} leftIcon={<DollarSign className="w-5 h-5 text-[var(--text-secondary)]" />} /></div>
 
-                <FormControl fullWidth size="medium">
-                  <InputLabel>Payment Category *</InputLabel>
-                  <Select
-                    value={paymentCategory}
-                    onChange={(e) => setPaymentCategory(e.target.value as PaymentCategory)}
-                    label="Payment Category *"
-                  >
-                    {Object.entries(paymentCategoryLabels).map(([value, label]) => (
-                      <MenuItem key={value} value={value}>{label}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+                <div className="min-w-0 flex-1"><Select label="Payment Category" options={Object.entries(paymentCategoryLabels).map(([value, label]) => ({ value, label }))} value={paymentCategory} required onChange={(val) => setPaymentCategory(val as PaymentCategory)} /></div>
 
                 {/* Payment Method */}
-                <FormControl fullWidth size="medium">
-                  <InputLabel>Payment Method *</InputLabel>
-                  <Select
-                    value={paymentMethod}
-                    onChange={(e) => setPaymentMethod(e.target.value)}
-                    label="Payment Method *"
-                  >
-                    <MenuItem value="CASH">
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <DollarSign className="w-4 h-4" />
-                        Cash
-                      </Box>
-                    </MenuItem>
-                    <MenuItem value="BANK_TRANSFER">
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <CreditCard className="w-4 h-4" />
-                        Bank Transfer
-                      </Box>
-                    </MenuItem>
-                    <MenuItem value="CHECK">
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <FileText className="w-4 h-4" />
-                        Check
-                      </Box>
-                    </MenuItem>
-                    <MenuItem value="CREDIT_CARD">
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <CreditCard className="w-4 h-4" />
-                        Credit Card
-                      </Box>
-                    </MenuItem>
-                    <MenuItem value="WIRE">
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <CreditCard className="w-4 h-4" />
-                        Wire Transfer
-                      </Box>
-                    </MenuItem>
-                  </Select>
-                </FormControl>
+                <div className="min-w-0 flex-1"><Select label="Payment Method" options={[{ value: "CASH", label: 'Cash' }, { value: "BANK_TRANSFER", label: 'Bank Transfer' }, { value: "CHECK", label: 'Check' }, { value: "CREDIT_CARD", label: 'Credit Card' }, { value: "WIRE", label: 'Wire Transfer' }]} value={paymentMethod} required onChange={(val) => setPaymentMethod(val as string)} /></div>
 
                 {/* Notes */}
-                <TextField
-                  fullWidth
-                  label="Notes (Optional)"
-                  multiline
-                  rows={3}
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Additional notes about this payment (e.g., reference number, check number, etc.)"
-                  size="medium"
-                />
+                <div className="min-w-0 flex-1"><FormField label="Notes (Optional)" multiline rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Additional notes about this payment (e.g., reference number, check number, etc.)" /></div>
 
                 {/* Navigation */}
-                <Box sx={{ mt: 2, display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '16px', display: 'flex', gap: '16px', justifyContent: 'flex-end'}}>
                   <Button
                     onClick={handleBack}
                     variant="outline"
@@ -879,8 +736,8 @@ export default function RecordPaymentPage() {
                   >
                     Review Payment
                   </Button>
-                </Box>
-              </Box>
+                </JXBox>
+              </JXBox>
             </DashboardPanel>
           )}
 
@@ -890,126 +747,121 @@ export default function RecordPaymentPage() {
               title="Step 4: Review & Confirm"
               description="Review the payment details before submitting"
             >
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '24px'}}>
                 {/* Customer Info */}
-                <Box>
-                  <Box sx={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', mb: 1 }}>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+                  <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px'}}>
                     Customer
-                  </Box>
-                  <Box sx={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                  </JXBox>
+                  <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-primary)'}}>
                     {selectedUser?.name || selectedUser?.email}
-                  </Box>
-                </Box>
+                  </JXBox>
+                </JXBox>
 
-                <Divider />
+                <div aria-hidden="true" className="my-4 border-t border-[var(--border)]" />
 
                 {/* Payment Details Summary */}
-                <Box>
-                  <Box sx={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', mb: 2 }}>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+                  <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '16px'}}>
                     Payment Details
-                  </Box>
-                  <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
-                    <Box>
-                      <Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)', mb: 0.5 }}>
+                  </JXBox>
+                  <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px'}}>
                         Payment Amount
-                      </Box>
-                      <Box sx={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--accent-gold)' }}>
+                      </JXBox>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '1.3rem', fontWeight: 700, color: 'var(--accent-gold)'}}>
                         {formatCurrency(paymentAmount)}
-                      </Box>
-                    </Box>
-                    <Box>
-                      <Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)', mb: 0.5 }}>
+                      </JXBox>
+                    </JXBox>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px'}}>
                         Payment Method
-                      </Box>
-                      <Box sx={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                      </JXBox>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)'}}>
                         {paymentMethod.replace('_', ' ')}
-                      </Box>
-                    </Box>
-                    <Box>
-                      <Box sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)', mb: 0.5 }}>
+                      </JXBox>
+                    </JXBox>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px'}}>
                         Payment Category
-                      </Box>
-                      <Box sx={{ fontSize: '1rem', fontWeight: 600, color: 'var(--accent-gold)' }}>
+                      </JXBox>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '1rem', fontWeight: 600, color: 'var(--accent-gold)'}}>
                         {paymentCategoryLabels[paymentCategory]}
-                      </Box>
-                    </Box>
-                  </Box>
-                </Box>
+                      </JXBox>
+                    </JXBox>
+                  </JXBox>
+                </JXBox>
 
-                <Divider />
+                <div aria-hidden="true" className="my-4 border-t border-[var(--border)]" />
 
                 {/* Payment Allocation */}
-                <Box>
-                  <Box sx={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', mb: 2 }}>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+                  <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '16px'}}>
                     Payment Allocation
-                  </Box>
+                  </JXBox>
                   
-                  <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid var(--border)' }}>
-                    <Table size="small">
-                      <TableHead>
-                        <TableRow sx={{ bgcolor: 'var(--surface)' }}>
-                          <TableCell sx={{ fontWeight: 600 }}>Tracking #</TableCell>
-                          <TableCell sx={{ fontWeight: 600 }}>Vehicle</TableCell>
-                          <TableCell align="right" sx={{ fontWeight: 600 }}>Outstanding Due</TableCell>
-                          <TableCell align="right" sx={{ fontWeight: 600 }}>Amount Applied</TableCell>
-                          <TableCell align="right" sx={{ fontWeight: 600 }}>Status</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
+                  <div style={{border: '1px solid var(--border)'}} className="w-full overflow-x-auto">
+                    <table className="w-full border-collapse text-sm [&_td]:py-1.5 [&_th]:py-1.5">
+                      <thead>
+                        <tr style={{backgroundColor: 'var(--surface)'}} className="hover:bg-[rgba(var(--border-rgb),0.25)]">
+                          <th style={{fontWeight: 600}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Tracking #</th>
+                          <th style={{fontWeight: 600}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Vehicle</th>
+                          <th style={{fontWeight: 600}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-right">Outstanding Due</th>
+                          <th style={{fontWeight: 600}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-right">Amount Applied</th>
+                          <th style={{fontWeight: 600}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-right">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
                         {paymentAllocations.map((allocation) => (
-                          <TableRow key={allocation.shipmentId}>
-                            <TableCell>{allocation.trackingNumber}</TableCell>
-                            <TableCell>{allocation.vehicleInfo}</TableCell>
-                            <TableCell align="right">{formatCurrency(allocation.amountDue)}</TableCell>
-                            <TableCell align="right" sx={{ fontWeight: 600, color: 'var(--accent-gold)' }}>
+                          <tr key={allocation.shipmentId} className="hover:bg-[rgba(var(--border-rgb),0.25)]">
+                            <th className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">{allocation.trackingNumber}</th>
+                            <th className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">{allocation.vehicleInfo}</th>
+                            <th className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-right">{formatCurrency(allocation.amountDue)}</th>
+                            <th style={{fontWeight: 600, color: 'var(--accent-gold)'}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-right">
                               {formatCurrency(allocation.amountToPay)}
-                            </TableCell>
-                            <TableCell align="right">
-                              <Chip 
-                                label={allocation.amountToPay >= allocation.amountDue ? 'PAID' : 'PARTIAL'}
-                                size="small"
-                                color={allocation.amountToPay >= allocation.amountDue ? 'success' : 'warning'}
-                                sx={{ fontSize: '0.7rem', fontWeight: 600 }}
-                              />
-                            </TableCell>
-                          </TableRow>
+                            </th>
+                            <th className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-right">
+                              <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5" style={{fontSize: '0.7rem', fontWeight: 600, backgroundColor: allocation.amountToPay >= allocation.amountDue ? 'rgba(var(--success-rgb), 0.1)' : 'rgba(var(--warning-rgb), 0.1)', color: allocation.amountToPay >= allocation.amountDue ? 'var(--success)' : 'var(--warning)'}}>{allocation.amountToPay >= allocation.amountDue ? 'PAID' : 'PARTIAL'}</span>
+                            </th>
+                          </tr>
                         ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
+                      </tbody>
+                    </table>
+                  </div>
 
                   {/* Summary Row */}
-                  <Box sx={{ mt: 2, p: 2, bgcolor: 'rgba(201, 155, 47, 0.08)', borderRadius: 1 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Box sx={{ fontSize: '0.9rem', fontWeight: 600 }}>Total Payment:</Box>
-                      <Box sx={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--accent-gold)' }}>
+                  <JXBox padding="none" border={false} style={{marginTop: '16px', padding: '16px', backgroundColor: 'rgba(201, 155, 47, 0.08)', borderRadius: '8px'}}>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.9rem', fontWeight: 600}}>Total Payment:</JXBox>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '1.2rem', fontWeight: 700, color: 'var(--accent-gold)'}}>
                         {formatCurrency(paymentAmount)}
-                      </Box>
-                    </Box>
-                  </Box>
-                </Box>
+                      </JXBox>
+                    </JXBox>
+                  </JXBox>
+                </JXBox>
 
                 {/* Info */}
                 {isPartialPayment && (
-                  <Alert severity="info" icon={<Info className="w-5 h-5" />}>
+                  <Alert severity="info" icon={<Info className="w-5 h-5" />} variant="subtle">
                     <strong>Partial Payment:</strong> This payment will cover {formatCurrency(paymentAmount)} of the total {formatCurrency(totalSelectedAmount)}. 
                     The remaining {formatCurrency(totalSelectedAmount - paymentAmount)} will stay pending.
                   </Alert>
                 )}
 
                 {notes && (
-                  <Box>
-                    <Box sx={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', mb: 1 }}>
+                  <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px'}}>
                       Notes
-                    </Box>
-                    <Box sx={{ p: 2, bgcolor: 'var(--surface)', borderRadius: 1, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+                    </JXBox>
+                    <JXBox padding="none" border={false} style={{padding: '16px', backgroundColor: 'var(--surface)', borderRadius: '8px', fontSize: '0.9rem', color: 'var(--text-primary)'}}>
                       {notes}
-                    </Box>
-                  </Box>
+                    </JXBox>
+                  </JXBox>
                 )}
 
                 {/* Navigation */}
-                <Box sx={{ mt: 3, display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '24px', display: 'flex', gap: '16px', justifyContent: 'flex-end'}}>
                   <Button
                     onClick={handleBack}
                     variant="outline"
@@ -1025,37 +877,21 @@ export default function RecordPaymentPage() {
                   >
                     Record Payment
                   </Button>
-                </Box>
-              </Box>
+                </JXBox>
+              </JXBox>
             </DashboardPanel>
           )}
-        </Box>
+        </JXBox>
 
         {/* Confirmation Dialog */}
-        <Dialog 
-          open={showConfirmDialog} 
+        <Modal
+          open={showConfirmDialog}
           onClose={() => !loading && setShowConfirmDialog(false)}
-          maxWidth="sm"
-          fullWidth
-        >
-          <DialogTitle sx={{ fontWeight: 600 }}>
-            Confirm Payment Recording
-          </DialogTitle>
-          <DialogContent>
-            <Alert severity="info" sx={{ mb: 2 }}>
-              You are about to record a payment of <strong>{formatCurrency(paymentAmount)}</strong> from{' '}
-              <strong>{selectedUser?.name || selectedUser?.email}</strong>.
-            </Alert>
-            <Box sx={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-              This action will:
-              <ul style={{ marginTop: 8, paddingLeft: 20 }}>
-                <li>Create a {paymentCategoryLabels[paymentCategory].toLowerCase()} payment ledger entry</li>
-                <li>Update the customer's balance</li>
-                <li>Apply payment to the shipment's {paymentCategoryLabels[paymentCategory].toLowerCase()} balance</li>
-              </ul>
-            </Box>
-          </DialogContent>
-          <DialogActions sx={{ px: 3, pb: 2 }}>
+          title="Confirm Payment Recording"
+          size="sm"
+          actionsSx={{paddingLeft: '24px', paddingRight: '24px', paddingBottom: '16px'}}
+          actions={<>
+
             <Button
               onClick={() => setShowConfirmDialog(false)}
               variant="outline"
@@ -1071,8 +907,22 @@ export default function RecordPaymentPage() {
             >
               {loading ? 'Recording...' : 'Confirm & Record'}
             </Button>
-          </DialogActions>
-        </Dialog>
+          </>}
+        >
+
+            <Alert severity="info" variant="subtle" className="mb-4">
+              You are about to record a payment of <strong>{formatCurrency(paymentAmount)}</strong> from{' '}
+              <strong>{selectedUser?.name || selectedUser?.email}</strong>.
+            </Alert>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.9rem', color: 'var(--text-secondary)'}}>
+              This action will:
+              <ul style={{ marginTop: 8, paddingLeft: 20 }}>
+                <li>Create a {paymentCategoryLabels[paymentCategory].toLowerCase()} payment ledger entry</li>
+                <li>Update the customer's balance</li>
+                <li>Apply payment to the shipment's {paymentCategoryLabels[paymentCategory].toLowerCase()} balance</li>
+              </ul>
+            </JXBox>
+        </Modal>
       </DashboardSurface>
     </AdminRoute>
   );

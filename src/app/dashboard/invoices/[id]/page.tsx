@@ -1,35 +1,11 @@
 'use client';
 import { formatMoney as formatCurrency } from '@/lib/format';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { hasPermission } from '@/lib/rbac';
-import { 
-	Box, 
-	Table, 
-	TableBody, 
-	TableCell, 
-	TableContainer, 
-	TableHead, 
-	TableRow,
-	Divider,
-	MenuItem,
-	Select,
-	FormControl,
-	InputLabel,
-	TextField,
-	Dialog,
-	DialogTitle,
-	DialogContent,
-	DialogActions,
-	Tabs,
-	Tab,
-	InputAdornment,
-	Tooltip,
-	Typography,
-	IconButton,
-} from '@mui/material';
 import {
 	ArrowLeft,
 	FileText,
@@ -59,16 +35,7 @@ import {
 import { DashboardSurface, DashboardPanel } from '@/components/dashboard/DashboardSurface';
 import { ActivityLog } from '@/components/dashboard/ActivityLog';
 import InvoicePreviewModal from '@/components/invoices/InvoicePreviewModal';
-import { 
-	PageHeader,
-	Button, 
-	Breadcrumbs, 
-	toast, 
-	EmptyState, 
-	DetailPageSkeleton,
-	CopyButton,
-	StatusBadge,
-} from '@/components/design-system';
+import { Breadcrumbs, Button, CopyButton, DetailPageSkeleton, EmptyState, FormField, IconButton, PageHeader, Select, StatusBadge, toast, Modal } from '@/components/design-system';
 import { AdminRoute } from '@/components/auth/AdminRoute';
 
 interface LineItem {
@@ -722,242 +689,179 @@ export default function InvoiceDetailPage() {
 
 	if (!canViewInvoice) {
 		return (
-			<Box sx={{ maxWidth: '1400px', mx: 'auto', p: { xs: 2, md: 3 } }}>
+			<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, maxWidth: '1400px', marginLeft: 'auto', marginRight: 'auto'}} className="p-4 md:p-6">
 				<EmptyState
 					icon={<FileText className="w-16 h-16" />}
 					title="Invoice Not Found"
 					description="The invoice you're looking for doesn't exist or you don't have permission to view it"
 				/>
-			</Box>
+			</JXBox>
 		);
 	}
 
 	return (
 		<>
-			<Dialog 
-				open={isEditOpen} 
-				onClose={() => setIsEditOpen(false)} 
-				maxWidth="md" 
-				fullWidth
-				PaperProps={{
-					sx: {
-						borderRadius: 3,
-						bgcolor: 'var(--panel)',
-						border: '1px solid var(--border)',
-						boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-						overflow: 'hidden',
-					}
-				}}
-			>
-				<DialogTitle sx={{ p: 2.5, pb: 1.5, bgcolor: 'var(--panel)', borderBottom: '1px solid var(--border)' }}>
-					<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
-						<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-							<Box sx={{ 
-								p: 1, 
-								borderRadius: 2, 
-								bgcolor: 'rgba(var(--accent-gold-rgb), 0.12)', 
-								color: 'var(--accent-gold)',
-								display: 'flex', 
-								alignItems: 'center', 
-								justifyContent: 'center' 
-							}}>
+			<Modal
+			  open={isEditOpen}
+			  onClose={() => setIsEditOpen(false)}
+			  title={<><JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px'}}>
+						<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '12px'}}>
+							<JXBox padding="none" border={false} style={{padding: '8px', borderRadius: '16px', backgroundColor: 'rgba(var(--accent-gold-rgb), 0.12)', color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
 								<Pencil className="w-5 h-5" />
-							</Box>
+							</JXBox>
 							<div>
-								<Typography sx={{ fontWeight: 700, fontSize: '1.15rem', color: 'var(--text-primary)', lineHeight: 1.2 }}>
+								<p className="text-sm leading-relaxed" style={{fontWeight: 700, fontSize: '1.15rem', color: 'var(--text-primary)', lineHeight: 1.2}}>
 									Edit Invoice & Charges
-								</Typography>
-								<Typography sx={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+								</p>
+								<p className="text-sm leading-relaxed" style={{fontSize: '0.8rem', color: 'var(--text-secondary)'}}>
 									Invoice #{invoice.invoiceNumber} &bull; {invoice.user.name || invoice.user.email}
-								</Typography>
+								</p>
 							</div>
-						</Box>
-						<IconButton 
-							size="small" 
-							onClick={() => setIsEditOpen(false)}
-							sx={{ color: 'var(--text-secondary)', '&:hover': { color: 'var(--text-primary)' } }}
-						>
-							<X className="w-5 h-5" />
-						</IconButton>
-					</Box>
+						</JXBox>
+					</JXBox>
 
 					{/* Navigation Tabs */}
-					<Box sx={{ mt: 2 }}>
-						<Tabs 
-							value={editModalTab} 
-							onChange={(_, val) => setEditModalTab(val)}
-							sx={{
-								minHeight: 40,
-								'& .MuiTabs-indicator': {
-									bgcolor: 'var(--accent-gold)',
-									height: 3,
-									borderRadius: '3px 3px 0 0',
-								},
-								'& .MuiTab-root': {
-									textTransform: 'none',
-									fontWeight: 600,
-									fontSize: '0.875rem',
-									color: 'var(--text-secondary)',
-									minHeight: 40,
-									py: 1,
-									px: 2,
-									'&.Mui-selected': {
-										color: 'var(--accent-gold)',
-									},
-								},
-							}}
-						>
-							<Tab 
-								value="details" 
-								label={
-									<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+					<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '16px'}}>
+						<div role="tablist" className="flex gap-1 overflow-x-auto border-b border-[var(--border)]">
+							<button
+							  key={"details"}
+							  type="button"
+							  role="tab"
+							  aria-selected={editModalTab === "details"}
+							  onClick={() => { const val = "details"; setEditModalTab(val); }}
+							  className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors flex items-center gap-2 ${editModalTab === "details" ? 'border-[var(--accent-gold)] text-[var(--accent-gold-text)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+							>
+							  {<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px'}}>
 										<FileText className="w-4 h-4" />
 										<span>Terms & Payment Details</span>
-									</Box>
-								} 
-							/>
-							<Tab 
-								value="items" 
-								label={
-									<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+									</JXBox>}
+							</button>
+							<button
+							  key={"items"}
+							  type="button"
+							  role="tab"
+							  aria-selected={editModalTab === "items"}
+							  onClick={() => { const val = "items"; setEditModalTab(val); }}
+							  className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors flex items-center gap-2 ${editModalTab === "items" ? 'border-[var(--accent-gold)] text-[var(--accent-gold-text)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+							>
+							  {<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px'}}>
 										<DollarSign className="w-4 h-4" />
 										<span>Line Items & Charges ({invoice.lineItems.length})</span>
 										{hasAnyDirtyLineItems && (
 											<span className="w-2 h-2 rounded-full bg-[var(--accent-gold)] animate-pulse" />
 										)}
-									</Box>
-								} 
-							/>
-						</Tabs>
-					</Box>
-				</DialogTitle>
+									</JXBox>}
+							</button>
+						
+						</div>
+					</JXBox></>}
+			  size="md"
+			  contentSx={{backgroundColor: 'var(--panel)', maxHeight: 'calc(80vh - 180px)', overflowY: 'auto'}}
+			  actionsSx={{padding: '20px', backgroundColor: 'var(--panel)', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px'}}
+			  actions={<>
 
-				<DialogContent sx={{ p: { xs: 2, sm: 3 }, bgcolor: 'var(--panel)', maxHeight: 'calc(80vh - 180px)', overflowY: 'auto' }}>
+					{/* Live Totals Bar */}
+					<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap'}}>
+						<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem'}}>
+							<span className="text-[var(--text-secondary)]">Subtotal:</span>
+							<span className="font-semibold text-[var(--text-primary)]">{formatCurrency(liveLineItemsSubtotal)}</span>
+						</JXBox>
+						{liveDiscount > 0 && (
+							<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem'}}>
+								<span className="text-[var(--text-secondary)]">Discount:</span>
+								<span className="font-semibold text-emerald-500">-{formatCurrency(liveDiscount)}</span>
+							</JXBox>
+						)}
+						{liveTax > 0 && (
+							<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem'}}>
+								<span className="text-[var(--text-secondary)]">Tax:</span>
+								<span className="font-semibold text-[var(--text-primary)]">+{formatCurrency(liveTax)}</span>
+							</JXBox>
+						)}
+						<JXBox padding="none" border={false} style={{display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: 'rgba(var(--accent-gold-rgb), 0.12)', border: '1px solid rgba(var(--accent-gold-rgb), 0.3)', borderRadius: '12px', paddingLeft: '14px', paddingRight: '14px', paddingTop: '4px', paddingBottom: '4px'}}>
+							<span className="text-[0.7rem] font-bold uppercase tracking-wider text-[var(--accent-gold)]">Grand Total:</span>
+							<span className="text-[0.95rem] font-bold text-[var(--accent-gold)]">{formatCurrency(liveGrandTotal)}</span>
+						</JXBox>
+					</JXBox>
+
+					{/* Action Buttons */}
+					<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '12px'}}>
+						<Button variant="outline" onClick={() => setIsEditOpen(false)} disabled={updating}>
+							Cancel
+						</Button>
+						<Button 
+							variant="primary" 
+							onClick={handleInvoiceEdit} 
+							disabled={updating}
+							style={{backgroundColor: 'var(--accent-gold)', color: 'white'}}
+						>
+							{updating ? 'Saving...' : 'Save Invoice Details'}
+						</Button>
+					</JXBox>
+			  </>}
+			>
+
 					{editModalTab === 'details' ? (
-						<Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 1 }}>
+						<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '24px', paddingTop: '8px'}}>
 							{/* Section 1: Schedule & Payment */}
-							<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-								<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+							<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '16px'}}>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px'}}>
 									<Calendar className="w-4 h-4 text-[var(--accent-gold)]" />
-									<Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+									<p className="text-sm leading-relaxed" style={{fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)'}}>
 										Schedule & Payment Terms
-									</Typography>
-								</Box>
-								<Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr 1fr' }, gap: 2 }}>
-									<TextField
-										label="Due Date"
-										type="date"
-										size="small"
-										value={editForm.dueDate}
-										onChange={(event) => setEditForm((current) => ({ ...current, dueDate: event.target.value }))}
-										InputLabelProps={{ shrink: true }}
-										fullWidth
-									/>
-									<TextField
-										label="Payment Method"
-										placeholder="e.g. Bank Wire, Card, Cash"
-										size="small"
-										value={editForm.paymentMethod}
-										onChange={(event) => setEditForm((current) => ({ ...current, paymentMethod: event.target.value }))}
-										fullWidth
-									/>
-									<TextField
-										label="Payment Reference"
-										placeholder="e.g. Wire ID / Cheque #"
-										size="small"
-										value={editForm.paymentReference}
-										onChange={(event) => setEditForm((current) => ({ ...current, paymentReference: event.target.value }))}
-										fullWidth
-									/>
-								</Box>
-							</Box>
+									</p>
+								</JXBox>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '16px'}} className="grid-cols-1 grid sm:grid-cols-[1fr_1fr_1fr]">
+									<div className="min-w-0 flex-1"><FormField label="Due Date" type="date" value={editForm.dueDate} onChange={(event) => setEditForm((current) => ({ ...current, dueDate: event.target.value }))} InputLabelProps={{ shrink: true }} size="small" /></div>
+									<div className="min-w-0 flex-1"><FormField label="Payment Method" placeholder="e.g. Bank Wire, Card, Cash" value={editForm.paymentMethod} onChange={(event) => setEditForm((current) => ({ ...current, paymentMethod: event.target.value }))} size="small" /></div>
+									<div className="min-w-0 flex-1"><FormField label="Payment Reference" placeholder="e.g. Wire ID / Cheque #" value={editForm.paymentReference} onChange={(event) => setEditForm((current) => ({ ...current, paymentReference: event.target.value }))} size="small" /></div>
+								</JXBox>
+							</JXBox>
 
-							<Divider sx={{ borderColor: 'var(--border)' }} />
+							<div aria-hidden="true" className="my-4 border-t border-[var(--border)]" style={{borderColor: 'var(--border)'}} />
 
 							{/* Section 2: Adjustments */}
-							<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-								<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+							<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '16px'}}>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px'}}>
 									<DollarSign className="w-4 h-4 text-[var(--accent-gold)]" />
-									<Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+									<p className="text-sm leading-relaxed" style={{fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)'}}>
 										Discounts & Taxes
-									</Typography>
-								</Box>
-								<Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
-									<TextField
-										label="Overall Discount"
-										type="number"
-										size="small"
-										value={editForm.discount}
-										onChange={(event) => setEditForm((current) => ({ ...current, discount: event.target.value }))}
-										inputProps={{ min: 0, step: '0.01' }}
-										InputProps={{
-											startAdornment: <InputAdornment position="start">$</InputAdornment>,
-										}}
-										helperText="Deducted directly from line items subtotal"
-										fullWidth
-									/>
-									<TextField
-										label="Tax Amount"
-										type="number"
-										size="small"
-										value={editForm.tax}
-										onChange={(event) => setEditForm((current) => ({ ...current, tax: event.target.value }))}
-										inputProps={{ min: 0, step: '0.01' }}
-										InputProps={{
-											startAdornment: <InputAdornment position="start">$</InputAdornment>,
-										}}
-										helperText="Sales tax or VAT applied to total"
-										fullWidth
-									/>
-								</Box>
-							</Box>
+									</p>
+								</JXBox>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '16px'}} className="grid-cols-1 grid sm:grid-cols-[1fr_1fr]">
+									<div className="min-w-0 flex-1"><FormField label="Overall Discount" type="number" value={editForm.discount} onChange={(event) => setEditForm((current) => ({ ...current, discount: event.target.value }))} inputProps={{ min: 0, step: '0.01' }} helperText="Deducted directly from line items subtotal" leftIcon="$" size="small" /></div>
+									<div className="min-w-0 flex-1"><FormField label="Tax Amount" type="number" value={editForm.tax} onChange={(event) => setEditForm((current) => ({ ...current, tax: event.target.value }))} inputProps={{ min: 0, step: '0.01' }} helperText="Sales tax or VAT applied to total" leftIcon="$" size="small" /></div>
+								</JXBox>
+							</JXBox>
 
-							<Divider sx={{ borderColor: 'var(--border)' }} />
+							<div aria-hidden="true" className="my-4 border-t border-[var(--border)]" style={{borderColor: 'var(--border)'}} />
 
 							{/* Section 3: Notes & Disclosures */}
-							<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-								<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+							<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '16px'}}>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px'}}>
 									<FileText className="w-4 h-4 text-[var(--accent-gold)]" />
-									<Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+									<p className="text-sm leading-relaxed" style={{fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)'}}>
 										Notes & Disclosures
-									</Typography>
-								</Box>
-								<Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
-									<TextField
-										label="Customer Notes"
-										placeholder="Public notes visible on printed PDF and customer portal"
-										value={editForm.notes}
-										onChange={(event) => setEditForm((current) => ({ ...current, notes: event.target.value }))}
-										multiline
-										rows={3}
-										fullWidth
-										helperText="Visible to customer"
-									/>
-									<TextField
-										label="Internal Notes"
-										placeholder="Private administrative notes (accounting, exceptions, audit log)"
-										value={editForm.internalNotes}
-										onChange={(event) => setEditForm((current) => ({ ...current, internalNotes: event.target.value }))}
-										multiline
-										rows={3}
-										fullWidth
-										helperText="Visible to staff only"
-									/>
-								</Box>
-							</Box>
-						</Box>
+									</p>
+								</JXBox>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '16px'}} className="grid-cols-1 grid md:grid-cols-[1fr_1fr]">
+									<div className="min-w-0 flex-1"><FormField label="Customer Notes" placeholder="Public notes visible on printed PDF and customer portal" value={editForm.notes} onChange={(event) => setEditForm((current) => ({ ...current, notes: event.target.value }))} multiline rows={3} helperText="Visible to customer" /></div>
+									<div className="min-w-0 flex-1"><FormField label="Internal Notes" placeholder="Private administrative notes (accounting, exceptions, audit log)" value={editForm.internalNotes} onChange={(event) => setEditForm((current) => ({ ...current, internalNotes: event.target.value }))} multiline rows={3} helperText="Visible to staff only" /></div>
+								</JXBox>
+							</JXBox>
+						</JXBox>
 					) : (
-						<Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 1 }}>
+						<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '24px', paddingTop: '8px'}}>
 							{/* Line Items Top Bar */}
-							<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
-								<Box>
-									<Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+							<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px'}}>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+									<p className="text-sm leading-relaxed" style={{fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)'}}>
 										Active Charge Lines ({invoice.lineItems.length})
-									</Typography>
-									<Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+									</p>
+									<p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', color: 'var(--text-secondary)'}}>
 										Click 'Save' on any modified row to immediately update that line item.
-									</Typography>
-								</Box>
+									</p>
+								</JXBox>
 								<Button 
 									variant="outline" 
 									size="sm" 
@@ -967,23 +871,17 @@ export default function InvoiceDetailPage() {
 								>
 									Reset all
 								</Button>
-							</Box>
+							</JXBox>
 
 							{/* Line Items List */}
 							{invoice.lineItems.length === 0 ? (
-								<Box sx={{ 
-									p: 4, 
-									textAlign: 'center', 
-									borderRadius: 2, 
-									border: '1px dashed var(--border)',
-									bgcolor: 'var(--background)' 
-								}}>
-									<Typography sx={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+								<JXBox padding="none" border={false} style={{padding: '32px', textAlign: 'center', borderRadius: '16px', border: '1px dashed var(--border)', backgroundColor: 'var(--background)'}}>
+									<p className="text-sm leading-relaxed" style={{color: 'var(--text-secondary)', fontSize: '0.875rem'}}>
 										No expense lines on this invoice yet. Use the form below to add one.
-									</Typography>
-								</Box>
+									</p>
+								</JXBox>
 							) : (
-								<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '16px'}}>
 									{invoice.lineItems.map((item) => {
 										const isDirty = isLineItemDirty(item);
 										const edit = lineItemEdits[item.id];
@@ -992,37 +890,16 @@ export default function InvoiceDetailPage() {
 										const lineTotal = qty * unitPrice;
 
 										return (
-											<Box 
-												key={item.id} 
-												sx={{ 
-													border: isDirty ? '1px solid rgba(var(--accent-gold-rgb), 0.6)' : '1px solid var(--border)', 
-													borderRadius: 2, 
-													p: 2, 
-													display: 'flex', 
-													flexDirection: 'column', 
-													gap: 1.5,
-													bgcolor: isDirty ? 'rgba(var(--accent-gold-rgb), 0.03)' : 'var(--background)',
-													boxShadow: isDirty ? '0 0 14px rgba(var(--accent-gold-rgb), 0.08)' : 'none',
-													transition: 'all 0.2s ease',
-												}}
-											>
+											<JXBox padding="none" border={false} key={item.id} style={{border: isDirty ? '1px solid rgba(var(--accent-gold-rgb), 0.6)' : '1px solid var(--border)', borderRadius: '16px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px', backgroundColor: isDirty ? 'rgba(var(--accent-gold-rgb), 0.03)' : 'var(--background)', boxShadow: isDirty ? '0 0 14px rgba(var(--accent-gold-rgb), 0.08)' : 'none', transition: 'all 0.2s ease'}}>
 												{/* Item Header */}
-												<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
-													<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-														<Box sx={{ 
-															p: 0.75, 
-															borderRadius: 1.5, 
-															bgcolor: 'var(--panel)', 
-															border: '1px solid var(--border)',
-															display: 'flex', 
-															alignItems: 'center', 
-															justifyContent: 'center' 
-														}}>
+												<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px'}}>
+													<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '12px'}}>
+														<JXBox padding="none" border={false} style={{padding: '6px', borderRadius: '12px', backgroundColor: 'var(--panel)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
 															<Tag className="w-3.5 h-3.5 text-[var(--accent-gold)]" />
-														</Box>
-														<Typography sx={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-primary)' }}>
+														</JXBox>
+														<p className="text-sm leading-relaxed" style={{fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-primary)'}}>
 															{item.description || 'Expense Line'}
-														</Typography>
+														</p>
 														{isDirty && (
 															<StatusBadge 
 																status="WARNING"
@@ -1030,16 +907,16 @@ export default function InvoiceDetailPage() {
 																size="sm" 
 															/>
 														)}
-													</Box>
-													<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-														<Box sx={{ textAlign: 'right', mr: 0.5 }}>
-															<Typography sx={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+													</JXBox>
+													<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '12px'}}>
+														<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, textAlign: 'right', marginRight: '4px'}}>
+															<p className="text-sm leading-relaxed" style={{fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em'}}>
 																Line Total
-															</Typography>
-															<Typography sx={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+															</p>
+															<p className="text-sm leading-relaxed" style={{fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)'}}>
 																{formatCurrency(lineTotal)}
-															</Typography>
-														</Box>
+															</p>
+														</JXBox>
 														{isDirty && (
 															<Button 
 																variant="outline" 
@@ -1070,16 +947,12 @@ export default function InvoiceDetailPage() {
 															disabled={updating}
 															title="Remove Line"
 														/>
-													</Box>
-												</Box>
+													</JXBox>
+												</JXBox>
 
 												{/* Row 1: Description & Type */}
-												<Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '2fr 1.2fr' }, gap: 1.5 }}>
-													<TextField
-														label="Description"
-														size="small"
-														value={lineItemEdits[item.id]?.description ?? item.description}
-														onChange={(event) => setLineItemEdits((current) => ({
+												<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '12px'}} className="grid-cols-1 grid md:grid-cols-[2fr_1.2fr]">
+													<div className="min-w-0 flex-1"><FormField label="Description" value={lineItemEdits[item.id]?.description ?? item.description} onChange={(event) => setLineItemEdits((current) => ({
 															...current,
 															[item.id]: {
 																type: current[item.id]?.type ?? item.type,
@@ -1088,43 +961,22 @@ export default function InvoiceDetailPage() {
 																companyAmount: current[item.id]?.companyAmount ?? String((item as any).linkedCompanyLedgerEntry?.amount ?? 0),
 																description: event.target.value,
 															},
-														}))}
-														fullWidth
-													/>
-													<FormControl fullWidth size="small">
-														<InputLabel>Category / Type</InputLabel>
-														<Select
-															label="Category / Type"
-															value={lineItemEdits[item.id]?.type ?? item.type}
-															onChange={(event) => setLineItemEdits((current) => ({
+														}))} size="small" /></div>
+													<div className="min-w-0 flex-1"><Select label="Category / Type" options={[{ value: "OTHER_FEE", label: 'Other Fee' }, { value: "SHIPPING_FEE", label: 'Shipping Fee' }, { value: "INSURANCE", label: 'Insurance' }, { value: "CUSTOMS_FEE", label: 'Customs Fee' }, { value: "STORAGE_FEE", label: 'Storage Fee' }, { value: "HANDLING_FEE", label: 'Handling Fee' }]} value={lineItemEdits[item.id]?.type ?? item.type} size="small" onChange={(val) => setLineItemEdits((current) => ({
 																...current,
 																[item.id]: {
 																	description: current[item.id]?.description ?? item.description,
-																	type: event.target.value,
+																	type: val as string,
 																	quantity: current[item.id]?.quantity ?? String(item.quantity ?? 1),
 																	amount: current[item.id]?.amount ?? String(item.amount ?? 0),
 																	companyAmount: current[item.id]?.companyAmount ?? String((item as any).linkedCompanyLedgerEntry?.amount ?? 0),
 																},
-															}))}
-														>
-															<MenuItem value="OTHER_FEE">Other Fee</MenuItem>
-															<MenuItem value="SHIPPING_FEE">Shipping Fee</MenuItem>
-															<MenuItem value="INSURANCE">Insurance</MenuItem>
-															<MenuItem value="CUSTOMS_FEE">Customs Fee</MenuItem>
-															<MenuItem value="STORAGE_FEE">Storage Fee</MenuItem>
-															<MenuItem value="HANDLING_FEE">Handling Fee</MenuItem>
-														</Select>
-													</FormControl>
-												</Box>
+															}))} /></div>
+												</JXBox>
 
 												{/* Row 2: Quantity, Amount, Company Cost */}
-												<Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: isAdmin ? '1fr 1.5fr 1.5fr' : '1fr 2fr' }, gap: 1.5 }}>
-													<TextField
-														label="Quantity"
-														size="small"
-														type="number"
-														value={lineItemEdits[item.id]?.quantity ?? String(item.quantity ?? 1)}
-														onChange={(event) => setLineItemEdits((current) => ({
+												<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '12px'}} className="grid grid-cols-[1fr_1fr]">
+													<FormField label="Quantity" type="number" value={lineItemEdits[item.id]?.quantity ?? String(item.quantity ?? 1)} onChange={(event) => setLineItemEdits((current) => ({
 															...current,
 															[item.id]: {
 																description: current[item.id]?.description ?? item.description,
@@ -1133,15 +985,8 @@ export default function InvoiceDetailPage() {
 																amount: current[item.id]?.amount ?? String(item.amount ?? 0),
 																companyAmount: current[item.id]?.companyAmount ?? String((item as any).linkedCompanyLedgerEntry?.amount ?? 0),
 															},
-														}))}
-														inputProps={{ min: 0, step: '1' }}
-													/>
-													<TextField
-														label="Unit Price"
-														size="small"
-														type="number"
-														value={lineItemEdits[item.id]?.amount ?? String(item.amount ?? 0)}
-														onChange={(event) => setLineItemEdits((current) => ({
+														}))} inputProps={{ min: 0, step: '1' }} size="small" />
+													<div className="min-w-0 flex-1"><FormField label="Unit Price" type="number" value={lineItemEdits[item.id]?.amount ?? String(item.amount ?? 0)} onChange={(event) => setLineItemEdits((current) => ({
 															...current,
 															[item.id]: {
 																description: current[item.id]?.description ?? item.description,
@@ -1150,20 +995,9 @@ export default function InvoiceDetailPage() {
 																amount: event.target.value,
 																companyAmount: current[item.id]?.companyAmount ?? String((item as any).linkedCompanyLedgerEntry?.amount ?? 0),
 															},
-														}))}
-														inputProps={{ min: 0, step: '0.01' }}
-														InputProps={{
-															startAdornment: <InputAdornment position="start">$</InputAdornment>,
-														}}
-														fullWidth
-													/>
+														}))} inputProps={{ min: 0, step: '0.01' }} leftIcon="$" size="small" /></div>
 													{isAdmin && (
-														<TextField
-															label="Company Cost"
-															size="small"
-															type="number"
-															value={lineItemEdits[item.id]?.companyAmount ?? String((item as any).linkedCompanyLedgerEntry?.amount ?? 0)}
-															onChange={(event) => setLineItemEdits((current) => ({
+														<div className="min-w-0 flex-1"><FormField label="Company Cost" type="number" value={lineItemEdits[item.id]?.companyAmount ?? String((item as any).linkedCompanyLedgerEntry?.amount ?? 0)} onChange={(event) => setLineItemEdits((current) => ({
 																...current,
 																[item.id]: {
 																	description: current[item.id]?.description ?? item.description,
@@ -1172,198 +1006,62 @@ export default function InvoiceDetailPage() {
 																	amount: current[item.id]?.amount ?? String(item.amount ?? 0),
 																	companyAmount: event.target.value,
 																},
-															}))}
-															inputProps={{ min: 0, step: '0.01' }}
-															InputProps={{
-																startAdornment: <InputAdornment position="start">$</InputAdornment>,
-															}}
-															helperText="Internal ledger cost"
-															fullWidth
-														/>
+															}))} inputProps={{ min: 0, step: '0.01' }} helperText="Internal ledger cost" leftIcon="$" size="small" /></div>
 													)}
-												</Box>
-											</Box>
+												</JXBox>
+											</JXBox>
 										);
 									})}
-								</Box>
+								</JXBox>
 							)}
 
 							{/* Add Expense Line Form */}
-							<Box 
-								sx={{ 
-									border: '1px dashed rgba(var(--accent-gold-rgb), 0.6)', 
-									borderRadius: 2, 
-									p: 2.5, 
-									bgcolor: 'rgba(var(--accent-gold-rgb), 0.03)',
-									display: 'flex', 
-									flexDirection: 'column', 
-									gap: 2 
-								}}
-							>
-								<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-									<Box sx={{ 
-										p: 0.75, 
-										borderRadius: 1.5, 
-										bgcolor: 'rgba(var(--accent-gold-rgb), 0.15)', 
-										color: 'var(--accent-gold)',
-										display: 'flex', 
-										alignItems: 'center', 
-										justifyContent: 'center' 
-									}}>
+							<JXBox padding="none" border={false} style={{border: '1px dashed rgba(var(--accent-gold-rgb), 0.6)', borderRadius: '16px', padding: '20px', backgroundColor: 'rgba(var(--accent-gold-rgb), 0.03)', display: 'flex', flexDirection: 'column', gap: '16px'}}>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '12px'}}>
+									<JXBox padding="none" border={false} style={{padding: '6px', borderRadius: '12px', backgroundColor: 'rgba(var(--accent-gold-rgb), 0.15)', color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
 										<Plus className="w-4 h-4" />
-									</Box>
+									</JXBox>
 									<div>
-										<Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+										<p className="text-sm leading-relaxed" style={{fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)'}}>
 											Add Expense Line
-										</Typography>
-										<Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+										</p>
+										<p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', color: 'var(--text-secondary)'}}>
 											Insert additional freight charges, customs duties, storage, or miscellaneous fees
-										</Typography>
+										</p>
 									</div>
-								</Box>
+								</JXBox>
 
-								<Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '2fr 1.2fr' }, gap: 1.5 }}>
-									<TextField
-										label="Description"
-										placeholder="e.g. Additional warehouse storage fee"
-										size="small"
-										value={manualLineItem.description}
-										onChange={(event) => setManualLineItem((current) => ({ ...current, description: event.target.value }))}
-										fullWidth
-									/>
-									<FormControl fullWidth size="small">
-										<InputLabel>Type</InputLabel>
-										<Select
-											label="Type"
-											value={manualLineItem.type}
-											onChange={(event) => setManualLineItem((current) => ({ ...current, type: event.target.value }))}
-										>
-											<MenuItem value="OTHER_FEE">Other Fee</MenuItem>
-											<MenuItem value="SHIPPING_FEE">Shipping</MenuItem>
-											<MenuItem value="INSURANCE">Insurance</MenuItem>
-											<MenuItem value="CUSTOMS_FEE">Customs</MenuItem>
-											<MenuItem value="STORAGE_FEE">Storage</MenuItem>
-											<MenuItem value="HANDLING_FEE">Handling</MenuItem>
-										</Select>
-									</FormControl>
-								</Box>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '12px'}} className="grid-cols-1 grid md:grid-cols-[2fr_1.2fr]">
+									<div className="min-w-0 flex-1"><FormField label="Description" placeholder="e.g. Additional warehouse storage fee" value={manualLineItem.description} onChange={(event) => setManualLineItem((current) => ({ ...current, description: event.target.value }))} size="small" /></div>
+									<div className="min-w-0 flex-1"><Select label="Type" options={[{ value: "OTHER_FEE", label: 'Other Fee' }, { value: "SHIPPING_FEE", label: 'Shipping' }, { value: "INSURANCE", label: 'Insurance' }, { value: "CUSTOMS_FEE", label: 'Customs' }, { value: "STORAGE_FEE", label: 'Storage' }, { value: "HANDLING_FEE", label: 'Handling' }]} value={manualLineItem.type} size="small" onChange={(val) => setManualLineItem((current) => ({ ...current, type: val as string }))} /></div>
+								</JXBox>
 
-								<Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: isAdmin ? '1fr 1.5fr 1.5fr' : '1fr 2fr' }, gap: 1.5 }}>
-									<TextField
-										label="Quantity"
-										size="small"
-										type="number"
-										value={manualLineItem.quantity}
-										onChange={(event) => setManualLineItem((current) => ({ ...current, quantity: event.target.value }))}
-										inputProps={{ min: 1, step: '1' }}
-									/>
-									<TextField
-										label="Amount"
-										size="small"
-										type="number"
-										value={manualLineItem.amount}
-										onChange={(event) => setManualLineItem((current) => ({ ...current, amount: event.target.value }))}
-										inputProps={{ min: 0, step: '0.01' }}
-										InputProps={{
-											startAdornment: <InputAdornment position="start">$</InputAdornment>,
-										}}
-										fullWidth
-									/>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '12px'}} className="grid grid-cols-[1fr_1fr]">
+									<FormField label="Quantity" type="number" value={manualLineItem.quantity} onChange={(event) => setManualLineItem((current) => ({ ...current, quantity: event.target.value }))} inputProps={{ min: 1, step: '1' }} size="small" />
+									<div className="min-w-0 flex-1"><FormField label="Amount" type="number" value={manualLineItem.amount} onChange={(event) => setManualLineItem((current) => ({ ...current, amount: event.target.value }))} inputProps={{ min: 0, step: '0.01' }} leftIcon="$" size="small" /></div>
 									{isAdmin && (
-										<TextField
-											label="Company Amount"
-											size="small"
-											type="number"
-											value={manualLineItem.companyAmount}
-											onChange={(event) => setManualLineItem((current) => ({ ...current, companyAmount: event.target.value }))}
-											inputProps={{ min: 0, step: '0.01' }}
-											InputProps={{
-												startAdornment: <InputAdornment position="start">$</InputAdornment>,
-											}}
-											helperText="Internal ledger cost"
-											fullWidth
-										/>
+										<div className="min-w-0 flex-1"><FormField label="Company Amount" type="number" value={manualLineItem.companyAmount} onChange={(event) => setManualLineItem((current) => ({ ...current, companyAmount: event.target.value }))} inputProps={{ min: 0, step: '0.01' }} helperText="Internal ledger cost" leftIcon="$" size="small" /></div>
 									)}
-								</Box>
+								</JXBox>
 
-								<Box sx={{ display: 'flex', justifyContent: 'flex-end', pt: 0.5 }}>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'flex-end', paddingTop: '4px'}}>
 									<Button 
 										variant="primary" 
 										size="sm"
 										icon={<Plus className="w-4 h-4" />}
 										onClick={() => void handleAddManualLineItem()} 
 										disabled={updating || !manualLineItem.description.trim()}
-										sx={{ bgcolor: 'var(--accent-gold)', color: 'white' }}
+										style={{backgroundColor: 'var(--accent-gold)', color: 'white'}}
 									>
 										Add Line Item
 									</Button>
-								</Box>
-							</Box>
-						</Box>
+								</JXBox>
+							</JXBox>
+						</JXBox>
 					)}
-				</DialogContent>
+			</Modal>
 
-				<DialogActions sx={{ 
-					p: 2.5, 
-					bgcolor: 'var(--panel)', 
-					borderTop: '1px solid var(--border)', 
-					display: 'flex', 
-					alignItems: 'center', 
-					justifyContent: 'space-between',
-					flexWrap: 'wrap',
-					gap: 2 
-				}}>
-					{/* Live Totals Bar */}
-					<Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-						<Box sx={{ display: 'flex', alignItems: 'center', gap: 1, fontSize: '0.85rem' }}>
-							<span className="text-[var(--text-secondary)]">Subtotal:</span>
-							<span className="font-semibold text-[var(--text-primary)]">{formatCurrency(liveLineItemsSubtotal)}</span>
-						</Box>
-						{liveDiscount > 0 && (
-							<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '0.85rem' }}>
-								<span className="text-[var(--text-secondary)]">Discount:</span>
-								<span className="font-semibold text-emerald-500">-{formatCurrency(liveDiscount)}</span>
-							</Box>
-						)}
-						{liveTax > 0 && (
-							<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '0.85rem' }}>
-								<span className="text-[var(--text-secondary)]">Tax:</span>
-								<span className="font-semibold text-[var(--text-primary)]">+{formatCurrency(liveTax)}</span>
-							</Box>
-						)}
-						<Box sx={{ 
-							display: 'flex', 
-							alignItems: 'center', 
-							gap: 1, 
-							bgcolor: 'rgba(var(--accent-gold-rgb), 0.12)', 
-							border: '1px solid rgba(var(--accent-gold-rgb), 0.3)',
-							borderRadius: 1.5, 
-							px: 1.75, 
-							py: 0.5 
-						}}>
-							<span className="text-[0.7rem] font-bold uppercase tracking-wider text-[var(--accent-gold)]">Grand Total:</span>
-							<span className="text-[0.95rem] font-bold text-[var(--accent-gold)]">{formatCurrency(liveGrandTotal)}</span>
-						</Box>
-					</Box>
-
-					{/* Action Buttons */}
-					<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-						<Button variant="outline" onClick={() => setIsEditOpen(false)} disabled={updating}>
-							Cancel
-						</Button>
-						<Button 
-							variant="primary" 
-							onClick={handleInvoiceEdit} 
-							disabled={updating}
-							sx={{ bgcolor: 'var(--accent-gold)', color: 'white' }}
-						>
-							{updating ? 'Saving...' : 'Save Invoice Details'}
-						</Button>
-					</Box>
-				</DialogActions>
-			</Dialog>
-
-			<Box sx={{ maxWidth: isSplitView ? '1920px' : '1400px', mx: 'auto', p: { xs: 2, md: 3 }, transition: 'max-width 0.2s ease' }}>
+			<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, maxWidth: isSplitView ? '1920px' : '1400px', marginLeft: 'auto', marginRight: 'auto', transition: 'max-width 0.2s ease'}} className="p-4 md:p-6">
 				{/* Breadcrumbs */}
 				<Breadcrumbs
 					items={[
@@ -1383,7 +1081,7 @@ export default function InvoiceDetailPage() {
 					title={invoice.invoiceNumber}
 					description={`Invoice for ${invoice.user.name || invoice.user.email}`}
 					actions={
-						<Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+						<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center'}}>
 							<StatusBadge status={invoice.status} />
 							<CopyButton value={invoice.invoiceNumber} label="Invoice #" />
 							{/* #4: Pay Now button — visible to invoice owner when payment is due */}
@@ -1393,11 +1091,7 @@ export default function InvoiceDetailPage() {
 									size="sm"
 									icon={<CreditCard className="w-4 h-4" />}
 									onClick={() => setPaymentModalOpen(true)}
-									sx={{
-										bgcolor: 'var(--success)',
-										color: 'white',
-										'&:hover': { bgcolor: 'var(--success)', opacity: 0.9 },
-									}}
+									style={{backgroundColor: 'var(--success)', color: 'white'}}
 								>
 									Pay Now
 								</Button>
@@ -1447,14 +1141,7 @@ export default function InvoiceDetailPage() {
 								size="sm"
 								icon={<Download className="w-4 h-4" />}
 								onClick={handleDownloadPDF}
-								sx={{
-									bgcolor: 'var(--accent-gold)',
-									color: 'white',
-									'&:hover': {
-										bgcolor: 'var(--accent-gold)',
-										opacity: 0.9,
-									}
-								}}
+								style={{backgroundColor: 'var(--accent-gold)', color: 'white'}}
 							>
 								Download PDF
 							</Button>
@@ -1472,72 +1159,59 @@ export default function InvoiceDetailPage() {
 							>
 								{invoice.containerId ? 'Back to Container' : invoice.shipmentId ? 'Back to Shipment' : 'Back to Invoices'}
 							</Button>
-						</Box>
+						</JXBox>
 					}
 				/>
 
 				{/* Main Content & Live PDF Split Layout */}
-				<Box sx={{ display: 'grid', gridTemplateColumns: isSplitView ? { xs: '1fr', lg: '1fr 480px', xl: '1fr 540px' } : '1fr', gap: 3, alignItems: 'start' }}>
-					<Box sx={{ minWidth: 0, width: '100%' }}>
+				<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '24px', alignItems: 'start'}} className={isSplitView ? 'grid-cols-1 lg:grid-cols-[1fr_480px] xl:grid-cols-[1fr_540px]' : 'grid-cols-1'}>
+					<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, minWidth: '0px', width: '100%'}}>
 						<DashboardSurface>
-					<Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' }, gap: 3 }}>
+					<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '24px'}} className="grid-cols-1 md:grid-cols-3">
 						{/* Invoice Information */}
 						<DashboardPanel 
 							title="Invoice Details"
 							description="Basic invoice information"
 						>
-							<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-								<Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-									<Box sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Invoice Number</Box>
-									<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+							<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '16px'}}>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', color: 'var(--text-secondary)'}}>Invoice Number</JXBox>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px'}}>
 										<span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'monospace' }}>
 											{invoice.invoiceNumber}
 										</span>
 										<CopyButton value={invoice.invoiceNumber} label="Invoice #" />
-									</Box>
-								</Box>
-								<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-									<Box sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Issue Date</Box>
-									<Box sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+									</JXBox>
+								</JXBox>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between'}}>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', color: 'var(--text-secondary)'}}>Issue Date</JXBox>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)'}}>
 										{formatDate(invoice.issueDate)}
-									</Box>
-								</Box>
-								<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-									<Box sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Due Date</Box>
-									<Box sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+									</JXBox>
+								</JXBox>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between'}}>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', color: 'var(--text-secondary)'}}>Due Date</JXBox>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)'}}>
 										{formatDate(invoice.dueDate)}
-									</Box>
-								</Box>
+									</JXBox>
+								</JXBox>
 								{invoice.paidDate && (
-									<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-										<Box sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Paid Date</Box>
-										<Box sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--success)' }}>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between'}}>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', color: 'var(--text-secondary)'}}>Paid Date</JXBox>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', fontWeight: 600, color: 'var(--success)'}}>
 											{formatDate(invoice.paidDate)}
-										</Box>
-									</Box>
+										</JXBox>
+									</JXBox>
 								)}
-								<Divider sx={{ borderColor: 'var(--border)' }} />
-								<Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-									<Box sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Status</Box>
+								<div aria-hidden="true" className="my-4 border-t border-[var(--border)]" style={{borderColor: 'var(--border)'}} />
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', color: 'var(--text-secondary)'}}>Status</JXBox>
 									<StatusBadge status={invoice.status} size="sm" />
-								</Box>
+								</JXBox>
 								{isAdmin && invoice.status !== 'PAID' && invoice.status !== 'CANCELLED' && (
-									<FormControl fullWidth size="small">
-										<InputLabel>Update Status</InputLabel>
-										<Select
-											value={invoice.status}
-											onChange={(e) => handleStatusUpdate(e.target.value)}
-											disabled={updating}
-										>
-											<MenuItem value="DRAFT">Draft</MenuItem>
-											<MenuItem value="PENDING">Pending</MenuItem>
-											<MenuItem value="SENT">Sent</MenuItem>
-											<MenuItem value="PAID">Paid</MenuItem>
-											<MenuItem value="CANCELLED">Cancelled</MenuItem>
-										</Select>
-									</FormControl>
+									<div className="min-w-0 flex-1"><Select label="Update Status" options={[{ value: "DRAFT", label: 'Draft' }, { value: "PENDING", label: 'Pending' }, { value: "SENT", label: 'Sent' }, { value: "PAID", label: 'Paid' }, { value: "CANCELLED", label: 'Cancelled' }]} value={invoice.status} size="small" disabled onChange={(val) => handleStatusUpdate(val as string)} /></div>
 								)}
-							</Box>
+							</JXBox>
 						</DashboardPanel>
 
 						{/* Customer Information */}
@@ -1545,40 +1219,40 @@ export default function InvoiceDetailPage() {
 							title="Customer"
 							description="Customer details"
 						>
-							<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-								<Box>
-									<Box sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)', mb: 0.5 }}>Name</Box>
-									<Box sx={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+							<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '16px'}}>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '4px'}}>Name</JXBox>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)'}}>
 										{invoice.user.name || 'N/A'}
-									</Box>
-								</Box>
-								<Box>
-									<Box sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)', mb: 0.5 }}>Email</Box>
-									<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+									</JXBox>
+								</JXBox>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '4px'}}>Email</JXBox>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px'}}>
 										<span style={{ fontSize: '0.875rem', color: 'var(--text-primary)' }}>{invoice.user.email}</span>
 										<CopyButton value={invoice.user.email} label="Email" />
-									</Box>
-								</Box>
+									</JXBox>
+								</JXBox>
 								{invoice.user.phone && (
-									<Box>
-										<Box sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)', mb: 0.5 }}>Phone</Box>
-										<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '4px'}}>Phone</JXBox>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px'}}>
 											<span style={{ fontSize: '0.875rem', color: 'var(--text-primary)' }}>{invoice.user.phone}</span>
 											<CopyButton value={invoice.user.phone} label="Phone" />
-										</Box>
-									</Box>
+										</JXBox>
+									</JXBox>
 								)}
 								{invoice.user.address && (
-									<Box>
-										<Box sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)', mb: 0.5 }}>Address</Box>
-										<Box sx={{ fontSize: '0.875rem', color: 'var(--text-primary)' }}>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '4px'}}>Address</JXBox>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', color: 'var(--text-primary)'}}>
 											{invoice.user.address}
 											{invoice.user.city && `, ${invoice.user.city}`}
 											{invoice.user.country && `, ${invoice.user.country}`}
-										</Box>
-									</Box>
+										</JXBox>
+									</JXBox>
 								)}
-								<Divider sx={{ borderColor: 'var(--border)' }} />
+								<div aria-hidden="true" className="my-4 border-t border-[var(--border)]" style={{borderColor: 'var(--border)'}} />
 								<Button
 									variant="outline"
 									size="sm"
@@ -1587,7 +1261,7 @@ export default function InvoiceDetailPage() {
 								>
 									View Customer
 								</Button>
-							</Box>
+							</JXBox>
 						</DashboardPanel>
 
 						{/* Container or Shipment Information */}
@@ -1596,46 +1270,46 @@ export default function InvoiceDetailPage() {
 							title="Container"
 							description="Shipping container"
 						>
-							<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-								<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-									<Box sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Container #</Box>
-									<Box sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'monospace' }}>
+							<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '16px'}}>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between'}}>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', color: 'var(--text-secondary)'}}>Container #</JXBox>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'monospace'}}>
 										{invoice.container.containerNumber}
-									</Box>
-								</Box>
+									</JXBox>
+								</JXBox>
 								{invoice.container.trackingNumber && (
-									<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-										<Box sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Tracking #</Box>
-										<Box sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'monospace' }}>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between'}}>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', color: 'var(--text-secondary)'}}>Tracking #</JXBox>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'monospace'}}>
 											{invoice.container.trackingNumber}
-										</Box>
-									</Box>
+										</JXBox>
+									</JXBox>
 								)}
 								{invoice.container.vesselName && (
-									<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-										<Box sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Vessel</Box>
-										<Box sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between'}}>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', color: 'var(--text-secondary)'}}>Vessel</JXBox>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)'}}>
 											{invoice.container.vesselName}
-										</Box>
-									</Box>
+										</JXBox>
+									</JXBox>
 								)}
 								{invoice.container.loadingPort && (
-									<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-										<Box sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>From</Box>
-										<Box sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between'}}>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', color: 'var(--text-secondary)'}}>From</JXBox>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)'}}>
 											{invoice.container.loadingPort}
-										</Box>
-									</Box>
+										</JXBox>
+									</JXBox>
 								)}
 								{invoice.container.destinationPort && (
-									<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-										<Box sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>To</Box>
-										<Box sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between'}}>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', color: 'var(--text-secondary)'}}>To</JXBox>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)'}}>
 											{invoice.container.destinationPort}
-										</Box>
-									</Box>
+										</JXBox>
+									</JXBox>
 								)}
-								<Divider sx={{ borderColor: 'var(--border)' }} />
+								<div aria-hidden="true" className="my-4 border-t border-[var(--border)]" style={{borderColor: 'var(--border)'}} />
 								<Button
 									variant="outline"
 									size="sm"
@@ -1644,43 +1318,43 @@ export default function InvoiceDetailPage() {
 								>
 									View Container
 								</Button>
-							</Box>
+							</JXBox>
 						</DashboardPanel>
 						) : invoice.shipment ? (
 						<DashboardPanel
 							title="Vehicle"
 							description="Shipment details"
 						>
-							<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-								<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-									<Box sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Vehicle</Box>
-									<Box sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+							<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '16px'}}>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between'}}>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', color: 'var(--text-secondary)'}}>Vehicle</JXBox>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)'}}>
 										{[invoice.shipment.vehicleYear, invoice.shipment.vehicleMake, invoice.shipment.vehicleModel].filter(Boolean).join(' ') || invoice.shipment.vehicleType}
-									</Box>
-								</Box>
+									</JXBox>
+								</JXBox>
 								{invoice.shipment.vehicleVIN && (
-									<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-										<Box sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>VIN</Box>
-										<Box sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'monospace' }}>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between'}}>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', color: 'var(--text-secondary)'}}>VIN</JXBox>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'monospace'}}>
 											{invoice.shipment.vehicleVIN}
-										</Box>
-									</Box>
+										</JXBox>
+									</JXBox>
 								)}
 								{invoice.shipment.vehicleColor && (
-									<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-										<Box sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Color</Box>
-										<Box sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between'}}>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', color: 'var(--text-secondary)'}}>Color</JXBox>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)'}}>
 											{invoice.shipment.vehicleColor}
-										</Box>
-									</Box>
+										</JXBox>
+									</JXBox>
 								)}
-								<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-									<Box sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Status</Box>
-									<Box sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between'}}>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', color: 'var(--text-secondary)'}}>Status</JXBox>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)'}}>
 										{invoice.shipment.status.replace(/_/g, ' ')}
-									</Box>
-								</Box>
-								<Divider sx={{ borderColor: 'var(--border)' }} />
+									</JXBox>
+								</JXBox>
+								<div aria-hidden="true" className="my-4 border-t border-[var(--border)]" style={{borderColor: 'var(--border)'}} />
 								<Button
 									variant="outline"
 									size="sm"
@@ -1689,13 +1363,13 @@ export default function InvoiceDetailPage() {
 								>
 									View Shipment
 								</Button>
-							</Box>
+							</JXBox>
 						</DashboardPanel>
 						) : null}
-					</Box>
+					</JXBox>
 
 					{/* Line Items */}
-					<Box sx={{ mt: 3 }}>
+					<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '24px'}}>
 						<DashboardPanel 
 							title="Line Items"
 							description="Detailed breakdown of charges"
@@ -1713,45 +1387,32 @@ export default function InvoiceDetailPage() {
 								) : undefined
 							}
 						>
-						<TableContainer sx={{ border: '1px solid var(--border)', borderRadius: 2 }}>
-							<Table
-								size="small"
-								sx={{
-									'& .MuiTableCell-head': {
-										bgcolor: 'var(--background)',
-										color: 'var(--text-secondary)',
-									},
-								}}
-							>
-								<TableHead>
-									<TableRow>
-										<TableCell sx={{ fontWeight: 600 }} align="left">Description</TableCell>
-										<TableCell sx={{ fontWeight: 600 }} align="left">Type</TableCell>
-										<TableCell sx={{ fontWeight: 600 }} align="center">Qty</TableCell>
-										<TableCell sx={{ fontWeight: 600 }} align="center">Unit Price</TableCell>
-										<TableCell sx={{ fontWeight: 600 }} align="center">Amount</TableCell>
-									</TableRow>
-								</TableHead>
-								<TableBody>
+						<div style={{border: '1px solid var(--border)', borderRadius: '16px'}} className="w-full overflow-x-auto">
+							<table style={{}} className="w-full border-collapse text-sm [&_td]:py-1.5 [&_th]:py-1.5">
+								<thead>
+									<tr className="hover:bg-[rgba(var(--border-rgb),0.25)]">
+										<th style={{fontWeight: 600}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Description</th>
+										<th style={{fontWeight: 600}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Type</th>
+										<th style={{fontWeight: 600}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-center">Qty</th>
+										<th style={{fontWeight: 600}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-center">Unit Price</th>
+										<th style={{fontWeight: 600}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-center">Amount</th>
+									</tr>
+								</thead>
+								<tbody>
 									{groupedEntries.map(([key, group]) => (
 										<React.Fragment key={key}>
 											{group.shipment && hasMultipleShipmentGroups && (
-												<TableRow key={`header-${key}`}>
-													<TableCell colSpan={5} align="left" sx={{ 
-														bgcolor: 'var(--background)', 
-														fontWeight: 600,
-														fontSize: '0.875rem',
-														py: 1,
-													}}>
+												<tr key={`header-${key}`} className="hover:bg-[rgba(var(--border-rgb),0.25)]">
+													<th colSpan={5} style={{backgroundColor: 'var(--background)', fontWeight: 600, fontSize: '0.875rem', paddingTop: '8px', paddingBottom: '8px'}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
 														{group.shipment.vehicleYear} {group.shipment.vehicleMake} {group.shipment.vehicleModel}
 														{group.shipment.vehicleVIN && ` (VIN: ${group.shipment.vehicleVIN})`}
-													</TableCell>
-												</TableRow>
+													</th>
+												</tr>
 											)}
 											{group.items.map((item) => (
-													<TableRow key={item.id} hover>
-													<TableCell align="left" sx={{ pl: 2, pr: 2 }}>
-														<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 1, flexWrap: 'wrap', textAlign: 'left' }}>
+													<tr key={item.id} className="hover:bg-[rgba(var(--border-rgb),0.25)]">
+													<th style={{paddingLeft: '16px', paddingRight: '16px'}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
+														<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '8px', flexWrap: 'wrap', textAlign: 'left'}}>
 															<span>{getExpenseShortLabel(item)}</span>
 								{canDisputeLines && !disputedLineIds.has(item.id) && (
 									<Button
@@ -1762,7 +1423,7 @@ export default function InvoiceDetailPage() {
 												{ id: item.id, description: item.description, amount: item.amount },
 												group.shipment?.id ?? null,
 											)}
-										sx={{ minWidth: 'auto', px: 1 }}
+										style={{minWidth: 'auto', paddingLeft: '8px', paddingRight: '8px'}}
 									>
 										Dispute
 									</Button>
@@ -1780,155 +1441,124 @@ export default function InvoiceDetailPage() {
 																	variant="outline"
 																	size="sm"
 																	onClick={() => openCompanyLedgerEntry(item.linkedCompanyLedgerEntry!)}
-																	sx={{ minWidth: 'auto', px: 1 }}
+																	style={{minWidth: 'auto', paddingLeft: '8px', paddingRight: '8px'}}
 																>
 																	Company Ledger
 																</Button>
 															)}
-														</Box>
-													</TableCell>
-													<TableCell align="left">
+														</JXBox>
+													</th>
+													<th className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
 														<StatusBadge 
 															status="DEFAULT"
 															label={getLineItemTypeLabel(item)} 
 															size="sm"
 														/>
-													</TableCell>
-													<TableCell align="center">{item.quantity}</TableCell>
-													<TableCell align="center">{formatCurrency(item.unitPrice)}</TableCell>
-													<TableCell align="center" sx={{ fontWeight: 600 }}>
+													</th>
+													<th className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-center">{item.quantity}</th>
+													<th className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-center">{formatCurrency(item.unitPrice)}</th>
+													<th style={{fontWeight: 600}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-center">
 														{formatCurrency(item.amount)}
-													</TableCell>
-												</TableRow>
+													</th>
+												</tr>
 											))}
 										</React.Fragment>
 									))}
-									<TableRow>
-										<TableCell colSpan={4} align="right" sx={{ fontWeight: 600, borderTop: '2px solid var(--border)' }}>
+									<tr className="hover:bg-[rgba(var(--border-rgb),0.25)]">
+										<th colSpan={4} style={{fontWeight: 600, borderTop: '2px solid var(--border)'}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-right">
 											Subtotal
-										</TableCell>
-										<TableCell align="right" sx={{ fontWeight: 600, borderTop: '2px solid var(--border)' }}>
+										</th>
+										<th style={{fontWeight: 600, borderTop: '2px solid var(--border)'}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-right">
 											{formatCurrency(invoice.subtotal)}
-										</TableCell>
-									</TableRow>
+										</th>
+									</tr>
 									{invoice.discount > 0 && (
-										<TableRow>
-											<TableCell colSpan={4} align="right" sx={{ fontWeight: 600, color: 'var(--success)' }}>
+										<tr className="hover:bg-[rgba(var(--border-rgb),0.25)]">
+											<th colSpan={4} style={{fontWeight: 600, color: 'var(--success)'}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-right">
 												Discount
-											</TableCell>
-											<TableCell align="right" sx={{ fontWeight: 600, color: 'var(--success)' }}>
+											</th>
+											<th style={{fontWeight: 600, color: 'var(--success)'}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-right">
 												-{formatCurrency(invoice.discount)}
-											</TableCell>
-										</TableRow>
+											</th>
+										</tr>
 									)}
 									{invoice.tax > 0 && (
-										<TableRow>
-											<TableCell colSpan={4} align="right" sx={{ fontWeight: 600 }}>
+										<tr className="hover:bg-[rgba(var(--border-rgb),0.25)]">
+											<th colSpan={4} style={{fontWeight: 600}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-right">
 												Tax
-											</TableCell>
-											<TableCell align="right" sx={{ fontWeight: 600 }}>
+											</th>
+											<th style={{fontWeight: 600}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-right">
 												{formatCurrency(invoice.tax)}
-											</TableCell>
-										</TableRow>
+											</th>
+										</tr>
 									)}
-									<TableRow>
-										<TableCell colSpan={4} align="right" sx={{ 
-											fontWeight: 700, 
-											fontSize: '1.1rem',
-											borderTop: '2px solid var(--border)',
-										}}>
+									<tr className="hover:bg-[rgba(var(--border-rgb),0.25)]">
+										<th colSpan={4} style={{fontWeight: 700, fontSize: '1.1rem', borderTop: '2px solid var(--border)'}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-right">
 											TOTAL
-										</TableCell>
-										<TableCell align="right" sx={{ 
-											fontWeight: 700, 
-											fontSize: '1.1rem',
-											color: 'var(--accent-gold)',
-											borderTop: '2px solid var(--border)',
-										}}>
+										</th>
+										<th style={{fontWeight: 700, fontSize: '1.1rem', color: 'var(--accent-gold)', borderTop: '2px solid var(--border)'}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-right">
 											{formatCurrency(invoice.total)}
-										</TableCell>
-									</TableRow>
+										</th>
+									</tr>
 									{purchasePaid > 0 && (
 										<>
-											<TableRow>
-												<TableCell colSpan={4} align="right" sx={{ color: 'var(--success)', fontWeight: 600 }}>
+											<tr className="hover:bg-[rgba(var(--border-rgb),0.25)]">
+												<th colSpan={4} style={{color: 'var(--success)', fontWeight: 600}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-right">
 													Purchase Price Already Paid
-												</TableCell>
-												<TableCell align="right" sx={{ color: 'var(--success)', fontWeight: 600 }}>
+												</th>
+												<th style={{color: 'var(--success)', fontWeight: 600}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-right">
 													-{formatCurrency(purchasePaid)}
-												</TableCell>
-											</TableRow>
-											<TableRow>
-												<TableCell colSpan={4} align="right" sx={{ 
-													fontWeight: 700,
-													fontSize: '1.1rem',
-													borderTop: '2px solid var(--border)',
-												}}>
+												</th>
+											</tr>
+											<tr className="hover:bg-[rgba(var(--border-rgb),0.25)]">
+												<th colSpan={4} style={{fontWeight: 700, fontSize: '1.1rem', borderTop: '2px solid var(--border)'}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-right">
 													BALANCE DUE
-												</TableCell>
-												<TableCell align="right" sx={{ 
-													fontWeight: 700,
-													fontSize: '1.1rem',
-													color: balanceDue > 0 ? 'var(--error, #d32f2f)' : 'var(--success)',
-													borderTop: '2px solid var(--border)',
-												}}>
+												</th>
+												<th style={{fontWeight: 700, fontSize: '1.1rem', color: balanceDue > 0 ? 'var(--error, #d32f2f)' : 'var(--success)', borderTop: '2px solid var(--border)'}} className="border-b border-[var(--border)] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-right">
 													{formatCurrency(balanceDue)}
-												</TableCell>
-											</TableRow>
+												</th>
+											</tr>
 										</>
 									)}
-								</TableBody>
-							</Table>
-						</TableContainer>
+								</tbody>
+							</table>
+						</div>
 						</DashboardPanel>
-					</Box>
+					</JXBox>
 
 					{/* Notes */}
 					{(invoice.notes || invoice.internalNotes) && (
-						<Box sx={{ mt: 3 }}>
+						<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '24px'}}>
 							<DashboardPanel 
 								title="Notes"
 								description="Additional information"
 							>
-							<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+							<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '16px'}}>
 								{invoice.notes && (
-									<Box>
-										<Box sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-secondary)', mb: 1 }}>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px'}}>
 											Customer Notes
-										</Box>
-										<Box sx={{ 
-											p: 2, 
-											bgcolor: 'var(--background)', 
-											borderRadius: 1,
-											fontSize: '0.875rem',
-											color: 'var(--text-primary)',
-										}}>
+										</JXBox>
+										<JXBox padding="none" border={false} style={{padding: '16px', backgroundColor: 'var(--background)', borderRadius: '8px', fontSize: '0.875rem', color: 'var(--text-primary)'}}>
 											{invoice.notes}
-										</Box>
-									</Box>
+										</JXBox>
+									</JXBox>
 								)}
 								{isAdmin && invoice.internalNotes && (
-									<Box>
-										<Box sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-secondary)', mb: 1 }}>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px'}}>
 											Internal Notes
-										</Box>
-										<Box sx={{ 
-											p: 2, 
-											bgcolor: 'rgba(var(--warning-rgb), 0.1)', 
-											border: '1px solid rgba(var(--warning-rgb), 0.3)',
-											borderRadius: 1,
-											fontSize: '0.875rem',
-											color: 'var(--text-primary)',
-										}}>
+										</JXBox>
+										<JXBox padding="none" border={false} style={{padding: '16px', backgroundColor: 'rgba(var(--warning-rgb), 0.1)', border: '1px solid rgba(var(--warning-rgb), 0.3)', borderRadius: '8px', fontSize: '0.875rem', color: 'var(--text-primary)'}}>
 											{invoice.internalNotes}
-										</Box>
-									</Box>
+										</JXBox>
+									</JXBox>
 								)}
-							</Box>
+							</JXBox>
 							</DashboardPanel>
-						</Box>
+						</JXBox>
 					)}
-					<Box sx={{ mt: 3 }}>
+					<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '24px'}}>
 						<DashboardPanel
 							title="Activity History"
 							description="Audit log of invoice creation, updates, and status changes"
@@ -1937,64 +1567,29 @@ export default function InvoiceDetailPage() {
 								<ActivityLog logs={invoice.auditLogs || []} />
 							)}
 						</DashboardPanel>
-					</Box>
+					</JXBox>
 				</DashboardSurface>
-					</Box>
+					</JXBox>
 
 					{/* Right Column: Sticky Live PDF Document Preview */}
 					{isSplitView && (
-						<Box
-							sx={{
-								display: { xs: 'none', lg: 'flex' },
-								flexDirection: 'column',
-								position: 'sticky',
-								top: '80px',
-								height: 'calc(100vh - 105px)',
-								minHeight: '680px',
-								bgcolor: 'var(--panel)',
-								border: '1px solid var(--border)',
-								borderRadius: 3,
-								overflow: 'hidden',
-								boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-								zIndex: 10,
-							}}
-						>
+						<JXBox padding="none" border={false} style={{flexDirection: 'column', position: 'sticky', top: '80px', height: 'calc(100vh - 105px)', minHeight: '680px', backgroundColor: 'var(--panel)', border: '1px solid var(--border)', borderRadius: '24px', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', zIndex: 10}} className="hidden lg:flex">
 							{/* Top Bar */}
-							<Box
-								sx={{
-									px: 2,
-									py: 1.5,
-									borderBottom: '1px solid var(--border)',
-									bgcolor: 'rgba(var(--text-primary-rgb), 0.02)',
-									display: 'flex',
-									alignItems: 'center',
-									justifyContent: 'space-between',
-								}}
-							>
-								<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
-									<Box
-										sx={{
-											p: 0.85,
-											borderRadius: 2,
-											bgcolor: 'rgba(var(--accent-gold-rgb), 0.12)',
-											color: 'var(--accent-gold)',
-											display: 'flex',
-											alignItems: 'center',
-											justifyContent: 'center',
-										}}
-									>
+							<JXBox padding="none" border={false} style={{borderRadius: 0, paddingLeft: '16px', paddingRight: '16px', paddingTop: '12px', paddingBottom: '12px', borderBottom: '1px solid var(--border)', backgroundColor: 'rgba(var(--text-primary-rgb), 0.02)', display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '10px'}}>
+									<JXBox padding="none" border={false} style={{padding: '6.8px', borderRadius: '16px', backgroundColor: 'rgba(var(--accent-gold-rgb), 0.12)', color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
 										<FileText className="w-4 h-4" />
-									</Box>
+									</JXBox>
 									<div>
-										<Typography sx={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>
+										<p className="text-sm leading-relaxed" style={{fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2}}>
 											Live PDF Preview
-										</Typography>
-										<Typography sx={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
+										</p>
+										<p className="text-sm leading-relaxed" style={{fontSize: '0.7rem', color: 'var(--text-secondary)'}}>
 											{invoice.invoiceNumber} &bull; Auto-syncs on edit
-										</Typography>
+										</p>
 									</div>
-								</Box>
-								<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+								</JXBox>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px'}}>
 									<button
 										type="button"
 										onClick={() => setPdfRefreshKey((k) => k + 1)}
@@ -2045,11 +1640,11 @@ export default function InvoiceDetailPage() {
 									>
 										<X className="w-3.5 h-3.5" />
 									</button>
-								</Box>
-							</Box>
+								</JXBox>
+							</JXBox>
 
 							{/* Live Iframe Viewer */}
-							<Box sx={{ flex: 1, position: 'relative', bgcolor: '#0f172a' }}>
+							<JXBox padding="none" border={false} style={{borderRadius: 0, flex: 1, position: 'relative', backgroundColor: '#0f172a'}}>
 								<iframe
 									id="live-pdf-iframe"
 									key={`live-pdf-${pdfRefreshKey}`}
@@ -2057,185 +1652,36 @@ export default function InvoiceDetailPage() {
 									title={`Invoice PDF ${invoice.invoiceNumber}`}
 									className="w-full h-full border-0"
 								/>
-							</Box>
-						</Box>
+							</JXBox>
+						</JXBox>
 					)}
-				</Box>
-			</Box>
+				</JXBox>
+			</JXBox>
 
 			{/* #4: Online Payment Modal */}
-			<Dialog
-				open={paymentModalOpen}
-				onClose={() => !paymentProcessing && setPaymentModalOpen(false)}
-				maxWidth="sm"
-				fullWidth
-				PaperProps={{
-					sx: {
-						borderRadius: 3,
-						bgcolor: 'var(--panel)',
-						border: '1px solid var(--border)',
-						boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-						overflow: 'hidden',
-					}
-				}}
-			>
-				<DialogTitle sx={{ p: 2.5, pb: 1.5, bgcolor: 'var(--panel)', borderBottom: '1px solid var(--border)' }}>
-					<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
-						<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-							<Box sx={{
-								p: 1,
-								borderRadius: 2,
-								bgcolor: 'rgba(var(--success-rgb), 0.12)',
-								color: 'var(--success)',
-								display: 'flex',
-								alignItems: 'center',
-								justifyContent: 'center'
-							}}>
+			<Modal
+			  open={paymentModalOpen}
+			  onClose={() => !paymentProcessing && setPaymentModalOpen(false)}
+			  title={<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px'}}>
+						<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '12px'}}>
+							<JXBox padding="none" border={false} style={{padding: '8px', borderRadius: '16px', backgroundColor: 'rgba(var(--success-rgb), 0.12)', color: 'var(--success)', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
 								<CreditCard className="w-5 h-5" />
-							</Box>
+							</JXBox>
 							<div>
-								<Typography sx={{ fontWeight: 700, fontSize: '1.15rem', color: 'var(--text-primary)', lineHeight: 1.2 }}>
+								<p className="text-sm leading-relaxed" style={{fontWeight: 700, fontSize: '1.15rem', color: 'var(--text-primary)', lineHeight: 1.2}}>
 									Pay Invoice
-								</Typography>
-								<Typography sx={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+								</p>
+								<p className="text-sm leading-relaxed" style={{fontSize: '0.8rem', color: 'var(--text-secondary)'}}>
 									{invoice.invoiceNumber} &bull; {formatCurrency(balanceDue > 0 ? balanceDue : invoice.total)} due
-								</Typography>
+								</p>
 							</div>
-						</Box>
-						<IconButton
-							size="small"
-							onClick={() => !paymentProcessing && setPaymentModalOpen(false)}
-							sx={{ color: 'var(--text-secondary)', '&:hover': { color: 'var(--text-primary)' } }}
-						>
-							<X className="w-5 h-5" />
-						</IconButton>
-					</Box>
-				</DialogTitle>
-				<DialogContent sx={{ p: { xs: 2, sm: 3 }, bgcolor: 'var(--panel)' }}>
-					<Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 1 }}>
-						{/* Payment Summary */}
-						<Box sx={{
-							p: 2,
-							borderRadius: 2,
-							bgcolor: 'var(--background)',
-							border: '1px solid var(--border)',
-						}}>
-							<Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-								<Typography sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Invoice Total</Typography>
-								<Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>{formatCurrency(invoice.total)}</Typography>
-							</Box>
-							{purchasePaid > 0 && (
-								<Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-									<Typography sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Already Paid</Typography>
-									<Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--success)' }}>-{formatCurrency(purchasePaid)}</Typography>
-								</Box>
-							)}
-							<Divider sx={{ borderColor: 'var(--border)', my: 1 }} />
-							<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-								<Typography sx={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>Amount Due</Typography>
-								<Typography sx={{ fontSize: '1rem', fontWeight: 700, color: 'var(--accent-gold)' }}>
-									{formatCurrency(balanceDue > 0 ? balanceDue : invoice.total)}
-								</Typography>
-							</Box>
-						</Box>
+						</JXBox>
+					</JXBox>}
+			  size="sm"
+			  contentSx={{backgroundColor: 'var(--panel)'}}
+			  actionsSx={{padding: '20px', backgroundColor: 'var(--panel)', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '12px'}}
+			  actions={<>
 
-						{/* Payment Method Selection */}
-						<Box>
-							<Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)', mb: 1.5 }}>
-								Payment Method
-							</Typography>
-							<Box sx={{ display: 'flex', gap: 1.5 }}>
-								<Box
-									onClick={() => setPaymentMethod('card')}
-									sx={{
-										flex: 1,
-										p: 2,
-										borderRadius: 2,
-										border: paymentMethod === 'card' ? '2px solid var(--accent-gold)' : '1px solid var(--border)',
-										bgcolor: paymentMethod === 'card' ? 'rgba(var(--accent-gold-rgb), 0.05)' : 'var(--background)',
-										cursor: 'pointer',
-										textAlign: 'center',
-										transition: 'all 0.2s',
-									}}
-								>
-									<CreditCard className={`h-6 w-6 mx-auto mb-1 ${paymentMethod === 'card' ? 'text-[var(--accent-gold)]' : 'text-[var(--text-secondary)]'}`} />
-									<Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: paymentMethod === 'card' ? 'var(--accent-gold)' : 'var(--text-primary)' }}>
-										Credit Card
-									</Typography>
-								</Box>
-								<Box
-									onClick={() => setPaymentMethod('bank')}
-									sx={{
-										flex: 1,
-										p: 2,
-										borderRadius: 2,
-										border: paymentMethod === 'bank' ? '2px solid var(--accent-gold)' : '1px solid var(--border)',
-										bgcolor: paymentMethod === 'bank' ? 'rgba(var(--accent-gold-rgb), 0.05)' : 'var(--background)',
-										cursor: 'pointer',
-										textAlign: 'center',
-										transition: 'all 0.2s',
-									}}
-								>
-									<Building2 className={`h-6 w-6 mx-auto mb-1 ${paymentMethod === 'bank' ? 'text-[var(--accent-gold)]' : 'text-[var(--text-secondary)]'}`} />
-									<Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: paymentMethod === 'bank' ? 'var(--accent-gold)' : 'var(--text-primary)' }}>
-										Bank Transfer
-									</Typography>
-								</Box>
-								<Box
-									onClick={() => setPaymentMethod('wallet')}
-									sx={{
-										flex: 1,
-										p: 2,
-										borderRadius: 2,
-										border: paymentMethod === 'wallet' ? '2px solid var(--accent-gold)' : '1px solid var(--border)',
-										bgcolor: paymentMethod === 'wallet' ? 'rgba(var(--accent-gold-rgb), 0.05)' : 'var(--background)',
-										cursor: 'pointer',
-										textAlign: 'center',
-										transition: 'all 0.2s',
-									}}
-								>
-									<Wallet className={`h-6 w-6 mx-auto mb-1 ${paymentMethod === 'wallet' ? 'text-[var(--accent-gold)]' : 'text-[var(--text-secondary)]'}`} />
-									<Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: paymentMethod === 'wallet' ? 'var(--accent-gold)' : 'var(--text-primary)' }}>
-										Wallet Balance
-									</Typography>
-								</Box>
-							</Box>
-						</Box>
-
-						{/* Payment Info */}
-						<Box sx={{
-							p: 2,
-							borderRadius: 2,
-							bgcolor: 'rgba(var(--info-rgb), 0.08)',
-							border: '1px solid rgba(var(--info-rgb), 0.2)',
-						}}>
-							<Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
-								<Shield className="h-4 w-4 text-[var(--info)] shrink-0 mt-0.5" />
-								<Box>
-									<Typography sx={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-										Secure Payment
-									</Typography>
-									<Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)', mt: 0.25 }}>
-										{paymentMethod === 'card'
-											? 'Pay securely with your credit card. Your payment information is encrypted.'
-											: paymentMethod === 'bank'
-											? 'Bank transfer details will be provided after confirmation. Please use your invoice number as reference.'
-											: 'Pay using your account wallet balance. Ensure you have sufficient funds.'}
-									</Typography>
-								</Box>
-							</Box>
-						</Box>
-					</Box>
-				</DialogContent>
-				<DialogActions sx={{
-					p: 2.5,
-					bgcolor: 'var(--panel)',
-					borderTop: '1px solid var(--border)',
-					display: 'flex',
-					alignItems: 'center',
-					justifyContent: 'flex-end',
-					gap: 1.5
-				}}>
 					<Button variant="outline" onClick={() => setPaymentModalOpen(false)} disabled={paymentProcessing}>
 						Cancel
 					</Button>
@@ -2269,11 +1715,7 @@ export default function InvoiceDetailPage() {
 							}
 						}}
 						disabled={paymentProcessing}
-						sx={{
-							bgcolor: 'var(--success)',
-							color: 'white',
-							'&:hover': { bgcolor: 'var(--success)', opacity: 0.9 },
-						}}
+						style={{backgroundColor: 'var(--success)', color: 'white'}}
 					>
 						{paymentProcessing ? (
 							<><span className="w-4 h-4 mr-1.5 animate-spin rounded-full border-2 border-white border-t-transparent" /> Processing...</>
@@ -2281,8 +1723,78 @@ export default function InvoiceDetailPage() {
 							<><CreditCard className="w-4 h-4 mr-1.5" /> Pay {formatCurrency(balanceDue > 0 ? balanceDue : invoice.total)}</>
 						)}
 					</Button>
-				</DialogActions>
-			</Dialog>
+			  </>}
+			>
+
+					<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '24px', paddingTop: '8px'}}>
+						{/* Payment Summary */}
+						<JXBox padding="none" border={false} style={{padding: '16px', borderRadius: '16px', backgroundColor: 'var(--background)', border: '1px solid var(--border)'}}>
+							<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between', marginBottom: '8px'}}>
+								<p className="text-sm leading-relaxed" style={{fontSize: '0.875rem', color: 'var(--text-secondary)'}}>Invoice Total</p>
+								<p className="text-sm leading-relaxed" style={{fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)'}}>{formatCurrency(invoice.total)}</p>
+							</JXBox>
+							{purchasePaid > 0 && (
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between', marginBottom: '8px'}}>
+									<p className="text-sm leading-relaxed" style={{fontSize: '0.875rem', color: 'var(--text-secondary)'}}>Already Paid</p>
+									<p className="text-sm leading-relaxed" style={{fontSize: '0.875rem', fontWeight: 600, color: 'var(--success)'}}>-{formatCurrency(purchasePaid)}</p>
+								</JXBox>
+							)}
+							<div aria-hidden="true" className="my-4 border-t border-[var(--border)]" style={{borderColor: 'var(--border)', marginTop: '8px', marginBottom: '8px'}} />
+							<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between'}}>
+								<p className="text-sm leading-relaxed" style={{fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)'}}>Amount Due</p>
+								<p className="text-sm leading-relaxed" style={{fontSize: '1rem', fontWeight: 700, color: 'var(--accent-gold)'}}>
+									{formatCurrency(balanceDue > 0 ? balanceDue : invoice.total)}
+								</p>
+							</JXBox>
+						</JXBox>
+
+						{/* Payment Method Selection */}
+						<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+							<p className="text-sm leading-relaxed" style={{fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '12px'}}>
+								Payment Method
+							</p>
+							<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '12px'}}>
+								<JXBox padding="none" border={false} onClick={() => setPaymentMethod('card')} style={{flex: 1, padding: '16px', borderRadius: '16px', border: paymentMethod === 'card' ? '2px solid var(--accent-gold)' : '1px solid var(--border)', backgroundColor: paymentMethod === 'card' ? 'rgba(var(--accent-gold-rgb), 0.05)' : 'var(--background)', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s'}}>
+									<CreditCard className={`h-6 w-6 mx-auto mb-1 ${paymentMethod === 'card' ? 'text-[var(--accent-gold)]' : 'text-[var(--text-secondary)]'}`} />
+									<p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', fontWeight: 600, color: paymentMethod === 'card' ? 'var(--accent-gold)' : 'var(--text-primary)'}}>
+										Credit Card
+									</p>
+								</JXBox>
+								<JXBox padding="none" border={false} onClick={() => setPaymentMethod('bank')} style={{flex: 1, padding: '16px', borderRadius: '16px', border: paymentMethod === 'bank' ? '2px solid var(--accent-gold)' : '1px solid var(--border)', backgroundColor: paymentMethod === 'bank' ? 'rgba(var(--accent-gold-rgb), 0.05)' : 'var(--background)', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s'}}>
+									<Building2 className={`h-6 w-6 mx-auto mb-1 ${paymentMethod === 'bank' ? 'text-[var(--accent-gold)]' : 'text-[var(--text-secondary)]'}`} />
+									<p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', fontWeight: 600, color: paymentMethod === 'bank' ? 'var(--accent-gold)' : 'var(--text-primary)'}}>
+										Bank Transfer
+									</p>
+								</JXBox>
+								<JXBox padding="none" border={false} onClick={() => setPaymentMethod('wallet')} style={{flex: 1, padding: '16px', borderRadius: '16px', border: paymentMethod === 'wallet' ? '2px solid var(--accent-gold)' : '1px solid var(--border)', backgroundColor: paymentMethod === 'wallet' ? 'rgba(var(--accent-gold-rgb), 0.05)' : 'var(--background)', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s'}}>
+									<Wallet className={`h-6 w-6 mx-auto mb-1 ${paymentMethod === 'wallet' ? 'text-[var(--accent-gold)]' : 'text-[var(--text-secondary)]'}`} />
+									<p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', fontWeight: 600, color: paymentMethod === 'wallet' ? 'var(--accent-gold)' : 'var(--text-primary)'}}>
+										Wallet Balance
+									</p>
+								</JXBox>
+							</JXBox>
+						</JXBox>
+
+						{/* Payment Info */}
+						<JXBox padding="none" border={false} style={{padding: '16px', borderRadius: '16px', backgroundColor: 'rgba(var(--info-rgb), 0.08)', border: '1px solid rgba(var(--info-rgb), 0.2)'}}>
+							<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'flex-start', gap: '12px'}}>
+								<Shield className="h-4 w-4 text-[var(--info)] shrink-0 mt-0.5" />
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+									<p className="text-sm leading-relaxed" style={{fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)'}}>
+										Secure Payment
+									</p>
+									<p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '2px'}}>
+										{paymentMethod === 'card'
+											? 'Pay securely with your credit card. Your payment information is encrypted.'
+											: paymentMethod === 'bank'
+											? 'Bank transfer details will be provided after confirmation. Please use your invoice number as reference.'
+											: 'Pay using your account wallet balance. Ensure you have sufficient funds.'}
+									</p>
+								</JXBox>
+							</JXBox>
+						</JXBox>
+					</JXBox>
+			</Modal>
 
 			{/* In-app Invoice PDF Preview Modal */}
 			<InvoicePreviewModal

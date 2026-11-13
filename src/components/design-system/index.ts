@@ -10,11 +10,15 @@
 // Form Components
 export { default as FormField } from './FormField';
 export { default as Select } from './Select';
+export { default as Autocomplete } from './Autocomplete';
+export type { AutocompleteOption, AutocompleteProps } from './Autocomplete';
 export type { SelectOption, SelectProps } from './Select';
 
 // Button Components
 export { default as Button, IconButton } from './Button';
 export type { ButtonProps, IconButtonProps } from './Button';
+export { default as JacxiButton } from './JacxiButton';
+export type { JacxiButtonProps } from './JacxiButton';
 export { default as ActionButton } from './ActionButton'; // Legacy - use Button instead
 
 // Status & Feedback

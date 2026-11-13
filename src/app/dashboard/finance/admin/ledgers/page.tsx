@@ -1,26 +1,88 @@
 'use client';
 import { formatMoney as formatCurrency } from '@/lib/format';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
+import { CreditCard as Payment, DollarSign as AttachMoney, Eye as Visibility, ListFilter as FilterList, Search, TrendingDown as TrendingDownIcon, TrendingUp as TrendingUpIcon, Users as People } from 'lucide-react';
 
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, forwardRef, type CSSProperties, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react';
 import Link from 'next/link';
-import {
-  People,
-  Visibility,
-  AttachMoney,
-  TrendingUp as TrendingUpIcon,
-  TrendingDown as TrendingDownIcon,
-  Search,
-  FilterList,
-  Payment,
-} from '@mui/icons-material';
-import {  Box, Typography, TextField, Select, MenuItem, FormControl, InputLabel, Chip } from '@mui/material';
-import { Breadcrumbs, Button, toast, EmptyState, SkeletonCard, SkeletonTable, Tooltip, StatusBadge, DashboardPageSkeleton, StatsCard } from '@/components/design-system';
+import { Breadcrumbs, Button, DashboardPageSkeleton, EmptyState, Select, SkeletonCard, SkeletonTable, StatsCard, StatusBadge, Tooltip, toast } from '@/components/design-system';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { hasPermission } from '@/lib/rbac';
+
+/** Bare input with the Jacxi field look (no label) — search fields, table-cell editors. */
+const BareInput = forwardRef<HTMLInputElement | HTMLTextAreaElement, BareInputProps>(function BareInput(
+  { leftIcon, rightIcon, rightElement, error = false, helperText, size = 'small', multiline = false, rows, minRows, inputProps, className, style, ...rest },
+  ref,
+) {
+  const controlClass = [
+    'w-full rounded-lg border bg-[var(--background)] text-[var(--text-primary)] outline-none transition-colors placeholder:text-[var(--text-secondary)]',
+    size === 'small' ? 'px-2.5 py-1.5 text-[0.8125rem]' : 'px-3 py-2 text-[0.875rem]',
+    leftIcon ? 'pl-9' : '',
+    rightIcon || rightElement ? 'pr-9' : '',
+    error
+      ? 'border-[var(--error)] focus:border-[var(--error)] focus:ring-2 focus:ring-[rgba(var(--error-rgb),0.2)]'
+      : 'border-[rgba(var(--border-rgb),0.9)] hover:border-[var(--border)] focus:border-[var(--accent-gold)] focus:ring-2 focus:ring-[rgba(var(--accent-gold-rgb),0.2)]',
+    rest.disabled ? 'opacity-50' : '',
+    className,
+  ].filter(Boolean).join(' ');
+  return (
+    <div>
+      <div className="relative">
+        {leftIcon && (
+          <span className="pointer-events-none absolute left-3 top-1/2 flex -translate-y-1/2 text-[var(--text-secondary)]">{leftIcon}</span>
+        )}
+        {multiline ? (
+          <textarea
+            {...(rest as TextareaHTMLAttributes<HTMLTextAreaElement>)}
+            {...(inputProps as unknown as TextareaHTMLAttributes<HTMLTextAreaElement>)}
+            ref={ref as React.Ref<HTMLTextAreaElement>}
+            rows={rows ?? minRows ?? 3}
+            aria-invalid={error || undefined}
+            style={style}
+            className={`${controlClass} min-h-[80px] resize-y leading-[1.5]`}
+          />
+        ) : (
+          <input
+            {...rest}
+            {...inputProps}
+            ref={ref as React.Ref<HTMLInputElement>}
+            aria-invalid={error || undefined}
+            style={style}
+            className={controlClass}
+          />
+        )}
+        {rightIcon && (
+          <span className="pointer-events-none absolute right-3 top-1/2 flex -translate-y-1/2 text-[var(--text-secondary)]">{rightIcon}</span>
+        )}
+        {rightElement && (
+          <span className="absolute right-3 top-1/2 flex -translate-y-1/2 text-[var(--text-secondary)]">{rightElement}</span>
+        )}
+      </div>
+      {helperText && (
+        <p className="mt-0.5 text-[0.75rem]" style={{ color: error ? 'var(--error)' : 'var(--text-secondary)' }}>{helperText}</p>
+      )}
+    </div>
+  );
+});
+
+type BareInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> & {
+  leftIcon?: ReactNode;
+  rightIcon?: ReactNode;
+  /** Interactive element on the right (e.g. password visibility toggle). */
+  rightElement?: ReactNode;
+  error?: boolean;
+  helperText?: ReactNode;
+  size?: 'small' | 'medium';
+  multiline?: boolean;
+  rows?: number;
+  minRows?: number;
+  inputProps?: InputHTMLAttributes<HTMLInputElement>;
+};
+
 
 interface UserLedgerSummary {
   userId: string;
@@ -126,45 +188,16 @@ export default function AdminLedgersPage() {
   const getBalanceChip = (balance: number) => {
     if (balance > 0) {
       return (
-        <Chip
-          label={formatCurrency(balance)}
-          size="small"
-          icon={<TrendingUpIcon />}
-          sx={{
-            backgroundColor: 'rgba(var(--error-rgb), 0.1)',
-            color: 'var(--error)',
-            fontWeight: 600,
-            fontSize: '0.8rem',
-          }}
-        />
+        <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5" style={{backgroundColor: 'rgba(var(--error-rgb), 0.1)', color: 'var(--error)', fontWeight: 600, fontSize: '0.8rem'}}>{<TrendingUpIcon />} {formatCurrency(balance)}</span>
       );
     }
     if (balance < 0) {
       return (
-        <Chip
-          label={formatCurrency(Math.abs(balance))}
-          size="small"
-          icon={<TrendingDownIcon />}
-          sx={{
-            backgroundColor: 'rgba(var(--success-rgb), 0.1)',
-            color: 'var(--success)',
-            fontWeight: 600,
-            fontSize: '0.8rem',
-          }}
-        />
+        <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5" style={{backgroundColor: 'rgba(var(--success-rgb), 0.1)', color: 'var(--success)', fontWeight: 600, fontSize: '0.8rem'}}>{<TrendingDownIcon />} {formatCurrency(Math.abs(balance))}</span>
       );
     }
     return (
-      <Chip
-        label={formatCurrency(0)}
-        size="small"
-        sx={{
-          backgroundColor: 'rgba(var(--text-secondary-rgb), 0.1)',
-          color: 'var(--text-secondary)',
-          fontWeight: 600,
-          fontSize: '0.8rem',
-        }}
-      />
+      <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5" style={{backgroundColor: 'rgba(var(--text-secondary-rgb), 0.1)', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.8rem'}}>{formatCurrency(0)}</span>
     );
   };
 
@@ -202,14 +235,14 @@ export default function AdminLedgersPage() {
       header: 'User',
       sortable: true,
       render: (_, row) => (
-        <Box>
-          <Typography sx={{ fontSize: '0.9rem', color: 'var(--text-primary)', fontWeight: 500 }}>
+        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+          <p className="text-sm leading-relaxed" style={{fontSize: '0.9rem', color: 'var(--text-primary)', fontWeight: 500}}>
             {row.userName}
-          </Typography>
-          <Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+          </p>
+          <p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', color: 'var(--text-secondary)'}}>
             {row.email}
-          </Typography>
-        </Box>
+          </p>
+        </JXBox>
       )
     },
     {
@@ -267,18 +300,18 @@ export default function AdminLedgersPage() {
       header: 'Actions',
       align: 'right' as const,
       render: (_, row) => (
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', flexWrap: 'nowrap', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
+        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'flex-end', flexWrap: 'nowrap', whiteSpace: 'nowrap'}} onClick={(e) => e.stopPropagation()}>
           <Link href={`/dashboard/finance/admin/ledgers/${row.userId}`} style={{ textDecoration: 'none' }}>
             <Button
               variant="outline"
               size="sm"
               icon={<Visibility />}
-              sx={{ textTransform: 'none', fontSize: '0.75rem' }}
+              style={{textTransform: 'none', fontSize: '0.75rem'}}
             >
               View Ledger
             </Button>
           </Link>
-        </Box>
+        </JXBox>
       )
     }
   ], []);
@@ -288,9 +321,9 @@ export default function AdminLedgersPage() {
       <ProtectedRoute>
         <DashboardSurface>
 				{/* Breadcrumbs */}
-				<Box sx={{ px: 2, pt: 2 }}>
+				<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingLeft: '16px', paddingRight: '16px', paddingTop: '16px'}}>
 					<Breadcrumbs />
-				</Box>
+				</JXBox>
           <DashboardPageSkeleton />
         </DashboardSurface>
       </ProtectedRoute>
@@ -301,9 +334,9 @@ export default function AdminLedgersPage() {
     <ProtectedRoute>
       <DashboardSurface>
 				{/* Breadcrumbs */}
-				<Box sx={{ px: 2, pt: 2 }}>
+				<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingLeft: '16px', paddingRight: '16px', paddingTop: '16px'}}>
 					<Breadcrumbs />
-				</Box>
+				</JXBox>
         {/* Summary Cards */}
         <DashboardGrid className="grid-cols-1 md:grid-cols-4">
           <StatsCard
@@ -341,32 +374,10 @@ export default function AdminLedgersPage() {
           title="Search & Filter"
           description="Find users quickly"
         >
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr auto' }, gap: 2 }}>
-            <TextField
-              placeholder="Search by name or email..."
-              size="small"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              InputProps={{
-                startAdornment: <Search sx={{ mr: 1, color: 'var(--text-secondary)', fontSize: 20 }} />,
-              }}
-              fullWidth
-            />
-            <FormControl size="small" sx={{ minWidth: 200 }}>
-              <InputLabel>Balance Filter</InputLabel>
-              <Select
-                value={filterBalance}
-                onChange={(e) => setFilterBalance(e.target.value as typeof filterBalance)}
-                label="Balance Filter"
-                startAdornment={<FilterList sx={{ ml: 1, mr: 0.5, color: 'var(--text-secondary)', fontSize: 20 }} />}
-              >
-                <MenuItem value="all">All Balances</MenuItem>
-                <MenuItem value="positive">Owes Money</MenuItem>
-                <MenuItem value="zero">Zero Balance</MenuItem>
-                <MenuItem value="negative">Credit Balance</MenuItem>
-              </Select>
-            </FormControl>
-          </Box>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '16px'}} className="grid-cols-1 grid md:grid-cols-[1fr_auto]">
+            <div className="min-w-0 flex-1"><BareInput placeholder="Search by name or email..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} leftIcon={<Search className="mr-2 h-[20px] w-[20px]" style={{color: 'var(--text-secondary)'}} />} size="small" /></div>
+            <div style={{minWidth: '200px'}}><Select label="Balance Filter" options={[{ value: "all", label: 'All Balances' }, { value: "positive", label: 'Owes Money' }, { value: "zero", label: 'Zero Balance' }, { value: "negative", label: 'Credit Balance' }]} value={filterBalance} size="small" onChange={(val) => setFilterBalance(val as typeof filterBalance)} /></div>
+          </JXBox>
         </DashboardPanel>
 
         {/* Users Table */}
@@ -375,18 +386,18 @@ export default function AdminLedgersPage() {
           description={`${filteredUsers.length} user${filteredUsers.length !== 1 ? 's' : ''} found`}
           fullHeight
           actions={
-            <Box sx={{ display: 'flex', gap: 1 }}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '8px'}}>
               <Link href="/dashboard/finance/record-payment" style={{ textDecoration: 'none' }}>
                 <Button
                   variant="primary"
                   size="sm"
                   icon={<Payment />}
-                  sx={{ textTransform: 'none', fontSize: '0.78rem', fontWeight: 600 }}
+                  style={{textTransform: 'none', fontSize: '0.78rem', fontWeight: 600}}
                 >
                   Record Payment
                 </Button>
               </Link>
-            </Box>
+            </JXBox>
           }
         >
           <DataTable

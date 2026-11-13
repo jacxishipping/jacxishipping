@@ -1,10 +1,10 @@
 'use client';
 import { formatMoney as formatCurrency } from '@/lib/format';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Box, Tab, Tabs } from '@mui/material';
 import {
   ArrowLeft,
   ArrowLeftRight,
@@ -84,7 +84,7 @@ type DisplayMode = ComparisonDisplayMode;
 function TabPanel({ children, value, index }: { children: ReactNode; value: number; index: number }) {
   return (
     <div role="tabpanel" hidden={value !== index} id={`comparison-tabpanel-${index}`} aria-labelledby={`comparison-tab-${index}`}>
-      {value === index && <Box sx={{ pt: 2 }}>{children}</Box>}
+      {value === index && <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingTop: '16px'}}>{children}</JXBox>}
     </div>
   );
 }
@@ -122,7 +122,7 @@ function RateCell({
   displayMode: DisplayMode;
 }) {
   if (value === null) {
-    return <Box sx={{ color: 'var(--text-secondary)' }}>—</Box>;
+    return <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, color: 'var(--text-secondary)'}}>—</JXBox>;
   }
 
   const delta = referenceRate !== undefined ? getRateDelta(value, referenceRate ?? null) : null;
@@ -130,71 +130,48 @@ function RateCell({
   const isHighest = hasMultipleRates && maxRate !== null && value === maxRate && minRate !== maxRate;
 
   const cellShell = (content: ReactNode) => (
-    <Box
-      sx={{
-        display: 'inline-flex',
-        flexDirection: 'column',
-        alignItems: 'flex-end',
-        px: 0.75,
-        py: 0.5,
-        borderRadius: 1,
-        minWidth: 72,
-        background: isLowest
+    <JXBox padding="none" border={false} style={{display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-end', paddingLeft: '6px', paddingRight: '6px', paddingTop: '4px', paddingBottom: '4px', borderRadius: '8px', minWidth: '72px', background: isLowest
           ? 'rgba(22, 163, 74, 0.08)'
           : isHighest
           ? 'rgba(220, 38, 38, 0.06)'
-          : 'transparent',
-        border: isLowest
+          : 'transparent', border: isLowest
           ? '1px solid rgba(22, 163, 74, 0.2)'
           : isHighest
           ? '1px solid rgba(220, 38, 38, 0.15)'
-          : '1px solid transparent',
-      }}
-    >
+          : '1px solid transparent'}}>
       {content}
-    </Box>
+    </JXBox>
   );
 
   if (displayMode === 'delta' && referenceRate !== undefined) {
     if (delta === null) {
-      return <Box sx={{ color: 'var(--text-secondary)' }}>—</Box>;
+      return <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, color: 'var(--text-secondary)'}}>—</JXBox>;
     }
 
     if (delta === 0) {
-      return cellShell(<Box sx={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Same</Box>);
+      return cellShell(<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, color: 'var(--text-secondary)', fontWeight: 600}}>Same</JXBox>);
     }
 
     return cellShell(
-      <Box sx={{ fontWeight: 700, color: delta < 0 ? 'rgb(22, 163, 74)' : 'rgb(220, 38, 38)' }}>
+      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 700, color: delta < 0 ? 'rgb(22, 163, 74)' : 'rgb(220, 38, 38)'}}>
         {formatSignedCurrency(delta)}
-      </Box>,
+      </JXBox>,
     );
   }
 
   return cellShell(
     <>
-      <Box
-        sx={{
-          fontWeight: isLowest || isHighest ? 700 : 500,
-          color: isLowest
+      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: isLowest || isHighest ? 700 : 500, color: isLowest
             ? 'rgb(22, 163, 74)'
             : isHighest
             ? 'rgb(220, 38, 38)'
-            : 'var(--text-primary)',
-        }}
-      >
+            : 'var(--text-primary)'}}>
         {formatCurrency(value)}
-      </Box>
+      </JXBox>
       {delta !== null && delta !== 0 && referenceRate !== undefined && referenceRate !== null && (
-        <Box
-          sx={{
-            mt: 0.25,
-            fontSize: '0.7rem',
-            color: delta < 0 ? 'rgb(22, 163, 74)' : 'rgb(220, 38, 38)',
-          }}
-        >
+        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '2px', fontSize: '0.7rem', color: delta < 0 ? 'rgb(22, 163, 74)' : 'rgb(220, 38, 38)'}}>
           {formatSignedCurrency(delta)}
-        </Box>
+        </JXBox>
       )}
     </>,
   );
@@ -202,25 +179,18 @@ function RateCell({
 
 function SpreadBar({ spread, maxSpread }: { spread: number | null; maxSpread: number }) {
   if (!spread || spread <= 0) {
-    return <Box sx={{ color: 'var(--text-secondary)' }}>—</Box>;
+    return <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, color: 'var(--text-secondary)'}}>—</JXBox>;
   }
 
   const width = Math.max(8, Math.round((spread / maxSpread) * 100));
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.4 }}>
-      <Box sx={{ fontWeight: 700 }}>{formatCurrency(spread)}</Box>
-      <Box sx={{ width: 72, height: 4, borderRadius: 999, bgcolor: 'rgba(var(--border-rgb), 0.35)', overflow: 'hidden' }}>
-        <Box
-          sx={{
-            width: `${width}%`,
-            height: '100%',
-            borderRadius: 999,
-            background: 'linear-gradient(90deg, rgba(var(--accent-gold-rgb), 0.45), var(--accent-gold))',
-          }}
-        />
-      </Box>
-    </Box>
+    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '3.2px'}}>
+      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 700}}>{formatCurrency(spread)}</JXBox>
+      <JXBox padding="none" border={false} style={{width: '72px', height: '4px', borderRadius: '7992px', backgroundColor: 'rgba(var(--border-rgb), 0.35)', overflow: 'hidden'}}>
+        <JXBox padding="none" border={false} style={{width: `${width}%`, height: '100%', borderRadius: '7992px', background: 'linear-gradient(90deg, rgba(var(--accent-gold-rgb), 0.45), var(--accent-gold))'}} />
+      </JXBox>
+    </JXBox>
   );
 }
 
@@ -616,7 +586,7 @@ export default function CompanyPriceComparisonPage() {
   );
 
   const renderComparisonToolbar = (options?: { showSwap?: boolean }) => (
-    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center', mb: 2 }}>
+    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '16px'}}>
       <Button
         variant={showFilters ? 'primary' : 'outline'}
         size="sm"
@@ -646,7 +616,7 @@ export default function CompanyPriceComparisonPage() {
       <Button variant="outline" size="sm" icon={<Download className="w-4 h-4" />} onClick={handleExportCsv}>
         Export CSV
       </Button>
-    </Box>
+    </JXBox>
   );
 
   const renderFilterPanels = () => {
@@ -667,65 +637,38 @@ export default function CompanyPriceComparisonPage() {
     };
 
     return (
-      <Box sx={{ display: 'grid', gap: 1.5, mb: 2 }}>
+      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '12px', marginBottom: '16px'}}>
         {showFilters && (
           <CompanyPriceComparisonFilters {...sharedFilterProps} panel="filters" showActiveChips />
         )}
         {showCompanies && (
           <CompanyPriceComparisonFilters {...sharedFilterProps} panel="companies" showActiveChips={!showFilters} />
         )}
-      </Box>
+      </JXBox>
     );
   };
 
   const renderLegendBar = () => (
-    <Box
-      sx={{
-        mb: 1.5,
-        px: 1.25,
-        py: 1,
-        borderRadius: 1.5,
-        border: '1px solid var(--border)',
-        background: 'var(--background)',
-        fontSize: '0.82rem',
-        color: 'var(--text-secondary)',
-        display: 'flex',
-        flexWrap: 'wrap',
-        gap: 0.75,
-        alignItems: 'center',
-      }}
-    >
-      <Box component="span" sx={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+    <JXBox padding="none" border={false} style={{marginBottom: '12px', paddingLeft: '10px', paddingRight: '10px', paddingTop: '8px', paddingBottom: '8px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--background)', fontSize: '0.82rem', color: 'var(--text-secondary)', display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center'}}>
+      <JXBox padding="none" border={false} component="span" style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 600, color: 'var(--text-primary)'}}>
         {viewMode === 'side-by-side'
           ? `Duel view · ${sideBySideCandidates.length} available compan${sideBySideCandidates.length === 1 ? 'y' : 'ies'}`
           : `${comparisonRows.length} ${viewMode === 'state' ? 'state' : 'lane'} row${comparisonRows.length === 1 ? '' : 's'} · ${visibleCompanies.length} compan${visibleCompanies.length === 1 ? 'y' : 'ies'}`}
-      </Box>
+      </JXBox>
       {vehicleMultiplier !== 1 && (
-        <Box
-          component="span"
-          sx={{
-            px: 0.75,
-            py: 0.25,
-            borderRadius: 999,
-            fontSize: '0.72rem',
-            fontWeight: 600,
-            bgcolor: 'rgba(var(--accent-gold-rgb), 0.1)',
-            color: 'var(--accent-gold)',
-            border: '1px solid rgba(var(--accent-gold-rgb), 0.25)',
-          }}
-        >
+        <JXBox padding="none" border={false} component="span" style={{paddingLeft: '6px', paddingRight: '6px', paddingTop: '2px', paddingBottom: '2px', borderRadius: '7992px', fontSize: '0.72rem', fontWeight: 600, backgroundColor: 'rgba(var(--accent-gold-rgb), 0.1)', color: 'var(--accent-gold)', border: '1px solid rgba(var(--accent-gold-rgb), 0.25)'}}>
           {vehicleMultiplier}x vehicle adjustment
-        </Box>
+        </JXBox>
       )}
-      <Box component="span" sx={{ ml: 'auto', display: 'inline-flex', gap: 0.75, alignItems: 'center' }}>
-        <Box component="span" sx={{ px: 0.75, py: 0.25, borderRadius: 999, fontSize: '0.72rem', fontWeight: 600, color: 'rgb(22, 163, 74)', bgcolor: 'rgba(22, 163, 74, 0.08)', border: '1px solid rgba(22, 163, 74, 0.2)' }}>
+      <JXBox padding="none" border={false} component="span" style={{backgroundColor: 'transparent', borderRadius: 0, marginLeft: 'auto', display: 'inline-flex', gap: '6px', alignItems: 'center'}}>
+        <JXBox padding="none" border={false} component="span" style={{paddingLeft: '6px', paddingRight: '6px', paddingTop: '2px', paddingBottom: '2px', borderRadius: '7992px', fontSize: '0.72rem', fontWeight: 600, color: 'rgb(22, 163, 74)', backgroundColor: 'rgba(22, 163, 74, 0.08)', border: '1px solid rgba(22, 163, 74, 0.2)'}}>
           Lowest
-        </Box>
-        <Box component="span" sx={{ px: 0.75, py: 0.25, borderRadius: 999, fontSize: '0.72rem', fontWeight: 600, color: 'rgb(220, 38, 38)', bgcolor: 'rgba(220, 38, 38, 0.06)', border: '1px solid rgba(220, 38, 38, 0.15)' }}>
+        </JXBox>
+        <JXBox padding="none" border={false} component="span" style={{paddingLeft: '6px', paddingRight: '6px', paddingTop: '2px', paddingBottom: '2px', borderRadius: '7992px', fontSize: '0.72rem', fontWeight: 600, color: 'rgb(220, 38, 38)', backgroundColor: 'rgba(220, 38, 38, 0.06)', border: '1px solid rgba(220, 38, 38, 0.15)'}}>
           Highest
-        </Box>
-      </Box>
-    </Box>
+        </JXBox>
+      </JXBox>
+    </JXBox>
   );
 
   const renderMatrixTable = (matrixViewMode: 'state' | 'lane') => {
@@ -749,8 +692,8 @@ export default function CompanyPriceComparisonPage() {
     }
 
     return (
-      <Box sx={{ border: '1px solid var(--border)', borderRadius: 2, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-        <Box sx={{ maxHeight: 620, overflow: 'auto' }}>
+      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', border: '1px solid var(--border)', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)'}}>
+        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, maxHeight: '620px', overflow: 'auto'}}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
             <thead>
               <tr style={{ background: 'var(--panel)', borderBottom: '1px solid var(--border)' }}>
@@ -760,8 +703,8 @@ export default function CompanyPriceComparisonPage() {
                 {visibleCompanies.map((company) => (
                   <th key={company.id} style={{ textAlign: 'right', padding: '12px 14px', minWidth: 150, position: 'sticky', top: 0, background: 'var(--panel)', zIndex: 2 }}>
                     <Link href={`/dashboard/finance/companies/${company.id}`} style={{ color: 'inherit', textDecoration: 'none' }}>
-                      <Box sx={{ fontWeight: 700 }}>{company.name}</Box>
-                      <Box sx={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 500 }}>{company.destinationLabel}</Box>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 700}}>{company.name}</JXBox>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 500}}>{company.destinationLabel}</JXBox>
                     </Link>
                   </th>
                 ))}
@@ -784,9 +727,9 @@ export default function CompanyPriceComparisonPage() {
                     onMouseLeave={(event) => { event.currentTarget.style.background = rowBg; }}
                   >
                     <td style={{ padding: '10px 14px', position: 'sticky', left: 0, background: 'inherit', zIndex: 1 }}>
-                      <Box sx={{ fontWeight: 700 }}>{row.label}</Box>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 700}}>{row.label}</JXBox>
                       {matrixViewMode === 'lane' && (
-                        <Box sx={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>{row.stateCode}</Box>
+                        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.72rem', color: 'var(--text-secondary)'}}>{row.stateCode}</JXBox>
                       )}
                     </td>
                     {visibleCompanies.map((company) => (
@@ -805,9 +748,9 @@ export default function CompanyPriceComparisonPage() {
                       <SpreadBar spread={row.spread} maxSpread={tableMaxSpread} />
                     </td>
                     <td style={{ padding: '10px 14px', textAlign: 'center' }}>
-                      <Box component="span" sx={{ display: 'inline-flex', px: 0.75, py: 0.25, borderRadius: 999, fontSize: '0.78rem', fontWeight: row.coverageCount < visibleCompanies.length ? 700 : 500, color: row.coverageCount < visibleCompanies.length ? 'rgb(180, 130, 0)' : 'var(--text-secondary)', bgcolor: row.coverageCount < visibleCompanies.length ? 'rgba(234, 179, 8, 0.12)' : 'transparent', border: row.coverageCount < visibleCompanies.length ? '1px solid rgba(234, 179, 8, 0.25)' : '1px solid transparent' }}>
+                      <JXBox padding="none" border={false} component="span" style={{display: 'inline-flex', paddingLeft: '6px', paddingRight: '6px', paddingTop: '2px', paddingBottom: '2px', borderRadius: '7992px', fontSize: '0.78rem', fontWeight: row.coverageCount < visibleCompanies.length ? 700 : 500, color: row.coverageCount < visibleCompanies.length ? 'rgb(180, 130, 0)' : 'var(--text-secondary)', backgroundColor: row.coverageCount < visibleCompanies.length ? 'rgba(234, 179, 8, 0.12)' : 'transparent', border: row.coverageCount < visibleCompanies.length ? '1px solid rgba(234, 179, 8, 0.25)' : '1px solid transparent'}}>
                         {row.coverageCount}/{visibleCompanies.length}
-                      </Box>
+                      </JXBox>
                     </td>
                   </tr>
                 );
@@ -829,8 +772,8 @@ export default function CompanyPriceComparisonPage() {
               )}
             </tbody>
           </table>
-        </Box>
-      </Box>
+        </JXBox>
+      </JXBox>
     );
   };
 
@@ -855,83 +798,46 @@ export default function CompanyPriceComparisonPage() {
   return (
     <PermissionRoute permission="finance:view">
       <DashboardSurface>
-        <Box sx={{ px: 2, pt: 2 }}>
+        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingLeft: '16px', paddingRight: '16px', paddingTop: '16px'}}>
           <Breadcrumbs />
-        </Box>
+        </JXBox>
 
         <DashboardPanel
           title="Company Price Comparison"
           description="Compare imported shipping rate sheets, spot the cheapest carrier, and export results"
           actions={
-            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
               <Button variant="outline" icon={<ArrowLeft className="w-4 h-4" />} onClick={() => router.push('/dashboard/finance')}>
                 Finance
               </Button>
               <Button variant="outline" icon={<Building2 className="w-4 h-4" />} onClick={() => router.push('/dashboard/finance/companies')}>
                 Company Ledgers
               </Button>
-            </Box>
+            </JXBox>
           }
         >
           {renderStatsGrid()}
         </DashboardPanel>
 
-        <Box
-          sx={{
-            position: 'sticky',
-            top: 0,
-            zIndex: 15,
-            border: '1px solid var(--border)',
-            borderRadius: '12px',
-            backgroundColor: 'var(--panel)',
-            boxShadow: '0 12px 28px rgba(var(--text-primary-rgb),0.08)',
-            overflow: 'hidden',
-          }}
-        >
-          <Tabs
-            value={activeTab}
-            onChange={handleTabChange}
-            variant="scrollable"
-            scrollButtons="auto"
-            sx={{
-              minHeight: 52,
-              '& .MuiTabs-flexContainer': { gap: 0.25, px: 1 },
-              '& .MuiTab-root': {
-                textTransform: 'none',
-                fontSize: '0.875rem',
-                fontWeight: 650,
-                color: 'var(--text-secondary)',
-                minHeight: 52,
-                borderRadius: '10px',
-                my: 0.75,
-                px: 1.5,
-                '&:hover': {
-                  color: 'var(--accent-gold)',
-                  backgroundColor: 'rgba(var(--accent-gold-rgb), 0.08)',
-                },
-              },
-              '& .Mui-selected': {
-                color: 'var(--accent-gold) !important',
-                backgroundColor: 'rgba(var(--accent-gold-rgb), 0.1)',
-              },
-              '& .MuiTabs-indicator': {
-                backgroundColor: 'var(--accent-gold)',
-                height: 3,
-              },
-            }}
-          >
+        <JXBox padding="none" border={false} style={{position: 'sticky', top: '0px', zIndex: 15, border: '1px solid var(--border)', borderRadius: '12px', backgroundColor: 'var(--panel)', boxShadow: '0 12px 28px rgba(var(--text-primary-rgb),0.08)', overflow: 'hidden'}}>
+          <div role="tablist" className="flex gap-1 overflow-x-auto border-b border-[var(--border)]">
             {comparisonTabs.map((tab, index) => (
-              <Tab
+              <button
                 key={tab.label}
+                type="button"
+                role="tab"
                 id={`comparison-tab-${index}`}
+                aria-selected={activeTab === index}
                 aria-controls={`comparison-tabpanel-${index}`}
-                icon={tab.icon}
-                iconPosition="start"
-                label={tab.label}
-              />
+                onClick={() => handleTabChange(null, index)}
+                className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === index ? 'border-[var(--accent-gold)] text-[var(--accent-gold-text)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+              >
+                {tab.icon} {tab.label}
+              </button>
             ))}
-          </Tabs>
-        </Box>
+          
+          </div>
+        </JXBox>
 
         <TabPanel value={activeTab} index={TAB_OVERVIEW}>
           <DashboardPanel
@@ -956,14 +862,14 @@ export default function CompanyPriceComparisonPage() {
                 title="No comparison data yet"
                 description="Select at least two companies and open a comparison tab to populate the overview."
                 action={
-                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: 'center' }}>
+                  <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center'}}>
                     <Button variant="outline" size="sm" onClick={() => { setActiveTab(TAB_PRESETS); setShowCompanies(true); }}>
                       Configure companies
                     </Button>
                     <Button variant="primary" size="sm" onClick={() => setActiveTab(TAB_STATE)}>
                       Start comparing
                     </Button>
-                  </Box>
+                  </JXBox>
                 }
               />
             )}
@@ -1036,7 +942,7 @@ export default function CompanyPriceComparisonPage() {
               currentConfig={currentPresetConfig}
               onApply={applyPresetConfig}
             />
-            <Box sx={{ mt: 2 }}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '16px'}}>
               <CompanyPriceComparisonFilters
                 companies={companies}
                 selectedCompanyIds={selectedCompanyIds}
@@ -1051,13 +957,13 @@ export default function CompanyPriceComparisonPage() {
                 onSelectAllCompanies={selectAllCompanies}
                 onClearCompanySelection={clearCompanySelection}
               />
-            </Box>
+            </JXBox>
             {activeFilterCount > 0 && (
-              <Box sx={{ mt: 1.5 }}>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '12px'}}>
                 <Button variant="ghost" size="sm" onClick={handleResetFilters}>
                   Reset all filters
                 </Button>
-              </Box>
+              </JXBox>
             )}
           </DashboardPanel>
         </TabPanel>

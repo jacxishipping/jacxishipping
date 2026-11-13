@@ -1,19 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  Box,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  IconButton,
-  MenuItem,
-  TextField,
-  Tooltip,
-} from "@mui/material";
 import { Bookmark, BookmarkPlus, Pencil, Trash2 } from "lucide-react";
-import { Button, toast } from "@/components/design-system";
+import { Button, FormField, IconButton, Modal, Select, Tooltip, toast } from '@/components/design-system';
 import {
   deleteComparisonPreset,
   loadComparisonPresets,
@@ -101,28 +90,12 @@ export default function CompanyPriceComparisonPresets({
 
   return (
     <>
-      <Box
-        sx={{
-          p: 1.5,
-          borderRadius: 2,
-          border: "1px solid var(--border)",
-          background: "var(--panel)",
-        }}
-      >
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            gap: 1,
-            alignItems: "center",
-            flexWrap: "wrap",
-            mb: 1,
-          }}
-        >
-          <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+      <div style={{padding: '12px', borderRadius: '16px', border: "1px solid var(--border)", background: "var(--panel)"}}>
+        <div style={{display: "flex", justifyContent: "space-between", gap: '8px', alignItems: "center", flexWrap: "wrap", marginBottom: '8px'}}>
+          <div style={{display: "flex", alignItems: "center", gap: '6px'}}>
             <Bookmark className="w-4 h-4" />
-            <Box sx={{ fontWeight: 700 }}>Saved Comparison Presets</Box>
-          </Box>
+            <div style={{fontWeight: 700}}>Saved Comparison Presets</div>
+          </div>
           <Button
             variant="outline"
             size="sm"
@@ -131,37 +104,17 @@ export default function CompanyPriceComparisonPresets({
           >
             Save Current
           </Button>
-        </Box>
+        </div>
 
         {presets.length === 0 ? (
-          <Box sx={{ fontSize: "0.84rem", color: "var(--text-secondary)" }}>
+          <div style={{fontSize: "0.84rem", color: "var(--text-secondary)"}}>
             Save your company selection, filters, and view settings to reload
             common comparisons quickly.
-          </Box>
+          </div>
         ) : (
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: { xs: "1fr", md: "minmax(0, 1fr) auto" },
-              gap: 1,
-              alignItems: "center",
-            }}
-          >
-            <TextField
-              select
-              size="small"
-              label="Saved preset"
-              value={selectedPresetId}
-              onChange={(event) => setSelectedPresetId(event.target.value)}
-            >
-              <MenuItem value="">Select a preset</MenuItem>
-              {presets.map((preset) => (
-                <MenuItem key={preset.id} value={preset.id}>
-                  {preset.name}
-                </MenuItem>
-              ))}
-            </TextField>
-            <Box sx={{ display: "flex", gap: 0.75, flexWrap: "wrap" }}>
+          <div style={{display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto", gap: '8px', alignItems: "center"}}>
+            <Select label="Saved preset" value={selectedPresetId} onChange={(val) => setSelectedPresetId(String(val))} size="small" options={[{ value: "", label: 'Select a preset' }, ...presets.map((preset) => ({ value: preset.id, label: preset.name }))]} />
+            <div style={{display: "flex", gap: '6px', flexWrap: "wrap"}}>
               <Button
                 variant="primary"
                 size="sm"
@@ -183,84 +136,42 @@ export default function CompanyPriceComparisonPresets({
               >
                 Update
               </Button>
-            </Box>
-          </Box>
+            </div>
+          </div>
         )}
 
         {presets.length > 0 && (
-          <Box sx={{ display: "grid", gap: 0.75, mt: 1.25 }}>
+          <div style={{display: "grid", gap: '6px', marginTop: '10px'}}>
             {presets.slice(0, 5).map((preset) => (
-              <Box
-                key={preset.id}
-                sx={{
-                  display: "grid",
-                  gridTemplateColumns: "minmax(0, 1fr) auto",
-                  gap: 1,
-                  alignItems: "center",
-                  p: 1,
-                  borderRadius: 1.5,
-                  border: "1px solid var(--border)",
-                  background: "var(--background)",
-                }}
-              >
-                <Box sx={{ minWidth: 0 }}>
-                  <Box sx={{ fontWeight: 600, fontSize: "0.84rem" }}>
+              <div key={preset.id} style={{display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto", gap: '8px', alignItems: "center", padding: '8px', borderRadius: '12px', border: "1px solid var(--border)", background: "var(--background)"}}>
+                <div style={{minWidth: 0}}>
+                  <div style={{fontWeight: 600, fontSize: "0.84rem"}}>
                     {preset.name}
-                  </Box>
-                  <Box
-                    sx={{ fontSize: "0.72rem", color: "var(--text-secondary)" }}
-                  >
+                  </div>
+                  <div style={{fontSize: "0.72rem", color: "var(--text-secondary)"}}>
                     {preset.config.selectedCompanyIds.length} companies •{" "}
                     {preset.config.viewMode.replace("-", " ")} • updated{" "}
                     {new Date(preset.updatedAt).toLocaleString()}
-                  </Box>
-                </Box>
-                <Box sx={{ display: "flex", gap: 0.25 }}>
+                  </div>
+                </div>
+                <div style={{display: "flex", gap: '2px'}}>
                   <Tooltip title="Load preset">
-                    <IconButton size="small" aria-label="Load preset" onClick={() => onApply(preset.config)}>
-                      <Bookmark className="w-4 h-4" />
-                    </IconButton>
+                    <IconButton  onClick={() => onApply(preset.config)} variant="ghost" size="sm" ariaLabel="Load preset" icon={<Bookmark className="w-4 h-4" />}></IconButton>
                   </Tooltip>
                   <Tooltip title="Rename / update preset">
-                    <IconButton size="small" aria-label="Rename preset" onClick={() => handleOpenSaveDialog(preset)}>
-                      <Pencil className="w-4 h-4" />
-                    </IconButton>
+                    <IconButton  onClick={() => handleOpenSaveDialog(preset)} variant="ghost" size="sm" ariaLabel="Rename preset" icon={<Pencil className="w-4 h-4" />}></IconButton>
                   </Tooltip>
                   <Tooltip title="Delete preset">
-                    <IconButton size="small" aria-label="Delete preset" color="error" onClick={() => handleDeletePreset(preset.id)}>
-                      <Trash2 className="w-4 h-4" />
-                    </IconButton>
+                    <IconButton  onClick={() => handleDeletePreset(preset.id)} variant="ghost" size="sm" ariaLabel="Delete preset" className="!text-[var(--error)]" icon={<Trash2 className="w-4 h-4" />}></IconButton>
                   </Tooltip>
-                </Box>
-              </Box>
+                </div>
+              </div>
             ))}
-          </Box>
+          </div>
         )}
-      </Box>
+      </div>
 
-      <Dialog
-        open={openSaveDialog}
-        onClose={() => setOpenSaveDialog(false)}
-        maxWidth="xs"
-        fullWidth
-      >
-        <DialogTitle>
-          {editingPresetId ? "Update Preset" : "Save Comparison Preset"}
-        </DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            fullWidth
-            size="small"
-            label="Preset name"
-            value={presetName}
-            onChange={(event) => setPresetName(event.target.value)}
-            placeholder="e.g. Shipping carriers - West Coast lanes"
-            sx={{ mt: 1 }}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button variant="outline" onClick={() => setOpenSaveDialog(false)}>
+      <Modal open={openSaveDialog} onClose={() => setOpenSaveDialog(false)} size="sm" title={editingPresetId ? "Update Preset" : "Save Comparison Preset"} actions={<><Button variant="outline" onClick={() => setOpenSaveDialog(false)}>
             Cancel
           </Button>
           <Button
@@ -269,9 +180,7 @@ export default function CompanyPriceComparisonPresets({
             disabled={!presetName.trim()}
           >
             {editingPresetId ? "Update" : "Save"}
-          </Button>
-        </DialogActions>
-      </Dialog>
+          </Button></>} showCloseButton={false}><div style={{marginTop: '8px'}}><FormField label="Preset name" autoFocus value={presetName} onChange={(event) => setPresetName(event.target.value)} placeholder="e.g. Shipping carriers - West Coast lanes" size="small" /></div></Modal>
     </>
   );
 }

@@ -1,17 +1,15 @@
 'use client';
 
 import Link from 'next/link';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
+import { ArrowLeft as ArrowBackIcon, Check as CheckIcon, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import CheckIcon from '@mui/icons-material/Check';
-import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import { Autocomplete, Box, Step, StepLabel, Stepper, TextField, Typography } from '@mui/material';
 import { DashboardSurface, DashboardPanel } from '@/components/dashboard/DashboardSurface';
-import { PageHeader, Breadcrumbs, Button, toast } from '@/components/design-system';
+import { Autocomplete, Breadcrumbs, Button, FormField, PageHeader, toast, MilestoneStepper } from '@/components/design-system';
 import { hasPermission } from '@/lib/rbac';
+
 
 type UserOption = {
   id: string;
@@ -172,92 +170,45 @@ export default function NewPartnerPortalPage() {
   const renderStep = () => {
     if (activeStep === 0) {
       return (
-        <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' } }}>
-          <TextField
-            label="Portal Name *"
-            value={form.name}
-            onChange={(event) => updateForm('name', event.target.value)}
-            placeholder="e.g. Gulf Partner Workspace"
-            required
-            fullWidth
-          />
-          <TextField
-            label="Portal Code"
-            value={form.code}
-            onChange={(event) => updateForm('code', event.target.value)}
-            placeholder="e.g. gulf-partner"
-            helperText="Optional unique short code for internal reference"
-            fullWidth
-          />
-          <TextField
-            label="Company Label"
-            value={form.companyLabel}
-            onChange={(event) => updateForm('companyLabel', event.target.value)}
-            placeholder="Name shown in the partner workspace"
-            fullWidth
-          />
-          <TextField
-            label="Notes"
-            value={form.notes}
-            onChange={(event) => updateForm('notes', event.target.value)}
-            multiline
-            minRows={3}
-            fullWidth
-          />
-        </Box>
+        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '16px'}} className="grid-cols-1 md:grid-cols-2">
+          <div className="min-w-0 flex-1"><FormField label="Portal Name *" value={form.name} onChange={(event) => updateForm('name', event.target.value)} placeholder="e.g. Gulf Partner Workspace" required /></div>
+          <div className="min-w-0 flex-1"><FormField label="Portal Code" value={form.code} onChange={(event) => updateForm('code', event.target.value)} placeholder="e.g. gulf-partner" helperText="Optional unique short code for internal reference" /></div>
+          <div className="min-w-0 flex-1"><FormField label="Company Label" value={form.companyLabel} onChange={(event) => updateForm('companyLabel', event.target.value)} placeholder="Name shown in the partner workspace" /></div>
+          <div className="min-w-0 flex-1"><FormField label="Notes" value={form.notes} onChange={(event) => updateForm('notes', event.target.value)} multiline minRows={3} /></div>
+        </JXBox>
       );
     }
 
     if (activeStep === 1) {
       return (
-        <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' } }}>
-          <TextField
-            label="Custom Domain"
-            value={form.customDomain}
-            onChange={(event) => updateForm('customDomain', event.target.value)}
-            placeholder="portal.partner.com"
-            helperText="Optional hostname without http:// or paths"
-            fullWidth
-          />
-          <TextField
-            label="Logo URL"
-            value={form.logoUrl}
-            onChange={(event) => updateForm('logoUrl', event.target.value)}
-            placeholder="https://example.com/logo.png"
-            fullWidth
-          />
-          <TextField
-            label="Accent Color"
-            type="color"
-            value={form.accentColor}
-            onChange={(event) => updateForm('accentColor', event.target.value)}
-            helperText="Used for the partner workspace theme"
-            fullWidth
-          />
-          <Box sx={{ border: '1px solid var(--border)', borderRadius: 2, p: 2, display: 'grid', gap: 1 }}>
-            <Typography sx={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Preview</Typography>
-            <Box sx={{ height: 48, borderRadius: 1, bgcolor: form.accentColor || '#D4AF37' }} />
-            <Typography sx={{ fontWeight: 700 }}>{form.companyLabel || form.name || 'Partner Portal'}</Typography>
-          </Box>
-        </Box>
+        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '16px'}} className="grid-cols-1 md:grid-cols-2">
+          <div className="min-w-0 flex-1"><FormField label="Custom Domain" value={form.customDomain} onChange={(event) => updateForm('customDomain', event.target.value)} placeholder="portal.partner.com" helperText="Optional hostname without http:// or paths" /></div>
+          <div className="min-w-0 flex-1"><FormField label="Logo URL" value={form.logoUrl} onChange={(event) => updateForm('logoUrl', event.target.value)} placeholder="https://example.com/logo.png" /></div>
+          <div className="min-w-0 flex-1"><FormField label="Accent Color" type="color" value={form.accentColor} onChange={(event) => updateForm('accentColor', event.target.value)} helperText="Used for the partner workspace theme" /></div>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', border: '1px solid var(--border)', borderRadius: '16px', padding: '16px', display: 'grid', gap: '8px'}}>
+            <p className="text-sm leading-relaxed" style={{fontSize: '0.8rem', color: 'var(--text-secondary)'}}>Preview</p>
+            <JXBox padding="none" border={false} style={{height: '48px', borderRadius: '8px', backgroundColor: form.accentColor || '#D4AF37'}} />
+            <p className="text-sm leading-relaxed" style={{fontWeight: 700}}>{form.companyLabel || form.name || 'Partner Portal'}</p>
+          </JXBox>
+        </JXBox>
       );
     }
 
     if (activeStep === 2) {
       return (
-        <Autocomplete
-          options={users}
-          value={selectedOwner}
-          onChange={(_, value) => setSelectedOwner(value)}
-          onInputChange={(_, value) => setUserSearch(value)}
-          getOptionLabel={(option) => option.name ? `${option.name} (${option.email})` : option.email}
-          renderInput={(params) => <TextField {...params} label="Portal Owner *" placeholder="Search users by name or email" required />}
+                <Autocomplete
+          options={users.map((u) => ({ id: u.id, label: u.name ? `${u.name} (${u.email})` : u.email, searchText: `${u.name || ''} ${u.email}` }))}
+          value={selectedOwner?.id || null}
+          onChange={(id) => setSelectedOwner(users.find((u) => u.id === id) || null)}
+          onInputChange={(v) => setUserSearch(v)}
+          label="Portal Owner *"
+          placeholder="Search users by name or email"
         />
       );
     }
 
     return (
-      <Box sx={{ display: 'grid', gap: 2 }}>
+      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '16px'}}>
         {[
           ['Portal Name', form.name || 'Not provided'],
           ['Portal Code', form.code || 'Not provided'],
@@ -268,12 +219,12 @@ export default function NewPartnerPortalPage() {
           ['Owner', selectedOwnerLabel],
           ['Notes', form.notes || 'Not provided'],
         ].map(([label, value]) => (
-          <Box key={label} sx={{ display: 'grid', gap: 0.5, borderBottom: '1px solid var(--border)', pb: 1 }}>
-            <Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>{label}</Typography>
-            <Typography sx={{ fontWeight: 600, overflowWrap: 'anywhere' }}>{value}</Typography>
-          </Box>
+          <JXBox padding="none" border={false} key={label} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '4px', borderBottom: '1px solid var(--border)', paddingBottom: '8px'}}>
+            <p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase'}}>{label}</p>
+            <p className="text-sm leading-relaxed" style={{fontWeight: 600, overflowWrap: 'anywhere'}}>{value}</p>
+          </JXBox>
         ))}
-      </Box>
+      </JXBox>
     );
   };
 
@@ -295,18 +246,12 @@ export default function NewPartnerPortalPage() {
       />
 
       <DashboardPanel>
-        <Box sx={{ display: 'grid', gap: 4 }}>
-          <Stepper activeStep={activeStep} alternativeLabel>
-            {steps.map((label) => (
-              <Step key={label}>
-                <StepLabel>{label}</StepLabel>
-              </Step>
-            ))}
-          </Stepper>
+        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '32px'}}>
+          <MilestoneStepper steps={steps.map((label, index) => ({ id: String(index), label: label }))} currentStepId={String(activeStep)} />
 
-          <Box>{renderStep()}</Box>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>{renderStep()}</JXBox>
 
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap'}}>
             <Button variant="outline" onClick={handleBack} disabled={activeStep === 0 || saving} icon={<ChevronLeftIcon />}>
               Back
             </Button>
@@ -319,8 +264,8 @@ export default function NewPartnerPortalPage() {
                 Continue
               </Button>
             )}
-          </Box>
-        </Box>
+          </JXBox>
+        </JXBox>
       </DashboardPanel>
     </DashboardSurface>
   );

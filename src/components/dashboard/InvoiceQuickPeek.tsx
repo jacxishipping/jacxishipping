@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Box, Typography, Divider } from '@mui/material';
 import { 
   FileText, 
   Package, 
@@ -113,12 +112,12 @@ export default function InvoiceQuickPeek({
       size="lg"
       title={
         invoice ? (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
             <span className="font-mono font-bold tracking-tight text-base sm:text-lg">
               {invoice.invoiceNumber}
             </span>
             <CopyButton value={invoice.invoiceNumber} label="Invoice Number" />
-          </Box>
+          </div>
         ) : (
           'Invoice Details'
         )
@@ -131,11 +130,11 @@ export default function InvoiceQuickPeek({
       badge={invoice ? <StatusBadge status={invoice.status} /> : undefined}
       actions={
         invoice && (
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+          <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%'}}>
             <Button variant="outline" size="sm" onClick={onClose}>
               Close
             </Button>
-            <Box sx={{ display: 'flex', gap: 1 }}>
+            <div style={{display: 'flex', gap: '8px'}}>
               <Button
                 href={`/dashboard/invoices/${invoice.id}`}
                 onClick={onClose}
@@ -145,113 +144,103 @@ export default function InvoiceQuickPeek({
               >
                 Open Full Invoice
               </Button>
-            </Box>
-          </Box>
+            </div>
+          </div>
         )
       }
     >
       {loading ? (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <div style={{display: 'flex', flexDirection: 'column', gap: '16px'}}>
           <Skeleton variant="rounded" height={90} />
           <Skeleton variant="rounded" height={120} />
           <Skeleton variant="rounded" height={160} />
-        </Box>
+        </div>
       ) : invoice ? (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+        <div style={{display: 'flex', flexDirection: 'column', gap: '20px'}}>
           {/* Summary Financials Banner */}
-          <Box
-            sx={{
-              p: 2.5,
-              borderRadius: 2,
-              bgcolor: 'var(--background, #F9FAFB)',
-              border: '1px solid var(--border, #E5E7EB)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}
-          >
+          <div style={{padding: '20px', borderRadius: '16px', backgroundColor: 'var(--background, #F9FAFB)', border: '1px solid var(--border, #E5E7EB)', display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
             <div>
-              <Typography variant="caption" sx={{ fontWeight: 600, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <span style={{fontWeight: 600, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.05em'}} className="text-[0.75rem]">
                 Total Invoiced Amount
-              </Typography>
-              <Typography sx={{ fontWeight: 800, fontSize: '1.5rem', color: 'var(--text-primary, #111827)', mt: 0.25 }}>
+              </span>
+              <p style={{fontWeight: 800, fontSize: '1.5rem', color: 'var(--text-primary, #111827)', marginTop: '2px'}}>
                 {formatCurrency(invoice.total || 0)}
-              </Typography>
+              </p>
             </div>
             <StatusBadge status={invoice.status} size="md" />
-          </Box>
+          </div>
 
           {/* Key Metadata Cards */}
-          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1.5 }}>
+          <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px'}}>
             {/* Customer */}
-            <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'var(--background, #F9FAFB)', border: '1px solid var(--border, #E5E7EB)' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'var(--text-secondary, #6B7280)', mb: 0.5 }}>
+            <div style={{padding: '16px', borderRadius: '16px', backgroundColor: 'var(--background, #F9FAFB)', border: '1px solid var(--border, #E5E7EB)'}}>
+              <div style={{display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary, #6B7280)', marginBottom: '4px'}}>
                 <User className="w-4 h-4 text-blue-600" />
-                <Typography variant="caption" sx={{ fontWeight: 600 }}>Billed To</Typography>
-              </Box>
-              <Typography sx={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--text-primary, #111827)' }} noWrap>
+                <span style={{fontWeight: 600}} className="text-[0.75rem]">Billed To</span>
+              </div>
+              <p style={{whiteSpace: 'nowrap', fontWeight: 700, fontSize: '0.875rem', color: 'var(--text-primary, #111827)'}} className="truncate">
                 {invoice.user?.name || invoice.user?.email || 'Client'}
-              </Typography>
-            </Box>
+              </p>
+            </div>
 
             {/* Due Date */}
-            <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'var(--background, #F9FAFB)', border: '1px solid var(--border, #E5E7EB)' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'var(--text-secondary, #6B7280)', mb: 0.5 }}>
+            <div style={{padding: '16px', borderRadius: '16px', backgroundColor: 'var(--background, #F9FAFB)', border: '1px solid var(--border, #E5E7EB)'}}>
+              <div style={{display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary, #6B7280)', marginBottom: '4px'}}>
                 <Calendar className="w-4 h-4 text-amber-600" />
-                <Typography variant="caption" sx={{ fontWeight: 600 }}>Payment Due</Typography>
-              </Box>
-              <Typography sx={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--text-primary, #111827)' }} noWrap>
+                <span style={{fontWeight: 600}} className="text-[0.75rem]">Payment Due</span>
+              </div>
+              <p style={{whiteSpace: 'nowrap', fontWeight: 700, fontSize: '0.875rem', color: 'var(--text-primary, #111827)'}} className="truncate">
                 {invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : 'Upon Receipt'}
-              </Typography>
-            </Box>
+              </p>
+            </div>
 
             {/* Linked Container */}
             {invoice.container && (
-              <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'var(--background, #F9FAFB)', border: '1px solid var(--border, #E5E7EB)' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'var(--text-secondary, #6B7280)', mb: 0.5 }}>
+              <div style={{padding: '16px', borderRadius: '16px', backgroundColor: 'var(--background, #F9FAFB)', border: '1px solid var(--border, #E5E7EB)'}}>
+                <div style={{display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary, #6B7280)', marginBottom: '4px'}}>
                   <Package className="w-4 h-4 text-emerald-600" />
-                  <Typography variant="caption" sx={{ fontWeight: 600 }}>Container</Typography>
-                </Box>
+                  <span style={{fontWeight: 600}} className="text-[0.75rem]">Container</span>
+                </div>
                 <Link
                   href={`/dashboard/containers/${invoice.container.id}`}
                   onClick={onClose}
                   style={{ textDecoration: 'none' }}
                 >
-                  <Typography sx={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--accent-gold, #D4AF37)', fontFamily: 'monospace' }} noWrap>
+                  <p style={{whiteSpace: 'nowrap', fontWeight: 700, fontSize: '0.875rem', color: 'var(--accent-gold, #D4AF37)', fontFamily: 'monospace'}} className="truncate">
                     {invoice.container.containerNumber}
-                  </Typography>
+                  </p>
                 </Link>
-              </Box>
+              </div>
             )}
 
             {/* Linked Shipment */}
             {invoice.shipment && (
-              <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'var(--background, #F9FAFB)', border: '1px solid var(--border, #E5E7EB)' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'var(--text-secondary, #6B7280)', mb: 0.5 }}>
+              <div style={{padding: '16px', borderRadius: '16px', backgroundColor: 'var(--background, #F9FAFB)', border: '1px solid var(--border, #E5E7EB)'}}>
+                <div style={{display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary, #6B7280)', marginBottom: '4px'}}>
                   <FileText className="w-4 h-4 text-purple-600" />
-                  <Typography variant="caption" sx={{ fontWeight: 600 }}>Cargo Vehicle</Typography>
-                </Box>
+                  <span style={{fontWeight: 600}} className="text-[0.75rem]">Cargo Vehicle</span>
+                </div>
                 <Link
                   href={`/dashboard/shipments/${invoice.shipment.id}`}
                   onClick={onClose}
                   style={{ textDecoration: 'none' }}
                 >
-                  <Typography sx={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--accent-gold, #D4AF37)' }} noWrap>
+                  <p style={{whiteSpace: 'nowrap', fontWeight: 700, fontSize: '0.875rem', color: 'var(--accent-gold, #D4AF37)'}} className="truncate">
                     {[invoice.shipment.vehicleYear, invoice.shipment.vehicleMake, invoice.shipment.vehicleModel].filter(Boolean).join(' ') || 'Vehicle'}
-                  </Typography>
+                  </p>
                 </Link>
-              </Box>
+              </div>
             )}
-          </Box>
+          </div>
 
           {/* Line Items List */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-            <Typography sx={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary, #111827)' }}>
+          <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
+            <p style={{fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary, #111827)'}}>
               Itemized Line Items ({invoice.items?.length || 0})
-            </Typography>
+            </p>
 
             {invoice.items && invoice.items.length > 0 ? (
-              <Box sx={{ border: '1px solid var(--border, #E5E7EB)', borderRadius: 2, overflow: 'hidden', bgcolor: 'var(--panel-bg, #FFFFFF)' }}>
+              <div style={{border: '1px solid var(--border, #E5E7EB)', borderRadius: '16px', overflow: 'hidden', backgroundColor: 'var(--panel-bg, #FFFFFF)'}}>
                 <div className="grid grid-cols-12 bg-[var(--background,#F9FAFB)] px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-[var(--text-secondary,#6B7280)] border-b border-[var(--border,#E5E7EB)]">
                   <div className="col-span-7">Description</div>
                   <div className="col-span-2 text-center">Qty</div>
@@ -272,18 +261,18 @@ export default function InvoiceQuickPeek({
                     </div>
                   ))}
                 </div>
-              </Box>
+              </div>
             ) : (
-              <Box sx={{ p: 3, border: '1px dashed var(--border, #E5E7EB)', borderRadius: 2, textAlign: 'center', color: 'var(--text-secondary, #6B7280)' }}>
-                <Typography variant="body2">No individual line items specified.</Typography>
-              </Box>
+              <div style={{padding: '24px', border: '1px dashed var(--border, #E5E7EB)', borderRadius: '16px', textAlign: 'center', color: 'var(--text-secondary, #6B7280)'}}>
+                <p className="text-[0.875rem]">No individual line items specified.</p>
+              </div>
             )}
-          </Box>
-        </Box>
+          </div>
+        </div>
       ) : (
-        <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
+        <p style={{color: 'var(--text-secondary)', textAlign: 'center', paddingTop: '32px', paddingBottom: '32px'}} className="text-[0.875rem]">
           No invoice selected.
-        </Typography>
+        </p>
       )}
     </Drawer>
   );

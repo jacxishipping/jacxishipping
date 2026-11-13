@@ -2,18 +2,7 @@
 import { formatMoney as formatCurrency } from '@/lib/format';
 
 import { useMemo, useEffect, useState } from 'react';
-import { 
-    Box, 
-    MenuItem, 
-    FormControl, 
-    Select, 
-    InputLabel, 
-    Typography,
-    Paper,
-    TextField,
-    Chip
-} from '@mui/material';
-import { Button } from '@/components/design-system';
+import { Button, FormField, Select } from '@/components/design-system';
 import { Calculator, MapPin, Truck, ArrowRight, CheckCircle2, Ship, ShieldCheck, Navigation, Printer } from 'lucide-react';
 import { printTransitPriceList } from '@/lib/price-list-print';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -253,61 +242,25 @@ export default function ShipmentCalculator() {
     };
 
     return (
-        <Paper 
-            elevation={0}
-            sx={{ 
-                p: 0, 
-                borderRadius: 3, 
-                overflow: 'hidden', 
-                border: '1px solid var(--border)',
-                background: 'linear-gradient(145deg, var(--panel), var(--background))',
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column'
-            }}
-        >
-            <Box sx={{ 
-                p: 3, 
-                borderBottom: '1px solid var(--border)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 2,
-                backgroundColor: 'var(--panel)'
-            }}>
-                <Box sx={{ 
-                    p: 1.5, 
-                    borderRadius: 2, 
-                    bgcolor: 'var(--accent-gold)', 
-                    color: 'white',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    boxShadow: '0 4px 12px rgba(218, 165, 32, 0.3)'
-                }}>
+        <div style={{padding: '0px', borderRadius: '24px', overflow: 'hidden', border: '1px solid var(--border)', background: 'linear-gradient(145deg, var(--panel), var(--background))', height: '100%', display: 'flex', flexDirection: 'column'}} className="rounded-xl border border-[var(--border)] bg-[var(--panel)]">
+            <div style={{padding: '24px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '16px', backgroundColor: 'var(--panel)'}}>
+                <div style={{padding: '12px', borderRadius: '16px', backgroundColor: 'var(--accent-gold)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(218, 165, 32, 0.3)'}}>
                     <Calculator size={24} />
-                </Box>
-                <Box>
-                    <Typography variant="h6" sx={{ fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>
+                </div>
+                <div>
+                    <h6 style={{fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2}} className="text-[0.95rem] font-semibold leading-tight">
                         Quick Rate Calculator
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: 'var(--text-secondary)' }}>
+                    </h6>
+                    <p style={{color: 'var(--text-secondary)'}} className="text-[0.875rem]">
                         Exact location shipping quotes to {config.destinationLabel}
-                    </Typography>
-                </Box>
-            </Box>
+                    </p>
+                </div>
+            </div>
 
-            <Box sx={{ p: 3, flex: 1, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+            <div style={{padding: '24px', flex: 1, display: 'flex', flexDirection: 'column', gap: '20px'}}>
                 
                 {/* Destination Corridor Scope Selector */}
-                <Box sx={{
-                    display: 'grid',
-                    gridTemplateColumns: '1fr 1fr',
-                    gap: 1,
-                    p: 0.5,
-                    bgcolor: 'var(--background)',
-                    borderRadius: 2,
-                    border: '1px solid var(--border)',
-                }}>
+                <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', padding: '4px', backgroundColor: 'var(--background)', borderRadius: '16px', border: '1px solid var(--border)'}}>
                     <Button
                         variant={destinationScope === 'door_islam_qala' ? 'primary' : 'ghost'}
                         size="sm"
@@ -332,175 +285,85 @@ export default function ShipmentCalculator() {
                     >
                         Port Only ({config.destinationLabel?.split(',')[0] || 'Mersin/UAE'})
                     </Button>
-                </Box>
+                </div>
 
                 {/* Route Visual */}
-                <Box sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    px: 2,
-                    py: 1.25,
-                    bgcolor: 'var(--background)',
-                    borderRadius: 2,
-                    border: '1px solid var(--border)'
-                }}>
-                    <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                        <Typography variant="caption" sx={{ color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: 1 }}>
+                <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingLeft: '16px', paddingRight: '16px', paddingTop: '10px', paddingBottom: '10px', backgroundColor: 'var(--background)', borderRadius: '16px', border: '1px solid var(--border)'}}>
+                    <div style={{display: 'flex', flexDirection: 'column'}}>
+                        <span style={{color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: 1}} className="text-[0.75rem]">
                             From (Auction)
-                        </Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        </span>
+                        <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
                             <MapPin size={16} className="text-red-500" />
-                            <Typography variant="caption" sx={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                            <span style={{fontWeight: 600, color: 'var(--text-primary)'}} className="text-[0.75rem]">
                                 {origin ? US_STATES.find(s => s.code === origin)?.name : 'Origin (USA)'}
-                            </Typography>
-                        </Box>
-                    </Box>
+                            </span>
+                        </div>
+                    </div>
                     <ArrowRight size={16} style={{ color: 'var(--text-secondary)' }} />
-                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                        <Typography variant="caption" sx={{ color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: 1 }}>
+                    <div style={{display: 'flex', flexDirection: 'column', alignItems: 'flex-end'}}>
+                        <span style={{color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: 1}} className="text-[0.75rem]">
                             {destinationScope === 'door_islam_qala' ? 'Final Destination' : 'Port of Arrival'}
-                        </Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        </span>
+                        <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
                             <MapPin size={16} className="text-green-500" />
-                            <Typography variant="caption" sx={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                            <span style={{fontWeight: 600, color: 'var(--text-primary)'}} className="text-[0.75rem]">
                                 {destinationScope === 'door_islam_qala' ? 'Islam Qala, Herat (Afghanistan)' : (config.destinationLabel || 'Port of Arrival')}
-                            </Typography>
-                        </Box>
-                    </Box>
-                </Box>
+                            </span>
+                        </div>
+                    </div>
+                </div>
 
-                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
-                    <FormControl fullWidth size="small">
-                        <InputLabel>Company Rate Sheet</InputLabel>
-                        <Select
-                            value={companyId}
-                            label="Company Rate Sheet"
-                            onChange={(e) => {
-                                setCompanyId(e.target.value);
+                <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
+                    <div style={{backgroundColor: 'var(--background)'}}><Select label="Company Rate Sheet" value={companyId} onChange={(val) => {
+                                setCompanyId(String(val));
                                 setPickupLocation('');
                                 setPickupCity('');
                                 setPickupBranch('');
                                 setEstimatedCost(null);
                                 setCalculationTrace(null);
-                            }}
-                            sx={{ bgcolor: 'var(--background)' }}
-                        >
-                            <MenuItem value="">All Companies (Exact Location Rates)</MenuItem>
-                            {companies.map((company) => {
-                                const hasTransit = Boolean((company.priceListConfig as any)?.transit || company.priceLists?.some((p) => p.destinationLabel?.toLowerCase().includes('islam')));
-                                const activeList = company.priceLists?.[0];
-                                const rowCount = activeList
-                                    ? activeList.importedAuctionRateCount || activeList.importedStateRateCount
-                                    : company.priceListConfig?.auctionRates?.length || 0;
-                                return (
-                                    <MenuItem key={company.id} value={company.id}>
-                                        {company.name}{rowCount ? ` (${rowCount} ocean lanes)` : ''}{hasTransit ? ' • Overland Transit Active' : ''}
-                                    </MenuItem>
-                                );
-                            })}
-                        </Select>
-                    </FormControl>
+                            }} options={[{ value: "", label: 'All Companies (Exact Location Rates)' }, ...companies.map((company) => { const hasTransit = Boolean((company.priceListConfig as any)?.transit || company.priceLists?.some((p) => p.destinationLabel?.toLowerCase().includes('islam'))); const activeList = company.priceLists?.[0]; const rowCount = activeList ? activeList.importedAuctionRateCount || activeList.importedStateRateCount : company.priceListConfig?.auctionRates?.length || 0; return ({ value: company.id, label: `${company.name}${rowCount ? ` (${rowCount} ocean lanes)` : ''}${hasTransit ? ' • Overland Transit Active' : ''}` }); })]} /></div>
 
-                    <FormControl fullWidth size="small">
-                        <InputLabel>Pickup State</InputLabel>
-                        <Select
-                            value={origin}
-                            label="Pickup State"
-                            onChange={(e) => {
-                                setOrigin(e.target.value);
+                    <div style={{backgroundColor: 'var(--background)'}}><Select label="Pickup State" value={origin} onChange={(val) => {
+                                setOrigin(String(val));
                                 setPickupLocation('');
                                 setEstimatedCost(null); // Reset on change
                                 setCalculationTrace(null);
-                            }}
-                            sx={{ bgcolor: 'var(--background)' }}
-                        >
-                            {US_STATES.map((state) => (
-                                <MenuItem key={state.code} value={state.code}>
-                                    {state.name} ({state.code})
-                                </MenuItem>
-                            ))}
-                        </Select>
-                    </FormControl>
+                            }} options={US_STATES.map((state) => ({ value: state.code, label: `${state.name} (${state.code})` }))} /></div>
 
                     {availableAuctionRates.length > 0 && (
-                        <FormControl fullWidth size="small">
-                            <InputLabel>Pickup Location (Exact Price)</InputLabel>
-                            <Select
-                                value={pickupLocation}
-                                label="Pickup Location (Exact Price)"
-                                onChange={(e) => {
-                                    setPickupLocation(e.target.value);
+                        <div style={{backgroundColor: 'var(--background)'}}><Select label="Pickup Location (Exact Price)" value={pickupLocation} onChange={(val) => {
+                                    setPickupLocation(String(val));
                                     setEstimatedCost(null);
                                     setCalculationTrace(null);
-                                }}
-                                sx={{ bgcolor: 'var(--background)' }}
-                            >
-                                <MenuItem value="">
-                                    {companyId
+                                }} options={[{ value: "", label: companyId
                                         ? `State flat rate (${formatCurrency(config.stateRates[origin] || config.fallbackRate)})`
-                                        : 'Select location for exact price'}
-                                </MenuItem>
-                                {availableAuctionRates.map((rate, index) => (
-                                    <MenuItem key={`${rate.companyId || ''}-${rate.stateCode}-${rate.branch}-${rate.city}-${index}`} value={String(index)}>
-                                        {formatAuctionRateLabel(rate)}
-                                    </MenuItem>
-                                ))}
-                            </Select>
-                        </FormControl>
+                                        : 'Select location for exact price' }, ...availableAuctionRates.map((rate, index) => ({ value: String(index), label: formatAuctionRateLabel(rate) }))]} /></div>
                     )}
 
                     {!pickupLocation && (
                         <>
-                            <TextField
-                                label="Pickup City"
-                                size="small"
-                                value={pickupCity}
-                                onChange={(event) => {
+                            <div style={{backgroundColor: 'var(--background)'}}><FormField label="Pickup City" value={pickupCity} onChange={(event) => {
                                     setPickupCity(event.target.value);
                                     setEstimatedCost(null);
                                     setCalculationTrace(null);
-                                }}
-                                placeholder="e.g. Florence, Los Angeles"
-                                sx={{ bgcolor: 'var(--background)' }}
-                            />
-                            <TextField
-                                label="Auction Branch"
-                                size="small"
-                                value={pickupBranch}
-                                onChange={(event) => {
+                                }} placeholder="e.g. Florence, Los Angeles" size="small" /></div>
+                            <div style={{backgroundColor: 'var(--background)'}}><FormField label="Auction Branch" value={pickupBranch} onChange={(event) => {
                                     setPickupBranch(event.target.value);
                                     setEstimatedCost(null);
                                     setCalculationTrace(null);
-                                }}
-                                placeholder="e.g. Copart, IAA"
-                                sx={{ bgcolor: 'var(--background)' }}
-                            />
+                                }} placeholder="e.g. Copart, IAA" size="small" /></div>
                         </>
                     )}
 
-                    <FormControl fullWidth size="small">
-                        <InputLabel>Vehicle Type</InputLabel>
-                        <Select
-                            value={vehicleType}
-                            label="Vehicle Type"
-                            onChange={(e) => {
-                                setVehicleType(e.target.value);
+                    <div style={{backgroundColor: 'var(--background)'}}><Select label="Vehicle Type" value={vehicleType} onChange={(val) => {
+                                setVehicleType(String(val));
                                 setEstimatedCost(null); // Reset on change
                                 setCalculationTrace(null);
-                            }}
-                            sx={{ bgcolor: 'var(--background)' }}
-                        >
-                            {config.vehicleTypes.map((type) => (
-                                <MenuItem key={type.id} value={type.id}>
-                                    {type.label}
-                                </MenuItem>
-                            ))}
-                        </Select>
-                    </FormControl>
-                </Box>
+                            }} options={config.vehicleTypes.map((type) => ({ value: type.id, label: type.label }))} /></div>
+                </div>
 
-                <Box sx={{ mt: 'auto', pt: 1 }}>
+                <div style={{marginTop: 'auto', paddingTop: '8px'}}>
                     <Button 
                         variant="primary" 
                         fullWidth 
@@ -511,10 +374,7 @@ export default function ShipmentCalculator() {
                     >
                         Calculate Rate
                     </Button>
-                    <Typography
-                        variant="caption"
-                        sx={{ display: 'block', textAlign: 'center', mt: 1, color: 'var(--text-secondary)' }}
-                    >
+                    <span style={{display: 'block', textAlign: 'center', marginTop: '8px', color: 'var(--text-secondary)'}} className="text-[0.75rem]">
                         {pickupLocation !== '' && availableAuctionRates[Number(pickupLocation)]
                             ? `Exact location rate: ${formatAuctionRateLabel(availableAuctionRates[Number(pickupLocation)])}.`
                             : availableAuctionRates.length > 0
@@ -522,8 +382,8 @@ export default function ShipmentCalculator() {
                                 : activeCompanyPriceList
                                     ? `Using ${activeCompanyPriceList.name} from ${activeCompanyPriceList.sourceFileName}.`
                                     : 'Rates update daily and include ocean freight & standard handling.'}
-                    </Typography>
-                </Box>
+                    </span>
+                </div>
 
                 <AnimatePresence>
                     {estimatedCost !== null && (
@@ -532,95 +392,75 @@ export default function ShipmentCalculator() {
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 10 }}
                         >
-                            <Box sx={{ 
-                                mt: 2, 
-                                p: 2.5, 
-                                borderRadius: 2.5, 
-                                bgcolor: calculationTrace?.isExactLocation ? 'rgba(34, 197, 94, 0.08)' : 'rgba(var(--accent-gold-rgb), 0.1)', 
-                                border: calculationTrace?.isExactLocation ? '1px solid rgba(34, 197, 94, 0.4)' : '1px solid rgba(var(--accent-gold-rgb), 0.5)',
-                                textAlign: 'center'
-                            }}>
-                                <Box sx={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: 0.75,
-                                    px: 1.25,
-                                    py: 0.35,
-                                    borderRadius: 1.5,
-                                    bgcolor: calculationTrace?.destinationScope === 'door_islam_qala' ? 'rgba(16, 185, 129, 0.18)' : 'rgba(59, 130, 246, 0.18)',
-                                    color: calculationTrace?.destinationScope === 'door_islam_qala' ? '#047857' : '#1d4ed8',
-                                    fontWeight: 800,
-                                    fontSize: '0.75rem',
-                                    mb: 1,
-                                    letterSpacing: '0.05em'
-                                }}>
+                            <div style={{marginTop: '16px', padding: '20px', borderRadius: '20px', backgroundColor: calculationTrace?.isExactLocation ? 'rgba(34, 197, 94, 0.08)' : 'rgba(var(--accent-gold-rgb), 0.1)', border: calculationTrace?.isExactLocation ? '1px solid rgba(34, 197, 94, 0.4)' : '1px solid rgba(var(--accent-gold-rgb), 0.5)', textAlign: 'center'}}>
+                                <div style={{display: 'inline-flex', alignItems: 'center', gap: '6px', paddingLeft: '10px', paddingRight: '10px', paddingTop: '2.8px', paddingBottom: '2.8px', borderRadius: '12px', backgroundColor: calculationTrace?.destinationScope === 'door_islam_qala' ? 'rgba(16, 185, 129, 0.18)' : 'rgba(59, 130, 246, 0.18)', color: calculationTrace?.destinationScope === 'door_islam_qala' ? '#047857' : '#1d4ed8', fontWeight: 800, fontSize: '0.75rem', marginBottom: '8px', letterSpacing: '0.05em'}}>
                                     {calculationTrace?.destinationScope === 'door_islam_qala' ? <Truck size={14} /> : <Ship size={14} />}
                                     {calculationTrace?.destinationScope === 'door_islam_qala' ? 'DOOR-TO-ISLAM QALA, HERAT (2-LEG QUOTE)' : 'PORT OCEAN FREIGHT'}
-                                </Box>
+                                </div>
 
-                                <Typography variant="h3" sx={{ fontWeight: 850, color: 'var(--text-primary)', my: 0.5 }}>
+                                <h3 style={{fontWeight: 850, color: 'var(--text-primary)', marginTop: '4px', marginBottom: '4px'}} className="text-[1.25rem] font-semibold leading-tight">
                                     {formatCurrency(estimatedCost)}
-                                </Typography>
+                                </h3>
 
-                                <Typography variant="body2" sx={{ color: 'var(--text-secondary)', fontWeight: 600 }}>
+                                <p style={{color: 'var(--text-secondary)', fontWeight: 600}} className="text-[0.875rem]">
                                     {calculationTrace?.destinationScope === 'door_islam_qala'
                                         ? `Total door-to-border landed price from ${calculationTrace?.laneLabel} to Islam Qala, Afghanistan`
                                         : `Port ocean freight for ${calculationTrace?.laneLabel} ➔ ${calculationTrace?.portName}`}
-                                </Typography>
+                                </p>
 
                                 {/* Two-Leg Breakdown Cards (Door-to-Islam Qala) */}
                                 {calculationTrace?.destinationScope === 'door_islam_qala' && (
-                                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5, mt: 2, textAlign: 'left' }}>
+                                    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '16px', textAlign: 'left'}}>
                                         {/* Leg 1 Breakdown */}
-                                        <Box sx={{ p: 1.5, borderRadius: 2, border: '1px solid var(--border)', bgcolor: 'var(--panel)' }}>
-                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                                        <div style={{padding: '12px', borderRadius: '16px', border: '1px solid var(--border)', backgroundColor: 'var(--panel)'}}>
+                                            <div style={{display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase'}}>
                                                 <Ship size={14} className="text-blue-600" />
                                                 Leg 1: Ocean Freight
-                                            </Box>
-                                            <Box sx={{ fontSize: '1.25rem', fontWeight: 850, color: 'var(--text-primary)', mt: 0.5 }}>
+                                            </div>
+                                            <div style={{fontSize: '1.25rem', fontWeight: 850, color: 'var(--text-primary)', marginTop: '4px'}}>
                                                 {formatCurrency(calculationTrace.oceanCost)}
-                                            </Box>
-                                            <Box sx={{ fontSize: '0.74rem', color: 'var(--text-secondary)', mt: 0.25 }}>
+                                            </div>
+                                            <div style={{fontSize: '0.74rem', color: 'var(--text-secondary)', marginTop: '2px'}}>
                                                 US Auction Yard ➔ {calculationTrace.portName}
-                                            </Box>
-                                            <Box sx={{ fontSize: '0.7rem', color: 'var(--text-secondary)', mt: 0.25 }}>
+                                            </div>
+                                            <div style={{fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '2px'}}>
                                                 Base {formatCurrency(calculationTrace.baseRate)} × {calculationTrace.multiplier} ({calculationTrace.rowSource})
-                                            </Box>
-                                        </Box>
+                                            </div>
+                                        </div>
 
                                         {/* Leg 2 Breakdown */}
-                                        <Box sx={{ p: 1.5, borderRadius: 2, border: '1px solid rgba(16, 185, 129, 0.4)', bgcolor: 'rgba(16, 185, 129, 0.06)' }}>
-                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, fontSize: '0.72rem', fontWeight: 800, color: '#047857', textTransform: 'uppercase' }}>
+                                        <div style={{padding: '12px', borderRadius: '16px', border: '1px solid rgba(16, 185, 129, 0.4)', backgroundColor: 'rgba(16, 185, 129, 0.06)'}}>
+                                            <div style={{display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.72rem', fontWeight: 800, color: '#047857', textTransform: 'uppercase'}}>
                                                 <Truck size={14} className="text-emerald-600" />
                                                 Leg 2: Overland Transit
-                                            </Box>
-                                            <Box sx={{ fontSize: '1.25rem', fontWeight: 850, color: 'var(--text-primary)', mt: 0.5 }}>
+                                            </div>
+                                            <div style={{fontSize: '1.25rem', fontWeight: 850, color: 'var(--text-primary)', marginTop: '4px'}}>
                                                 {formatCurrency(calculationTrace.transitCost)}
-                                            </Box>
-                                            <Box sx={{ fontSize: '0.74rem', color: 'var(--text-secondary)', mt: 0.25 }}>
+                                            </div>
+                                            <div style={{fontSize: '0.74rem', color: 'var(--text-secondary)', marginTop: '2px'}}>
                                                 {calculationTrace.portName} ➔ Islam Qala Border
-                                            </Box>
-                                            <Box sx={{ fontSize: '0.7rem', color: '#15803d', mt: 0.25, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                            </div>
+                                            <div style={{fontSize: '0.7rem', color: '#15803d', marginTop: '2px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px'}}>
                                                 <ShieldCheck size={12} />
                                                 Customs clearance included
-                                            </Box>
-                                        </Box>
-                                    </Box>
+                                            </div>
+                                        </div>
+                                    </div>
                                 )}
 
-                                <Typography variant="caption" sx={{ display: 'block', color: 'var(--text-secondary)', fontStyle: 'italic', mt: 1.5 }}>
+                                <span style={{display: 'block', color: 'var(--text-secondary)', fontStyle: 'italic', marginTop: '12px'}} className="text-[0.75rem]">
                                     {calculationTrace?.destinationScope === 'door_islam_qala'
                                         ? `*Quote covers US towing, ocean container shipping to ${calculationTrace?.portName}, port customs clearance, and overland transit to Islam Qala.`
                                         : `*Quote covers ocean freight and standard terminal handling to ${config.destinationLabel}.`}
-                                </Typography>
+                                </span>
                                 {calculationTrace && (
-                                    <Typography variant="caption" sx={{ display: 'block', color: 'var(--text-secondary)', mt: 0.75 }}>
+                                    <span style={{display: 'block', color: 'var(--text-secondary)', marginTop: '6px'}} className="text-[0.75rem]">
                                         Source: {calculationTrace.companyName} • {calculationTrace.priceListName} ({calculationTrace.isExactLocation ? 'Exact Auction Lane' : 'State Rate'})
-                                    </Typography>
+                                    </span>
                                 )}
 
                                 {calculationTrace?.destinationScope === 'door_islam_qala' && (
-                                    <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
+                                    <div style={{marginTop: '16px', display: 'flex', justifyContent: 'center'}}>
                                         <Button
                                             variant="outline"
                                             size="sm"
@@ -645,13 +485,13 @@ export default function ShipmentCalculator() {
                                         >
                                             Print Transit Tariff (Mersin ➔ Islam Qala)
                                         </Button>
-                                    </Box>
+                                    </div>
                                 )}
-                            </Box>
+                            </div>
                         </motion.div>
                     )}
                 </AnimatePresence>
-            </Box>
-        </Paper>
+            </div>
+        </div>
     );
 }

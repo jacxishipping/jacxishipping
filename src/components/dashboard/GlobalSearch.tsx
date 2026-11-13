@@ -1,8 +1,9 @@
 'use client';
 
+import { JacxiButton } from '@/components/design-system/JacxiButton';
 import { Search } from 'lucide-react';
 import { useCommandPalette } from '@/components/providers/CommandPaletteProvider';
-import { SpringButton } from '@jacxishippingorg/jx-ui-react';
+
 
 export default function GlobalSearch() {
   const { openCommandPalette } = useCommandPalette();
@@ -16,7 +17,7 @@ export default function GlobalSearch() {
   };
 
   return (
-    <SpringButton
+    <JacxiButton
       type="button"
       onClick={handleOpen}
       aria-label="Search or run command"
@@ -28,6 +29,6 @@ export default function GlobalSearch() {
       <kbd className="hidden lg:inline-flex items-center px-1.5 py-0.5 bg-[var(--panel)] border border-[var(--border)] rounded text-[10px] font-semibold text-[var(--text-secondary)]">
         ⌘K
       </kbd>
-    </SpringButton>
+    </JacxiButton>
   );
 }

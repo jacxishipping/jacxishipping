@@ -2,9 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Add, ChevronLeft, ChevronRight, Inventory2 } from '@mui/icons-material';
-import { LayoutGrid, Table2, Kanban, CheckSquare, Square, Download } from 'lucide-react';
-import { Box, Typography } from '@mui/material';
+import { CheckSquare, ChevronLeft, ChevronRight, Download, Kanban, LayoutGrid, Package, Plus, Square, Table2 } from 'lucide-react';
 import ShipmentRow from '@/components/dashboard/ShipmentRow';
 import { DashboardPanel } from '@/components/dashboard/DashboardSurface';
 import { Button, EmptyState, SkeletonTable, toast } from '@/components/design-system';
@@ -143,28 +141,12 @@ export default function ShipmentsResultsPanel({
 	return (
 		<DashboardPanel
 			title={
-				<Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
+				<div style={{display: 'inline-flex', alignItems: 'center', gap: '8px'}}>
 					<span>Results</span>
-					<Box
-						component="span"
-						sx={{
-							display: 'inline-flex',
-							alignItems: 'center',
-							justifyContent: 'center',
-							px: 1,
-							py: 0.25,
-							borderRadius: '999px',
-							bgcolor: 'rgba(var(--accent-gold-rgb), 0.12)',
-							color: 'var(--accent-gold-text)',
-							border: '1px solid rgba(var(--accent-gold-rgb), 0.25)',
-							fontSize: '0.72rem',
-							fontWeight: 700,
-							lineHeight: 1.2,
-						}}
-					>
+					<span style={{display: 'inline-flex', alignItems: 'center', justifyContent: 'center', paddingLeft: '8px', paddingRight: '8px', paddingTop: '2px', paddingBottom: '2px', borderRadius: '999px', backgroundColor: 'rgba(var(--accent-gold-rgb), 0.12)', color: 'var(--accent-gold-text)', border: '1px solid rgba(var(--accent-gold-rgb), 0.25)', fontSize: '0.72rem', fontWeight: 700, lineHeight: 1.2}}>
 						{shipments.length}
-					</Box>
-				</Box>
+					</span>
+				</div>
 			}
 			description={
 				shipments.length
@@ -175,17 +157,8 @@ export default function ShipmentsResultsPanel({
 			className="overflow-hidden"
 			bodyClassName="overflow-hidden"
 			actions={
-				<Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-					<Box
-						sx={{
-							display: 'inline-flex',
-							alignItems: 'center',
-							p: '3px',
-							borderRadius: '12px',
-							bgcolor: 'rgba(var(--text-primary-rgb), 0.04)',
-							border: '1px solid var(--border)',
-						}}
-					>
+				<div style={{display: 'flex', gap: '8px', alignItems: 'center'}}>
+					<div style={{display: 'inline-flex', alignItems: 'center', padding: '3px', borderRadius: '12px', backgroundColor: 'rgba(var(--text-primary-rgb), 0.04)', border: '1px solid var(--border)'}}>
 						<button
 							type="button"
 							onClick={() => handleViewModeChange('cards')}
@@ -225,7 +198,7 @@ export default function ShipmentsResultsPanel({
 							<Kanban className="w-3.5 h-3.5" />
 							<span className="hidden sm:inline">Kanban</span>
 						</button>
-					</Box>
+					</div>
 
 					{/* Quick Panel Export Button */}
 					<Button
@@ -241,30 +214,30 @@ export default function ShipmentsResultsPanel({
 					>
 						Export
 					</Button>
-				</Box>
+				</div>
 			}
 		>
 			{loading ? (
 				<SkeletonTable rows={5} columns={6} />
 			) : shipments.length === 0 ? (
 				<EmptyState
-					icon={<Inventory2 />}
+					icon={<Package />}
 					title="No shipments found"
 					description={searchQuery ? 'No shipments match your search criteria' : 'Get started by creating your first shipment'}
 					action={
 						onClearFilters && searchQuery ? (
-							<Box sx={{ display: 'flex', gap: 1, alignItems: 'center', justifyContent: 'center' }}>
+							<div style={{display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'center'}}>
 								<Button variant="outline" size="sm" onClick={onClearFilters}>
 									Clear Filters
 								</Button>
 								{canManageShipments ? (
-									<Button href="/dashboard/shipments/new" variant="primary" size="sm" icon={<Add />} iconPosition="start">
+									<Button href="/dashboard/shipments/new" variant="primary" size="sm" icon={<Plus />} iconPosition="start">
 										Create shipment
 									</Button>
 								) : null}
-							</Box>
+							</div>
 						) : canManageShipments ? (
-							<Button href="/dashboard/shipments/new" variant="primary" icon={<Add />} iconPosition="start">
+							<Button href="/dashboard/shipments/new" variant="primary" icon={<Plus />} iconPosition="start">
 								Create shipment
 							</Button>
 						) : undefined
@@ -273,7 +246,7 @@ export default function ShipmentsResultsPanel({
 			) : (
 				<>
 					{viewMode === 'table' && (
-						<Box sx={{ width: '100%', overflowX: 'auto' }}>
+						<div style={{width: '100%', overflowX: 'auto'}}>
 							<DataTable
 								data={shipmentTableRows}
 								columns={shipmentColumns}
@@ -296,11 +269,11 @@ export default function ShipmentsResultsPanel({
 								currentPage={currentPage}
 								totalPages={totalPages}
 							/>
-						</Box>
+						</div>
 					)}
 
 					{viewMode === 'kanban' && (
-						<Box sx={{ width: '100%', minWidth: 0, py: 1 }}>
+						<div style={{width: '100%', minWidth: 0, paddingTop: '8px', paddingBottom: '8px'}}>
 							<ShipmentKanbanBoard
 								shipments={shipments}
 								onMoveShipment={async (shipmentId, newStatus) => {
@@ -324,23 +297,14 @@ export default function ShipmentsResultsPanel({
 								onQuickPeek={handleRowQuickPeek}
 								canManageShipments={canManageShipments}
 							/>
-						</Box>
+						</div>
 					)}
 
 					{viewMode === 'cards' && (
-						<Box
-							sx={{
-								display: 'flex',
-								flexDirection: 'column',
-								gap: { xs: 1, sm: 1.15, md: 1.25 },
-								minWidth: 0,
-								width: '100%',
-								overflow: 'hidden',
-							}}
-						>
+						<div style={{display: 'flex', flexDirection: 'column', gap: '10px', minWidth: 0, width: '100%', overflow: 'hidden'}}>
 							{/* Select All Quick Bar */}
 							{canUseBulkMode && shipments.length > 0 && (
-								<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 0.5, py: 0.25 }}>
+								<div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingLeft: '4px', paddingRight: '4px', paddingTop: '2px', paddingBottom: '2px'}}>
 									<button
 										type="button"
 										onClick={() => {
@@ -369,7 +333,7 @@ export default function ShipmentsResultsPanel({
 											{selectedIds.size} selected
 										</span>
 									)}
-								</Box>
+								</div>
 							)}
 
 							{shipments.map((shipment, index) => (
@@ -398,7 +362,7 @@ export default function ShipmentsResultsPanel({
 									}}
 								/>
 							))}
-						</Box>
+						</div>
 					)}
 
 					{/* Floating Batch Actions HUD */}
@@ -459,56 +423,35 @@ export default function ShipmentsResultsPanel({
 					)}
 
 					{totalPages > 1 && (
-						<Box
-							sx={{
-								mt: 2,
-								display: 'flex',
-								flexDirection: { xs: 'column', sm: 'row' },
-								alignItems: 'center',
-								justifyContent: 'space-between',
-								gap: 1,
-								width: '100%',
-							}}
-						>
+						<div style={{marginTop: '16px', display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: '8px', width: '100%'}}>
 							<Button
 								variant="outline"
 								size="sm"
-								icon={<ChevronLeft sx={{ fontSize: { xs: 12, sm: 14 } }} />}
+								icon={<ChevronLeft className="h-3.5 w-3.5"/>}
 								iconPosition="start"
 								onClick={onPreviousPage}
 								disabled={currentPage === 1}
-								sx={{ width: { xs: '100%', sm: 'auto' }, minHeight: '40px', borderRadius: '999px' }}
+								style={{width: 'auto', minHeight: '40px', borderRadius: '999px'}}
 							>
 								Previous
 							</Button>
-							<Box
-								sx={{
-									display: 'inline-flex',
-									alignItems: 'center',
-									justifyContent: 'center',
-									px: 1.25,
-									py: 0.5,
-									borderRadius: '999px',
-									bgcolor: 'rgba(var(--accent-gold-rgb), 0.08)',
-									border: '1px solid rgba(var(--accent-gold-rgb), 0.2)',
-								}}
-							>
-								<Typography sx={{ fontSize: { xs: '0.7rem', sm: '0.72rem', md: '0.75rem' }, color: 'var(--accent-gold)', fontWeight: 700 }}>
+							<div style={{display: 'inline-flex', alignItems: 'center', justifyContent: 'center', paddingLeft: '10px', paddingRight: '10px', paddingTop: '4px', paddingBottom: '4px', borderRadius: '999px', backgroundColor: 'rgba(var(--accent-gold-rgb), 0.08)', border: '1px solid rgba(var(--accent-gold-rgb), 0.2)'}}>
+								<p style={{fontSize: '0.75rem', color: 'var(--accent-gold)', fontWeight: 700}}>
 									Page {currentPage} of {totalPages}
-								</Typography>
-							</Box>
+								</p>
+							</div>
 							<Button
 								variant="outline"
 								size="sm"
-								icon={<ChevronRight sx={{ fontSize: { xs: 12, sm: 14 } }} />}
+								icon={<ChevronRight className="h-3.5 w-3.5"/>}
 								iconPosition="end"
 								onClick={onNextPage}
 								disabled={currentPage === totalPages}
-								sx={{ width: { xs: '100%', sm: 'auto' }, minHeight: '40px', borderRadius: '999px' }}
+								style={{width: 'auto', minHeight: '40px', borderRadius: '999px'}}
 							>
 								Next
 							</Button>
-						</Box>
+						</div>
 					)}
 				</>
 			)}

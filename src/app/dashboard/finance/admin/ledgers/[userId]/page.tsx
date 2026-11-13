@@ -1,46 +1,14 @@
 "use client";
+import { forwardRef, type CSSProperties, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react';
 import { formatMoney as formatCurrency } from "@/lib/format";
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
+import { ArrowLeft as ArrowBack, Check, ChevronLeft, ChevronRight, DollarSign as AttachMoney, Download, ListFilter as FilterList, Pencil as Edit, Plus as Add, Printer as Print, Search, Trash2 as Delete, TrendingDown as TrendingDownIcon, TrendingUp as TrendingUpIcon, Truck as LocalShipping, X as Close } from 'lucide-react';
 
 import { useSession } from "next-auth/react";
 import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { hasPermission } from "@/lib/rbac";
-import {
-  ArrowBack,
-  Add,
-  Edit,
-  Delete,
-  Download,
-  Print,
-  FilterList,
-  Search,
-  ChevronLeft,
-  ChevronRight,
-  AttachMoney,
-  TrendingUp as TrendingUpIcon,
-  TrendingDown as TrendingDownIcon,
-  LocalShipping,
-  Close,
-  Check,
-} from "@mui/icons-material";
-import {
-  Box,
-  Typography,
-  TextField,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  IconButton,
-  Alert,
-  Snackbar,
-  Chip,
-} from "@mui/material";
 import {
   Breadcrumbs,
   Button,
@@ -60,6 +28,78 @@ import {
   DashboardGrid,
 } from "@/components/dashboard/DashboardSurface";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import { Alert, FormField, IconButton, Select, Modal } from '@/components/design-system';
+
+/** Bare input with the Jacxi field look (no label) — search fields, table-cell editors. */
+const BareInput = forwardRef<HTMLInputElement | HTMLTextAreaElement, BareInputProps>(function BareInput(
+  { leftIcon, rightIcon, rightElement, error = false, helperText, size = 'small', multiline = false, rows, minRows, inputProps, className, style, ...rest },
+  ref,
+) {
+  const controlClass = [
+    'w-full rounded-lg border bg-[var(--background)] text-[var(--text-primary)] outline-none transition-colors placeholder:text-[var(--text-secondary)]',
+    size === 'small' ? 'px-2.5 py-1.5 text-[0.8125rem]' : 'px-3 py-2 text-[0.875rem]',
+    leftIcon ? 'pl-9' : '',
+    rightIcon || rightElement ? 'pr-9' : '',
+    error
+      ? 'border-[var(--error)] focus:border-[var(--error)] focus:ring-2 focus:ring-[rgba(var(--error-rgb),0.2)]'
+      : 'border-[rgba(var(--border-rgb),0.9)] hover:border-[var(--border)] focus:border-[var(--accent-gold)] focus:ring-2 focus:ring-[rgba(var(--accent-gold-rgb),0.2)]',
+    rest.disabled ? 'opacity-50' : '',
+    className,
+  ].filter(Boolean).join(' ');
+  return (
+    <div>
+      <div className="relative">
+        {leftIcon && (
+          <span className="pointer-events-none absolute left-3 top-1/2 flex -translate-y-1/2 text-[var(--text-secondary)]">{leftIcon}</span>
+        )}
+        {multiline ? (
+          <textarea
+            {...(rest as TextareaHTMLAttributes<HTMLTextAreaElement>)}
+            {...(inputProps as unknown as TextareaHTMLAttributes<HTMLTextAreaElement>)}
+            ref={ref as React.Ref<HTMLTextAreaElement>}
+            rows={rows ?? minRows ?? 3}
+            aria-invalid={error || undefined}
+            style={style}
+            className={`${controlClass} min-h-[80px] resize-y leading-[1.5]`}
+          />
+        ) : (
+          <input
+            {...rest}
+            {...inputProps}
+            ref={ref as React.Ref<HTMLInputElement>}
+            aria-invalid={error || undefined}
+            style={style}
+            className={controlClass}
+          />
+        )}
+        {rightIcon && (
+          <span className="pointer-events-none absolute right-3 top-1/2 flex -translate-y-1/2 text-[var(--text-secondary)]">{rightIcon}</span>
+        )}
+        {rightElement && (
+          <span className="absolute right-3 top-1/2 flex -translate-y-1/2 text-[var(--text-secondary)]">{rightElement}</span>
+        )}
+      </div>
+      {helperText && (
+        <p className="mt-0.5 text-[0.75rem]" style={{ color: error ? 'var(--error)' : 'var(--text-secondary)' }}>{helperText}</p>
+      )}
+    </div>
+  );
+});
+
+type BareInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> & {
+  leftIcon?: ReactNode;
+  rightIcon?: ReactNode;
+  /** Interactive element on the right (e.g. password visibility toggle). */
+  rightElement?: ReactNode;
+  error?: boolean;
+  helperText?: ReactNode;
+  size?: 'small' | 'medium';
+  multiline?: boolean;
+  rows?: number;
+  minRows?: number;
+  inputProps?: InputHTMLAttributes<HTMLInputElement>;
+};
+
 
 interface LedgerEntry {
   id: string;
@@ -145,15 +185,6 @@ export default function UserLedgerManagementPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<LedgerEntry | null>(null);
-  const [snackbar, setSnackbar] = useState<{
-    open: boolean;
-    message: string;
-    severity: "success" | "error";
-  }>({
-    open: false,
-    message: "",
-    severity: "success",
-  });
 
   const [formData, setFormData] = useState({
     description: "",
@@ -253,11 +284,7 @@ export default function UserLedgerManagementPage() {
         fetchLedgerEntries();
       } else {
         const error = await response.json();
-        setSnackbar({
-          open: true,
-          message: error.error || "Failed to add transaction",
-          severity: "error",
-        });
+        toast.error(error.error || "Failed to add transaction");
       }
     } catch (error) {
       console.error("Error adding entry:", error);
@@ -293,11 +320,7 @@ export default function UserLedgerManagementPage() {
         fetchLedgerEntries();
       } else {
         const error = await response.json();
-        setSnackbar({
-          open: true,
-          message: error.error || "Failed to update transaction",
-          severity: "error",
-        });
+        toast.error(error.error || "Failed to update transaction");
       }
     } catch (error) {
       console.error("Error updating entry:", error);
@@ -324,11 +347,7 @@ export default function UserLedgerManagementPage() {
         fetchLedgerEntries();
       } else {
         const error = await response.json();
-        setSnackbar({
-          open: true,
-          message: error.error || "Failed to delete transaction",
-          severity: "error",
-        });
+        toast.error(error.error || "Failed to delete transaction");
       }
     } catch (error) {
       console.error("Error deleting entry:", error);
@@ -420,102 +439,38 @@ export default function UserLedgerManagementPage() {
             (typeof row.metadata?.invoiceId === "string" ||
               typeof row.metadata?.invoiceNumber === "string");
           return (
-            <Box>
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 1,
-                  flexWrap: "wrap",
-                }}
-              >
-                <Typography
-                  sx={{
-                    fontSize: "0.85rem",
-                    color: "var(--text-primary)",
-                    fontWeight: 500,
-                  }}
-                >
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: "flex", alignItems: "center", gap: '8px', flexWrap: "wrap"}}>
+                <p className="text-sm leading-relaxed" style={{fontSize: "0.85rem", color: "var(--text-primary)", fontWeight: 500}}>
                   {row.description}
-                </Typography>
+                </p>
                 {isPending && (
-                  <Box
-                    component="span"
-                    sx={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      px: 0.75,
-                      py: 0.25,
-                      borderRadius: 1,
-                      fontSize: "0.65rem",
-                      fontWeight: 700,
-                      letterSpacing: "0.05em",
-                      backgroundColor: "rgba(var(--warning-rgb), 0.15)",
-                      color: "var(--warning-dark, #B45309)",
-                      border: "1px solid rgba(var(--warning-rgb), 0.3)",
-                      textTransform: "uppercase",
-                    }}
-                  >
+                  <JXBox padding="none" border={false} component="span" style={{display: "inline-flex", alignItems: "center", paddingLeft: '6px', paddingRight: '6px', paddingTop: '2px', paddingBottom: '2px', borderRadius: '8px', fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.05em", backgroundColor: "rgba(var(--warning-rgb), 0.15)", color: "var(--warning-dark, #B45309)", border: "1px solid rgba(var(--warning-rgb), 0.3)", textTransform: "uppercase"}}>
                     Pending Invoice
-                  </Box>
+                  </JXBox>
                 )}
                 {isInvoicePaid && (
-                  <Box
-                    component="span"
-                    sx={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      px: 0.75,
-                      py: 0.25,
-                      borderRadius: 1,
-                      fontSize: "0.65rem",
-                      fontWeight: 700,
-                      letterSpacing: "0.05em",
-                      backgroundColor: "rgba(var(--success-rgb), 0.15)",
-                      color: "var(--success-dark, #047857)",
-                      border: "1px solid rgba(var(--success-rgb), 0.3)",
-                      textTransform: "uppercase",
-                    }}
-                  >
+                  <JXBox padding="none" border={false} component="span" style={{display: "inline-flex", alignItems: "center", paddingLeft: '6px', paddingRight: '6px', paddingTop: '2px', paddingBottom: '2px', borderRadius: '8px', fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.05em", backgroundColor: "rgba(var(--success-rgb), 0.15)", color: "var(--success-dark, #047857)", border: "1px solid rgba(var(--success-rgb), 0.3)", textTransform: "uppercase"}}>
                     Invoice Paid
-                  </Box>
+                  </JXBox>
                 )}
-              </Box>
-              <Typography
-                sx={{
-                  fontSize: "0.72rem",
-                  color: "var(--accent-gold)",
-                  mt: 0.5,
-                  fontWeight: 600,
-                }}
-              >
+              </JXBox>
+              <p className="text-sm leading-relaxed" style={{fontSize: "0.72rem", color: "var(--accent-gold)", marginTop: '4px', fontWeight: 600}}>
                 {row.transactionInfoType
                   ? transactionInfoTypeLabels[row.transactionInfoType]
                   : "Not specified"}
-              </Typography>
+              </p>
               {row.notes && (
-                <Typography
-                  sx={{
-                    fontSize: "0.75rem",
-                    color: "var(--text-secondary)",
-                    mt: 0.5,
-                  }}
-                >
+                <p className="text-sm leading-relaxed" style={{fontSize: "0.75rem", color: "var(--text-secondary)", marginTop: '4px'}}>
                   {row.notes}
-                </Typography>
+                </p>
               )}
               {row.shipment && (
-                <Typography
-                  sx={{
-                    fontSize: "0.75rem",
-                    color: "var(--accent-gold)",
-                    mt: 0.5,
-                  }}
-                >
+                <p className="text-sm leading-relaxed" style={{fontSize: "0.75rem", color: "var(--accent-gold)", marginTop: '4px'}}>
                   {row.shipment.vehicleMake} {row.shipment.vehicleModel}
-                </Typography>
+                </p>
               )}
-            </Box>
+            </JXBox>
           );
         },
       },
@@ -526,22 +481,9 @@ export default function UserLedgerManagementPage() {
         align: "center" as const,
         width: "10%",
         render: (_, row) => (
-          <Chip
-            label={row.type}
-            size="small"
-            icon={
-              row.type === "DEBIT" ? <TrendingUpIcon /> : <TrendingDownIcon />
-            }
-            sx={{
-              backgroundColor:
-                row.type === "DEBIT"
+          <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5" style={{backgroundColor: row.type === "DEBIT"
                   ? "rgba(var(--error-rgb), 0.1)"
-                  : "rgba(var(--success-rgb), 0.1)",
-              color: row.type === "DEBIT" ? "var(--error)" : "var(--success)",
-              fontWeight: 600,
-              fontSize: "0.75rem",
-            }}
-          />
+                  : "rgba(var(--success-rgb), 0.1)", color: row.type === "DEBIT" ? "var(--error)" : "var(--success)", fontWeight: 600, fontSize: "0.75rem"}}>{row.type === "DEBIT" ? <TrendingUpIcon /> : <TrendingDownIcon />} {row.type}</span>
         ),
       },
       {
@@ -587,37 +529,14 @@ export default function UserLedgerManagementPage() {
         align: "center" as const,
         width: "10%",
         render: (_, row) => (
-          <Box
-            sx={{
-              display: "flex",
-              gap: 0.5,
-              justifyContent: "center",
-              flexWrap: "nowrap",
-              whiteSpace: "nowrap",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: "flex", gap: '4px', justifyContent: "center", flexWrap: "nowrap", whiteSpace: "nowrap"}} onClick={(e) => e.stopPropagation()}>
             <Tooltip title="Edit transaction">
-              <IconButton
-                size="small"
-                onClick={() => openEditModal(row)}
-                sx={{ color: "var(--accent-gold)" }}
-                aria-label="Edit transaction"
-              >
-                <Edit fontSize="small" />
-              </IconButton>
+              <IconButton icon={<Edit className="h-5 w-5" />} ariaLabel="Edit transaction" variant="ghost" size="sm" onClick={() => openEditModal(row)} style={{color: "var(--accent-gold)"}} />
             </Tooltip>
             <Tooltip title="Delete transaction">
-              <IconButton
-                size="small"
-                onClick={() => handleDeleteEntry(row.id)}
-                sx={{ color: "#ef4444" }}
-                aria-label="Delete transaction"
-              >
-                <Delete fontSize="small" />
-              </IconButton>
+              <IconButton icon={<Delete className="h-5 w-5" />} ariaLabel="Delete transaction" variant="ghost" size="sm" onClick={() => handleDeleteEntry(row.id)} style={{color: "#ef4444"}} />
             </Tooltip>
-          </Box>
+          </JXBox>
         ),
       },
     ],
@@ -638,7 +557,7 @@ export default function UserLedgerManagementPage() {
     <ProtectedRoute>
       <DashboardSurface>
         {/* Back Button & Title */}
-        <Box sx={{ mb: 2 }}>
+        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginBottom: '16px'}}>
           <Link
             href="/dashboard/finance/admin/ledgers"
             style={{ textDecoration: "none" }}
@@ -647,23 +566,18 @@ export default function UserLedgerManagementPage() {
               variant="outline"
               size="sm"
               icon={<ArrowBack />}
-              sx={{ textTransform: "none", fontSize: "0.78rem", mb: 2 }}
+              style={{textTransform: "none", fontSize: "0.78rem", marginBottom: '16px'}}
             >
               Back to All Ledgers
             </Button>
           </Link>
-          <Typography
-            variant="h5"
-            sx={{ fontWeight: 600, color: "var(--text-primary)" }}
-          >
+          <h5 className="text-base font-semibold" style={{fontWeight: 600, color: "var(--text-primary)"}}>
             {user.name || user.email}'s Ledger
-          </Typography>
-          <Typography
-            sx={{ fontSize: "0.9rem", color: "var(--text-secondary)", mt: 0.5 }}
-          >
+          </h5>
+          <p className="text-sm leading-relaxed" style={{fontSize: "0.9rem", color: "var(--text-secondary)", marginTop: '4px'}}>
             Manage financial transactions for {user.email}
-          </Typography>
-        </Box>
+          </p>
+        </JXBox>
 
         {/* Summary Cards */}
         <DashboardGrid className="grid-cols-1 md:grid-cols-2 xl:grid-cols-4">
@@ -707,107 +621,49 @@ export default function UserLedgerManagementPage() {
               size="sm"
               onClick={() => setShowAddModal(true)}
               icon={<Add />}
-              sx={{
-                textTransform: "none",
-                fontSize: "0.78rem",
-                fontWeight: 600,
-              }}
+              style={{textTransform: "none", fontSize: "0.78rem", fontWeight: 600}}
             >
               Add Transaction
             </Button>
           }
         >
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-            <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
-              <TextField
-                placeholder="Search transactions..."
-                size="small"
-                value={filters.search}
-                onChange={(e) =>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: "flex", flexDirection: "column", gap: '16px'}}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: "flex", gap: '16px', alignItems: "center"}}>
+              <div className="min-w-0 flex-1"><BareInput placeholder="Search transactions..." value={filters.search} onChange={(e) =>
                   setFilters({ ...filters, search: e.target.value })
-                }
-                InputProps={{
-                  startAdornment: (
-                    <Search
-                      sx={{
-                        mr: 1,
-                        color: "var(--text-secondary)",
-                        fontSize: 20,
-                      }}
-                    />
-                  ),
-                }}
-                fullWidth
-              />
+                } leftIcon={(
+                    <Search className="mr-2 h-[20px] w-[20px]" style={{color: "var(--text-secondary)"}} />
+                  )} size="small" /></div>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setShowFilters(!showFilters)}
                 icon={<FilterList />}
-                sx={{
-                  textTransform: "none",
-                  fontSize: "0.75rem",
-                  minWidth: 120,
-                }}
+                style={{textTransform: "none", fontSize: "0.75rem", minWidth: '120px'}}
               >
                 {showFilters ? "Hide" : "Show"} Filters
               </Button>
-            </Box>
+            </JXBox>
 
             {showFilters && (
-              <Box
-                sx={{
-                  display: "grid",
-                  gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)" },
-                  gap: 2,
-                }}
-              >
-                <FormControl size="small" fullWidth>
-                  <InputLabel>Type</InputLabel>
-                  <Select
-                    value={filters.type}
-                    onChange={(e) =>
-                      setFilters({ ...filters, type: e.target.value })
-                    }
-                    label="Type"
-                  >
-                    <MenuItem value="">All Types</MenuItem>
-                    <MenuItem value="DEBIT">Debit Only</MenuItem>
-                    <MenuItem value="CREDIT">Credit Only</MenuItem>
-                  </Select>
-                </FormControl>
-                <TextField
-                  label="Start Date"
-                  type="date"
-                  size="small"
-                  value={filters.startDate}
-                  onChange={(e) =>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: "grid", gap: '16px'}} className="grid-cols-1 sm:grid-cols-3">
+                <div className="min-w-0 flex-1"><Select label="Type" options={[{ value: "", label: 'All Types' }, { value: "DEBIT", label: 'Debit Only' }, { value: "CREDIT", label: 'Credit Only' }]} value={filters.type} size="small" onChange={(val) => setFilters({ ...filters, type: val as string })} /></div>
+                <div className="min-w-0 flex-1"><FormField label="Start Date" type="date" value={filters.startDate} onChange={(e) =>
                     setFilters({ ...filters, startDate: e.target.value })
-                  }
-                  InputLabelProps={{ shrink: true }}
-                  fullWidth
-                />
-                <TextField
-                  label="End Date"
-                  type="date"
-                  size="small"
-                  value={filters.endDate}
-                  onChange={(e) =>
+                  } InputLabelProps={{ shrink: true }} size="small" /></div>
+                <div className="min-w-0 flex-1"><FormField label="End Date" type="date" value={filters.endDate} onChange={(e) =>
                     setFilters({ ...filters, endDate: e.target.value })
-                  }
-                  InputLabelProps={{ shrink: true }}
-                  fullWidth
-                />
-              </Box>
+                  } InputLabelProps={{ shrink: true }} size="small" /></div>
+              </JXBox>
             )}
 
-            <Box sx={{ display: "flex", gap: 1 }}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: "flex", gap: '8px'}}>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => window.print()}
                 icon={<Print />}
-                sx={{ textTransform: "none", fontSize: "0.75rem" }}
+                style={{textTransform: "none", fontSize: "0.75rem"}}
               >
                 Print
               </Button>
@@ -816,7 +672,7 @@ export default function UserLedgerManagementPage() {
                 size="sm"
                 onClick={() => handleExport("pdf")}
                 icon={<Download />}
-                sx={{ textTransform: "none", fontSize: "0.75rem" }}
+                style={{textTransform: "none", fontSize: "0.75rem"}}
               >
                 PDF
               </Button>
@@ -825,12 +681,12 @@ export default function UserLedgerManagementPage() {
                 size="sm"
                 onClick={() => handleExport("excel")}
                 icon={<Download />}
-                sx={{ textTransform: "none", fontSize: "0.75rem" }}
+                style={{textTransform: "none", fontSize: "0.75rem"}}
               >
                 Excel
               </Button>
-            </Box>
-          </Box>
+            </JXBox>
+          </JXBox>
         </DashboardPanel>
 
         {/* Transactions Table */}
@@ -843,27 +699,18 @@ export default function UserLedgerManagementPage() {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                mt: 3,
-              }}
-            >
-              <Typography
-                sx={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}
-              >
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: '24px'}}>
+              <p className="text-sm leading-relaxed" style={{fontSize: "0.85rem", color: "var(--text-secondary)"}}>
                 Page {page} of {totalPages}
-              </Typography>
-              <Box sx={{ display: "flex", gap: 1 }}>
+              </p>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: "flex", gap: '8px'}}>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1}
                   icon={<ChevronLeft />}
-                  sx={{ textTransform: "none", fontSize: "0.75rem" }}
+                  style={{textTransform: "none", fontSize: "0.75rem"}}
                 >
                   Previous
                 </Button>
@@ -873,46 +720,43 @@ export default function UserLedgerManagementPage() {
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={page === totalPages}
                   icon={<ChevronRight />}
-                  sx={{ textTransform: "none", fontSize: "0.75rem" }}
+                  style={{textTransform: "none", fontSize: "0.75rem"}}
                 >
                   Next
                 </Button>
-              </Box>
-            </Box>
+              </JXBox>
+            </JXBox>
           )}
         </DashboardPanel>
       </DashboardSurface>
 
       {/* Add Transaction Modal */}
-      <Dialog
+            <form onSubmit={handleAddEntry}>
+<Modal
         open={showAddModal}
         onClose={() => setShowAddModal(false)}
-        maxWidth="sm"
-        fullWidth
+        title="Add Transaction"
+        size="sm"
+        actions={<>
+
+            <Button
+              onClick={() => setShowAddModal(false)}
+              style={{textTransform: "none"}}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              icon={<Check />}
+              style={{textTransform: "none"}}
+            >
+              Add Transaction
+            </Button>
+        </>}
       >
-        <DialogTitle>
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
-            <Typography variant="h6">Add Transaction</Typography>
-            <Tooltip title="Close">
-              <IconButton
-                aria-label="Close add transaction modal"
-                onClick={() => setShowAddModal(false)}
-                size="small"
-              >
-                <Close />
-              </IconButton>
-            </Tooltip>
-          </Box>
-        </DialogTitle>
-        <form onSubmit={handleAddEntry}>
-          <DialogContent>
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: "flex", flexDirection: "column", gap: '16px'}}>
               {/* Account balance info */}
               {(() => {
                 const enteredAmount = parseFloat(formData.amount) || 0;
@@ -934,10 +778,7 @@ export default function UserLedgerManagementPage() {
                       : "account will be settled";
                 return (
                   <>
-                    <Alert
-                      severity={formData.type === "DEBIT" ? "info" : "success"}
-                      sx={{ fontSize: "0.9rem", fontWeight: 500 }}
-                    >
+                    <Alert severity={formData.type === "DEBIT" ? "info" : "success"} variant="subtle" className="font-medium">
                       Current Balance: {currentBalanceLabel}.{" "}
                       {enteredAmount > 0
                         ? `After this transaction, ${projectedBalanceLabel}.`
@@ -947,106 +788,60 @@ export default function UserLedgerManagementPage() {
                 );
               })()}
 
-              <FormControl fullWidth>
-                <InputLabel>Type *</InputLabel>
-                <Select
-                  value={formData.type}
-                  onChange={(e) =>
-                    setFormData({
+              <div className="min-w-0 flex-1"><Select label="Type" options={[{ value: "DEBIT", label: 'Debit / Charge Customer' }, { value: "CREDIT", label: 'Credit / Customer Payment' }]} value={formData.type} required onChange={(val) => setFormData({
                       ...formData,
-                      type: e.target.value as "DEBIT" | "CREDIT",
-                    })
-                  }
-                  label="Type *"
-                  required
-                >
-                  <MenuItem value="DEBIT">Debit / Charge Customer</MenuItem>
-                  <MenuItem value="CREDIT">Credit / Customer Payment</MenuItem>
-                </Select>
-              </FormControl>
+                      type: val as "DEBIT" | "CREDIT",
+                    })} /></div>
 
-              <FormControl fullWidth>
-                <InputLabel>Category *</InputLabel>
-                <Select
-                  value={formData.transactionInfoType}
-                  onChange={(e) =>
-                    setFormData({
+              <div className="min-w-0 flex-1"><Select label="Category" options={Object.entries(transactionInfoTypeLabels).map(([value, label]) => ({ value, label }))} value={formData.transactionInfoType} required onChange={(val) => setFormData({
                       ...formData,
-                      transactionInfoType: e.target
-                        .value as TransactionInfoType,
-                    })
-                  }
-                  label="Category *"
-                  required
-                >
-                  {Object.entries(transactionInfoTypeLabels).map(
-                    ([value, label]) => (
-                      <MenuItem key={value} value={value}>
-                        {label}
-                      </MenuItem>
-                    ),
-                  )}
-                </Select>
-              </FormControl>
+                      transactionInfoType: val as TransactionInfoType,
+                    })} /></div>
 
-              <TextField
-                label="Description *"
-                value={formData.description}
-                onChange={(e) =>
+              <div className="min-w-0 flex-1"><FormField label="Description *" value={formData.description} onChange={(e) =>
                   setFormData({ ...formData, description: e.target.value })
-                }
-                placeholder="e.g. Shipping charge, Customer payment"
-                required
-                fullWidth
-              />
+                } placeholder="e.g. Shipping charge, Customer payment" required /></div>
 
-              <TextField
-                label="Amount * (USD)"
-                type="number"
-                value={formData.amount}
-                onChange={(e) =>
+              <div className="min-w-0 flex-1"><FormField label="Amount * (USD)" type="number" value={formData.amount} onChange={(e) =>
                   setFormData({ ...formData, amount: e.target.value })
-                }
-                placeholder="0.00"
-                inputProps={{ step: "0.01", min: "0.01" }}
-                helperText={
-                  formData.amount
-                    ? (() => {
-                        const amt = parseFloat(formData.amount) || 0;
-                        const projected =
-                          formData.type === "DEBIT"
-                            ? summary.currentBalance + amt
-                            : summary.currentBalance - amt;
-                        if (projected > 0)
-                          return `New balance: customer owes ${formatCurrency(projected)}`;
-                        if (projected < 0)
-                          return `New balance: customer has ${formatCurrency(Math.abs(projected))} credit`;
-                        return "New balance: account settled";
-                      })()
-                    : ""
-                }
-                FormHelperTextProps={{ sx: { color: "#22c55e" } }}
-                required
-                fullWidth
-              />
+                } placeholder="0.00" inputProps={{ step: "0.01", min: "0.01" }} required />
+                {formData.amount ? (
+                  <p className="mt-0.5 text-[0.75rem]" style={{ color: '#22c55e' }}>
+                    {(() => {
+                      const amt = parseFloat(formData.amount) || 0;
+                      const projected =
+                        formData.type === "DEBIT"
+                          ? summary.currentBalance + amt
+                          : summary.currentBalance - amt;
+                      if (projected > 0)
+                        return `New balance: customer owes ${formatCurrency(projected)}`;
+                      if (projected < 0)
+                        return `New balance: customer has ${formatCurrency(Math.abs(projected))} credit`;
+                      return "New balance: account settled";
+                    })()}
+                  </p>
+                ) : null}
+              </div>
 
-              <TextField
-                label="Notes (Optional)"
-                value={formData.notes}
-                onChange={(e) =>
+              <div className="min-w-0 flex-1"><FormField label="Notes (Optional)" value={formData.notes} onChange={(e) =>
                   setFormData({ ...formData, notes: e.target.value })
-                }
-                placeholder="Add any additional notes"
-                multiline
-                rows={3}
-                fullWidth
-              />
-            </Box>
-          </DialogContent>
-          <DialogActions>
+                } placeholder="Add any additional notes" multiline rows={3} /></div>
+            </JXBox>
+      </Modal>
+      </form>
+
+      {/* Edit Transaction Modal */}
+            <form onSubmit={handleEditEntry}>
+<Modal
+        open={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        title="Edit Transaction"
+        size="sm"
+        actions={<>
+
             <Button
-              onClick={() => setShowAddModal(false)}
-              sx={{ textTransform: "none" }}
+              onClick={() => setShowEditModal(false)}
+              style={{textTransform: "none"}}
             >
               Cancel
             </Button>
@@ -1054,118 +849,34 @@ export default function UserLedgerManagementPage() {
               type="submit"
               variant="primary"
               icon={<Check />}
-              sx={{ textTransform: "none" }}
+              style={{textTransform: "none"}}
             >
-              Add Transaction
+              Update Transaction
             </Button>
-          </DialogActions>
-        </form>
-      </Dialog>
-
-      {/* Edit Transaction Modal */}
-      <Dialog
-        open={showEditModal}
-        onClose={() => setShowEditModal(false)}
-        maxWidth="sm"
-        fullWidth
+        </>}
       >
-        <DialogTitle>
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
-            <Typography variant="h6">Edit Transaction</Typography>
-            <Tooltip title="Close">
-              <IconButton
-                aria-label="Close edit transaction modal"
-                onClick={() => setShowEditModal(false)}
-                size="small"
-              >
-                <Close />
-              </IconButton>
-            </Tooltip>
-          </Box>
-        </DialogTitle>
-        <form onSubmit={handleEditEntry}>
-          <DialogContent>
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-              <Alert severity="warning" sx={{ fontSize: "0.85rem" }}>
+
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: "flex", flexDirection: "column", gap: '16px'}}>
+              <Alert severity="warning" variant="subtle">
                 Note: Type and amount cannot be edited to maintain ledger
                 integrity. Only description and notes can be updated.
               </Alert>
 
-              <TextField
-                label="Type (Read-only)"
-                value={formData.type}
-                disabled
-                fullWidth
-              />
+              <div className="min-w-0 flex-1"><FormField label="Type (Read-only)" value={formData.type} disabled /></div>
 
-              <TextField
-                label="Amount (Read-only)"
-                value={formatCurrency(parseFloat(formData.amount))}
-                disabled
-                fullWidth
-              />
+              <div className="min-w-0 flex-1"><FormField label="Amount (Read-only)" value={formatCurrency(parseFloat(formData.amount))} disabled /></div>
 
-              <TextField
-                label="Description *"
-                value={formData.description}
-                onChange={(e) =>
+              <div className="min-w-0 flex-1"><FormField label="Description *" value={formData.description} onChange={(e) =>
                   setFormData({ ...formData, description: e.target.value })
-                }
-                required
-                fullWidth
-              />
+                } required /></div>
 
-              <TextField
-                label="Notes"
-                value={formData.notes}
-                onChange={(e) =>
+              <div className="min-w-0 flex-1"><FormField label="Notes" value={formData.notes} onChange={(e) =>
                   setFormData({ ...formData, notes: e.target.value })
-                }
-                multiline
-                rows={3}
-                fullWidth
-              />
-            </Box>
-          </DialogContent>
-          <DialogActions>
-            <Button
-              onClick={() => setShowEditModal(false)}
-              sx={{ textTransform: "none" }}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              variant="primary"
-              icon={<Check />}
-              sx={{ textTransform: "none" }}
-            >
-              Update Transaction
-            </Button>
-          </DialogActions>
-        </form>
-      </Dialog>
+                } multiline rows={3} /></div>
+            </JXBox>
+      </Modal>
+      </form>
 
-      {/* Snackbar */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-      >
-        <Alert
-          severity={snackbar.severity}
-          onClose={() => setSnackbar({ ...snackbar, open: false })}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </ProtectedRoute>
   );
 }

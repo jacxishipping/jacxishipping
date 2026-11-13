@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { JXBox, SpringButton } from '@jacxishippingorg/jx-ui-react';
+import { JXBox } from "@jacxishippingorg/jx-ui-react";
+import { JacxiButton } from '@/components/design-system/JacxiButton';
 import { Bookmark, Plus, X, Check } from 'lucide-react';
 import { Button } from '@/components/design-system';
 
@@ -151,7 +152,7 @@ export function SavedFilterPresets<T extends Record<string, any>>({
           <Button type="submit" variant="primary" size="sm" icon={<Check size={12} />} className="!px-2 !py-1">
             Save
           </Button>
-          <SpringButton
+          <JacxiButton
             type="button"
             variant="outline"
             tone="primary"
@@ -161,7 +162,7 @@ export function SavedFilterPresets<T extends Record<string, any>>({
             className="!h-7 !min-h-0 !px-2 !py-1 !rounded-md !border !border-[var(--border)] !bg-transparent !text-[var(--text-primary)] !shadow-none"
           >
             <X size={12} />
-          </SpringButton>
+          </JacxiButton>
         </form>
       ) : (
         <Button

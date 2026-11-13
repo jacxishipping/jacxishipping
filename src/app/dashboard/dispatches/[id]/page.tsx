@@ -1,27 +1,14 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import {
-  Autocomplete,
-  Box,
-  CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  MenuItem,
-  Tab,
-  Tabs,
-  TextField,
-  Typography,
-} from '@mui/material';
 import { ArrowLeft, DollarSign, History, Package, Pencil, Plus, Trash2, Truck, User, Download } from 'lucide-react';
 import PermissionRoute from '@/components/auth/PermissionRoute';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
-import { Breadcrumbs, Button, EmptyState, StatsCard, TableSkeleton, toast, CopyButton, PageHeader, MilestoneStepper, StatusBadge } from '@/components/design-system';
+import { Autocomplete, Breadcrumbs, Button, CopyButton, EmptyState, FormField, MilestoneStepper, PageHeader, Select, StatsCard, StatusBadge, TableSkeleton, toast, Modal } from '@/components/design-system';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { DISPATCH_STATUS_COLORS, DISPATCH_STATUS_OPTIONS, getDispatchStatusLabel, isDispatchClosed } from '@/lib/dispatch-workflow';
 import DispatchExpenseModal, { type EditableDispatchExpense } from '@/components/dispatches/DispatchExpenseModal';
@@ -121,7 +108,9 @@ interface Dispatch {
 }
 
 import { formatMoney as formatCurrency } from '@/lib/format';
-const TabPanel = ({ children, value, index }: { children: React.ReactNode; value: number; index: number }) => <div hidden={value !== index}>{value === index && <Box sx={{ pt: 2 }}>{children}</Box>}</div>;
+
+
+const TabPanel = ({ children, value, index }: { children: React.ReactNode; value: number; index: number }) => <div hidden={value !== index}>{value === index && <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingTop: '16px'}}>{children}</JXBox>}</div>;
 
 function getDispatchEventStatusLabel(status: string) {
   if (status === 'HANDOFF_TO_CONTAINER') {
@@ -460,13 +449,13 @@ export default function DispatchDetailPage() {
       key: 'vehicleVIN',
       header: 'Vehicle',
       render: (_, row) => (
-        <Box>
-          <Box sx={{ fontWeight: 600 }}>{[row.vehicleYear, row.vehicleMake, row.vehicleModel].filter(Boolean).join(' ') || 'Shipment'}</Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 600}}>{[row.vehicleYear, row.vehicleMake, row.vehicleModel].filter(Boolean).join(' ') || 'Shipment'}</JXBox>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem', color: 'var(--text-secondary)'}}>
             <span style={{ fontFamily: 'monospace' }}>{row.vehicleVIN || 'No VIN'}</span>
             {row.vehicleVIN && <CopyButton value={row.vehicleVIN} label="VIN" />}
-          </Box>
-        </Box>
+          </JXBox>
+        </JXBox>
       ),
     },
     {
@@ -484,9 +473,9 @@ export default function DispatchDetailPage() {
       header: 'Actions',
       align: 'center',
       render: (_, row) => canManageWorkflow ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
+        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap'}} onClick={(e) => e.stopPropagation()}>
           <Button variant="ghost" size="sm" icon={<Trash2 className="w-4 h-4" />} onClick={() => void handleRemoveShipment(row.id)} disabled={isDispatchWorkflowLocked} />
-        </Box>
+        </JXBox>
       ) : null,
     },
   ], [canManageWorkflow, isDispatchWorkflowLocked]);
@@ -499,10 +488,10 @@ export default function DispatchDetailPage() {
         if (row.status === 'HANDOFF_TO_CONTAINER') {
           const handoffSummary = parseHandoffEventDescription(row.description);
           return (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap'}}>
               <StatusBadge status="WARNING" label="Handoff" size="sm" />
               {handoffSummary?.containerLabel && <StatusBadge status="DEFAULT" variant="outline" label={handoffSummary.containerLabel} size="sm" />}
-            </Box>
+            </JXBox>
           );
         }
 
@@ -526,25 +515,25 @@ export default function DispatchDetailPage() {
           }
 
           return (
-            <Box sx={{ display: 'grid', gap: 0.5 }}>
-              <Typography sx={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.875rem' }}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '4px'}}>
+              <p className="text-sm leading-relaxed" style={{fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.875rem'}}>
                 {yardReceiptSummary.shipmentSummary}
-              </Typography>
-            </Box>
+              </p>
+            </JXBox>
           );
         }
 
         return (
-          <Box sx={{ display: 'grid', gap: 0.5 }}>
-            <Typography sx={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.875rem' }}>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '4px'}}>
+            <p className="text-sm leading-relaxed" style={{fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.875rem'}}>
               {handoffSummary.shipmentSummary}
-            </Typography>
+            </p>
             {handoffSummary.pendingSummary && (
-              <Typography sx={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>
+              <p className="text-sm leading-relaxed" style={{color: 'var(--text-secondary)', fontSize: '0.75rem'}}>
                 {handoffSummary.pendingSummary}
-              </Typography>
+              </p>
             )}
-          </Box>
+          </JXBox>
         );
       },
     },
@@ -565,33 +554,33 @@ export default function DispatchDetailPage() {
       key: 'type',
       header: 'Expense',
       render: (_, row) => (
-        <Box sx={{ display: 'grid', gap: 0.35 }}>
-          <Typography sx={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.875rem' }}>
+        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '2.8px'}}>
+          <p className="text-sm leading-relaxed" style={{fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.875rem'}}>
             {row.category ? getDispatchExpenseCategoryLabel(row.category) : 'Uncategorized'}
-          </Typography>
-          <Typography sx={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>
+          </p>
+          <p className="text-sm leading-relaxed" style={{color: 'var(--text-secondary)', fontSize: '0.75rem'}}>
             {row.category ? getDispatchExpenseTypeLabel(row.category as never, row.type) : row.type}
-          </Typography>
-        </Box>
+          </p>
+        </JXBox>
       ),
     },
     {
       key: 'description',
       header: 'Details',
       render: (_, row) => (
-        <Box sx={{ display: 'grid', gap: 0.35 }}>
-          <Typography sx={{ fontSize: '0.875rem', color: 'var(--text-primary)' }}>{row.description}</Typography>
-          <Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '2.8px'}}>
+          <p className="text-sm leading-relaxed" style={{fontSize: '0.875rem', color: 'var(--text-primary)'}}>{row.description}</p>
+          <p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', color: 'var(--text-secondary)'}}>
             {row.vendor || 'No vendor'}{row.invoiceNumber ? ` • Invoice ${row.invoiceNumber}` : ''}
-          </Typography>
+          </p>
           {row.attachmentUrl ? (
             <Link href={row.attachmentUrl} target="_blank" style={{ textDecoration: 'none' }}>
-              <Typography sx={{ fontSize: '0.75rem', color: 'var(--accent-gold)', fontWeight: 600 }}>
+              <p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', color: 'var(--accent-gold)', fontWeight: 600}}>
                 {row.attachmentName || 'Open attachment'}
-              </Typography>
+              </p>
             </Link>
           ) : null}
-        </Box>
+        </JXBox>
       ),
     },
     { key: 'amount', header: 'Amount', align: 'right', render: (value) => formatCurrency(Number(value)) },
@@ -602,7 +591,7 @@ export default function DispatchDetailPage() {
       header: 'Actions',
       align: 'center',
       render: (_, row) => (
-        <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
+        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '4px', justifyContent: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap'}} onClick={(e) => e.stopPropagation()}>
           <Button variant="ghost" size="sm" icon={<History className="w-4 h-4" />} onClick={() => setExpenseHistoryExpense(row)} />
           {canManageExpenses ? (
             <>
@@ -625,7 +614,7 @@ export default function DispatchDetailPage() {
               />
             </>
           ) : null}
-        </Box>
+        </JXBox>
       ),
     },
   ], [canManageExpenses, deletingExpenseId, isDispatchWorkflowLocked]);
@@ -638,9 +627,9 @@ export default function DispatchDetailPage() {
     return (
       <PermissionRoute permission="dispatches:manage">
         <DashboardSurface>
-          <Box sx={{ px: 2, pt: 2 }}>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingLeft: '16px', paddingRight: '16px', paddingTop: '16px'}}>
             <Breadcrumbs />
-          </Box>
+          </JXBox>
           <DashboardPanel
             title="Dispatch unavailable"
             description={loadError || 'The dispatch could not be loaded.'}
@@ -650,9 +639,9 @@ export default function DispatchDetailPage() {
               </Link>
             }
           >
-            <Typography sx={{ color: 'var(--text-secondary)' }}>
+            <p className="text-sm leading-relaxed" style={{color: 'var(--text-secondary)'}}>
               Refresh the page or return to the dispatch list and try again.
-            </Typography>
+            </p>
           </DashboardPanel>
         </DashboardSurface>
       </PermissionRoute>
@@ -662,15 +651,15 @@ export default function DispatchDetailPage() {
   return (
     <PermissionRoute permission="dispatches:manage">
       <DashboardSurface>
-        <Box sx={{ px: 2, pt: 2 }}>
+        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingLeft: '16px', paddingRight: '16px', paddingTop: '16px'}}>
           <Breadcrumbs />
-        </Box>
+        </JXBox>
 
         <PageHeader
           title={dispatch.referenceNumber}
           description={`${dispatch.origin} → ${dispatch.destination} • Carrier: ${dispatch.company.name}`}
           actions={
-            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap'}}>
               <CopyButton value={dispatch.referenceNumber} label="Dispatch #" />
               <Button
                 variant="outline"
@@ -707,20 +696,20 @@ export default function DispatchDetailPage() {
                 <Button variant="outline" size="sm" icon={<ArrowLeft className="w-4 h-4" />}>Back</Button>
               </Link>
               {canManageWorkflow ? <Button variant="primary" size="sm" icon={<Pencil className="w-4 h-4" />} onClick={openEditDialog} disabled={isDispatchWorkflowLocked}>Edit</Button> : null}
-            </Box>
+            </JXBox>
           }
         />
 
         {/* Milestone Progression Stepper */}
-        <Box sx={{ px: 2, mb: 3 }}>
-          <Box sx={{ p: 2.5, borderRadius: 2, border: '1px solid var(--border)', background: 'var(--panel)', boxShadow: '0 4px 20px rgba(0,0,0,0.04)' }}>
+        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingLeft: '16px', paddingRight: '16px', marginBottom: '24px'}}>
+          <JXBox padding="none" border={false} style={{padding: '20px', borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--panel)', boxShadow: '0 4px 20px rgba(0,0,0,0.04)'}}>
             <MilestoneStepper
               steps={dispatchMilestones}
               currentStepId={dispatch.status}
               status={dispatch.status === 'COMPLETED' ? 'completed' : dispatch.status === 'CANCELLED' ? 'cancelled' : 'default'}
             />
-          </Box>
-        </Box>
+          </JXBox>
+        </JXBox>
 
         <DashboardPanel>
           <DashboardGrid className="grid-cols-1 md:grid-cols-4 mb-4">
@@ -730,7 +719,7 @@ export default function DispatchDetailPage() {
             <StatsCard icon={<DollarSign className="w-5 h-5" />} title="Expenses" value={formatCurrency(totalExpenses)} variant="success" />
           </DashboardGrid>
 
-          <Box sx={{ mb: 2 }}>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginBottom: '16px'}}>
             <span
               style={{
                 display: 'inline-flex',
@@ -748,71 +737,69 @@ export default function DispatchDetailPage() {
             >
               {getDispatchStatusLabel(dispatch.status)}
             </span>
-          </Box>
+          </JXBox>
 
           {isClosedDispatchState && (
-            <Box
-              sx={{
-                mb: 3,
-                borderRadius: 2,
-                border: '1px solid var(--border)',
-                background: 'var(--panel)',
-                px: 2,
-                py: 1.5,
-                color: 'var(--text-secondary)',
-              }}
-            >
+            <JXBox padding="none" border={false} style={{marginBottom: '24px', borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--panel)', paddingLeft: '16px', paddingRight: '16px', paddingTop: '12px', paddingBottom: '12px', color: 'var(--text-secondary)'}}>
               {canOverrideClosedStages
                 ? 'This dispatch is closed. Admin override is enabled for workflow and expense corrections.'
                 : 'This dispatch is closed. Shipment assignment, shipment removal, event logging, and expense posting are locked.'}
-            </Box>
+            </JXBox>
           )}
 
-          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 3, color: 'var(--text-secondary)' }}>
-            <Box><strong>Company:</strong> {dispatch.company.name}</Box>
-            <Box><strong>Dispatch date:</strong> {dispatch.dispatchDate ? new Date(dispatch.dispatchDate).toLocaleDateString() : '-'}</Box>
-            <Box><strong>Estimated arrival:</strong> {dispatch.estimatedArrival ? new Date(dispatch.estimatedArrival).toLocaleDateString() : '-'}</Box>
-            <Box><strong>Actual arrival:</strong> {dispatch.actualArrival ? new Date(dispatch.actualArrival).toLocaleDateString() : '-'}</Box>
-          </Box>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '24px', color: 'var(--text-secondary)'}}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}><strong>Company:</strong> {dispatch.company.name}</JXBox>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}><strong>Dispatch date:</strong> {dispatch.dispatchDate ? new Date(dispatch.dispatchDate).toLocaleDateString() : '-'}</JXBox>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}><strong>Estimated arrival:</strong> {dispatch.estimatedArrival ? new Date(dispatch.estimatedArrival).toLocaleDateString() : '-'}</JXBox>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}><strong>Actual arrival:</strong> {dispatch.actualArrival ? new Date(dispatch.actualArrival).toLocaleDateString() : '-'}</JXBox>
+          </JXBox>
 
-          <Box
-            sx={{
-              mb: 3,
-              borderRadius: 2,
-              border: '1px solid var(--border)',
-              background: 'rgba(var(--accent-gold-rgb), 0.08)',
-              px: 2,
-              py: 1.5,
-              color: 'var(--text-secondary)',
-            }}
-          >
+          <JXBox padding="none" border={false} style={{marginBottom: '24px', borderRadius: '16px', border: '1px solid var(--border)', background: 'rgba(var(--accent-gold-rgb), 0.08)', paddingLeft: '16px', paddingRight: '16px', paddingTop: '12px', paddingBottom: '12px', color: 'var(--text-secondary)'}}>
             This dispatch uses the <strong>{dispatch.company.name}</strong> company ledger for dispatch expense recovery. Any expense added here is posted to that company ledger and allocated across the assigned shipments.
-          </Box>
+          </JXBox>
 
-          <Box
-            sx={{
-              mb: 3,
-              borderRadius: 2,
-              border: '1px solid rgba(var(--accent-gold-rgb), 0.35)',
-              background: 'rgba(var(--accent-gold-rgb), 0.06)',
-              px: 2,
-              py: 1.5,
-              color: 'var(--text-secondary)',
-            }}
-          >
+          <JXBox padding="none" border={false} style={{marginBottom: '24px', borderRadius: '16px', border: '1px solid rgba(var(--accent-gold-rgb), 0.35)', background: 'rgba(var(--accent-gold-rgb), 0.06)', paddingLeft: '16px', paddingRight: '16px', paddingTop: '12px', paddingBottom: '12px', color: 'var(--text-secondary)'}}>
             Use <strong>Receive to Yard</strong> when this dispatch ends at your yard and the cars should wait there as ON_HAND. Use <strong>Handoff to Container</strong> only when the dispatch moves directly into a container.
-          </Box>
+          </JXBox>
 
-          <Tabs value={activeTab} onChange={(_, value) => setActiveTab(value)}>
-            <Tab label={`Shipments (${dispatch.shipments.length})`} />
-            <Tab label={`Events (${dispatch.events.length})`} />
-            <Tab label={`Expenses (${dispatch.expenses.length})`} />
-          </Tabs>
+          <div role="tablist" className="flex gap-1 overflow-x-auto border-b border-[var(--border)]">
+            <button
+              key={0}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 0}
+              onClick={() => { const value = 0; setActiveTab(value); }}
+              className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === 0 ? 'border-[var(--accent-gold)] text-[var(--accent-gold-text)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+            >
+              {`Shipments (${dispatch.shipments.length})`}
+            </button>
+            <button
+              key={1}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 1}
+              onClick={() => { const value = 1; setActiveTab(value); }}
+              className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === 1 ? 'border-[var(--accent-gold)] text-[var(--accent-gold-text)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+            >
+              {`Events (${dispatch.events.length})`}
+            </button>
+            <button
+              key={2}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 2}
+              onClick={() => { const value = 2; setActiveTab(value); }}
+              className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === 2 ? 'border-[var(--accent-gold)] text-[var(--accent-gold-text)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+            >
+              {`Expenses (${dispatch.expenses.length})`}
+            </button>
+          
+          </div>
 
           <TabPanel value={activeTab} index={0}>
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'flex-end', marginBottom: '16px'}}>
               {canManageWorkflow ? <Button variant="primary" icon={<Plus className="w-4 h-4" />} onClick={() => setOpenAddShipment(true)} disabled={isDispatchWorkflowLocked}>Add shipment</Button> : null}
-            </Box>
+            </JXBox>
             {dispatch.shipments.length === 0 ? (
               <EmptyState
                 icon={<Package className="w-8 h-8" />}
@@ -825,9 +812,9 @@ export default function DispatchDetailPage() {
           </TabPanel>
 
           <TabPanel value={activeTab} index={1}>
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'flex-end', marginBottom: '16px'}}>
               {canManageWorkflow ? <Button variant="primary" icon={<Plus className="w-4 h-4" />} onClick={() => setOpenEvent(true)} disabled={isDispatchWorkflowLocked}>Add event</Button> : null}
-            </Box>
+            </JXBox>
             {dispatch.events.length === 0 ? (
               <EmptyState
                 icon={<History className="w-8 h-8" />}
@@ -840,7 +827,7 @@ export default function DispatchDetailPage() {
           </TabPanel>
 
           <TabPanel value={activeTab} index={2}>
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'flex-end', marginBottom: '16px'}}>
               {canManageExpenses ? (
                 <Button
                   variant="primary"
@@ -854,7 +841,7 @@ export default function DispatchDetailPage() {
                   Add expense
                 </Button>
               ) : null}
-            </Box>
+            </JXBox>
             {dispatch.expenses.length === 0 ? (
               <EmptyState
                 icon={<DollarSign className="w-8 h-8" />}
@@ -867,37 +854,45 @@ export default function DispatchDetailPage() {
           </TabPanel>
         </DashboardPanel>
 
-        <Dialog open={openEdit} onClose={() => !saving && setOpenEdit(false)} maxWidth="sm" fullWidth>
-          <DialogTitle>Edit Dispatch</DialogTitle>
-          <DialogContent sx={{ display: 'grid', gap: 2, pt: 1.5 }}>
-            <TextField select label="Status" value={editForm.status} onChange={(event) => setEditForm((prev) => ({ ...prev, status: event.target.value }))}>
-              {DISPATCH_STATUS_OPTIONS.map((status) => <MenuItem key={status} value={status}>{getDispatchStatusLabel(status)}</MenuItem>)}
-            </TextField>
-            <TextField label="Dispatch Date" type="date" InputLabelProps={{ shrink: true }} value={editForm.dispatchDate} onChange={(event) => setEditForm((prev) => ({ ...prev, dispatchDate: event.target.value }))} />
-            <TextField label="Estimated Arrival" type="date" InputLabelProps={{ shrink: true }} value={editForm.estimatedArrival} onChange={(event) => setEditForm((prev) => ({ ...prev, estimatedArrival: event.target.value }))} />
-            <TextField label="Actual Arrival" type="date" InputLabelProps={{ shrink: true }} value={editForm.actualArrival} onChange={(event) => setEditForm((prev) => ({ ...prev, actualArrival: event.target.value }))} />
-            <TextField label="Cost" type="number" value={editForm.cost} onChange={(event) => setEditForm((prev) => ({ ...prev, cost: event.target.value }))} />
-            <TextField label="Notes" multiline rows={3} value={editForm.notes} onChange={(event) => setEditForm((prev) => ({ ...prev, notes: event.target.value }))} />
-          </DialogContent>
-          <DialogActions>
+        <Modal
+          open={openEdit}
+          onClose={() => !saving && setOpenEdit(false)}
+          title="Edit Dispatch"
+          size="sm"
+          contentSx={{display: 'grid', gap: '16px', paddingTop: '12px'}}
+          actions={<>
+
             <Button variant="outline" onClick={() => setOpenEdit(false)} disabled={saving}>Cancel</Button>
             <Button variant="primary" onClick={handleUpdateDispatch} disabled={saving}>{saving ? 'Saving...' : 'Save Changes'}</Button>
-          </DialogActions>
-        </Dialog>
+          </>}
+        >
 
-        <Dialog open={openEvent} onClose={() => !postingEvent && setOpenEvent(false)} maxWidth="sm" fullWidth>
-          <DialogTitle>Add Dispatch Event</DialogTitle>
-          <DialogContent sx={{ display: 'grid', gap: 2, pt: 1.5 }}>
-            <TextField label="Status" value={eventForm.status} onChange={(event) => setEventForm((prev) => ({ ...prev, status: event.target.value }))} />
-            <TextField label="Location" value={eventForm.location} onChange={(event) => setEventForm((prev) => ({ ...prev, location: event.target.value }))} />
-            <TextField label="Event Date" type="date" InputLabelProps={{ shrink: true }} value={eventForm.eventDate} onChange={(event) => setEventForm((prev) => ({ ...prev, eventDate: event.target.value }))} />
-            <TextField label="Description" multiline rows={3} value={eventForm.description} onChange={(event) => setEventForm((prev) => ({ ...prev, description: event.target.value }))} />
-          </DialogContent>
-          <DialogActions>
+            <Select label="Status" options={DISPATCH_STATUS_OPTIONS.map((status) => ({ value: status, label: getDispatchStatusLabel(status) }))} value={editForm.status} onChange={(val) => setEditForm((prev) => ({ ...prev, status: val as string }))} />
+            <FormField label="Dispatch Date" type="date" InputLabelProps={{ shrink: true }} value={editForm.dispatchDate} onChange={(event) => setEditForm((prev) => ({ ...prev, dispatchDate: event.target.value }))} />
+            <FormField label="Estimated Arrival" type="date" InputLabelProps={{ shrink: true }} value={editForm.estimatedArrival} onChange={(event) => setEditForm((prev) => ({ ...prev, estimatedArrival: event.target.value }))} />
+            <FormField label="Actual Arrival" type="date" InputLabelProps={{ shrink: true }} value={editForm.actualArrival} onChange={(event) => setEditForm((prev) => ({ ...prev, actualArrival: event.target.value }))} />
+            <FormField label="Cost" type="number" value={editForm.cost} onChange={(event) => setEditForm((prev) => ({ ...prev, cost: event.target.value }))} />
+            <FormField label="Notes" multiline rows={3} value={editForm.notes} onChange={(event) => setEditForm((prev) => ({ ...prev, notes: event.target.value }))} />
+        </Modal>
+
+        <Modal
+          open={openEvent}
+          onClose={() => !postingEvent && setOpenEvent(false)}
+          title="Add Dispatch Event"
+          size="sm"
+          contentSx={{display: 'grid', gap: '16px', paddingTop: '12px'}}
+          actions={<>
+
             <Button variant="outline" onClick={() => setOpenEvent(false)} disabled={postingEvent}>Cancel</Button>
             <Button variant="primary" onClick={handleCreateEvent} disabled={postingEvent || isDispatchWorkflowLocked}>{postingEvent ? 'Saving...' : 'Add Event'}</Button>
-          </DialogActions>
-        </Dialog>
+          </>}
+        >
+
+            <FormField label="Status" value={eventForm.status} onChange={(event) => setEventForm((prev) => ({ ...prev, status: event.target.value }))} />
+            <FormField label="Location" value={eventForm.location} onChange={(event) => setEventForm((prev) => ({ ...prev, location: event.target.value }))} />
+            <FormField label="Event Date" type="date" InputLabelProps={{ shrink: true }} value={eventForm.eventDate} onChange={(event) => setEventForm((prev) => ({ ...prev, eventDate: event.target.value }))} />
+            <FormField label="Description" multiline rows={3} value={eventForm.description} onChange={(event) => setEventForm((prev) => ({ ...prev, description: event.target.value }))} />
+        </Modal>
 
         <DispatchExpenseModal
           open={expenseModalOpen}
@@ -910,140 +905,106 @@ export default function DispatchDetailPage() {
           onSuccess={() => void fetchDispatch()}
         />
 
-        <Dialog open={Boolean(expenseHistoryExpense)} onClose={() => setExpenseHistoryExpense(null)} maxWidth="sm" fullWidth>
-          <DialogTitle>Dispatch Expense History</DialogTitle>
-          <DialogContent sx={{ display: 'grid', gap: 1.5, pt: 1.5 }}>
+        <Modal
+          open={Boolean(expenseHistoryExpense)}
+          onClose={() => setExpenseHistoryExpense(null)}
+          title="Dispatch Expense History"
+          size="sm"
+          contentSx={{display: 'grid', gap: '12px', paddingTop: '12px'}}
+          actions={<>
+
+            <Button variant="outline" onClick={() => setExpenseHistoryExpense(null)}>Close</Button>
+          </>}
+        >
+
             {!expenseHistoryExpense?.auditLogs?.length ? (
-              <Typography sx={{ color: 'var(--text-secondary)' }}>No audit entries recorded for this expense yet.</Typography>
+              <p className="text-sm leading-relaxed" style={{color: 'var(--text-secondary)'}}>No audit entries recorded for this expense yet.</p>
             ) : (
               expenseHistoryExpense.auditLogs.map((entry) => (
-                <Box key={entry.id} sx={{ border: '1px solid var(--border)', borderRadius: 2, p: 1.5, display: 'grid', gap: 0.5 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
-                    <Typography sx={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.875rem' }}>{entry.action}</Typography>
-                    <Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                <JXBox padding="none" border={false} key={entry.id} style={{backgroundColor: 'transparent', border: '1px solid var(--border)', borderRadius: '16px', padding: '12px', display: 'grid', gap: '4px'}}>
+                  <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap'}}>
+                    <p className="text-sm leading-relaxed" style={{fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.875rem'}}>{entry.action}</p>
+                    <p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', color: 'var(--text-secondary)'}}>
                       {new Date(entry.performedAt).toLocaleString()}
-                    </Typography>
-                  </Box>
-                  <Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                    </p>
+                  </JXBox>
+                  <p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', color: 'var(--text-secondary)'}}>
                     By {entry.performedByLabel || entry.performedBy}
-                  </Typography>
+                  </p>
                   {entry.changes ? (
-                    <Box
-                      component="pre"
-                      sx={{
-                        m: 0,
-                        p: 1,
-                        borderRadius: 1.5,
-                        bgcolor: 'var(--background)',
-                        color: 'var(--text-secondary)',
-                        fontSize: '0.7rem',
-                        overflowX: 'auto',
-                        whiteSpace: 'pre-wrap',
-                        wordBreak: 'break-word',
-                      }}
-                    >
+                    <JXBox padding="none" border={false} component="pre" style={{margin: '0px', padding: '8px', borderRadius: '12px', backgroundColor: 'var(--background)', color: 'var(--text-secondary)', fontSize: '0.7rem', overflowX: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-word'}}>
                       {JSON.stringify(entry.changes, null, 2)}
-                    </Box>
+                    </JXBox>
                   ) : null}
-                </Box>
+                </JXBox>
               ))
             )}
-          </DialogContent>
-          <DialogActions>
-            <Button variant="outline" onClick={() => setExpenseHistoryExpense(null)}>Close</Button>
-          </DialogActions>
-        </Dialog>
+        </Modal>
 
-        <Dialog open={openAddShipment} onClose={() => !addingShipment && setOpenAddShipment(false)} maxWidth="sm" fullWidth>
-          <DialogTitle>Add Shipment to Dispatch</DialogTitle>
-          <DialogContent sx={{ display: 'grid', gap: 2, pt: 1.5 }}>
-            <Autocomplete
-              options={availableShipments}
-              loading={loadingAvailableShipments}
-              value={availableShipments.find((shipment) => shipment.id === shipmentIdToAdd) || null}
-              onChange={(_, shipment) => setShipmentIdToAdd(shipment?.id || '')}
-              onInputChange={(_, value) => setShipmentSearch(value)}
-              getOptionLabel={(shipment) => `${[shipment.vehicleYear, shipment.vehicleMake, shipment.vehicleModel].filter(Boolean).join(' ') || 'Shipment'}${shipment.vehicleVIN ? ` - ${shipment.vehicleVIN}` : ''}`}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Shipment"
-                  InputProps={{
-                    ...params.InputProps,
-                    endAdornment: (
-                      <>
-                        {loadingAvailableShipments ? <CircularProgress color="inherit" size={20} /> : null}
-                        {params.InputProps.endAdornment}
-                      </>
-                    ),
-                  }}
-                />
-              )}
-            />
-          </DialogContent>
-          <DialogActions>
+        <Modal
+          open={openAddShipment}
+          onClose={() => !addingShipment && setOpenAddShipment(false)}
+          title="Add Shipment to Dispatch"
+          size="sm"
+          contentSx={{display: 'grid', gap: '16px', paddingTop: '12px'}}
+          actions={<>
+
             <Button variant="outline" onClick={() => setOpenAddShipment(false)} disabled={addingShipment}>Cancel</Button>
             <Button variant="primary" onClick={handleAddShipment} disabled={addingShipment || isDispatchWorkflowLocked}>{addingShipment ? 'Adding...' : 'Add Shipment'}</Button>
-          </DialogActions>
-        </Dialog>
+          </>}
+        >
 
-        <Dialog open={openHandoff} onClose={() => !handingOff && setOpenHandoff(false)} maxWidth="sm" fullWidth>
-          <DialogTitle>Handoff Dispatch to Container</DialogTitle>
-          <DialogContent sx={{ display: 'grid', gap: 2, pt: 1.5 }}>
-            <Typography sx={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
-              Select the shipment batch for this handoff. Each handoff is logged separately on the dispatch, the destination container, and the affected shipments.
-            </Typography>
-            <Autocomplete
-              multiple
-              options={dispatch.shipments}
-              value={dispatch.shipments.filter((shipment) => shipmentIdsToHandoff.includes(shipment.id))}
-              onChange={(_, shipments) => setShipmentIdsToHandoff(shipments.map((shipment) => shipment.id))}
-              getOptionLabel={(shipment) => `${[shipment.vehicleYear, shipment.vehicleMake, shipment.vehicleModel].filter(Boolean).join(' ') || 'Shipment'}${shipment.vehicleVIN ? ` - ${shipment.vehicleVIN}` : ''}`}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Shipments"
-                  helperText="Choose the dispatch shipments to move into the selected container"
-                />
-              )}
+                        <Autocomplete
+              options={availableShipments.map((shipment) => ({ id: shipment.id, label: `${[shipment.vehicleYear, shipment.vehicleMake, shipment.vehicleModel].filter(Boolean).join(' ') || 'Shipment'}${shipment.vehicleVIN ? ` - ${shipment.vehicleVIN}` : ''}`, searchText: shipment.vehicleVIN || '' }))}
+              loading={loadingAvailableShipments}
+              value={shipmentIdToAdd || null}
+              onChange={(id) => setShipmentIdToAdd((id as string | null) || '')}
+              onInputChange={(v) => setShipmentSearch(v)}
+              label="Shipment"
             />
-            <Typography sx={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-              {shipmentIdsToHandoff.length} of {dispatch.shipments.length} shipment{dispatch.shipments.length === 1 ? '' : 's'} selected for this handoff.
-            </Typography>
-            <Autocomplete
-              options={availableContainers}
-              loading={loadingContainers}
-              value={availableContainers.find((container) => container.id === containerIdToHandoff) || null}
-              onChange={(_, container) => setContainerIdToHandoff(container?.id || '')}
-              getOptionLabel={(container) => `${container.containerNumber} - ${container.company?.name || 'No company'} (${container.currentCount}/${container.maxCapacity})`}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Container"
-                  helperText="Select the destination container for this port handoff"
-                  InputProps={{
-                    ...params.InputProps,
-                    endAdornment: (
-                      <>
-                        {loadingContainers ? <CircularProgress color="inherit" size={20} /> : null}
-                        {params.InputProps.endAdornment}
-                      </>
-                    ),
-                  }}
-                />
-              )}
-            />
-            {!loadingContainers && availableContainers.length === 0 && (
-              <Typography sx={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-                No active containers with available capacity are currently available.
-              </Typography>
-            )}
-          </DialogContent>
-          <DialogActions>
+        </Modal>
+
+        <Modal
+          open={openHandoff}
+          onClose={() => !handingOff && setOpenHandoff(false)}
+          title="Handoff Dispatch to Container"
+          size="sm"
+          contentSx={{display: 'grid', gap: '16px', paddingTop: '12px'}}
+          actions={<>
+
             <Button variant="outline" onClick={() => setOpenHandoff(false)} disabled={handingOff}>Cancel</Button>
             <Button variant="primary" onClick={handleHandoffToContainer} disabled={handingOff || !canHandoffToContainer || !containerIdToHandoff || shipmentIdsToHandoff.length === 0}>{handingOff ? 'Handing Off...' : 'Confirm Handoff'}</Button>
-          </DialogActions>
-        </Dialog>
+          </>}
+        >
+
+            <p className="text-sm leading-relaxed" style={{color: 'var(--text-secondary)', fontSize: '0.95rem'}}>
+              Select the shipment batch for this handoff. Each handoff is logged separately on the dispatch, the destination container, and the affected shipments.
+            </p>
+                        <Autocomplete
+              multiple
+              options={dispatch.shipments.map((shipment) => ({ id: shipment.id, label: `${[shipment.vehicleYear, shipment.vehicleMake, shipment.vehicleModel].filter(Boolean).join(' ') || 'Shipment'}${shipment.vehicleVIN ? ` - ${shipment.vehicleVIN}` : ''}`, searchText: shipment.vehicleVIN || '' }))}
+              value={shipmentIdsToHandoff}
+              onChange={(v) => setShipmentIdsToHandoff((v as string[]) || [])}
+              label="Shipments"
+              helperText="Choose the dispatch shipments to move into the selected container"
+            />
+            <p className="text-sm leading-relaxed" style={{color: 'var(--text-secondary)', fontSize: '0.875rem'}}>
+              {shipmentIdsToHandoff.length} of {dispatch.shipments.length} shipment{dispatch.shipments.length === 1 ? '' : 's'} selected for this handoff.
+            </p>
+                        <Autocomplete
+              options={availableContainers.map((container) => ({ id: container.id, label: `${container.containerNumber} - ${container.company?.name || 'No company'} (${container.currentCount}/${container.maxCapacity})` }))}
+              loading={loadingContainers}
+              value={containerIdToHandoff || null}
+              onChange={(id) => setContainerIdToHandoff((id as string | null) || '')}
+              label="Container"
+              helperText="Select the destination container for these shipments"
+            />
+            {!loadingContainers && availableContainers.length === 0 && (
+              <p className="text-sm leading-relaxed" style={{color: 'var(--text-secondary)', fontSize: '0.875rem'}}>
+                No active containers with available capacity are currently available.
+              </p>
+            )}
+        </Modal>
       </DashboardSurface>
     </PermissionRoute>
   );

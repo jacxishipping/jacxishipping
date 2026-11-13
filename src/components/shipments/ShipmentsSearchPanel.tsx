@@ -1,11 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { Add, Inventory2 } from '@mui/icons-material';
-import { Box } from '@mui/material';
 import SmartSearch, { SearchFilters } from '@/components/dashboard/SmartSearch';
 import { DashboardPanel } from '@/components/dashboard/DashboardSurface';
 import { Breadcrumbs, Button } from '@/components/design-system';
+import { Package, Plus } from 'lucide-react';
 
 type ShipmentsSearchPanelProps = {
 	onSearch: (filters: SearchFilters) => void;
@@ -29,17 +28,17 @@ export default function ShipmentsSearchPanel({
 	return (
 		<>
 			{showBreadcrumbs && !hideHeader && (
-				<Box sx={{ mb: 1.5 }}>
+				<div style={{marginBottom: '12px'}}>
 					<Breadcrumbs />
-				</Box>
+				</div>
 			)}
 			<DashboardPanel
 				title={
 					!hideHeader ? (
-						<Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
-							<Inventory2 sx={{ fontSize: 18, color: 'var(--accent-gold)' }} />
+						<div style={{display: 'inline-flex', alignItems: 'center', gap: '8px'}}>
+							<Package className="h-[18px] w-[18px]" style={{ color: 'var(--accent-gold)' }}/>
 							<span>Shipments</span>
-						</Box>
+						</div>
 					) : undefined
 				}
 				description={!hideHeader ? "Search, filter, and manage your shipments" : undefined}
@@ -51,7 +50,7 @@ export default function ShipmentsSearchPanel({
 							href="/dashboard/shipments/new"
 							variant="primary"
 							size="sm"
-							icon={<Add fontSize="small" />}
+							icon={<Plus className="h-5 w-5" />}
 							iconPosition="start"
 						>
 							New shipment
@@ -59,7 +58,7 @@ export default function ShipmentsSearchPanel({
 					) : null
 				}
 			>
-				<Box sx={{ px: { xs: 1, sm: 1.25, md: 1.5 }, py: { xs: 1, sm: 1.25, md: 1.5 } }}>
+				<div style={{paddingLeft: '12px', paddingRight: '12px', paddingTop: '12px', paddingBottom: '12px'}}>
 					<SmartSearch
 						onSearch={onSearch}
 						onScan={onScan}
@@ -74,7 +73,7 @@ export default function ShipmentsSearchPanel({
 						showDeliveryFilter={showDeliveryFilter}
 						defaultType="shipments"
 					/>
-				</Box>
+				</div>
 			</DashboardPanel>
 		</>
 	);

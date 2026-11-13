@@ -1,33 +1,24 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import {
-  AppBar,
-  Toolbar,
-  Typography,
-  Avatar,
-  Menu,
-  MenuItem,
-  Tooltip,
-  ListItemIcon,
-  ListItemText,
-} from "@mui/material";
-import { JXBox, JXDivider, SpringButton } from "@jacxishippingorg/jx-ui-react";
+import { JXBox, JXDivider, JXAvatar } from "@jacxishippingorg/jx-ui-react";
+import { JacxiButton } from '@/components/design-system/JacxiButton';
 import {
   Settings,
-  Logout,
-  Person,
+  LogOut,
+  User,
   Menu as MenuIcon,
-  Add as AddIcon,
+  Plus as AddIcon,
   Keyboard as KeyboardIcon,
   Search as SearchIcon,
-} from "@mui/icons-material";
+} from "lucide-react";
 import { Ship, Package, FileText, Download, FileSpreadsheet } from "lucide-react";
 import { signOut } from "next-auth/react";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/design-system";
+import Tooltip from "@/components/design-system/Tooltip";
 import SiteLogo from "@/components/brand/SiteLogo";
 import { NotificationCenter } from "@/components/ui/NotificationCenter";
 import GlobalSearch from "@/components/dashboard/GlobalSearch";
@@ -73,13 +64,93 @@ const quickActionDefinitions = [
   },
 ] satisfies QuickAction[];
 
+/**
+ * Header popover menu (replaces MUI Menu/MenuItem).
+ *
+ * JXMenu is a static menu container with no anchor/popover behaviour
+ * (no open/anchorEl/onClose), so the anchored popover is rebuilt here:
+ * an absolutely-positioned panel under the trigger, closed by outside
+ * click or Escape, with focus returned to the trigger. Menu items are
+ * plain buttons/links with the same gold-hover styling as before.
+ */
+function HeaderMenu({
+  open,
+  onClose,
+  triggerLabel,
+  children,
+}: {
+  open: boolean;
+  onClose: () => void;
+  triggerLabel: string;
+  children: React.ReactNode;
+}) {
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleDown = (e: MouseEvent) => {
+      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("mousedown", handleDown);
+    window.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleDown);
+      window.removeEventListener("keydown", handleKey);
+    };
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  return (
+    <div
+      ref={panelRef}
+      role="menu"
+      aria-label={triggerLabel}
+      className="absolute right-0 top-full z-[1050] mt-1.5 min-w-[200px] rounded-lg border border-[var(--border)] bg-[var(--panel)] shadow-[0_8px_32px_rgba(var(--text-primary-rgb),0.12)] backdrop-blur-[10px]"
+    >
+      {children}
+    </div>
+  );
+}
+
+function HeaderMenuItem({
+  onClick,
+  children,
+  danger = false,
+}: {
+  onClick?: () => void;
+  children: React.ReactNode;
+  danger?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      role="menuitem"
+      onClick={onClick}
+      className={[
+        "flex w-full items-center px-4 py-2.5 text-left text-[0.875rem] transition-colors",
+        danger
+          ? "text-[var(--error)] hover:bg-[rgba(var(--error-rgb),0.1)]"
+          : "text-[var(--text-primary)] hover:bg-[rgba(var(--border-rgb),0.4)]",
+      ].join(" ")}
+    >
+      {children}
+    </button>
+  );
+}
+
 export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
   const { density } = useTheme();
   const isCompact = density === "compact";
   const { data: session } = useSession();
   const router = useRouter();
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [quickActionEl, setQuickActionEl] = useState<null | HTMLElement>(null);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [quickActionMenuOpen, setQuickActionMenuOpen] = useState(false);
   const userRole = session?.user?.role;
   const quickActions = useMemo(
     () =>
@@ -93,24 +164,23 @@ export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
     [userRole],
   );
 
-  const handleProfileMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
+  const handleProfileMenuOpen = () => {
+    setProfileMenuOpen((prev) => !prev);
   };
 
   const handleMenuClose = () => {
-    setAnchorEl(null);
+    setProfileMenuOpen(false);
   };
 
-  const handleQuickActionOpen = (event: React.MouseEvent<HTMLElement>) => {
+  const handleQuickActionOpen = () => {
     if (quickActions.length === 0) {
       return;
     }
-
-    setQuickActionEl(event.currentTarget);
+    setQuickActionMenuOpen((prev) => !prev);
   };
 
   const handleQuickActionClose = () => {
-    setQuickActionEl(null);
+    setQuickActionMenuOpen(false);
   };
 
   const handleQuickActionClick = (href: string) => {
@@ -130,38 +200,22 @@ export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
   };
 
   return (
-    <AppBar
-      position="sticky"
-      elevation={0}
-      color="inherit"
-      sx={{
-        position: "sticky",
-        bgcolor: "var(--panel)",
-        borderBottom: "1px solid var(--border)",
-        boxShadow: "0 8px 16px rgba(var(--text-primary-rgb),0.06)",
-        "&::after": {
-          content: '""',
-          position: "absolute",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: "1px",
-          background:
-            "linear-gradient(90deg, transparent, rgba(var(--accent-gold-rgb), 0.3), transparent)",
-        },
+    <header
+      className="sticky top-0 z-[1020] border-b border-[var(--border)] bg-[var(--panel)] shadow-[0_8px_16px_rgba(var(--text-primary-rgb),0.06)]"
+      style={{
+        backgroundImage:
+          "linear-gradient(90deg, transparent, rgba(var(--accent-gold-rgb), 0.3), transparent)",
+        backgroundSize: "100% 1px",
+        backgroundRepeat: "no-repeat",
+        backgroundPosition: "bottom",
       }}
     >
-      <Toolbar
-        sx={{
-          minHeight: isCompact ? 48 : 56,
-          height: isCompact ? 48 : 56,
-          px: { xs: 1.5, sm: 2.5 },
-          py: 0,
-          color: "var(--text-primary)",
-        }}
+      <div
+        className="flex items-center px-3 py-0 text-[var(--text-primary)] sm:px-5"
+        style={{ minHeight: isCompact ? 48 : 56, height: isCompact ? 48 : 56 }}
       >
         {/* Mobile Menu Button */}
-        <SpringButton
+        <JacxiButton
           type="button"
           variant="outline"
           tone="primary"
@@ -170,8 +224,8 @@ export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
           style={{ fontFamily: "inherit" }}
           className="mr-2 flex lg:hidden !h-9 !w-9 !min-h-0 !min-w-0 items-center justify-center !rounded-lg !border-0 !bg-transparent !p-1.5 !text-[var(--text-primary)] hover:!bg-[rgba(var(--accent-gold-rgb),0.1)] !shadow-none"
         >
-          <MenuIcon sx={{ fontSize: 22 }} />
-        </SpringButton>
+          <MenuIcon className="h-[22px] w-[22px]" />
+        </JacxiButton>
 
         {/* Logo/Title */}
         <JXBox padding="none" border={false} className="flex flex-grow items-center !rounded-none !bg-transparent" style={{ fontFamily: "inherit" }}>
@@ -198,16 +252,9 @@ export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
                 aria-hidden="true"
                 className="hidden md:block mx-3 h-5 w-px bg-[var(--border)] shrink-0"
               />
-              <Typography
-                sx={{
-                  display: { xs: "none", md: "block" },
-                  fontSize: "0.875rem",
-                  color: "var(--text-secondary)",
-                  fontWeight: 500,
-                }}
-              >
+              <span className="hidden text-[0.875rem] font-medium text-[var(--text-secondary)] md:block">
                 {pageTitle}
-              </Typography>
+              </span>
             </>
           )}
         </JXBox>
@@ -220,7 +267,7 @@ export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
           </JXBox>
           <Tooltip title="Search">
             <span className="inline-flex sm:hidden">
-              <SpringButton
+              <JacxiButton
                 type="button"
                 variant="outline"
                 tone="primary"
@@ -231,32 +278,73 @@ export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
                 className="!h-9 !w-9 !min-h-0 !min-w-0 !rounded-lg !border-0 !bg-transparent !p-1.5 !text-[var(--text-secondary)] hover:!text-[var(--text-primary)] hover:!bg-[rgba(var(--accent-gold-rgb),0.1)] !shadow-none"
                 aria-label="Search"
               >
-                <SearchIcon sx={{ fontSize: 22 }} />
-              </SpringButton>
+                <SearchIcon className="h-[22px] w-[22px]" />
+              </JacxiButton>
             </span>
           </Tooltip>
           {quickActions.length > 0 && (
-            <Tooltip title="Quick Actions">
-              <span className="inline-flex mr-0.5">
-                <SpringButton
-                  type="button"
-                  variant="outline"
-                  tone="primary"
-                  onClick={handleQuickActionOpen}
-                  aria-label="Quick Actions"
-                  style={{ fontFamily: "inherit" }}
-                  className="!h-9 !w-9 !min-h-0 !min-w-0 !rounded-lg !border-0 !bg-transparent !p-1.5 !text-[var(--accent-gold-text)] hover:!bg-[rgba(var(--accent-gold-rgb),0.1)] hover:!shadow-[0_0_0_1px_rgba(var(--accent-gold-rgb),0.2)] !shadow-none"
+            <span className="relative mr-0.5 inline-flex">
+              <Tooltip title="Quick Actions">
+                <span className="inline-flex">
+                  <JacxiButton
+                    type="button"
+                    variant="outline"
+                    tone="primary"
+                    onClick={handleQuickActionOpen}
+                    aria-label="Quick Actions"
+                    aria-expanded={quickActionMenuOpen}
+                    aria-haspopup="menu"
+                    style={{ fontFamily: "inherit" }}
+                    className="!h-9 !w-9 !min-h-0 !min-w-0 !rounded-lg !border-0 !bg-transparent !p-1.5 !text-[var(--accent-gold-text)] hover:!bg-[rgba(var(--accent-gold-rgb),0.1)] hover:!shadow-[0_0_0_1px_rgba(var(--accent-gold-rgb),0.2)] !shadow-none"
+                  >
+                    <AddIcon className="h-[22px] w-[22px]" />
+                  </JacxiButton>
+                </span>
+              </Tooltip>
+              <HeaderMenu
+                open={quickActionMenuOpen}
+                onClose={handleQuickActionClose}
+                triggerLabel="Quick Actions"
+              >
+                <JXBox padding="none" border={false} className="px-4 py-3 pb-2 !rounded-none !bg-transparent" style={{ fontFamily: "inherit" }}>
+                  <span className="text-[0.7rem] font-semibold uppercase text-[var(--text-secondary)]">
+                    Create New
+                  </span>
+                </JXBox>
+                {quickActions.map((action) => (
+                  <HeaderMenuItem
+                    key={action.label}
+                    onClick={() => handleQuickActionClick(action.href)}
+                  >
+                    <span className="mr-3 flex min-w-9 items-center" style={{ color: action.color }}>
+                      {action.icon}
+                    </span>
+                    <span className="text-[0.875rem] font-medium">{action.label}</span>
+                  </HeaderMenuItem>
+                ))}
+                <JXDivider className="!my-1 !border-[var(--border)]" />
+                <HeaderMenuItem
+                  onClick={() => {
+                    handleQuickActionClose();
+                    openUniversalShipmentExport();
+                  }}
                 >
-                  <AddIcon sx={{ fontSize: 22 }} />
-                </SpringButton>
-              </span>
-            </Tooltip>
+                  <span className="mr-3 flex min-w-9 items-center text-[var(--accent-gold)]">
+                    <FileSpreadsheet style={{ width: 20, height: 20 }} />
+                  </span>
+                  <span>
+                    <span className="block text-[0.875rem] font-medium">Export Shipments</span>
+                    <span className="block text-[0.72rem] text-[var(--text-secondary)]">Excel / CSV download</span>
+                  </span>
+                </HeaderMenuItem>
+              </HeaderMenu>
+            </span>
           )}
 
           {/* Quick Universal Export Shipments Button */}
           <Tooltip title="Export Shipments (Excel/CSV)">
             <span className="inline-flex mr-0.5">
-              <SpringButton
+              <JacxiButton
                 type="button"
                 variant="outline"
                 tone="primary"
@@ -266,14 +354,14 @@ export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
                 aria-label="Export Shipments"
               >
                 <Download style={{ width: 20, height: 20 }} />
-              </SpringButton>
+              </JacxiButton>
             </span>
           </Tooltip>
 
           {/* Keyboard Shortcuts */}
           <Tooltip title="Keyboard Shortcuts (?)">
             <span className="hidden md:inline-flex">
-              <SpringButton
+              <JacxiButton
                 type="button"
                 variant="outline"
                 tone="primary"
@@ -282,8 +370,8 @@ export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
                 style={{ fontFamily: "inherit" }}
                 className="!h-9 !w-9 !min-h-0 !min-w-0 !rounded-lg !border-0 !bg-transparent !p-1.5 !text-[var(--text-secondary)] hover:!bg-[rgba(var(--border-rgb),0.4)] hover:!text-[var(--text-primary)] !shadow-none"
               >
-                <KeyboardIcon sx={{ fontSize: 20 }} />
-              </SpringButton>
+                <KeyboardIcon className="h-5 w-5" />
+              </JacxiButton>
             </span>
           </Tooltip>
 
@@ -296,7 +384,7 @@ export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
           {/* Settings */}
           <Tooltip title="Settings">
             <Link href="/dashboard/settings" style={{ textDecoration: "none" }} className="inline-flex">
-              <SpringButton
+              <JacxiButton
                 type="button"
                 variant="outline"
                 tone="primary"
@@ -304,237 +392,82 @@ export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
                 style={{ fontFamily: "inherit" }}
                 className="!h-9 !w-9 !min-h-0 !min-w-0 !rounded-lg !border-0 !bg-transparent !p-1.5 !text-[var(--text-secondary)] hover:!bg-[rgba(var(--border-rgb),0.4)] hover:!text-[var(--text-primary)] !shadow-none"
               >
-                <Settings sx={{ fontSize: 20 }} />
-              </SpringButton>
+                <Settings className="h-5 w-5" />
+              </JacxiButton>
             </Link>
           </Tooltip>
 
           {/* Profile Menu */}
-          <Tooltip title="Account">
-            <span className="inline-flex ml-1">
-              <SpringButton
-                type="button"
-                variant="outline"
-                tone="primary"
-                onClick={handleProfileMenuOpen}
-                aria-label="Account profile"
-                style={{ fontFamily: "inherit" }}
-                className="!h-auto !w-auto !min-h-0 !min-w-0 !rounded-full !border-0 !bg-transparent !p-1 !shadow-none"
-              >
-                <Avatar
-                  src={session?.user?.image || undefined}
-                  sx={{
-                    width: 30,
-                    height: 30,
-                    bgcolor: "var(--accent-gold)",
-                    fontSize: "0.875rem",
-                    fontWeight: 600,
-                    color: "var(--background)",
-                  }}
+          <span className="relative ml-1 inline-flex">
+            <Tooltip title="Account">
+              <span className="inline-flex">
+                <JacxiButton
+                  type="button"
+                  variant="outline"
+                  tone="primary"
+                  onClick={handleProfileMenuOpen}
+                  aria-label="Account profile"
+                  aria-expanded={profileMenuOpen}
+                  aria-haspopup="menu"
+                  style={{ fontFamily: "inherit" }}
+                  className="!h-auto !w-auto !min-h-0 !min-w-0 !rounded-full !border-0 !bg-transparent !p-1 !shadow-none"
                 >
-                  {session?.user?.name?.charAt(0).toUpperCase() || "U"}
-                </Avatar>
-              </SpringButton>
-            </span>
-          </Tooltip>
+                  <JXAvatar
+                    name={session?.user?.name || "User"}
+                    src={session?.user?.image || undefined}
+                    shape="circle"
+                    size="sm"
+                    gradientClass="from-[#D4AF37] to-[#96791F]"
+                    className="!h-[30px] !w-[30px] !text-[0.875rem]"
+                  />
+                </JacxiButton>
+              </span>
+            </Tooltip>
+            <HeaderMenu
+              open={profileMenuOpen}
+              onClose={handleMenuClose}
+              triggerLabel="Account"
+            >
+              {/* User Info */}
+              <JXBox padding="none" border={false} className="px-4 py-3 !rounded-none !bg-transparent" style={{ fontFamily: "inherit" }}>
+                <p className="mb-1 text-[0.875rem] font-semibold text-[var(--text-primary)]">
+                  {session?.user?.name || "User"}
+                </p>
+                <p className="text-[0.75rem] text-[var(--text-secondary)]">
+                  {session?.user?.email}
+                </p>
+                <p className="mt-2 text-[0.6875rem] font-semibold uppercase text-[var(--accent-gold-text)]">
+                  {session?.user?.role || "user"}
+                </p>
+              </JXBox>
+
+              <JXDivider className="!border-[var(--border)]" />
+
+              {/* Menu Items */}
+              <Link href="/dashboard/profile" style={{ textDecoration: "none" }} onClick={handleMenuClose}>
+                <span className="flex w-full items-center px-4 py-2.5 text-left text-[0.875rem] text-[var(--text-primary)] transition-colors hover:bg-[rgba(var(--border-rgb),0.4)]">
+                  <User className="mr-3 h-5 w-5" />
+                  Profile
+                </span>
+              </Link>
+
+              <Link href="/dashboard/settings" style={{ textDecoration: "none" }} onClick={handleMenuClose}>
+                <span className="flex w-full items-center px-4 py-2.5 text-left text-[0.875rem] text-[var(--text-primary)] transition-colors hover:bg-[rgba(var(--border-rgb),0.4)]">
+                  <Settings className="mr-3 h-5 w-5" />
+                  Settings
+                </span>
+              </Link>
+
+              <JXDivider className="!border-[var(--border)]" />
+
+              <HeaderMenuItem onClick={handleSignOut} danger>
+                <LogOut className="mr-3 h-5 w-5" />
+                Sign Out
+              </HeaderMenuItem>
+            </HeaderMenu>
+          </span>
         </JXBox>
-
-        {/* Profile Dropdown Menu */}
-        <Menu
-          anchorEl={anchorEl}
-          open={Boolean(anchorEl)}
-          onClose={handleMenuClose}
-          PaperProps={{
-            sx: {
-              mt: 1.5,
-              minWidth: 200,
-              bgcolor: "var(--panel)",
-              backdropFilter: "blur(10px)",
-              border: "1px solid var(--border)",
-              borderRadius: 2,
-              boxShadow: "0 8px 32px rgba(var(--text-primary-rgb),0.12)",
-            },
-          }}
-          transformOrigin={{ horizontal: "right", vertical: "top" }}
-          anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
-        >
-          {/* User Info */}
-          <JXBox padding="none" border={false} className="px-4 py-3 !rounded-none !bg-transparent" style={{ fontFamily: "inherit" }}>
-            <Typography
-              sx={{
-                fontSize: "0.875rem",
-                fontWeight: 600,
-                color: "var(--text-primary)",
-                mb: 0.25,
-              }}
-            >
-              {session?.user?.name || "User"}
-            </Typography>
-            <Typography
-              sx={{
-                fontSize: "0.75rem",
-                color: "var(--text-secondary)",
-              }}
-            >
-              {session?.user?.email}
-            </Typography>
-            <Typography
-              sx={{
-                fontSize: "0.6875rem",
-                color: "var(--accent-gold-text)",
-                mt: 0.5,
-                textTransform: "uppercase",
-                fontWeight: 600,
-              }}
-            >
-              {session?.user?.role || "user"}
-            </Typography>
-          </JXBox>
-
-          <JXDivider className="!border-[var(--border)]" />
-
-          {/* Menu Items */}
-          <Link href="/dashboard/profile" style={{ textDecoration: "none" }}>
-            <MenuItem
-              onClick={handleMenuClose}
-              sx={{
-                color: "var(--text-primary)",
-                fontSize: "0.875rem",
-                py: 1.25,
-                "&:hover": {
-                  bgcolor: "rgba(var(--border-rgb), 0.4)",
-                },
-              }}
-            >
-              <Person sx={{ mr: 1.5, fontSize: 20 }} />
-              Profile
-            </MenuItem>
-          </Link>
-
-          <Link href="/dashboard/settings" style={{ textDecoration: "none" }}>
-            <MenuItem
-              onClick={handleMenuClose}
-              sx={{
-                color: "var(--text-primary)",
-                fontSize: "0.875rem",
-                py: 1.25,
-                "&:hover": {
-                  bgcolor: "rgba(var(--border-rgb), 0.4)",
-                },
-              }}
-            >
-              <Settings sx={{ mr: 1.5, fontSize: 20 }} />
-              Settings
-            </MenuItem>
-          </Link>
-
-          <JXDivider className="!border-[var(--border)]" />
-
-          <MenuItem
-            onClick={handleSignOut}
-            sx={{
-              color: "var(--error)",
-              fontSize: "0.875rem",
-              py: 1.25,
-              "&:hover": {
-                bgcolor: "rgba(var(--error-rgb), 0.1)",
-                color: "var(--error)",
-              },
-            }}
-          >
-            <Logout sx={{ mr: 1.5, fontSize: 20 }} />
-            Sign Out
-          </MenuItem>
-        </Menu>
-
-        {/* Quick Actions Menu */}
-        {quickActions.length > 0 && (
-          <Menu
-            anchorEl={quickActionEl}
-            open={Boolean(quickActionEl)}
-            onClose={handleQuickActionClose}
-            PaperProps={{
-              sx: {
-                mt: 1.5,
-                minWidth: 200,
-                bgcolor: "var(--panel)",
-                backdropFilter: "blur(10px)",
-                border: "1px solid var(--border)",
-                borderRadius: 2,
-                boxShadow: "0 8px 32px rgba(var(--text-primary-rgb),0.12)",
-              },
-            }}
-            transformOrigin={{ horizontal: "right", vertical: "top" }}
-            anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
-          >
-            <JXBox padding="none" border={false} className="px-4 py-3 pb-2 !rounded-none !bg-transparent" style={{ fontFamily: "inherit" }}>
-              <Typography
-                variant="subtitle2"
-                color="text.secondary"
-                fontWeight={600}
-                textTransform="uppercase"
-                fontSize="0.7rem"
-              >
-                Create New
-              </Typography>
-            </JXBox>
-            {quickActions.map((action) => (
-              <MenuItem
-                key={action.label}
-                onClick={() => handleQuickActionClick(action.href)}
-                sx={{
-                  py: 1.5,
-                  color: "var(--text-primary)",
-                  "&:hover": {
-                    bgcolor: "rgba(var(--border-rgb), 0.4)",
-                  },
-                }}
-              >
-                <ListItemIcon sx={{ color: action.color, minWidth: 36 }}>
-                  {action.icon}
-                </ListItemIcon>
-                <ListItemText
-                  primary={action.label}
-                  primaryTypographyProps={{
-                    fontSize: "0.875rem",
-                    fontWeight: 500,
-                  }}
-                />
-              </MenuItem>
-            ))}
-            <JXDivider className="!my-1 !border-[var(--border)]" />
-            <MenuItem
-              onClick={() => {
-                handleQuickActionClose();
-                openUniversalShipmentExport();
-              }}
-              sx={{
-                py: 1.5,
-                color: "var(--text-primary)",
-                "&:hover": {
-                  bgcolor: "rgba(var(--border-rgb), 0.4)",
-                },
-              }}
-            >
-              <ListItemIcon sx={{ color: "var(--accent-gold)", minWidth: 36 }}>
-                <FileSpreadsheet style={{ width: 20, height: 20 }} />
-              </ListItemIcon>
-              <ListItemText
-                primary="Export Shipments"
-                secondary="Excel / CSV download"
-                primaryTypographyProps={{
-                  fontSize: "0.875rem",
-                  fontWeight: 500,
-                }}
-                secondaryTypographyProps={{
-                  fontSize: "0.72rem",
-                  color: "var(--text-secondary)",
-                }}
-              />
-            </MenuItem>
-          </Menu>
-        )}
-      </Toolbar>
-    </AppBar>
+      </div>
+    </header>
   );
 }

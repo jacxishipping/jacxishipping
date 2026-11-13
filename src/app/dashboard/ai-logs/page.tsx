@@ -1,16 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import {
-  Box,
-  MenuItem,
-  TextField,
-  Typography,
-} from '@mui/material';
 import { AlertTriangle, Bot, Clock, Filter, RefreshCcw, Search as SearchIcon, ShieldCheck, XCircle } from 'lucide-react';
-import { PageHeader, Button, EmptyState, DashboardPageSkeleton, StatsCard, StatusBadge, Modal, toast } from '@/components/design-system';
+import { Button, DashboardPageSkeleton, EmptyState, FormField, Modal, PageHeader, Select, StatsCard, StatusBadge, toast } from '@/components/design-system';
 import { DashboardGrid, DashboardPanel, DashboardSurface } from '@/components/dashboard/DashboardSurface';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { hasPermission } from '@/lib/rbac';
@@ -166,10 +161,10 @@ export default function AiLogsPage() {
         header: 'Feature',
         sortable: true,
         render: (_, log) => (
-          <Box>
-            <Typography sx={{ fontSize: '0.85rem', fontWeight: 600 }}>{formatFeatureLabel(log.feature)}</Typography>
-            <Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{log.model || 'N/A'}</Typography>
-          </Box>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+            <p className="text-sm leading-relaxed" style={{fontSize: '0.85rem', fontWeight: 600}}>{formatFeatureLabel(log.feature)}</p>
+            <p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', color: 'var(--text-secondary)'}}>{log.model || 'N/A'}</p>
+          </JXBox>
         ),
       },
       {
@@ -187,22 +182,22 @@ export default function AiLogsPage() {
         header: 'Provider',
         sortable: true,
         render: (_, log) => (
-          <Box>
-            <Typography sx={{ fontSize: '0.8rem', fontWeight: 600 }}>{log.provider}</Typography>
-            <Typography sx={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+            <p className="text-sm leading-relaxed" style={{fontSize: '0.8rem', fontWeight: 600}}>{log.provider}</p>
+            <p className="text-sm leading-relaxed" style={{fontSize: '0.72rem', color: 'var(--text-secondary)'}}>
               {log.provider === 'rules' ? 'Fallback' : 'Live provider'}
-            </Typography>
-          </Box>
+            </p>
+          </JXBox>
         ),
       },
       {
         key: 'entityType',
         header: 'Entity',
         render: (_, log) => (
-          <Box>
-            <Typography sx={{ fontSize: '0.8rem' }}>{log.entityType || 'N/A'}</Typography>
-            <Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{truncateText(log.entityId, 18)}</Typography>
-          </Box>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+            <p className="text-sm leading-relaxed" style={{fontSize: '0.8rem'}}>{log.entityType || 'N/A'}</p>
+            <p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', color: 'var(--text-secondary)'}}>{truncateText(log.entityId, 18)}</p>
+          </JXBox>
         ),
       },
       {
@@ -210,10 +205,10 @@ export default function AiLogsPage() {
         header: 'Created',
         sortable: true,
         render: (_, log) => (
-          <Box>
-            <Typography sx={{ fontSize: '0.8rem' }}>{new Date(log.createdAt).toLocaleDateString()}</Typography>
-            <Typography sx={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>{new Date(log.createdAt).toLocaleTimeString()}</Typography>
-          </Box>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+            <p className="text-sm leading-relaxed" style={{fontSize: '0.8rem'}}>{new Date(log.createdAt).toLocaleDateString()}</p>
+            <p className="text-sm leading-relaxed" style={{fontSize: '0.72rem', color: 'var(--text-secondary)'}}>{new Date(log.createdAt).toLocaleTimeString()}</p>
+          </JXBox>
         ),
       },
       {
@@ -222,14 +217,14 @@ export default function AiLogsPage() {
         render: (_, log) => {
           const reason = getLogFailureReason(log);
           return reason ? (
-            <Box sx={{ display: 'flex', gap: 0.75, alignItems: 'flex-start', maxWidth: 260 }}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '6px', alignItems: 'flex-start', maxWidth: '260px'}}>
               {log.provider === 'rules' ? <Clock className="w-4 h-4 text-[var(--warning)]" /> : <AlertTriangle className="w-4 h-4 text-[var(--error)]" />}
-              <Typography sx={{ fontSize: '0.78rem', color: log.provider === 'rules' ? 'var(--warning)' : 'var(--error)' }}>
+              <p className="text-sm leading-relaxed" style={{fontSize: '0.78rem', color: log.provider === 'rules' ? 'var(--warning)' : 'var(--error)'}}>
                 {truncateText(reason, 120)}
-              </Typography>
-            </Box>
+              </p>
+            </JXBox>
           ) : (
-            <Typography sx={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>No issue reported</Typography>
+            <p className="text-sm leading-relaxed" style={{fontSize: '0.78rem', color: 'var(--text-secondary)'}}>No issue reported</p>
           );
         },
       },
@@ -237,7 +232,7 @@ export default function AiLogsPage() {
         key: 'prompt',
         header: 'Prompt',
         render: (_, log) => (
-          <Typography sx={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{truncateText(log.prompt, 90)}</Typography>
+          <p className="text-sm leading-relaxed" style={{fontSize: '0.8rem', color: 'var(--text-secondary)'}}>{truncateText(log.prompt, 90)}</p>
         ),
       },
       {
@@ -245,11 +240,11 @@ export default function AiLogsPage() {
         header: 'Action',
         align: 'right',
         render: (_, log) => (
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end' }} onClick={(e) => e.stopPropagation()}>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'flex-end'}} onClick={(e) => e.stopPropagation()}>
             <Button variant="outline" size="sm" onClick={() => setSelectedLog(log)}>
               View
             </Button>
-          </Box>
+          </JXBox>
         ),
       },
     ],
@@ -274,14 +269,14 @@ export default function AiLogsPage() {
         title="AI Interaction Logs"
         description="Browse prompt and response traces for dashboard briefs, shipment drafts, and extraction workflows."
         actions={
-          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
             <Button variant="outline" size="sm" onClick={clearFilters} icon={<XCircle className="w-4 h-4" />}>
               Clear Filters
             </Button>
             <Button variant="secondary" size="sm" onClick={handleRefresh} icon={<RefreshCcw className="w-4 h-4" />} loading={refreshing}>
               Refresh Logs
             </Button>
-          </Box>
+          </JXBox>
         }
       />
 
@@ -289,7 +284,7 @@ export default function AiLogsPage() {
         title="Filter AI Activity"
         description="Filter by feature domain, entity type, or review reason"
       >
-        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
+        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px'}}>
           {quickFilters.map((filter) => (
             <Button
               key={filter.id}
@@ -301,46 +296,13 @@ export default function AiLogsPage() {
               {filter.label}
             </Button>
           ))}
-        </Box>
+        </JXBox>
 
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, minmax(0, 1fr))' }, gap: 2, mb: 3 }}>
-          <TextField
-            size="small"
-            label="Feature"
-            select
-            value={feature}
-            onChange={(event) => setFeature(event.target.value)}
-          >
-            <MenuItem value="">All</MenuItem>
-            {featureOptions.map((option) => (
-              <MenuItem key={option} value={option}>
-                {formatFeatureLabel(option)}
-              </MenuItem>
-            ))}
-          </TextField>
-          <TextField
-            size="small"
-            label="Entity Type"
-            select
-            value={entityType}
-            onChange={(event) => setEntityType(event.target.value)}
-          >
-            <MenuItem value="">All</MenuItem>
-            <MenuItem value="SHIPMENT">Shipment</MenuItem>
-            <MenuItem value="CONTAINER">Container</MenuItem>
-            <MenuItem value="DOCUMENT">Document</MenuItem>
-          </TextField>
-          <TextField
-            size="small"
-            label="Entity ID"
-            value={entityId}
-            onChange={(event) => setEntityId(event.target.value)}
-            placeholder="Filter by exact entity id"
-            InputProps={{
-              startAdornment: <SearchIcon className="mr-2 h-4 w-4 text-[var(--text-secondary)]" />,
-            }}
-          />
-        </Box>
+        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '16px', marginBottom: '24px'}} className="grid-cols-1 md:grid-cols-3">
+          <Select label="Feature" options={[{ value: "", label: 'All' }, ...featureOptions.map((option) => ({ value: option, label: formatFeatureLabel(option) }))]} value={feature} size="small" onChange={(val) => setFeature(val as string)} />
+          <Select label="Entity Type" options={[{ value: "", label: 'All' }, { value: "SHIPMENT", label: 'Shipment' }, { value: "CONTAINER", label: 'Container' }, { value: "DOCUMENT", label: 'Document' }]} value={entityType} size="small" onChange={(val) => setEntityType(val as string)} />
+          <FormField label="Entity ID" value={entityId} onChange={(event) => setEntityId(event.target.value)} placeholder="Filter by exact entity id" leftIcon={<SearchIcon className="mr-2 h-4 w-4 text-[var(--text-secondary)]" />} size="small" />
+        </JXBox>
 
         <DashboardGrid className="grid-cols-1 md:grid-cols-2 xl:grid-cols-4">
           <StatsCard title="Total Logs" value={stats.total} icon={<Bot className="w-5 h-5" />} variant="default" />
@@ -349,45 +311,31 @@ export default function AiLogsPage() {
           <StatsCard title="Non-Success Status" value={stats.failedCount} icon={<AlertTriangle className="w-5 h-5" />} variant="error" />
         </DashboardGrid>
 
-        <Box
-          sx={{
-            mt: 3,
-            display: 'grid',
-            gridTemplateColumns: { xs: '1fr', lg: '1.25fr 0.75fr' },
-            gap: 2,
-          }}
-        >
-          <Box sx={{ p: 2, borderRadius: 2, border: '1px solid var(--border)', bgcolor: 'var(--background)' }}>
-            <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)', mb: 0.75 }}>
+        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '24px', display: 'grid', gap: '16px'}} className="grid-cols-1 grid lg:grid-cols-[1.25fr_0.75fr]">
+          <JXBox padding="none" border={false} style={{padding: '16px', borderRadius: '16px', border: '1px solid var(--border)', backgroundColor: 'var(--background)'}}>
+            <p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '6px'}}>
               Current View
-            </Typography>
-            <Typography sx={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+            </p>
+            <p className="text-sm leading-relaxed" style={{fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)'}}>
               Showing {visibleLogs.length} of {logs.length} logs
-            </Typography>
-            <Typography sx={{ fontSize: '0.82rem', color: 'var(--text-secondary)', mt: 0.5 }}>
+            </p>
+            <p className="text-sm leading-relaxed" style={{fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '4px'}}>
               {stats.featureCount} feature areas in the latest activity. Use quick filters for live provider runs, fallbacks, or logs needing review.
-            </Typography>
-          </Box>
+            </p>
+          </JXBox>
 
-          <Box
-            sx={{
-              p: 2,
-              borderRadius: 2,
-              border: stats.latestFailure ? '1px solid rgba(245, 158, 11, 0.35)' : '1px solid var(--border)',
-              bgcolor: stats.latestFailure ? 'rgba(245, 158, 11, 0.08)' : 'var(--background)',
-            }}
-          >
-            <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)', mb: 0.75 }}>
+          <JXBox padding="none" border={false} style={{padding: '16px', borderRadius: '16px', border: stats.latestFailure ? '1px solid rgba(245, 158, 11, 0.35)' : '1px solid var(--border)', backgroundColor: stats.latestFailure ? 'rgba(245, 158, 11, 0.08)' : 'var(--background)'}}>
+            <p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '6px'}}>
               Latest Attention Item
-            </Typography>
-            <Typography sx={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+            </p>
+            <p className="text-sm leading-relaxed" style={{fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)'}}>
               {stats.latestFailure ? formatFeatureLabel(stats.latestFailure.feature) : 'No issues in the latest logs'}
-            </Typography>
-            <Typography sx={{ fontSize: '0.8rem', color: 'var(--text-secondary)', mt: 0.5 }}>
+            </p>
+            <p className="text-sm leading-relaxed" style={{fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px'}}>
               {stats.latestFailure ? truncateText(getLogFailureReason(stats.latestFailure), 150) : 'TokenRouter and fallback activity will appear here when review is needed.'}
-            </Typography>
-          </Box>
-        </Box>
+            </p>
+          </JXBox>
+        </JXBox>
       </DashboardPanel>
 
       <DashboardPanel title="Recent AI Activity" description="Latest persisted interactions matching your filters">
@@ -413,70 +361,60 @@ export default function AiLogsPage() {
         }
       >
         {selectedLog && (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' }, gap: 1.5 }}>
-              <Box sx={{ p: 1.5, border: '1px solid var(--border)', borderRadius: 2, bgcolor: 'var(--background)' }}>
-                <Typography sx={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', mb: 0.5 }}>Status</Typography>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '16px'}}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '12px'}} className="grid-cols-1 md:grid-cols-3">
+              <JXBox padding="none" border={false} style={{padding: '12px', border: '1px solid var(--border)', borderRadius: '16px', backgroundColor: 'var(--background)'}}>
+                <p className="text-sm leading-relaxed" style={{fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '4px'}}>Status</p>
                 <StatusBadge status={selectedLog.status === 'SUCCESS' ? 'success' : selectedLog.status === 'FALLBACK' ? 'warning' : 'error'} />
-              </Box>
-              <Box sx={{ p: 1.5, border: '1px solid var(--border)', borderRadius: 2, bgcolor: 'var(--background)' }}>
-                <Typography sx={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', mb: 0.5 }}>Provider</Typography>
-                <Typography sx={{ fontSize: '0.88rem', fontWeight: 700 }}>{selectedLog.provider}</Typography>
-                <Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{selectedLog.model || 'No model recorded'}</Typography>
-              </Box>
-              <Box sx={{ p: 1.5, border: '1px solid var(--border)', borderRadius: 2, bgcolor: 'var(--background)' }}>
-                <Typography sx={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', mb: 0.5 }}>Created</Typography>
-                <Typography sx={{ fontSize: '0.88rem', fontWeight: 700 }}>{new Date(selectedLog.createdAt).toLocaleString()}</Typography>
-              </Box>
-            </Box>
+              </JXBox>
+              <JXBox padding="none" border={false} style={{padding: '12px', border: '1px solid var(--border)', borderRadius: '16px', backgroundColor: 'var(--background)'}}>
+                <p className="text-sm leading-relaxed" style={{fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '4px'}}>Provider</p>
+                <p className="text-sm leading-relaxed" style={{fontSize: '0.88rem', fontWeight: 700}}>{selectedLog.provider}</p>
+                <p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', color: 'var(--text-secondary)'}}>{selectedLog.model || 'No model recorded'}</p>
+              </JXBox>
+              <JXBox padding="none" border={false} style={{padding: '12px', border: '1px solid var(--border)', borderRadius: '16px', backgroundColor: 'var(--background)'}}>
+                <p className="text-sm leading-relaxed" style={{fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '4px'}}>Created</p>
+                <p className="text-sm leading-relaxed" style={{fontSize: '0.88rem', fontWeight: 700}}>{new Date(selectedLog.createdAt).toLocaleString()}</p>
+              </JXBox>
+            </JXBox>
             {getLogFailureReason(selectedLog) && (
-              <Box
-                sx={{
-                  p: 1.5,
-                  borderRadius: 2,
-                  border: '1px solid rgba(245, 158, 11, 0.35)',
-                  bgcolor: 'rgba(245, 158, 11, 0.08)',
-                  display: 'flex',
-                  gap: 1,
-                  alignItems: 'flex-start',
-                }}
-              >
+              <JXBox padding="none" border={false} style={{padding: '12px', borderRadius: '16px', border: '1px solid rgba(245, 158, 11, 0.35)', backgroundColor: 'rgba(245, 158, 11, 0.08)', display: 'flex', gap: '8px', alignItems: 'flex-start'}}>
                 <AlertTriangle className="w-4 h-4" style={{ color: 'rgb(180, 83, 9)', marginTop: 2 }} />
-                <Box>
-                  <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', color: 'rgb(146, 64, 14)', mb: 0.5 }}>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+                  <p className="text-sm leading-relaxed" style={{fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', color: 'rgb(146, 64, 14)', marginBottom: '4px'}}>
                     Review reason
-                  </Typography>
-                  <Typography sx={{ fontSize: '0.85rem', color: 'rgb(146, 64, 14)' }}>
+                  </p>
+                  <p className="text-sm leading-relaxed" style={{fontSize: '0.85rem', color: 'rgb(146, 64, 14)'}}>
                     {getLogFailureReason(selectedLog)}
-                  </Typography>
-                </Box>
-              </Box>
+                  </p>
+                </JXBox>
+              </JXBox>
             )}
-            <Box>
-              <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)', mb: 0.5 }}>Prompt</Typography>
-              <Box component="pre" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: '0.8rem', p: 2, bgcolor: 'var(--background)', borderRadius: 2, border: '1px solid var(--border)', maxHeight: 200, overflowY: 'auto' }}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+              <p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '4px'}}>Prompt</p>
+              <JXBox padding="none" border={false} component="pre" style={{whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: '0.8rem', padding: '16px', backgroundColor: 'var(--background)', borderRadius: '16px', border: '1px solid var(--border)', maxHeight: '200px', overflowY: 'auto'}}>
                 {selectedLog.prompt}
-              </Box>
-            </Box>
-            <Box>
-              <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)', mb: 0.5 }}>Response</Typography>
-              <Box component="pre" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: '0.8rem', p: 2, bgcolor: 'var(--background)', borderRadius: 2, border: '1px solid var(--border)', maxHeight: 200, overflowY: 'auto' }}>
+              </JXBox>
+            </JXBox>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+              <p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '4px'}}>Response</p>
+              <JXBox padding="none" border={false} component="pre" style={{whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: '0.8rem', padding: '16px', backgroundColor: 'var(--background)', borderRadius: '16px', border: '1px solid var(--border)', maxHeight: '200px', overflowY: 'auto'}}>
                 {selectedLog.response || 'N/A'}
-              </Box>
-            </Box>
-            <Box>
-              <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)', mb: 0.5 }}>Request Payload</Typography>
-              <Box component="pre" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: '0.8rem', p: 2, bgcolor: 'var(--background)', borderRadius: 2, border: '1px solid var(--border)', maxHeight: 160, overflowY: 'auto' }}>
+              </JXBox>
+            </JXBox>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+              <p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '4px'}}>Request Payload</p>
+              <JXBox padding="none" border={false} component="pre" style={{whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: '0.8rem', padding: '16px', backgroundColor: 'var(--background)', borderRadius: '16px', border: '1px solid var(--border)', maxHeight: '160px', overflowY: 'auto'}}>
                 {JSON.stringify(selectedLog.requestPayload, null, 2)}
-              </Box>
-            </Box>
-            <Box>
-              <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)', mb: 0.5 }}>Response Payload</Typography>
-              <Box component="pre" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: '0.8rem', p: 2, bgcolor: 'var(--background)', borderRadius: 2, border: '1px solid var(--border)', maxHeight: 160, overflowY: 'auto' }}>
+              </JXBox>
+            </JXBox>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+              <p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '4px'}}>Response Payload</p>
+              <JXBox padding="none" border={false} component="pre" style={{whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: '0.8rem', padding: '16px', backgroundColor: 'var(--background)', borderRadius: '16px', border: '1px solid var(--border)', maxHeight: '160px', overflowY: 'auto'}}>
                 {JSON.stringify(selectedLog.responsePayload, null, 2)}
-              </Box>
-            </Box>
-          </Box>
+              </JXBox>
+            </JXBox>
+          </JXBox>
         )}
       </Modal>
     </DashboardSurface>

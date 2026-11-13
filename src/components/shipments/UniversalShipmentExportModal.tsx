@@ -3,15 +3,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import { 
-  Dialog, 
-  DialogTitle, 
-  DialogContent, 
-  DialogActions, 
-  Box, 
-  Typography, 
-  CircularProgress
-} from '@mui/material';
-import { 
   Download, 
   FileSpreadsheet, 
   FileText, 
@@ -26,7 +17,7 @@ import {
   RotateCcw,
   Check
 } from 'lucide-react';
-import { Button, toast } from '@/components/design-system';
+import { Button, Modal, toast } from '@/components/design-system';
 import { hasPermission } from '@/lib/rbac';
 import {
   SHIPMENT_EXPORT_HEADERS,
@@ -337,35 +328,17 @@ export function UniversalShipmentExportModal() {
   );
 
   return (
-    <Dialog
-      open={open}
-      onClose={handleClose}
-      maxWidth="sm"
-      fullWidth
-      PaperProps={{
-        sx: {
-          bgcolor: 'var(--panel)',
-          backgroundImage: 'none',
-          border: '1px solid var(--border)',
-          borderRadius: 3,
-          boxShadow: '0 24px 48px -12px rgba(0, 0, 0, 0.4)',
-          overflow: 'hidden',
-          color: 'var(--text-primary)',
-        },
-      }}
-    >
-      <DialogTitle sx={{ p: 2.5, pb: 1.5, borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div className="flex items-center gap-2.5">
+    <Modal open={open} onClose={handleClose} size="sm" title={<><div className="flex items-center gap-2.5">
           <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-[var(--accent-gold)]/10 text-[var(--accent-gold)] border border-[var(--accent-gold)]/20 shadow-xs">
             <Download className="w-5 h-5" />
           </div>
           <div>
-            <Typography variant="h6" sx={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>
+            <h6 style={{fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2}} className="text-[0.95rem] font-semibold leading-tight">
               {options.title || (isCustomer ? 'Export My Shipments' : 'Export Shipments')}
-            </Typography>
-            <Typography variant="caption" sx={{ color: 'var(--text-secondary)', display: 'block', mt: 0.2 }}>
+            </h6>
+            <span style={{color: 'var(--text-secondary)', display: 'block', marginTop: '1.6px'}} className="text-[0.75rem]">
               {options.subtitle || (isCustomer ? 'Download your vehicle shipments in Excel, CSV, or PDF format' : 'Download shipments in Excel, CSV, or PDF format from anywhere')}
-            </Typography>
+            </span>
           </div>
         </div>
         <button
@@ -375,11 +348,19 @@ export function UniversalShipmentExportModal() {
           className="p-1 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--background)] transition-colors"
         >
           <X className="w-5 h-5" />
-        </button>
-      </DialogTitle>
-
-      <DialogContent sx={{ p: 2.5, display: 'flex', flexDirection: 'column', gap: 2.5, maxHeight: '75vh', overflowY: 'auto' }}>
-        {/* Scope Selection */}
+        </button></>} actions={<><Button variant="outline" size="sm" onClick={handleClose} disabled={loading}>
+          Cancel
+        </Button>
+        <Button
+          variant="primary"
+          size="sm"
+          onClick={handleExport}
+          disabled={loading || selectedColumns.length === 0}
+          icon={loading ? <span role="status" aria-label="Loading" className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-[var(--border)]" style={{width: 16, height: 16, borderTopColor: 'currentColor'}} /> : format === 'pdf' ? <Printer className="w-4 h-4" /> : <Download className="w-4 h-4" />}
+          iconPosition="start"
+        >
+          {loading ? 'Preparing Export...' : format === 'pdf' ? 'Print Manifest (PDF)' : `Download ${format.toUpperCase()}`}
+        </Button></>} showCloseButton={false} contentSx={{padding: '20px', display: 'flex', flexDirection: 'column', gap: '20px', maxHeight: '75vh', overflowY: 'auto'}} actionsSx={{padding: '20px', paddingTop: '12px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between'}}>{/* Scope Selection */}
         <div>
           <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-2">
             Export Scope
@@ -666,24 +647,6 @@ export function UniversalShipmentExportModal() {
               Customer Safe: Confidential carrier costs and internal operations records are strictly excluded.
             </p>
           )}
-        </div>
-      </DialogContent>
-
-      <DialogActions sx={{ p: 2.5, pt: 1.5, borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between' }}>
-        <Button variant="outline" size="sm" onClick={handleClose} disabled={loading}>
-          Cancel
-        </Button>
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={handleExport}
-          disabled={loading || selectedColumns.length === 0}
-          icon={loading ? <CircularProgress size={16} color="inherit" /> : format === 'pdf' ? <Printer className="w-4 h-4" /> : <Download className="w-4 h-4" />}
-          iconPosition="start"
-        >
-          {loading ? 'Preparing Export...' : format === 'pdf' ? 'Print Manifest (PDF)' : `Download ${format.toUpperCase()}`}
-        </Button>
-      </DialogActions>
-    </Dialog>
+        </div></Modal>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { Toaster as SonnerToaster, toast as sonnerToast } from 'sonner';
-import { CheckCircle, Warning, Error as ErrorIcon, Info } from '@mui/icons-material';
+import { CircleCheck, TriangleAlert, CircleAlert, Info } from 'lucide-react';
 
 /**
  * Toast Notification System
@@ -40,7 +40,7 @@ export const toast = {
     sonnerToast.success(message, {
       description: options?.description,
       duration: options?.duration || 4000,
-      icon: <CheckCircle sx={{ fontSize: 20, color: 'var(--success)' }} />,
+      icon: <CircleCheck className="h-5 w-5" style={{ color: 'var(--success)' }} />,
     });
   },
 
@@ -48,7 +48,7 @@ export const toast = {
     sonnerToast.error(message, {
       description: options?.description,
       duration: options?.duration || 5000,
-      icon: <ErrorIcon sx={{ fontSize: 20, color: 'var(--error)' }} />,
+      icon: <CircleAlert className="h-5 w-5" style={{ color: 'var(--error)' }} />,
     });
   },
 
@@ -56,7 +56,7 @@ export const toast = {
     sonnerToast.warning(message, {
       description: options?.description,
       duration: options?.duration || 4000,
-      icon: <Warning sx={{ fontSize: 20, color: 'var(--warning)' }} />,
+      icon: <TriangleAlert className="h-5 w-5" style={{ color: 'var(--warning)' }} />,
     });
   },
 
@@ -64,7 +64,7 @@ export const toast = {
     sonnerToast.info(message, {
       description: options?.description,
       duration: options?.duration || 4000,
-      icon: <Info sx={{ fontSize: 20, color: 'var(--info)' }} />,
+      icon: <Info className="h-5 w-5" style={{ color: 'var(--info)' }} />,
     });
   },
 

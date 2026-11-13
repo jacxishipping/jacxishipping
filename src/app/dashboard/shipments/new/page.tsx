@@ -1,6 +1,7 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -8,9 +9,8 @@ import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowLeft, Upload, X, Loader2, Package, User, FileText, CheckCircle, ArrowRight, Camera, Zap } from 'lucide-react';
-import { Box, Stepper, Step, StepLabel, Typography, LinearProgress, Autocomplete, TextField } from '@mui/material';
 import { DashboardSurface, DashboardPanel } from '@/components/dashboard/DashboardSurface';
-import { PageHeader, Button, FormField, Breadcrumbs, toast } from '@/components/design-system';
+import { Autocomplete, PageHeader, Button, FormField, Breadcrumbs, toast, MilestoneStepper } from '@/components/design-system';
 import { shipmentSchema, type ShipmentFormData } from '@/lib/validations/shipment';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { BarcodeScannerModal } from '@/components/ui/BarcodeScannerModal';
@@ -22,6 +22,7 @@ import { decodeVIN as decodeVINService, getBestWeightEstimate } from '@/lib/serv
 import { buildCopartLotSummary, fetchCopartLotDataForShipment } from '@/lib/copart/lot-client';
 import { buildIaaiLotSummary, fetchIaaiLotDataForShipment } from '@/lib/iaai/lot-client';
 import { hasPermission } from '@/lib/rbac';
+
 
 interface UserOption {
 	id: string;
@@ -616,14 +617,14 @@ export default function NewShipmentPage() {
 		return (
 			<ProtectedRoute>
 				<DashboardSurface>
-					<Box sx={{ textAlign: 'center', py: 12 }}>
-						<Typography variant="h4" sx={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+					<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, textAlign: 'center', paddingTop: '96px', paddingBottom: '96px'}}>
+						<h4 className="text-lg font-semibold leading-snug" style={{fontWeight: 700, color: 'var(--text-primary)'}}>
 							Access Denied
-						</Typography>
-						<Typography sx={{ color: 'var(--text-secondary)', mt: 2 }}>
+						</h4>
+						<p className="text-sm leading-relaxed" style={{color: 'var(--text-secondary)', marginTop: '16px'}}>
 							You do not have permission to create shipments.
-						</Typography>
-					</Box>
+						</p>
+					</JXBox>
 				</DashboardSurface>
 			</ProtectedRoute>
 		);
@@ -633,9 +634,9 @@ export default function NewShipmentPage() {
 		<ProtectedRoute>
 			<DashboardSurface>
 				{/* Breadcrumbs */}
-				<Box sx={{ px: 2, pt: 2 }}>
+				<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingLeft: '16px', paddingRight: '16px', paddingTop: '16px'}}>
 					<Breadcrumbs />
-				</Box>
+				</JXBox>
 				
 				<PageHeader
 					title="Create New Shipment"
@@ -649,52 +650,7 @@ export default function NewShipmentPage() {
 
 				{/* Stepper */}
 				<DashboardPanel>
-					<Stepper
-						activeStep={activeStep}
-						alternativeLabel
-						sx={{
-							'& .MuiStepLabel-root .Mui-completed': {
-								color: 'var(--accent-gold)',
-							},
-							'& .MuiStepLabel-label.Mui-completed': {
-								color: 'var(--text-primary)',
-								fontWeight: 600,
-							},
-							'& .MuiStepLabel-root .Mui-active': {
-								color: 'var(--accent-gold)',
-							},
-							'& .MuiStepLabel-label.Mui-active': {
-								color: 'var(--text-primary)',
-								fontWeight: 600,
-							},
-							'& .MuiStepLabel-label': {
-								color: 'var(--text-secondary)',
-								fontSize: '0.85rem',
-							},
-							'& .MuiStepConnector-line': {
-								borderColor: 'var(--border)',
-							},
-							'& .MuiStepConnector-root.Mui-completed .MuiStepConnector-line': {
-								borderColor: 'var(--accent-gold)',
-							},
-							'& .MuiStepIcon-root': {
-								color: 'var(--border)',
-								fontSize: '2rem',
-							},
-							'& .MuiStepIcon-root.Mui-active': {
-								color: 'var(--accent-gold)',
-							},
-							'& .MuiStepIcon-root.Mui-completed': {
-								color: 'var(--accent-gold)',
-							},
-						}}
-					>
-						{steps.map((step, index) => (
-							<Step key={step.label}>
-								<StepLabel>{step.label}</StepLabel>
-							</Step>
-						))}
-					</Stepper>
+					<MilestoneStepper steps={steps.map((step, index) => ({ id: String(index), label: step.label }))} currentStepId={String(activeStep)} />
 				</DashboardPanel>
 
 				{/* Form Content */}
@@ -702,25 +658,15 @@ export default function NewShipmentPage() {
 					{/* Step 0: Vehicle Information */}
 					{activeStep === 0 && (
 						<DashboardPanel title="Vehicle Information" description="Enter basic vehicle details">
-							<Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+							<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '24px'}}>
 								{/* Smart AI Document Ingest Dropzone */}
 								<AiDocumentAutoFillDropzone onExtracted={handleAiDocumentExtracted} />
 
 								{/* Service Type - NEW */}
-								<Box>
-									<Typography
-										component="label"
-										htmlFor="serviceType"
-										sx={{
-											display: 'block',
-											fontSize: '0.875rem',
-											fontWeight: 500,
-											color: 'var(--text-primary)',
-											mb: 1,
-										}}
-									>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+									<label className="text-sm leading-relaxed" htmlFor="serviceType" style={{display: 'block', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '8px'}}>
 										Service Type *
-									</Typography>
+									</label>
 									<select
 										id="serviceType"
 										{...register('serviceType')}
@@ -738,21 +684,21 @@ export default function NewShipmentPage() {
 										<option value="PURCHASE_AND_SHIPPING">Purchase + Shipping (We buy for customer)</option>
 									</select>
 									{errors.serviceType && (
-										<Typography sx={{ fontSize: '0.75rem', color: 'var(--error)', mt: 0.5 }}>
+										<p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', color: 'var(--error)', marginTop: '4px'}}>
 											{errors.serviceType.message}
-										</Typography>
+										</p>
 									)}
-									<Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)', mt: 0.5 }}>
+									<p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '4px'}}>
 										{serviceTypeValue === 'PURCHASE_AND_SHIPPING' 
 											? '📦 Purchase + Shipping: We buy the vehicle from auction/dealer and ship it'
 											: '🚚 Shipping Only: Customer already owns the vehicle, we just handle shipping'}
-									</Typography>
-								</Box>
+									</p>
+								</JXBox>
 
 								{/* VIN */}
-								<Box>
-									<Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-end', flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
-										<Box sx={{ flex: 1, minWidth: { xs: '100%', sm: 0 } }}>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '16px', alignItems: 'flex-end'}} className="flex-wrap sm:flex-nowrap">
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, flex: 1}} className="min-w-full sm:min-w-[0px]">
 											<FormField
 												id="vehicleVIN"
 												label="VIN (Vehicle Identification Number)"
@@ -761,8 +707,8 @@ export default function NewShipmentPage() {
 												helperText={errors.vehicleVIN?.message}
 												{...register('vehicleVIN')}
 											/>
-										</Box>
-										<Box sx={{ display: 'flex', gap: 1 }}>
+										</JXBox>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '8px'}}>
 											<Button
 												type="button"
 												variant="outline"
@@ -784,25 +730,15 @@ export default function NewShipmentPage() {
 											>
 												{decodingVin ? 'Decoding...' : 'Decode'}
 											</Button>
-										</Box>
-									</Box>
-								</Box>
+										</JXBox>
+									</JXBox>
+								</JXBox>
 
 								{/* Vehicle Type */}
-								<Box>
-									<Typography
-										component="label"
-										htmlFor="vehicleType"
-										sx={{
-											display: 'block',
-											fontSize: '0.875rem',
-											fontWeight: 500,
-											color: 'var(--text-primary)',
-											mb: 1,
-										}}
-									>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+									<label className="text-sm leading-relaxed" htmlFor="vehicleType" style={{display: 'block', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '8px'}}>
 										Vehicle Type *
-									</Typography>
+									</label>
 									<select
 										id="vehicleType"
 										{...register('vehicleType')}
@@ -828,14 +764,14 @@ export default function NewShipmentPage() {
 										<option value="other">Other</option>
 									</select>
 									{errors.vehicleType && (
-										<Typography sx={{ fontSize: '0.75rem', color: 'var(--error)', mt: 0.5 }}>
+										<p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', color: 'var(--error)', marginTop: '4px'}}>
 											{errors.vehicleType.message}
-										</Typography>
+										</p>
 									)}
-								</Box>
+								</JXBox>
 
 								{/* Make, Model, Year */}
-								<Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2 }}>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '16px'}} className="grid-cols-1 sm:grid-cols-3">
 									<FormField
 										id="vehicleMake"
 										label="Make"
@@ -857,30 +793,20 @@ export default function NewShipmentPage() {
 										helperText={errors.vehicleYear?.message}
 										{...register('vehicleYear')}
 									/>
-								</Box>
+								</JXBox>
 
 								{/* Color, Auction, Lot Number */}
-								<Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2 }}>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '16px'}} className="grid-cols-1 sm:grid-cols-3">
 									<FormField
 										id="vehicleColor"
 										label="Color"
 										placeholder="e.g., Blue"
 										{...register('vehicleColor')}
 									/>
-									<Box>
-										<Typography
-											component="label"
-											htmlFor="auctionName"
-											sx={{
-												display: 'block',
-												fontSize: '0.875rem',
-												fontWeight: 500,
-												color: 'var(--text-primary)',
-												mb: 1,
-											}}
-										>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+										<label className="text-sm leading-relaxed" htmlFor="auctionName" style={{display: 'block', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '8px'}}>
 											Auction
-										</Typography>
+										</label>
 										<select
 											id="auctionName"
 											{...register('auctionName')}
@@ -899,18 +825,18 @@ export default function NewShipmentPage() {
 											<option value="IAAI">IAAI</option>
 											<option value="Other">Other</option>
 										</select>
-									</Box>
-									<Box>
-										<Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-end', flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
-											<Box sx={{ flex: 1, minWidth: { xs: '100%', sm: 0 } }}>
+									</JXBox>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '12px', alignItems: 'flex-end'}} className="flex-wrap sm:flex-nowrap">
+											<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, flex: 1}} className="min-w-full sm:min-w-[0px]">
 												<FormField
 													id="lotNumber"
 													label="Lot Number"
 													placeholder="Auction lot #"
 													{...register('lotNumber')}
 												/>
-											</Box>
-											<Box sx={{ display: 'flex', gap: 1 }}>
+											</JXBox>
+											<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '8px'}}>
 												<Button
 													type="button"
 													variant="outline"
@@ -932,61 +858,37 @@ export default function NewShipmentPage() {
 												>
 													{fetchingLotData ? 'Fetching...' : 'Fetch'}
 												</Button>
-											</Box>
-										</Box>
-										<Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)', mt: 0.75 }}>
+											</JXBox>
+										</JXBox>
+										<p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '6px'}}>
 											Use <strong className="text-amber-400 font-semibold">Smart Paste</strong> to auto-fill without proxies or Oxylabs, or enter a lot number to fetch.
-										</Typography>
-									</Box>
-								</Box>
+										</p>
+									</JXBox>
+								</JXBox>
 
 								{/* Auction Lot Fetching Loading Bar */}
 								{fetchingLotData && (
-									<Box
-										sx={{
-											p: 2.25,
-											borderRadius: '16px',
-											backgroundColor: 'rgba(var(--accent-gold-rgb), 0.08)',
-											border: '1px solid rgba(var(--accent-gold-rgb), 0.35)',
-											display: 'flex',
-											flexDirection: 'column',
-											gap: 1.25,
-											animation: 'fadeIn 0.2s ease',
-										}}
-									>
-										<Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-											<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+									<JXBox padding="none" border={false} style={{padding: '18px', borderRadius: '16px', backgroundColor: 'rgba(var(--accent-gold-rgb), 0.08)', border: '1px solid rgba(var(--accent-gold-rgb), 0.35)', display: 'flex', flexDirection: 'column', gap: '10px', animation: 'fadeIn 0.2s ease'}}>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+											<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '10px'}}>
 												<Loader2 className="w-4 h-4 text-amber-400 animate-spin" />
-												<Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+												<p className="text-sm leading-relaxed" style={{fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)'}}>
 													{lotFetchStage || `Fetching ${auctionNameValue || 'Auction'} Lot Data...`}
-												</Typography>
-											</Box>
-											<Typography sx={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--accent-gold)' }}>
+												</p>
+											</JXBox>
+											<p className="text-sm leading-relaxed" style={{fontSize: '0.875rem', fontWeight: 700, color: 'var(--accent-gold)'}}>
 												{lotFetchProgress}%
-											</Typography>
-										</Box>
-										<LinearProgress
-											variant="determinate"
-											value={lotFetchProgress}
-											sx={{
-												height: 8,
-												borderRadius: 4,
-												backgroundColor: 'rgba(var(--border-rgb), 0.25)',
-												'& .MuiLinearProgress-bar': {
-													backgroundColor: 'var(--accent-gold)',
-													borderRadius: 4,
-													transition: 'transform 0.35s ease-out',
-												},
-											}}
-										/>
-										<Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+											</p>
+										</JXBox>
+										<div role="progressbar" aria-valuenow={lotFetchProgress} aria-valuemin={0} aria-valuemax={100} className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--border)]" style={{height: '8px', borderRadius: '32px', backgroundColor: 'rgba(var(--border-rgb), 0.25)'}}><div className="h-full rounded-full transition-all duration-300" style={{ width: `${lotFetchProgress}%`, backgroundColor: 'var(--accent-gold)' }} /></div>
+										<p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', color: 'var(--text-secondary)'}}>
 											Retrieving vehicle specifications, color, keys, damage, and high-resolution photo gallery
-										</Typography>
-									</Box>
+										</p>
+									</JXBox>
 								)}
 
 								{/* Weight, Dimensions */}
-								<Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' }, gap: 2 }}>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '16px'}} className="grid-cols-1 sm:grid-cols-2">
 									<FormField
 										id="weight"
 										label="Weight (lbs)"
@@ -1004,11 +906,11 @@ export default function NewShipmentPage() {
 										helperText={errors.dimensions?.message}
 										{...register('dimensions')}
 									/>
-								</Box>
+								</JXBox>
 
 								{/* Has Key, Has Title */}
-								<Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' }, gap: 3 }}>
-									<Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '24px'}} className="grid-cols-1 sm:grid-cols-2">
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '16px'}}>
 										<input
 											id="hasKey"
 											type="checkbox"
@@ -1021,11 +923,11 @@ export default function NewShipmentPage() {
 												cursor: 'pointer',
 											}}
 										/>
-										<Typography component="label" htmlFor="hasKey" sx={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)', cursor: 'pointer' }}>
+										<label className="text-sm leading-relaxed" htmlFor="hasKey" style={{fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)', cursor: 'pointer'}}>
 											Has Key
-										</Typography>
-									</Box>
-									<Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+										</label>
+									</JXBox>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '16px'}}>
 										<input
 											id="hasTitle"
 											type="checkbox"
@@ -1038,28 +940,18 @@ export default function NewShipmentPage() {
 												cursor: 'pointer',
 											}}
 										/>
-										<Typography component="label" htmlFor="hasTitle" sx={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)', cursor: 'pointer' }}>
+										<label className="text-sm leading-relaxed" htmlFor="hasTitle" style={{fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)', cursor: 'pointer'}}>
 											Has Title
-										</Typography>
-									</Box>
-								</Box>
+										</label>
+									</JXBox>
+								</JXBox>
 
 								{/* Title Status */}
 								{watch('hasTitle') && (
-									<Box>
-										<Typography
-											component="label"
-											htmlFor="titleStatus"
-											sx={{
-												display: 'block',
-												fontSize: '0.875rem',
-												fontWeight: 500,
-												color: 'var(--text-primary)',
-												mb: 1,
-											}}
-										>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+										<label className="text-sm leading-relaxed" htmlFor="titleStatus" style={{display: 'block', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '8px'}}>
 											Title Status
-										</Typography>
+										</label>
 										<select
 											id="titleStatus"
 											{...register('titleStatus')}
@@ -1077,33 +969,19 @@ export default function NewShipmentPage() {
 											<option value="PENDING">Pending</option>
 											<option value="DELIVERED">Delivered</option>
 										</select>
-									</Box>
+									</JXBox>
 								)}
 
 								{/* Purchase Information - Only shown for PURCHASE_AND_SHIPPING */}
 								{serviceTypeValue === 'PURCHASE_AND_SHIPPING' && (
 									<>
-										<Box sx={{ 
-											mt: 3, 
-											p: 3, 
-											borderRadius: '12px', 
-											backgroundColor: 'rgba(var(--accent-gold-rgb), 0.05)',
-											border: '1px solid rgba(var(--accent-gold-rgb), 0.2)'
-										}}>
-											<Typography sx={{ 
-												fontSize: '1rem', 
-												fontWeight: 600, 
-												color: 'var(--text-primary)', 
-												mb: 2,
-												display: 'flex',
-												alignItems: 'center',
-												gap: 1
-											}}>
+										<JXBox padding="none" border={false} style={{marginTop: '24px', padding: '24px', borderRadius: '12px', backgroundColor: 'rgba(var(--accent-gold-rgb), 0.05)', border: '1px solid rgba(var(--accent-gold-rgb), 0.2)'}}>
+											<p className="text-sm leading-relaxed" style={{fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px'}}>
 												💰 Purchase Information
-											</Typography>
+											</p>
 
 											{/* Purchase Price and Date */}
-											<Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' }, gap: 2, mb: 2 }}>
+											<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '16px', marginBottom: '16px'}} className="grid-cols-1 sm:grid-cols-2">
 												<FormField
 													id="purchasePrice"
 													label="Purchase Price *"
@@ -1122,10 +1000,10 @@ export default function NewShipmentPage() {
 													helperText={errors.purchaseDate?.message}
 													{...register('purchaseDate')}
 												/>
-											</Box>
+											</JXBox>
 
 											{/* Dealer/Auction Information */}
-											<Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' }, gap: 2, mb: 2 }}>
+											<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '16px', marginBottom: '16px'}} className="grid-cols-1 sm:grid-cols-2">
 												{auctionNameValue === 'Other' ? (
 													<FormField
 														id="dealerName"
@@ -1136,36 +1014,15 @@ export default function NewShipmentPage() {
 														{...register('dealerName')}
 													/>
 												) : (
-													<Box>
+													<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
 														<input type="hidden" {...register('dealerName')} />
-														<Typography
-															component="label"
-															sx={{
-																display: 'block',
-																fontSize: '0.875rem',
-																fontWeight: 500,
-																color: 'var(--text-primary)',
-																mb: 1,
-															}}
-														>
+														<label className="text-sm leading-relaxed" style={{display: 'block', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '8px'}}>
 															Selected Auction
-														</Typography>
-														<Box
-															sx={{
-																minHeight: 42,
-																display: 'flex',
-																alignItems: 'center',
-																px: 1.5,
-																borderRadius: '16px',
-																border: '1px solid rgba(var(--border-rgb), 0.9)',
-																backgroundColor: 'var(--background)',
-																color: auctionNameValue ? 'var(--text-primary)' : 'var(--text-secondary)',
-																fontSize: '0.875rem',
-															}}
-														>
+														</label>
+														<JXBox padding="none" border={false} style={{minHeight: '42px', display: 'flex', alignItems: 'center', paddingLeft: '12px', paddingRight: '12px', borderRadius: '16px', border: '1px solid rgba(var(--border-rgb), 0.9)', backgroundColor: 'var(--background)', color: auctionNameValue ? 'var(--text-primary)' : 'var(--text-secondary)', fontSize: '0.875rem'}}>
 															{auctionNameValue || 'Select auction above'}
-														</Box>
-													</Box>
+														</JXBox>
+													</JXBox>
 												)}
 												<FormField
 													id="purchaseLocation"
@@ -1175,7 +1032,7 @@ export default function NewShipmentPage() {
 													helperText={errors.purchaseLocation?.message}
 													{...register('purchaseLocation')}
 												/>
-											</Box>
+											</JXBox>
 
 											{/* Purchase Notes */}
 											<FormField
@@ -1188,28 +1045,20 @@ export default function NewShipmentPage() {
 												multiline
 												rows={3}
 											/>
-										</Box>
+										</JXBox>
 									</>
 								)}
 
 								{/* Vehicle Photos Quick Preview (when fetched from auction or uploaded) */}
 								{vehiclePhotos.length > 0 && (
-									<Box
-										sx={{
-											mt: 3,
-											p: 2.5,
-											borderRadius: '16px',
-											backgroundColor: 'rgba(var(--accent-gold-rgb), 0.05)',
-											border: '1px solid rgba(var(--accent-gold-rgb), 0.25)',
-										}}
-									>
-										<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5, flexWrap: 'wrap', gap: 1 }}>
-											<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+									<JXBox padding="none" border={false} style={{marginTop: '24px', padding: '20px', borderRadius: '16px', backgroundColor: 'rgba(var(--accent-gold-rgb), 0.05)', border: '1px solid rgba(var(--accent-gold-rgb), 0.25)'}}>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px'}}>
+											<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px'}}>
 												<Camera className="w-5 h-5 text-amber-400" />
-												<Typography sx={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+												<p className="text-sm leading-relaxed" style={{fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)'}}>
 													Vehicle Photos ({vehiclePhotos.length} loaded from {auctionNameValue || 'Auction'})
-												</Typography>
-											</Box>
+												</p>
+											</JXBox>
 											<Button
 												type="button"
 												variant="outline"
@@ -1219,30 +1068,10 @@ export default function NewShipmentPage() {
 											>
 												Manage in Photos Step &rarr;
 											</Button>
-										</Box>
-										<Box
-											sx={{
-												display: 'flex',
-												gap: 1.5,
-												overflowX: 'auto',
-												pb: 1,
-												pt: 0.5,
-											}}
-										>
+										</JXBox>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '8px', paddingTop: '4px'}}>
 											{vehiclePhotos.slice(0, 10).map((photo, index) => (
-												<Box
-													key={index}
-													sx={{
-														position: 'relative',
-														width: 88,
-														height: 88,
-														flexShrink: 0,
-														borderRadius: '12px',
-														overflow: 'hidden',
-														border: '1px solid rgba(var(--border-rgb), 0.8)',
-														backgroundColor: 'var(--background)',
-													}}
-												>
+												<JXBox padding="none" border={false} key={index} style={{position: 'relative', width: '88px', height: '88px', flexShrink: 0, borderRadius: '12px', overflow: 'hidden', border: '1px solid rgba(var(--border-rgb), 0.8)', backgroundColor: 'var(--background)'}}>
 													<Image
 														src={photo}
 														alt={`Vehicle photo ${index + 1}`}
@@ -1250,49 +1079,29 @@ export default function NewShipmentPage() {
 														className="object-cover"
 														unoptimized
 													/>
-												</Box>
+												</JXBox>
 											))}
 											{vehiclePhotos.length > 10 && (
-												<Box
-													onClick={() => setActiveStep(1)}
-													sx={{
-														width: 88,
-														height: 88,
-														flexShrink: 0,
-														borderRadius: '12px',
-														border: '1px dashed rgba(var(--accent-gold-rgb), 0.4)',
-														display: 'flex',
-														flexDirection: 'column',
-														alignItems: 'center',
-														justifyContent: 'center',
-														cursor: 'pointer',
-														backgroundColor: 'rgba(var(--accent-gold-rgb), 0.05)',
-														transition: 'all 0.2s ease',
-														'&:hover': {
-															backgroundColor: 'rgba(var(--accent-gold-rgb), 0.1)',
-															borderColor: 'var(--accent-gold)',
-														},
-													}}
-												>
-													<Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--accent-gold)' }}>
+												<JXBox padding="none" border={false} onClick={() => setActiveStep(1)} style={{width: '88px', height: '88px', flexShrink: 0, borderRadius: '12px', border: '1px dashed rgba(var(--accent-gold-rgb), 0.4)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backgroundColor: 'rgba(var(--accent-gold-rgb), 0.05)', transition: 'all 0.2s ease'}}>
+													<p className="text-sm leading-relaxed" style={{fontSize: '0.85rem', fontWeight: 700, color: 'var(--accent-gold)'}}>
 														+{vehiclePhotos.length - 10}
-													</Typography>
-													<Typography sx={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>
+													</p>
+													<p className="text-sm leading-relaxed" style={{fontSize: '0.65rem', color: 'var(--text-secondary)'}}>
 														more
-													</Typography>
-												</Box>
+													</p>
+												</JXBox>
 											)}
-										</Box>
-									</Box>
+										</JXBox>
+									</JXBox>
 								)}
-							</Box>
+							</JXBox>
 						</DashboardPanel>
 					)}
 
 					{/* Step 1: Photos */}
 					{activeStep === 1 && (
 						<DashboardPanel title="Vehicle Photos" description="Upload images of the vehicle">
-							<Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+							<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '24px'}}>
 								<label
 									htmlFor="photos"
 									style={{
@@ -1328,71 +1137,47 @@ export default function NewShipmentPage() {
 										style={{ display: 'none' }}
 										disabled={uploading}
 									/>
-									<Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, py: 4 }}>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', paddingTop: '32px', paddingBottom: '32px'}}>
 										{uploadingFiles.size > 0 ? (
 											<>
 												<Loader2 style={{ fontSize: 40, color: 'var(--accent-gold)' }} className="animate-spin" />
-												<Typography sx={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+												<p className="text-sm leading-relaxed" style={{fontSize: '0.9rem', color: 'var(--text-secondary)'}}>
 													Uploading {uploadingFiles.size} photo{uploadingFiles.size !== 1 ? 's' : ''}...
-												</Typography>
+												</p>
 											</>
 										) : (
 											<>
 												<Upload style={{ fontSize: 40, color: 'var(--accent-gold)' }} />
-												<Typography sx={{ fontSize: '0.9rem', fontWeight: 500, color: 'var(--text-primary)' }}>
+												<p className="text-sm leading-relaxed" style={{fontSize: '0.9rem', fontWeight: 500, color: 'var(--text-primary)'}}>
 													Click to upload vehicle photos
-												</Typography>
-												<Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+												</p>
+												<p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', color: 'var(--text-secondary)'}}>
 													PNG, JPG, WebP up to 10MB (Multiple files supported, auto-compressed)
-												</Typography>
+												</p>
 											</>
 										)}
-									</Box>
+									</JXBox>
 								</label>
 
 								{/* Upload Progress Indicator */}
 								{Object.keys(uploadProgress).length > 0 && (
-									<Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-										<Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
-											<Typography sx={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)' }}>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '8px'}}>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px'}}>
+											<p className="text-sm leading-relaxed" style={{fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)'}}>
 												Uploading {Object.keys(uploadProgress).length} photo{Object.keys(uploadProgress).length !== 1 ? 's' : ''}...
-											</Typography>
-											<Typography sx={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--accent-gold)' }}>
+											</p>
+											<p className="text-sm leading-relaxed" style={{fontSize: '0.875rem', fontWeight: 500, color: 'var(--accent-gold)'}}>
 												{overallProgress}%
-											</Typography>
-										</Box>
-										<LinearProgress 
-											variant="determinate" 
-											value={overallProgress} 
-											sx={{
-												height: 8,
-												borderRadius: 4,
-												backgroundColor: 'rgba(var(--border-rgb), 0.2)',
-												'& .MuiLinearProgress-bar': {
-													backgroundColor: 'var(--accent-gold)',
-													borderRadius: 4,
-												},
-											}}
-										/>
-									</Box>
+											</p>
+										</JXBox>
+										<div role="progressbar" aria-valuenow={overallProgress} aria-valuemin={0} aria-valuemax={100} className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--border)]" style={{height: '8px', borderRadius: '32px', backgroundColor: 'rgba(var(--border-rgb), 0.2)'}}><div className="h-full rounded-full transition-all duration-300" style={{ width: `${overallProgress}%`, backgroundColor: 'var(--accent-gold)' }} /></div>
+									</JXBox>
 								)}
 
 								{vehiclePhotos.length > 0 && (
-									<Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(4, 1fr)' }, gap: 2 }}>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '16px'}} className="grid-cols-2 sm:grid-cols-4">
 										{vehiclePhotos.map((photo, index) => (
-											<Box
-												key={index}
-												sx={{
-													position: 'relative',
-													aspectRatio: '1',
-													borderRadius: 2,
-													overflow: 'hidden',
-													border: '1px solid var(--border)',
-													'&:hover .remove-button': {
-														opacity: 1,
-													},
-												}}
-											>
+											<JXBox padding="none" border={false} key={index} style={{backgroundColor: 'transparent', position: 'relative', aspectRatio: '1', borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--border)'}}>
 												<Image
 													src={photo}
 													alt={`Vehicle photo ${index + 1}`}
@@ -1400,57 +1185,26 @@ export default function NewShipmentPage() {
 													className="object-cover"
 													unoptimized
 												/>
-												<Box
-													className="remove-button"
-													component="button"
-													type="button"
-													onClick={() => removePhoto(index)}
-													sx={{
-														position: 'absolute',
-														top: 8,
-														right: 8,
-														bgcolor: 'rgba(239, 68, 68, 0.9)',
-														borderRadius: '50%',
-														p: 0.5,
-														opacity: 0,
-														transition: 'opacity 0.2s ease',
-														cursor: 'pointer',
-														border: 'none',
-														zIndex: 1,
-														'&:hover': {
-															bgcolor: 'rgb(239, 68, 68)',
-														},
-													}}
-												>
+												<button type="button" onClick={() => removePhoto(index)} style={{position: 'absolute', top: '8px', right: '8px', backgroundColor: 'rgba(239, 68, 68, 0.9)', borderRadius: '50%', padding: '4px', opacity: 0, transition: 'opacity 0.2s ease', cursor: 'pointer', border: 'none', zIndex: 1}} className="remove-button">
 													<X style={{ fontSize: 16, color: 'white' }} />
-												</Box>
-											</Box>
+												</button>
+											</JXBox>
 										))}
-									</Box>
+									</JXBox>
 								)}
-							</Box>
+							</JXBox>
 						</DashboardPanel>
 					)}
 
 					{/* Step 2: Status & Container */}
 					{activeStep === 2 && (
 						<DashboardPanel title="Status & Container" description="Set shipment status and assign to container">
-							<Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+							<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '24px'}}>
 								{/* Status */}
-								<Box>
-									<Typography
-										component="label"
-										htmlFor="status"
-										sx={{
-											display: 'block',
-											fontSize: '0.875rem',
-											fontWeight: 500,
-											color: 'var(--text-primary)',
-											mb: 1,
-										}}
-									>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+									<label className="text-sm leading-relaxed" htmlFor="status" style={{display: 'block', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '8px'}}>
 										Shipment Status *
-									</Typography>
+									</label>
 									<select
 										id="status"
 										{...register('status')}
@@ -1469,454 +1223,247 @@ export default function NewShipmentPage() {
 										<option value="RELEASED">Released</option>
 									</select>
 									{errors.status && (
-										<Typography sx={{ fontSize: '0.75rem', color: 'var(--error)', mt: 0.5 }}>
+										<p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', color: 'var(--error)', marginTop: '4px'}}>
 											{errors.status.message}
-										</Typography>
+										</p>
 									)}
-									<Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)', mt: 0.5 }}>
+									<p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '4px'}}>
 										{statusValue === 'ON_HAND'
 											? 'Vehicle is currently on hand, not yet assigned to a container'
 											: statusValue === 'IN_TRANSIT'
 											? 'Vehicle is in transit - must be assigned to a container'
 											: 'Vehicle is released and ready for transit assignment'}
-									</Typography>
-								</Box>
+									</p>
+								</JXBox>
 
 								{/* Container Selection - Only shown when IN_TRANSIT */}
 								{statusValue === 'IN_TRANSIT' && (
-									<Box>
-										<Typography
-											component="label"
-											htmlFor="containerId"
-											sx={{
-												display: 'block',
-												fontSize: '0.875rem',
-												fontWeight: 500,
-												color: 'var(--text-primary)',
-												mb: 1,
-											}}
-										>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+										<label className="text-sm leading-relaxed" htmlFor="containerId" style={{display: 'block', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '8px'}}>
 											Container *
-										</Typography>
+										</label>
 										{loadingContainers ? (
-											<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, color: 'var(--text-secondary)' }}>
+											<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--text-secondary)'}}>
 												<Loader2 style={{ fontSize: 18 }} className="animate-spin" />
-												<Typography sx={{ fontSize: '0.85rem' }}>Loading containers...</Typography>
-											</Box>
+												<p className="text-sm leading-relaxed" style={{fontSize: '0.85rem'}}>Loading containers...</p>
+											</JXBox>
 										) : (
 											<>
-												<Autocomplete
-													options={containers}
-													isOptionEqualToValue={(option, value) => option.id === value?.id}
-													getOptionLabel={(option) => 
-														typeof option === 'string' 
-															? option 
-															: `${option.containerNumber || ''}${option.destinationPort ? ` - ${option.destinationPort}` : ''} (${option.currentCount ?? 0}/${option.maxCapacity ?? 0})`
-													}
-													filterOptions={(options, state) => {
-														const query = (state.inputValue || '').toLowerCase().trim();
-														if (!query) return options;
-														return options.filter((c) => {
-															const num = (c.containerNumber || '').toLowerCase();
-															const dest = (c.destinationPort || '').toLowerCase();
-															const track = (c.trackingNumber || '').toLowerCase();
-															const line = (c.shippingLine || '').toLowerCase();
-															const company = (c.company?.name || '').toLowerCase();
-															const booking = (c.bookingNumber || '').toLowerCase();
-															return num.includes(query) || dest.includes(query) || track.includes(query) || line.includes(query) || company.includes(query) || booking.includes(query);
-														});
-													}}
-													inputValue={containerSearchInput}
-													onInputChange={(_, newInputValue, reason) => {
-														if (reason === 'input' || reason === 'clear') {
-															setContainerSearchInput(newInputValue);
-														}
-													}}
-													value={containers.find(c => c.id === watch('containerId')) || null}
-													onChange={(_, newValue) => {
-														setValue('containerId', newValue?.id || '', { shouldValidate: true });
-													}}
-													renderOption={(props, option) => (
-														<li {...props} key={option.id}>
-															<Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, py: 0.5, width: '100%' }}>
-																<Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-																	<Typography sx={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-primary)' }}>
-																		{option.containerNumber}
-																	</Typography>
-																	<Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-																		{option.currentCount}/{option.maxCapacity} loaded
-																	</Typography>
-																</Box>
-																<Box sx={{ display: 'flex', gap: 1, fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-																	{option.destinationPort && <span>Port: {option.destinationPort}</span>}
-																	{option.shippingLine && <span>• {option.shippingLine}</span>}
-																	{option.company?.name && <span>• {option.company.name}</span>}
-																</Box>
-															</Box>
-														</li>
-													)}
-													renderInput={(params) => (
-														<TextField
-															{...params}
-															placeholder="Search by container #, tracking #, line, or port..."
-															error={!!errors.containerId}
-															helperText={errors.containerId?.message}
-															InputProps={{
-																...params.InputProps,
-																endAdornment: (
-																	<>
-																		{loadingContainers ? <Loader2 className="animate-spin w-4 h-4 text-[var(--accent-gold)] mr-2" /> : null}
-																		{params.InputProps.endAdornment}
-																	</>
-																),
-															}}
-															sx={{
-																'& .MuiOutlinedInput-root': {
-																	borderRadius: '16px',
-																	backgroundColor: 'var(--background)',
-																	'& fieldset': {
-																		borderColor: errors.containerId ? 'var(--error)' : 'rgba(var(--border-rgb), 0.9)',
-																	},
-																	'&:hover fieldset': {
-																		borderColor: errors.containerId ? 'var(--error)' : 'var(--accent-gold)',
-																	},
-																	'&.Mui-focused fieldset': {
-																		borderColor: errors.containerId ? 'var(--error)' : 'var(--accent-gold)',
-																	},
-																},
-																'& .MuiInputBase-input': {
-																	color: 'var(--text-primary)',
-																	fontSize: '0.875rem',
-																},
-																'& .MuiInputLabel-root': {
-																	color: 'var(--text-secondary)',
-																},
-															}}
-														/>
-													)}
-													sx={{
-														'& .MuiAutocomplete-paper': {
-															backgroundColor: 'var(--panel)',
-															border: '1px solid var(--border)',
-														},
-													}}
+																								<Autocomplete
+												  options={containers.map((c) => ({
+												    id: c.id,
+												    label: `${c.containerNumber || ''}${c.destinationPort ? ` - ${c.destinationPort}` : ''} (${c.currentCount ?? 0}/${c.maxCapacity ?? 0})`,
+												    subtitle: [c.destinationPort ? `Port: ${c.destinationPort}` : '', c.shippingLine, c.company?.name].filter(Boolean).join(' • '),
+												    searchText: [c.containerNumber, c.destinationPort, c.trackingNumber, c.shippingLine, c.company?.name, c.bookingNumber].filter(Boolean).join(' '),
+												  }))}
+												  inputValue={containerSearchInput}
+												  onInputChange={(v, reason) => { if (reason === 'input' || reason === 'clear') setContainerSearchInput(v); }}
+												  value={watch('containerId') || null}
+												  onChange={(id) => setValue('containerId', (id as string | null) || '', { shouldValidate: true })}
+												  loading={loadingContainers}
+												  placeholder="Search by container #, tracking #, line, or port..."
+												  error={!!errors.containerId}
+												  helperText={errors.containerId?.message}
 												/>
-												<Box sx={{ mt: 2 }}>
+												<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '16px'}}>
 													<Button href="/dashboard/containers/new" target="_blank" variant="outline" size="sm">
 														Create New Container
 													</Button>
-												</Box>
+												</JXBox>
 											</>
 										)}
-									</Box>
+									</JXBox>
 								)}
-							</Box>
+							</JXBox>
 						</DashboardPanel>
 					)}
 
 					{/* Step 3: Customer & Financial */}
 					{activeStep === 3 && (
 						<DashboardPanel title="Customer & Financial" description="Select customer and enter pricing">
-							<Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+							<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '24px'}}>
 								{/* Customer Selection */}
-								<Box>
-									<Typography
-										component="label"
-										htmlFor="userId"
-										sx={{
-											display: 'block',
-											fontSize: '0.875rem',
-											fontWeight: 500,
-											color: 'var(--text-primary)',
-											mb: 1,
-										}}
-									>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+									<label className="text-sm leading-relaxed" htmlFor="userId" style={{display: 'block', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '8px'}}>
 										Select Customer *
-									</Typography>
+									</label>
 									{loadingUsers ? (
-										<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, color: 'var(--text-secondary)' }}>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--text-secondary)'}}>
 											<Loader2 style={{ fontSize: 18 }} className="animate-spin" />
-											<Typography sx={{ fontSize: '0.85rem' }}>Loading customers...</Typography>
-										</Box>
+											<p className="text-sm leading-relaxed" style={{fontSize: '0.85rem'}}>Loading customers...</p>
+										</JXBox>
 									) : (
-										<Autocomplete
-											options={users}
-											getOptionLabel={(option) => option.name || option.email}
-											value={users.find(u => u.id === watch('userId')) || null}
-											onChange={(_, newValue) => {
-												setValue('userId', newValue?.id || '', { shouldValidate: true });
-											}}
-											renderInput={(params) => (
-												<TextField
-													{...params}
-													placeholder="Select customer"
-													error={!!errors.userId}
-													helperText={errors.userId?.message}
-													sx={{
-														'& .MuiOutlinedInput-root': {
-															borderRadius: '16px',
-															backgroundColor: 'var(--background)',
-															'& fieldset': {
-																borderColor: errors.userId ? 'var(--error)' : 'rgba(var(--border-rgb), 0.9)',
-															},
-															'&:hover fieldset': {
-																borderColor: errors.userId ? 'var(--error)' : 'var(--accent-gold)',
-															},
-															'&.Mui-focused fieldset': {
-																borderColor: errors.userId ? 'var(--error)' : 'var(--accent-gold)',
-															},
-														},
-														'& .MuiInputBase-input': {
-															color: 'var(--text-primary)',
-															fontSize: '0.875rem',
-														},
-														'& .MuiInputLabel-root': {
-															color: 'var(--text-secondary)',
-														},
-													}}
-												/>
-											)}
-											sx={{
-												'& .MuiAutocomplete-paper': {
-													backgroundColor: 'var(--panel)',
-													border: '1px solid var(--border)',
-												},
-											}}
+																				<Autocomplete
+										  options={users.map((u) => ({ id: u.id, label: u.name || u.email }))}
+										  value={watch('userId') || null}
+										  onChange={(id) => setValue('userId', (id as string | null) || '', { shouldValidate: true })}
+										  placeholder="Select customer"
+										  error={!!errors.userId}
+										  helperText={errors.userId?.message}
 										/>
 									)}
-								</Box>
+								</JXBox>
 								{/* Payment Mode */}
-								<Box>
-									<Typography
-										sx={{
-											display: 'block',
-											fontSize: '0.875rem',
-											fontWeight: 500,
-											color: 'var(--text-primary)',
-											mb: 1.5,
-										}}
-									>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+									<p className="text-sm leading-relaxed" style={{display: 'block', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '12px'}}>
 										Payment Mode
-									</Typography>
-									<Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2 }}>
-										<Box
-											component="label"
-											sx={{
-												display: 'flex',
-												alignItems: 'center',
-												justifyContent: 'center',
-												gap: 1.5,
-												p: 2,
-												border: watch('paymentMode') === 'CASH' ? '2px solid var(--accent-gold)' : '1px solid var(--border)',
-												borderRadius: 2,
-												bgcolor: watch('paymentMode') === 'CASH' ? 'rgba(var(--accent-gold-rgb), 0.08)' : 'var(--panel)',
-												cursor: 'pointer',
-												transition: 'all 0.2s ease',
-												'&:hover': {
-													borderColor: 'var(--accent-gold)',
-												},
-											}}
-										>
+									</p>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px'}}>
+										<JXBox padding="none" border={false} component="label" style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', padding: '16px', border: watch('paymentMode') === 'CASH' ? '2px solid var(--accent-gold)' : '1px solid var(--border)', borderRadius: '16px', backgroundColor: watch('paymentMode') === 'CASH' ? 'rgba(var(--accent-gold-rgb), 0.08)' : 'var(--panel)', cursor: 'pointer', transition: 'all 0.2s ease'}}>
 											<input
 												type="radio"
 												value="CASH"
 												{...register('paymentMode')}
 												style={{ display: 'none' }}
 											/>
-											<Typography sx={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+											<p className="text-sm leading-relaxed" style={{fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)'}}>
 												Cash
-											</Typography>
-										</Box>
-										<Box
-											component="label"
-											sx={{
-												display: 'flex',
-												alignItems: 'center',
-												justifyContent: 'center',
-												gap: 1.5,
-												p: 2,
-												border: watch('paymentMode') === 'DUE' ? '2px solid var(--accent-gold)' : '1px solid var(--border)',
-												borderRadius: 2,
-												bgcolor: watch('paymentMode') === 'DUE' ? 'rgba(var(--accent-gold-rgb), 0.08)' : 'var(--panel)',
-												cursor: 'pointer',
-												transition: 'all 0.2s ease',
-												'&:hover': {
-													borderColor: 'var(--accent-gold)',
-												},
-											}}
-										>
+											</p>
+										</JXBox>
+										<JXBox padding="none" border={false} component="label" style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', padding: '16px', border: watch('paymentMode') === 'DUE' ? '2px solid var(--accent-gold)' : '1px solid var(--border)', borderRadius: '16px', backgroundColor: watch('paymentMode') === 'DUE' ? 'rgba(var(--accent-gold-rgb), 0.08)' : 'var(--panel)', cursor: 'pointer', transition: 'all 0.2s ease'}}>
 											<input
 												type="radio"
 												value="DUE"
 												{...register('paymentMode')}
 												style={{ display: 'none' }}
 											/>
-											<Typography sx={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+											<p className="text-sm leading-relaxed" style={{fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)'}}>
 												Due
-											</Typography>
-										</Box>
-									</Box>
-								</Box>
-							</Box>
+											</p>
+										</JXBox>
+									</JXBox>
+								</JXBox>
+							</JXBox>
 						</DashboardPanel>
 					)}
 
 					{/* Step 4: Review & Submit */}
 					{activeStep === 4 && (
 						<DashboardPanel title="Review & Submit" description="Verify all details before creating">
-							<Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+							<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '24px'}}>
 								{/* Summary */}
-								<Box
-									sx={{
-										p: 3,
-										borderRadius: 2,
-										border: '1px solid var(--border)',
-										bgcolor: 'var(--background)',
-									}}
-								>
-									<Typography sx={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', mb: 2 }}>
+								<JXBox padding="none" border={false} style={{padding: '24px', borderRadius: '16px', border: '1px solid var(--border)', backgroundColor: 'var(--background)'}}>
+									<p className="text-sm leading-relaxed" style={{fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '16px'}}>
 										Shipment Summary
-									</Typography>
-									<Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' }, gap: 2 }}>
-										<Box>
-											<Typography sx={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', mb: 0.5 }}>
+									</p>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '16px'}} className="grid-cols-1 sm:grid-cols-2">
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+											<p className="text-sm leading-relaxed" style={{fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '4px'}}>
 												Service Type
-											</Typography>
-											<Box
-												sx={{
-													display: 'inline-block',
-													px: 1.5,
-													py: 0.5,
-													borderRadius: 1,
-													bgcolor: formValues.serviceType === 'PURCHASE_AND_SHIPPING' ? 'rgba(var(--accent-gold-rgb), 0.15)' : 'rgba(99, 102, 241, 0.15)',
-													color: formValues.serviceType === 'PURCHASE_AND_SHIPPING' ? 'var(--accent-gold)' : 'rgb(99, 102, 241)',
-													fontSize: '0.75rem',
-													fontWeight: 600,
-												}}
-											>
+											</p>
+											<JXBox padding="none" border={false} style={{display: 'inline-block', paddingLeft: '12px', paddingRight: '12px', paddingTop: '4px', paddingBottom: '4px', borderRadius: '8px', backgroundColor: formValues.serviceType === 'PURCHASE_AND_SHIPPING' ? 'rgba(var(--accent-gold-rgb), 0.15)' : 'rgba(99, 102, 241, 0.15)', color: formValues.serviceType === 'PURCHASE_AND_SHIPPING' ? 'var(--accent-gold)' : 'rgb(99, 102, 241)', fontSize: '0.75rem', fontWeight: 600}}>
 												{formValues.serviceType === 'PURCHASE_AND_SHIPPING' ? '📦 Purchase + Shipping' : '🚚 Shipping Only'}
-											</Box>
-										</Box>
-										<Box>
-											<Typography sx={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', mb: 0.5 }}>
+											</JXBox>
+										</JXBox>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+											<p className="text-sm leading-relaxed" style={{fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '4px'}}>
 												Vehicle
-											</Typography>
-											<Typography sx={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+											</p>
+											<p className="text-sm leading-relaxed" style={{fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)'}}>
 												{formValues.vehicleYear} {formValues.vehicleMake} {formValues.vehicleModel}
-											</Typography>
-										</Box>
-										<Box>
-											<Typography sx={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', mb: 0.5 }}>
+											</p>
+										</JXBox>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+											<p className="text-sm leading-relaxed" style={{fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '4px'}}>
 												VIN
-											</Typography>
-											<Typography sx={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'monospace' }}>
+											</p>
+											<p className="text-sm leading-relaxed" style={{fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'monospace'}}>
 												{formValues.vehicleVIN || 'N/A'}
-											</Typography>
-										</Box>
-										<Box>
-											<Typography sx={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', mb: 0.5 }}>
+											</p>
+										</JXBox>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+											<p className="text-sm leading-relaxed" style={{fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '4px'}}>
 												Type
-											</Typography>
-											<Typography sx={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)', textTransform: 'capitalize' }}>
+											</p>
+											<p className="text-sm leading-relaxed" style={{fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)', textTransform: 'capitalize'}}>
 												{formValues.vehicleType}
-											</Typography>
-										</Box>
-										<Box>
-											<Typography sx={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', mb: 0.5 }}>
+											</p>
+										</JXBox>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+											<p className="text-sm leading-relaxed" style={{fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '4px'}}>
 												Status
-											</Typography>
-											<Box
-												sx={{
-													display: 'inline-block',
-													px: 1.5,
-													py: 0.5,
-													borderRadius: 1,
-													bgcolor: formValues.status === 'IN_TRANSIT' ? 'rgba(99, 102, 241, 0.15)' : 'rgba(156, 163, 175, 0.15)',
-													color: formValues.status === 'IN_TRANSIT' ? 'rgb(99, 102, 241)' : 'rgb(156, 163, 175)',
-													fontSize: '0.75rem',
-													fontWeight: 600,
-												}}
-											>
+											</p>
+											<JXBox padding="none" border={false} style={{display: 'inline-block', paddingLeft: '12px', paddingRight: '12px', paddingTop: '4px', paddingBottom: '4px', borderRadius: '8px', backgroundColor: formValues.status === 'IN_TRANSIT' ? 'rgba(99, 102, 241, 0.15)' : 'rgba(156, 163, 175, 0.15)', color: formValues.status === 'IN_TRANSIT' ? 'rgb(99, 102, 241)' : 'rgb(156, 163, 175)', fontSize: '0.75rem', fontWeight: 600}}>
 												{formValues.status === 'IN_TRANSIT' ? 'In Transit' : 'On Hand'}
-											</Box>
-										</Box>
+											</JXBox>
+										</JXBox>
 										{formValues.serviceType === 'PURCHASE_AND_SHIPPING' && formValues.purchasePrice && (
-											<Box>
-												<Typography sx={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', mb: 0.5 }}>
+											<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+												<p className="text-sm leading-relaxed" style={{fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '4px'}}>
 													Purchase Price
-												</Typography>
-												<Typography sx={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--accent-gold)' }}>
+												</p>
+												<p className="text-sm leading-relaxed" style={{fontSize: '0.9rem', fontWeight: 600, color: 'var(--accent-gold)'}}>
 													${parseFloat(formValues.purchasePrice).toLocaleString()}
-												</Typography>
-											</Box>
+												</p>
+											</JXBox>
 										)}
-									</Box>
+									</JXBox>
 
 									{/* Purchase Information Summary */}
 									{formValues.serviceType === 'PURCHASE_AND_SHIPPING' && (formValues.dealerName || formValues.purchaseLocation || formValues.purchaseDate) && (
-										<Box sx={{ mt: 3, pt: 3, borderTop: '1px solid var(--border)' }}>
-											<Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)', mb: 2 }}>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '24px', paddingTop: '24px', borderTop: '1px solid var(--border)'}}>
+											<p className="text-sm leading-relaxed" style={{fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px'}}>
 												💰 Purchase Details
-											</Typography>
-											<Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' }, gap: 2 }}>
+											</p>
+											<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '16px'}} className="grid-cols-1 sm:grid-cols-2">
 												{formValues.dealerName && (
-													<Box>
-														<Typography sx={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', mb: 0.5 }}>
+													<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+														<p className="text-sm leading-relaxed" style={{fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '4px'}}>
 															Dealer/Auction
-														</Typography>
-														<Typography sx={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+														</p>
+														<p className="text-sm leading-relaxed" style={{fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)'}}>
 															{formValues.dealerName}
-														</Typography>
-													</Box>
+														</p>
+													</JXBox>
 												)}
 												{formValues.purchaseLocation && (
-													<Box>
-														<Typography sx={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', mb: 0.5 }}>
+													<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+														<p className="text-sm leading-relaxed" style={{fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '4px'}}>
 															Location
-														</Typography>
-														<Typography sx={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+														</p>
+														<p className="text-sm leading-relaxed" style={{fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)'}}>
 															{formValues.purchaseLocation}
-														</Typography>
-													</Box>
+														</p>
+													</JXBox>
 												)}
 												{formValues.purchaseDate && (
-													<Box>
-														<Typography sx={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', mb: 0.5 }}>
+													<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+														<p className="text-sm leading-relaxed" style={{fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '4px'}}>
 															Purchase Date
-														</Typography>
-														<Typography sx={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+														</p>
+														<p className="text-sm leading-relaxed" style={{fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)'}}>
 															{new Date(formValues.purchaseDate).toLocaleDateString()}
-														</Typography>
-													</Box>
+														</p>
+													</JXBox>
 												)}
-											</Box>
+											</JXBox>
 											{formValues.purchaseNotes && (
-												<Box sx={{ mt: 2 }}>
-													<Typography sx={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', mb: 0.5 }}>
+												<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '16px'}}>
+													<p className="text-sm leading-relaxed" style={{fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '4px'}}>
 														Purchase Notes
-													</Typography>
-													<Typography sx={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+													</p>
+													<p className="text-sm leading-relaxed" style={{fontSize: '0.85rem', color: 'var(--text-secondary)'}}>
 														{formValues.purchaseNotes}
-													</Typography>
-												</Box>
+													</p>
+												</JXBox>
 											)}
-										</Box>
+										</JXBox>
 									)}
 
 									{vehiclePhotos.length > 0 && (
-										<Box sx={{ mt: 2, pt: 2, borderTop: '1px solid var(--border)' }}>
-											<Typography sx={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', mb: 1 }}>
+										<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border)'}}>
+											<p className="text-sm leading-relaxed" style={{fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '8px'}}>
 												Photos Uploaded
-											</Typography>
-											<Typography sx={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+											</p>
+											<p className="text-sm leading-relaxed" style={{fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)'}}>
 												{vehiclePhotos.length} photo{vehiclePhotos.length !== 1 ? 's' : ''}
-											</Typography>
-										</Box>
+											</p>
+										</JXBox>
 									)}
-								</Box>
+								</JXBox>
 
 								{/* Internal Notes */}
-								<Box>
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
 									<FormField
 										id="internalNotes"
 										label="Internal Notes (Optional)"
@@ -1927,13 +1474,13 @@ export default function NewShipmentPage() {
 										helperText={errors.internalNotes?.message}
 										{...register('internalNotes')}
 									/>
-								</Box>
-							</Box>
+								</JXBox>
+							</JXBox>
 						</DashboardPanel>
 					)}
 
 					{/* Navigation Buttons */}
-					<Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 3 }}>
+					<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between', marginTop: '24px'}}>
 						<Button
 							type="button"
 							variant="outline"
@@ -1944,7 +1491,7 @@ export default function NewShipmentPage() {
 							Back
 						</Button>
 
-						<Box sx={{ display: 'flex', gap: 2 }}>
+						<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '16px'}}>
 							<Button href="/dashboard/shipments" variant="ghost">
 								Cancel
 							</Button>
@@ -1969,8 +1516,8 @@ export default function NewShipmentPage() {
 									Next
 								</Button>
 							)}
-						</Box>
-					</Box>
+						</JXBox>
+					</JXBox>
 				</form>
 
 				<BarcodeScannerModal

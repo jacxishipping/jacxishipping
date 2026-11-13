@@ -1,7 +1,9 @@
 'use client';
-import { formatMoney } from '@/lib/format';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { formatMoney } from '@/lib/format';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
+
+import { Suspense, useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
@@ -31,7 +33,6 @@ import {
   Radio,
   Download,
 } from 'lucide-react';
-import { Tabs, Tab, Box, Menu, MenuItem } from '@mui/material';
 import { MoreVertical } from 'lucide-react';
 import { Breadcrumbs, CopyButton, toast, Tooltip } from '@/components/design-system';
 import { openUniversalShipmentExport } from '@/components/shipments/UniversalShipmentExportModal';
@@ -71,6 +72,72 @@ import type {
   StatusColors,
 } from '@/components/shipments/shipment-detail-types';
 
+function RelativeMenu({
+  anchorEl,
+  onClose,
+  children,
+}: {
+  anchorEl: HTMLElement | null;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!anchorEl) return;
+    const handleDown = (e: MouseEvent) => {
+      if (panelRef.current && !panelRef.current.contains(e.target as Node)) onClose();
+    };
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("mousedown", handleDown);
+    window.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleDown);
+      window.removeEventListener("keydown", handleKey);
+    };
+  }, [anchorEl, onClose]);
+  if (!anchorEl) return null;
+  return (
+    <div
+      ref={panelRef}
+      role="menu"
+      className="absolute right-0 top-full z-[1050] mt-1.5 min-w-[200px] rounded-lg border border-[var(--border)] bg-[var(--panel)] py-1 shadow-[0_8px_32px_rgba(var(--text-primary-rgb),0.12)]"
+    >
+      {children}
+    </div>
+  );
+}
+
+function RelativeMenuItem( {
+  onClick,
+  children,
+  danger = false,
+  disabled = false,
+}: {
+  onClick?: () => void;
+  children: React.ReactNode;
+  danger?: boolean;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      role="menuitem"
+      onClick={onClick}
+      disabled={disabled}
+      className={[
+        "flex w-full items-center px-4 py-2.5 text-left text-[0.875rem] transition-colors disabled:opacity-50",
+        danger
+          ? "text-[var(--error)] hover:bg-[rgba(var(--error-rgb),0.1)]"
+          : "text-[var(--text-primary)] hover:bg-[rgba(var(--border-rgb),0.4)]",
+      ].join(" ")}
+    >
+      {children}
+    </button>
+  );
+}
+
 const statusColors: Record<string, StatusColors> = {
   'ON_HAND': { bg: 'rgba(var(--accent-gold-rgb), 0.15)', text: 'var(--accent-gold)', border: 'rgba(var(--accent-gold-rgb), 0.4)' },
   'IN_TRANSIT': { bg: 'rgba(var(--accent-gold-rgb), 0.15)', text: 'var(--accent-gold)', border: 'rgba(var(--accent-gold-rgb), 0.4)' },
@@ -108,7 +175,7 @@ const shipmentTabSlugs = [
 function TabPanel({ children, value, index }: { children: React.ReactNode; value: number; index: number }) {
   return (
     <div role="tabpanel" hidden={value !== index} id={`shipment-tabpanel-${index}`} aria-labelledby={`shipment-tab-${index}`}>
-      {value === index && <Box sx={{ pt: 2 }}>{children}</Box>}
+      {value === index && <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingTop: '16px'}}>{children}</JXBox>}
     </div>
   );
 }
@@ -186,7 +253,7 @@ function formatShortDate(value: string | null | undefined) {
   return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(date);
 }
 
-export default function ShipmentDetailPage() {
+function ShipmentDetailPageContent() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -1206,7 +1273,8 @@ export default function ShipmentDetailPage() {
                   )}
                   {((canManageWorkflow && !shipment.releaseToken) || canManageShipmentRecord) && (
                     <>
-                      <Button
+                      <div className="relative">
+                        <Button
                         variant="outline"
                         size="sm"
                         icon={<MoreVertical className="h-4 w-4" />}
@@ -1214,34 +1282,25 @@ export default function ShipmentDetailPage() {
                       >
                         More
                       </Button>
-                      <Menu
-                        anchorEl={headerMenuAnchor}
-                        open={Boolean(headerMenuAnchor)}
-                        onClose={() => setHeaderMenuAnchor(null)}
-                      >
+                        <RelativeMenu anchorEl={headerMenuAnchor} onClose={() => setHeaderMenuAnchor(null)}>
                         {canManageWorkflow && !shipment.releaseToken && (
-                          <MenuItem
-                            onClick={() => {
+                          <RelativeMenuItem onClick={() => {
                               setHeaderMenuAnchor(null);
                               void handleGenerateReleaseToken();
-                            }}
-                            disabled={creatingReleaseToken || !isReleasedForTransit}
-                          >
+                            }} disabled={creatingReleaseToken || !isReleasedForTransit}>
                             Generate Release Token
-                          </MenuItem>
+                          </RelativeMenuItem>
                         )}
                         {canManageShipmentRecord && (
-                          <MenuItem
-                            onClick={() => {
+                          <RelativeMenuItem onClick={() => {
                               setHeaderMenuAnchor(null);
                               handleDelete();
-                            }}
-                            sx={{ color: 'var(--error)' }}
-                          >
+                            }} danger>
                             Delete Shipment
-                          </MenuItem>
+                          </RelativeMenuItem>
                         )}
-                      </Menu>
+                      </RelativeMenu>
+                      </div>
                     </>
                   )}
                 </div>
@@ -1280,75 +1339,154 @@ export default function ShipmentDetailPage() {
         />
 
         {/* Tabs Navigation */}
-        <Box
-          sx={{
-            position: 'sticky',
-            top: 0,
-            zIndex: 10,
-            border: '1px solid var(--border)',
-            borderRadius: '12px',
-            backgroundColor: 'var(--panel)',
-            boxShadow: '0 8px 24px rgba(var(--text-primary-rgb),0.06)',
-            overflow: 'hidden',
-          }}
-        >
-          <Tabs
-            value={activeTab}
-            onChange={(_, newValue) => {
-              openShipmentTab(newValue);
-            }}
-            variant="scrollable"
-            scrollButtons="auto"
-            allowScrollButtonsMobile
-            sx={{
-              minHeight: 48,
-              '& .MuiTabs-flexContainer': {
-                gap: 0.25,
-                px: { xs: 0.5, sm: 1 },
-              },
-              '& .MuiTab-root': {
-                textTransform: 'none',
-                fontSize: { xs: '0.8rem', sm: '0.875rem' },
-                fontWeight: 600,
-                color: 'var(--text-secondary)',
-                minHeight: 48,
-                borderRadius: '8px',
-                my: 0.5,
-                px: { xs: 1.25, sm: 1.75 },
-                py: 0.75,
-                '&:hover': {
-                  color: 'var(--accent-gold)',
-                  backgroundColor: 'rgba(var(--accent-gold-rgb), 0.08)',
-                },
-              },
-              '& .Mui-selected': {
-                color: 'var(--accent-gold) !important',
-                backgroundColor: 'rgba(var(--accent-gold-rgb), 0.1)',
-                fontWeight: 700,
-              },
-              '& .MuiTabs-indicator': {
-                backgroundColor: 'var(--accent-gold)',
-                height: 3,
-                borderRadius: '3px 3px 0 0',
-              },
-            }}
-          >
-            <Tab value={0} icon={<Info className="h-4 w-4" />} iconPosition="start" label="Overview" />
-            <Tab value={1} icon={<Radio className="h-4 w-4" />} iconPosition="start" label={<ShipmentTabLabel label="Live Map" meta="AIS Live" tone="ready" />} />
-            <Tab value={2} icon={<History className="h-4 w-4" />} iconPosition="start" label="Timeline" />
-            <Tab value={3} icon={<ImageIcon className="h-4 w-4" />} iconPosition="start" label={<ShipmentTabLabel label="Photos" meta={String(photoCount)} tone={photoCount > 0 ? 'ready' : 'neutral'} />} />
-            <Tab value={4} icon={<FileText className="h-4 w-4" />} iconPosition="start" label={<ShipmentTabLabel label="Documents" meta={String(documentCount)} tone={documentCount > 0 ? 'ready' : 'warning'} />} />
-            {isAdmin && <Tab value={5} icon={<DollarSign className="h-4 w-4" />} iconPosition="start" label={<ShipmentTabLabel label="Financials" meta={priceListTabMeta} tone={priceListTabTone} />} />}
-            {isAdmin && <Tab value={6} icon={<Wallet className="h-4 w-4" />} iconPosition="start" label={<ShipmentTabLabel label="Billing" meta={billingTabMeta} tone={billingTabTone} />} />}
-            {isAdmin && <Tab value={7} icon={<AlertTriangle className="h-4 w-4" />} iconPosition="start" label={<ShipmentTabLabel label="Damages" meta={String(damageCount)} tone={damageCount > 0 ? 'danger' : 'ready'} />} />
-            }
-            <Tab value={8} icon={<PackageCheck className="h-4 w-4" />} iconPosition="start" label="Details" />
-            {isAdmin && <Tab value={9} icon={<History className="h-4 w-4" />} iconPosition="start" label="Activity" />}
-            {isAdmin && <Tab value={10} icon={<User className="h-4 w-4" />} iconPosition="start" label="Customer" />}
-            {isAdmin && canUseCompanyGetpass && <Tab value={11} icon={<Clock3 className="h-4 w-4" />} iconPosition="start" label="Company Getpass" />}
-            {isAdmin && canViewLedgerComparison && <Tab value={12} icon={<Wallet className="h-4 w-4" />} iconPosition="start" label="Company Ledger" />}
-          </Tabs>
-        </Box>
+        <JXBox padding="none" border={false} style={{position: 'sticky', top: '0px', zIndex: 10, border: '1px solid var(--border)', borderRadius: '12px', backgroundColor: 'var(--panel)', boxShadow: '0 8px 24px rgba(var(--text-primary-rgb),0.06)', overflow: 'hidden'}}>
+          <div role="tablist" className="flex gap-1 overflow-x-auto border-b border-[var(--border)]">
+            <button
+              key={0}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 0}
+              onClick={() => { const newValue = 0; openShipmentTab(newValue); }}
+              className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === 0 ? 'border-[var(--accent-gold)] text-[var(--accent-gold-text)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+            >
+              {<Info className="h-4 w-4" />} {"Overview"}
+            </button>
+            <button
+              key={1}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 1}
+              onClick={() => { const newValue = 1; openShipmentTab(newValue); }}
+              className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === 1 ? 'border-[var(--accent-gold)] text-[var(--accent-gold-text)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+            >
+              {<Radio className="h-4 w-4" />} {<ShipmentTabLabel label="Live Map" meta="AIS Live" tone="ready" />}
+            </button>
+            <button
+              key={2}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 2}
+              onClick={() => { const newValue = 2; openShipmentTab(newValue); }}
+              className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === 2 ? 'border-[var(--accent-gold)] text-[var(--accent-gold-text)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+            >
+              {<History className="h-4 w-4" />} {"Timeline"}
+            </button>
+            <button
+              key={3}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 3}
+              onClick={() => { const newValue = 3; openShipmentTab(newValue); }}
+              className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === 3 ? 'border-[var(--accent-gold)] text-[var(--accent-gold-text)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+            >
+              {<ImageIcon className="h-4 w-4" />} {<ShipmentTabLabel label="Photos" meta={String(photoCount)} tone={photoCount > 0 ? 'ready' : 'neutral'} />}
+            </button>
+            <button
+              key={4}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 4}
+              onClick={() => { const newValue = 4; openShipmentTab(newValue); }}
+              className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === 4 ? 'border-[var(--accent-gold)] text-[var(--accent-gold-text)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+            >
+              {<FileText className="h-4 w-4" />} {<ShipmentTabLabel label="Documents" meta={String(documentCount)} tone={documentCount > 0 ? 'ready' : 'warning'} />}
+            </button>
+            {isAdmin && (
+            <button
+              key={5}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 5}
+              onClick={() => { const newValue = 5; openShipmentTab(newValue); }}
+              className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === 5 ? 'border-[var(--accent-gold)] text-[var(--accent-gold-text)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+            >
+              {<DollarSign className="h-4 w-4" />} {<ShipmentTabLabel label="Financials" meta={priceListTabMeta} tone={priceListTabTone} />}
+            </button>
+            )}
+            {isAdmin && (
+            <button
+              key={6}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 6}
+              onClick={() => { const newValue = 6; openShipmentTab(newValue); }}
+              className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === 6 ? 'border-[var(--accent-gold)] text-[var(--accent-gold-text)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+            >
+              {<Wallet className="h-4 w-4" />} {<ShipmentTabLabel label="Billing" meta={billingTabMeta} tone={billingTabTone} />}
+            </button>
+            )}
+            {isAdmin && (
+            <button
+              key={7}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 7}
+              onClick={() => { const newValue = 7; openShipmentTab(newValue); }}
+              className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === 7 ? 'border-[var(--accent-gold)] text-[var(--accent-gold-text)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+            >
+              {<AlertTriangle className="h-4 w-4" />} {<ShipmentTabLabel label="Damages" meta={String(damageCount)} tone={damageCount > 0 ? 'danger' : 'ready'} />}
+            </button>
+            )}
+            <button
+              key={8}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 8}
+              onClick={() => { const newValue = 8; openShipmentTab(newValue); }}
+              className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === 8 ? 'border-[var(--accent-gold)] text-[var(--accent-gold-text)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+            >
+              {<PackageCheck className="h-4 w-4" />} {"Details"}
+            </button>
+            {isAdmin && (
+            <button
+              key={9}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 9}
+              onClick={() => { const newValue = 9; openShipmentTab(newValue); }}
+              className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === 9 ? 'border-[var(--accent-gold)] text-[var(--accent-gold-text)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+            >
+              {<History className="h-4 w-4" />} {"Activity"}
+            </button>
+            )}
+            {isAdmin && (
+            <button
+              key={10}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 10}
+              onClick={() => { const newValue = 10; openShipmentTab(newValue); }}
+              className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === 10 ? 'border-[var(--accent-gold)] text-[var(--accent-gold-text)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+            >
+              {<User className="h-4 w-4" />} {"Customer"}
+            </button>
+            )}
+            {isAdmin && canUseCompanyGetpass && (
+            <button
+              key={11}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 11}
+              onClick={() => { const newValue = 11; openShipmentTab(newValue); }}
+              className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === 11 ? 'border-[var(--accent-gold)] text-[var(--accent-gold-text)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+            >
+              {<Clock3 className="h-4 w-4" />} {"Company Getpass"}
+            </button>
+            )}
+            {isAdmin && canViewLedgerComparison && (
+            <button
+              key={12}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 12}
+              onClick={() => { const newValue = 12; openShipmentTab(newValue); }}
+              className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === 12 ? 'border-[var(--accent-gold)] text-[var(--accent-gold-text)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+            >
+              {<Wallet className="h-4 w-4" />} {"Company Ledger"}
+            </button>
+            )}
+          </div>
+        </JXBox>
 
         {/* Tab Content */}
         <TabPanel value={activeTab} index={0}>
@@ -1642,5 +1780,15 @@ export default function ShipmentDetailPage() {
       />
       </div>
     </ProtectedRoute>
+  );
+}
+
+// useSearchParams() must sit under a Suspense boundary or static
+// prerendering fails (missing-suspense-with-csr-bailout).
+export default function ShipmentDetailPage() {
+  return (
+    <Suspense fallback={<div aria-busy="true" style={{ minHeight: '50vh' }} />}>
+      <ShipmentDetailPageContent />
+    </Suspense>
   );
 }

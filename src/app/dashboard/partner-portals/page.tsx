@@ -1,10 +1,10 @@
 'use client';
 
 import Link from 'next/link';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, Building2, Users, Package, ShieldCheck } from 'lucide-react';
-import { Box, Typography } from '@mui/material';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
 import { PageHeader, Button, EmptyState, StatsCard, toast } from '@/components/design-system';
 import { DataTable, type Column } from '@/components/ui/DataTable';
@@ -73,17 +73,17 @@ export default function PartnerPortalsPage() {
       header: 'Partner Portal', 
       sortable: true,
       render: (_, row) => (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '12px'}}>
           <div className="w-8 h-8 rounded-lg bg-[rgba(var(--accent-gold-rgb),0.12)] border border-[rgba(var(--accent-gold-rgb),0.25)] flex items-center justify-center text-[var(--accent-gold)] shrink-0">
             <Building2 className="w-4 h-4" />
           </div>
           <div>
-            <Typography sx={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--text-primary)' }}>
+            <p className="text-sm leading-relaxed" style={{fontWeight: 700, fontSize: '0.875rem', color: 'var(--text-primary)'}}>
               {row.name}
-            </Typography>
+            </p>
             <span className="font-mono text-xs text-gray-500">{row.code || 'NO-CODE'}</span>
           </div>
-        </Box>
+        </JXBox>
       )
     },
     {
@@ -116,11 +116,11 @@ export default function PartnerPortalsPage() {
       header: 'Actions',
       align: 'right',
       render: (_, row) => (
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', flexWrap: 'nowrap', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
+        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'flex-end', flexWrap: 'nowrap', whiteSpace: 'nowrap'}} onClick={(e) => e.stopPropagation()}>
           <Link href={`/dashboard/partner-portals/${row.id}`} style={{ textDecoration: 'none' }}>
             <Button variant="outline" size="sm">Manage Workspace</Button>
           </Link>
-        </Box>
+        </JXBox>
       ),
     },
   ], []);
@@ -177,7 +177,7 @@ export default function PartnerPortalsPage() {
         fullHeight
       >
         {loading ? (
-          <Box sx={{ color: 'var(--text-secondary)', py: 4, textAlign: 'center' }}>Loading partner portals...</Box>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, color: 'var(--text-secondary)', paddingTop: '32px', paddingBottom: '32px', textAlign: 'center'}}>Loading partner portals...</JXBox>
         ) : portals.length === 0 ? (
           <EmptyState
             icon={<Building2 className="w-10 h-10" />}

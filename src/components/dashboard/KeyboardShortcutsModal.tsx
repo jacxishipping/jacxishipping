@@ -1,5 +1,6 @@
 'use client';
 
+import { JacxiButton } from '@/components/design-system/JacxiButton';
 import { useEffect, useState, useCallback } from 'react';
 import { 
   Keyboard, 
@@ -16,7 +17,7 @@ import {
   FileText
 } from 'lucide-react';
 import { useTheme } from '@/hooks/useTheme';
-import { SpringButton } from '@jacxishippingorg/jx-ui-react';
+
 
 interface ShortcutCategory {
   title: string;
@@ -100,14 +101,14 @@ export function KeyboardShortcutsModal() {
               </p>
             </div>
           </div>
-          <SpringButton
+          <JacxiButton
             type="button"
             onClick={() => setOpen(false)}
             aria-label="Close shortcuts modal"
             className="p-1.5 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--panel)] transition-colors"
           >
             <X className="w-5 h-5" />
-          </SpringButton>
+          </JacxiButton>
         </div>
 
         {/* Content */}
@@ -152,13 +153,13 @@ export function KeyboardShortcutsModal() {
         {/* Footer */}
         <div className="flex items-center justify-between px-6 py-3 border-t border-[var(--border)] bg-[var(--background)] text-xs text-[var(--text-secondary)]">
           <span>Press <kbd className="px-1.5 py-0.5 font-mono text-[10px] font-bold rounded bg-[var(--panel)] border border-[var(--border)]">?</kbd> anywhere to toggle this window</span>
-          <SpringButton
+          <JacxiButton
             type="button"
             onClick={() => setOpen(false)}
             className="px-3 py-1 text-xs font-semibold rounded-lg bg-[var(--accent-gold)] text-slate-950 hover:brightness-105 transition-all shadow-sm"
           >
             Got It
-          </SpringButton>
+          </JacxiButton>
         </div>
       </div>
     </div>

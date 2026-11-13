@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { AdminRoute } from '@/components/auth/AdminRoute';
 import { ArrowLeft, Download, Loader2, Ship, Anchor, Calendar, MapPin, AlertCircle, ChevronRight, ChevronLeft } from 'lucide-react';
-import { Stepper, Step, StepLabel, Box } from '@mui/material';
-import { PageHeader, Button, toast, EmptyState, SkeletonCard, SkeletonTable, Tooltip, StatusBadge, FormField } from '@/components/design-system';
+import { PageHeader, Button, toast, EmptyState, SkeletonCard, SkeletonTable, Tooltip, StatusBadge, FormField, MilestoneStepper } from '@/components/design-system';
 import { DashboardSurface, DashboardPanel } from '@/components/dashboard/DashboardSurface';
 
 const steps = ['Basic Info', 'Shipping Details', 'Ports', 'Dates', 'Additional Info'];
@@ -207,46 +207,9 @@ export default function NewContainerPage() {
         />
 
         {/* Stepper */}
-        <Box sx={{ width: '100%', mb: 2 }}>
-          <Stepper 
-            activeStep={activeStep} 
-            alternativeLabel
-            sx={{
-              '& .MuiStepLabel-root .Mui-completed': {
-                color: 'var(--accent-gold)',
-              },
-              '& .MuiStepLabel-root .Mui-active': {
-                color: 'var(--accent-gold)',
-              },
-              '& .MuiStepLabel-label': {
-                color: 'var(--text-secondary)',
-                fontSize: { xs: '0.75rem', sm: '0.875rem' },
-              },
-              '& .MuiStepLabel-label.Mui-active': {
-                color: 'var(--accent-gold)',
-                fontWeight: 600,
-              },
-              '& .MuiStepLabel-label.Mui-completed': {
-                color: 'var(--text-primary)',
-              },
-              '& .MuiStepIcon-root': {
-                color: 'var(--border)',
-              },
-              '& .MuiStepIcon-root.Mui-active': {
-                color: 'var(--accent-gold)',
-              },
-              '& .MuiStepIcon-root.Mui-completed': {
-                color: 'var(--accent-gold)',
-              },
-            }}
-          >
-            {steps.map((label) => (
-              <Step key={label}>
-                <StepLabel>{label}</StepLabel>
-              </Step>
-            ))}
-          </Stepper>
-        </Box>
+        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, width: '100%', marginBottom: '16px'}}>
+          <MilestoneStepper steps={steps.map((label, index) => ({ id: String(index), label: label }))} currentStepId={String(activeStep)} />
+        </JXBox>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Fetch Data Success/Error Messages */}
@@ -280,7 +243,7 @@ export default function NewContainerPage() {
               <div className="space-y-4">
                 <div className="md:col-span-2">
                   <div className="flex flex-col sm:flex-row gap-3 items-end">
-                    <Box sx={{ flex: 1 }}>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, flex: 1}}>
                       <FormField
                         label="Container Number *"
                         id="containerNumber"
@@ -291,7 +254,7 @@ export default function NewContainerPage() {
                         placeholder="e.g., ABCU1234567"
                         helperText="Enter container number and click 'Fetch Data' to automatically retrieve shipping information"
                       />
-                    </Box>
+                    </JXBox>
                     <Button
                       type="button"
                       onClick={fetchContainerData}
@@ -453,14 +416,14 @@ export default function NewContainerPage() {
                   <div className="space-y-2">
                     {formData.transshipmentPorts.map((port, index) => (
                       <div key={index} className="flex gap-2 items-end">
-                        <Box sx={{ flex: 1 }}>
+                        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, flex: 1}}>
                           <FormField
                             label={`Port ${index + 1}`}
                             value={port}
                             onChange={(e) => updateTransshipmentPort(index, e.target.value)}
                             placeholder={`Transshipment port ${index + 1}`}
                           />
-                        </Box>
+                        </JXBox>
                         <Button
                           type="button"
                           onClick={() => removeTransshipmentPort(index)}

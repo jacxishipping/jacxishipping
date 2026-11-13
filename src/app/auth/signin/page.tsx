@@ -1,59 +1,23 @@
 "use client";
 
-import { useEffect, useMemo, useState } from 'react';
+
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import { Visibility, VisibilityOff, Email, Lock, ArrowForward, VpnKey } from '@mui/icons-material';
 import SiteLogo from '@/components/brand/SiteLogo';
-import { Button as DSButton } from '@/components/design-system';
-import { 
-	Button, 
-	TextField, 
-	InputAdornment, 
-	IconButton, 
-	Alert, 
-	CircularProgress, 
-	Box, 
-	Typography,
-	Paper
-} from '@mui/material';
+import { Alert, Button as DSButton } from '@/components/design-system';
+import { Eye as Visibility, EyeOff as VisibilityOff, Mail as Email, Lock, ArrowRight as ArrowForward, KeyRound as VpnKey } from 'lucide-react';
 
-const textFieldStyles = {
-	'& .MuiOutlinedInput-root': {
-		bgcolor: 'var(--background)',
-		borderRadius: 3,
-		color: 'var(--text-primary)',
-		'& fieldset': {
-			borderColor: 'rgba(var(--panel-rgb), 0.9)',
-			transition: 'all 200ms ease',
-		},
-		'&:hover fieldset': {
-			borderColor: 'rgba(var(--accent-gold-rgb), 0.22)',
-		},
-		'&.Mui-focused': {
-			boxShadow: '0 0 0 3px rgba(var(--accent-gold-rgb), 0.12)',
-		},
-		'&.Mui-focused fieldset': {
-			borderColor: 'var(--accent-gold)',
-			borderWidth: 2,
-		},
-		'& input': {
-			color: 'var(--text-primary)',
-			'&::placeholder': {
-				color: 'var(--text-secondary)',
-				opacity: 1,
-			},
-			'&:-webkit-autofill': {
-				WebkitBoxShadow: '0 0 0 100px var(--background) inset',
-				WebkitTextFillColor: 'var(--text-primary)',
-			},
-		},
-	},
-} as const;
+// Shared styling for the native email/password inputs (mirrors the old MUI
+// TextField look: --background surface, gold focus ring). Worker C's
+// migration referenced INPUT_CLS but never defined it.
+const INPUT_CLS =
+  'w-full rounded-lg border border-[rgba(var(--border-rgb),0.9)] bg-[var(--background)] px-3 py-2 text-[0.875rem] text-[var(--text-primary)] outline-none transition-colors placeholder:text-[var(--text-secondary)] hover:border-[var(--border)] focus:border-[var(--accent-gold)] focus:ring-2 focus:ring-[rgba(var(--accent-gold-rgb),0.2)]';
 
-export default function SignInPage() {
+
+function SignInPageContent() {
 	const { t } = useTranslation();
 	const router = useRouter();
 	const searchParams = useSearchParams();
@@ -155,18 +119,9 @@ export default function SignInPage() {
 
 
 	return (
-		<Box
-			sx={{
-				minHeight: '100vh',
-				bgcolor: 'var(--background)',
-				display: 'flex',
-				alignItems: 'center',
-				justifyContent: 'center',
-				py: { xs: 6, sm: 10 },
-				px: { xs: 2, sm: 3, lg: 4 },
-				position: 'relative',
-				overflow: 'hidden',
-			}}
+		<div
+			className="py-12 px-4 sm:py-20 sm:px-6 lg:px-8"
+			style={{ minHeight: '100vh', backgroundColor: 'var(--background)', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}
 		>
 			<motion.div
 				initial={{ opacity: 1 }}
@@ -174,19 +129,11 @@ export default function SignInPage() {
 				transition={{ duration: 1.2 }}
 				style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}
 			>
-				<Box
-					sx={{
-						position: 'absolute',
-						inset: 0,
-						background: 'radial-gradient(ellipse 80% 60% at 50% -10%, rgba(var(--accent-gold-rgb), 0.08) 0%, transparent 60%)',
-					}}
+				<div
+					style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 80% 60% at 50% -10%, rgba(var(--accent-gold-rgb), 0.08) 0%, transparent 60%)' }}
 				/>
-				<Box
-					sx={{
-						position: 'absolute',
-						inset: 0,
-						background: 'radial-gradient(ellipse 55% 45% at 100% 100%, rgba(var(--accent-gold-rgb), 0.04) 0%, transparent 70%)',
-					}}
+				<div
+					style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 55% 45% at 100% 100%, rgba(var(--accent-gold-rgb), 0.04) 0%, transparent 70%)' }}
 				/>
 			</motion.div>
 
@@ -199,265 +146,162 @@ export default function SignInPage() {
 				style={{ maxWidth: 448, width: '100%', position: 'relative', zIndex: 10 }}
 			>
 				{/* Glass Card */}
-				<Paper
-					elevation={0}
-					sx={{
-						position: 'relative',
-						borderRadius: 4,
-						backdropFilter: 'blur(20px)',
-						background: 'rgba(var(--panel-rgb), 0.92)',
-						border: '1px solid rgba(var(--accent-gold-rgb), 0.15)',
-						boxShadow: '0 32px 80px rgba(var(--text-primary-rgb), 0.16), 0 0 0 1px rgba(var(--accent-gold-rgb), 0.08)',
-						p: { xs: 4, sm: 5 },
-						overflow: 'hidden',
-					}}
+				<div
+					className="relative overflow-hidden rounded-[32px] border border-[rgba(var(--accent-gold-rgb),0.15)] p-8 shadow-[0_32px_80px_rgba(var(--text-primary-rgb),0.16),0_0_0_1px_rgba(var(--accent-gold-rgb),0.08)] sm:p-10"
+					style={{ position: 'relative', backdropFilter: 'blur(20px)', background: 'rgba(var(--panel-rgb), 0.92)', overflow: 'hidden' }}
 				>
-					<Box sx={{ position: 'relative', zIndex: 1 }}>
+					<div style={{ position: 'relative', zIndex: 1 }}>
 						{/* Header */}
-						<Box sx={{ textAlign: 'center', mb: 3 }}>
-							<Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+						<div style={{ textAlign: 'center', marginBottom: 24 }}>
+							<div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
 								<SiteLogo variant="dashboard" className="w-[120px]" priority />
-							</Box>
-							<Typography
-								variant="h3"
-								sx={{
-									fontSize: { xs: '1.875rem', sm: '2.25rem' },
-									fontWeight: 700,
-									background: 'linear-gradient(135deg, var(--text-primary) 0%, var(--accent-gold) 100%)',
-									WebkitBackgroundClip: 'text',
-									WebkitTextFillColor: 'transparent',
-									mb: 1,
-								}}
+							</div>
+							<h3
+								
+								className="text-[1.875rem] sm:text-4xl"
+									style={{ fontWeight: 700, background: 'linear-gradient(135deg, var(--text-primary) 0%, var(--accent-gold) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: 8 }}
 							>
 								{t('auth.signIn')}
-							</Typography>
-							<Typography
-								variant="body1"
-								sx={{
-									color: 'var(--text-secondary)',
-								}}
+							</h3>
+							<p
+								
+								style={{ color: 'var(--text-secondary)' }}
 							>
 								{t('auth.signInSubtitle')}
-							</Typography>
-						</Box>
+							</p>
+						</div>
 
 						{/* Error Message */}
 						{error && (
-							<Alert 
-								severity="error"
-								sx={{
-									mb: 2,
-									bgcolor: 'rgba(var(--error-rgb), 0.15)',
-									border: '1px solid rgba(var(--error-rgb), 0.4)',
-									color: 'var(--error)',
-									'& .MuiAlert-icon': {
-										color: 'var(--error)',
-									},
-								}}
-							>
+							<Alert severity="error" className="mb-4">
 								{error}
 							</Alert>
 						)}
 
 						{/* Form */}
-						<Box component="form" onSubmit={handleSubmit} noValidate sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+						<form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 							{/* Email or Access Code Field */}
-							<Box>
-								<Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-									<Typography
-										component="label"
+							<div>
+								<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+									<label
+										
 										htmlFor="email"
-										sx={{
-											display: 'block',
-											fontSize: '0.875rem',
-											fontWeight: 500,
-											color: 'var(--text-primary)',
-										}}
+										style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)' }}
 									>
 										{isAccessCode ? '8-Character Access Code' : `${t('auth.email')} or Access Code`}
-									</Typography>
+									</label>
 									{isAccessCode && (
-										<Typography
-											sx={{
-												fontSize: '0.75rem',
-												fontWeight: 600,
-												color: '#8D7A1F',
-												bgcolor: 'rgba(var(--accent-gold-rgb), 0.12)',
-												px: 1,
-												py: 0.25,
-												borderRadius: 1,
-											}}
+										<p
+											style={{ fontSize: '0.75rem', fontWeight: 600, color: '#8D7A1F', backgroundColor: 'rgba(var(--accent-gold-rgb), 0.12)', paddingLeft: 8, paddingRight: 8, paddingTop: 2, paddingBottom: 2, borderRadius: 8 }}
 										>
 											Access code detected
-										</Typography>
+										</p>
 									)}
-								</Box>
-								<TextField
+								</div>
+							<div className="relative">
+								<span className="pointer-events-none absolute left-3 top-1/2 flex -translate-y-1/2">
+									{isAccessCode ? (
+										<VpnKey size={20} style={{ color: 'var(--accent-gold)' }} />
+									) : (
+										<Email size={20} style={{ color: 'var(--text-secondary)' }} />
+									)}
+								</span>
+								<input
 									id="email"
 									type="text"
-									fullWidth
 									value={email}
 									onChange={(e) => setEmail(e.target.value)}
 									required
 									placeholder="Enter email or 8-character code (e.g. C24FBSUX)"
 									autoComplete="username"
-									InputProps={{
-										startAdornment: (
-											<InputAdornment position="start">
-												{isAccessCode ? (
-													<VpnKey sx={{ fontSize: 20, color: 'var(--accent-gold)' }} />
-												) : (
-													<Email sx={{ fontSize: 20, color: 'var(--text-secondary)' }} />
-												)}
-											</InputAdornment>
-										),
-									}}
-									sx={{
-										...textFieldStyles,
-										...(isAccessCode && {
-											'& .MuiOutlinedInput-root input': {
-												letterSpacing: '0.18em',
-												fontWeight: 700,
-												color: 'var(--text-primary)',
-											},
-										}),
-									}}
+									className={INPUT_CLS + " pl-9"}
+									style={isAccessCode ? { letterSpacing: '0.18em', fontWeight: 700 } : undefined}
 								/>
-							</Box>
+							</div>
+							</div>
 
 							{/* Password Field - Hidden/not required when entering an 8-character access code */}
 							{!isAccessCode && (
-								<Box>
-									<Typography
-										component="label"
+								<div>
+									<label
+										
 										htmlFor="password"
-										sx={{
-											display: 'block',
-											fontSize: '0.875rem',
-											fontWeight: 500,
-											color: 'var(--text-primary)',
-											mb: 1,
-										}}
+										style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)', marginBottom: 8 }}
 									>
 										{t('auth.password')}
-									</Typography>
-									<TextField
-										id="password"
-										type={showPassword ? 'text' : 'password'}
-										fullWidth
-										value={password}
-										onChange={(e) => setPassword(e.target.value)}
-										placeholder="Enter your password"
-										autoComplete="current-password"
-										InputProps={{
-											startAdornment: (
-												<InputAdornment position="start">
-													<Lock sx={{ fontSize: 20, color: 'var(--text-secondary)' }} />
-												</InputAdornment>
-											),
-											endAdornment: (
-												<InputAdornment position="end">
-													<IconButton
-														onClick={() => setShowPassword(!showPassword)}
-														edge="end"
-														aria-label={showPassword ? 'Hide password' : 'Show password'}
-														sx={{
-															width: 44,
-															height: 44,
-															color: '#8D7A1F',
-															'&:hover': {
-																color: '#6B5C17',
-															},
-														}}
-													>
-														{showPassword ? (
-															<VisibilityOff sx={{ fontSize: 20 }} />
-														) : (
-															<Visibility sx={{ fontSize: 20 }} />
-														)}
-													</IconButton>
-												</InputAdornment>
-											),
-										}}
-										sx={textFieldStyles}
-									/>
-								</Box>
+									</label>
+							<div className="relative">
+								<span className="pointer-events-none absolute left-3 top-1/2 flex -translate-y-1/2">
+									<Lock size={20} style={{ color: 'var(--text-secondary)' }} />
+								</span>
+								<input
+									id="password"
+									type={showPassword ? 'text' : 'password'}
+									value={password}
+									onChange={(e) => setPassword(e.target.value)}
+									placeholder="Enter your password"
+									autoComplete="current-password"
+									className={INPUT_CLS + " pl-9 pr-12"}
+								/>
+								<button
+									type="button"
+									onClick={() => setShowPassword(!showPassword)}
+									aria-label={showPassword ? 'Hide password' : 'Show password'}
+									className="absolute right-0 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center text-[#8D7A1F] hover:text-[#6B5C17]"
+								>
+									{showPassword ? (
+										<VisibilityOff size={20} />
+									) : (
+										<Visibility size={20} />
+									)}
+								</button>
+							</div>
+								</div>
 							)}
 
 							{/* Submit Button */}
-							<Button
-								type="submit"
-								disabled={isLoading}
-								variant="contained"
-								size="large"
-								endIcon={!isLoading && <ArrowForward />}
-								sx={{
-									width: '100%',
-									background: 'linear-gradient(135deg, var(--accent-gold) 0%, #B8960C 100%)',
-									color: 'var(--text-primary)',
-									fontWeight: 600,
-									py: 1.5,
-									fontSize: '1rem',
-									boxShadow: '0 4px 14px rgba(var(--accent-gold-rgb), 0.25)',
-									'&:hover': {
-										background: 'linear-gradient(135deg, var(--accent-gold) 0%, #B8960C 100%)',
-										boxShadow: '0 4px 14px rgba(var(--accent-gold-rgb), 0.35)',
-									},
-									'&:disabled': {
-										background: 'linear-gradient(135deg, rgba(var(--accent-gold-rgb), 0.55) 0%, rgba(184, 150, 12, 0.55) 100%)',
-										color: 'rgba(var(--text-primary-rgb), 0.7)',
-									},
-								}}
-							>
-								{isLoading ? (
-									<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-										<CircularProgress size={20} sx={{ color: 'inherit' }} />
-										<Typography component="span">{t('auth.signingIn')}</Typography>
-									</Box>
-								) : (
-									<Typography component="span">
-										{isAccessCode ? 'Login with Access Code' : t('auth.signIn')}
-									</Typography>
-								)}
-							</Button>
-						</Box>
+						<button
+							type="submit"
+							disabled={isLoading}
+							className="flex w-full items-center justify-center gap-2 rounded-lg py-3 text-base font-semibold text-[var(--text-primary)] shadow-[0_4px_14px_rgba(var(--accent-gold-rgb),0.25)] transition-all hover:shadow-[0_4px_14px_rgba(var(--accent-gold-rgb),0.35)] disabled:opacity-60"
+							style={{ background: 'linear-gradient(135deg, var(--accent-gold) 0%, #B8960C 100%)' }}
+						>
+							{isLoading ? (
+								<span className="flex items-center gap-2">
+									<span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+									<span>{t('auth.signingIn')}</span>
+								</span>
+							) : (
+								<span className="flex items-center gap-2">
+									<span>{isAccessCode ? 'Login with Access Code' : t('auth.signIn')}</span>
+									<ArrowForward className="h-5 w-5" />
+								</span>
+							)}
+						</button>
+						</form>
 
 						{/* Sign Up Link */}
-						<Box sx={{ textAlign: 'center', pt: 2 }}>
-							<Typography variant="body2" sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+						<div style={{ textAlign: 'center', paddingTop: 16 }}>
+							<p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
 								{t('auth.dontHaveAccount')}{' '}
-								<Typography
-									component="button"
+								<button
+									
 									type="button"
 									onClick={() => router.push('/auth/signup')}
-									sx={{
-										background: 'none',
-										border: 'none',
-										// Gold-800 from the design token scale: passes AA on white panels (gold-500 is too light for text)
-										color: '#8D7A1F',
-										fontWeight: 600,
-										minHeight: 36,
-										px: 1,
-										py: 0.5,
-										display: 'inline-flex',
-										alignItems: 'center',
-										cursor: 'pointer',
-										transition: 'color 0.2s ease',
-										'&:hover': {
-											color: '#6B5C17',
-										},
-									}}
+									className="hover:text-[#6B5C17]"
+										style={{ background: 'none', border: 'none', // Gold-800 from the design token scale: passes AA on white panels (gold-500 is too light for text)
+										color: '#8D7A1F', fontWeight: 600, minHeight: 36, paddingLeft: 8, paddingRight: 8, paddingTop: 4, paddingBottom: 4, display: 'inline-flex', alignItems: 'center', cursor: 'pointer', transition: 'color 0.2s ease' }}
 								>
 									{t('auth.signUp')}
-								</Typography>
-							</Typography>
-						</Box>
+								</button>
+							</p>
+						</div>
 
 						{/* Short Code Login Link */}
-						<Box sx={{ textAlign: 'center', pt: 2, mt: 2, borderTop: '1px solid var(--border)' }}>
-							<Typography variant="body2" sx={{ fontSize: '0.875rem', color: 'var(--text-secondary)', mb: 1 }}>
+						<div style={{ textAlign: 'center', paddingTop: 16, marginTop: 16, borderTop: '1px solid var(--border)' }}>
+							<p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: 8 }}>
 								Have a login code?
-							</Typography>
+							</p>
 							<DSButton
 								variant="outline"
 								size="sm"
@@ -473,12 +317,20 @@ export default function SignInPage() {
 							>
 								Login with 8-character code
 							</DSButton>
-						</Box>
-					</Box>
-				</Paper>
+						</div>
+					</div>
+				</div>
 			</motion.div>
-		</Box>
+		</div>
 	);
 }
 
-
+// useSearchParams() must sit under a Suspense boundary or static
+// prerendering fails (missing-suspense-with-csr-bailout).
+export default function SignInPage() {
+  return (
+    <Suspense fallback={<div aria-busy="true" style={{ minHeight: '50vh' }} />}>
+      <SignInPageContent />
+    </Suspense>
+  );
+}

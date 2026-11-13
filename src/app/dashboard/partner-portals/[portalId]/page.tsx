@@ -1,31 +1,62 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, forwardRef, type CSSProperties, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
+import { ChevronDown, Package as Inventory2OutlinedIcon, User as PersonOutlineIcon, Users as PeopleOutlineIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
-import PeopleOutlineIcon from '@mui/icons-material/PeopleOutline';
-import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
-import {
-  Autocomplete,
-  Box,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  MenuItem,
-  Tab,
-  Tabs,
-  TextField,
-  Typography,
-} from '@mui/material';
 import { DashboardSurface, DashboardPanel } from '@/components/dashboard/DashboardSurface';
-import { Breadcrumbs, Button, ConfirmDialog, EmptyState, toast } from '@/components/design-system';
+import { Autocomplete, Breadcrumbs, Button, ConfirmDialog, EmptyState, FormField, Select, toast, Modal } from '@/components/design-system';
 import { PortalActivityList } from '@/components/partner-portals/PortalActivityList';
 import PortalBrandingSettingsPanel from '@/components/partner-portals/PortalBrandingSettingsPanel';
 import { DataTable, type Column } from '@/components/ui/DataTable';
 import { useSession } from 'next-auth/react';
 import { hasPermission } from '@/lib/rbac';
+
+
+/** Bare select with the Jacxi field look (no label) — filter dropdowns. Keeps the native event onChange. */
+function BareSelect({ options, placeholder, error = false, size = 'small', leftIcon, className, style, ...rest }: BareSelectProps) {
+  return (
+    <div className="relative">
+      {leftIcon && (
+        <span className="pointer-events-none absolute left-3 top-1/2 flex -translate-y-1/2 text-[var(--text-secondary)]">{leftIcon}</span>
+      )}
+      <select
+        {...rest}
+        aria-invalid={error || undefined}
+        style={style}
+        className={[
+          'w-full appearance-none rounded-lg border bg-[var(--background)] text-[var(--text-primary)] outline-none transition-colors',
+          size === 'small' ? 'px-2.5 py-1.5 text-[0.8125rem]' : 'px-3 py-2 text-[0.875rem]',
+          leftIcon ? 'pl-9' : '',
+          'pr-9',
+          error
+            ? 'border-[var(--error)] focus:border-[var(--error)] focus:ring-2 focus:ring-[rgba(var(--error-rgb),0.2)]'
+            : 'border-[rgba(var(--border-rgb),0.9)] hover:border-[var(--border)] focus:border-[var(--accent-gold)] focus:ring-2 focus:ring-[rgba(var(--accent-gold-rgb),0.2)]',
+          rest.disabled ? 'opacity-50' : '',
+          className,
+        ].filter(Boolean).join(' ')}
+      >
+        {placeholder && (
+          <option value="" disabled>{placeholder}</option>
+        )}
+        {options.map((option) => (
+          <option key={option.value} value={String(option.value)} disabled={option.disabled}>{option.label}</option>
+        ))}
+      </select>
+      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-secondary)]" aria-hidden="true" />
+    </div>
+  );
+}
+
+type BareSelectProps = Omit<SelectHTMLAttributes<HTMLSelectElement>, 'size'> & {
+  options: { value: string | number; label: string; disabled?: boolean }[];
+  placeholder?: string;
+  error?: boolean;
+  size?: 'small' | 'medium';
+  leftIcon?: ReactNode;
+};
+
 
 type PortalInfo = {
   id: string;
@@ -161,26 +192,26 @@ export default function PartnerPortalDetailPage() {
     result: { loginCode: string; simpleLoginUrl: string; portalUrl: string; email: string; name: string | null },
     title: string,
   ) => (
-    <Box sx={{ border: '1px solid rgba(var(--accent-gold-rgb), 0.28)', bgcolor: 'rgba(var(--accent-gold-rgb), 0.08)', borderRadius: 2, p: 2, display: 'grid', gap: 0.75 }}>
-      <Typography sx={{ fontWeight: 700 }}>{title}</Typography>
-      <Typography sx={{ color: 'var(--text-secondary)' }}>
+    <JXBox padding="none" border={false} style={{border: '1px solid rgba(var(--accent-gold-rgb), 0.28)', backgroundColor: 'rgba(var(--accent-gold-rgb), 0.08)', borderRadius: '16px', padding: '16px', display: 'grid', gap: '6px'}}>
+      <p className="text-sm leading-relaxed" style={{fontWeight: 700}}>{title}</p>
+      <p className="text-sm leading-relaxed" style={{color: 'var(--text-secondary)'}}>
         Share the sign-in page and code with this user. The workspace route is where they land after sign-in.
-      </Typography>
-      <Typography><strong>Name:</strong> {result.name || result.email}</Typography>
-      <Typography><strong>Email:</strong> {result.email}</Typography>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-        <Typography><strong>Login Code:</strong> {result.loginCode}</Typography>
+      </p>
+      <p className="text-sm leading-relaxed"><strong>Name:</strong> {result.name || result.email}</p>
+      <p className="text-sm leading-relaxed"><strong>Email:</strong> {result.email}</p>
+      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap'}}>
+        <p className="text-sm leading-relaxed"><strong>Login Code:</strong> {result.loginCode}</p>
         <Button variant="outline" size="sm" onClick={() => void handleCopyValue(result.loginCode, 'Login code')}>Copy</Button>
-      </Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-        <Typography><strong>Sign-In Page:</strong> {result.simpleLoginUrl}</Typography>
+      </JXBox>
+      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap'}}>
+        <p className="text-sm leading-relaxed"><strong>Sign-In Page:</strong> {result.simpleLoginUrl}</p>
         <Button variant="outline" size="sm" onClick={() => void handleCopyValue(result.simpleLoginUrl, 'Sign-in page')}>Copy</Button>
-      </Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-        <Typography><strong>Workspace Route:</strong> {result.portalUrl}</Typography>
+      </JXBox>
+      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap'}}>
+        <p className="text-sm leading-relaxed"><strong>Workspace Route:</strong> {result.portalUrl}</p>
         <Button variant="outline" size="sm" onClick={() => void handleCopyValue(result.portalUrl, 'Workspace route')}>Copy</Button>
-      </Box>
-    </Box>
+      </JXBox>
+    </JXBox>
   );
 
   const handleCopyValue = async (value: string, label: string) => {
@@ -318,16 +349,7 @@ export default function PartnerPortalDetailPage() {
       key: 'role',
       header: 'Portal Role',
       render: (_, row) => (
-        <TextField
-          select
-          size="small"
-          value={memberRoleDrafts[row.id] || row.role}
-          onChange={(event) => setMemberRoleDrafts((prev) => ({ ...prev, [row.id]: event.target.value }))}
-          sx={{ minWidth: 140 }}
-        >
-          <MenuItem value="ADMIN">ADMIN</MenuItem>
-          <MenuItem value="STAFF">STAFF</MenuItem>
-        </TextField>
+        <div style={{minWidth: '140px'}}><BareSelect options={[{ value: "ADMIN", label: 'ADMIN' }, { value: "STAFF", label: 'STAFF' }]} value={memberRoleDrafts[row.id] || row.role} size="small" onChange={(event) => setMemberRoleDrafts((prev) => ({ ...prev, [row.id]: event.target.value }))} /></div>
       ),
     },
     {
@@ -340,7 +362,7 @@ export default function PartnerPortalDetailPage() {
       header: 'Actions',
       align: 'right',
       render: (_, row) => (
-        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end', flexWrap: 'nowrap', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
+        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '8px', justifyContent: 'flex-end', flexWrap: 'nowrap', whiteSpace: 'nowrap'}} onClick={(e) => e.stopPropagation()}>
           <Button
             variant="outline"
             size="sm"
@@ -360,7 +382,7 @@ export default function PartnerPortalDetailPage() {
           <Button variant="outline" size="sm" onClick={() => setPendingRemoveMembership(row)} disabled={removingMembershipId === row.id}>
             {removingMembershipId === row.id ? 'Removing...' : 'Remove'}
           </Button>
-        </Box>
+        </JXBox>
       ),
     },
   ], [memberRoleDrafts, regeneratingLoginCodeMembershipId, removingMembershipId, savingMembershipRoleId]);
@@ -391,14 +413,14 @@ export default function PartnerPortalDetailPage() {
       header: 'Actions',
       align: 'right',
       render: (_, row) => (
-        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end', flexWrap: 'nowrap', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
+        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '8px', justifyContent: 'flex-end', flexWrap: 'nowrap', whiteSpace: 'nowrap'}} onClick={(e) => e.stopPropagation()}>
           <Link href={`/portal/${portalId}/shipments/${row.shipment.id}`} style={{ textDecoration: 'none' }}>
             <Button variant="outline" size="sm">View</Button>
           </Link>
           <Button variant="outline" size="sm" onClick={() => setPendingUnassignShipment(row)} disabled={savingShipmentId === row.shipment.id}>
             {savingShipmentId === row.shipment.id ? 'Removing...' : 'Unassign'}
           </Button>
-        </Box>
+        </JXBox>
       ),
     },
   ], [portalId, savingShipmentId]);
@@ -649,15 +671,15 @@ export default function PartnerPortalDetailPage() {
 
   return (
     <DashboardSurface>
-      <Box sx={{ px: 2, pt: 2 }}>
+      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingLeft: '16px', paddingRight: '16px', paddingTop: '16px'}}>
         <Breadcrumbs />
-      </Box>
+      </JXBox>
 
       <DashboardPanel
         title={portal ? portal.name : 'Portal'}
         description={portal?.code ? `Portal code: ${portal.code}` : 'Partner portal detail'}
         actions={
-          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
             <a
               href={publicSiteHref}
               target="_blank"
@@ -669,46 +691,78 @@ export default function PartnerPortalDetailPage() {
             <Link href="/dashboard/partner-portals" style={{ textDecoration: 'none' }}>
               <Button variant="outline" size="sm">Back to Portals</Button>
             </Link>
-          </Box>
+          </JXBox>
         }
       >
         {loading ? (
-          <Box sx={{ color: 'var(--text-secondary)' }}>Loading portal details...</Box>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, color: 'var(--text-secondary)'}}>Loading portal details...</JXBox>
         ) : (
-          <Box sx={{ display: 'grid', gap: 3 }}>
-            <Box sx={{ borderBottom: 1, borderColor: 'var(--border)' }}>
-              <Tabs
-                value={activeTab}
-                onChange={(_, value) => setActiveTab(value)}
-                variant="scrollable"
-                scrollButtons="auto"
-                sx={{
-                  '& .MuiTab-root': {
-                    textTransform: 'none',
-                    fontSize: '0.875rem',
-                    fontWeight: 500,
-                    color: 'var(--text-secondary)',
-                    minHeight: 48,
-                    '&:hover': {
-                      color: 'var(--accent-gold)',
-                    },
-                  },
-                  '& .Mui-selected': {
-                    color: 'var(--accent-gold) !important',
-                  },
-                  '& .MuiTabs-indicator': {
-                    backgroundColor: 'var(--accent-gold)',
-                  },
-                }}
-              >
-                <Tab value="shipments" label={`Shipments (${assignments.length})`} />
-                <Tab value="members" label={`Members (${memberships.length})`} />
-                <Tab value="activity" label={`Activity (${activities.length})`} />
-                <Tab value="branding" label="Branding" />
-                <Tab value="customers" label={`Customers (${customers.length})`} />
-                <Tab value="danger" label="Danger Zone" />
-              </Tabs>
-            </Box>
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '24px'}}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, borderBottom: 1, borderColor: 'var(--border)'}}>
+              <div role="tablist" className="flex gap-1 overflow-x-auto border-b border-[var(--border)]">
+                <button
+                  key={"shipments"}
+                  type="button"
+                  role="tab"
+                  aria-selected={activeTab === "shipments"}
+                  onClick={() => { const value = "shipments"; setActiveTab(value); }}
+                  className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === "shipments" ? 'border-[var(--accent-gold)] text-[var(--accent-gold-text)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                >
+                  {`Shipments (${assignments.length})`}
+                </button>
+                <button
+                  key={"members"}
+                  type="button"
+                  role="tab"
+                  aria-selected={activeTab === "members"}
+                  onClick={() => { const value = "members"; setActiveTab(value); }}
+                  className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === "members" ? 'border-[var(--accent-gold)] text-[var(--accent-gold-text)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                >
+                  {`Members (${memberships.length})`}
+                </button>
+                <button
+                  key={"activity"}
+                  type="button"
+                  role="tab"
+                  aria-selected={activeTab === "activity"}
+                  onClick={() => { const value = "activity"; setActiveTab(value); }}
+                  className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === "activity" ? 'border-[var(--accent-gold)] text-[var(--accent-gold-text)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                >
+                  {`Activity (${activities.length})`}
+                </button>
+                <button
+                  key={"branding"}
+                  type="button"
+                  role="tab"
+                  aria-selected={activeTab === "branding"}
+                  onClick={() => { const value = "branding"; setActiveTab(value); }}
+                  className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === "branding" ? 'border-[var(--accent-gold)] text-[var(--accent-gold-text)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                >
+                  {"Branding"}
+                </button>
+                <button
+                  key={"customers"}
+                  type="button"
+                  role="tab"
+                  aria-selected={activeTab === "customers"}
+                  onClick={() => { const value = "customers"; setActiveTab(value); }}
+                  className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === "customers" ? 'border-[var(--accent-gold)] text-[var(--accent-gold-text)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                >
+                  {`Customers (${customers.length})`}
+                </button>
+                <button
+                  key={"danger"}
+                  type="button"
+                  role="tab"
+                  aria-selected={activeTab === "danger"}
+                  onClick={() => { const value = "danger"; setActiveTab(value); }}
+                  className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === "danger" ? 'border-[var(--accent-gold)] text-[var(--accent-gold-text)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                >
+                  {"Danger Zone"}
+                </button>
+              
+              </div>
+            </JXBox>
 
             {activeTab === 'shipments' ? (
               <DashboardPanel title="Assigned Shipments" description="Shipments visible to this partner workspace">
@@ -718,31 +772,31 @@ export default function PartnerPortalDetailPage() {
                   <DataTable data={assignments} columns={assignmentColumns} keyField="id" />
                 )}
 
-                <Box sx={{ mt: 3, display: 'grid', gap: 2 }}>
-                  <Typography sx={{ fontWeight: 700 }}>Assign Shipment</Typography>
-                  <TextField label="Search shipments by vehicle or VIN" value={shipmentSearch} onChange={(event) => setShipmentSearch(event.target.value)} />
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '24px', display: 'grid', gap: '16px'}}>
+                  <p className="text-sm leading-relaxed" style={{fontWeight: 700}}>Assign Shipment</p>
+                  <FormField label="Search shipments by vehicle or VIN" value={shipmentSearch} onChange={(event) => setShipmentSearch(event.target.value)} />
                   {shipmentResults.length > 0 ? (
-                    <Box sx={{ display: 'grid', gap: 1 }}>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '8px'}}>
                       {shipmentResults.map((shipment) => (
-                        <Box key={shipment.id} sx={{ border: '1px solid var(--border)', borderRadius: 2, px: 2, py: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
-                          <Box>
-                            <Typography sx={{ fontWeight: 600 }}>
+                        <JXBox padding="none" border={false} key={shipment.id} style={{backgroundColor: 'transparent', border: '1px solid var(--border)', borderRadius: '16px', paddingLeft: '16px', paddingRight: '16px', paddingTop: '12px', paddingBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px'}}>
+                          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
+                            <p className="text-sm leading-relaxed" style={{fontWeight: 600}}>
                               {[shipment.vehicleYear, shipment.vehicleMake, shipment.vehicleModel].filter(Boolean).join(' ') || shipment.vehicleType}
-                            </Typography>
-                            <Typography sx={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                            </p>
+                            <p className="text-sm leading-relaxed" style={{fontSize: '0.85rem', color: 'var(--text-secondary)'}}>
                               {shipment.vehicleVIN || 'No VIN'} • {shipment.status} • {shipment.user?.name || shipment.user?.email || 'No owner'}
-                            </Typography>
-                          </Box>
+                            </p>
+                          </JXBox>
                           <Button variant="outline" size="sm" onClick={() => void handleAssignShipment(shipment.id)} disabled={savingShipmentId === shipment.id}>
                             {savingShipmentId === shipment.id ? 'Assigning...' : 'Assign'}
                           </Button>
-                        </Box>
+                        </JXBox>
                       ))}
-                    </Box>
+                    </JXBox>
                   ) : shipmentSearch.trim().length >= 2 ? (
-                    <Box sx={{ color: 'var(--text-secondary)' }}>No unassigned search results found.</Box>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, color: 'var(--text-secondary)'}}>No unassigned search results found.</JXBox>
                   ) : null}
-                </Box>
+                </JXBox>
               </DashboardPanel>
             ) : null}
 
@@ -751,7 +805,7 @@ export default function PartnerPortalDetailPage() {
                 title="Portal Members"
                 description="Users who can enter this workspace"
                 actions={
-                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                  <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
                     <Button
                       variant="outline"
                       size="sm"
@@ -773,7 +827,7 @@ export default function PartnerPortalDetailPage() {
                     >
                       Create Portal User
                     </Button>
-                  </Box>
+                  </JXBox>
                 }
               >
                 {memberships.length === 0 ? (
@@ -782,13 +836,13 @@ export default function PartnerPortalDetailPage() {
                   <DataTable data={memberships} columns={membershipColumns} keyField="id" />
                 )}
 
-                <Box sx={{ mt: 3, display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', lg: 'repeat(2, minmax(0, 1fr))' } }}>
-                  <Box sx={{ border: '1px solid var(--border)', borderRadius: 2.5, p: 2.25, display: 'grid', gap: 1.25, bgcolor: 'rgba(255,255,255,0.7)' }}>
-                    <Typography sx={{ fontSize: '1rem', fontWeight: 700 }}>Add Existing User</Typography>
-                    <Typography sx={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '24px', display: 'grid', gap: '16px'}} className="grid-cols-1 lg:grid-cols-2">
+                  <JXBox padding="none" border={false} style={{border: '1px solid var(--border)', borderRadius: '20px', padding: '18px', display: 'grid', gap: '10px', backgroundColor: 'rgba(255,255,255,0.7)'}}>
+                    <p className="text-sm leading-relaxed" style={{fontSize: '1rem', fontWeight: 700}}>Add Existing User</p>
+                    <p className="text-sm leading-relaxed" style={{fontSize: '0.88rem', color: 'var(--text-secondary)'}}>
                       Link an existing account to this portal and assign the correct workspace role.
-                    </Typography>
-                    <Box sx={{ display: 'flex', justifyContent: 'flex-start' }}>
+                    </p>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'flex-start'}}>
                       <Button
                         variant="outline"
                         size="sm"
@@ -800,15 +854,15 @@ export default function PartnerPortalDetailPage() {
                       >
                         Add Member
                       </Button>
-                    </Box>
-                  </Box>
+                    </JXBox>
+                  </JXBox>
 
-                  <Box sx={{ border: '1px solid rgba(var(--accent-gold-rgb), 0.24)', borderRadius: 2.5, p: 2.25, display: 'grid', gap: 1.25, bgcolor: 'rgba(var(--accent-gold-rgb), 0.08)' }}>
-                    <Typography sx={{ fontSize: '1rem', fontWeight: 700 }}>Create New Portal User</Typography>
-                    <Typography sx={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                  <JXBox padding="none" border={false} style={{border: '1px solid rgba(var(--accent-gold-rgb), 0.24)', borderRadius: '20px', padding: '18px', display: 'grid', gap: '10px', backgroundColor: 'rgba(var(--accent-gold-rgb), 0.08)'}}>
+                    <p className="text-sm leading-relaxed" style={{fontSize: '1rem', fontWeight: 700}}>Create New Portal User</p>
+                    <p className="text-sm leading-relaxed" style={{fontSize: '0.88rem', color: 'var(--text-secondary)'}}>
                       Create a new portal-ready user, then issue an access code and sign-in link immediately.
-                    </Typography>
-                    <Box sx={{ display: 'flex', justifyContent: 'flex-start' }}>
+                    </p>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'flex-start'}}>
                       <Button
                         variant="primary"
                         size="sm"
@@ -819,14 +873,14 @@ export default function PartnerPortalDetailPage() {
                       >
                         Create User
                       </Button>
-                    </Box>
-                  </Box>
-                </Box>
+                    </JXBox>
+                  </JXBox>
+                </JXBox>
 
-                <Box sx={{ mt: 3, display: 'grid', gap: 2 }}>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '24px', display: 'grid', gap: '16px'}}>
                   {inviteResult ? renderAccessResult(inviteResult, 'Portal user created') : null}
                   {loginCodeResult ? renderAccessResult(loginCodeResult, 'Portal login code refreshed') : null}
-                </Box>
+                </JXBox>
               </DashboardPanel>
             ) : null}
 
@@ -837,11 +891,11 @@ export default function PartnerPortalDetailPage() {
                   emptyTitle="No portal activity yet"
                   emptyDescription="Role changes, member invites, removals, and login-code refreshes will appear here."
                 />
-                <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'flex-end', marginTop: '16px'}}>
                   <Link href={`/dashboard/partner-portals/${portalId}/activity`} style={{ textDecoration: 'none' }}>
                     <Button variant="outline" size="sm">View All Activity</Button>
                   </Link>
-                </Box>
+                </JXBox>
               </DashboardPanel>
             ) : null}
 
@@ -875,28 +929,19 @@ export default function PartnerPortalDetailPage() {
 
             {activeTab === 'danger' ? (
               <DashboardPanel title="Danger Zone" description="Irreversible actions for this partner portal">
-                <Box sx={{ display: 'grid', gap: 2 }}>
-                  <Box
-                    sx={{
-                      border: '1px solid rgba(var(--error-rgb, 239, 68, 68), 0.35)',
-                      borderRadius: 2.5,
-                      p: 2,
-                      display: 'grid',
-                      gap: 1.25,
-                      bgcolor: 'rgba(239, 68, 68, 0.05)',
-                    }}
-                  >
-                    <Typography sx={{ fontWeight: 700, color: 'var(--error, #ef4444)' }}>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '16px'}}>
+                  <JXBox padding="none" border={false} style={{border: '1px solid rgba(var(--error-rgb, 239, 68, 68), 0.35)', borderRadius: '20px', padding: '16px', display: 'grid', gap: '10px', backgroundColor: 'rgba(239, 68, 68, 0.05)'}}>
+                    <p className="text-sm leading-relaxed" style={{fontWeight: 700, color: 'var(--error, #ef4444)'}}>
                       Delete this portal permanently
-                    </Typography>
-                    <Typography sx={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                    </p>
+                    <p className="text-sm leading-relaxed" style={{fontSize: '0.88rem', color: 'var(--text-secondary)'}}>
                       Deleting <strong>{portal?.name || 'this portal'}</strong> permanently removes the workspace along with
                       {' '}{memberships.length} member{memberships.length === 1 ? '' : 's'},
                       {' '}{customers.length} customer{customers.length === 1 ? '' : 's'}, and
                       {' '}{assignments.length} shipment link{assignments.length === 1 ? '' : 's'}.
                       The shipments themselves stay in the main system — only the portal assignments, portal customers, member access, and portal finance records are deleted. This cannot be undone.
-                    </Typography>
-                    <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap' }}>
+                    </p>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap'}}>
                       <Button
                         variant="outline"
                         size="sm"
@@ -907,13 +952,13 @@ export default function PartnerPortalDetailPage() {
                       >
                         Delete Portal
                       </Button>
-                    </Box>
-                  </Box>
-                </Box>
+                    </JXBox>
+                  </JXBox>
+                </JXBox>
               </DashboardPanel>
             ) : null}
 
-            <Dialog
+            <Modal
               open={openAddMemberDialog}
               onClose={() => {
                 if (!savingMember) {
@@ -922,30 +967,12 @@ export default function PartnerPortalDetailPage() {
                   setMemberSearch('');
                 }
               }}
-              fullWidth
-              maxWidth="sm"
-            >
-              <DialogTitle>Add Existing User To Portal</DialogTitle>
-              <DialogContent sx={{ pt: 1.5, display: 'grid', gap: 2 }}>
-                <Typography sx={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-                  Search for an existing application user, then assign their portal role before saving access.
-                </Typography>
-                <Autocomplete
-                  disablePortal
-                  options={users}
-                  value={selectedUser}
-                  onChange={(_, value) => setSelectedUser(value)}
-                  onInputChange={(_, value) => setMemberSearch(value)}
-                  isOptionEqualToValue={(option, value) => option.id === value.id}
-                  getOptionLabel={(option) => option.name ? `${option.name} (${option.email})` : option.email}
-                  renderInput={(params) => <TextField {...params} label="Search users" placeholder="Search users by name or email" />}
-                />
-                <TextField select label="Portal Role" value={memberRole} onChange={(event) => setMemberRole(event.target.value)}>
-                  <MenuItem value="ADMIN">ADMIN</MenuItem>
-                  <MenuItem value="STAFF">STAFF</MenuItem>
-                </TextField>
-              </DialogContent>
-              <DialogActions sx={{ px: 3, pb: 3 }}>
+              title="Add Existing User To Portal"
+              size="sm"
+              contentSx={{paddingTop: '12px', display: 'grid', gap: '16px'}}
+              actionsSx={{paddingLeft: '24px', paddingRight: '24px', paddingBottom: '24px'}}
+              actions={<>
+
                 <Button
                   variant="outline"
                   onClick={() => {
@@ -960,10 +987,24 @@ export default function PartnerPortalDetailPage() {
                 <Button variant="primary" onClick={() => void handleAddMember()} disabled={savingMember}>
                   {savingMember ? 'Saving...' : 'Add Member'}
                 </Button>
-              </DialogActions>
-            </Dialog>
+              </>}
+            >
 
-            <Dialog
+                <p className="text-sm leading-relaxed" style={{fontSize: '0.9rem', color: 'var(--text-secondary)'}}>
+                  Search for an existing application user, then assign their portal role before saving access.
+                </p>
+                                <Autocomplete
+                  options={users.map((u) => ({ id: u.id, label: u.name ? `${u.name} (${u.email})` : u.email, searchText: `${u.name || ''} ${u.email}` }))}
+                  value={selectedUser?.id || null}
+                  onChange={(id) => setSelectedUser(users.find((u) => u.id === id) || null)}
+                  onInputChange={(v) => setMemberSearch(v)}
+                  label="Search users"
+                  placeholder="Search users by name or email"
+                />
+                <Select label="Portal Role" options={[{ value: "ADMIN", label: 'ADMIN' }, { value: "STAFF", label: 'STAFF' }]} value={memberRole} onChange={(val) => setMemberRole(val as string)} />
+            </Modal>
+
+            <Modal
               open={openCreatePortalUserDialog}
               onClose={() => {
                 if (!inviting) {
@@ -971,27 +1012,12 @@ export default function PartnerPortalDetailPage() {
                   setInviteForm(initialInviteForm);
                 }
               }}
-              fullWidth
-              maxWidth="md"
-            >
-              <DialogTitle>Create Portal User</DialogTitle>
-              <DialogContent sx={{ pt: 1.5, display: 'grid', gap: 2 }}>
-                <Typography sx={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-                  Create a portal-ready user profile and generate the initial access code in one step.
-                </Typography>
-                <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' } }}>
-                  <TextField label="Name" value={inviteForm.name} onChange={(event) => setInviteForm((prev) => ({ ...prev, name: event.target.value }))} />
-                  <TextField label="Email" value={inviteForm.email} onChange={(event) => setInviteForm((prev) => ({ ...prev, email: event.target.value }))} />
-                  <TextField label="Phone" value={inviteForm.phone} onChange={(event) => setInviteForm((prev) => ({ ...prev, phone: event.target.value }))} />
-                  <TextField label="City" value={inviteForm.city} onChange={(event) => setInviteForm((prev) => ({ ...prev, city: event.target.value }))} />
-                  <TextField label="Country" value={inviteForm.country} onChange={(event) => setInviteForm((prev) => ({ ...prev, country: event.target.value }))} />
-                  <TextField select label="Portal Role" value={inviteForm.membershipRole} onChange={(event) => setInviteForm((prev) => ({ ...prev, membershipRole: event.target.value }))}>
-                    <MenuItem value="ADMIN">ADMIN</MenuItem>
-                    <MenuItem value="STAFF">STAFF</MenuItem>
-                  </TextField>
-                </Box>
-              </DialogContent>
-              <DialogActions sx={{ px: 3, pb: 3 }}>
+              title="Create Portal User"
+              size="md"
+              contentSx={{paddingTop: '12px', display: 'grid', gap: '16px'}}
+              actionsSx={{paddingLeft: '24px', paddingRight: '24px', paddingBottom: '24px'}}
+              actions={<>
+
                 <Button
                   variant="outline"
                   onClick={() => {
@@ -1005,10 +1031,23 @@ export default function PartnerPortalDetailPage() {
                 <Button variant="primary" onClick={() => void handleInvitePortalUser()} disabled={inviting}>
                   {inviting ? 'Preparing...' : 'Create User And Access Code'}
                 </Button>
-              </DialogActions>
-            </Dialog>
+              </>}
+            >
 
-            <Dialog
+                <p className="text-sm leading-relaxed" style={{fontSize: '0.9rem', color: 'var(--text-secondary)'}}>
+                  Create a portal-ready user profile and generate the initial access code in one step.
+                </p>
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '16px'}} className="grid-cols-1 md:grid-cols-2">
+                  <FormField label="Name" value={inviteForm.name} onChange={(event) => setInviteForm((prev) => ({ ...prev, name: event.target.value }))} />
+                  <FormField label="Email" value={inviteForm.email} onChange={(event) => setInviteForm((prev) => ({ ...prev, email: event.target.value }))} />
+                  <FormField label="Phone" value={inviteForm.phone} onChange={(event) => setInviteForm((prev) => ({ ...prev, phone: event.target.value }))} />
+                  <FormField label="City" value={inviteForm.city} onChange={(event) => setInviteForm((prev) => ({ ...prev, city: event.target.value }))} />
+                  <FormField label="Country" value={inviteForm.country} onChange={(event) => setInviteForm((prev) => ({ ...prev, country: event.target.value }))} />
+                  <Select label="Portal Role" options={[{ value: "ADMIN", label: 'ADMIN' }, { value: "STAFF", label: 'STAFF' }]} value={inviteForm.membershipRole} onChange={(val) => setInviteForm((prev) => ({ ...prev, membershipRole: val as string }))} />
+                </JXBox>
+            </Modal>
+
+            <Modal
               open={openDeleteDialog}
               onClose={() => {
                 if (!deletingPortal) {
@@ -1016,23 +1055,12 @@ export default function PartnerPortalDetailPage() {
                   setDeleteConfirmText('');
                 }
               }}
-              fullWidth
-              maxWidth="sm"
-            >
-              <DialogTitle>Delete Portal Permanently</DialogTitle>
-              <DialogContent sx={{ pt: 1.5, display: 'grid', gap: 2 }}>
-                <Typography sx={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-                  This will permanently delete <strong>{portal?.name}</strong> and all of its members, customers, shipment links, and finance records. The shipments themselves remain in the main system. This action cannot be undone.
-                </Typography>
-                <TextField
-                  label={`Type "${portal?.name || ''}" to confirm`}
-                  value={deleteConfirmText}
-                  onChange={(event) => setDeleteConfirmText(event.target.value)}
-                  disabled={deletingPortal}
-                  fullWidth
-                />
-              </DialogContent>
-              <DialogActions sx={{ px: 3, pb: 3 }}>
+              title="Delete Portal Permanently"
+              size="sm"
+              contentSx={{paddingTop: '12px', display: 'grid', gap: '16px'}}
+              actionsSx={{paddingLeft: '24px', paddingRight: '24px', paddingBottom: '24px'}}
+              actions={<>
+
                 <Button
                   variant="outline"
                   onClick={() => {
@@ -1050,8 +1078,14 @@ export default function PartnerPortalDetailPage() {
                 >
                   {deletingPortal ? 'Deleting...' : 'Delete Portal Forever'}
                 </Button>
-              </DialogActions>
-            </Dialog>
+              </>}
+            >
+
+                <p className="text-sm leading-relaxed" style={{fontSize: '0.9rem', color: 'var(--text-secondary)'}}>
+                  This will permanently delete <strong>{portal?.name}</strong> and all of its members, customers, shipment links, and finance records. The shipments themselves remain in the main system. This action cannot be undone.
+                </p>
+                <div className="min-w-0 flex-1"><FormField label={`Type "${portal?.name || ''}" to confirm`} value={deleteConfirmText} onChange={(event) => setDeleteConfirmText(event.target.value)} disabled={deletingPortal} /></div>
+            </Modal>
 
             <ConfirmDialog
               open={pendingRemoveMembership !== null}
@@ -1084,7 +1118,7 @@ export default function PartnerPortalDetailPage() {
               severity="warning"
               loading={savingShipmentId !== null}
             />
-          </Box>
+          </JXBox>
         )}
       </DashboardPanel>
     </DashboardSurface>

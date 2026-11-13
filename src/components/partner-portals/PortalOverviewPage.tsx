@@ -3,17 +3,10 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
-import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined';
-import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
-import AssignmentTurnedInOutlinedIcon from '@mui/icons-material/AssignmentTurnedInOutlined';
-import GroupOutlinedIcon from '@mui/icons-material/GroupOutlined';
-import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined';
-import PersonAddAltOutlinedIcon from '@mui/icons-material/PersonAddAltOutlined';
-import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
-import { Box, Typography } from '@mui/material';
 import { DashboardGrid, DashboardPanel, DashboardSurface } from '@/components/dashboard/DashboardSurface';
 import { Button, EmptyState, Skeleton, SkeletonParagraph, toast } from '@/components/design-system';
 import { formatRelativeTime } from '@/lib/relative-time';
+import { LayoutDashboard as DashboardOutlinedIcon, Package as Inventory2OutlinedIcon, ClipboardCheck as AssignmentTurnedInOutlinedIcon, Users as GroupOutlinedIcon, History as HistoryOutlinedIcon, UserPlus as PersonAddAltOutlinedIcon, Eye as VisibilityOutlinedIcon } from 'lucide-react';
 
 type PortalInfo = {
   id: string;
@@ -115,49 +108,33 @@ function MetricCard({
   } as const;
 
   return (
-    <Box
-      sx={{
-        border: '1px solid var(--border)',
-        borderRadius: 3,
-        p: 1.75,
-        background: backgrounds[tone],
-        display: 'grid',
-        gap: 0.85,
-        alignContent: 'start',
-      }}
+    <div
+      style={{ border: '1px solid var(--border)', borderRadius: 24, padding: 14, background: backgrounds[tone], display: 'grid', gap: 6.8, alignContent: 'start' }}
     >
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
-        <Typography sx={{ fontSize: '0.78rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+        <p style={{ fontSize: '0.78rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
           {label}
-        </Typography>
-        <Box sx={{ color: 'var(--text-secondary)', display: 'inline-flex', flexShrink: 0 }}>{icon}</Box>
-      </Box>
-      <Typography sx={{ fontSize: '1.45rem', fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.1 }}>{value}</Typography>
-      <Typography sx={{ fontSize: '0.82rem', color: 'var(--text-secondary)', overflowWrap: 'anywhere' }}>{helper}</Typography>
-    </Box>
+        </p>
+        <div style={{ color: 'var(--text-secondary)', display: 'inline-flex', flexShrink: 0 }}>{icon}</div>
+      </div>
+      <p style={{ fontSize: '1.45rem', fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.1 }}>{value}</p>
+      <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', overflowWrap: 'anywhere' }}>{helper}</p>
+    </div>
   );
 }
 
 function MetricCardSkeleton() {
   return (
-    <Box
-      sx={{
-        border: '1px solid var(--border)',
-        borderRadius: 3,
-        p: 1.75,
-        bgcolor: 'var(--panel)',
-        display: 'grid',
-        gap: 0.85,
-        alignContent: 'start',
-      }}
+    <div
+      style={{ border: '1px solid var(--border)', borderRadius: 24, padding: 14, backgroundColor: 'var(--panel)', display: 'grid', gap: 6.8, alignContent: 'start' }}
     >
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
         <Skeleton variant="text" width="55%" height={16} />
         <Skeleton variant="rounded" width={22} height={22} />
-      </Box>
+      </div>
       <Skeleton variant="text" width="35%" height={34} />
       <Skeleton variant="text" width="85%" height={14} />
-    </Box>
+    </div>
   );
 }
 
@@ -275,26 +252,20 @@ export default function PortalOverviewPage() {
 
   return (
     <DashboardSurface>
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: { xs: 'flex-start', md: 'center' },
-          justifyContent: 'space-between',
-          gap: 1.5,
-          flexDirection: { xs: 'column', md: 'row' },
-        }}
+      <div
+        className="flex flex-col items-start md:flex-row md:items-center" style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}
       >
-        <Box sx={{ display: 'grid', gap: 0.35 }}>
-          <Typography sx={{ fontSize: '0.75rem', letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
+        <div style={{ display: 'grid', gap: 2.8 }}>
+          <p style={{ fontSize: '0.75rem', letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
             Overview
-          </Typography>
-          <Typography sx={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+          </p>
+          <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
             {loading
               ? 'Loading portal workspace data.'
               : `${portal?.name || 'Portal'} workspace: ${assignments.length} shipments, ${customers.length} customers, ${memberships.length} members, ${adminCount} admin${adminCount === 1 ? '' : 's'}.`}
-          </Typography>
-        </Box>
-      </Box>
+          </p>
+        </div>
+      </div>
 
       {loading ? (
         <>
@@ -306,143 +277,117 @@ export default function PortalOverviewPage() {
           </DashboardGrid>
           <DashboardGrid className="grid-cols-1 gap-3 xl:grid-cols-[1.35fr_1fr]">
             <DashboardPanel title="Operational Snapshot" description="See what is moving through this partner workspace right now.">
-              <Box sx={{ display: 'grid', gap: 1.75 }}>
+              <div style={{ display: 'grid', gap: 14 }}>
                 {[0, 1, 2, 3].map((index) => (
-                  <Box key={index} sx={{ display: 'grid', gap: 0.65 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div key={index} style={{ display: 'grid', gap: 5.2 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <Skeleton variant="text" width="40%" height={18} />
                       <Skeleton variant="text" width="8%" height={16} />
-                    </Box>
+                    </div>
                     <Skeleton variant="rounded" height={10} />
-                  </Box>
+                  </div>
                 ))}
-              </Box>
+              </div>
             </DashboardPanel>
             <DashboardPanel title="Customer Coverage" description="Track how much of the portal workload is already linked to end customers.">
-              <Box sx={{ display: 'grid', gap: 1.5 }}>
+              <div style={{ display: 'grid', gap: 12 }}>
                 <Skeleton variant="rounded" height={92} />
                 <SkeletonParagraph lines={3} />
-              </Box>
+              </div>
             </DashboardPanel>
           </DashboardGrid>
           <DashboardGrid className="grid-cols-1 gap-3 xl:grid-cols-[1.15fr_0.85fr]">
             <DashboardPanel title="Recent Shipment Activity" description="The latest vehicles currently visible in this partner workspace.">
-              <Box sx={{ display: 'grid', gap: 1.5 }}>
+              <div style={{ display: 'grid', gap: 12 }}>
                 {[0, 1, 2].map((index) => (
                   <Skeleton key={index} variant="rounded" height={96} />
                 ))}
-              </Box>
+              </div>
             </DashboardPanel>
             <DashboardPanel title="Team And Activity" description="Who has access to this workspace and what has changed recently.">
-              <Box sx={{ display: 'grid', gap: 1.5 }}>
+              <div style={{ display: 'grid', gap: 12 }}>
                 {[0, 1, 2, 3].map((index) => (
-                  <Box key={index} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
-                    <Box sx={{ flex: 1, display: 'grid', gap: 0.5 }}>
+                  <div key={index} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+                    <div style={{ flex: 1, display: 'grid', gap: 4 }}>
                       <Skeleton variant="text" width="55%" height={16} />
                       <Skeleton variant="text" width="75%" height={13} />
-                    </Box>
+                    </div>
                     <Skeleton variant="rounded" width={64} height={24} />
-                  </Box>
+                  </div>
                 ))}
-              </Box>
+              </div>
             </DashboardPanel>
           </DashboardGrid>
         </>
       ) : assignments.length === 0 && customers.length === 0 && memberships.length === 0 ? (
         <DashboardPanel>
-          <Box sx={{ display: 'grid', gap: 2.5 }}>
+          <div style={{ display: 'grid', gap: 20 }}>
             <EmptyState
               icon={<DashboardOutlinedIcon />}
               title="Portal workspace is still empty"
               description="This portal is active, but it does not have shipments, customers, or members loaded yet."
             />
-            <Box
-              sx={{
-                border: '1px solid var(--border)',
-                borderRadius: 2.5,
-                p: 2,
-                bgcolor: 'var(--panel)',
-                display: 'grid',
-                gap: 1.25,
-              }}
+            <div
+              style={{ border: '1px solid var(--border)', borderRadius: 20, padding: 16, backgroundColor: 'var(--panel)', display: 'grid', gap: 10 }}
             >
-              <Typography sx={{ fontSize: '0.8rem', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
+              <p style={{ fontSize: '0.8rem', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
                 Getting started
-              </Typography>
+              </p>
               {[
                 { step: 1, label: 'Invite your team members', href: `/portal/${portalId}/members`, done: memberships.length > 0, description: 'Give teammates their own portal login.' },
                 { step: 2, label: 'Add your portal customers', href: `/portal/${portalId}/customers`, done: customers.length > 0, description: 'Create the downstream customer records shipments roll up under.' },
                 { step: 3, label: 'Link assigned shipments', href: `/portal/${portalId}/shipments`, done: assignments.length > 0, description: 'Map the shipments shared from the main system to your customers.' },
               ].map((item) => (
-                <Box
+                <div
                   key={item.step}
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1.5,
-                    p: 1.25,
-                    borderRadius: 2,
-                    border: '1px solid var(--border)',
-                    bgcolor: item.done ? 'rgba(34,197,94,0.06)' : 'transparent',
-                  }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 10, borderRadius: 16, border: '1px solid var(--border)', backgroundColor: item.done ? 'rgba(34,197,94,0.06)' : 'transparent' }}
                 >
-                  <Box
+                  <div
                     aria-hidden
-                    sx={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: '50%',
-                      display: 'grid',
-                      placeItems: 'center',
-                      flexShrink: 0,
-                      bgcolor: item.done ? 'var(--success)' : 'rgba(var(--text-primary-rgb),0.08)',
-                      color: item.done ? '#fff' : 'var(--text-secondary)',
-                      fontWeight: 800,
-                      fontSize: '0.8rem',
-                    }}
+                    style={{ width: 28, height: 28, borderRadius: '50%', display: 'grid', placeItems: 'center', flexShrink: 0, backgroundColor: item.done ? 'var(--success)' : 'rgba(var(--text-primary-rgb),0.08)', color: item.done ? '#fff' : 'var(--text-secondary)', fontWeight: 800, fontSize: '0.8rem' }}
                   >
                     {item.done ? '✓' : item.step}
-                  </Box>
-                  <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Typography sx={{ fontSize: '0.92rem', fontWeight: 700 }}>{item.label}</Typography>
-                    <Typography sx={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{item.description}</Typography>
-                  </Box>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: '0.92rem', fontWeight: 700 }}>{item.label}</p>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{item.description}</p>
+                  </div>
                   <Link href={item.href} style={{ textDecoration: 'none' }}>
                     <Button variant={item.done ? 'outline' : 'primary'} size="sm">
                       {item.done ? 'Review' : 'Start'}
                     </Button>
                   </Link>
-                </Box>
+                </div>
               ))}
-            </Box>
-          </Box>
+            </div>
+          </div>
         </DashboardPanel>
       ) : (
         <>
           <DashboardGrid className="grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
             <MetricCard
-              icon={<Inventory2OutlinedIcon fontSize="small" />}
+              icon={<Inventory2OutlinedIcon size={20} />}
               label="Assigned Shipments"
               value={assignments.length}
               helper="Visible to this partner from the main system"
               tone="brand"
             />
             <MetricCard
-              icon={<AssignmentTurnedInOutlinedIcon fontSize="small" />}
+              icon={<AssignmentTurnedInOutlinedIcon size={20} />}
               label="Linked To Customers"
               value={linkedShipments}
               helper={`${assignments.length - linkedShipments} shipment${assignments.length - linkedShipments === 1 ? '' : 's'} still unlinked`}
               tone="accent"
             />
             <MetricCard
-              icon={<GroupOutlinedIcon fontSize="small" />}
+              icon={<GroupOutlinedIcon size={20} />}
               label="Workspace Members"
               value={memberships.length}
               helper="Shared access inside this portal workspace"
               tone="neutral"
             />
             <MetricCard
-              icon={<PersonAddAltOutlinedIcon fontSize="small" />}
+              icon={<PersonAddAltOutlinedIcon size={20} />}
               label="Portal Customers"
               value={customers.length}
               helper="Partner-managed downstream customer records"
@@ -461,24 +406,24 @@ export default function PortalOverviewPage() {
               }
             >
               {statusBreakdown.length === 0 ? (
-                <Box sx={{ color: 'var(--text-secondary)' }}>No shipment movement has been assigned to this portal yet.</Box>
+                <div style={{ color: 'var(--text-secondary)' }}>No shipment movement has been assigned to this portal yet.</div>
               ) : (
-                <Box sx={{ display: 'grid', gap: 1.25 }}>
+                <div style={{ display: 'grid', gap: 10 }}>
                   {statusBreakdown.map(([status, count]) => {
                     const ratio = assignments.length > 0 ? Math.max(8, Math.round((count / assignments.length) * 100)) : 0;
                     return (
-                      <Box key={status} sx={{ display: 'grid', gap: 0.65 }}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, alignItems: 'center' }}>
-                          <Typography sx={{ fontSize: '0.9rem', fontWeight: 600 }}>{formatStatusLabel(status)}</Typography>
-                          <Typography sx={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{count}</Typography>
-                        </Box>
-                        <Box sx={{ width: '100%', height: 10, borderRadius: 999, bgcolor: 'rgba(var(--text-primary-rgb),0.08)', overflow: 'hidden' }}>
-                          <Box sx={{ width: `${ratio}%`, height: '100%', bgcolor: 'var(--brand-primary)', borderRadius: 999 }} />
-                        </Box>
-                      </Box>
+                      <div key={status} style={{ display: 'grid', gap: 5.2 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'center' }}>
+                          <p style={{ fontSize: '0.9rem', fontWeight: 600 }}>{formatStatusLabel(status)}</p>
+                          <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{count}</p>
+                        </div>
+                        <div style={{ width: '100%', height: 10, borderRadius: 7992, backgroundColor: 'rgba(var(--text-primary-rgb),0.08)', overflow: 'hidden' }}>
+                          <div style={{ width: `${ratio}%`, height: '100%', backgroundColor: 'var(--brand-primary)', borderRadius: 7992 }} />
+                        </div>
+                      </div>
                     );
                   })}
-                </Box>
+                </div>
               )}
             </DashboardPanel>
 
@@ -491,28 +436,28 @@ export default function PortalOverviewPage() {
                 </Link>
               }
             >
-              <Box sx={{ display: 'grid', gap: 1.25 }}>
-                <Box sx={{ p: 1.5, borderRadius: 2.5, bgcolor: 'rgba(var(--brand-primary-rgb),0.07)' }}>
-                  <Typography sx={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-secondary)' }}>
+              <div style={{ display: 'grid', gap: 10 }}>
+                <div style={{ padding: 12, borderRadius: 20, backgroundColor: 'rgba(var(--brand-primary-rgb),0.07)' }}>
+                  <p style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-secondary)' }}>
                     Assignment coverage
-                  </Typography>
-                  <Typography sx={{ fontSize: '1.5rem', fontWeight: 800 }}>{assignments.length === 0 ? '0%' : `${Math.round((linkedShipments / assignments.length) * 100)}%`}</Typography>
-                  <Typography sx={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                  </p>
+                  <p style={{ fontSize: '1.5rem', fontWeight: 800 }}>{assignments.length === 0 ? '0%' : `${Math.round((linkedShipments / assignments.length) * 100)}%`}</p>
+                  <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
                     {linkedShipments} of {assignments.length} shipments are already tied to a portal customer.
-                  </Typography>
-                </Box>
+                  </p>
+                </div>
 
                 {customerCoverage.length === 0 ? (
-                  <Box sx={{ color: 'var(--text-secondary)' }}>No portal customer links have been made yet.</Box>
+                  <div style={{ color: 'var(--text-secondary)' }}>No portal customer links have been made yet.</div>
                 ) : (
                   customerCoverage.map(([name, count]) => (
-                    <Box key={name} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
-                      <Typography sx={{ fontSize: '0.9rem', fontWeight: 600 }}>{name}</Typography>
-                      <Typography sx={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{count} shipment{count === 1 ? '' : 's'}</Typography>
-                    </Box>
+                    <div key={name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+                      <p style={{ fontSize: '0.9rem', fontWeight: 600 }}>{name}</p>
+                      <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{count} shipment{count === 1 ? '' : 's'}</p>
+                    </div>
                   ))
                 )}
-              </Box>
+              </div>
             </DashboardPanel>
           </DashboardGrid>
 
@@ -522,40 +467,33 @@ export default function PortalOverviewPage() {
               description="The latest vehicles currently visible in this partner workspace."
             >
               {recentAssignments.length === 0 ? (
-                <Box sx={{ color: 'var(--text-secondary)' }}>No shipments are available to show yet.</Box>
+                <div style={{ color: 'var(--text-secondary)' }}>No shipments are available to show yet.</div>
               ) : (
-                <Box sx={{ display: 'grid', gap: 1.5 }}>
+                <div style={{ display: 'grid', gap: 12 }}>
                   {recentAssignments.map((assignment) => (
-                    <Box
+                    <div
                       key={assignment.id}
-                      sx={{
-                        border: '1px solid var(--border)',
-                        borderRadius: 2.5,
-                        p: 1.5,
-                        display: 'grid',
-                        gap: 0.5,
-                        bgcolor: 'var(--panel)',
-                      }}
+                      style={{ border: '1px solid var(--border)', borderRadius: 20, padding: 12, display: 'grid', gap: 4, backgroundColor: 'var(--panel)' }}
                     >
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-                        <Typography sx={{ fontSize: '0.95rem', fontWeight: 700 }}>{formatVehicleLabel(assignment.shipment)}</Typography>
-                        <Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{formatStatusLabel(assignment.shipment.status)}</Typography>
-                      </Box>
-                      <Typography sx={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+                        <p style={{ fontSize: '0.95rem', fontWeight: 700 }}>{formatVehicleLabel(assignment.shipment)}</p>
+                        <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{formatStatusLabel(assignment.shipment.status)}</p>
+                      </div>
+                      <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
                         {assignment.partnerCustomer?.name ? `Linked to ${assignment.partnerCustomer.name}` : 'Not linked to a portal customer yet'}
-                      </Typography>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-                        <Typography sx={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>{assignment.shipment.serviceType.replaceAll('_', ' ')}</Typography>
+                      </p>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+                        <p style={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>{assignment.shipment.serviceType.replaceAll('_', ' ')}</p>
                         <Link href={`/portal/${portalId}/shipments/${assignment.shipment.id}`} style={{ textDecoration: 'none' }}>
                           <Button variant="outline" size="sm">
-                            <VisibilityOutlinedIcon sx={{ fontSize: 16 }} />
+                            <VisibilityOutlinedIcon size={16} />
                             View details
                           </Button>
                         </Link>
-                      </Box>
-                    </Box>
+                      </div>
+                    </div>
                   ))}
-                </Box>
+                </div>
               )}
             </DashboardPanel>
 
@@ -568,65 +506,58 @@ export default function PortalOverviewPage() {
                 </Link>
               }
             >
-              <Box sx={{ display: 'grid', gap: 2 }}>
-                <Box sx={{ display: 'grid', gap: 1.25 }}>
+              <div style={{ display: 'grid', gap: 16 }}>
+                <div style={{ display: 'grid', gap: 10 }}>
                   {memberships.slice(0, 4).map((membership) => (
-                    <Box key={membership.id} sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, alignItems: 'center' }}>
-                      <Box>
-                        <Typography sx={{ fontSize: '0.9rem', fontWeight: 600 }}>{membership.user.name || membership.user.email || 'Portal member'}</Typography>
-                        <Typography sx={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>{membership.user.email || 'No email'}</Typography>
-                      </Box>
-                      <Box sx={{ px: 1.2, py: 0.45, borderRadius: 999, bgcolor: membership.role === 'ADMIN' ? 'rgba(var(--brand-primary-rgb),0.12)' : 'rgba(var(--text-primary-rgb),0.06)', color: membership.role === 'ADMIN' ? 'var(--brand-primary)' : 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                    <div key={membership.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'center' }}>
+                      <div>
+                        <p style={{ fontSize: '0.9rem', fontWeight: 600 }}>{membership.user.name || membership.user.email || 'Portal member'}</p>
+                        <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>{membership.user.email || 'No email'}</p>
+                      </div>
+                      <div style={{ paddingLeft: 9.6, paddingRight: 9.6, paddingTop: 3.6, paddingBottom: 3.6, borderRadius: 7992, backgroundColor: membership.role === 'ADMIN' ? 'rgba(var(--brand-primary-rgb),0.12)' : 'rgba(var(--text-primary-rgb),0.06)', color: membership.role === 'ADMIN' ? 'var(--brand-primary)' : 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700, whiteSpace: 'nowrap' }}>
                         {membership.role}
-                      </Box>
-                    </Box>
+                      </div>
+                    </div>
                   ))}
-                </Box>
+                </div>
 
-                <Box sx={{ borderTop: '1px solid var(--border)', pt: 2, display: 'grid', gap: 1.25 }}>
-                  <Typography sx={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--text-secondary)' }}>
+                <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16, display: 'grid', gap: 10 }}>
+                  <p style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--text-secondary)' }}>
                     Recent activity
-                  </Typography>
+                  </p>
                   {!canViewActivity ? (
-                    <Box sx={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                    <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
                       Activity is available to portal admins so member changes and login access events stay controlled.
-                    </Box>
+                    </div>
                   ) : partialLoadWarning ? (
-                    <Box
-                      sx={{
-                        border: '1px solid rgba(var(--accent-gold-rgb),0.35)',
-                        borderRadius: 2,
-                        p: 1.25,
-                        bgcolor: 'rgba(var(--accent-gold-rgb),0.08)',
-                        fontSize: '0.85rem',
-                        color: 'var(--text-primary)',
-                      }}
+                    <div
+                      style={{ border: '1px solid rgba(var(--accent-gold-rgb),0.35)', borderRadius: 16, padding: 10, backgroundColor: 'rgba(var(--accent-gold-rgb),0.08)', fontSize: '0.85rem', color: 'var(--text-primary)' }}
                     >
                       {partialLoadWarning}
-                    </Box>
+                    </div>
                   ) : activities.length === 0 ? (
-                    <Box sx={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>No recent membership activity was recorded for this portal.</Box>
+                    <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>No recent membership activity was recorded for this portal.</div>
                   ) : (
                     activities.map((activity) => (
-                      <Box key={activity.id} sx={{ display: 'grid', gap: 0.25 }}>
-                        <Typography sx={{ fontSize: '0.88rem', fontWeight: 600 }}>{activity.summary}</Typography>
-                        <Typography sx={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
+                      <div key={activity.id} style={{ display: 'grid', gap: 2 }}>
+                        <p style={{ fontSize: '0.88rem', fontWeight: 600 }}>{activity.summary}</p>
+                        <p style={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
                           {formatRelativeTime(activity.performedAt)}
-                        </Typography>
-                      </Box>
+                        </p>
+                      </div>
                     ))
                   )}
 
                   {canViewActivity ? (
                     <Link href={`/portal/${portalId}/activity`} style={{ textDecoration: 'none' }}>
                       <Button variant="outline" size="sm">
-                        <HistoryOutlinedIcon sx={{ fontSize: 16 }} />
+                        <HistoryOutlinedIcon size={16} />
                         View all activity
                       </Button>
                     </Link>
                   ) : null}
-                </Box>
-              </Box>
+                </div>
+              </div>
             </DashboardPanel>
           </DashboardGrid>
         </>

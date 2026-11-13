@@ -1,57 +1,130 @@
 'use client';
 
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState, useMemo, useCallback, forwardRef, type CSSProperties, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
 import { useSession } from 'next-auth/react';
 import { formatMoney } from '@/lib/format';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
-import { PageHeader, Button, StatsCard, TableSkeleton, Modal, toast } from '@/components/design-system';
-import {
-  Building2,
-  DollarSign,
-  Calendar,
-  CreditCard,
-  Plus,
-  Search,
-  Filter,
-  Download,
-  Receipt,
-  Trash2,
-  Edit2,
-  FileText,
-  CheckCircle2,
-  Clock,
-  XCircle,
-  TrendingUp,
-  PieChart as PieIcon,
-  Layers,
-  ArrowUpRight,
-  ExternalLink,
-  ChevronRight,
-  Tag,
-  Store,
-  FileCheck,
-  Repeat,
-  Sliders,
-} from 'lucide-react';
+import { Button, IconButton, Modal, PageHeader, Select, StatsCard, TableSkeleton, Tooltip, toast } from '@/components/design-system';
+import { ArrowUpRight, Building2, Calendar, CheckCircle2, ChevronDown, ChevronRight, Clock, CreditCard, DollarSign, Download, Edit2, ExternalLink, FileCheck, FileText, Filter, Layers, PieChart as PieIcon, Plus, Receipt, Repeat, Search, Sliders, Store, Tag, Trash2, TrendingUp, XCircle } from 'lucide-react';
 import RecurringExpensesTab from './RecurringExpensesTab';
 import BudgetsTab from './BudgetsTab';
-import {
-  Box,
-  Typography,
-  Chip,
-  IconButton,
-  Tooltip,
-  TextField,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  InputAdornment,
-  Paper,
-  Tabs,
-  Tab,
-} from '@mui/material';
+
+/** Bare input with the Jacxi field look (no label) — search fields, table-cell editors. */
+const BareInput = forwardRef<HTMLInputElement | HTMLTextAreaElement, BareInputProps>(function BareInput(
+  { leftIcon, rightIcon, rightElement, error = false, helperText, size = 'small', multiline = false, rows, minRows, inputProps, className, style, ...rest },
+  ref,
+) {
+  const controlClass = [
+    'w-full rounded-lg border bg-[var(--background)] text-[var(--text-primary)] outline-none transition-colors placeholder:text-[var(--text-secondary)]',
+    size === 'small' ? 'px-2.5 py-1.5 text-[0.8125rem]' : 'px-3 py-2 text-[0.875rem]',
+    leftIcon ? 'pl-9' : '',
+    rightIcon || rightElement ? 'pr-9' : '',
+    error
+      ? 'border-[var(--error)] focus:border-[var(--error)] focus:ring-2 focus:ring-[rgba(var(--error-rgb),0.2)]'
+      : 'border-[rgba(var(--border-rgb),0.9)] hover:border-[var(--border)] focus:border-[var(--accent-gold)] focus:ring-2 focus:ring-[rgba(var(--accent-gold-rgb),0.2)]',
+    rest.disabled ? 'opacity-50' : '',
+    className,
+  ].filter(Boolean).join(' ');
+  return (
+    <div>
+      <div className="relative">
+        {leftIcon && (
+          <span className="pointer-events-none absolute left-3 top-1/2 flex -translate-y-1/2 text-[var(--text-secondary)]">{leftIcon}</span>
+        )}
+        {multiline ? (
+          <textarea
+            {...(rest as TextareaHTMLAttributes<HTMLTextAreaElement>)}
+            {...(inputProps as unknown as TextareaHTMLAttributes<HTMLTextAreaElement>)}
+            ref={ref as React.Ref<HTMLTextAreaElement>}
+            rows={rows ?? minRows ?? 3}
+            aria-invalid={error || undefined}
+            style={style}
+            className={`${controlClass} min-h-[80px] resize-y leading-[1.5]`}
+          />
+        ) : (
+          <input
+            {...rest}
+            {...inputProps}
+            ref={ref as React.Ref<HTMLInputElement>}
+            aria-invalid={error || undefined}
+            style={style}
+            className={controlClass}
+          />
+        )}
+        {rightIcon && (
+          <span className="pointer-events-none absolute right-3 top-1/2 flex -translate-y-1/2 text-[var(--text-secondary)]">{rightIcon}</span>
+        )}
+        {rightElement && (
+          <span className="absolute right-3 top-1/2 flex -translate-y-1/2 text-[var(--text-secondary)]">{rightElement}</span>
+        )}
+      </div>
+      {helperText && (
+        <p className="mt-0.5 text-[0.75rem]" style={{ color: error ? 'var(--error)' : 'var(--text-secondary)' }}>{helperText}</p>
+      )}
+    </div>
+  );
+});
+
+type BareInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> & {
+  leftIcon?: ReactNode;
+  rightIcon?: ReactNode;
+  /** Interactive element on the right (e.g. password visibility toggle). */
+  rightElement?: ReactNode;
+  error?: boolean;
+  helperText?: ReactNode;
+  size?: 'small' | 'medium';
+  multiline?: boolean;
+  rows?: number;
+  minRows?: number;
+  inputProps?: InputHTMLAttributes<HTMLInputElement>;
+};
+
+
+/** Bare select with the Jacxi field look (no label) — filter dropdowns. Keeps the native event onChange. */
+function BareSelect({ options, placeholder, error = false, size = 'small', leftIcon, className, style, ...rest }: BareSelectProps) {
+  return (
+    <div className="relative">
+      {leftIcon && (
+        <span className="pointer-events-none absolute left-3 top-1/2 flex -translate-y-1/2 text-[var(--text-secondary)]">{leftIcon}</span>
+      )}
+      <select
+        {...rest}
+        aria-invalid={error || undefined}
+        style={style}
+        className={[
+          'w-full appearance-none rounded-lg border bg-[var(--background)] text-[var(--text-primary)] outline-none transition-colors',
+          size === 'small' ? 'px-2.5 py-1.5 text-[0.8125rem]' : 'px-3 py-2 text-[0.875rem]',
+          leftIcon ? 'pl-9' : '',
+          'pr-9',
+          error
+            ? 'border-[var(--error)] focus:border-[var(--error)] focus:ring-2 focus:ring-[rgba(var(--error-rgb),0.2)]'
+            : 'border-[rgba(var(--border-rgb),0.9)] hover:border-[var(--border)] focus:border-[var(--accent-gold)] focus:ring-2 focus:ring-[rgba(var(--accent-gold-rgb),0.2)]',
+          rest.disabled ? 'opacity-50' : '',
+          className,
+        ].filter(Boolean).join(' ')}
+      >
+        {placeholder && (
+          <option value="" disabled>{placeholder}</option>
+        )}
+        {options.map((option) => (
+          <option key={option.value} value={String(option.value)} disabled={option.disabled}>{option.label}</option>
+        ))}
+      </select>
+      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-secondary)]" aria-hidden="true" />
+    </div>
+  );
+}
+
+type BareSelectProps = Omit<SelectHTMLAttributes<HTMLSelectElement>, 'size'> & {
+  options: { value: string | number; label: string; disabled?: boolean }[];
+  placeholder?: string;
+  error?: boolean;
+  size?: 'small' | 'medium';
+  leftIcon?: ReactNode;
+};
+
 
 export type OfficeExpenseCategory =
   | 'RENT'
@@ -414,7 +487,7 @@ export default function OfficeExpensesPage() {
           title="Office & Operating Expenses"
           description="Manage operational overhead, facilities, staff compensation, vendor bills, and office running costs."
           actions={
-            <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '12px', flexWrap: 'wrap'}}>
               <Button
                 variant="outline"
                 size="sm"
@@ -432,7 +505,7 @@ export default function OfficeExpensesPage() {
                 <Plus className="w-4 h-4 mr-1.5" />
                 Add Expense
               </Button>
-            </Box>
+            </JXBox>
           }
         />
 
@@ -469,202 +542,107 @@ export default function OfficeExpensesPage() {
         </DashboardGrid>
 
         {/* View Tabs */}
-        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-          <Tabs
-            value={activeTab}
-            onChange={(_, val) => setActiveTab(val)}
-            textColor="inherit"
-            indicatorColor="primary"
-            sx={{
-              '& .MuiTab-root': {
-                color: 'var(--text-secondary)',
-                fontWeight: 600,
-                textTransform: 'none',
-                minHeight: 48,
-                '&.Mui-selected': {
-                  color: 'var(--accent-gold, #f59e0b)',
-                },
-              },
-              '& .MuiTabs-indicator': {
-                backgroundColor: 'var(--accent-gold, #f59e0b)',
-              },
-            }}
-          >
-            <Tab
-              value="list"
-              label={
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, borderBottom: 1, borderColor: 'var(--border)', marginBottom: '24px'}}>
+          <div role="tablist" className="flex gap-1 overflow-x-auto border-b border-[var(--border)]">
+            <button
+              key={"list"}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === "list"}
+              onClick={() => { const val = "list"; setActiveTab(val); }}
+              className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === "list" ? 'border-[var(--accent-gold)] text-[var(--accent-gold-text)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+            >
+              {<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px'}}>
                   <Layers className="w-4 h-4" />
                   <span>Expense Ledger ({summary?.totalCount || expenses.length})</span>
-                </Box>
-              }
-            />
-            <Tab
-              value="analytics"
-              label={
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                </JXBox>}
+            </button>
+            <button
+              key={"analytics"}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === "analytics"}
+              onClick={() => { const val = "analytics"; setActiveTab(val); }}
+              className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === "analytics" ? 'border-[var(--accent-gold)] text-[var(--accent-gold-text)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+            >
+              {<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px'}}>
                   <PieIcon className="w-4 h-4" />
                   <span>Category Breakdown & Trends</span>
-                </Box>
-              }
-            />
-            <Tab
-              value="recurring"
-              label={
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                </JXBox>}
+            </button>
+            <button
+              key={"recurring"}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === "recurring"}
+              onClick={() => { const val = "recurring"; setActiveTab(val); }}
+              className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === "recurring" ? 'border-[var(--accent-gold)] text-[var(--accent-gold-text)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+            >
+              {<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px'}}>
                   <Repeat className="w-4 h-4" />
                   <span>Recurring Schedules</span>
-                </Box>
-              }
-            />
-            <Tab
-              value="budgets"
-              label={
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                </JXBox>}
+            </button>
+            <button
+              key={"budgets"}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === "budgets"}
+              onClick={() => { const val = "budgets"; setActiveTab(val); }}
+              className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === "budgets" ? 'border-[var(--accent-gold)] text-[var(--accent-gold-text)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+            >
+              {<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px'}}>
                   <Sliders className="w-4 h-4" />
                   <span>Budgets & Caps</span>
-                </Box>
-              }
-            />
-          </Tabs>
-        </Box>
+                </JXBox>}
+            </button>
+          
+          </div>
+        </JXBox>
 
         {activeTab === 'list' && (
           <DashboardPanel>
             {/* Filter Toolbar */}
-            <Box
-              sx={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: 2,
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                mb: 3,
-                p: 2,
-                borderRadius: 2,
-                bgcolor: 'rgba(var(--panel-rgb), 0.5)',
-                border: '1px solid rgba(var(--panel-rgb), 0.8)',
-              }}
-            >
+            <JXBox padding="none" border={false} style={{display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', padding: '16px', borderRadius: '16px', backgroundColor: 'rgba(var(--panel-rgb), 0.5)', border: '1px solid rgba(var(--panel-rgb), 0.8)'}}>
               {/* Search Bar */}
-              <Box sx={{ flex: '1 1 260px', minWidth: 220 }}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  placeholder="Search title, vendor, check #, notes..."
-                  value={searchQuery}
-                  onChange={(e) => {
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, flex: '1 1 260px', minWidth: '220px'}}>
+                <div className="min-w-0 flex-1"><BareInput placeholder="Search title, vendor, check #, notes..." value={searchQuery} onChange={(e) => {
                     setSearchQuery(e.target.value);
                     setPage(1);
-                  }}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <Search className="w-4 h-4 text-slate-400" />
-                      </InputAdornment>
-                    ),
-                  }}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      bgcolor: 'var(--background)',
-                      borderRadius: 2,
-                    },
-                  }}
-                />
-              </Box>
+                  }} leftIcon={<Search className="w-4 h-4 text-slate-400" />} size="small" /></div>
+              </JXBox>
 
               {/* Category Filter */}
-              <Box sx={{ minWidth: 160 }}>
-                <FormControl size="small" fullWidth>
-                  <InputLabel id="cat-filter-label">Category</InputLabel>
-                  <Select
-                    labelId="cat-filter-label"
-                    label="Category"
-                    value={categoryFilter}
-                    onChange={(e) => {
-                      setCategoryFilter(e.target.value);
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, minWidth: '160px'}}>
+                <div className="min-w-0 flex-1"><Select label="Category" options={[{ value: "ALL", label: 'All Categories' }, ...Object.entries(CATEGORY_METADATA).map(([catKey, meta]) => ({ value: catKey, label: meta.label }))]} value={categoryFilter} size="small" onChange={(val) => {
+                      setCategoryFilter(val as string);
                       setPage(1);
-                    }}
-                    sx={{ bgcolor: 'var(--background)', borderRadius: 2 }}
-                  >
-                    <MenuItem value="ALL">All Categories</MenuItem>
-                    {Object.entries(CATEGORY_METADATA).map(([catKey, meta]) => (
-                      <MenuItem key={catKey} value={catKey}>
-                        <span className="mr-1.5">{meta.icon}</span>
-                        {meta.label}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Box>
+                    }} /></div>
+              </JXBox>
 
               {/* Payment Method Filter */}
-              <Box sx={{ minWidth: 150 }}>
-                <FormControl size="small" fullWidth>
-                  <InputLabel id="payment-filter-label">Payment</InputLabel>
-                  <Select
-                    labelId="payment-filter-label"
-                    label="Payment"
-                    value={paymentMethodFilter}
-                    onChange={(e) => {
-                      setPaymentMethodFilter(e.target.value);
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, minWidth: '150px'}}>
+                <div className="min-w-0 flex-1"><Select label="Payment" options={[{ value: "ALL", label: 'All Methods' }, ...PAYMENT_METHODS.map((pm) => ({ value: pm.value, label: pm.label }))]} value={paymentMethodFilter} size="small" onChange={(val) => {
+                      setPaymentMethodFilter(val as string);
                       setPage(1);
-                    }}
-                    sx={{ bgcolor: 'var(--background)', borderRadius: 2 }}
-                  >
-                    <MenuItem value="ALL">All Methods</MenuItem>
-                    {PAYMENT_METHODS.map((pm) => (
-                      <MenuItem key={pm.value} value={pm.value}>
-                        {pm.label}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Box>
+                    }} /></div>
+              </JXBox>
 
               {/* Date Preset Filter */}
-              <Box sx={{ minWidth: 140 }}>
-                <FormControl size="small" fullWidth>
-                  <InputLabel id="date-filter-label">Period</InputLabel>
-                  <Select
-                    labelId="date-filter-label"
-                    label="Period"
-                    value={dateRangePreset}
-                    onChange={(e) => {
-                      setDateRangePreset(e.target.value);
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, minWidth: '140px'}}>
+                <div className="min-w-0 flex-1"><Select label="Period" options={[{ value: "ALL", label: 'All Time' }, { value: "THIS_MONTH", label: 'This Month' }, { value: "LAST_MONTH", label: 'Last Month' }, { value: "THIS_YEAR", label: 'This Year' }]} value={dateRangePreset} size="small" onChange={(val) => {
+                      setDateRangePreset(val as string);
                       setPage(1);
-                    }}
-                    sx={{ bgcolor: 'var(--background)', borderRadius: 2 }}
-                  >
-                    <MenuItem value="ALL">All Time</MenuItem>
-                    <MenuItem value="THIS_MONTH">This Month</MenuItem>
-                    <MenuItem value="LAST_MONTH">Last Month</MenuItem>
-                    <MenuItem value="THIS_YEAR">This Year</MenuItem>
-                  </Select>
-                </FormControl>
-              </Box>
+                    }} /></div>
+              </JXBox>
 
               {/* Status Filter */}
-              <Box sx={{ minWidth: 130 }}>
-                <FormControl size="small" fullWidth>
-                  <InputLabel id="status-filter-label">Status</InputLabel>
-                  <Select
-                    labelId="status-filter-label"
-                    label="Status"
-                    value={statusFilter}
-                    onChange={(e) => {
-                      setStatusFilter(e.target.value);
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, minWidth: '130px'}}>
+                <div className="min-w-0 flex-1"><Select label="Status" options={[{ value: "ALL", label: 'All Status' }, { value: "PAID", label: 'Paid' }, { value: "PENDING", label: 'Pending' }, { value: "CANCELLED", label: 'Cancelled' }]} value={statusFilter} size="small" onChange={(val) => {
+                      setStatusFilter(val as string);
                       setPage(1);
-                    }}
-                    sx={{ bgcolor: 'var(--background)', borderRadius: 2 }}
-                  >
-                    <MenuItem value="ALL">All Status</MenuItem>
-                    <MenuItem value="PAID">Paid</MenuItem>
-                    <MenuItem value="PENDING">Pending</MenuItem>
-                    <MenuItem value="CANCELLED">Cancelled</MenuItem>
-                  </Select>
-                </FormControl>
-              </Box>
+                    }} /></div>
+              </JXBox>
 
               <Button
                 variant="ghost"
@@ -680,31 +658,22 @@ export default function OfficeExpensesPage() {
               >
                 Reset
               </Button>
-            </Box>
+            </JXBox>
 
             {/* Expenses Table */}
             {loading ? (
               <TableSkeleton rows={8} />
             ) : expenses.length === 0 ? (
-              <Box
-                sx={{
-                  py: 10,
-                  textAlign: 'center',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingTop: '80px', paddingBottom: '80px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'}}>
                 <Building2 className="w-12 h-12 text-slate-500 mb-3 opacity-60" />
-                <Typography variant="h6" className="font-semibold text-slate-200">
+                <h6 className="text-sm font-semibold font-semibold text-slate-200">
                   No office expenses found
-                </Typography>
-                <Typography variant="body2" className="text-slate-400 mt-1 max-w-sm">
+                </h6>
+                <p className="text-sm leading-relaxed text-slate-400 mt-1 max-w-sm">
                   {searchQuery || categoryFilter !== 'ALL' || statusFilter !== 'ALL'
                     ? 'Try adjusting your search query or filters.'
                     : 'Start tracking your office overhead, payroll, utilities, and running expenses by adding your first expense.'}
-                </Typography>
+                </p>
                 <Button
                   variant="primary"
                   size="sm"
@@ -714,9 +683,9 @@ export default function OfficeExpensesPage() {
                   <Plus className="w-4 h-4 mr-1.5" />
                   Add First Expense
                 </Button>
-              </Box>
+              </JXBox>
             ) : (
-              <Box sx={{ overflowX: 'auto' }}>
+              <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, overflowX: 'auto'}}>
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="border-b border-[var(--panel-border,rgba(255,255,255,0.08))] text-xs font-semibold text-slate-400 uppercase tracking-wider">
@@ -743,7 +712,7 @@ export default function OfficeExpensesPage() {
                             <div className="flex items-center gap-2">
                               <span>{expense.title}</span>
                               {expense.receiptUrl && (
-                                <Tooltip title="Receipt Attached">
+                                <Tooltip title="Receipt Attached" arrow={false}>
                                   <button
                                     onClick={() =>
                                       setReceiptPreviewUrl({
@@ -772,22 +741,10 @@ export default function OfficeExpensesPage() {
 
                           {/* Category Badge */}
                           <td className="py-3.5 px-4">
-                            <Chip
-                              size="small"
-                              label={
-                                <span className="flex items-center gap-1">
+                            <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5" style={{backgroundColor: meta.bg, color: meta.color, border: `1px solid ${meta.color}33`, fontWeight: 600, fontSize: '0.75rem'}}>{<span className="flex items-center gap-1">
                                   <span>{meta.icon}</span>
                                   <span>{meta.label}</span>
-                                </span>
-                              }
-                              sx={{
-                                bgcolor: meta.bg,
-                                color: meta.color,
-                                border: `1px solid ${meta.color}33`,
-                                fontWeight: 600,
-                                fontSize: '0.75rem',
-                              }}
-                            />
+                                </span>}</span>
                           </td>
 
                           {/* Vendor */}
@@ -846,26 +803,14 @@ export default function OfficeExpensesPage() {
 
                           {/* Actions */}
                           <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                            <Box sx={{ display: 'inline-flex', gap: 0.5 }}>
-                              <Tooltip title="Edit Expense">
-                                <IconButton
-                                  size="small"
-                                  onClick={() => handleOpenModal(expense)}
-                                  sx={{ color: 'var(--text-secondary)', '&:hover': { color: '#f59e0b' } }}
-                                >
-                                  <Edit2 className="w-4 h-4" />
-                                </IconButton>
+                            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'inline-flex', gap: '4px'}}>
+                              <Tooltip title="Edit Expense" arrow={false}>
+                                <IconButton icon={<Edit2 className="w-4 h-4" />} ariaLabel="Edit expense" variant="ghost" size="sm" onClick={() => handleOpenModal(expense)} style={{color: 'var(--text-secondary)'}} />
                               </Tooltip>
-                              <Tooltip title="Delete Expense">
-                                <IconButton
-                                  size="small"
-                                  onClick={() => setDeleteConfirmId(expense.id)}
-                                  sx={{ color: 'var(--text-secondary)', '&:hover': { color: '#f43f5e' } }}
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </IconButton>
+                              <Tooltip title="Delete Expense" arrow={false}>
+                                <IconButton icon={<Trash2 className="w-4 h-4" />} ariaLabel="Delete expense" variant="ghost" size="sm" onClick={() => setDeleteConfirmId(expense.id)} style={{color: 'var(--text-secondary)'}} />
                               </Tooltip>
-                            </Box>
+                            </JXBox>
                           </td>
                         </tr>
                       );
@@ -875,20 +820,11 @@ export default function OfficeExpensesPage() {
 
                 {/* Pagination */}
                 {totalPages > 1 && (
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      mt: 3,
-                      pt: 2,
-                      borderTop: '1px solid rgba(255,255,255,0.06)',
-                    }}
-                  >
-                    <Typography variant="body2" className="text-slate-400">
+                  <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '24px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.06)'}}>
+                    <p className="text-sm leading-relaxed text-slate-400">
                       Page {page} of {totalPages}
-                    </Typography>
-                    <Box sx={{ display: 'flex', gap: 1 }}>
+                    </p>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '8px'}}>
                       <Button
                         variant="outline"
                         size="sm"
@@ -905,10 +841,10 @@ export default function OfficeExpensesPage() {
                       >
                         Next
                       </Button>
-                    </Box>
-                  </Box>
+                    </JXBox>
+                  </JXBox>
                 )}
-              </Box>
+              </JXBox>
             )}
           </DashboardPanel>
         )}
@@ -1040,15 +976,7 @@ export default function OfficeExpensesPage() {
               <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
                 Expense Title *
               </label>
-              <TextField
-                fullWidth
-                size="small"
-                required
-                placeholder="e.g. Office Rent (September), High-Speed Internet Bill"
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'var(--background)', borderRadius: 2 } }}
-              />
+              <div className="min-w-0 flex-1"><BareInput required placeholder="e.g. Office Rent (September), High-Speed Internet Bill" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} size="small" /></div>
             </div>
 
             {/* Category & Amount */}
@@ -1057,42 +985,16 @@ export default function OfficeExpensesPage() {
                 <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
                   Category *
                 </label>
-                <FormControl size="small" fullWidth>
-                  <Select
-                    value={formData.category}
-                    onChange={(e) =>
+                <div className="min-w-0 flex-1"><BareSelect options={Object.entries(CATEGORY_METADATA).map(([catKey, meta]) => ({ value: catKey, label: meta.label }))} value={formData.category} size="small" onChange={(e) =>
                       setFormData({ ...formData, category: e.target.value as OfficeExpenseCategory })
-                    }
-                    sx={{ bgcolor: 'var(--background)', borderRadius: 2 }}
-                  >
-                    {Object.entries(CATEGORY_METADATA).map(([catKey, meta]) => (
-                      <MenuItem key={catKey} value={catKey}>
-                        <span className="mr-2">{meta.icon}</span>
-                        {meta.label}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+                    } style={{backgroundColor: 'var(--background)', borderRadius: '16px'}} /></div>
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
                   Amount (USD) *
                 </label>
-                <TextField
-                  fullWidth
-                  size="small"
-                  type="number"
-                  required
-                  placeholder="0.00"
-                  inputProps={{ step: '0.01', min: '0.01' }}
-                  value={formData.amount}
-                  onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                  InputProps={{
-                    startAdornment: <InputAdornment position="start">$</InputAdornment>,
-                  }}
-                  sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'var(--background)', borderRadius: 2 } }}
-                />
+                <div className="min-w-0 flex-1"><BareInput type="number" required placeholder="0.00" inputProps={{ step: '0.01', min: '0.01' }} value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} leftIcon="$" size="small" /></div>
               </div>
             </div>
 
@@ -1102,34 +1004,14 @@ export default function OfficeExpensesPage() {
                 <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
                   Expense Date *
                 </label>
-                <TextField
-                  fullWidth
-                  size="small"
-                  type="date"
-                  required
-                  value={formData.expenseDate}
-                  onChange={(e) => setFormData({ ...formData, expenseDate: e.target.value })}
-                  sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'var(--background)', borderRadius: 2 } }}
-                />
+                <div className="min-w-0 flex-1"><BareInput type="date" required value={formData.expenseDate} onChange={(e) => setFormData({ ...formData, expenseDate: e.target.value })} size="small" /></div>
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
                   Payment Method
                 </label>
-                <FormControl size="small" fullWidth>
-                  <Select
-                    value={formData.paymentMethod}
-                    onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
-                    sx={{ bgcolor: 'var(--background)', borderRadius: 2 }}
-                  >
-                    {PAYMENT_METHODS.map((pm) => (
-                      <MenuItem key={pm.value} value={pm.value}>
-                        {pm.label}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+                <div className="min-w-0 flex-1"><BareSelect options={PAYMENT_METHODS.map((pm) => ({ value: pm.value, label: pm.label }))} value={formData.paymentMethod} size="small" onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })} style={{backgroundColor: 'var(--background)', borderRadius: '16px'}} /></div>
               </div>
             </div>
 
@@ -1139,28 +1021,14 @@ export default function OfficeExpensesPage() {
                 <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
                   Vendor / Payee
                 </label>
-                <TextField
-                  fullWidth
-                  size="small"
-                  placeholder="e.g. Landlord Name, Verizon, Staples"
-                  value={formData.vendor}
-                  onChange={(e) => setFormData({ ...formData, vendor: e.target.value })}
-                  sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'var(--background)', borderRadius: 2 } }}
-                />
+                <div className="min-w-0 flex-1"><BareInput placeholder="e.g. Landlord Name, Verizon, Staples" value={formData.vendor} onChange={(e) => setFormData({ ...formData, vendor: e.target.value })} size="small" /></div>
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
                   Reference # (Invoice / Check)
                 </label>
-                <TextField
-                  fullWidth
-                  size="small"
-                  placeholder="e.g. INV-9042, Check #1042"
-                  value={formData.referenceNumber}
-                  onChange={(e) => setFormData({ ...formData, referenceNumber: e.target.value })}
-                  sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'var(--background)', borderRadius: 2 } }}
-                />
+                <div className="min-w-0 flex-1"><BareInput placeholder="e.g. INV-9042, Check #1042" value={formData.referenceNumber} onChange={(e) => setFormData({ ...formData, referenceNumber: e.target.value })} size="small" /></div>
               </div>
             </div>
 
@@ -1169,21 +1037,7 @@ export default function OfficeExpensesPage() {
               <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
                 Receipt / Document Link
               </label>
-              <TextField
-                fullWidth
-                size="small"
-                placeholder="https://... (Receipt image or PDF link)"
-                value={formData.receiptUrl}
-                onChange={(e) => setFormData({ ...formData, receiptUrl: e.target.value })}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Receipt className="w-4 h-4 text-slate-400" />
-                    </InputAdornment>
-                  ),
-                }}
-                sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'var(--background)', borderRadius: 2 } }}
-              />
+              <div className="min-w-0 flex-1"><BareInput placeholder="https://... (Receipt image or PDF link)" value={formData.receiptUrl} onChange={(e) => setFormData({ ...formData, receiptUrl: e.target.value })} leftIcon={<Receipt className="w-4 h-4 text-slate-400" />} size="small" /></div>
             </div>
 
             {/* Notes & Status */}
@@ -1192,33 +1046,16 @@ export default function OfficeExpensesPage() {
                 <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
                   Internal Notes
                 </label>
-                <TextField
-                  fullWidth
-                  size="small"
-                  placeholder="Additional context or notes..."
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'var(--background)', borderRadius: 2 } }}
-                />
+                <div className="min-w-0 flex-1"><BareInput placeholder="Additional context or notes..." value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} size="small" /></div>
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
                   Status
                 </label>
-                <FormControl size="small" fullWidth>
-                  <Select
-                    value={formData.status}
-                    onChange={(e) =>
+                <div className="min-w-0 flex-1"><BareSelect options={[{ value: "PAID", label: 'Paid' }, { value: "PENDING", label: 'Pending' }, { value: "CANCELLED", label: 'Cancelled' }]} value={formData.status} size="small" onChange={(e) =>
                       setFormData({ ...formData, status: e.target.value as ExpensePaymentStatus })
-                    }
-                    sx={{ bgcolor: 'var(--background)', borderRadius: 2 }}
-                  >
-                    <MenuItem value="PAID">Paid</MenuItem>
-                    <MenuItem value="PENDING">Pending</MenuItem>
-                    <MenuItem value="CANCELLED">Cancelled</MenuItem>
-                  </Select>
-                </FormControl>
+                    } style={{backgroundColor: 'var(--background)', borderRadius: '16px'}} /></div>
               </div>
             </div>
 

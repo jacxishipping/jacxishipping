@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { AlertTriangle, Brain, CheckCircle2, FileText, Folder, Newspaper, Search as SearchIcon, ShieldCheck, Upload, Eye, Receipt, Printer, ExternalLink, Download } from 'lucide-react';
-import { Box, Typography } from '@mui/material';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
 import { 
     PageHeader, 
@@ -509,96 +509,38 @@ export default function DocumentsPage() {
 									title={category.title}
 									description={category.description}
 									actions={
-										<Box
-											sx={{
-												width: 40,
-												height: 40,
-												borderRadius: 2,
-												display: 'flex',
-												alignItems: 'center',
-												justifyContent: 'center',
-												bgcolor: category.iconBg,
-												color: category.iconColor,
-											}}
-										>
+										<JXBox padding="none" border={false} style={{width: '40px', height: '40px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: category.iconBg, color: category.iconColor}}>
 											<Icon style={{ fontSize: 20 }} />
-										</Box>
+										</JXBox>
 									}
 								>
 									<DashboardGrid className="grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
 										{category.documents.map((document) => (
-											<Box
-												key={document.id}
-												sx={{
-													borderRadius: 2,
-													border: '1px solid var(--border)',
-													background: 'var(--panel)',
-													boxShadow: '0 8px 20px rgba(var(--text-primary-rgb), 0.06)',
-													p: 2.5,
-													cursor: 'pointer',
-													transition: 'all 0.2s ease',
-													display: 'flex',
-													flexDirection: 'column',
-													justifyContent: 'space-between',
-													'&:hover': {
-														transform: 'translateY(-2px)',
-														boxShadow: '0 16px 32px rgba(var(--text-primary-rgb), 0.1)',
-														borderColor: category.iconColor,
-													},
-												}}
-												onClick={() => setPreviewDocument(document)}
-											>
+											<JXBox padding="none" border={false} key={document.id} className="hover:-translate-y-0.5 hover:!shadow-[0_16px_32px_rgba(var(--text-primary-rgb),0.1)]" style={{borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--panel)', boxShadow: '0 8px 20px rgba(var(--text-primary-rgb), 0.06)', padding: '20px', cursor: 'pointer', transition: 'all 0.2s ease', display: 'flex', flexDirection: 'column', justifyContent: 'space-between'}} onClick={() => setPreviewDocument(document)}>
 												<div>
-													<Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 1.5 }}>
-														<Typography sx={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', flex: 1, wordBreak: 'break-all' }}>
+													<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '12px'}}>
+														<p className="text-sm leading-relaxed" style={{fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', flex: 1, wordBreak: 'break-all'}}>
 															{document.name}
-														</Typography>
-														<Box
-															sx={{
-																px: 1,
-																py: 0.5,
-																borderRadius: 1,
-																fontSize: '0.65rem',
-																fontWeight: 700,
-																textTransform: 'uppercase',
-																bgcolor: 'var(--surface-subtle)',
-																border: '1px solid var(--border)',
-																color: 'var(--text-secondary)',
-																ml: 1,
-																shrink: 0,
-															}}
-														>
+														</p>
+														<JXBox padding="none" border={false} style={{paddingLeft: '8px', paddingRight: '8px', paddingTop: '4px', paddingBottom: '4px', borderRadius: '8px', fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', backgroundColor: 'var(--surface-subtle)', border: '1px solid var(--border)', color: 'var(--text-secondary)', marginLeft: '8px', flexShrink: 0}}>
 															{document.fileType.split('/')[1] || 'FILE'}
-														</Box>
-													</Box>
+														</JXBox>
+													</JXBox>
 
-													<Box sx={{ display: 'flex', gap: 2, mb: 1.5, fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-														<Box
-															sx={{
-																px: 1.5,
-																py: 0.5,
-																borderRadius: 1,
-																bgcolor: 'var(--surface-subtle)',
-																border: '1px solid var(--border-subtle)',
-																textTransform: 'capitalize',
-																fontWeight: 600,
-															}}
-														>
+													<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '16px', marginBottom: '12px', fontSize: '0.75rem', color: 'var(--text-secondary)'}}>
+														<JXBox padding="none" border={false} style={{paddingLeft: '12px', paddingRight: '12px', paddingTop: '4px', paddingBottom: '4px', borderRadius: '8px', backgroundColor: 'var(--surface-subtle)', border: '1px solid var(--border-subtle)', textTransform: 'capitalize', fontWeight: 600}}>
 															{document.category.replace('_', ' ').toLowerCase()}
-														</Box>
+														</JXBox>
 														<span className="self-center font-mono">{formatSize(document.fileSize)}</span>
-													</Box>
+													</JXBox>
 													
-													<Box sx={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
+													<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.75rem', color: 'var(--text-tertiary)'}}>
 														Uploaded by {document.uploadedBy} on {new Date(document.createdAt).toLocaleDateString()}
-													</Box>
+													</JXBox>
 												</div>
 
 												{/* Quick Preview & Download Actions */}
-												<Box 
-													sx={{ display: 'flex', gap: 1, mt: 2.5, pt: 1.5, borderTop: '1px solid var(--border)' }} 
-													onClick={(e) => e.stopPropagation()}
-												>
+												<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '8px', marginTop: '20px', paddingTop: '12px', borderTop: '1px solid var(--border)'}} onClick={(e) => e.stopPropagation()}>
 													<Button
 														variant="primary"
 														size="sm"
@@ -625,8 +567,8 @@ export default function DocumentsPage() {
 													>
 														Download
 													</Button>
-												</Box>
-											</Box>
+												</JXBox>
+											</JXBox>
 										))}
 									</DashboardGrid>
 								</DashboardPanel>
@@ -636,7 +578,7 @@ export default function DocumentsPage() {
 
 					{/* Pagination Controls */}
 					{totalPages > 1 && (
-						<Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mt: 4, mb: 4 }}>
+						<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'center', gap: '16px', marginTop: '32px', marginBottom: '32px'}}>
 							<Button 
 								variant="outline" 
 								disabled={page === 1}
@@ -644,9 +586,9 @@ export default function DocumentsPage() {
 							>
 								Previous
 							</Button>
-							<Box sx={{ display: 'flex', alignItems: 'center' }}>
+							<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center'}}>
 								Page {page} of {totalPages}
-							</Box>
+							</JXBox>
 							<Button 
 								variant="outline" 
 								disabled={page === totalPages}
@@ -654,7 +596,7 @@ export default function DocumentsPage() {
 							>
 								Next
 							</Button>
-						</Box>
+						</JXBox>
 					)}
 				</>
 			)}
@@ -684,33 +626,13 @@ export default function DocumentsPage() {
 					) : (
 						<DashboardGrid className="grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
 							{invoices.map((inv) => (
-								<Box
-									key={inv.id}
-									sx={{
-										borderRadius: 2,
-										border: '1px solid var(--border)',
-										background: 'var(--panel)',
-										boxShadow: '0 8px 20px rgba(var(--text-primary-rgb), 0.06)',
-										p: 2.5,
-										cursor: 'pointer',
-										transition: 'all 0.2s ease',
-										display: 'flex',
-										flexDirection: 'column',
-										justifyContent: 'space-between',
-										'&:hover': {
-											transform: 'translateY(-2px)',
-											boxShadow: '0 16px 32px rgba(var(--text-primary-rgb), 0.1)',
-											borderColor: 'var(--accent-gold)',
-										},
-									}}
-									onClick={() => setPreviewInvoice({
+								<JXBox padding="none" border={false} key={inv.id} className="hover:-translate-y-0.5 hover:!shadow-[0_16px_32px_rgba(var(--text-primary-rgb),0.1)] hover:!border-[var(--accent-gold)]" style={{borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--panel)', boxShadow: '0 8px 20px rgba(var(--text-primary-rgb), 0.06)', padding: '20px', cursor: 'pointer', transition: 'all 0.2s ease', display: 'flex', flexDirection: 'column', justifyContent: 'space-between'}} onClick={() => setPreviewInvoice({
 										id: inv.id,
 										invoiceNumber: inv.invoiceNumber,
 										customerName: inv.user?.name || inv.user?.email,
 										totalAmount: inv.total,
 										status: inv.status,
-									})}
-								>
+									})}>
 									<div>
 										<div className="flex items-center justify-between gap-2 mb-2">
 											<span className="font-mono font-bold text-sm text-[var(--accent-gold)]">
@@ -719,9 +641,9 @@ export default function DocumentsPage() {
 											<StatusBadge status={inv.status} size="sm" />
 										</div>
 
-										<Typography sx={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', mb: 0.5 }}>
+										<p className="text-sm leading-relaxed" style={{fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px'}}>
 											{inv.user?.name || inv.user?.email || 'Customer'}
-										</Typography>
+										</p>
 
 										<div className="flex items-center justify-between text-xs text-[var(--text-secondary)] mt-2">
 											<span>Issue: {new Date(inv.issueDate || inv.createdAt).toLocaleDateString()}</span>
@@ -768,7 +690,7 @@ export default function DocumentsPage() {
 											PDF
 										</Button>
 									</div>
-								</Box>
+								</JXBox>
 							))}
 						</DashboardGrid>
 					)}
@@ -784,14 +706,8 @@ export default function DocumentsPage() {
                 disableBackdropClick={true}
                 showCloseButton={!isProcessing}
             >
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                    <Box
-                        sx={{
-                            display: 'grid',
-                            gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' },
-                            gap: 1.5,
-                        }}
-                    >
+                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '24px'}}>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '12px'}} className="grid-cols-1 md:grid-cols-3">
                         {[
                             {
                                 icon: <Brain className="w-4 h-4" />,
@@ -809,27 +725,19 @@ export default function DocumentsPage() {
                                 text: 'If AI falls back or extraction is partial, the exact reason is saved with the document.',
                             },
                         ].map((item) => (
-                            <Box
-                                key={item.title}
-                                sx={{
-                                    p: 1.5,
-                                    border: '1px solid var(--border)',
-                                    borderRadius: 2,
-                                    bgcolor: 'var(--background)',
-                                }}
-                            >
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, color: 'var(--accent-gold)', mb: 0.75 }}>
+                            <JXBox padding="none" border={false} key={item.title} style={{padding: '12px', border: '1px solid var(--border)', borderRadius: '16px', backgroundColor: 'var(--background)'}}>
+                                <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--accent-gold)', marginBottom: '6px'}}>
                                     {item.icon}
-                                    <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                                    <p className="text-sm leading-relaxed" style={{fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)'}}>
                                         {item.title}
-                                    </Typography>
-                                </Box>
-                                <Typography sx={{ fontSize: '0.74rem', color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+                                    </p>
+                                </JXBox>
+                                <p className="text-sm leading-relaxed" style={{fontSize: '0.74rem', color: 'var(--text-secondary)', lineHeight: 1.55}}>
                                     {item.text}
-                                </Typography>
-                            </Box>
+                                </p>
+                            </JXBox>
                         ))}
-                    </Box>
+                    </JXBox>
 
                     <FormField label="Category">
                         <Select
@@ -850,7 +758,7 @@ export default function DocumentsPage() {
                         accept=".pdf,.jpg,.jpeg,.png,.csv,.doc,.docx,.xls,.xlsx"
                     />
 
-                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 2 }}>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'flex-end', gap: '16px', marginTop: '16px'}}>
                         <Button 
                             variant="primary" 
                             onClick={() => setIsUploadOpen(false)}
@@ -858,8 +766,8 @@ export default function DocumentsPage() {
                         >
                             {isProcessing ? 'Uploading...' : 'Done'}
                         </Button>
-                    </Box>
-                </Box>
+                    </JXBox>
+                </JXBox>
             </Modal>
 
             <AiDocumentOcrModal

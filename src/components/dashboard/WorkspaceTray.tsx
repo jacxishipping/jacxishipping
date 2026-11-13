@@ -15,7 +15,8 @@ import {
   ExternalLink,
   Download
 } from 'lucide-react';
-import { JXBox, SpringButton } from '@jacxishippingorg/jx-ui-react';
+import { JXBox } from "@jacxishippingorg/jx-ui-react";
+import { JacxiButton } from '@/components/design-system/JacxiButton';
 import { openUniversalShipmentExport } from '@/components/shipments/UniversalShipmentExportModal';
 
 export interface WorkspaceItem {
@@ -119,21 +120,21 @@ export function WorkspaceTray() {
 
           <div className="flex items-center gap-2">
             {expanded && (
-              <SpringButton
+              <JacxiButton
                 type="button"
                 onClick={clearAll}
                 className="text-[10px] font-semibold text-[var(--text-secondary)] hover:text-[var(--error)] transition-colors px-1.5 py-0.5 rounded"
               >
                 Clear
-              </SpringButton>
+              </JacxiButton>
             )}
-            <SpringButton
+            <JacxiButton
               type="button"
               aria-label={expanded ? "Collapse workspace tray" : "Expand workspace tray"}
               className="p-1 text-[var(--text-secondary)] rounded"
             >
               {expanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
-            </SpringButton>
+            </JacxiButton>
           </div>
         </div>
 
@@ -144,7 +145,7 @@ export function WorkspaceTray() {
               const Icon = getItemIcon(item.type);
               const isActive = pathname === item.url;
               return (
-                <SpringButton
+                <JacxiButton
                   key={`${item.type}-${item.id}`}
                   type="button"
                   variant={isActive ? 'solid' : 'outline'}
@@ -159,7 +160,7 @@ export function WorkspaceTray() {
                 >
                   <Icon className="w-3 h-3 shrink-0" />
                   <span className="truncate max-w-[120px]">{item.title}</span>
-                </SpringButton>
+                </JacxiButton>
               );
             })}
           </div>
@@ -216,7 +217,7 @@ export function WorkspaceTray() {
 
         {expanded && (
           <div className="p-2 border-t border-[var(--border)] bg-[var(--background)] flex items-center justify-between gap-2">
-            <SpringButton
+            <JacxiButton
               type="button"
               variant="solid"
               tone="primary"
@@ -229,7 +230,7 @@ export function WorkspaceTray() {
             >
               <Download className="w-3.5 h-3.5" />
               <span>Export Shipments (Excel / CSV)</span>
-            </SpringButton>
+            </JacxiButton>
           </div>
         )}
       </JXBox>
