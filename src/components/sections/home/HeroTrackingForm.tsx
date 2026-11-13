@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, Search } from 'lucide-react';
+import { SpringButton } from '@jacxishippingorg/jx-ui-react';
 
 export default function HeroTrackingForm() {
   const [trackingInput, setTrackingInput] = useState('');
@@ -24,7 +25,7 @@ export default function HeroTrackingForm() {
   return (
     <form onSubmit={handleSubmit} className="w-full max-w-xl mx-auto relative group">
       <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-[var(--accent-gold)]/20 to-blue-500/20 blur-xl opacity-70 transition-all duration-300 group-hover:opacity-100" />
-      <div className="relative flex items-center rounded-2xl border border-[var(--border)] bg-white p-2 shadow-xl shadow-slate-900/5 focus-within:border-[var(--accent-gold)]">
+      <div className="relative flex items-center rounded-2xl border border-[var(--border)] bg-white p-2 shadow-xl shadow-slate-900/5 focus-within:border-[var(--accent-gold)] focus-within:ring-2 focus-within:ring-[rgba(var(--accent-gold-rgb),0.2)]">
         <div className="pl-4 text-[var(--text-secondary)]">
           <Search className="h-5 w-5" />
         </div>
@@ -36,13 +37,13 @@ export default function HeroTrackingForm() {
           aria-label="Container number"
           className="w-full bg-transparent px-4 py-3 text-base font-medium text-[var(--text-primary)] outline-none placeholder:text-[var(--text-secondary)]"
         />
-        <button
+        <SpringButton
           type="submit"
-          className="inline-flex items-center gap-2 rounded-xl bg-[var(--accent-gold)] px-5 py-3 text-sm font-semibold text-white transition-transform duration-200 hover:-translate-y-0.5"
+          className="inline-flex items-center gap-2 rounded-xl bg-[var(--accent-gold)] px-5 py-3 text-sm font-bold text-slate-950 shadow-md shadow-[var(--accent-gold)]/20 hover:brightness-105"
         >
-          Track
+          <span>Track</span>
           <ArrowRight className="h-4 w-4" />
-        </button>
+        </SpringButton>
       </div>
     </form>
   );

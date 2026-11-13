@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, Mail, MapPin, MessageCircle, Phone } from 'lucide-react';
 import Magnetic from '@/components/ui/Magnetic';
+import { SpringButton } from '@jacxishippingorg/jx-ui-react';
 
 interface ContactSectionProps {
   isAuthenticated?: boolean;
@@ -201,7 +202,7 @@ export default function ContactSection({ isAuthenticated = false }: ContactSecti
                     required
                   />
                   {error ? <p className="text-sm text-[var(--error)]">{error}</p> : null}
-                  <button
+                  <SpringButton
                     type="submit"
                     disabled={submitting}
                     className="group relative flex w-full h-13 sm:h-14 items-center justify-center overflow-hidden rounded-full bg-slate-950 font-bold text-white shadow-lg transition-transform hover:brightness-110 disabled:opacity-60"
@@ -211,7 +212,7 @@ export default function ContactSection({ isAuthenticated = false }: ContactSecti
                       {submitting ? 'Sending...' : 'Send message'}
                       {!submitting ? <ArrowRight className="h-4 w-4" /> : null}
                     </span>
-                  </button>
+                  </SpringButton>
                 </form>
               )}
             </div>

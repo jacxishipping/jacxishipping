@@ -7,6 +7,7 @@ import * as z from 'zod';
 import { ArrowRight, CheckCircle, PackageCheck, ShieldCheck, Ship } from 'lucide-react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import Magnetic from '@/components/ui/Magnetic';
+import { SpringButton } from '@jacxishippingorg/jx-ui-react';
 
 const quoteSchema = z.object({
   fullName: z.string().min(2, 'Name must be at least 2 characters'),
@@ -91,9 +92,9 @@ export default function QuoteFormSection() {
           <p className="text-base sm:text-lg text-black/60 max-w-lg mx-auto">
             Our logistics team is analyzing the lane. We will contact you shortly with accurate pricing and routing options.
           </p>
-          <button onClick={() => setSubmitted(false)} className="mt-8 font-bold uppercase tracking-widest text-sm text-[#D4AF37] hover:text-black transition-colors">
+          <SpringButton type="button" onClick={() => setSubmitted(false)} className="mt-8 font-bold uppercase tracking-widest text-sm text-[#D4AF37] hover:text-black transition-colors">
             Request another quote
-          </button>
+          </SpringButton>
         </motion.div>
       </section>
     );
@@ -206,7 +207,7 @@ export default function QuoteFormSection() {
               </div>
 
               <div className="pt-4 flex justify-end">
-                <button
+                <SpringButton
                   type="submit"
                   disabled={isSubmitting}
                   className="group relative inline-flex h-14 w-full sm:w-auto items-center justify-center gap-3 overflow-hidden rounded-full bg-slate-950 px-8 text-base font-bold text-white shadow-xl transition-all duration-300 hover:brightness-110 disabled:opacity-50"
@@ -216,7 +217,7 @@ export default function QuoteFormSection() {
                     {isSubmitting ? 'Processing...' : 'Request firm quote'}
                   </span>
                   {!isSubmitting && <ArrowRight className="relative z-10 h-5 w-5 -rotate-45 transition-transform duration-300 group-hover:rotate-0 group-hover:text-slate-950" />}
-                </button>
+                </SpringButton>
               </div>
               {submitError ? (
                 <p className="text-sm font-medium text-[var(--error)]" role="alert">{submitError}</p>

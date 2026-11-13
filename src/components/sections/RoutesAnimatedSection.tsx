@@ -173,7 +173,7 @@ export default function RoutesAnimatedSection() {
                 viewport={{ once: true, margin: '-50px' }}
                 transition={{ duration: 0.6, delay: 0.2 + (index * 0.1), ease: "easeOut" }}
                 whileHover={{ y: -8, transition: { duration: 0.3 } }}
-                className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-black/10 bg-white p-6 shadow-sm transition-all hover:shadow-md hover:border-[#D4AF37]/40"
+                className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-slate-200/80 bg-white p-6 jx-elevation-1 transition-all duration-300 jx-spring hover:border-[#D4AF37] hover:shadow-[0_20px_40px_-15px_rgba(212,175,55,0.18)]"
               >
                 <div className="mb-8 flex items-start justify-between">
                   <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-white/10 to-transparent shadow-inner border border-black/[0.03] group-hover:border-[#D4AF37]/50 transition-colors">

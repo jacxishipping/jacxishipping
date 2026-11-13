@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calculator, ChevronRight, DollarSign, MapPin, Truck } from 'lucide-react';
 import Magnetic from '@/components/ui/Magnetic';
+import { SpringButton } from '@jacxishippingorg/jx-ui-react';
 
 const origins = [
   { id: 'ca-east', name: 'East Coast (NY/NJ/PA)', stateCode: 'NJ' },
@@ -95,7 +96,7 @@ export default function PublicRateCalculatorSection() {
               <p className="text-xs font-mono uppercase tracking-[0.2em] text-[#D4AF37] mb-3">01. Origin Zone</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {origins.map((o) => (
-                  <button
+                  <SpringButton
                     key={o.id}
                     onClick={() => setOrigin(o)}
                     aria-pressed={origin.id === o.id}
@@ -107,7 +108,7 @@ export default function PublicRateCalculatorSection() {
                   >
                     <MapPin className={`h-4 w-4 sm:h-5 sm:w-5 shrink-0 mr-3 ${origin.id === o.id ? 'text-[#D4AF37]' : 'text-black/40'}`} />
                     <span className={`text-sm sm:text-base font-semibold ${origin.id === o.id ? 'text-gray-900' : 'text-black/70'}`}>{o.name}</span>
-                  </button>
+                  </SpringButton>
                 ))}
               </div>
             </div>
@@ -117,7 +118,7 @@ export default function PublicRateCalculatorSection() {
               <p className="text-xs font-mono uppercase tracking-[0.2em] text-[#D4AF37] mb-3">02. Destination Route</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {destinations.map((d) => (
-                  <button
+                  <SpringButton
                     key={d.id}
                     onClick={() => setDest(d)}
                     aria-pressed={dest.id === d.id}
@@ -131,7 +132,7 @@ export default function PublicRateCalculatorSection() {
                     <span className={`text-[10px] sm:text-[11px] font-mono shrink-0 ml-2 px-2 py-1 rounded-full ${dest.id === d.id ? 'bg-[#D4AF37]/20 text-[#D4AF37] font-bold' : 'bg-black/5 text-black/50'}`}>
                       {d.time}
                     </span>
-                  </button>
+                  </SpringButton>
                 ))}
               </div>
             </div>
@@ -141,7 +142,7 @@ export default function PublicRateCalculatorSection() {
                <p className="text-xs font-mono uppercase tracking-[0.2em] text-[#D4AF37] mb-3">03. Vehicle Class</p>
                <div className="grid grid-cols-3 gap-2 sm:gap-3">
                   {vehicleTypes.map((v) => (
-                    <button
+                    <SpringButton
                       key={v.id}
                       onClick={() => setVType(v)}
                       aria-pressed={vType.id === v.id}
@@ -152,7 +153,7 @@ export default function PublicRateCalculatorSection() {
                       }`}
                     >
                       {v.name}
-                    </button>
+                    </SpringButton>
                   ))}
                </div>
             </div>
@@ -200,7 +201,8 @@ export default function PublicRateCalculatorSection() {
               {rateStatus === 'unavailable' && 'A live rate is not available for this origin. Request a firm quote.'}
             </p>
 
-            <button 
+            <SpringButton 
+              type="button"
               onClick={() => {
                 document.getElementById('quote')?.scrollIntoView({ behavior: 'smooth' });
               }}
@@ -208,7 +210,7 @@ export default function PublicRateCalculatorSection() {
             >
               <div className="absolute inset-0 bg-[#D4AF37] translate-y-full transition-transform duration-300 ease-out group-hover:translate-y-0" />
               <span className="relative z-10 text-white transition-colors duration-300 group-hover:text-slate-950 text-sm sm:text-base">Request exact quote</span>
-            </button>
+            </SpringButton>
           </motion.div>
 
         </div>

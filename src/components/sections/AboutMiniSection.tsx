@@ -58,9 +58,9 @@ export default function AboutMiniSection() {
 							{trustCards.map((card) => {
 								const Icon = card.icon;
 								return (
-									<div key={card.title} className="rounded-lg border border-[var(--border)] bg-[var(--panel)] p-5 shadow-sm">
+									<div key={card.title} className="rounded-xl border border-[var(--border)] bg-[var(--panel)] p-5 jx-elevation-1 transition-all duration-300 jx-spring hover:border-[#D4AF37] hover:shadow-md">
 										<div className="flex gap-4">
-											<div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[rgba(var(--accent-gold-rgb),0.12)] text-[var(--accent-gold)]">
+											<div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[rgba(var(--accent-gold-rgb),0.12)] text-[var(--accent-gold)]">
 												<Icon className="h-5 w-5" />
 											</div>
 											<div>

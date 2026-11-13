@@ -10,6 +10,8 @@ import { Toaster } from 'sonner';
 import { CommandPaletteProvider } from './CommandPaletteProvider';
 import i18n from '@/lib/i18n';
 
+import { JXThemeProvider } from '@jacxishippingorg/jx-ui-react';
+
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
     () =>
@@ -30,32 +32,34 @@ export function Providers({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <ThemeProvider>
-      <SiteBrandingProvider>
-        <I18nextProvider i18n={i18n}>
-          <QueryClientProvider client={queryClient}>
-            <CommandPaletteProvider>
-              {children}
-              <Toaster 
-                position="top-right"
-                expand={false}
-                richColors
-                closeButton
-                theme="light"
-                toastOptions={{
-                  style: {
-                    background: 'var(--panel)',
-                    color: 'var(--text-primary)',
-                    border: '1px solid var(--border)',
-                  },
-                  className: 'toast-custom',
-                }}
-              />
-              <ReactQueryDevtools initialIsOpen={false} />
-            </CommandPaletteProvider>
-          </QueryClientProvider>
-        </I18nextProvider>
-      </SiteBrandingProvider>
-    </ThemeProvider>
+    <JXThemeProvider defaultMode="light" storageKey="jacxi-jxui-mode">
+      <ThemeProvider>
+        <SiteBrandingProvider>
+          <I18nextProvider i18n={i18n}>
+            <QueryClientProvider client={queryClient}>
+              <CommandPaletteProvider>
+                {children}
+                <Toaster 
+                  position="top-right"
+                  expand={false}
+                  richColors
+                  closeButton
+                  theme="light"
+                  toastOptions={{
+                    style: {
+                      background: 'var(--panel)',
+                      color: 'var(--text-primary)',
+                      border: '1px solid var(--border)',
+                    },
+                    className: 'toast-custom',
+                  }}
+                />
+                <ReactQueryDevtools initialIsOpen={false} />
+              </CommandPaletteProvider>
+            </QueryClientProvider>
+          </I18nextProvider>
+        </SiteBrandingProvider>
+      </ThemeProvider>
+    </JXThemeProvider>
   );
 }

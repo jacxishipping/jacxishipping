@@ -6,6 +6,7 @@ import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion'
 import { Menu, X } from 'lucide-react';
 import { SiteMark } from '@/components/brand/SiteLogo';
 import Magnetic from '@/components/ui/Magnetic';
+import { SpringButton } from '@jacxishippingorg/jx-ui-react';
 
 const navigation = [
   { name: 'Services', href: '/services' },
@@ -103,7 +104,7 @@ export default function Header({ isAuthenticated = false }: { isAuthenticated?: 
             </div>
 
             {/* Mobile menu trigger */}
-            <button
+            <SpringButton
               type="button"
               onClick={() => setIsMobileMenuOpen(true)}
               aria-label="Open navigation menu"
@@ -111,7 +112,7 @@ export default function Header({ isAuthenticated = false }: { isAuthenticated?: 
               className="lg:hidden relative flex h-12 w-12 items-center justify-center rounded-full bg-white/90 border border-black/10 shadow-sm text-gray-900 backdrop-blur-md transition-colors hover:bg-white outline-none"
             >
               <Menu className="h-5 w-5" />
-            </button>
+            </SpringButton>
           </div>
         </div>
       </motion.header>
@@ -141,14 +142,14 @@ export default function Header({ isAuthenticated = false }: { isAuthenticated?: 
                   </div>
                   <span className="text-xl font-extrabold tracking-tight text-white">JACXI</span>
                 </Link>
-                <button
+                <SpringButton
                   type="button"
                   onClick={() => setIsMobileMenuOpen(false)}
                   aria-label="Close navigation menu"
                   className="flex h-11 w-11 items-center justify-center rounded-full border border-white/20 text-white bg-white/10 hover:bg-white/20 transition-colors outline-none"
                 >
                   <X className="h-6 w-6" />
-                </button>
+                </SpringButton>
               </div>
 
               <div className="my-8 flex flex-col gap-4">
