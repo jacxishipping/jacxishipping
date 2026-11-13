@@ -2,9 +2,10 @@
 
 import Link from 'next/link';
 import { ArrowForward, LocalShipping, LocationOn, CalendarToday } from '@mui/icons-material';
-import { Box, Typography, Button, Slide, LinearProgress } from '@mui/material';
+import { Slide } from '@mui/material';
+import { JXBox, JXTypography } from '@jacxishippingorg/jx-ui-react';
 import { useState, useEffect } from 'react';
-import { StatusBadge } from '@/components/design-system';
+import { Button, StatusBadge } from '@/components/design-system';
 
 type ShipmentCardProps = {
 	id: string;
@@ -51,234 +52,170 @@ export default function ShipmentCard({
 
 	return (
 		<Slide in={isVisible} direction="up" timeout={400}>
-			<Box
-				component="article"
-				sx={{
-					borderRadius: 2,
-					border: '1px solid var(--border)',
-					background: 'var(--panel)',
-					boxShadow: '0 16px 32px rgba(var(--text-primary-rgb),0.08)',
-					padding: { xs: 1, sm: 1.25 },
-					display: 'flex',
-					flexDirection: 'column',
-					gap: 1.1,
-					color: 'var(--text-primary)',
-					minWidth: 0,
-					width: '100%',
-					boxSizing: 'border-box',
-				}}
-			>
-				{/* Header: Vehicle Info & Status */}
-				<Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1, minWidth: 0 }}>
-					<Box sx={{ minWidth: 0, flex: 1, overflow: 'hidden' }}>
-						<Typography
-							sx={{
-								fontSize: { xs: '0.75rem', sm: '0.8rem' },
-								fontWeight: 600,
-								color: 'var(--text-primary)',
-								overflow: 'hidden',
-								textOverflow: 'ellipsis',
-								whiteSpace: 'nowrap',
-							}}
-						>
-							{vehicleInfo}
-						</Typography>
-						{vehicleVIN && (
-							<Typography
-								sx={{
-									fontSize: { xs: '0.6rem', sm: '0.65rem' },
-									color: 'var(--text-secondary)',
-									marginTop: 0.2,
-									overflow: 'hidden',
-									textOverflow: 'ellipsis',
-									whiteSpace: 'nowrap',
-								}}
+			<div>
+				<JXBox
+					component="article"
+					surface="elevated"
+					padding="none"
+					className="flex w-full min-w-0 flex-col gap-[8.8px] !rounded-lg p-2 sm:p-2.5 box-border text-[var(--text-primary)]"
+					style={{
+						border: '1px solid var(--border)',
+						background: 'var(--panel)',
+						boxShadow: '0 16px 32px rgba(var(--text-primary-rgb),0.08)',
+						fontFamily: 'inherit',
+					}}
+				>
+					{/* Header: Vehicle Info & Status */}
+					<div className="flex min-w-0 justify-between gap-2">
+						<div className="min-w-0 flex-1 overflow-hidden">
+							<JXTypography
+								variant="body"
+								className="!truncate !text-[0.75rem] sm:!text-[0.8rem] !font-semibold !text-[var(--text-primary)]"
 							>
-								VIN: {vehicleVIN}
-							</Typography>
-						)}
-					</Box>
-					<StatusBadge 
-						status={status} 
-						variant="outline"
-						size="sm"
-					/>
-				</Box>
-
-				{/* Vehicle Details */}
-				<Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, minWidth: 0 }}>
-					<Typography
-						sx={{
-							fontSize: { xs: '0.6rem', sm: '0.65rem' },
-							textTransform: 'uppercase',
-							letterSpacing: '0.18em',
-							color: 'var(--text-secondary)',
-						}}
-					>
-						Vehicle Type
-					</Typography>
-					<Typography
-						sx={{
-							fontSize: { xs: '0.72rem', sm: '0.78rem' },
-							fontWeight: 500,
-							color: 'var(--text-primary)',
-							overflow: 'hidden',
-							textOverflow: 'ellipsis',
-							whiteSpace: 'nowrap',
-						}}
-					>
-						{vehicleType}
-					</Typography>
-				</Box>
-
-				{/* Container Shipping Info */}
-				{container && (
-					<Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0, mt: 0.5 }}>
-						{/* Container Number and Status */}
-						<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, minWidth: 0 }}>
-							<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 0, flex: 1 }}>
-								<LocalShipping sx={{ fontSize: { xs: 14, sm: 16 }, color: 'var(--accent-gold)', flexShrink: 0 }} />
-								<Link href={`/dashboard/containers/${containerId}`} style={{ textDecoration: 'none', minWidth: 0, overflow: 'hidden' }}>
-									<Typography
-										sx={{
-											fontSize: { xs: '0.7rem', sm: '0.75rem' },
-											fontWeight: 600,
-											color: 'var(--accent-gold)',
-											overflow: 'hidden',
-											textOverflow: 'ellipsis',
-											whiteSpace: 'nowrap',
-											'&:hover': { textDecoration: 'underline' },
-										}}
-									>
-										{container.containerNumber}
-									</Typography>
-								</Link>
-							</Box>
-							{container.status && (
-								<StatusBadge 
-									status={container.status} 
-									variant="outline"
-									size="sm"
-								/>
-							)}
-						</Box>
-
-						{/* Shipping Progress */}
-						{typeof container.progress === 'number' && (
-							<Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.3, minWidth: 0 }}>
-								<Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-									<Typography
-										sx={{
-											fontSize: { xs: '0.6rem', sm: '0.65rem' },
-											textTransform: 'uppercase',
-											letterSpacing: '0.15em',
-											color: 'var(--text-secondary)',
-										}}
-									>
-										Shipping Progress
-									</Typography>
-									<Typography
-										sx={{
-											fontSize: { xs: '0.65rem', sm: '0.7rem' },
-											fontWeight: 600,
-											color: 'var(--accent-gold)',
-										}}
-									>
-										{container.progress}%
-									</Typography>
-								</Box>
-								<LinearProgress
-									variant="determinate"
-									value={container.progress}
-									sx={{
-										height: { xs: 4, sm: 5 },
-										borderRadius: 1,
-										backgroundColor: 'rgba(var(--border-rgb, 255, 255, 255), 0.1)',
-										'& .MuiLinearProgress-bar': {
-											backgroundColor: 'var(--accent-gold)',
-											borderRadius: 1,
-										},
-									}}
-								/>
-							</Box>
-						)}
-
-						{/* Current Location */}
-						{container.currentLocation && (
-							<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 0 }}>
-								<LocationOn sx={{ fontSize: { xs: 12, sm: 14 }, color: 'var(--text-secondary)', flexShrink: 0 }} />
-								<Typography
-									sx={{
-										fontSize: { xs: '0.65rem', sm: '0.7rem' },
-										color: 'var(--text-secondary)',
-										overflow: 'hidden',
-										textOverflow: 'ellipsis',
-										whiteSpace: 'nowrap',
-									}}
+								{vehicleInfo}
+							</JXTypography>
+							{vehicleVIN && (
+								<JXTypography
+									variant="caption"
+									className="!mt-[1.6px] !block !truncate !text-[0.6rem] sm:!text-[0.65rem] !text-[var(--text-secondary)]"
 								>
-									{container.currentLocation}
-								</Typography>
-							</Box>
-						)}
-
-						{/* Vessel and ETA */}
-						<Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, minWidth: 0 }}>
-							{container.vesselName && (
-								<Typography
-									sx={{
-										fontSize: { xs: '0.65rem', sm: '0.7rem' },
-										color: 'var(--text-secondary)',
-										overflow: 'hidden',
-										textOverflow: 'ellipsis',
-										whiteSpace: 'nowrap',
-									}}
-								>
-									<span style={{ fontWeight: 600 }}>Vessel:</span> {container.vesselName}
-								</Typography>
+									VIN: {vehicleVIN}
+								</JXTypography>
 							)}
-							{container.estimatedArrival && (
-								<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 0 }}>
-									<CalendarToday sx={{ fontSize: { xs: 12, sm: 14 }, color: 'var(--text-secondary)', flexShrink: 0 }} />
-									<Typography
-										sx={{
-											fontSize: { xs: '0.65rem', sm: '0.7rem' },
-											color: 'var(--text-secondary)',
-											overflow: 'hidden',
-											textOverflow: 'ellipsis',
-											whiteSpace: 'nowrap',
-										}}
+						</div>
+						<StatusBadge 
+							status={status} 
+							variant="outline"
+							size="sm"
+						/>
+					</div>
+
+					{/* Vehicle Details */}
+					<div className="flex min-w-0 flex-col gap-1">
+						<JXTypography
+							variant="caption"
+							className="!block !text-[0.6rem] sm:!text-[0.65rem] !uppercase !tracking-[0.18em] !text-[var(--text-secondary)]"
+						>
+							Vehicle Type
+						</JXTypography>
+						<JXTypography
+							variant="body"
+							className="!truncate !text-[0.72rem] sm:!text-[0.78rem] !font-medium !text-[var(--text-primary)]"
+						>
+							{vehicleType}
+						</JXTypography>
+					</div>
+
+					{/* Container Shipping Info */}
+					{container && (
+						<div className="mt-1 flex min-w-0 flex-col gap-2">
+							{/* Container Number and Status */}
+							<div className="flex min-w-0 items-center justify-between gap-2">
+								<div className="flex min-w-0 flex-1 items-center gap-1">
+									<LocalShipping sx={{ fontSize: { xs: 14, sm: 16 }, color: 'var(--accent-gold)', flexShrink: 0 }} />
+									<Link href={`/dashboard/containers/${containerId}`} style={{ textDecoration: 'none', minWidth: 0, overflow: 'hidden' }}>
+										<JXTypography
+											variant="body"
+											className="!truncate !text-[0.7rem] sm:!text-[0.75rem] !font-semibold !text-[var(--accent-gold-text)] hover:!underline"
+										>
+											{container.containerNumber}
+										</JXTypography>
+									</Link>
+								</div>
+								{container.status && (
+									<StatusBadge 
+										status={container.status} 
+										variant="outline"
+										size="sm"
+									/>
+								)}
+							</div>
+
+							{/* Shipping Progress */}
+							{typeof container.progress === 'number' && (
+								<div className="flex min-w-0 flex-col gap-[2.4px]">
+									<div className="flex items-center justify-between">
+										<JXTypography
+											variant="caption"
+											className="!text-[0.6rem] sm:!text-[0.65rem] !uppercase !tracking-[0.15em] !text-[var(--text-secondary)]"
+										>
+											Shipping Progress
+										</JXTypography>
+										<JXTypography
+											variant="caption"
+											className="!text-[0.65rem] sm:!text-[0.7rem] !font-semibold !text-[var(--accent-gold-text)]"
+										>
+											{container.progress}%
+										</JXTypography>
+									</div>
+									<div
+										className="h-1 sm:h-[5px] w-full overflow-hidden rounded"
+										style={{ backgroundColor: 'rgba(var(--border-rgb, 255, 255, 255), 0.1)' }}
 									>
-										ETA: {new Date(container.estimatedArrival).toLocaleDateString()}
-									</Typography>
-								</Box>
+										<div
+											className="h-full rounded transition-all duration-300"
+											style={{
+												width: `${Math.min(100, Math.max(0, container.progress))}%`,
+												backgroundColor: 'var(--accent-gold)',
+											}}
+										/>
+									</div>
+								</div>
 							)}
-						</Box>
-					</Box>
-				)}
 
-				{/* Footer: View Details Button */}
-				<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 1, minWidth: 0, mt: 0.5 }}>
-					<Button
-						component={Link}
-						href={`/dashboard/shipments/${id}`}
-						variant="text"
-						size="small"
-						endIcon={<ArrowForward sx={{ fontSize: { xs: 12, sm: 14 } }} />}
-						sx={{
-							fontSize: { xs: '0.65rem', sm: '0.7rem' },
-							fontWeight: 600,
-							textTransform: 'none',
-							textDecoration: 'none',
-							color: 'var(--accent-gold)',
-							minWidth: 0,
-							padding: 0,
-							flexShrink: 0,
-						}}
-					>
-						View Details
-					</Button>
-				</Box>
-			</Box>
+							{/* Current Location */}
+							{container.currentLocation && (
+								<div className="flex min-w-0 items-center gap-1">
+									<LocationOn sx={{ fontSize: { xs: 12, sm: 14 }, color: 'var(--text-secondary)', flexShrink: 0 }} />
+									<JXTypography
+										variant="caption"
+										className="!truncate !text-[0.65rem] sm:!text-[0.7rem] !text-[var(--text-secondary)]"
+									>
+										{container.currentLocation}
+									</JXTypography>
+								</div>
+							)}
+
+							{/* Vessel and ETA */}
+							<div className="flex min-w-0 flex-col gap-1">
+								{container.vesselName && (
+									<JXTypography
+										variant="caption"
+										className="!truncate !text-[0.65rem] sm:!text-[0.7rem] !text-[var(--text-secondary)]"
+									>
+										<span style={{ fontWeight: 600 }}>Vessel:</span> {container.vesselName}
+									</JXTypography>
+								)}
+								{container.estimatedArrival && (
+									<div className="flex min-w-0 items-center gap-1">
+										<CalendarToday sx={{ fontSize: { xs: 12, sm: 14 }, color: 'var(--text-secondary)', flexShrink: 0 }} />
+										<JXTypography
+											variant="caption"
+											className="!truncate !text-[0.65rem] sm:!text-[0.7rem] !text-[var(--text-secondary)]"
+										>
+											ETA: {new Date(container.estimatedArrival).toLocaleDateString()}
+										</JXTypography>
+									</div>
+								)}
+							</div>
+						</div>
+					)}
+
+					{/* Footer: View Details Button */}
+					<div className="mt-1 flex min-w-0 items-center justify-end gap-2">
+						<Button
+							href={`/dashboard/shipments/${id}`}
+							variant="ghost"
+							size="sm"
+							icon={<ArrowForward sx={{ fontSize: { xs: 12, sm: 14 } }} />}
+							iconPosition="end"
+							className="!min-w-0 !p-0 !text-[0.65rem] sm:!text-[0.7rem] !font-semibold !normal-case !text-[var(--accent-gold-text)] shrink-0"
+						>
+							View Details
+						</Button>
+					</div>
+				</JXBox>
+			</div>
 		</Slide>
 	);
 }

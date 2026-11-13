@@ -8,6 +8,7 @@ import Header from '@/components/dashboard/Header';
 import { BottomNavigation } from '@/components/mobile/BottomNavigation';
 import { KeyboardShortcutHelp } from '@/components/design-system';
 import { SessionProvider } from '@/components/providers/SessionProvider';
+import { JXThemeProvider } from '@jacxishippingorg/jx-ui-react';
 import { Box } from '@mui/material';
 
 import { LenisWrapperProvider, useLenisWrapper } from '@/components/providers/LenisWrapperProvider';
@@ -131,13 +132,15 @@ export default function DashboardLayout({
 }) {
   return (
     <SessionProvider>
-      <ProtectedRoute>
-        <LenisWrapperProvider>
-          <ConfirmActionProvider>
-            <DashboardLayoutInner>{children}</DashboardLayoutInner>
-          </ConfirmActionProvider>
-        </LenisWrapperProvider>
-      </ProtectedRoute>
+      <JXThemeProvider defaultMode="light" storageKey="jacxi-jxui-mode">
+        <ProtectedRoute>
+          <LenisWrapperProvider>
+            <ConfirmActionProvider>
+              <DashboardLayoutInner>{children}</DashboardLayoutInner>
+            </ConfirmActionProvider>
+          </LenisWrapperProvider>
+        </ProtectedRoute>
+      </JXThemeProvider>
     </SessionProvider>
   );
 }

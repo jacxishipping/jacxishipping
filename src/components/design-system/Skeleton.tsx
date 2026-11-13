@@ -1,6 +1,6 @@
 "use client";
 
-import { Box } from '@mui/material';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
 import { CSSProperties, ReactNode } from 'react';
 
 /**
@@ -59,18 +59,19 @@ export function Skeleton({
   };
 
   return (
-    <Box
+    <JXBox
+      padding="none"
+      border={false}
       className={`${className || ''} ${animation === 'wave' ? 'animate-shimmer' : 'animate-pulse'}`}
-      sx={{
+      style={{
         width,
         height: height || getDefaultHeight(),
         borderRadius: getBorderRadius(),
-        bgcolor: 'rgba(var(--border-rgb), 0.3)',
+        backgroundColor: 'rgba(var(--border-rgb), 0.3)',
         ...style,
         ...(animation === 'wave' && {
           position: 'relative',
           overflow: 'hidden',
-          // Note: animate-shimmer from globals.css handles the gradient movement
           background: 'linear-gradient(90deg, transparent, rgba(var(--panel-rgb), 0.5), transparent)',
           backgroundSize: '200% 100%',
         }),
@@ -87,7 +88,7 @@ export function SkeletonText({ width = '100%', className }: { width?: string | n
 // Paragraph Skeleton (multiple lines)
 export function SkeletonParagraph({ lines = 3, className }: { lines?: number; className?: string }) {
   return (
-    <Box className={className} sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+    <JXBox padding="none" border={false} className={['!bg-transparent flex flex-col gap-2', className].filter(Boolean).join(' ')}>
       {Array.from({ length: lines }).map((_, index) => (
         <Skeleton
           key={index}
@@ -96,7 +97,7 @@ export function SkeletonParagraph({ lines = 3, className }: { lines?: number; cl
           animation="pulse"
         />
       ))}
-    </Box>
+    </JXBox>
   );
 }
 
@@ -108,96 +109,78 @@ export function SkeletonAvatar({ size = 40, className }: { size?: number; classN
 // Card Skeleton
 export function SkeletonCard({ className }: { className?: string }) {
   return (
-    <Box
-      className={className}
-      sx={{
-        p: 2,
-        borderRadius: 2,
-        border: '1px solid var(--border)',
-        bgcolor: 'var(--panel)',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 1.5,
-      }}
+    <JXBox
+      surface="elevated"
+      padding="none"
+      className={['flex flex-col gap-3 p-4 !rounded-2xl !border-[var(--border)] !bg-[var(--panel)] shadow-none', className].filter(Boolean).join(' ')}
     >
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+      <div className="flex items-center gap-3">
         <SkeletonAvatar size={48} />
-        <Box sx={{ flex: 1 }}>
+        <div className="flex-1">
           <Skeleton variant="text" width="60%" animation="pulse" />
           <Skeleton variant="text" width="40%" animation="pulse" />
-        </Box>
-      </Box>
+        </div>
+      </div>
       <SkeletonParagraph lines={2} />
-      <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+      <div className="mt-2 flex gap-2">
         <Skeleton variant="rounded" width={80} height={32} animation="pulse" />
         <Skeleton variant="rounded" width={80} height={32} animation="pulse" />
-      </Box>
-    </Box>
+      </div>
+    </JXBox>
   );
 }
 
 // Table Row Skeleton
 export function SkeletonTableRow({ columns = 4, className }: { columns?: number; className?: string }) {
   return (
-    <Box
-      className={className}
-      sx={{
-        display: 'grid',
-        gridTemplateColumns: `repeat(${columns}, 1fr)`,
-        gap: 2,
-        p: 2,
-        borderBottom: '1px solid var(--border)',
-      }}
+    <JXBox
+      padding="none"
+      border={false}
+      className={['!bg-transparent grid gap-4 p-4 border-b border-[var(--border)]', className].filter(Boolean).join(' ')}
+      style={{ gridTemplateColumns: `repeat(${columns}, 1fr)` }}
     >
       {Array.from({ length: columns }).map((_, index) => (
         <Skeleton key={index} variant="text" animation="pulse" />
       ))}
-    </Box>
+    </JXBox>
   );
 }
 
 // Table Skeleton (multiple rows)
 export function SkeletonTable({ rows = 5, columns = 4, className }: { rows?: number; columns?: number; className?: string }) {
   return (
-    <Box className={className}>
+    <JXBox padding="none" border={false} className={['!bg-transparent', className].filter(Boolean).join(' ')}>
       {Array.from({ length: rows }).map((_, index) => (
         <SkeletonTableRow key={index} columns={columns} />
       ))}
-    </Box>
+    </JXBox>
   );
 }
 
 // Stats Card Skeleton
 export function SkeletonStatsCard({ className }: { className?: string }) {
   return (
-    <Box
-      className={className}
-      sx={{
-        p: 2,
-        borderRadius: 2,
-        border: '1px solid var(--border)',
-        bgcolor: 'var(--panel)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 1.5,
-      }}
+    <JXBox
+      surface="elevated"
+      padding="none"
+      className={['flex items-center gap-3 p-4 !rounded-2xl !border-[var(--border)] !bg-[var(--panel)] shadow-none', className].filter(Boolean).join(' ')}
     >
       <Skeleton variant="rounded" width={48} height={48} animation="pulse" />
-      <Box sx={{ flex: 1 }}>
+      <div className="flex-1">
         <Skeleton variant="text" width="40%" animation="pulse" />
         <Skeleton variant="text" width="60%" height={32} animation="pulse" />
-      </Box>
-    </Box>
+      </div>
+    </JXBox>
   );
 }
 
 // Form Field Skeleton
 export function SkeletonFormField({ className }: { className?: string }) {
   return (
-    <Box className={className} sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+    <JXBox padding="none" border={false} className={['!bg-transparent flex flex-col gap-2', className].filter(Boolean).join(' ')}>
       <Skeleton variant="text" width="30%" animation="pulse" />
       <Skeleton variant="rounded" width="100%" height={40} animation="pulse" />
-    </Box>
+    </JXBox>
   );
 }
 
@@ -228,8 +211,8 @@ export function SkeletonImage({
 // Container for skeleton group
 export function SkeletonGroup({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <Box className={className} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+    <JXBox padding="none" border={false} className={['!bg-transparent flex flex-col gap-4', className].filter(Boolean).join(' ')}>
       {children}
-    </Box>
+    </JXBox>
   );
 }

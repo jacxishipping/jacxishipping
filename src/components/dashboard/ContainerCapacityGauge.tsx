@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Box, Typography, LinearProgress } from '@mui/material';
+import { JXBox, JXTypography } from '@jacxishippingorg/jx-ui-react';
 import { Box as BoxIcon, Car, Scale, ShieldAlert, Sparkles, CheckCircle2 } from 'lucide-react';
 
 export interface ContainerCapacityGaugeProps {
@@ -42,33 +42,23 @@ export function ContainerCapacityGauge({
   const isOptimal = itemCount === spec.maxCars || (itemCount === spec.maxCars - 1 && cbmPercent > 70);
 
   return (
-    <Box
-      sx={{
-        p: 2.5,
-        borderRadius: 2.5,
-        border: '1px solid var(--border)',
-        backgroundColor: 'var(--panel)',
-        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.04)',
-      }}
+    <JXBox
+      surface="elevated"
+      padding="none"
+      className="p-5 !rounded-xl !border-[var(--border)] !bg-[var(--panel)] shadow-[0_8px_24px_rgba(0,0,0,0.04)]"
+      style={{ fontFamily: 'inherit' }}
     >
       {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <div className="flex justify-between items-center mb-4">
+        <div className="flex items-center gap-2">
           <BoxIcon size={18} style={{ color: 'var(--accent-gold)' }} />
-          <Typography sx={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-primary)' }}>
-            Stowing & Capacity Utilization
-          </Typography>
-        </Box>
-        <Box
-          sx={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 0.5,
-            px: 1.25,
-            py: 0.4,
-            borderRadius: 999,
-            fontSize: '0.72rem',
-            fontWeight: 700,
+          <JXTypography variant="body" className="!font-bold !text-[0.92rem] !text-[var(--text-primary)]">
+            Stowing &amp; Capacity Utilization
+          </JXTypography>
+        </div>
+        <div
+          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[0.72rem] font-bold"
+          style={{
             backgroundColor: isFull
               ? 'rgba(34, 197, 94, 0.12)'
               : isOptimal
@@ -97,104 +87,92 @@ export function ContainerCapacityGauge({
               <ShieldAlert size={12} /> {spec.maxCars - itemCount} Slots Available
             </>
           )}
-        </Box>
-      </Box>
+        </div>
+      </div>
 
       {/* Grid of Gauges */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2 }}>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {/* Car Slots */}
-        <Box sx={{ p: 1.5, borderRadius: 2, backgroundColor: 'var(--background)', border: '1px solid var(--border)' }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+        <JXBox surface="subtle" padding="none" className="p-3 !rounded-lg !bg-[var(--background)] !border-[var(--border)] shadow-none">
+          <div className="flex justify-between items-center mb-2">
+            <div className="flex items-center gap-1.5">
               <Car size={15} style={{ color: 'var(--text-secondary)' }} />
-              <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+              <JXTypography variant="caption" className="!text-[0.75rem] !font-semibold !text-[var(--text-secondary)]">
                 Vehicle Slots
-              </Typography>
-            </Box>
-            <Typography sx={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+              </JXTypography>
+            </div>
+            <JXTypography variant="body" className="!text-[0.82rem] !font-extrabold !text-[var(--text-primary)]">
               {itemCount} / {spec.maxCars}
-            </Typography>
-          </Box>
-          <LinearProgress
-            variant="determinate"
-            value={carPercent}
-            sx={{
-              height: 6,
-              borderRadius: 3,
-              backgroundColor: 'rgba(var(--text-primary-rgb), 0.08)',
-              '& .MuiLinearProgress-bar': {
+            </JXTypography>
+          </div>
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-[rgba(var(--text-primary-rgb),0.08)]">
+            <div
+              className="h-full rounded-full transition-all duration-300"
+              style={{
+                width: `${carPercent}%`,
                 backgroundColor: carPercent === 100 ? '#16a34a' : 'var(--accent-gold)',
-                borderRadius: 3,
-              },
-            }}
-          />
-          <Typography sx={{ fontSize: '0.68rem', color: 'var(--text-secondary)', mt: 0.75 }}>
+              }}
+            />
+          </div>
+          <JXTypography variant="caption" className="!block !text-[0.68rem] !text-[var(--text-secondary)] !mt-1.5">
             {spec.label} standard limit
-          </Typography>
-        </Box>
+          </JXTypography>
+        </JXBox>
 
         {/* CBM Volume */}
-        <Box sx={{ p: 1.5, borderRadius: 2, backgroundColor: 'var(--background)', border: '1px solid var(--border)' }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+        <JXBox surface="subtle" padding="none" className="p-3 !rounded-lg !bg-[var(--background)] !border-[var(--border)] shadow-none">
+          <div className="flex justify-between items-center mb-2">
+            <div className="flex items-center gap-1.5">
               <BoxIcon size={15} style={{ color: 'var(--text-secondary)' }} />
-              <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+              <JXTypography variant="caption" className="!text-[0.75rem] !font-semibold !text-[var(--text-secondary)]">
                 Volume (CBM)
-              </Typography>
-            </Box>
-            <Typography sx={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+              </JXTypography>
+            </div>
+            <JXTypography variant="body" className="!text-[0.82rem] !font-extrabold !text-[var(--text-primary)]">
               {estimatedCBM.toFixed(1)} / {spec.maxCBM} m³
-            </Typography>
-          </Box>
-          <LinearProgress
-            variant="determinate"
-            value={cbmPercent}
-            sx={{
-              height: 6,
-              borderRadius: 3,
-              backgroundColor: 'rgba(var(--text-primary-rgb), 0.08)',
-              '& .MuiLinearProgress-bar': {
+            </JXTypography>
+          </div>
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-[rgba(var(--text-primary-rgb),0.08)]">
+            <div
+              className="h-full rounded-full transition-all duration-300"
+              style={{
+                width: `${cbmPercent}%`,
                 backgroundColor: cbmPercent > 90 ? '#ef4444' : '#2563eb',
-                borderRadius: 3,
-              },
-            }}
-          />
-          <Typography sx={{ fontSize: '0.68rem', color: 'var(--text-secondary)', mt: 0.75 }}>
+              }}
+            />
+          </div>
+          <JXTypography variant="caption" className="!block !text-[0.68rem] !text-[var(--text-secondary)] !mt-1.5">
             {cbmPercent}% volumetric occupancy
-          </Typography>
-        </Box>
+          </JXTypography>
+        </JXBox>
 
         {/* Payload Weight */}
-        <Box sx={{ p: 1.5, borderRadius: 2, backgroundColor: 'var(--background)', border: '1px solid var(--border)' }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+        <JXBox surface="subtle" padding="none" className="p-3 !rounded-lg !bg-[var(--background)] !border-[var(--border)] shadow-none">
+          <div className="flex justify-between items-center mb-2">
+            <div className="flex items-center gap-1.5">
               <Scale size={15} style={{ color: 'var(--text-secondary)' }} />
-              <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+              <JXTypography variant="caption" className="!text-[0.75rem] !font-semibold !text-[var(--text-secondary)]">
                 Payload Weight
-              </Typography>
-            </Box>
-            <Typography sx={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+              </JXTypography>
+            </div>
+            <JXTypography variant="body" className="!text-[0.82rem] !font-extrabold !text-[var(--text-primary)]">
               {(estimatedWeight / 1000).toFixed(1)} / {(spec.maxWeightKg / 1000).toFixed(1)} T
-            </Typography>
-          </Box>
-          <LinearProgress
-            variant="determinate"
-            value={weightPercent}
-            sx={{
-              height: 6,
-              borderRadius: 3,
-              backgroundColor: 'rgba(var(--text-primary-rgb), 0.08)',
-              '& .MuiLinearProgress-bar': {
+            </JXTypography>
+          </div>
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-[rgba(var(--text-primary-rgb),0.08)]">
+            <div
+              className="h-full rounded-full transition-all duration-300"
+              style={{
+                width: `${weightPercent}%`,
                 backgroundColor: weightPercent > 90 ? '#ef4444' : '#0d9488',
-                borderRadius: 3,
-              },
-            }}
-          />
-          <Typography sx={{ fontSize: '0.68rem', color: 'var(--text-secondary)', mt: 0.75 }}>
+              }}
+            />
+          </div>
+          <JXTypography variant="caption" className="!block !text-[0.68rem] !text-[var(--text-secondary)] !mt-1.5">
             {weightPercent}% max permissible mass
-          </Typography>
-        </Box>
-      </Box>
-    </Box>
+          </JXTypography>
+        </JXBox>
+      </div>
+    </JXBox>
   );
 }

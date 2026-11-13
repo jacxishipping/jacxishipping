@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { JXBox, SpringButton } from '@jacxishippingorg/jx-ui-react';
 import { 
   LayoutGrid, 
   Truck, 
@@ -75,7 +76,12 @@ export function RolePerspectiveSwitcher({
   const activeConfig = DASHBOARD_PERSPECTIVES.find((p) => p.id === activePerspective) || DASHBOARD_PERSPECTIVES[0];
 
   return (
-    <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-2 rounded-2xl bg-[var(--panel)] border border-[var(--border)] shadow-sm ${className}`}>
+    <JXBox
+      surface="elevated"
+      padding="none"
+      className={`flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-2 !rounded-2xl !bg-[var(--panel)] !border-[var(--border)] shadow-sm ${className}`}
+      style={{ fontFamily: 'inherit' }}
+    >
       {/* Label and Active Descriptor */}
       <div className="flex items-center gap-2 px-1">
         <div 
@@ -101,23 +107,26 @@ export function RolePerspectiveSwitcher({
           const isActive = activePerspective === p.id;
 
           return (
-            <button
+            <SpringButton
               key={p.id}
               type="button"
+              variant={isActive ? 'solid' : 'outline'}
+              tone="primary"
               onClick={() => onChange(p.id)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+              style={{ fontFamily: 'inherit' }}
+              className={`flex items-center gap-1.5 !h-auto !min-h-0 !px-3 !py-1.5 !rounded-lg !text-xs !font-semibold whitespace-nowrap ${
                 isActive
-                  ? 'bg-[var(--accent-gold)] text-white shadow-sm'
-                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[rgba(var(--text-primary-rgb),0.05)]'
+                  ? '!border-transparent !bg-[var(--accent-gold)] !text-white shadow-sm'
+                  : '!border-transparent !bg-transparent !text-[var(--text-secondary)] hover:!text-[var(--text-primary)] hover:!bg-[rgba(var(--text-primary-rgb),0.05)] !shadow-none'
               }`}
               title={p.description}
             >
               <Icon className="w-3.5 h-3.5" />
               <span>{p.shortLabel}</span>
-            </button>
+            </SpringButton>
           );
         })}
       </div>
-    </div>
+    </JXBox>
   );
 }

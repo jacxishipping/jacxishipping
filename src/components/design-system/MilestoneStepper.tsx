@@ -1,7 +1,7 @@
 "use client";
 
-import { Box, Typography } from '@mui/material';
-import { Check, Clock, AlertCircle } from 'lucide-react';
+import { JXBox, JXTypography } from '@jacxishippingorg/jx-ui-react';
+import { Check } from 'lucide-react';
 import React, { ReactNode } from 'react';
 
 export interface MilestoneStep {
@@ -31,137 +31,101 @@ export default function MilestoneStepper({
   const activeIndex = currentIndex >= 0 ? currentIndex : 0;
 
   return (
-    <Box
-      className={className}
-      sx={{
-        width: '100%',
-        py: 1,
-      }}
+    <JXBox
+      padding="none"
+      border={false}
+      className={['w-full py-2 !rounded-none !bg-transparent', className].filter(Boolean).join(' ')}
+      style={{ fontFamily: 'inherit' }}
     >
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: orientation === 'vertical' ? 'column' : { xs: 'column', md: 'row' },
-          alignItems: orientation === 'vertical' ? 'flex-start' : { xs: 'flex-start', md: 'center' },
-          justifyContent: 'space-between',
-          position: 'relative',
-          gap: orientation === 'vertical' ? 2 : { xs: 2, md: 0 },
-        }}
+      <div
+        className={[
+          'relative flex justify-between gap-4',
+          orientation === 'vertical'
+            ? 'flex-col items-start'
+            : 'flex-col items-start md:flex-row md:items-center md:gap-0',
+        ].join(' ')}
       >
         {steps.map((step, idx) => {
           const isCompleted = idx < activeIndex || (idx === activeIndex && status === 'completed');
           const isCurrent = idx === activeIndex && status !== 'completed';
-          const isPending = idx > activeIndex;
 
           return (
             <React.Fragment key={step.id}>
               {/* Connector line for horizontal */}
               {idx > 0 && orientation === 'horizontal' && (
-                <Box
-                  sx={{
-                    display: { xs: 'none', md: 'block' },
-                    flex: 1,
-                    height: 2,
-                    mx: 1.5,
-                    bgcolor: isCompleted ? 'var(--accent-gold, #D4AF37)' : 'var(--border, #E5E7EB)',
-                    transition: 'background-color 300ms ease',
+                <div
+                  className="mx-3 hidden h-0.5 flex-1 transition-colors duration-300 md:block"
+                  style={{
+                    backgroundColor: isCompleted ? 'var(--accent-gold, #D4AF37)' : 'var(--border, #E5E7EB)',
                   }}
                 />
               )}
 
               {/* Step item */}
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1.5,
-                  position: 'relative',
-                  zIndex: 1,
-                }}
-              >
+              <div className="relative z-10 flex items-center gap-3">
                 {/* Step Circle / Badge */}
-                <Box
-                  sx={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontWeight: 700,
-                    fontSize: '0.8125rem',
-                    transition: 'all 240ms ease',
-                    ...(isCompleted
+                <div
+                  className="flex h-8 w-8 items-center justify-center rounded-full text-[0.8125rem] font-bold transition-all duration-200"
+                  style={
+                    isCompleted
                       ? {
-                          bgcolor: 'var(--accent-gold, #D4AF37)',
+                          backgroundColor: 'var(--accent-gold, #D4AF37)',
                           color: '#FFFFFF',
                           boxShadow: '0 2px 8px rgba(212, 175, 55, 0.35)',
                         }
                       : isCurrent
                       ? {
-                          bgcolor: '#FFFFFF',
+                          backgroundColor: '#FFFFFF',
                           color: 'var(--accent-gold, #D4AF37)',
                           border: '2px solid var(--accent-gold, #D4AF37)',
                           boxShadow: '0 0 0 4px rgba(212, 175, 55, 0.15)',
                         }
                       : {
-                          bgcolor: 'var(--background, #F3F4F6)',
+                          backgroundColor: 'var(--background, #F3F4F6)',
                           color: 'var(--text-secondary, #9CA3AF)',
                           border: '1px solid var(--border, #E5E7EB)',
-                        }),
-                  }}
+                        }
+                  }
                 >
                   {isCompleted ? (
                     <Check style={{ width: 16, height: 16, strokeWidth: 3 }} />
                   ) : isCurrent ? (
-                    <Box
-                      sx={{
-                        width: 8,
-                        height: 8,
-                        borderRadius: '50%',
-                        bgcolor: 'var(--accent-gold, #D4AF37)',
-                        animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-                        '@keyframes pulse': {
-                          '0%, 100%': { opacity: 1 },
-                          '50%': { opacity: 0.4 },
-                        },
-                      }}
+                    <span
+                      className="h-2 w-2 rounded-full animate-pulse"
+                      style={{ backgroundColor: 'var(--accent-gold, #D4AF37)' }}
                     />
                   ) : (
                     <span>{idx + 1}</span>
                   )}
-                </Box>
+                </div>
 
                 {/* Step Text Info */}
-                <Box sx={{ minWidth: 0 }}>
-                  <Typography
-                    sx={{
-                      fontSize: '0.8125rem',
-                      fontWeight: isCurrent || isCompleted ? 700 : 500,
-                      color: isCurrent || isCompleted ? 'var(--text-primary, #111827)' : 'var(--text-secondary, #6B7280)',
-                      lineHeight: 1.2,
-                    }}
+                <div className="min-w-0">
+                  <JXTypography
+                    variant="body"
+                    className={[
+                      '!text-[0.8125rem] !leading-[1.2]',
+                      isCurrent || isCompleted
+                        ? '!font-bold !text-[var(--text-primary,#111827)]'
+                        : '!font-medium !text-[var(--text-secondary,#6B7280)]',
+                    ].join(' ')}
                   >
                     {step.label}
-                  </Typography>
+                  </JXTypography>
                   {step.timestamp && (
-                    <Typography
+                    <JXTypography
                       variant="caption"
-                      sx={{
-                        fontSize: '0.6875rem',
-                        color: 'var(--text-secondary, #9CA3AF)',
-                        display: 'block',
-                      }}
+                      className="!block !text-[0.6875rem] !text-[var(--text-secondary,#9CA3AF)]"
                     >
                       {step.timestamp}
-                    </Typography>
+                    </JXTypography>
                   )}
-                </Box>
-              </Box>
+                </div>
+              </div>
             </React.Fragment>
           );
         })}
-      </Box>
-    </Box>
+      </div>
+    </JXBox>
   );
 }

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Box, Typography } from '@mui/material';
+import { JXBox, JXTypography } from '@jacxishippingorg/jx-ui-react';
 import { ChevronRight, Home } from '@mui/icons-material';
 
 /**
@@ -78,48 +78,24 @@ export default function Breadcrumbs({
   }
 
   return (
-    <Box
+    <JXBox
       component="nav"
       aria-label="breadcrumb"
-      className={className}
-      sx={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 0.5,
-        py: 1.5,
-        px: 0.5,
-        flexWrap: 'wrap',
-      }}
+      padding="none"
+      border={false}
+      className={["!bg-transparent flex flex-wrap items-center gap-1 py-1.5 px-0.5", className].filter(Boolean).join(" ")}
+      style={{ fontFamily: 'inherit' }}
     >
       {/* Home link */}
       {showHome && (
         <>
           <Link href="/dashboard" style={{ textDecoration: 'none' }}>
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 0.5,
-                px: 1,
-                py: 0.5,
-                borderRadius: 1.5,
-                transition: 'all 200ms cubic-bezier(0.4, 0, 0.2, 1)',
-                '&:hover': {
-                  bgcolor: 'rgba(var(--accent-gold-rgb), 0.1)',
-                },
-              }}
-            >
+            <span className="inline-flex min-h-[28px] items-center gap-1 rounded-md px-2 py-1 transition-all duration-200 hover:bg-[rgba(var(--accent-gold-rgb),0.1)]">
               <Home sx={{ fontSize: 16, color: 'var(--text-secondary)' }} />
-              <Typography
-                sx={{
-                  fontSize: '0.875rem',
-                  fontWeight: 500,
-                  color: 'var(--text-secondary)',
-                }}
-              >
+              <span className="text-[0.875rem] font-medium text-[var(--text-secondary)]">
                 {homeLabel}
-              </Typography>
-            </Box>
+              </span>
+            </span>
           </Link>
           <ChevronRight sx={{ fontSize: 16, color: 'var(--text-secondary)' }} />
         </>
@@ -131,49 +107,28 @@ export default function Breadcrumbs({
         const itemKey = item.href ?? `${item.label}-${index}`;
 
         return (
-          <Box key={itemKey} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <div key={itemKey} className="flex items-center gap-1">
             {isLast || !item.href ? (
-              // Last item - not clickable
-              <Typography
-                sx={{
-                  fontSize: '0.875rem',
-                  fontWeight: 600,
-                  color: 'var(--text-primary)',
-                  px: 1,
-                  py: 0.5,
-                }}
+              <JXTypography
+                variant="body"
+                className="px-2 py-1 !text-[0.875rem] !font-semibold !text-[var(--text-primary)]"
               >
                 {item.label}
-              </Typography>
+              </JXTypography>
             ) : (
-              // Clickable breadcrumb
               <>
                 <Link href={item.href} style={{ textDecoration: 'none' }}>
-                  <Typography
-                    sx={{
-                      fontSize: '0.875rem',
-                      fontWeight: 500,
-                      color: 'var(--text-secondary)',
-                      px: 1,
-                      py: 0.5,
-                      borderRadius: 1.5,
-                      transition: 'all 200ms cubic-bezier(0.4, 0, 0.2, 1)',
-                      '&:hover': {
-                        bgcolor: 'rgba(var(--accent-gold-rgb), 0.1)',
-                        color: 'var(--accent-gold)',
-                      },
-                    }}
-                  >
+                  <span className="inline-flex min-h-[28px] items-center rounded-md px-2 py-1 text-[0.875rem] font-medium text-[var(--text-secondary)] transition-all duration-200 hover:bg-[rgba(var(--accent-gold-rgb),0.1)] hover:text-[var(--accent-gold-text)]">
                     {item.label}
-                  </Typography>
+                  </span>
                 </Link>
                 <ChevronRight sx={{ fontSize: 16, color: 'var(--text-secondary)' }} />
               </>
             )}
-          </Box>
+          </div>
         );
       })}
-    </Box>
+    </JXBox>
   );
 }
 
@@ -188,57 +143,33 @@ export function BreadcrumbsCompact({ className }: { className?: string }) {
   const parentPage = breadcrumbs[breadcrumbs.length - 2];
 
   return (
-    <Box
+    <JXBox
       component="nav"
       aria-label="breadcrumb"
-      className={className}
-      sx={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 0.5,
-        py: 1,
-      }}
+      padding="none"
+      border={false}
+      className={["!bg-transparent flex items-center gap-1 py-1", className].filter(Boolean).join(" ")}
+      style={{ fontFamily: 'inherit' }}
     >
       {parentPage && (
         <>
           {parentPage.href ? (
             <Link href={parentPage.href} style={{ textDecoration: 'none' }}>
-              <Typography
-                sx={{
-                  fontSize: '0.8125rem',
-                  fontWeight: 500,
-                  color: 'var(--text-secondary)',
-                  '&:hover': {
-                    color: 'var(--accent-gold)',
-                  },
-                }}
-              >
+              <span className="text-[0.8125rem] font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--accent-gold-text)]">
                 {parentPage.label}
-              </Typography>
+              </span>
             </Link>
           ) : (
-            <Typography
-              sx={{
-                fontSize: '0.8125rem',
-                fontWeight: 500,
-                color: 'var(--text-secondary)',
-              }}
-            >
+            <span className="text-[0.8125rem] font-medium text-[var(--text-secondary)]">
               {parentPage.label}
-            </Typography>
+            </span>
           )}
           <ChevronRight sx={{ fontSize: 14, color: 'var(--text-secondary)' }} />
         </>
       )}
-      <Typography
-        sx={{
-          fontSize: '0.8125rem',
-          fontWeight: 600,
-          color: 'var(--text-primary)',
-        }}
-      >
+      <JXTypography variant="body" className="!text-[0.8125rem] !font-semibold !text-[var(--text-primary)]">
         {currentPage.label}
-      </Typography>
-    </Box>
+      </JXTypography>
+    </JXBox>
   );
 }

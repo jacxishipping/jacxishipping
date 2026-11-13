@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Box, Typography } from '@mui/material';
+import { JXBox, JXTypography } from '@jacxishippingorg/jx-ui-react';
 import { DollarSign, TrendingUp, TrendingDown, Layers, Receipt, ShieldCheck, AlertTriangle } from 'lucide-react';
 import { formatMoney as formatCurrency } from '@/lib/format';
 
@@ -42,33 +42,23 @@ export function ContainerProfitabilityCard({
   const isHealthyMargin = marginPercent >= 20;
 
   return (
-    <Box
-      sx={{
-        p: 2.5,
-        borderRadius: 2.5,
-        border: '1px solid var(--border)',
-        backgroundColor: 'var(--panel)',
-        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.04)',
-      }}
+    <JXBox
+      surface="elevated"
+      padding="none"
+      className="p-5 !rounded-xl !border-[var(--border)] !bg-[var(--panel)] shadow-[0_8px_24px_rgba(0,0,0,0.04)]"
+      style={{ fontFamily: 'inherit' }}
     >
       {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <div className="flex justify-between items-center mb-5">
+        <div className="flex items-center gap-2">
           <DollarSign size={18} style={{ color: 'var(--accent-gold)' }} />
-          <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)' }}>
-            Container Unit Economics & Profitability
-          </Typography>
-        </Box>
-        <Box
-          sx={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 0.5,
-            px: 1.25,
-            py: 0.4,
-            borderRadius: 999,
-            fontSize: '0.75rem',
-            fontWeight: 700,
+          <JXTypography variant="body" className="!font-bold !text-[0.95rem] !text-[var(--text-primary)]">
+            Container Unit Economics &amp; Profitability
+          </JXTypography>
+        </div>
+        <div
+          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[0.75rem] font-bold"
+          style={{
             backgroundColor: isHealthyMargin
               ? 'rgba(34, 197, 94, 0.12)'
               : isProfitable
@@ -97,126 +87,105 @@ export function ContainerProfitabilityCard({
               <AlertTriangle size={14} /> Negative Spread ({marginPercent.toFixed(1)}%)
             </>
           )}
-        </Box>
-      </Box>
+        </div>
+      </div>
 
       {/* KPI Headline Cards */}
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' },
-          gap: 2,
-          mb: 2.5,
-        }}
-      >
-        <Box
-          sx={{
-            p: 1.75,
-            borderRadius: 2,
-            backgroundColor: 'var(--background)',
-            border: '1px solid var(--border)',
-          }}
-        >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.5 }}>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
+        <JXBox surface="subtle" padding="none" className="p-3.5 !rounded-lg !bg-[var(--background)] !border-[var(--border)] shadow-none">
+          <div className="flex items-center gap-1.5 mb-1">
             <Receipt size={15} style={{ color: 'var(--text-secondary)' }} />
-            <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+            <JXTypography variant="caption" className="!text-[0.75rem] !font-semibold !text-[var(--text-secondary)]">
               Total Cargo Revenue
-            </Typography>
-          </Box>
-          <Typography sx={{ fontSize: '1.25rem', fontWeight: 800, color: '#16a34a' }}>
+            </JXTypography>
+          </div>
+          <JXTypography variant="h2" className="!text-[1.25rem] !font-extrabold !text-[#16a34a]">
             {formatCurrency(totalRevenue)}
-          </Typography>
-          <Typography sx={{ fontSize: '0.7rem', color: 'var(--text-secondary)', mt: 0.25 }}>
+          </JXTypography>
+          <JXTypography variant="caption" className="!block !text-[0.7rem] !text-[var(--text-secondary)] !mt-0.5">
             {itemRevenues.length > 0 ? `${itemRevenues.length} freight invoices` : 'Estimated manifest total'}
-          </Typography>
-        </Box>
+          </JXTypography>
+        </JXBox>
 
-        <Box
-          sx={{
-            p: 1.75,
-            borderRadius: 2,
-            backgroundColor: 'var(--background)',
-            border: '1px solid var(--border)',
-          }}
-        >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.5 }}>
+        <JXBox surface="subtle" padding="none" className="p-3.5 !rounded-lg !bg-[var(--background)] !border-[var(--border)] shadow-none">
+          <div className="flex items-center gap-1.5 mb-1">
             <Layers size={15} style={{ color: 'var(--text-secondary)' }} />
-            <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+            <JXTypography variant="caption" className="!text-[0.75rem] !font-semibold !text-[var(--text-secondary)]">
               Total Container Costs
-            </Typography>
-          </Box>
-          <Typography sx={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--error)' }}>
+            </JXTypography>
+          </div>
+          <JXTypography variant="h2" className="!text-[1.25rem] !font-extrabold !text-[var(--error)]">
             {formatCurrency(totalExpenses)}
-          </Typography>
-          <Typography sx={{ fontSize: '0.7rem', color: 'var(--text-secondary)', mt: 0.25 }}>
+          </JXTypography>
+          <JXTypography variant="caption" className="!block !text-[0.7rem] !text-[var(--text-secondary)] !mt-0.5">
             Ocean + Drayage + Port fees
-          </Typography>
-        </Box>
+          </JXTypography>
+        </JXBox>
 
-        <Box
-          sx={{
-            p: 1.75,
-            borderRadius: 2,
+        <JXBox
+          surface="subtle"
+          padding="none"
+          className="p-3.5 !rounded-lg shadow-none"
+          style={{
             backgroundColor: isProfitable ? 'rgba(34, 197, 94, 0.04)' : 'rgba(239, 68, 68, 0.04)',
             border: `1px solid ${isProfitable ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`,
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.5 }}>
+          <div className="flex items-center gap-1.5 mb-1">
             {isProfitable ? (
               <TrendingUp size={15} style={{ color: '#16a34a' }} />
             ) : (
               <TrendingDown size={15} style={{ color: '#ef4444' }} />
             )}
-            <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+            <JXTypography variant="caption" className="!text-[0.75rem] !font-semibold !text-[var(--text-secondary)]">
               Net Operating Margin
-            </Typography>
-          </Box>
-          <Typography
-            sx={{
-              fontSize: '1.25rem',
-              fontWeight: 800,
-              color: isProfitable ? '#16a34a' : 'var(--error)',
-            }}
+            </JXTypography>
+          </div>
+          <JXTypography
+            variant="h2"
+            className={[
+              '!text-[1.25rem] !font-extrabold',
+              isProfitable ? '!text-[#16a34a]' : '!text-[var(--error)]',
+            ].join(' ')}
           >
             {formatCurrency(netProfit)}
-          </Typography>
-          <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: isProfitable ? '#16a34a' : 'var(--error)', mt: 0.25 }}>
+          </JXTypography>
+          <JXTypography
+            variant="caption"
+            className={[
+              '!block !text-[0.7rem] !font-bold !mt-0.5',
+              isProfitable ? '!text-[#16a34a]' : '!text-[var(--error)]',
+            ].join(' ')}
+          >
             {marginPercent.toFixed(1)}% gross margin
-          </Typography>
-        </Box>
-      </Box>
+          </JXTypography>
+        </JXBox>
+      </div>
 
       {/* Cost Breakdown Accordion / Grid */}
-      <Box
-        sx={{
-          p: 1.5,
-          borderRadius: 2,
-          backgroundColor: 'var(--background)',
-          border: '1px solid var(--border)',
-        }}
-      >
-        <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)', mb: 1 }}>
+      <JXBox surface="subtle" padding="none" className="p-3 !rounded-lg !bg-[var(--background)] !border-[var(--border)] shadow-none">
+        <JXTypography variant="caption" className="!block !text-[0.75rem] !font-bold !uppercase !text-[var(--text-secondary)] !mb-2">
           Direct Cost Breakdown
-        </Typography>
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }, gap: 1.5 }}>
-          <Box>
-            <Typography sx={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Ocean Freight</Typography>
-            <Typography sx={{ fontSize: '0.85rem', fontWeight: 700 }}>{formatCurrency(oceanFreightCost)}</Typography>
-          </Box>
-          <Box>
-            <Typography sx={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Drayage / Hauling</Typography>
-            <Typography sx={{ fontSize: '0.85rem', fontWeight: 700 }}>{formatCurrency(drayageCost)}</Typography>
-          </Box>
-          <Box>
-            <Typography sx={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Terminal Handling</Typography>
-            <Typography sx={{ fontSize: '0.85rem', fontWeight: 700 }}>{formatCurrency(terminalHandlingCost)}</Typography>
-          </Box>
-          <Box>
-            <Typography sx={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Customs & Port Fees</Typography>
-            <Typography sx={{ fontSize: '0.85rem', fontWeight: 700 }}>{formatCurrency(customsCost)}</Typography>
-          </Box>
-        </Box>
-      </Box>
-    </Box>
+        </JXTypography>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div>
+            <JXTypography variant="caption" className="!block !text-[0.72rem] !text-[var(--text-secondary)]">Ocean Freight</JXTypography>
+            <JXTypography variant="body" className="!text-[0.85rem] !font-bold">{formatCurrency(oceanFreightCost)}</JXTypography>
+          </div>
+          <div>
+            <JXTypography variant="caption" className="!block !text-[0.72rem] !text-[var(--text-secondary)]">Drayage / Hauling</JXTypography>
+            <JXTypography variant="body" className="!text-[0.85rem] !font-bold">{formatCurrency(drayageCost)}</JXTypography>
+          </div>
+          <div>
+            <JXTypography variant="caption" className="!block !text-[0.72rem] !text-[var(--text-secondary)]">Terminal Handling</JXTypography>
+            <JXTypography variant="body" className="!text-[0.85rem] !font-bold">{formatCurrency(terminalHandlingCost)}</JXTypography>
+          </div>
+          <div>
+            <JXTypography variant="caption" className="!block !text-[0.72rem] !text-[var(--text-secondary)]">Customs &amp; Port Fees</JXTypography>
+            <JXTypography variant="body" className="!text-[0.85rem] !font-bold">{formatCurrency(customsCost)}</JXTypography>
+          </div>
+        </div>
+      </JXBox>
+    </JXBox>
   );
 }

@@ -2,12 +2,11 @@
 
 import {
   Drawer as MuiDrawer,
-  IconButton,
   Box,
-  Typography,
   SxProps,
   Theme,
 } from "@mui/material";
+import { JXBox, JXTypography, SpringButton } from "@jacxishippingorg/jx-ui-react";
 import { X } from "lucide-react";
 import { ReactNode, useEffect } from "react";
 import Tooltip from "./Tooltip";
@@ -99,103 +98,77 @@ export default function Drawer({
       }}
     >
       {/* Mobile Pull Handle Indicator */}
-      <Box
-        sx={{
-          display: { xs: "flex", sm: "none" },
-          justifyContent: "center",
-          pt: 1.5,
-          pb: 0.5,
-          bgcolor: "var(--background, #F9FAFB)",
-        }}
+      <JXBox
+        padding="none"
+        border={false}
+        className="flex sm:hidden justify-center pt-3 pb-1 !rounded-none"
+        style={{ backgroundColor: "var(--background, #F9FAFB)", fontFamily: "inherit" }}
       >
-        <Box
-          sx={{
-            width: 40,
-            height: 4.5,
-            borderRadius: 3,
-            bgcolor: "var(--border)",
-            opacity: 0.8,
-          }}
+        <div
+          className="h-[4.5px] w-10 rounded-full opacity-80"
+          style={{ backgroundColor: "var(--border)" }}
         />
-      </Box>
+      </JXBox>
 
       {/* Header */}
       {(title || showCloseButton) && (
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "flex-start",
-            justifyContent: "space-between",
-            p: { xs: 2, sm: 2.5 },
+        <JXBox
+          padding="none"
+          border={false}
+          className="flex items-start justify-between gap-4 p-4 sm:p-5 !rounded-none"
+          style={{
             borderBottom: "1px solid var(--border, #E5E7EB)",
-            bgcolor: "var(--background, #F9FAFB)",
-            gap: 2,
+            backgroundColor: "var(--background, #F9FAFB)",
+            fontFamily: "inherit",
           }}
         >
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                gap: 1.5,
-                mb: description ? 0.5 : 0,
-              }}
+          <div className="min-w-0 flex-1">
+            <div
+              className={[
+                "flex items-center gap-3",
+                description ? "mb-1" : "mb-0",
+              ].join(" ")}
             >
               {typeof title === "string" ? (
-                <Typography
-                  variant="h6"
-                  sx={{
-                    fontWeight: 700,
-                    fontSize: "1.125rem",
-                    color: "var(--text-primary, #111827)",
-                    lineHeight: 1.3,
-                  }}
-                  noWrap
+                <JXTypography
+                  variant="h3"
+                  className="!truncate !text-[1.125rem] !font-bold !leading-[1.3] !text-[var(--text-primary,#111827)]"
                 >
                   {title}
-                </Typography>
+                </JXTypography>
               ) : (
                 title
               )}
               {badge}
-            </Box>
+            </div>
             {description && (
-              <Typography
-                variant="body2"
-                sx={{
-                  color: "var(--text-secondary, #6B7280)",
-                  fontSize: "0.8125rem",
-                  lineHeight: 1.4,
-                }}
+              <JXTypography
+                variant="body"
+                className="!text-[0.8125rem] !leading-[1.4] !text-[var(--text-secondary,#6B7280)]"
               >
                 {description}
-              </Typography>
+              </JXTypography>
             )}
-          </Box>
+          </div>
 
           {showCloseButton && (
             <Tooltip title="Close drawer">
-              <IconButton
-                onClick={onClose}
-                size="small"
-                sx={{
-                  color: "var(--text-secondary, #6B7280)",
-                  p: 0.75,
-                  borderRadius: 1.5,
-                  border: "1px solid var(--border, #E5E7EB)",
-                  bgcolor: "var(--panel-bg, #FFFFFF)",
-                  "&:hover": {
-                    bgcolor: "var(--background, #F3F4F6)",
-                    color: "var(--text-primary, #111827)",
-                  },
-                }}
-                aria-label="Close drawer"
-              >
-                <X style={{ width: 18, height: 18 }} />
-              </IconButton>
+              <span className="inline-flex">
+                <SpringButton
+                  type="button"
+                  variant="outline"
+                  tone="primary"
+                  onClick={onClose}
+                  style={{ fontFamily: "inherit" }}
+                  className="!h-8 !w-8 !min-h-0 !min-w-0 !rounded-md !border !border-[var(--border,#E5E7EB)] !bg-[var(--panel-bg,#FFFFFF)] !p-1.5 !text-[var(--text-secondary,#6B7280)] hover:!bg-[var(--background,#F3F4F6)] hover:!text-[var(--text-primary,#111827)] !shadow-none"
+                  aria-label="Close drawer"
+                >
+                  <X style={{ width: 18, height: 18 }} />
+                </SpringButton>
+              </span>
             </Tooltip>
           )}
-        </Box>
+        </JXBox>
       )}
 
       {/* Main Content Area */}
@@ -215,19 +188,18 @@ export default function Drawer({
 
       {/* Footer Actions */}
       {actions && (
-        <Box
-          sx={{
-            p: 2.5,
+        <JXBox
+          padding="none"
+          border={false}
+          className="flex items-center justify-end gap-3 p-5 !rounded-none"
+          style={{
             borderTop: "1px solid var(--border, #E5E7EB)",
-            bgcolor: "var(--background, #F9FAFB)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "flex-end",
-            gap: 1.5,
+            backgroundColor: "var(--background, #F9FAFB)",
+            fontFamily: "inherit",
           }}
         >
           {actions}
-        </Box>
+        </JXBox>
       )}
     </MuiDrawer>
   );

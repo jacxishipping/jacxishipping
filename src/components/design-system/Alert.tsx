@@ -1,6 +1,6 @@
 "use client";
 
-import { Box, Typography, IconButton } from "@mui/material";
+import { JXBox, JXButton, JXTypography } from "@jacxishippingorg/jx-ui-react";
 import { ReactNode } from "react";
 import Tooltip from "./Tooltip";
 import {
@@ -84,20 +84,20 @@ export default function Alert({
     switch (variant) {
       case "filled":
         return {
-          bgcolor: config.color,
+          backgroundColor: config.color,
           color: "#FFFFFF",
           border: "none",
         };
       case "outlined":
         return {
-          bgcolor: "transparent",
+          backgroundColor: "transparent",
           color: config.color,
           border: `1px solid ${config.borderColor}`,
         };
       case "subtle":
       default:
         return {
-          bgcolor: config.bgColor,
+          backgroundColor: config.bgColor,
           color: config.color,
           border: `1px solid ${config.borderColor}`,
         };
@@ -107,65 +107,54 @@ export default function Alert({
   const variantStyles = getVariantStyles();
 
   return (
-    <Box
+    <JXBox
       role="alert"
-      className={className}
-      sx={{
-        display: "flex",
-        alignItems: "flex-start",
-        gap: 1.5,
-        p: 2,
-        borderRadius: 2,
-        ...variantStyles,
-      }}
+      padding="none"
+      border={false}
+      className={["flex items-start gap-3 p-4 !rounded-[12px]", className].filter(Boolean).join(" ")}
+      style={{ ...variantStyles, fontFamily: "inherit" }}
     >
       {/* Icon */}
       {showIcon && (
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            flexShrink: 0,
+        <div
+          className="flex shrink-0 items-center"
+          style={{
             color: variant === "filled" ? "#FFFFFF" : config.color,
           }}
         >
           {displayIcon}
-        </Box>
+        </div>
       )}
 
       {/* Content */}
-      <Box sx={{ flex: 1, minWidth: 0 }}>
+      <div className="min-w-0 flex-1">
         {title && (
-          <Typography
-            sx={{
-              fontSize: "0.9375rem",
-              fontWeight: 600,
-              mb: message || children ? 0.5 : 0,
-              color: variant === "filled" ? "#FFFFFF" : "var(--text-primary)",
-            }}
+          <JXTypography
+            variant="h3"
+            className={[
+              "!text-[0.9375rem] !font-semibold",
+              message || children ? "!mb-1" : "!mb-0",
+              variant === "filled" ? "!text-white" : "!text-[var(--text-primary)]",
+            ].join(" ")}
           >
             {title}
-          </Typography>
+          </JXTypography>
         )}
         {message && (
-          <Typography
-            sx={{
-              fontSize: "0.875rem",
-              lineHeight: 1.5,
-              color:
-                variant === "filled"
-                  ? "rgba(255, 255, 255, 0.9)"
-                  : "var(--text-secondary)",
-            }}
+          <JXTypography
+            variant="body"
+            className={[
+              "!text-[0.875rem] !leading-[1.5]",
+              variant === "filled" ? "!text-white/90" : "!text-[var(--text-secondary)]",
+            ].join(" ")}
           >
             {message}
-          </Typography>
+          </JXTypography>
         )}
         {children && (
-          <Box
-            sx={{
-              fontSize: "0.875rem",
-              lineHeight: 1.5,
+          <div
+            className="text-[0.875rem] leading-[1.5]"
+            style={{
               color:
                 variant === "filled"
                   ? "rgba(255, 255, 255, 0.9)"
@@ -173,44 +162,40 @@ export default function Alert({
             }}
           >
             {children}
-          </Box>
+          </div>
         )}
-      </Box>
+      </div>
 
       {/* Action */}
       {action && (
-        <Box sx={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
+        <div className="flex shrink-0 items-center">
           {action}
-        </Box>
+        </div>
       )}
 
       {/* Close Button */}
       {onClose && (
         <Tooltip title="Close alert">
-          <IconButton
+          <JXButton
+            type="button"
+            variant="text"
+            size="sm"
+            spring
             aria-label="Close alert"
-            size="small"
             onClick={onClose}
-            sx={{
+            className="!min-w-0 !h-8 !w-8 !p-0 -mt-1 -mr-1 shrink-0 !rounded-lg hover:!bg-black/[0.06]"
+            style={{
               color:
                 variant === "filled"
-                  ? "rgba(255, 255, 255, 0.7)"
+                  ? "rgba(255, 255, 255, 0.8)"
                   : config.color,
-              flexShrink: 0,
-              mt: -0.5,
-              mr: -0.5,
-              "&:hover": {
-                bgcolor:
-                  variant === "filled"
-                    ? "rgba(255, 255, 255, 0.1)"
-                    : "rgba(0, 0, 0, 0.04)",
-              },
+              fontFamily: "inherit",
             }}
           >
             <Close sx={{ fontSize: 18 }} />
-          </IconButton>
+          </JXButton>
         </Tooltip>
       )}
-    </Box>
+    </JXBox>
   );
 }

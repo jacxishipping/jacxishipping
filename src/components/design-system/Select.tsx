@@ -6,10 +6,9 @@ import {
   FormControl,
   InputLabel,
   SelectChangeEvent,
-  Box,
-  Typography,
   InputAdornment,
 } from '@mui/material';
+import { JXBox, JXTypography } from '@jacxishippingorg/jx-ui-react';
 import { ReactNode } from 'react';
 import { ExpandMore } from '@mui/icons-material';
 import { useTheme } from '@/hooks/useTheme';
@@ -65,29 +64,24 @@ export default function Select({
   };
 
   return (
-    <Box className="ds-select">
+    <JXBox padding="none" border={false} className="ds-select !rounded-none !bg-transparent" style={{ fontFamily: 'inherit' }}>
       {/* Label */}
-      <Typography
-        component="label"
+      <label
         htmlFor={id}
-        sx={{
-          display: 'block',
+        className="block font-medium"
+        style={{
           fontSize: isCompact ? '0.775rem' : '0.875rem',
-          fontWeight: 500,
           color: error ? 'var(--error)' : 'var(--text-primary)',
-          mb: isCompact ? 0.35 : 1,
+          marginBottom: isCompact ? '0.175rem' : '0.5rem',
         }}
       >
         {label}
         {required && (
-          <Typography
-            component="span"
-            sx={{ color: 'var(--error)', ml: 0.5 }}
-          >
+          <span style={{ color: 'var(--error)', marginLeft: '0.25rem' }}>
             *
-          </Typography>
+          </span>
         )}
-      </Typography>
+      </label>
 
       {/* Select */}
       <FormControl fullWidth={fullWidth} error={error} disabled={disabled} size={size === 'medium' && isCompact ? 'small' : size}>
@@ -99,9 +93,9 @@ export default function Select({
           startAdornment={
             leftIcon ? (
               <InputAdornment position="start">
-                <Box sx={{ display: 'flex', color: 'var(--text-secondary)' }}>
+                <span className="flex text-[var(--text-secondary)]">
                   {leftIcon}
-                </Box>
+                </span>
               </InputAdornment>
             ) : undefined
           }
@@ -144,9 +138,9 @@ export default function Select({
         >
           {placeholder && (
             <MenuItem value="" disabled>
-              <Typography sx={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+              <JXTypography variant="body" className="!text-[0.875rem] !text-[var(--text-secondary)]">
                 {placeholder}
-              </Typography>
+              </JXTypography>
             </MenuItem>
           )}
           {options.map((option) => (
@@ -173,9 +167,9 @@ export default function Select({
               }}
             >
               {option.icon && (
-                <Box sx={{ display: 'flex', alignItems: 'center', mr: 1.5 }}>
+                <span className="mr-3 flex items-center">
                   {option.icon}
-                </Box>
+                </span>
               )}
               {option.label}
             </MenuItem>
@@ -185,16 +179,16 @@ export default function Select({
 
       {/* Helper Text */}
       {helperText && (
-        <Typography
-          sx={{
-            fontSize: '0.75rem',
-            color: error ? 'var(--error)' : 'var(--text-secondary)',
-            mt: 0.5,
-          }}
+        <JXTypography
+          variant="caption"
+          className={[
+            "!mt-1 !block !text-[0.75rem]",
+            error ? "!text-[var(--error)]" : "!text-[var(--text-secondary)]",
+          ].join(" ")}
         >
           {helperText}
-        </Typography>
+        </JXTypography>
       )}
-    </Box>
+    </JXBox>
   );
 }

@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { Add, Search, Inventory2, Description } from '@mui/icons-material';
-import { Box, Typography, Fade } from '@mui/material';
+import { Fade } from '@mui/material';
+import { JXBox, JXTypography } from '@jacxishippingorg/jx-ui-react';
 import type { SvgIconComponent } from '@mui/icons-material';
 
 const actions = [
@@ -71,40 +72,29 @@ type QuickActionsProps = {
 export default function QuickActions({ showHeading = false }: QuickActionsProps = {}) {
 	return (
 		<Fade in timeout={600}>
-			<Box>
+			<div>
 				{showHeading && (
-					<Box sx={{ mb: 1 }}>
-					<Typography
-						sx={{
-							fontSize: '0.8rem',
-							textTransform: 'uppercase',
-							letterSpacing: '0.2em',
-							color: 'var(--text-secondary)',
-						}}
-					>
+					<div className="mb-2">
+						<JXTypography
+							variant="caption"
+							className="!block !text-[0.8rem] !uppercase !tracking-[0.2em] !text-[var(--text-secondary)]"
+						>
 							Action Center
-						</Typography>
-					<Typography sx={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600 }}>
+						</JXTypography>
+						<JXTypography
+							variant="body"
+							className="!block !text-[0.85rem] !font-semibold !text-[var(--text-primary)]"
+						>
 							Start a workflow
-						</Typography>
-					</Box>
+						</JXTypography>
+					</div>
 				)}
-				<Box
-					sx={{
-						display: 'grid',
-						gridTemplateColumns: {
-							xs: 'repeat(2, minmax(0, 1fr))',
-							sm: 'repeat(2, minmax(0, 1fr))',
-							md: 'repeat(2, minmax(0, 1fr))',
-						},
-						gap: 1,
-					}}
-				>
+				<div className="grid grid-cols-2 gap-2">
 					{actions.map((action) => (
 						<ActionCard key={action.title} {...action} />
 					))}
-				</Box>
-			</Box>
+				</div>
+			</div>
 		</Fade>
 	);
 }
@@ -127,69 +117,41 @@ interface ActionCardProps {
 function ActionCard({ icon: Icon, title, description, href, colorValues }: ActionCardProps) {
 	return (
 		<Link href={href} style={{ textDecoration: 'none' }}>
-			<Box
-				sx={{
-					borderRadius: 2,
-					border: `1px solid ${colorValues.border}`,
-					background: 'var(--panel)',
-					boxShadow: `0 12px 24px rgba(var(--text-primary-rgb), 0.08)`,
-					padding: 1,
-					display: 'flex',
-					flexDirection: 'column',
-					gap: 0.5,
-					minHeight: 92,
-					transition: 'border-color 0.2s ease, transform 0.2s ease',
-					'&:hover': {
-						borderColor: colorValues.borderHover,
-						transform: 'translateY(-2px)',
-					},
+			<JXBox
+				surface="elevated"
+				padding="none"
+				className="flex min-h-[92px] flex-col gap-1 !rounded-lg p-2 transition-all duration-200 hover:-translate-y-0.5 hover:!border-[rgba(var(--accent-gold-rgb),0.8)]"
+				style={{
+					borderColor: colorValues.border,
+					backgroundColor: 'var(--panel)',
+					boxShadow: '0 12px 24px rgba(var(--text-primary-rgb), 0.08)',
+					fontFamily: 'inherit',
 				}}
 			>
-				<Box
-					sx={{
-						display: 'flex',
-						alignItems: 'center',
-						gap: 0.75,
-					}}
-				>
-					<Box
-						sx={{
-							width: 28,
-							height: 28,
-							borderRadius: 1,
+				<div className="flex items-center gap-1.5">
+					<div
+						className="flex h-7 w-7 shrink-0 items-center justify-center rounded"
+						style={{
 							border: `1px solid ${colorValues.border}`,
 							background: 'rgba(var(--text-secondary-rgb), 0.15)',
-							display: 'flex',
-							alignItems: 'center',
-							justifyContent: 'center',
 						}}
 					>
 						<Icon sx={{ fontSize: 16, color: colorValues.text }} />
-					</Box>
-					<Typography
-						sx={{
-							fontSize: '0.78rem',
-							fontWeight: 600,
-							color: 'var(--text-primary)',
-							overflow: 'hidden',
-							textOverflow: 'ellipsis',
-							whiteSpace: 'nowrap',
-						}}
+					</div>
+					<JXTypography
+						variant="body"
+						className="!truncate !text-[0.78rem] !font-semibold !text-[var(--text-primary)]"
 					>
 						{title}
-					</Typography>
-				</Box>
-				<Typography
-					sx={{
-						fontSize: '0.68rem',
-							color: 'var(--text-secondary)',
-						lineHeight: 1.4,
-						flex: 1,
-					}}
+					</JXTypography>
+				</div>
+				<JXTypography
+					variant="caption"
+					className="!flex-1 !text-[0.68rem] !leading-[1.4] !text-[var(--text-secondary)]"
 				>
 					{description}
-				</Typography>
-			</Box>
+				</JXTypography>
+			</JXBox>
 		</Link>
 	);
 }

@@ -17,6 +17,7 @@ import {
   Pie,
 } from 'recharts';
 import { Activity, BarChart3, PieChart as PieIcon, Layers, TrendingUp, TrendingDown } from 'lucide-react';
+import { SpringButton } from '@jacxishippingorg/jx-ui-react';
 import { DashboardPanel } from '@/components/dashboard/DashboardSurface';
 
 type TrendPoint = {
@@ -148,63 +149,71 @@ export default function DashboardOperationsChart({
         <div className="flex items-center gap-2 flex-wrap">
           {/* Main Tab Switcher */}
           <div className="flex items-center gap-1 rounded-xl border border-[var(--border)] bg-[var(--background)] p-1 text-xs">
-            <button
+            <SpringButton
               type="button"
+              variant="outline"
               onClick={() => setActiveTab('trends')}
-              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 font-medium transition-all cursor-pointer ${
+              style={{ fontFamily: 'inherit' }}
+              className={`!inline-flex !items-center !gap-1.5 !rounded-lg !px-2.5 !py-1 !text-xs !font-medium !border-transparent shadow-none transition-all cursor-pointer ${
                 activeTab === 'trends'
-                  ? 'bg-[var(--panel)] text-[var(--accent-gold)] shadow-xs'
-                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                  ? '!bg-[var(--panel)] !text-[var(--accent-gold-text)] shadow-xs'
+                  : '!bg-transparent !text-[var(--text-secondary)] hover:!text-[var(--text-primary)]'
               }`}
             >
               <Activity className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Movement Trends</span>
               <span className="sm:hidden">Trends</span>
-            </button>
-            <button
+            </SpringButton>
+            <SpringButton
               type="button"
+              variant="outline"
               onClick={() => setActiveTab('status')}
-              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 font-medium transition-all cursor-pointer ${
+              style={{ fontFamily: 'inherit' }}
+              className={`!inline-flex !items-center !gap-1.5 !rounded-lg !px-2.5 !py-1 !text-xs !font-medium !border-transparent shadow-none transition-all cursor-pointer ${
                 activeTab === 'status'
-                  ? 'bg-[var(--panel)] text-[var(--accent-gold)] shadow-xs'
-                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                  ? '!bg-[var(--panel)] !text-[var(--accent-gold-text)] shadow-xs'
+                  : '!bg-transparent !text-[var(--text-secondary)] hover:!text-[var(--text-primary)]'
               }`}
             >
               <PieIcon className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Pipeline Status</span>
               <span className="sm:hidden">Pipeline</span>
-            </button>
-            <button
+            </SpringButton>
+            <SpringButton
               type="button"
+              variant="outline"
               onClick={() => setActiveTab('containers')}
-              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 font-medium transition-all cursor-pointer ${
+              style={{ fontFamily: 'inherit' }}
+              className={`!inline-flex !items-center !gap-1.5 !rounded-lg !px-2.5 !py-1 !text-xs !font-medium !border-transparent shadow-none transition-all cursor-pointer ${
                 activeTab === 'containers'
-                  ? 'bg-[var(--panel)] text-[var(--accent-gold)] shadow-xs'
-                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                  ? '!bg-[var(--panel)] !text-[var(--accent-gold-text)] shadow-xs'
+                  : '!bg-transparent !text-[var(--text-secondary)] hover:!text-[var(--text-primary)]'
               }`}
             >
               <Layers className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Container Capacity</span>
               <span className="sm:hidden">Capacity</span>
-            </button>
+            </SpringButton>
           </div>
 
           {/* Dynamic Period Selector for Trends (7D / 14D / 30D) */}
           {activeTab === 'trends' && (
             <div className="flex items-center gap-0.5 rounded-lg border border-[var(--border)] bg-[var(--background)] p-0.5 text-[11px]">
               {(['7d', '14d', '30d'] as const).map((period) => (
-                <button
+                <SpringButton
                   key={period}
                   type="button"
+                  variant="outline"
                   onClick={() => setTrendPeriod(period)}
-                  className={`px-2 py-0.5 rounded-md font-semibold transition-all cursor-pointer ${
+                  style={{ fontFamily: 'inherit' }}
+                  className={`!px-2 !py-0.5 !rounded-md !text-[11px] !font-semibold shadow-none transition-all cursor-pointer ${
                     trendPeriod === period
-                      ? 'bg-[var(--panel)] text-[var(--accent-gold)] shadow-xs border border-[var(--border)]'
-                      : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                      ? '!bg-[var(--panel)] !text-[var(--accent-gold-text)] shadow-xs !border !border-[var(--border)]'
+                      : '!bg-transparent !border-transparent !text-[var(--text-secondary)] hover:!text-[var(--text-primary)]'
                   }`}
                 >
                   {period.toUpperCase()}
-                </button>
+                </SpringButton>
               ))}
             </div>
           )}

@@ -1,6 +1,7 @@
 "use client";
 
 import { Box, Typography, Fade } from '@mui/material';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
 import { ReactNode, useState, useEffect } from 'react';
 import { useTheme } from '@/hooks/useTheme';
 
@@ -110,32 +111,19 @@ export default function StatsCard({
 
 	return (
 		<Fade in={isVisible} timeout={600}>
-			<Box
+			<JXBox
 				component="article"
-				className="stats-card hover-lift"
-				sx={{
-				height: '100%',
-				borderRadius: isCompact ? 1.5 : 2,
-				border: '1px solid var(--border)',
-				borderLeft: variant === 'default' ? '3px solid var(--accent-gold)' : undefined,
-				background: 'var(--panel)',
-				padding: sizes.padding,
-			display: 'flex',
-				alignItems: 'center',
-				gap: isCompact ? 1 : 1.5,
-				position: 'relative',
-				zIndex: 1,
-				overflow: 'hidden',
-				minWidth: 0,
-				width: '100%',
-				boxSizing: 'border-box',
-				boxShadow: '0 1px 3px rgba(15, 23, 42, 0.05), 0 1px 2px rgba(15, 23, 42, 0.03)',
-				transition: 'transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease',
-				'&:hover': {
-					zIndex: 2,
-					borderColor: 'rgba(var(--accent-gold-rgb), 0.35)',
-					boxShadow: '0 10px 24px -6px rgba(15, 23, 42, 0.08)',
-				},
+				surface="elevated"
+				padding="none"
+				className="stats-card hover-lift relative z-[1] hover:z-[2] flex h-full w-full min-w-0 items-center overflow-hidden !bg-[var(--panel)] !border-[var(--border)] hover:!border-[rgba(var(--accent-gold-rgb),0.35)]"
+				style={{
+					borderRadius: isCompact ? '12px' : '16px',
+					borderLeft: variant === 'default' ? '3px solid var(--accent-gold)' : undefined,
+					padding: `${sizes.padding * 8}px`,
+					gap: isCompact ? '8px' : '12px',
+					boxShadow: '0 1px 3px rgba(15, 23, 42, 0.05), 0 1px 2px rgba(15, 23, 42, 0.03)',
+					transition: 'transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease',
+					fontFamily: 'inherit',
 				}}
 			>
 				<Box
@@ -238,7 +226,7 @@ export default function StatsCard({
 						{Math.abs(trend.value)}%
 					</Box>
 				)}
-			</Box>
+			</JXBox>
 		</Fade>
 	);
 }

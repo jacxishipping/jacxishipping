@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Activity, Calculator, Truck, Bot, ArrowRight } from 'lucide-react';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
 import Modal from '@/components/design-system/Modal';
 import ShipmentCalculator from '@/components/dashboard/ShipmentCalculator';
 import DashboardAiBrief from '@/components/dashboard/DashboardAiBrief';
@@ -62,21 +63,29 @@ export default function DashboardMore({
 
           {/* Rate Calculator */}
           <button
+            type="button"
             onClick={() => setShowCalculator(true)}
-            className="group flex flex-col rounded-lg border border-[var(--border)] bg-[var(--background)] p-3 text-left hover:border-[var(--accent-gold)]/30 transition-all"
+            style={{ fontFamily: 'inherit' }}
+            className="group flex text-left cursor-pointer border-0 bg-transparent p-0"
           >
-            <div className="flex items-start justify-between">
-              <div className="rounded-md p-2 bg-[rgba(var(--success-rgb),0.1)] text-[var(--success)]">
-                <Calculator className="h-4 w-4" />
+            <JXBox
+              surface="subtle"
+              padding="none"
+              className="flex h-full w-full flex-col !rounded-lg !border-[var(--border)] !bg-[var(--background)] p-3 text-left group-hover:!border-[rgba(var(--accent-gold-rgb),0.4)] transition-all shadow-none"
+            >
+              <div className="flex w-full items-start justify-between">
+                <div className="rounded-md p-2 bg-[rgba(var(--success-rgb),0.1)] text-[var(--success)]">
+                  <Calculator className="h-4 w-4" />
+                </div>
+                <ArrowRight className="h-4 w-4 text-[var(--text-secondary)] group-hover:text-[var(--accent-gold-text)] transition-colors" />
               </div>
-              <ArrowRight className="h-4 w-4 text-[var(--text-secondary)] group-hover:text-[var(--accent-gold)] transition-colors" />
-            </div>
-            <div className="mt-3">
-              <div className="font-semibold text-[var(--text-primary)]">Rate Calculator</div>
-              <div className="text-xs text-[var(--text-secondary)] mt-1">
-                Instant quotes using current company price lists
+              <div className="mt-3">
+                <div className="font-semibold text-[var(--text-primary)]">Rate Calculator</div>
+                <div className="text-xs text-[var(--text-secondary)] mt-1">
+                  Instant quotes using current company price lists
+                </div>
               </div>
-            </div>
+            </JXBox>
           </button>
 
           {/* Pipeline */}
@@ -102,21 +111,29 @@ export default function DashboardMore({
 
           {/* AI Brief */}
           <button
+            type="button"
             onClick={() => setShowAi(true)}
-            className="group flex flex-col rounded-lg border border-[var(--border)] bg-[var(--background)] p-3 text-left hover:border-[var(--accent-gold)]/30 transition-all"
+            style={{ fontFamily: 'inherit' }}
+            className="group flex text-left cursor-pointer border-0 bg-transparent p-0"
           >
-            <div className="flex items-start justify-between">
-              <div className="rounded-md p-2 bg-[rgba(var(--accent-gold-rgb),0.1)] text-[var(--accent-gold)]">
-                <Bot className="h-4 w-4" />
+            <JXBox
+              surface="subtle"
+              padding="none"
+              className="flex h-full w-full flex-col !rounded-lg !border-[var(--border)] !bg-[var(--background)] p-3 text-left group-hover:!border-[rgba(var(--accent-gold-rgb),0.4)] transition-all shadow-none"
+            >
+              <div className="flex w-full items-start justify-between">
+                <div className="rounded-md p-2 bg-[rgba(var(--accent-gold-rgb),0.1)] text-[var(--accent-gold-text)]">
+                  <Bot className="h-4 w-4" />
+                </div>
+                <ArrowRight className="h-4 w-4 text-[var(--text-secondary)] group-hover:text-[var(--accent-gold-text)] transition-colors" />
               </div>
-              <ArrowRight className="h-4 w-4 text-[var(--text-secondary)] group-hover:text-[var(--accent-gold)] transition-colors" />
-            </div>
-            <div className="mt-3">
-              <div className="font-semibold text-[var(--text-primary)]">AI Ops Brief</div>
-              <div className="text-xs text-[var(--text-secondary)] mt-1">
-                Multi-mode summary • exceptions, finance, dispatch
+              <div className="mt-3">
+                <div className="font-semibold text-[var(--text-primary)]">AI Ops Brief</div>
+                <div className="text-xs text-[var(--text-secondary)] mt-1">
+                  Multi-mode summary • exceptions, finance, dispatch
+                </div>
               </div>
-            </div>
+            </JXBox>
           </button>
         </div>
       </div>

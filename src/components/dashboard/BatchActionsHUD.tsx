@@ -15,6 +15,7 @@ import {
   QrCode,
   Sparkles
 } from 'lucide-react';
+import { JXBox, SpringButton } from '@jacxishippingorg/jx-ui-react';
 import { toast } from '@/components/design-system';
 import { openUniversalShipmentExport } from '@/components/shipments/UniversalShipmentExportModal';
 
@@ -90,7 +91,12 @@ export function BatchActionsHUD({
 
   return (
     <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-2xl animate-slide-up">
-      <div className="flex flex-wrap items-center justify-between gap-3 p-3 px-4 rounded-2xl bg-[var(--panel)] border-2 border-[var(--accent-gold)] shadow-2xl backdrop-blur-lg">
+      <JXBox
+        surface="elevated"
+        padding="none"
+        className="flex flex-wrap items-center justify-between gap-3 p-3 px-4 !rounded-2xl !bg-[var(--panel)] !border-2 !border-[var(--accent-gold)] shadow-2xl backdrop-blur-lg"
+        style={{ fontFamily: 'inherit' }}
+      >
         {/* Selection Count Badge */}
         <div className="flex items-center gap-2.5">
           <div className="flex items-center justify-center w-7 h-7 rounded-xl bg-[var(--accent-gold)] text-white font-bold text-xs shadow-sm">
@@ -109,56 +115,76 @@ export function BatchActionsHUD({
         {/* Action Buttons */}
         <div className="flex items-center gap-1.5 flex-wrap">
           {/* Batch Thermal QR Button */}
-          <button
+          <SpringButton
+            type="button"
+            variant="outline"
+            tone="primary"
             onClick={handlePrintLabels}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[var(--border)] bg-[var(--background)] hover:border-[var(--accent-gold)] text-xs font-semibold text-[var(--text-primary)] transition-all shadow-sm"
+            style={{ fontFamily: 'inherit' }}
+            className="flex items-center gap-1.5 !h-auto !min-h-0 !px-3 !py-1.5 !rounded-xl !border !border-[var(--border)] !bg-[var(--background)] hover:!border-[var(--accent-gold)] !text-xs !font-semibold !text-[var(--text-primary)] shadow-sm"
             title="Batch Print 4x6 Thermal Yard QR Stickers"
           >
             <QrCode className="w-3.5 h-3.5 text-[var(--accent-gold)]" />
             <span>Thermal Badges</span>
-          </button>
+          </SpringButton>
 
           {/* Bulk Assign Container */}
           {onBulkAssignContainer && (
-            <button
+            <SpringButton
+              type="button"
+              variant="outline"
+              tone="primary"
               onClick={onBulkAssignContainer}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[var(--border)] bg-[var(--background)] hover:border-[var(--accent-gold)] text-xs font-semibold text-[var(--text-primary)] transition-all shadow-sm"
+              style={{ fontFamily: 'inherit' }}
+              className="flex items-center gap-1.5 !h-auto !min-h-0 !px-3 !py-1.5 !rounded-xl !border !border-[var(--border)] !bg-[var(--background)] hover:!border-[var(--accent-gold)] !text-xs !font-semibold !text-[var(--text-primary)] shadow-sm"
             >
               <Package className="w-3.5 h-3.5 text-amber-500" />
               <span>Assign Container</span>
-            </button>
+            </SpringButton>
           )}
 
           {/* Consolidated Manifest Export */}
-          <button
+          <SpringButton
+            type="button"
+            variant="outline"
+            tone="primary"
             onClick={handleExportManifest}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[var(--border)] bg-[var(--background)] hover:border-[var(--accent-gold)] text-xs font-semibold text-[var(--text-primary)] transition-all shadow-sm"
+            style={{ fontFamily: 'inherit' }}
+            className="flex items-center gap-1.5 !h-auto !min-h-0 !px-3 !py-1.5 !rounded-xl !border !border-[var(--border)] !bg-[var(--background)] hover:!border-[var(--accent-gold)] !text-xs !font-semibold !text-[var(--text-primary)] shadow-sm"
           >
             <Download className="w-3.5 h-3.5 text-blue-500" />
             <span>Export Manifest</span>
-          </button>
+          </SpringButton>
 
           {/* Bulk Notification */}
           {onBulkMessage && (
-            <button
+            <SpringButton
+              type="button"
+              variant="outline"
+              tone="primary"
               onClick={onBulkMessage}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[var(--border)] bg-[var(--background)] hover:border-[var(--accent-gold)] text-xs font-semibold text-[var(--text-primary)] transition-all shadow-sm"
+              style={{ fontFamily: 'inherit' }}
+              className="flex items-center gap-1.5 !h-auto !min-h-0 !px-3 !py-1.5 !rounded-xl !border !border-[var(--border)] !bg-[var(--background)] hover:!border-[var(--accent-gold)] !text-xs !font-semibold !text-[var(--text-primary)] shadow-sm"
             >
               <MessageSquare className="w-3.5 h-3.5 text-emerald-500" />
               <span>Notify</span>
-            </button>
+            </SpringButton>
           )}
 
           {/* Clear Selection X Button */}
-          <button
+          <SpringButton
+            type="button"
+            variant="outline"
+            tone="primary"
             onClick={onClearSelection}
-            className="p-1.5 rounded-xl text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--background)] transition-colors ml-1"
+            style={{ fontFamily: 'inherit' }}
+            className="!h-auto !min-h-0 !p-1.5 !rounded-xl !border-0 !bg-transparent !text-[var(--text-secondary)] hover:!text-[var(--text-primary)] hover:!bg-[var(--background)] ml-1 !shadow-none"
             title="Deselect all"
           >
             <X className="w-4 h-4" />
-          </button>
+          </SpringButton>
         </div>
-      </div>
+      </JXBox>
     </div>
   );
 }

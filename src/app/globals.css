@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@source "../../node_modules/@jacxishippingorg/jx-ui-react/dist-lib";
 
 /* Smooth Scroll Behavior */
 html {

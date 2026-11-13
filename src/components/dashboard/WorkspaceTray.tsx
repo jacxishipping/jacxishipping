@@ -15,6 +15,7 @@ import {
   ExternalLink,
   Download
 } from 'lucide-react';
+import { JXBox, SpringButton } from '@jacxishippingorg/jx-ui-react';
 import { openUniversalShipmentExport } from '@/components/shipments/UniversalShipmentExportModal';
 
 export interface WorkspaceItem {
@@ -97,7 +98,12 @@ export function WorkspaceTray() {
 
   return (
     <div className="hidden sm:block fixed bottom-[calc(76px+env(safe-area-inset-bottom,0px))] lg:bottom-3 right-3 sm:right-4 z-40 max-w-xl w-[calc(100%-24px)] sm:w-auto">
-      <div className="rounded-2xl bg-[var(--panel)] border border-[var(--border)] shadow-xl overflow-hidden backdrop-blur-md transition-all duration-300">
+      <JXBox
+        surface="elevated"
+        padding="none"
+        className="!rounded-2xl !bg-[var(--panel)] !border-[var(--border)] shadow-xl overflow-hidden backdrop-blur-md transition-all duration-300"
+        style={{ fontFamily: 'inherit' }}
+      >
         {/* Collapsed Header Bar */}
         <div 
           onClick={() => setExpanded(!expanded)}
@@ -133,18 +139,22 @@ export function WorkspaceTray() {
               const Icon = getItemIcon(item.type);
               const isActive = pathname === item.url;
               return (
-                <button
+                <SpringButton
                   key={`${item.type}-${item.id}`}
+                  type="button"
+                  variant={isActive ? 'solid' : 'outline'}
+                  tone="primary"
                   onClick={() => router.push(item.url)}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border transition-all whitespace-nowrap ${
+                  style={{ fontFamily: 'inherit' }}
+                  className={`flex items-center gap-1.5 !h-auto !min-h-0 !px-2.5 !py-1 !rounded-lg !text-xs !font-medium !border whitespace-nowrap !shadow-none ${
                     isActive
-                      ? 'bg-[var(--accent-gold)] text-white border-[var(--accent-gold)]'
-                      : 'bg-[var(--background)] text-[var(--text-primary)] border-[var(--border)] hover:border-[var(--accent-gold)]/40'
+                      ? '!bg-[var(--accent-gold)] !text-white !border-[var(--accent-gold)]'
+                      : '!bg-[var(--background)] !text-[var(--text-primary)] !border-[var(--border)] hover:!border-[var(--accent-gold)]/40'
                   }`}
                 >
                   <Icon className="w-3 h-3 shrink-0" />
                   <span className="truncate max-w-[120px]">{item.title}</span>
-                </button>
+                </SpringButton>
               );
             })}
           </div>
@@ -201,19 +211,23 @@ export function WorkspaceTray() {
 
         {expanded && (
           <div className="p-2 border-t border-[var(--border)] bg-[var(--background)] flex items-center justify-between gap-2">
-            <button
+            <SpringButton
+              type="button"
+              variant="solid"
+              tone="primary"
               onClick={() => {
                 const shipmentIds = items.filter(i => i.type === 'shipment').map(i => i.id);
                 openUniversalShipmentExport(shipmentIds.length > 0 ? { shipmentIds, title: 'Export Recent Shipments' } : {});
               }}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl bg-[var(--accent-gold)] text-white hover:brightness-105 transition-all w-full justify-center shadow-xs"
+              style={{ fontFamily: 'inherit' }}
+              className="flex items-center gap-1.5 !h-auto !min-h-0 !px-3 !py-1.5 !text-xs !font-semibold !rounded-xl !border-0 !bg-[var(--accent-gold)] !text-white hover:brightness-105 w-full justify-center shadow-xs"
             >
               <Download className="w-3.5 h-3.5" />
               <span>Export Shipments (Excel / CSV)</span>
-            </button>
+            </SpringButton>
           </div>
         )}
-      </div>
+      </JXBox>
     </div>
   );
 }

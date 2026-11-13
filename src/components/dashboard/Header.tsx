@@ -6,17 +6,15 @@ import { useRouter } from "next/navigation";
 import {
   AppBar,
   Toolbar,
-  Box,
   Typography,
-  IconButton,
   Avatar,
   Menu,
   MenuItem,
-  Divider,
   Tooltip,
   ListItemIcon,
   ListItemText,
 } from "@mui/material";
+import { JXBox, JXDivider, SpringButton } from "@jacxishippingorg/jx-ui-react";
 import {
   Settings,
   Logout,
@@ -163,23 +161,20 @@ export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
         }}
       >
         {/* Mobile Menu Button */}
-        <IconButton
-          edge="start"
-          color="inherit"
+        <SpringButton
+          type="button"
+          variant="outline"
+          tone="primary"
           aria-label="Open mobile menu"
           onClick={onMenuClick}
-          sx={{
-            mr: 1,
-            display: { xs: "flex", lg: "none" },
-            color: "var(--text-primary)",
-            p: 0.75,
-          }}
+          style={{ fontFamily: "inherit" }}
+          className="mr-2 flex lg:hidden !h-9 !w-9 !min-h-0 !min-w-0 items-center justify-center !rounded-lg !border-0 !bg-transparent !p-1.5 !text-[var(--text-primary)] hover:!bg-[rgba(var(--accent-gold-rgb),0.1)] !shadow-none"
         >
           <MenuIcon sx={{ fontSize: 22 }} />
-        </IconButton>
+        </SpringButton>
 
         {/* Logo/Title */}
-        <Box sx={{ display: "flex", alignItems: "center", flexGrow: 1 }}>
+        <JXBox padding="none" border={false} className="flex flex-grow items-center !rounded-none !bg-transparent" style={{ fontFamily: "inherit" }}>
           <Link
             href="/dashboard"
             style={{
@@ -199,14 +194,9 @@ export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
           {/* Page Title (if provided) */}
           {pageTitle && (
             <>
-              <Divider
-                orientation="vertical"
-                flexItem
-                sx={{
-                  mx: 1.5,
-                  borderColor: "var(--border)",
-                  display: { xs: "none", md: "block" },
-                }}
+              <div
+                aria-hidden="true"
+                className="hidden md:block mx-3 h-5 w-px bg-[var(--border)] shrink-0"
               />
               <Typography
                 sx={{
@@ -220,89 +210,81 @@ export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
               </Typography>
             </>
           )}
-        </Box>
+        </JXBox>
 
         {/* Right Actions */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 0.25 }}>
+        <JXBox padding="none" border={false} className="flex items-center gap-0.5 !rounded-none !bg-transparent" style={{ fontFamily: "inherit" }}>
           {/* Global Search (⌘K on desktop, icon button on mobile) */}
-          <Box sx={{ display: { xs: "none", sm: "flex" }, mr: 0.5 }}>
+          <JXBox padding="none" border={false} className="hidden sm:flex mr-1 !rounded-none !bg-transparent" style={{ fontFamily: "inherit" }}>
             <GlobalSearch />
-          </Box>
+          </JXBox>
           <Tooltip title="Search">
-            <IconButton
-              onClick={() =>
-                window.dispatchEvent(new CustomEvent("open-global-search"))
-              }
-              sx={{
-                display: { xs: "inline-flex", sm: "none" },
-                color: "var(--text-secondary)",
-                p: 0.75,
-                "&:hover": {
-                  color: "var(--text-primary)",
-                  bgcolor: "rgba(var(--accent-gold-rgb), 0.1)",
-                },
-              }}
-              aria-label="Search"
-            >
-              <SearchIcon sx={{ fontSize: 22 }} />
-            </IconButton>
+            <span className="inline-flex sm:hidden">
+              <SpringButton
+                type="button"
+                variant="outline"
+                tone="primary"
+                onClick={() =>
+                  window.dispatchEvent(new CustomEvent("open-global-search"))
+                }
+                style={{ fontFamily: "inherit" }}
+                className="!h-9 !w-9 !min-h-0 !min-w-0 !rounded-lg !border-0 !bg-transparent !p-1.5 !text-[var(--text-secondary)] hover:!text-[var(--text-primary)] hover:!bg-[rgba(var(--accent-gold-rgb),0.1)] !shadow-none"
+                aria-label="Search"
+              >
+                <SearchIcon sx={{ fontSize: 22 }} />
+              </SpringButton>
+            </span>
           </Tooltip>
           {quickActions.length > 0 && (
             <Tooltip title="Quick Actions">
-              <IconButton
-                onClick={handleQuickActionOpen}
-                aria-label="Quick Actions"
-                sx={{
-                  color: "var(--accent-gold)",
-                  p: 0.75,
-                  mr: 0.25,
-                  "&:hover": {
-                    bgcolor: "rgba(var(--accent-gold-rgb), 0.1)",
-                    boxShadow: "0 0 0 1px rgba(var(--accent-gold-rgb), 0.2)",
-                  },
-                }}
-              >
-                <AddIcon sx={{ fontSize: 22 }} />
-              </IconButton>
+              <span className="inline-flex mr-0.5">
+                <SpringButton
+                  type="button"
+                  variant="outline"
+                  tone="primary"
+                  onClick={handleQuickActionOpen}
+                  aria-label="Quick Actions"
+                  style={{ fontFamily: "inherit" }}
+                  className="!h-9 !w-9 !min-h-0 !min-w-0 !rounded-lg !border-0 !bg-transparent !p-1.5 !text-[var(--accent-gold-text)] hover:!bg-[rgba(var(--accent-gold-rgb),0.1)] hover:!shadow-[0_0_0_1px_rgba(var(--accent-gold-rgb),0.2)] !shadow-none"
+                >
+                  <AddIcon sx={{ fontSize: 22 }} />
+                </SpringButton>
+              </span>
             </Tooltip>
           )}
 
           {/* Quick Universal Export Shipments Button */}
           <Tooltip title="Export Shipments (Excel/CSV)">
-            <IconButton
-              onClick={() => openUniversalShipmentExport()}
-              sx={{
-                color: "var(--text-secondary)",
-                p: 0.75,
-                mr: 0.25,
-                "&:hover": {
-                  color: "var(--accent-gold)",
-                  bgcolor: "rgba(var(--accent-gold-rgb), 0.1)",
-                },
-              }}
-              aria-label="Export Shipments"
-            >
-              <Download style={{ width: 20, height: 20 }} />
-            </IconButton>
+            <span className="inline-flex mr-0.5">
+              <SpringButton
+                type="button"
+                variant="outline"
+                tone="primary"
+                onClick={() => openUniversalShipmentExport()}
+                style={{ fontFamily: "inherit" }}
+                className="!h-9 !w-9 !min-h-0 !min-w-0 !rounded-lg !border-0 !bg-transparent !p-1.5 !text-[var(--text-secondary)] hover:!text-[var(--accent-gold-text)] hover:!bg-[rgba(var(--accent-gold-rgb),0.1)] !shadow-none"
+                aria-label="Export Shipments"
+              >
+                <Download style={{ width: 20, height: 20 }} />
+              </SpringButton>
+            </span>
           </Tooltip>
 
           {/* Keyboard Shortcuts */}
           <Tooltip title="Keyboard Shortcuts (?)">
-            <IconButton
-              onClick={toggleKeyboardShortcuts}
-              aria-label="Keyboard Shortcuts"
-              sx={{
-                color: "var(--text-secondary)",
-                p: 0.75,
-                display: { xs: "none", md: "inline-flex" },
-                "&:hover": {
-                  bgcolor: "rgba(var(--border-rgb), 0.4)",
-                  color: "var(--text-primary)",
-                },
-              }}
-            >
-              <KeyboardIcon sx={{ fontSize: 20 }} />
-            </IconButton>
+            <span className="hidden md:inline-flex">
+              <SpringButton
+                type="button"
+                variant="outline"
+                tone="primary"
+                onClick={toggleKeyboardShortcuts}
+                aria-label="Keyboard Shortcuts"
+                style={{ fontFamily: "inherit" }}
+                className="!h-9 !w-9 !min-h-0 !min-w-0 !rounded-lg !border-0 !bg-transparent !p-1.5 !text-[var(--text-secondary)] hover:!bg-[rgba(var(--border-rgb),0.4)] hover:!text-[var(--text-primary)] !shadow-none"
+              >
+                <KeyboardIcon sx={{ fontSize: 20 }} />
+              </SpringButton>
+            </span>
           </Tooltip>
 
           {/* Theme Toggle */}
@@ -313,49 +295,49 @@ export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
 
           {/* Settings */}
           <Tooltip title="Settings">
-            <Link href="/dashboard/settings" style={{ textDecoration: "none" }}>
-              <IconButton
+            <Link href="/dashboard/settings" style={{ textDecoration: "none" }} className="inline-flex">
+              <SpringButton
+                type="button"
+                variant="outline"
+                tone="primary"
                 aria-label="Settings"
-                sx={{
-                  color: "var(--text-secondary)",
-                  p: 0.75,
-                  "&:hover": {
-                    bgcolor: "rgba(var(--border-rgb), 0.4)",
-                    color: "var(--text-primary)",
-                  },
-                }}
+                style={{ fontFamily: "inherit" }}
+                className="!h-9 !w-9 !min-h-0 !min-w-0 !rounded-lg !border-0 !bg-transparent !p-1.5 !text-[var(--text-secondary)] hover:!bg-[rgba(var(--border-rgb),0.4)] hover:!text-[var(--text-primary)] !shadow-none"
               >
                 <Settings sx={{ fontSize: 20 }} />
-              </IconButton>
+              </SpringButton>
             </Link>
           </Tooltip>
 
           {/* Profile Menu */}
           <Tooltip title="Account">
-            <IconButton
-              onClick={handleProfileMenuOpen}
-              aria-label="Account profile"
-              sx={{
-                ml: 0.5,
-                p: 0.5,
-              }}
-            >
-              <Avatar
-                src={session?.user?.image || undefined}
-                sx={{
-                  width: 30,
-                  height: 30,
-                  bgcolor: "var(--accent-gold)",
-                  fontSize: "0.875rem",
-                  fontWeight: 600,
-                  color: "var(--background)",
-                }}
+            <span className="inline-flex ml-1">
+              <SpringButton
+                type="button"
+                variant="outline"
+                tone="primary"
+                onClick={handleProfileMenuOpen}
+                aria-label="Account profile"
+                style={{ fontFamily: "inherit" }}
+                className="!h-auto !w-auto !min-h-0 !min-w-0 !rounded-full !border-0 !bg-transparent !p-1 !shadow-none"
               >
-                {session?.user?.name?.charAt(0).toUpperCase() || "U"}
-              </Avatar>
-            </IconButton>
+                <Avatar
+                  src={session?.user?.image || undefined}
+                  sx={{
+                    width: 30,
+                    height: 30,
+                    bgcolor: "var(--accent-gold)",
+                    fontSize: "0.875rem",
+                    fontWeight: 600,
+                    color: "var(--background)",
+                  }}
+                >
+                  {session?.user?.name?.charAt(0).toUpperCase() || "U"}
+                </Avatar>
+              </SpringButton>
+            </span>
           </Tooltip>
-        </Box>
+        </JXBox>
 
         {/* Profile Dropdown Menu */}
         <Menu
@@ -377,7 +359,7 @@ export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
           anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
         >
           {/* User Info */}
-          <Box sx={{ px: 2, py: 1.5 }}>
+          <JXBox padding="none" border={false} className="px-4 py-3 !rounded-none !bg-transparent" style={{ fontFamily: "inherit" }}>
             <Typography
               sx={{
                 fontSize: "0.875rem",
@@ -399,7 +381,7 @@ export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
             <Typography
               sx={{
                 fontSize: "0.6875rem",
-                color: "var(--accent-gold)",
+                color: "var(--accent-gold-text)",
                 mt: 0.5,
                 textTransform: "uppercase",
                 fontWeight: 600,
@@ -407,9 +389,9 @@ export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
             >
               {session?.user?.role || "user"}
             </Typography>
-          </Box>
+          </JXBox>
 
-          <Divider sx={{ borderColor: "var(--border)" }} />
+          <JXDivider className="!border-[var(--border)]" />
 
           {/* Menu Items */}
           <Link href="/dashboard/profile" style={{ textDecoration: "none" }}>
@@ -446,7 +428,7 @@ export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
             </MenuItem>
           </Link>
 
-          <Divider sx={{ borderColor: "var(--border)" }} />
+          <JXDivider className="!border-[var(--border)]" />
 
           <MenuItem
             onClick={handleSignOut}
@@ -485,7 +467,7 @@ export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
             transformOrigin={{ horizontal: "right", vertical: "top" }}
             anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
           >
-            <Box sx={{ px: 2, py: 1.5, pb: 1 }}>
+            <JXBox padding="none" border={false} className="px-4 py-3 pb-2 !rounded-none !bg-transparent" style={{ fontFamily: "inherit" }}>
               <Typography
                 variant="subtitle2"
                 color="text.secondary"
@@ -495,7 +477,7 @@ export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
               >
                 Create New
               </Typography>
-            </Box>
+            </JXBox>
             {quickActions.map((action) => (
               <MenuItem
                 key={action.label}
@@ -520,7 +502,7 @@ export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
                 />
               </MenuItem>
             ))}
-            <Divider sx={{ my: 0.5, borderColor: "var(--border)" }} />
+            <JXDivider className="!my-1 !border-[var(--border)]" />
             <MenuItem
               onClick={() => {
                 handleQuickActionClose();

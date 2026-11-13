@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Box, Typography } from '@mui/material';
+import { JXBox, JXTypography } from '@jacxishippingorg/jx-ui-react';
 import { Keyboard } from '@mui/icons-material';
 import Modal from './Modal';
 import { useKeyboardShortcut, ShortcutRegistry } from '@/lib/hooks/useKeyboardShortcut';
@@ -74,128 +74,89 @@ export default function KeyboardShortcutHelp() {
       onClose={() => setOpen(false)}
       size="lg"
       title={
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+        <div className="flex items-center gap-3">
           <Keyboard sx={{ color: 'var(--accent-gold)' }} />
-          <Typography variant="h6" sx={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+          <JXTypography variant="h3" className="!font-bold !text-[var(--text-primary)]">
             Keyboard Shortcuts
-          </Typography>
-        </Box>
+          </JXTypography>
+        </div>
       }
       description="Global shortcuts are listed first, followed by any page-specific shortcuts currently registered."
     >
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <JXBox padding="none" border={false} className="flex flex-col gap-8 !rounded-none !bg-transparent" style={{ fontFamily: 'inherit' }}>
           {defaultShortcuts.map((category) => (
-            <Box key={category.name}>
-              <Typography
-                variant="subtitle2"
-                sx={{
-                  fontWeight: 700,
-                  color: 'var(--text-secondary)',
-                  textTransform: 'uppercase',
-                  fontSize: '0.75rem',
-                  letterSpacing: '0.1em',
-                  mb: 2,
-                }}
+            <div key={category.name}>
+              <JXTypography
+                variant="caption"
+                className="!mb-4 !block !text-[0.75rem] !font-bold !uppercase !tracking-[0.1em] !text-[var(--text-secondary)]"
               >
                 {category.name}
-              </Typography>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+              </JXTypography>
+              <div className="flex flex-col gap-3">
                 {category.shortcuts.map((shortcut) => (
-                  <Box
+                  <div
                     key={shortcut.key}
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      py: 1,
-                    }}
+                    className="flex items-center justify-between py-2"
                   >
-                    <Typography
-                      sx={{
-                        fontSize: '0.875rem',
-                        color: 'var(--text-primary)',
-                      }}
+                    <JXTypography
+                      variant="body"
+                      className="!text-[0.875rem] !text-[var(--text-primary)]"
                     >
                       {shortcut.description}
-                    </Typography>
-                    <Box
-                      sx={{
-                        px: 1.5,
-                        py: 0.5,
-                        borderRadius: 1.5,
-                        bgcolor: 'var(--background)',
+                    </JXTypography>
+                    <kbd
+                      className="rounded-md px-3 py-1 font-mono text-[0.75rem] font-semibold whitespace-nowrap"
+                      style={{
+                        backgroundColor: 'var(--background)',
                         border: '1px solid var(--border)',
-                        fontSize: '0.75rem',
-                        fontWeight: 600,
-                        fontFamily: 'monospace',
                         color: 'var(--text-secondary)',
-                        whiteSpace: 'nowrap',
                       }}
                     >
                       {shortcut.key}
-                    </Box>
-                  </Box>
+                    </kbd>
+                  </div>
                 ))}
-              </Box>
-            </Box>
+              </div>
+            </div>
           ))}
 
           {/* Dynamic shortcuts from registry */}
           {ShortcutRegistry.getAll().length > 0 && (
-            <Box>
-              <Typography
-                variant="subtitle2"
-                sx={{
-                  fontWeight: 700,
-                  color: 'var(--text-secondary)',
-                  textTransform: 'uppercase',
-                  fontSize: '0.75rem',
-                  letterSpacing: '0.1em',
-                  mb: 2,
-                }}
+            <div>
+              <JXTypography
+                variant="caption"
+                className="!mb-4 !block !text-[0.75rem] !font-bold !uppercase !tracking-[0.1em] !text-[var(--text-secondary)]"
               >
                 Page Specific
-              </Typography>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+              </JXTypography>
+              <div className="flex flex-col gap-3">
                 {ShortcutRegistry.getAll().map((shortcut) => (
-                  <Box
+                  <div
                     key={shortcut.id}
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      py: 1,
-                    }}
+                    className="flex items-center justify-between py-2"
                   >
-                    <Typography
-                      sx={{
-                        fontSize: '0.875rem',
-                        color: 'var(--text-primary)',
-                      }}
+                    <JXTypography
+                      variant="body"
+                      className="!text-[0.875rem] !text-[var(--text-primary)]"
                     >
                       {shortcut.description}
-                    </Typography>
-                    <Box
-                      sx={{
-                        px: 1.5,
-                        py: 0.5,
-                        borderRadius: 1.5,
-                        bgcolor: 'var(--background)',
+                    </JXTypography>
+                    <kbd
+                      className="rounded-md px-3 py-1 font-mono text-[0.75rem] font-semibold"
+                      style={{
+                        backgroundColor: 'var(--background)',
                         border: '1px solid var(--border)',
-                        fontSize: '0.75rem',
-                        fontWeight: 600,
-                        fontFamily: 'monospace',
                         color: 'var(--text-secondary)',
                       }}
                     >
                       {shortcut.formatted}
-                    </Box>
-                  </Box>
+                    </kbd>
+                  </div>
                 ))}
-              </Box>
-            </Box>
+              </div>
+            </div>
           )}
-      </Box>
+      </JXBox>
     </Modal>
   );
 }

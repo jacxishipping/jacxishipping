@@ -1,8 +1,9 @@
 'use client';
 
 import React from 'react';
-import { Box, Typography, Tooltip } from '@mui/material';
-import { DollarSign, TrendingUp, TrendingDown, ShieldCheck, AlertTriangle, Truck, Ship, Receipt, Coins } from 'lucide-react';
+import { Box, Tooltip } from '@mui/material';
+import { JXBox, JXTypography } from '@jacxishippingorg/jx-ui-react';
+import { DollarSign, TrendingUp, ShieldCheck, AlertTriangle } from 'lucide-react';
 import { formatMoney as formatCurrency } from '@/lib/format';
 
 export interface ShipmentProfitabilityProps {
@@ -37,49 +38,43 @@ export function ShipmentProfitabilityCard({
   const profitShare = billedRevenue > 0 && isProfitable ? Math.min(100, Math.max(0, (netProfit / billedRevenue) * 100)) : 0;
 
   return (
-    <Box
-      sx={{
-        p: compact ? 2 : 2.5,
-        borderRadius: 2.5,
-        border: '1px solid var(--border)',
-        bgcolor: 'var(--panel)',
-        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.03)',
-      }}
+    <JXBox
+      surface="elevated"
+      padding="none"
+      className={[
+        '!rounded-xl !border-[var(--border)] !bg-[var(--panel)] shadow-[0_4px_16px_rgba(0,0,0,0.03)]',
+        compact ? 'p-4' : 'p-5',
+      ].join(' ')}
+      style={{ fontFamily: 'inherit' }}
     >
       {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 28,
-              height: 28,
-              borderRadius: 1.5,
-              bgcolor: 'rgba(var(--accent-gold-rgb), 0.12)',
+      <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
+        <div className="flex items-center gap-2">
+          <div
+            className="flex items-center justify-center w-7 h-7 rounded-md"
+            style={{
+              backgroundColor: 'rgba(var(--accent-gold-rgb), 0.12)',
               color: 'var(--accent-gold)',
             }}
           >
             <DollarSign size={16} />
-          </Box>
-          <Typography sx={{ fontWeight: 700, fontSize: compact ? '0.875rem' : '0.95rem', color: 'var(--text-primary)' }}>
-            Shipment Unit Economics & Profitability
-          </Typography>
-        </Box>
+          </div>
+          <JXTypography
+            variant="body"
+            className={[
+              '!font-bold !text-[var(--text-primary)]',
+              compact ? '!text-[0.875rem]' : '!text-[0.95rem]',
+            ].join(' ')}
+          >
+            Shipment Unit Economics &amp; Profitability
+          </JXTypography>
+        </div>
 
         {billedRevenue > 0 && (
-          <Box
-            sx={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 0.5,
-              px: 1.25,
-              py: 0.35,
-              borderRadius: 999,
-              fontSize: '0.75rem',
-              fontWeight: 700,
-              bgcolor: isHealthyMargin
+          <div
+            className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[0.75rem] font-bold"
+            style={{
+              backgroundColor: isHealthyMargin
                 ? 'rgba(34, 197, 94, 0.12)'
                 : isProfitable
                 ? 'rgba(234, 179, 8, 0.12)'
@@ -107,76 +102,95 @@ export function ShipmentProfitabilityCard({
                 <AlertTriangle size={14} /> Negative Spread ({marginPercent.toFixed(1)}%)
               </>
             )}
-          </Box>
+          </div>
         )}
-      </Box>
+      </div>
 
       {/* Primary KPI Row */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 1.5, mb: 2.5 }}>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
         {/* Customer Invoiced Revenue */}
-        <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: 'var(--background)', border: '1px solid var(--border)' }}>
-          <Typography sx={{ fontSize: '0.725rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', tracking: 0.5, mb: 0.25 }}>
+        <JXBox surface="subtle" padding="none" className="p-3 !rounded-lg !bg-[var(--background)] !border-[var(--border)] shadow-none">
+          <JXTypography variant="caption" className="!block !text-[0.725rem] !font-semibold !text-[var(--text-secondary)] !uppercase !mb-0.5">
             Customer Revenue
-          </Typography>
-          <Typography sx={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+          </JXTypography>
+          <JXTypography variant="h2" className="!text-[1.15rem] !font-extrabold !text-[var(--text-primary)]">
             {formatCurrency(billedRevenue)}
-          </Typography>
-          <Typography sx={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
-            Total invoiced & billed charges
-          </Typography>
-        </Box>
+          </JXTypography>
+          <JXTypography variant="caption" className="!block !text-[0.7rem] !text-[var(--text-secondary)]">
+            Total invoiced &amp; billed charges
+          </JXTypography>
+        </JXBox>
 
         {/* Total Cost / Expenses */}
-        <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: 'var(--background)', border: '1px solid var(--border)' }}>
-          <Typography sx={{ fontSize: '0.725rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', tracking: 0.5, mb: 0.25 }}>
+        <JXBox surface="subtle" padding="none" className="p-3 !rounded-lg !bg-[var(--background)] !border-[var(--border)] shadow-none">
+          <JXTypography variant="caption" className="!block !text-[0.725rem] !font-semibold !text-[var(--text-secondary)] !uppercase !mb-0.5">
             Direct Expenses
-          </Typography>
-          <Typography sx={{ fontSize: '1.15rem', fontWeight: 800, color: '#dc2626' }}>
+          </JXTypography>
+          <JXTypography variant="h2" className="!text-[1.15rem] !font-extrabold !text-[#dc2626]">
             {formatCurrency(totalExpenses)}
-          </Typography>
-          <Typography sx={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
-            Towing, freight & port fees
-          </Typography>
-        </Box>
+          </JXTypography>
+          <JXTypography variant="caption" className="!block !text-[0.7rem] !text-[var(--text-secondary)]">
+            Towing, freight &amp; port fees
+          </JXTypography>
+        </JXBox>
 
         {/* Net Profit & Margin */}
-        <Box
-          sx={{
-            p: 1.5,
-            borderRadius: 2,
-            bgcolor: isProfitable ? 'rgba(34, 197, 94, 0.05)' : 'rgba(239, 68, 68, 0.05)',
+        <JXBox
+          surface="subtle"
+          padding="none"
+          className="p-3 !rounded-lg shadow-none"
+          style={{
+            backgroundColor: isProfitable ? 'rgba(34, 197, 94, 0.05)' : 'rgba(239, 68, 68, 0.05)',
             border: `1px solid ${isProfitable ? 'rgba(34, 197, 94, 0.25)' : 'rgba(239, 68, 68, 0.25)'}`,
           }}
         >
-          <Typography sx={{ fontSize: '0.725rem', fontWeight: 600, color: isProfitable ? '#16a34a' : '#dc2626', textTransform: 'uppercase', tracking: 0.5, mb: 0.25 }}>
+          <JXTypography
+            variant="caption"
+            className={[
+              '!block !text-[0.725rem] !font-semibold !uppercase !mb-0.5',
+              isProfitable ? '!text-[#16a34a]' : '!text-[#dc2626]',
+            ].join(' ')}
+          >
             Net Margin
-          </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
-            <Typography sx={{ fontSize: '1.15rem', fontWeight: 800, color: isProfitable ? '#16a34a' : '#dc2626' }}>
+          </JXTypography>
+          <div className="flex items-baseline gap-2">
+            <JXTypography
+              variant="h2"
+              className={[
+                '!text-[1.15rem] !font-extrabold',
+                isProfitable ? '!text-[#16a34a]' : '!text-[#dc2626]',
+              ].join(' ')}
+            >
               {isProfitable ? '+' : ''}{formatCurrency(netProfit)}
-            </Typography>
-            <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: isProfitable ? '#16a34a' : '#dc2626' }}>
+            </JXTypography>
+            <JXTypography
+              variant="body"
+              className={[
+                '!text-[0.85rem] !font-bold',
+                isProfitable ? '!text-[#16a34a]' : '!text-[#dc2626]',
+              ].join(' ')}
+            >
               ({marginPercent.toFixed(1)}%)
-            </Typography>
-          </Box>
-          <Typography sx={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
+            </JXTypography>
+          </div>
+          <JXTypography variant="caption" className="!block !text-[0.7rem] !text-[var(--text-secondary)]">
             {isProfitable ? 'Net profit captured' : 'Operating at an expense loss'}
-          </Typography>
-        </Box>
-      </Box>
+          </JXTypography>
+        </JXBox>
+      </div>
 
       {/* Visual Cost & Revenue Distribution Bar */}
       {billedRevenue > 0 && (
-        <Box sx={{ mb: 2 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.75 }}>
-            <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+        <div className="mb-4">
+          <div className="flex justify-between items-center mb-1.5">
+            <JXTypography variant="caption" className="!text-[0.75rem] !font-semibold !text-[var(--text-secondary)]">
               Cost Distribution Share
-            </Typography>
-            <Typography sx={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+            </JXTypography>
+            <JXTypography variant="caption" className="!text-[0.75rem] !text-[var(--text-secondary)]">
               100% of Revenue
-            </Typography>
-          </Box>
-          <Box sx={{ display: 'flex', height: 10, borderRadius: 999, overflow: 'hidden', bgcolor: 'var(--border)', gap: '1px' }}>
+            </JXTypography>
+          </div>
+          <div className="flex h-2.5 rounded-full overflow-hidden bg-[var(--border)] gap-[1px]">
             {dispatchShare > 0 && (
               <Tooltip title={`Dispatch / Towing: ${formatCurrency(dispatchCost)} (${dispatchShare.toFixed(1)}%)`}>
                 <Box sx={{ width: `${dispatchShare}%`, bgcolor: '#3b82f6', transition: 'width 0.3s ease' }} />
@@ -197,60 +211,60 @@ export function ShipmentProfitabilityCard({
                 <Box sx={{ width: `${profitShare}%`, bgcolor: '#22c55e', transition: 'width 0.3s ease' }} />
               </Tooltip>
             )}
-          </Box>
-        </Box>
+          </div>
+        </div>
       )}
 
       {/* Cost Breakdown Details */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(4, 1fr)' }, gap: 1.5, pt: 1.5, borderTop: '1px solid var(--border)' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#3b82f6', shrink: 0 }} />
-          <Box sx={{ minWidth: 0 }}>
-            <Typography sx={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }} noWrap>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-[var(--border)]">
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-[#3b82f6] shrink-0" />
+          <div className="min-w-0">
+            <JXTypography variant="caption" className="!block !truncate !text-[0.7rem] !text-[var(--text-secondary)]">
               Towing / Dispatch
-            </Typography>
-            <Typography sx={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+            </JXTypography>
+            <JXTypography variant="body" className="!text-[0.8125rem] !font-bold !text-[var(--text-primary)]">
               {formatCurrency(dispatchCost)}
-            </Typography>
-          </Box>
-        </Box>
+            </JXTypography>
+          </div>
+        </div>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#8b5cf6', shrink: 0 }} />
-          <Box sx={{ minWidth: 0 }}>
-            <Typography sx={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }} noWrap>
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-[#8b5cf6] shrink-0" />
+          <div className="min-w-0">
+            <JXTypography variant="caption" className="!block !truncate !text-[0.7rem] !text-[var(--text-secondary)]">
               Ocean Freight
-            </Typography>
-            <Typography sx={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+            </JXTypography>
+            <JXTypography variant="body" className="!text-[0.8125rem] !font-bold !text-[var(--text-primary)]">
               {formatCurrency(oceanFreightCost)}
-            </Typography>
-          </Box>
-        </Box>
+            </JXTypography>
+          </div>
+        </div>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#f59e0b', shrink: 0 }} />
-          <Box sx={{ minWidth: 0 }}>
-            <Typography sx={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }} noWrap>
-              Storage & Customs
-            </Typography>
-            <Typography sx={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-[#f59e0b] shrink-0" />
+          <div className="min-w-0">
+            <JXTypography variant="caption" className="!block !truncate !text-[0.7rem] !text-[var(--text-secondary)]">
+              Storage &amp; Customs
+            </JXTypography>
+            <JXTypography variant="body" className="!text-[0.8125rem] !font-bold !text-[var(--text-primary)]">
               {formatCurrency(terminalStorageCost)}
-            </Typography>
-          </Box>
-        </Box>
+            </JXTypography>
+          </div>
+        </div>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'var(--text-secondary)', shrink: 0 }} />
-          <Box sx={{ minWidth: 0 }}>
-            <Typography sx={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }} noWrap>
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-[var(--text-secondary)] shrink-0" />
+          <div className="min-w-0">
+            <JXTypography variant="caption" className="!block !truncate !text-[0.7rem] !text-[var(--text-secondary)]">
               Other Expenses
-            </Typography>
-            <Typography sx={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+            </JXTypography>
+            <JXTypography variant="body" className="!text-[0.8125rem] !font-bold !text-[var(--text-primary)]">
               {formatCurrency(otherExpensesCost)}
-            </Typography>
-          </Box>
-        </Box>
-      </Box>
-    </Box>
+            </JXTypography>
+          </div>
+        </div>
+      </div>
+    </JXBox>
   );
 }

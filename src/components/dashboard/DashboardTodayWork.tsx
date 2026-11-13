@@ -19,6 +19,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { Button, CopyButton, Tooltip } from '@/components/design-system';
+import { SpringButton } from '@jacxishippingorg/jx-ui-react';
 import { hasPermission } from '@/lib/rbac';
 import ShipmentQuickPeek from '@/components/dashboard/ShipmentQuickPeek';
 import ContainerQuickPeek from '@/components/dashboard/ContainerQuickPeek';
@@ -335,16 +336,18 @@ export default function DashboardTodayWork({
                     <div className="flex items-center gap-1.5">
                       {/* 1. Quick Peek Drawer Trigger */}
                       {hasShipmentOrContainer && (
-                        <button
+                        <SpringButton
                           type="button"
+                          variant="outline"
                           onClick={(e) => handleQuickPeek(e, item)}
                           title="Quick peek details in side drawer"
                           aria-label="Quick peek details in side drawer"
-                          className="flex items-center gap-1 px-2 py-1 text-xs rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--accent-gold)] hover:bg-[var(--panel)] transition-all cursor-pointer"
+                          style={{ fontFamily: 'inherit' }}
+                          className="!inline-flex !items-center !gap-1 !px-2 !py-1 !text-xs !rounded-lg !border !border-[var(--border)] !bg-transparent !text-[var(--text-secondary)] hover:!text-[var(--text-primary)] hover:!border-[var(--accent-gold)] hover:!bg-[var(--panel)] shadow-none transition-all cursor-pointer"
                         >
-                          <PanelRightOpen className="h-3.5 w-3.5 text-[var(--accent-gold)]" />
+                          <PanelRightOpen className="h-3.5 w-3.5 text-[var(--accent-gold-text)]" />
                           <span className="hidden md:inline">Peek</span>
-                        </button>
+                        </SpringButton>
                       )}
 
                       {/* 2. Contextual Action: Create transit, reassign dispatch, or track route */}
@@ -382,15 +385,17 @@ export default function DashboardTodayWork({
                       )}
 
                       {/* 3. Customer Notification / Nudge Modal */}
-                      <button
+                      <SpringButton
                         type="button"
+                        variant="outline"
                         onClick={(e) => handleOpenNotification(e, item)}
                         title="Send SMS/WhatsApp notification or nudge"
                         aria-label="Send notification"
-                        className="p-1 text-xs rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] hover:bg-[var(--background)] transition-all cursor-pointer"
+                        style={{ fontFamily: 'inherit' }}
+                        className="!p-1.5 !text-xs !rounded-lg !border !border-[var(--border)] !bg-transparent !text-[var(--text-secondary)] hover:!text-[var(--text-primary)] hover:!border-[var(--border-hover)] hover:!bg-[var(--background)] shadow-none transition-all cursor-pointer"
                       >
                         <MessageSquare className="h-3.5 w-3.5" />
-                      </button>
+                      </SpringButton>
 
                       {/* 4. Full Page Navigation */}
                       <Link

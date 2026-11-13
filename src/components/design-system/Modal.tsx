@@ -5,12 +5,10 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  IconButton,
-  Box,
-  Typography,
   SxProps,
   Theme,
 } from "@mui/material";
+import { JXBox, JXTypography, SpringButton } from "@jacxishippingorg/jx-ui-react";
 import { Close } from "@mui/icons-material";
 import { ReactNode } from "react";
 import Tooltip from "./Tooltip";
@@ -115,49 +113,41 @@ export default function Modal({
             bgcolor: "var(--panel)",
           }}
         >
-          <Box sx={{ flex: 1, minWidth: 0 }}>
+          <JXBox padding="none" border={false} className="min-w-0 flex-1 !rounded-none !bg-transparent" style={{ fontFamily: "inherit" }}>
             {typeof title === "string" ? (
-              <Typography
-                sx={{
-                  fontSize: { xs: "1rem", sm: "1.125rem" },
-                  fontWeight: 600,
-                  color: "var(--text-primary)",
-                }}
+              <JXTypography
+                variant="h3"
+                className="!text-[1rem] sm:!text-[1.125rem] !font-semibold !text-[var(--text-primary)]"
               >
                 {title}
-              </Typography>
+              </JXTypography>
             ) : (
               title
             )}
             {description ? (
-              <Typography
-                sx={{
-                  mt: 0.5,
-                  fontSize: { xs: "0.8125rem", sm: "0.875rem" },
-                  lineHeight: 1.5,
-                  color: "var(--text-secondary)",
-                }}
+              <JXTypography
+                variant="body"
+                className="!mt-1 !text-[0.8125rem] sm:!text-[0.875rem] !leading-[1.5] !text-[var(--text-secondary)]"
               >
                 {description}
-              </Typography>
+              </JXTypography>
             ) : null}
-          </Box>
+          </JXBox>
           {showCloseButton && (
             <Tooltip title="Close modal">
-              <IconButton
-                aria-label="Close modal"
-                onClick={onClose}
-                sx={{
-                  color: "var(--text-secondary)",
-                  border: "1px solid rgba(var(--border-rgb), 0.6)",
-                  p: 0.75,
-                  "&:hover": {
-                    bgcolor: "rgba(var(--border-rgb), 0.2)",
-                  },
-                }}
-              >
-                <Close sx={{ fontSize: 18 }} />
-              </IconButton>
+              <span className="inline-flex">
+                <SpringButton
+                  type="button"
+                  variant="outline"
+                  tone="primary"
+                  aria-label="Close modal"
+                  onClick={onClose}
+                  style={{ fontFamily: "inherit" }}
+                  className="!h-8 !w-8 !min-h-0 !min-w-0 !rounded-lg !border !border-[rgba(var(--border-rgb),0.6)] !bg-transparent !p-1.5 !text-[var(--text-secondary)] hover:!bg-[rgba(var(--border-rgb),0.2)] hover:!text-[var(--text-primary)] !shadow-none"
+                >
+                  <Close sx={{ fontSize: 18 }} />
+                </SpringButton>
+              </span>
             </Tooltip>
           )}
         </DialogTitle>
@@ -239,46 +229,37 @@ export function ConfirmDialog({
       size="sm"
       actions={
         <>
-          <button
+          <SpringButton
+            type="button"
+            variant="outline"
+            tone="primary"
             onClick={onClose}
             disabled={loading}
-            style={{
-              padding: "8px 16px",
-              borderRadius: "8px",
-              border: "1px solid var(--border)",
-              background: "transparent",
-              color: "var(--text-primary)",
-              fontSize: "0.875rem",
-              fontWeight: 600,
-              cursor: loading ? "not-allowed" : "pointer",
-              opacity: loading ? 0.5 : 1,
-            }}
+            style={{ fontFamily: "inherit" }}
+            className="!h-auto !min-h-0 !rounded-lg !border !border-[var(--border)] !bg-transparent !px-4 !py-2 !text-[0.875rem] !font-semibold !text-[var(--text-primary)] !shadow-none disabled:!opacity-50"
           >
             {cancelText}
-          </button>
-          <button
+          </SpringButton>
+          <SpringButton
+            type="button"
+            variant="solid"
+            tone={severity === "error" ? "danger" : severity === "warning" ? "warning" : "primary"}
             onClick={onConfirm}
             disabled={loading}
             style={{
-              padding: "8px 16px",
-              borderRadius: "8px",
-              border: "none",
               background: severityColors[severity],
-              color: "#FFFFFF",
-              fontSize: "0.875rem",
-              fontWeight: 600,
-              cursor: loading ? "not-allowed" : "pointer",
-              opacity: loading ? 0.7 : 1,
+              fontFamily: "inherit",
             }}
+            className="!h-auto !min-h-0 !rounded-lg !border-0 !px-4 !py-2 !text-[0.875rem] !font-semibold !text-white disabled:!opacity-70"
           >
             {loading ? "Processing..." : confirmText}
-          </button>
+          </SpringButton>
         </>
       }
     >
-      <Typography sx={{ color: "var(--text-secondary)", lineHeight: 1.6 }}>
+      <JXTypography variant="body" className="!leading-[1.6] !text-[var(--text-secondary)]">
         {message}
-      </Typography>
+      </JXTypography>
     </Modal>
   );
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Box, Typography } from '@mui/material';
+import { JXBox, JXTypography } from '@jacxishippingorg/jx-ui-react';
 import { CheckSquare, X, ChevronDown, Download, QrCode, Trash2, Layers, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/design-system';
 
@@ -39,81 +39,52 @@ export function BulkActionBar({
   if (selectedCount === 0) return null;
 
   return (
-    <Box
-      sx={{
-        position: 'fixed',
-        bottom: 24,
-        left: '50%',
-        transform: 'translateX(-50%)',
-        zIndex: 1000,
+    <JXBox
+      surface="elevated"
+      padding="none"
+      className="fixed bottom-6 left-1/2 z-[1000] flex max-w-[92vw] -translate-x-1/2 items-center gap-4 !rounded-xl px-5 py-3 shadow-[0_16px_40px_rgba(0,0,0,0.16)]"
+      style={{
         backgroundColor: 'var(--panel)',
         border: '1px solid var(--border)',
         borderTop: '2px solid var(--accent-gold)',
-        borderRadius: 3,
-        boxShadow: '0 16px 40px rgba(0, 0, 0, 0.16)',
-        px: 2.5,
-        py: 1.5,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 2,
-        maxWidth: '92vw',
-        animation: 'slideUp 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-        '@keyframes slideUp': {
-          from: {
-            opacity: 0,
-            transform: 'translateX(-50%) translateY(20px)',
-          },
-          to: {
-            opacity: 1,
-            transform: 'translateX(-50%) translateY(0)',
-          },
-        },
+        fontFamily: 'inherit',
       }}
     >
       {/* Selection count */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: 28,
-            height: 28,
-            borderRadius: 1.5,
+      <div className="flex items-center gap-2">
+        <div
+          className="flex h-7 w-7 items-center justify-center rounded-md"
+          style={{
             backgroundColor: 'rgba(var(--accent-gold-rgb), 0.15)',
             color: 'var(--accent-gold)',
           }}
         >
           <CheckSquare size={16} />
-        </Box>
-        <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
+        </div>
+        <JXTypography
+          variant="body"
+          className="!whitespace-nowrap !text-[0.85rem] !font-bold !text-[var(--text-primary)]"
+        >
           {selectedCount} selected
-        </Typography>
+        </JXTypography>
         <Button
           variant="outline"
           size="sm"
           onClick={onClearSelection}
           icon={<X size={12} />}
-          sx={{
-            px: 0.75,
-            py: 0.25,
-            fontSize: '0.7rem',
-            height: 'auto',
-            border: 'none',
-            color: 'var(--text-secondary)',
-          }}
+          className="!px-1.5 !py-0.5 !text-[0.7rem] !h-auto !min-w-0 !border-0 !text-[var(--text-secondary)]"
         >
           Deselect
         </Button>
-      </Box>
+      </div>
 
       {/* Divider */}
-      <Box sx={{ width: 1, height: 24, backgroundColor: 'var(--border)' }} />
+      <div className="h-6 w-px bg-[var(--border)]" />
 
       {/* Action Buttons */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+      <div className="flex flex-wrap items-center gap-2">
         {statusOptions.length > 0 && onBulkStatusChange && (
-          <Box sx={{ position: 'relative' }}>
+          <div className="relative">
             <Button
               variant="outline"
               size="sm"
@@ -123,47 +94,32 @@ export function BulkActionBar({
               Update Status <ChevronDown size={14} style={{ marginLeft: 4 }} />
             </Button>
             {showStatusMenu && (
-              <Box
-                sx={{
-                  position: 'absolute',
-                  bottom: '100%',
-                  left: 0,
-                  mb: 1,
+              <JXBox
+                surface="elevated"
+                padding="none"
+                className="absolute bottom-full left-0 z-[1001] mb-2 min-w-[180px] !rounded-lg py-1.5 shadow-[0_10px_30px_rgba(0,0,0,0.12)]"
+                style={{
                   backgroundColor: 'var(--panel)',
                   border: '1px solid var(--border)',
-                  borderRadius: 2,
-                  boxShadow: '0 10px 30px rgba(0,0,0,0.12)',
-                  minWidth: 180,
-                  py: 0.75,
-                  zIndex: 1001,
+                  fontFamily: 'inherit',
                 }}
               >
                 {statusOptions.map((opt) => (
-                  <Box
+                  <button
                     key={opt.value}
+                    type="button"
                     onClick={() => {
                       onBulkStatusChange(opt.value);
                       setShowStatusMenu(false);
                     }}
-                    sx={{
-                      px: 2,
-                      py: 1,
-                      fontSize: '0.8rem',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      color: 'var(--text-primary)',
-                      '&:hover': {
-                        backgroundColor: 'var(--background)',
-                        color: 'var(--accent-gold)',
-                      },
-                    }}
+                    className="block w-full px-4 py-2 text-left text-[0.8rem] font-semibold text-[var(--text-primary)] hover:bg-[var(--background)] hover:text-[var(--accent-gold-text)] transition-colors"
                   >
                     {opt.label}
-                  </Box>
+                  </button>
                 ))}
-              </Box>
+              </JXBox>
             )}
-          </Box>
+          </div>
         )}
 
         {onBulkAssignContainer && (
@@ -207,12 +163,12 @@ export function BulkActionBar({
             size="sm"
             onClick={onBulkDelete}
             icon={<Trash2 size={14} />}
-            sx={{ color: 'var(--error)', borderColor: 'rgba(239, 68, 68, 0.3)' }}
+            className="!text-[var(--error)] !border-[rgba(239,68,68,0.3)]"
           >
             Delete
           </Button>
         )}
-      </Box>
-    </Box>
+      </div>
+    </JXBox>
   );
 }

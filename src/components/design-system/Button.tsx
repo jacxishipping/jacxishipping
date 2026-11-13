@@ -1,6 +1,7 @@
 "use client";
 
 import { Button as MuiButton, ButtonProps as MuiButtonProps, CircularProgress } from '@mui/material';
+import { JXButton } from '@jacxishippingorg/jx-ui-react';
 import { ReactNode } from 'react';
 import Link from 'next/link';
 import { useTheme } from '@/hooks/useTheme';
@@ -174,6 +175,90 @@ export default function Button({
   const sizeStyle = sizeStyles[size];
   const isLink = Boolean(buttonProps.href);
   const Component = (buttonProps.component || (isLink ? Link : 'button')) as React.ElementType;
+
+  // Use @jacxishippingorg/jx-ui-react JXButton for standard interactive buttons while preserving JACXI colors & fonts.
+  // Keep MuiButton when routing via href/component or when callers pass MUI responsive `sx` overrides.
+  if (!isLink && !buttonProps.component && !buttonProps.sx) {
+    const jxVariant =
+      variant === 'primary' || variant === 'danger'
+        ? 'contained'
+        : variant === 'secondary' || variant === 'outline'
+          ? 'outlined'
+          : 'text';
+
+    const jxToneClasses = {
+      primary:
+        '!bg-[var(--accent-gold)] !text-[var(--text-primary)] !border-transparent hover:!opacity-90',
+      secondary:
+        '!bg-[var(--panel)] !text-[var(--text-primary)] !border !border-[var(--border)] hover:!bg-[var(--background)] hover:!border-[var(--accent-gold)]',
+      outline:
+        '!bg-transparent !text-[var(--text-primary)] !border !border-[var(--border)] hover:!bg-black/[0.04] hover:!border-[var(--accent-gold)]',
+      ghost:
+        '!bg-transparent !text-[var(--text-secondary)] !border-transparent hover:!bg-black/[0.04] hover:!text-[var(--text-primary)]',
+      danger:
+        '!bg-[var(--error)] !text-white !border-transparent hover:!opacity-90',
+    }[variant];
+
+    const jxSizeClasses = isCompact
+      ? { sm: '!h-[26px] !px-2.5 !text-[0.7rem]', md: '!h-[30px] !px-3 !text-[0.75rem]', lg: '!h-[36px] !px-4 !text-[0.85rem]' }[size]
+      : { sm: '!h-[32px] !px-4 !text-[0.75rem]', md: '!h-[40px] !px-5 !text-[0.875rem]', lg: '!h-[48px] !px-6 !text-[1rem]' }[size];
+
+    const {
+      onClick,
+      type = 'button',
+      className,
+      style,
+      title,
+      id,
+      name,
+      value,
+      form,
+      tabIndex,
+      autoFocus,
+      'aria-label': ariaLabel,
+      'aria-expanded': ariaExpanded,
+      'aria-controls': ariaControls,
+      'aria-haspopup': ariaHasPopup,
+    } = buttonProps;
+
+    return (
+      <JXButton
+        type={type}
+        variant={jxVariant}
+        size={size}
+        spring
+        loading={loading}
+        disabled={disabled || loading}
+        fullWidth={fullWidth}
+        startIcon={!loading && icon && iconPosition === 'start' ? icon : undefined}
+        endIcon={!loading && icon && iconPosition === 'end' ? icon : undefined}
+        onClick={onClick}
+        title={title}
+        id={id}
+        name={name}
+        value={value}
+        form={form}
+        tabIndex={tabIndex}
+        autoFocus={autoFocus}
+        aria-label={ariaLabel}
+        aria-expanded={ariaExpanded}
+        aria-controls={ariaControls}
+        aria-haspopup={ariaHasPopup}
+        style={{ fontFamily: 'inherit', ...style }}
+        className={[
+          'ds-button font-semibold shadow-none',
+          isCompact ? '!rounded-[6px]' : '!rounded-[8px]',
+          jxToneClasses,
+          jxSizeClasses,
+          className,
+        ]
+          .filter(Boolean)
+          .join(' ')}
+      >
+        {children}
+      </JXButton>
+    );
+  }
 
   return (
     <MuiButton

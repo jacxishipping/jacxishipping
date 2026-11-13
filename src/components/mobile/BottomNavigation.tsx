@@ -3,6 +3,7 @@
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Home, Ship, Package, FileText, Menu } from 'lucide-react';
+import { SpringButton } from '@jacxishippingorg/jx-ui-react';
 import { useSession } from 'next-auth/react';
 import { cn } from '@/lib/utils';
 import { hasPermission, type Permission } from '@/lib/rbac';
@@ -66,15 +67,17 @@ export function BottomNavigation({ onMenuClick }: { onMenuClick?: () => void }) 
 
           if (item.isMenuToggle) {
             return (
-              <button
+              <SpringButton
                 key="menu-toggle-btn"
                 type="button"
+                variant="outline"
                 onClick={handleMenuToggle}
+                style={{ fontFamily: 'inherit' }}
                 className={cn(
-                  'relative flex flex-1 flex-col items-center justify-center h-full min-w-0 px-1 py-1 transition-all duration-150 active:scale-95 touch-target',
+                  'relative !flex !flex-1 !flex-col !items-center !justify-center !h-full !min-w-0 !px-1 !py-1 !rounded-none !border-transparent !bg-transparent shadow-none transition-all duration-150 active:scale-95 touch-target',
                   isActive
-                    ? 'text-[var(--accent-gold)]'
-                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                    ? '!text-[var(--accent-gold)]'
+                    : '!text-[var(--text-secondary)] hover:!text-[var(--text-primary)]'
                 )}
                 aria-label="Open navigation menu"
               >
@@ -107,7 +110,7 @@ export function BottomNavigation({ onMenuClick }: { onMenuClick?: () => void }) 
                     {item.label}
                   </span>
                 </div>
-              </button>
+              </SpringButton>
             );
           }
 

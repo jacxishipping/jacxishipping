@@ -1,6 +1,6 @@
 'use client';
 
-import { Box, Typography } from '@mui/material';
+import { JXBox, JXTypography } from '@jacxishippingorg/jx-ui-react';
 import { cn } from '@/lib/utils';
 
 interface MobileCardProps {
@@ -23,12 +23,16 @@ export function MobileCard({
   actions 
 }: MobileCardProps) {
   return (
-    <Box 
+    <JXBox
+      surface="elevated"
+      padding="md"
+      radius="lg"
       onClick={onClick}
       className={cn(
-        "bg-[var(--panel)] border border-[var(--border)] rounded-lg p-4 mb-3",
-        onClick && "active:bg-[var(--background)] transition-colors"
+        "!bg-[var(--panel)] !border-[var(--border)] mb-3 shadow-none",
+        onClick && "cursor-pointer active:!bg-[var(--background)] transition-colors"
       )}
+      style={{ fontFamily: 'inherit' }}
     >
       <div className="flex gap-3">
         {image && (
@@ -38,14 +42,14 @@ export function MobileCard({
         )}
         <div className="flex-1 min-w-0">
           <div className="flex justify-between items-start">
-            <div>
-              <Typography className="font-semibold text-[var(--text-primary)] truncate pr-2">
+            <div className="min-w-0">
+              <JXTypography variant="h3" className="!text-base !font-semibold !text-[var(--text-primary)] truncate pr-2">
                 {title}
-              </Typography>
+              </JXTypography>
               {subtitle && (
-                <Typography className="text-sm text-[var(--text-secondary)] truncate">
+                <JXTypography variant="body" className="!text-sm !text-[var(--text-secondary)] truncate">
                   {subtitle}
-                </Typography>
+                </JXTypography>
               )}
             </div>
             {status}
@@ -64,7 +68,7 @@ export function MobileCard({
           )}
         </div>
       </div>
-    </Box>
+    </JXBox>
   );
 }
 

@@ -1,4 +1,6 @@
-import { Box, Typography } from '@mui/material';
+"use client";
+
+import { JXBox, JXTypography } from '@jacxishippingorg/jx-ui-react';
 import { ReactNode } from 'react';
 import { useTheme } from '@/hooks/useTheme';
 
@@ -33,32 +35,33 @@ export function Table<T extends Record<string, any>>({
   const density = propDensity ?? globalDensity;
   if (!data || data.length === 0) {
     return (
-      <Box
-        sx={{
-          p: 4,
-          textAlign: 'center',
+      <JXBox
+        surface="subtle"
+        padding="lg"
+        radius="xl"
+        border={false}
+        className="text-center !rounded-[12px]"
+        style={{
           color: 'var(--text-secondary)',
           border: '1px dashed var(--border)',
-          borderRadius: 1.5,
           backgroundColor: 'var(--background)',
+          fontFamily: 'inherit',
         }}
       >
-        <Typography sx={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)' }}>{emptyTitle}</Typography>
-        <Typography sx={{ mt: 0.5, fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{emptyMessage}</Typography>
-      </Box>
+        <JXTypography variant="body" className="!text-[0.9rem] !font-bold !text-[var(--text-primary)]">{emptyTitle}</JXTypography>
+        <JXTypography variant="body" className="mt-1 !text-[0.82rem] !text-[var(--text-secondary)]">{emptyMessage}</JXTypography>
+      </JXBox>
     );
   }
 
   const verticalPadding = density === 'compact' ? '9px' : '12px';
 
   return (
-    <Box
-      sx={{
-        overflowX: 'auto',
-        border: '1px solid var(--border)',
-        borderRadius: 1.5,
-        backgroundColor: 'var(--panel)',
-      }}
+    <JXBox
+      surface="elevated"
+      padding="none"
+      className="overflow-x-auto !rounded-[12px] !border-[var(--border)] !bg-[var(--panel)] shadow-none"
+      style={{ fontFamily: 'inherit' }}
     >
       <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0 }}>
         <thead>
@@ -133,7 +136,7 @@ export function Table<T extends Record<string, any>>({
           ))}
         </tbody>
       </table>
-    </Box>
+    </JXBox>
   );
 }
 

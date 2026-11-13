@@ -1,8 +1,8 @@
 "use client";
 
 import { Anchor, AlertTriangle, CheckCircle2, Clock, Truck, XCircle } from 'lucide-react';
-import { Box, Typography } from '@mui/material';
-import { ReactNode } from 'react';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
+import { ReactNode, type CSSProperties } from 'react';
 import { useTheme } from '@/hooks/useTheme';
 
 /**
@@ -312,166 +312,154 @@ export default function StatusBadge({
   // Default variant (filled background)
   if (variant === 'default') {
     return (
-      <Box
+      <JXBox
         component="span"
-        className={badgeClassName}
-        sx={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          justifyContent: 'center',
+        padding="none"
+        border={false}
+        className={[
+          'inline-flex items-center justify-center font-semibold whitespace-nowrap transition-all duration-200 hover:-translate-y-px hover:shadow-[0_2px_4px_rgba(0,0,0,0.1)]',
+          badgeClassName,
+        ]
+          .filter(Boolean)
+          .join(' ')}
+        style={{
           gap: config.gap,
           height: config.height,
-          px: config.padding,
+          paddingLeft: config.padding,
+          paddingRight: config.padding,
           borderRadius: isCompact ? '6px' : '12px',
           backgroundColor: colors.bg,
-          border: '1px solid',
-          borderColor: colors.border,
+          border: `1px solid ${colors.border}`,
           fontSize: config.fontSize,
-          fontWeight: 600,
           color: colors.text,
-          whiteSpace: 'nowrap',
-          transition: 'all 200ms cubic-bezier(0.4, 0, 0.2, 1)',
           boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-          '&:hover': {
-            transform: 'translateY(-1px)',
-            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-          },
+          fontFamily: 'inherit',
         }}
       >
         {resolvedIcon && (
-          <Box 
-            sx={{ 
-              display: 'flex', 
-              alignItems: 'center',
+          <span
+            className="flex items-center leading-none"
+            style={{
               fontSize: `${parseFloat(config.fontSize) * 0.9}rem`,
-              lineHeight: 1,
             }}
           >
             {resolvedIcon}
-          </Box>
+          </span>
         )}
-        <Typography
-          component="span"
-          sx={{
+        <span
+          className="leading-none tracking-[0.025em]"
+          style={{
             fontSize: 'inherit',
             fontWeight: 'inherit',
-            letterSpacing: '0.025em',
-            lineHeight: 1,
             textTransform: label ? 'none' : 'capitalize',
           }}
         >
           {displayText}
-        </Typography>
-      </Box>
+        </span>
+      </JXBox>
     );
   }
 
   // Dot variant (with colored dot)
   if (variant === 'dot') {
     return (
-      <Box
+      <JXBox
         component="span"
-        className={badgeClassName}
-        sx={{
-          display: 'inline-flex',
-          alignItems: 'center',
+        padding="none"
+        border={false}
+        className={['inline-flex items-center font-medium !bg-transparent', badgeClassName]
+          .filter(Boolean)
+          .join(' ')}
+        style={{
           gap: config.gap,
           fontSize: config.fontSize,
-          fontWeight: 500,
           color: 'var(--text-primary)',
+          fontFamily: 'inherit',
         }}
       >
-        <Box
-          sx={{
+        <span
+          className="shrink-0 rounded-full"
+          style={{
             width: config.dotSize,
             height: config.dotSize,
-            borderRadius: '50%',
             backgroundColor: colors.text,
-            flexShrink: 0,
             boxShadow: `0 0 0 2px ${colors.bg}`,
           }}
         />
         {resolvedIcon && (
-          <Box 
-            sx={{ 
-              display: 'flex', 
+          <span
+            className="flex leading-none"
+            style={{
               fontSize: `${parseFloat(config.fontSize) * 0.9}rem`,
               color: colors.text,
-              lineHeight: 1,
             }}
           >
             {resolvedIcon}
-          </Box>
+          </span>
         )}
-        <Typography
-          component="span"
-          sx={{
+        <span
+          className="leading-none"
+          style={{
             fontSize: 'inherit',
             fontWeight: 'inherit',
             textTransform: label ? 'none' : 'capitalize',
-            lineHeight: 1,
           }}
         >
           {displayText}
-        </Typography>
-      </Box>
+        </span>
+      </JXBox>
     );
   }
 
   // Outline variant (bordered, no background)
   if (variant === 'outline') {
     return (
-      <Box
+      <JXBox
         component="span"
-        className={badgeClassName}
-        sx={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: config.gap,
-          height: config.height,
-          px: config.padding,
-          borderRadius: isCompact ? '6px' : '12px',
-          backgroundColor: 'transparent',
-          border: '1.5px solid',
-          borderColor: colors.border,
-          fontSize: config.fontSize,
-          fontWeight: 600,
-          color: colors.text,
-          whiteSpace: 'nowrap',
-          transition: 'all 200ms cubic-bezier(0.4, 0, 0.2, 1)',
-          '&:hover': {
-            backgroundColor: colors.bg,
-            transform: 'translateY(-1px)',
-            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-          },
-        }}
+        padding="none"
+        border={false}
+        className={[
+          'inline-flex items-center justify-center font-semibold whitespace-nowrap !bg-transparent hover:!bg-[var(--badge-hover-bg)] transition-all duration-200 hover:-translate-y-px hover:shadow-[0_2px_4px_rgba(0,0,0,0.1)]',
+          badgeClassName,
+        ]
+          .filter(Boolean)
+          .join(' ')}
+        style={
+          {
+            gap: config.gap,
+            height: config.height,
+            paddingLeft: config.padding,
+            paddingRight: config.padding,
+            borderRadius: isCompact ? '6px' : '12px',
+            border: `1.5px solid ${colors.border}`,
+            fontSize: config.fontSize,
+            color: colors.text,
+            fontFamily: 'inherit',
+            '--badge-hover-bg': colors.bg,
+          } as CSSProperties
+        }
       >
         {resolvedIcon && (
-          <Box 
-            sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
+          <span
+            className="flex items-center leading-none"
+            style={{
               fontSize: `${parseFloat(config.fontSize) * 0.9}rem`,
-              lineHeight: 1,
             }}
           >
             {resolvedIcon}
-          </Box>
+          </span>
         )}
-        <Typography
-          component="span"
-          sx={{
+        <span
+          className="leading-none tracking-[0.025em]"
+          style={{
             fontSize: 'inherit',
             fontWeight: 'inherit',
-            letterSpacing: '0.025em',
             textTransform: label ? 'none' : 'capitalize',
-            lineHeight: 1,
           }}
         >
           {displayText}
-        </Typography>
-      </Box>
+        </span>
+      </JXBox>
     );
   }
 

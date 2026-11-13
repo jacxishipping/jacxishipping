@@ -1,0 +1,5 @@
+name: "jxui-react"
+title: "JXUI React Component Library"
+description: "Build React + TypeScript interfaces with JXUI v3.0.0 (@jacxishippingorg/jx-ui-react): 361 components across 18 categories, with install, theming, lookup, props and export rules, backed by the full knowledgebase in this folder."
+category: "Work and knowledge"
+include_in_prompt: true

@@ -7,7 +7,8 @@ import type { Session } from 'next-auth';
 import type { SvgIconComponent } from '@mui/icons-material';
 import { Dashboard, Inventory2, Description, Search, Analytics, Group, AllInbox, Receipt, ReceiptLong, AccountBalance, Payment, Business, LocalShipping, SmartToy, Hub, PhoneInTalk, Route, ExpandLess, ExpandMore, AdminPanelSettings, CompareArrows, SwapHoriz, Settings, Timer, ChevronLeft, ChevronRight, Logout, Close } from '@mui/icons-material';
 import { signOut, useSession } from 'next-auth/react';
-import { Drawer, Box, List, ListItemButton, ListItemIcon, ListItemText, Typography, Collapse, IconButton, Avatar, Button, Tooltip, Divider } from '@mui/material';
+import { Drawer, Box, List, ListItemButton, ListItemIcon, ListItemText, Typography, Collapse, Avatar, Tooltip } from '@mui/material';
+import { JXBox, JXButton, JXDivider, SpringButton } from '@jacxishippingorg/jx-ui-react';
 import { hasPermission, type Permission } from '@/lib/rbac';
 import { useTheme } from '@/hooks/useTheme';
 import SiteLogo from '@/components/brand/SiteLogo';
@@ -536,7 +537,7 @@ function NavSection({ title, items, role, isActive, badgeMap, onNavClick, collap
 				</Box>
 			)}
 			{title && collapsed && (
-				<Divider sx={{ my: 0.75, mx: 1.2, borderColor: 'var(--border)' }} />
+				<JXDivider className="my-1.5 mx-2.5 !border-[var(--border)]" />
 			)}
 			<List sx={{ py: 0 }}>
 				{filterNavigationItems(items, role).map((item) => (
@@ -575,7 +576,7 @@ function CollapsibleAdminSection({
 	if (isSidebarCollapsed) {
 		return (
 			<Box sx={{ mb: 0.5 }}>
-				<Divider sx={{ my: 0.75, mx: 1.2, borderColor: 'var(--border)' }} />
+				<JXDivider className="my-1.5 mx-2.5 !border-[var(--border)]" />
 				<List sx={{ py: 0 }}>
 					{visibleItems.map((item) => (
 						<NavItem
@@ -623,20 +624,20 @@ function CollapsibleAdminSection({
 					{SectionIcon && <SectionIcon sx={{ fontSize: 12 }} />}
 					Admin
 				</Typography>
-				<IconButton
-					size="small"
+				<SpringButton
+					type="button"
+					variant="outline"
+					tone="primary"
 					onClick={(event) => {
 						event.stopPropagation();
 						onToggleCollapsed();
 					}}
-					sx={{
-						p: 0.25,
-						color: 'var(--text-secondary)',
-					}}
+					style={{ fontFamily: 'inherit' }}
+					className="!h-6 !w-6 !min-h-0 !min-w-0 !rounded-md !border-0 !bg-transparent !p-0.5 !text-[var(--text-secondary)] hover:!bg-[rgba(var(--accent-gold-rgb),0.1)] hover:!text-[var(--text-primary)] !shadow-none"
 					aria-label={collapsed ? 'Expand admin navigation' : 'Collapse admin navigation'}
 				>
 					{collapsed ? <ExpandMore sx={{ fontSize: 14 }} /> : <ExpandLess sx={{ fontSize: 14 }} />}
-				</IconButton>
+				</SpringButton>
 			</Box>
 			<Collapse in={!collapsed}>
 				<List sx={{ py: 0 }}>
@@ -733,34 +734,29 @@ function SidebarContent({
 		>
 			{/* Mobile Drawer Header */}
 			{isMobile && (
-				<Box
-					sx={{
-						display: 'flex',
-						alignItems: 'center',
-						justifyContent: 'space-between',
-						px: 2,
-						py: 1.5,
+				<JXBox
+					padding="none"
+					border={false}
+					className="flex items-center justify-between px-4 py-3 !rounded-none"
+					style={{
 						borderBottom: '1px solid var(--border)',
 						background: 'rgba(var(--panel-rgb), 0.95)',
+						fontFamily: 'inherit',
 					}}
 				>
 					<SiteLogo variant="dashboard" className="w-[84px]" priority />
-					<IconButton
+					<SpringButton
+						type="button"
+						variant="outline"
+						tone="primary"
 						onClick={onNavClick}
-						size="small"
 						aria-label="Close menu"
-						sx={{
-							color: 'var(--text-secondary)',
-							p: 0.75,
-							'&:hover': {
-								color: 'var(--text-primary)',
-								bgcolor: 'rgba(var(--border-rgb), 0.3)',
-							},
-						}}
+						style={{ fontFamily: 'inherit' }}
+						className="!h-8 !w-8 !min-h-0 !min-w-0 !rounded-lg !border-0 !bg-transparent !p-1.5 !text-[var(--text-secondary)] hover:!bg-[rgba(var(--border-rgb),0.3)] hover:!text-[var(--text-primary)] !shadow-none"
 					>
 						<Close sx={{ fontSize: 20 }} />
-					</IconButton>
-				</Box>
+					</SpringButton>
+				</JXBox>
 			)}
 
 			{/* Navigation - scrollable */}
@@ -797,15 +793,14 @@ function SidebarContent({
 
 			</Box>
 			{collapsed ? (
-				<Box
-					sx={{
+				<JXBox
+					padding="none"
+					border={false}
+					className="flex flex-col items-center gap-2 p-2 !rounded-none"
+					style={{
 						borderTop: '1px solid var(--border)',
-						p: 1,
-						display: 'flex',
-						flexDirection: 'column',
-						alignItems: 'center',
-						gap: 1,
 						background: 'rgba(var(--panel-rgb), 0.92)',
+						fontFamily: 'inherit',
 					}}
 				>
 					<Tooltip title={`${userName} (${userRole || 'user'})`} placement="right">
@@ -826,41 +821,47 @@ function SidebarContent({
 					</Tooltip>
 					{onToggleCollapse && (
 						<Tooltip title="Expand sidebar" placement="right">
-							<IconButton
-								size="small"
-								onClick={onToggleCollapse}
-								aria-label="Expand sidebar"
-								sx={{
-									color: 'var(--text-secondary)',
-									'&:hover': { color: 'var(--accent-gold)', bgcolor: 'rgba(var(--accent-gold-rgb), 0.1)' },
-								}}
-							>
-								<ChevronRight sx={{ fontSize: 18 }} />
-							</IconButton>
+							<span className="inline-flex">
+								<SpringButton
+									type="button"
+									variant="outline"
+									tone="primary"
+									onClick={onToggleCollapse}
+									aria-label="Expand sidebar"
+									style={{ fontFamily: 'inherit' }}
+									className="!h-7 !w-7 !min-h-0 !min-w-0 !rounded-md !border-0 !bg-transparent !p-1 !text-[var(--text-secondary)] hover:!bg-[rgba(var(--accent-gold-rgb),0.1)] hover:!text-[var(--accent-gold-text)] !shadow-none"
+								>
+									<ChevronRight sx={{ fontSize: 18 }} />
+								</SpringButton>
+							</span>
 						</Tooltip>
 					)}
 					<Tooltip title="Sign Out" placement="right">
-						<IconButton
-							size="small"
-							onClick={() => signOut({ callbackUrl: '/auth/signin' })}
-							aria-label="Sign out"
-							sx={{
-								color: 'var(--text-secondary)',
-								'&:hover': { color: 'var(--error, #ef4444)', bgcolor: 'rgba(239, 68, 68, 0.1)' },
-							}}
-						>
-							<Logout sx={{ fontSize: 18 }} />
-						</IconButton>
+						<span className="inline-flex">
+							<SpringButton
+								type="button"
+								variant="outline"
+								tone="danger"
+								onClick={() => signOut({ callbackUrl: '/auth/signin' })}
+								aria-label="Sign out"
+								style={{ fontFamily: 'inherit' }}
+								className="!h-7 !w-7 !min-h-0 !min-w-0 !rounded-md !border-0 !bg-transparent !p-1 !text-[var(--text-secondary)] hover:!bg-[rgba(239,68,68,0.1)] hover:!text-[var(--error,#ef4444)] !shadow-none"
+							>
+								<Logout sx={{ fontSize: 18 }} />
+							</SpringButton>
+						</span>
 					</Tooltip>
-				</Box>
+				</JXBox>
 			) : (
-				<Box
-					sx={{
+				<JXBox
+					padding="none"
+					border={false}
+					className="px-3 py-3 !rounded-none"
+					style={{
 						borderTop: '1px solid var(--border)',
-						px: 1.5,
-						py: 1.5,
-						pb: isMobile ? 'calc(16px + env(safe-area-inset-bottom, 0px))' : 1.5,
+						paddingBottom: isMobile ? 'calc(16px + env(safe-area-inset-bottom, 0px))' : '12px',
 						background: 'rgba(var(--panel-rgb), 0.92)',
+						fontFamily: 'inherit',
 					}}
 				>
 					<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.25 }}>
@@ -905,39 +906,34 @@ function SidebarContent({
 						</Box>
 						{onToggleCollapse && (
 							<Tooltip title="Collapse sidebar" placement="right">
-								<IconButton
-									size="small"
-									onClick={onToggleCollapse}
-									aria-label="Collapse sidebar"
-									sx={{
-										color: 'var(--text-secondary)',
-										'&:hover': { color: 'var(--text-primary)', bgcolor: 'rgba(var(--accent-gold-rgb), 0.1)' },
-									}}
-								>
-									<ChevronLeft sx={{ fontSize: 18 }} />
-								</IconButton>
+								<span className="inline-flex">
+									<SpringButton
+										type="button"
+										variant="outline"
+										tone="primary"
+										onClick={onToggleCollapse}
+										aria-label="Collapse sidebar"
+										style={{ fontFamily: 'inherit' }}
+										className="!h-7 !w-7 !min-h-0 !min-w-0 !rounded-md !border-0 !bg-transparent !p-1 !text-[var(--text-secondary)] hover:!bg-[rgba(var(--accent-gold-rgb),0.1)] hover:!text-[var(--text-primary)] !shadow-none"
+									>
+										<ChevronLeft sx={{ fontSize: 18 }} />
+									</SpringButton>
+								</span>
 							</Tooltip>
 						)}
 					</Box>
-					<Button
+					<JXButton
 						fullWidth
-						size="small"
+						size="sm"
 						variant="outlined"
+						spring
 						onClick={() => signOut({ callbackUrl: '/auth/signin' })}
-						sx={{
-							borderColor: 'var(--border)',
-							color: 'var(--text-primary)',
-							textTransform: 'none',
-							fontWeight: 600,
-							'&:hover': {
-								borderColor: 'var(--accent-gold)',
-								backgroundColor: 'rgba(var(--accent-gold-rgb), 0.08)',
-							},
-						}}
+						style={{ fontFamily: 'inherit' }}
+						className="!border-[var(--border)] !bg-transparent !text-[var(--text-primary)] !font-semibold !normal-case hover:!border-[var(--accent-gold)] hover:!bg-[rgba(var(--accent-gold-rgb),0.08)]"
 					>
 						Sign Out
-					</Button>
-				</Box>
+					</JXButton>
+				</JXBox>
 			)}
 		</Box>
 	);

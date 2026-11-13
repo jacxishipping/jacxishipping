@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { IconButton, Box } from "@mui/material";
+import { JXBox, SpringButton } from "@jacxishippingorg/jx-ui-react";
 import { LightMode, DarkMode } from "@mui/icons-material";
 import Tooltip from "./Tooltip";
 
@@ -68,37 +68,32 @@ export function ThemeToggle() {
 
   // Don't render until mounted to avoid hydration mismatch
   if (!mounted) {
-    return <Box sx={{ width: 40, height: 40 }} />;
+    return <JXBox padding="none" border={false} className="h-10 w-10 !rounded-none !bg-transparent" />;
   }
 
   return (
     <Tooltip
       title={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
     >
-      <IconButton
-        aria-label={
-          theme === "light" ? "Switch to dark mode" : "Switch to light mode"
-        }
-        onClick={toggleTheme}
-        sx={{
-          color: "var(--text-secondary)",
-          transition: "all 200ms cubic-bezier(0.4, 0, 0.2, 1)",
-          "&:hover": {
-            color: "var(--accent-gold)",
-            bgcolor: "rgba(var(--accent-gold-rgb), 0.1)",
-            transform: "rotate(20deg)",
-          },
-          "&:active": {
-            transform: "rotate(20deg) scale(0.95)",
-          },
-        }}
-      >
-        {theme === "light" ? (
-          <LightMode sx={{ fontSize: 20 }} />
-        ) : (
-          <DarkMode sx={{ fontSize: 20 }} />
-        )}
-      </IconButton>
+      <span className="inline-flex">
+        <SpringButton
+          type="button"
+          variant="outline"
+          tone="primary"
+          aria-label={
+            theme === "light" ? "Switch to dark mode" : "Switch to light mode"
+          }
+          onClick={toggleTheme}
+          style={{ fontFamily: "inherit" }}
+          className="!h-9 !w-9 !min-h-0 !min-w-0 !rounded-lg !border-0 !bg-transparent !p-1.5 !text-[var(--text-secondary)] hover:!bg-[rgba(var(--accent-gold-rgb),0.1)] hover:!text-[var(--accent-gold-text)] hover:rotate-[20deg] !shadow-none"
+        >
+          {theme === "light" ? (
+            <LightMode sx={{ fontSize: 20 }} />
+          ) : (
+            <DarkMode sx={{ fontSize: 20 }} />
+          )}
+        </SpringButton>
+      </span>
     </Tooltip>
   );
 }

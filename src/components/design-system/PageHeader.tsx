@@ -1,6 +1,6 @@
 "use client";
 
-import { Box, Typography } from '@mui/material';
+import { JXBox } from '@jacxishippingorg/jx-ui-react';
 import { ReactNode } from 'react';
 import Breadcrumbs from './Breadcrumbs';
 import { useTheme } from '@/hooks/useTheme';
@@ -22,93 +22,75 @@ export default function PageHeader({ title, description, actions, showBreadcrumb
 	const isCompact = density === 'compact';
 
 	return (
-		<Box className="page-header-root" sx={{ mb: isCompact ? 1.5 : 3 }}>
+		<div className={`page-header-root ${isCompact ? 'mb-3' : 'mb-6'}`}>
 			{showBreadcrumbs && (
-				<Box sx={{ mb: isCompact ? 0.75 : 1.5 }}>
+				<div className={isCompact ? 'mb-1.5' : 'mb-3'}>
 					<Breadcrumbs />
-				</Box>
+				</div>
 			)}
-			<Box
-				sx={{
-					display: 'flex',
-					flexDirection: { xs: 'column', md: 'row' },
-					justifyContent: 'space-between',
-					alignItems: { xs: 'flex-start', md: 'center' },
-					gap: isCompact ? 1.25 : 2,
-					border: '1px solid var(--border)',
+			<JXBox
+				surface="elevated"
+				padding="none"
+				className={`flex flex-col md:flex-row justify-between items-start md:items-center !bg-[var(--panel)] !border-[var(--border)] ${
+					isCompact
+						? 'gap-2.5 !rounded-[12px] px-3 py-2 md:px-3.5 md:py-2.5'
+						: 'gap-4 !rounded-[16px] px-4 py-3.5 md:px-[18px] md:py-4'
+				}`}
+				style={{
 					borderTop: '2px solid rgba(var(--accent-gold-rgb), 0.3)',
-					borderRadius: isCompact ? 1.5 : 2,
-					backgroundColor: 'var(--panel)',
-					boxShadow: isCompact ? '0 6px 18px rgba(var(--text-primary-rgb), 0.05)' : '0 14px 34px rgba(var(--text-primary-rgb), 0.08)',
-					padding: isCompact
-						? { xs: '8px 12px', md: '10px 14px' }
-						: { xs: '14px 16px', md: '16px 18px' },
+					boxShadow: isCompact
+						? '0 6px 18px rgba(var(--text-primary-rgb), 0.05)'
+						: '0 14px 34px rgba(var(--text-primary-rgb), 0.08)',
+					fontFamily: 'inherit',
 				}}
 			>
-				<Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, minWidth: 0 }}>
-					<Typography
-						component="h1"
-						sx={{
-							fontSize: { xs: '1.15rem', sm: '1.25rem', md: '1.4rem' },
-							fontWeight: 600,
-							color: 'var(--text-primary)',
-							lineHeight: 1.2,
-							overflowWrap: 'anywhere',
-						}}
+				<div className="flex min-w-0 flex-col gap-1">
+					<h1
+						className="text-[1.15rem] sm:text-[1.25rem] md:text-[1.4rem] font-semibold leading-[1.2] text-[var(--text-primary)]"
+						style={{ overflowWrap: 'anywhere' }}
 					>
 						{title}
-					</Typography>
+					</h1>
 					{description && (
-						<Typography
-							sx={{
-								fontSize: { xs: '0.82rem', sm: '0.88rem' },
-								color: 'var(--text-secondary)',
-								maxWidth: 680,
-							}}
-						>
+						<p className="max-w-[680px] text-[0.82rem] sm:text-[0.88rem] text-[var(--text-secondary)]">
 							{description}
-						</Typography>
+						</p>
 					)}
-				</Box>
-				<Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center', justifyContent: { xs: 'flex-start', md: 'flex-end' } }}>
+				</div>
+				<div className="flex flex-wrap items-center justify-start md:justify-end gap-3">
 					{meta && meta.length > 0 && (
-						<Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+						<div className="flex flex-wrap gap-2">
 							{meta.map((item) => (
-								<Box
+								<JXBox
 									key={item.label}
-									sx={{
-										minWidth: isCompact ? 90 : 110,
-										border: '1px solid var(--border)',
-										borderRadius: 1.25,
-										padding: isCompact ? '4px 8px' : '8px 12px',
-										backgroundColor: 'var(--background)',
-									}}
+									surface="subtle"
+									padding="none"
+									className={`!bg-[var(--background)] !border-[var(--border)] !rounded-[10px] shadow-none ${
+										isCompact ? 'min-w-[90px] px-2 py-1' : 'min-w-[110px] px-3 py-2'
+									}`}
 								>
-									<Typography
-										sx={{
-											fontSize: '0.65rem',
-											textTransform: 'uppercase',
-											letterSpacing: '0.15em',
-											color: 'var(--text-secondary)',
-										}}
-									>
+									<p className="text-[0.65rem] uppercase tracking-[0.15em] text-[var(--text-secondary)]">
 										{item.label}
-									</Typography>
-									<Typography sx={{ fontSize: isCompact ? '0.875rem' : '1rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+									</p>
+									<p
+										className={`font-semibold text-[var(--text-primary)] tabular-nums ${
+											isCompact ? 'text-[0.875rem]' : 'text-[1rem]'
+										}`}
+									>
 										{item.value}
-									</Typography>
+									</p>
 									{item.helper && (
-										<Typography sx={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
+										<p className="text-[0.7rem] text-[var(--text-secondary)]">
 											{item.helper}
-										</Typography>
+										</p>
 									)}
-								</Box>
+								</JXBox>
 							))}
-						</Box>
+						</div>
 					)}
-					{actions && <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>{actions}</Box>}
-				</Box>
-			</Box>
-		</Box>
+					{actions && <div className="flex flex-wrap gap-2">{actions}</div>}
+				</div>
+			</JXBox>
+		</div>
 	);
 }
