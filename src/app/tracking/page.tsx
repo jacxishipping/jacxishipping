@@ -227,7 +227,7 @@ function TrackingPageInner() {
 						{/* Label */}
 						<motion.div variants={itemVariants} className="inline-flex items-center gap-3 justify-center mb-8">
 							<span className="h-px w-6 bg-[#D4AF37]" />
-							<span className="text-xs font-mono uppercase tracking-[0.2em] text-[#D4AF37]">Live tracking</span>
+							<span className="text-xs font-mono uppercase tracking-[0.2em] text-[#8D7A1F] font-semibold">Live tracking</span>
 							<span className="h-px w-6 bg-[#D4AF37]" />
 						</motion.div>
 
@@ -279,13 +279,14 @@ function TrackingPageInner() {
 										autoComplete="off"
 										aria-required="true"
 										aria-describedby={errorMessage ? 'tracking-error' : undefined}
-										className="w-full pl-12 pr-12 py-4 text-base rounded-xl bg-[#F9FAFB] border border-black/[0.06] text-gray-900 placeholder:text-black/30 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/30 focus:border-[#D4AF37]/60 transition-all touch-manipulation"
+										className="w-full pl-12 pr-14 py-4 text-base rounded-xl bg-[#F9FAFB] border border-black/[0.06] text-gray-900 placeholder:text-black/45 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/30 focus:border-[#D4AF37]/60 transition-all touch-manipulation"
 									/>
 									<button
 										type="button"
 										onClick={() => setScannerOpen(true)}
-										className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-lg text-black/40 hover:text-[#D4AF37] hover:bg-black/5 transition-colors"
+										className="absolute right-2 top-1/2 -translate-y-1/2 flex h-11 w-11 items-center justify-center rounded-lg text-black/50 hover:text-[#8D7A1F] hover:bg-black/5 transition-colors"
 										title="Scan Barcode or QR Code"
+										aria-label="Scan barcode or QR code"
 									>
 										<Camera className="w-5 h-5" />
 									</button>
@@ -367,16 +368,16 @@ function TrackingPageInner() {
 							</div>
 							<div className="inline-flex items-center gap-3 justify-center mb-4">
 								<span className="h-px w-6 bg-[#D4AF37]" />
-								<span className="text-xs font-mono uppercase tracking-[0.2em] text-[#D4AF37]">How it works</span>
+								<span className="text-xs font-mono uppercase tracking-[0.2em] text-[#8D7A1F] font-semibold">How it works</span>
 								<span className="h-px w-6 bg-[#D4AF37]" />
 							</div>
-							<h3 className="text-2xl font-extrabold tracking-tight mb-3">Need your tracking number?</h3>
+							<h2 className="text-2xl font-extrabold tracking-tight mb-3">Need your tracking number?</h2>
 							<p className="text-black/60 font-medium mb-6 max-w-md mx-auto">
 								Your container number is found in your booking confirmation email or shipping documents.
 							</p>
-							<p className="text-sm text-black/40">
+							<p className="text-sm text-black/60">
 								Need help?{' '}
-								<a href="/#contact-us" className="text-[#D4AF37] hover:underline font-semibold">Contact our team</a>
+								<a href="/#contact" className="text-[#8D7A1F] hover:underline font-semibold">Contact our team</a>
 							</p>
 						</div>
 					</motion.div>

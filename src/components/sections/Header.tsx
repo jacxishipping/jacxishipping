@@ -40,7 +40,7 @@ export default function Header({ isAuthenticated = false }: { isAuthenticated?: 
         transition={{ duration: 1, ease: "easeOut" }}
         className={`fixed inset-x-0 top-0 z-[100] border-b transition-all duration-500 ease-in-out ${
           isScrolled
-            ? 'border-black/5 bg-white/80 backdrop-blur-2xl py-3 shadow-[0_4px_30px_rgba(0,0,0,0.5)]'
+            ? 'border-black/5 bg-white/85 backdrop-blur-2xl py-3 shadow-[0_4px_24px_rgba(15,23,42,0.06)]'
             : 'border-transparent bg-transparent py-6'
         }`}
       >
@@ -106,7 +106,9 @@ export default function Header({ isAuthenticated = false }: { isAuthenticated?: 
             <button
               type="button"
               onClick={() => setIsMobileMenuOpen(true)}
-              className="lg:hidden relative flex h-12 w-12 items-center justify-center rounded-full bg-[#F9FAFB]/5 border border-black/5 text-gray-900 backdrop-blur-md transition-colors hover:bg-[#F9FAFB]/10 outline-none"
+              aria-label="Open navigation menu"
+              aria-expanded={isMobileMenuOpen}
+              className="lg:hidden relative flex h-12 w-12 items-center justify-center rounded-full bg-white/90 border border-black/10 shadow-sm text-gray-900 backdrop-blur-md transition-colors hover:bg-white outline-none"
             >
               <Menu className="h-5 w-5" />
             </button>

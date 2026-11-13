@@ -52,7 +52,7 @@ export default function ServicesPreviewSection() {
         >
           <div className="inline-flex items-center gap-3">
              <div className="h-px w-6 sm:w-8 bg-[#D4AF37]" />
-             <span className="text-xs font-mono uppercase tracking-widest text-[#D4AF37]">capabilities</span>
+             <span className="text-xs font-mono uppercase tracking-widest text-[#8D7A1F] font-semibold">capabilities</span>
           </div>
           <h2 className="mt-4 sm:mt-8 text-3xl font-extrabold tracking-tight sm:text-5xl lg:text-7xl">
             End-to-end logistics.<br />

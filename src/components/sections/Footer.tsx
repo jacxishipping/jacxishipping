@@ -82,7 +82,7 @@ export default function Footer() {
               Premium vehicle logistics from North America to Afghanistan. Flawless handling through trusted corridors.
             </p>
             <div className="flex gap-x-6">
-               <span className="text-xs font-mono uppercase tracking-widest text-[#D4AF37]">© 2026 JACXI SHIPPING</span>
+               <span className="text-xs font-mono uppercase tracking-widest text-[#8D7A1F] font-semibold">© 2026 JACXI SHIPPING</span>
             </div>
           </div>
           
@@ -90,10 +90,10 @@ export default function Footer() {
             <div className="md:grid md:grid-cols-2 md:gap-8">
               <div>
                 <h3 className="text-sm font-bold text-gray-900 tracking-widest uppercase">Solutions</h3>
-                <ul role="list" className="mt-6 space-y-4">
+                <ul role="list" className="mt-6 space-y-3">
                   {footerNavigation.solutions.map((item) => (
                     <li key={item.name}>
-                      <Link href={item.href} className="text-sm text-black/60 hover:text-gray-900 transition-colors">
+                      <Link href={item.href} className="inline-flex min-h-[28px] items-center py-1 text-sm text-black/60 hover:text-gray-900 transition-colors">
                         {item.name}
                       </Link>
                     </li>
@@ -102,10 +102,10 @@ export default function Footer() {
               </div>
               <div className="mt-10 md:mt-0">
                 <h3 className="text-sm font-bold text-gray-900 tracking-widest uppercase">Support</h3>
-                <ul role="list" className="mt-6 space-y-4">
+                <ul role="list" className="mt-6 space-y-3">
                   {footerNavigation.support.map((item) => (
                     <li key={item.name}>
-                      <Link href={item.href} className="text-sm text-black/60 hover:text-gray-900 transition-colors">
+                      <Link href={item.href} className="inline-flex min-h-[28px] items-center py-1 text-sm text-black/60 hover:text-gray-900 transition-colors">
                         {item.name}
                       </Link>
                     </li>
@@ -116,10 +116,10 @@ export default function Footer() {
             <div className="md:grid md:grid-cols-2 md:gap-8">
               <div>
                 <h3 className="text-sm font-bold text-gray-900 tracking-widest uppercase">Company</h3>
-                <ul role="list" className="mt-6 space-y-4">
+                <ul role="list" className="mt-6 space-y-3">
                   {footerNavigation.company.map((item) => (
                     <li key={item.name}>
-                      <Link href={item.href} className="text-sm text-black/60 hover:text-gray-900 transition-colors">
+                      <Link href={item.href} className="inline-flex min-h-[28px] items-center py-1 text-sm text-black/60 hover:text-gray-900 transition-colors">
                         {item.name}
                       </Link>
                     </li>
@@ -128,10 +128,10 @@ export default function Footer() {
               </div>
               <div className="mt-10 md:mt-0">
                 <h3 className="text-sm font-bold text-gray-900 tracking-widest uppercase">Legal</h3>
-                <ul role="list" className="mt-6 space-y-4">
+                <ul role="list" className="mt-6 space-y-3">
                   {footerNavigation.legal.map((item) => (
                     <li key={item.name}>
-                      <Link href={item.href} className="text-sm text-black/60 hover:text-gray-900 transition-colors">
+                      <Link href={item.href} className="inline-flex min-h-[28px] items-center py-1 text-sm text-black/60 hover:text-gray-900 transition-colors">
                         {item.name}
                       </Link>
                     </li>

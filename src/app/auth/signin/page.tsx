@@ -281,7 +281,7 @@ export default function SignInPage() {
 											sx={{
 												fontSize: '0.75rem',
 												fontWeight: 600,
-												color: 'var(--accent-gold)',
+												color: '#8D7A1F',
 												bgcolor: 'rgba(var(--accent-gold-rgb), 0.12)',
 												px: 1,
 												py: 0.25,
@@ -360,10 +360,13 @@ export default function SignInPage() {
 													<IconButton
 														onClick={() => setShowPassword(!showPassword)}
 														edge="end"
+														aria-label={showPassword ? 'Hide password' : 'Show password'}
 														sx={{
-															color: 'var(--accent-gold)',
+															width: 44,
+															height: 44,
+															color: '#8D7A1F',
 															'&:hover': {
-																color: 'var(--accent-gold)',
+																color: '#6B5C17',
 															},
 														}}
 													>
@@ -425,13 +428,19 @@ export default function SignInPage() {
 								{t('auth.dontHaveAccount')}{' '}
 								<Typography
 									component="button"
+									type="button"
 									onClick={() => router.push('/auth/signup')}
 									sx={{
 										background: 'none',
 										border: 'none',
 										// Gold-800 from the design token scale: passes AA on white panels (gold-500 is too light for text)
 										color: '#8D7A1F',
-										fontWeight: 500,
+										fontWeight: 600,
+										minHeight: 36,
+										px: 1,
+										py: 0.5,
+										display: 'inline-flex',
+										alignItems: 'center',
 										cursor: 'pointer',
 										transition: 'color 0.2s ease',
 										'&:hover': {
