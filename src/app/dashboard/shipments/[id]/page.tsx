@@ -1640,7 +1640,6 @@ export default function ShipmentDetailPage() {
           void refreshShipmentPage();
         }}
       />
-      </DashboardSurface>
       </div>
     </ProtectedRoute>
   );
