@@ -124,7 +124,9 @@ export default function ShipmentMobileDetail({ shipment, onRefresh }: ShipmentMo
   const hasContainer = !!shipment.container;
   const hasDispatch = !!shipment.dispatch;
   const hasTransit = !!shipment.transit;
-  const hasPhotos = (shipment.arrivalPhotos?.length || 0) > 0 || (shipment.departurePhotos?.length || 0) > 0;
+  const origin = shipment.dispatch?.origin || shipment.container?.loadingPort;
+  const destination = shipment.transit?.destination || shipment.container?.destinationPort || shipment.dispatch?.destination;
+  const hasPhotos = (shipment.arrivalPhotos?.length || 0) > 0 || (shipment.vehiclePhotos?.length || 0) > 0;
 
   return (
     <div className="space-y-3 pb-8">
@@ -234,18 +236,18 @@ export default function ShipmentMobileDetail({ shipment, onRefresh }: ShipmentMo
       </CollapsibleSection>
 
       {/* Route & Location */}
-      {(shipment.origin || shipment.destination || hasContainer) && (
+      {(origin || destination || hasContainer) && (
         <CollapsibleSection title="Route & Location" icon={<MapPin className="h-4 w-4" />}>
-          {shipment.origin && <DetailRow label="Origin" value={shipment.origin} icon={<MapPin className="h-3.5 w-3.5" />} />}
-          {shipment.destination && <DetailRow label="Destination" value={shipment.destination} icon={<MapPin className="h-3.5 w-3.5" />} />}
+          {origin && <DetailRow label="Origin" value={origin} icon={<MapPin className="h-3.5 w-3.5" />} />}
+          {destination && <DetailRow label="Destination" value={destination} icon={<MapPin className="h-3.5 w-3.5" />} />}
           {shipment.container?.loadingPort && (
             <DetailRow label="Loading Port" value={shipment.container.loadingPort} icon={<Ship className="h-3.5 w-3.5" />} />
           )}
           {shipment.container?.destinationPort && (
             <DetailRow label="Destination Port" value={shipment.container.destinationPort} icon={<Ship className="h-3.5 w-3.5" />} />
           )}
-          {shipment.currentLocation && (
-            <DetailRow label="Current Location" value={shipment.currentLocation} icon={<MapPin className="h-3.5 w-3.5" />} />
+          {shipment.container?.currentLocation && (
+            <DetailRow label="Current Location" value={shipment.container?.currentLocation} icon={<MapPin className="h-3.5 w-3.5" />} />
           )}
         </CollapsibleSection>
       )}
@@ -256,11 +258,11 @@ export default function ShipmentMobileDetail({ shipment, onRefresh }: ShipmentMo
         {shipment.updatedAt && (
           <DetailRow label="Last Updated" value={formatDate(shipment.updatedAt)} icon={<Clock className="h-3.5 w-3.5" />} />
         )}
-        {shipment.estimatedDeliveryDate && (
-          <DetailRow label="Est. Delivery" value={formatDate(shipment.estimatedDeliveryDate)} icon={<Calendar className="h-3.5 w-3.5" />} />
+        {shipment.transit?.estimatedDelivery && (
+          <DetailRow label="Est. Delivery" value={formatDate(shipment.transit?.estimatedDelivery)} icon={<Calendar className="h-3.5 w-3.5" />} />
         )}
-        {shipment.actualDeliveryDate && (
-          <DetailRow label="Actual Delivery" value={formatDate(shipment.actualDeliveryDate)} icon={<CheckCircle2 className="h-3.5 w-3.5" />} />
+        {shipment.transit?.actualDelivery && (
+          <DetailRow label="Actual Delivery" value={formatDate(shipment.transit?.actualDelivery)} icon={<CheckCircle2 className="h-3.5 w-3.5" />} />
         )}
         {shipment.releaseTokenCreatedAt && (
           <DetailRow label="Release Token" value={formatDate(shipment.releaseTokenCreatedAt)} icon={<FileText className="h-3.5 w-3.5" />} />
@@ -342,13 +344,13 @@ export default function ShipmentMobileDetail({ shipment, onRefresh }: ShipmentMo
       {/* Photos */}
       {hasPhotos && (
         <CollapsibleSection title="Photos" icon={<ImageIcon className="h-4 w-4" />}>
-          {shipment.departurePhotos && shipment.departurePhotos.length > 0 && (
+          {shipment.vehiclePhotos && shipment.vehiclePhotos.length > 0 && (
             <div className="mb-3">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-2">
-                Departure ({shipment.departurePhotos.length})
+                Vehicle ({shipment.vehiclePhotos.length})
               </p>
               <div className="grid grid-cols-3 gap-2">
-                {shipment.departurePhotos.map((url, idx) => (
+                {shipment.vehiclePhotos.map((url, idx) => (
                   <a
                     key={`dep-${idx}`}
                     href={url}
@@ -358,7 +360,7 @@ export default function ShipmentMobileDetail({ shipment, onRefresh }: ShipmentMo
                   >
                     <img
                       src={url}
-                      alt={`Departure photo ${idx + 1}`}
+                      alt={`Vehicle photo ${idx + 1}`}
                       className="w-full h-full object-cover"
                       loading="lazy"
                     />
@@ -401,14 +403,14 @@ export default function ShipmentMobileDetail({ shipment, onRefresh }: ShipmentMo
           {shipment.documents.map((doc, idx) => (
             <a
               key={idx}
-              href={typeof doc === 'string' ? doc : (doc as { url?: string })?.url || '#'}
+              href={doc.fileUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--background)] mb-2 last:mb-0 active:bg-[var(--panel)] transition-colors"
             >
               <FileText className="h-4 w-4 text-[var(--accent-gold)] shrink-0" />
               <span className="text-xs text-[var(--text-primary)] flex-1 truncate">
-                {typeof doc === 'string' ? doc.split('/').pop() || 'Document' : (doc as { name?: string })?.name || 'Document'}
+                {doc.name || 'Document'}
               </span>
               <ExternalLink className="h-3.5 w-3.5 text-[var(--text-secondary)] shrink-0" />
             </a>
