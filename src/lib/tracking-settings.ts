@@ -12,6 +12,9 @@ export interface TrackingSettingsValues {
   publicTrackingApiKey: string;
   pglEndpoint: string;
   turkonEndpoint: string;
+  marineTrafficApiKey: string;
+  vesselFinderApiKey: string;
+  aisHubApiKey: string;
 }
 
 const CONFIG_FILE_PATH = path.join(process.cwd(), '.tracking-config.json');
@@ -26,6 +29,9 @@ export const DEFAULT_TRACKING_SETTINGS: TrackingSettingsValues = {
   publicTrackingApiKey: process.env.PUBLIC_TRACKING_API_KEY || '',
   pglEndpoint: 'https://api.pglsystem.com/api/public/tracking',
   turkonEndpoint: 'https://myturkonline.turkon.com/shipping-prod-service/tracking/getTrackingTopInformation/en/',
+  marineTrafficApiKey: process.env.NEXT_PUBLIC_MARINETRAFFIC_API_KEY || '',
+  vesselFinderApiKey: process.env.NEXT_PUBLIC_VESSELFINDER_API_KEY || '',
+  aisHubApiKey: process.env.NEXT_PUBLIC_AISHUB_API_KEY || '',
 };
 
 export function maskSecret(secret?: string | null): string {
@@ -52,6 +58,9 @@ export function getStoredTrackingSettings(): TrackingSettingsValues {
         publicTrackingApiKey: parsed.publicTrackingApiKey ? decryptSecret(parsed.publicTrackingApiKey) : undefined,
         pglEndpoint: parsed.pglEndpoint,
         turkonEndpoint: parsed.turkonEndpoint,
+        marineTrafficApiKey: parsed.marineTrafficApiKey ? decryptSecret(parsed.marineTrafficApiKey) : undefined,
+        vesselFinderApiKey: parsed.vesselFinderApiKey ? decryptSecret(parsed.vesselFinderApiKey) : undefined,
+        aisHubApiKey: parsed.aisHubApiKey ? decryptSecret(parsed.aisHubApiKey) : undefined,
       };
     }
   } catch {
@@ -68,6 +77,9 @@ export function getStoredTrackingSettings(): TrackingSettingsValues {
     publicTrackingApiKey: overrides.publicTrackingApiKey?.trim() || process.env.PUBLIC_TRACKING_API_KEY?.trim() || DEFAULT_TRACKING_SETTINGS.publicTrackingApiKey,
     pglEndpoint: overrides.pglEndpoint?.trim() || DEFAULT_TRACKING_SETTINGS.pglEndpoint,
     turkonEndpoint: overrides.turkonEndpoint?.trim() || DEFAULT_TRACKING_SETTINGS.turkonEndpoint,
+    marineTrafficApiKey: overrides.marineTrafficApiKey?.trim() || process.env.NEXT_PUBLIC_MARINETRAFFIC_API_KEY?.trim() || DEFAULT_TRACKING_SETTINGS.marineTrafficApiKey,
+    vesselFinderApiKey: overrides.vesselFinderApiKey?.trim() || process.env.NEXT_PUBLIC_VESSELFINDER_API_KEY?.trim() || DEFAULT_TRACKING_SETTINGS.vesselFinderApiKey,
+    aisHubApiKey: overrides.aisHubApiKey?.trim() || process.env.NEXT_PUBLIC_AISHUB_API_KEY?.trim() || DEFAULT_TRACKING_SETTINGS.aisHubApiKey,
   };
 }
 
@@ -89,6 +101,9 @@ export function saveStoredTrackingSettings(updates: Partial<TrackingSettingsValu
       publicTrackingApiKey: next.publicTrackingApiKey ? encryptSecret(next.publicTrackingApiKey) : null,
       pglEndpoint: next.pglEndpoint,
       turkonEndpoint: next.turkonEndpoint,
+      marineTrafficApiKey: next.marineTrafficApiKey ? encryptSecret(next.marineTrafficApiKey) : null,
+      vesselFinderApiKey: next.vesselFinderApiKey ? encryptSecret(next.vesselFinderApiKey) : null,
+      aisHubApiKey: next.aisHubApiKey ? encryptSecret(next.aisHubApiKey) : null,
     };
 
     fs.writeFileSync(CONFIG_FILE_PATH, JSON.stringify(toPersist, null, 2), 'utf-8');

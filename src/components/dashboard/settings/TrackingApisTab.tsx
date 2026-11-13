@@ -63,6 +63,11 @@ type TrackingApisStatus = {
     keyCount: number;
     maskedKeys: string[];
   };
+  aisProviders: {
+    marineTraffic: { configured: boolean; maskedKey: string };
+    vesselFinder: { configured: boolean; maskedKey: string };
+    aisHub: { configured: boolean; maskedKey: string };
+  };
   recentContainers: Array<{
     id: string;
     containerNumber: string;
@@ -101,6 +106,9 @@ export function TrackingApisTab() {
     userId: '',
     subscriptionStatus: '',
     publicTrackingApiKey: '',
+    marineTrafficApiKey: '',
+    vesselFinderApiKey: '',
+    aisHubApiKey: '',
   });
 
   // Test Console state
@@ -131,6 +139,9 @@ export function TrackingApisTab() {
         userId: payload.supabase.userId || '',
         subscriptionStatus: payload.supabase.subscriptionStatus || 'pro',
         publicTrackingApiKey: '',
+        marineTrafficApiKey: '',
+        vesselFinderApiKey: '',
+        aisHubApiKey: '',
       });
     } catch (err: any) {
       toast.error(err.message || 'Error fetching tracking API status');
@@ -205,6 +216,9 @@ export function TrackingApisTab() {
       if (credentialsForm.userId) payload.userId = credentialsForm.userId;
       if (credentialsForm.subscriptionStatus) payload.subscriptionStatus = credentialsForm.subscriptionStatus;
       if (credentialsForm.publicTrackingApiKey) payload.publicTrackingApiKey = credentialsForm.publicTrackingApiKey;
+      if (credentialsForm.marineTrafficApiKey) payload.marineTrafficApiKey = credentialsForm.marineTrafficApiKey;
+      if (credentialsForm.vesselFinderApiKey) payload.vesselFinderApiKey = credentialsForm.vesselFinderApiKey;
+      if (credentialsForm.aisHubApiKey) payload.aisHubApiKey = credentialsForm.aisHubApiKey;
 
       const res = await fetch('/api/settings/tracking-apis', {
         method: 'PATCH',
@@ -571,7 +585,130 @@ export function TrackingApisTab() {
         </div>
       </DashboardPanel>
 
-      {/* 3. Interactive Live Tracking Test Playground */}
+      {/* 3. AIS Provider Configuration (MarineTraffic, VesselFinder, AISHub) */}
+      <DashboardPanel
+        title="Real-Time AIS Vessel Tracking Providers"
+        description="Configure live vessel position data sources for the maritime map. When API keys are set, the LiveSeaRouteMap will use real AIS data instead of simulated positions."
+      >
+        <div className="space-y-4">
+          {/* Provider Status Cards */}
+          <DashboardGrid className="grid-cols-1 md:grid-cols-3">
+            <StatsCard
+              icon={<Radio className="w-4 h-4" />}
+              title="MarineTraffic"
+              value={data?.aisProviders?.marineTraffic.configured ? 'API Key Configured' : 'Not Configured'}
+              subtitle={data?.aisProviders?.marineTraffic.maskedKey || 'Uses simulated data'}
+              variant={data?.aisProviders?.marineTraffic.configured ? 'success' : 'info'}
+              size="md"
+            />
+            <StatsCard
+              icon={<Ship className="w-4 h-4" />}
+              title="VesselFinder"
+              value={data?.aisProviders?.vesselFinder.configured ? 'API Key Configured' : 'Not Configured'}
+              subtitle={data?.aisProviders?.vesselFinder.maskedKey || 'Uses simulated data'}
+              variant={data?.aisProviders?.vesselFinder.configured ? 'success' : 'info'}
+              size="md"
+            />
+            <StatsCard
+              icon={<Globe className="w-4 h-4" />}
+              title="AISHub"
+              value={data?.aisProviders?.aisHub.configured ? 'API Key Configured' : 'Not Configured'}
+              subtitle={data?.aisProviders?.aisHub.maskedKey || 'Uses simulated data'}
+              variant={data?.aisProviders?.aisHub.configured ? 'success' : 'info'}
+              size="md"
+            />
+          </DashboardGrid>
+
+          {/* AIS Credentials Form */}
+          <Box
+            sx={{
+              p: 3,
+              borderRadius: '10px',
+              border: '1px solid var(--border)',
+              backgroundColor: 'var(--panel)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 2,
+            }}
+          >
+            <Typography sx={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', mb: 1 }}>
+              AIS Provider API Keys
+            </Typography>
+            <Typography sx={{ fontSize: '0.8rem', color: 'var(--text-secondary)', mb: 1 }}>
+              Enter your API keys for real-time vessel tracking. The map will fall back through providers in order: MarineTraffic → VesselFinder → AISHub → Simulated.
+            </Typography>
+
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
+              <TextField
+                size="small"
+                label="MarineTraffic API Key"
+                type="password"
+                value={credentialsForm.marineTrafficApiKey}
+                onChange={(e) => setCredentialsForm({ ...credentialsForm, marineTrafficApiKey: e.target.value })}
+                placeholder={data?.aisProviders?.marineTraffic.configured ? 'Leave blank to keep current key' : 'Enter MarineTraffic API key'}
+                fullWidth
+              />
+              <TextField
+                size="small"
+                label="VesselFinder API Key"
+                type="password"
+                value={credentialsForm.vesselFinderApiKey}
+                onChange={(e) => setCredentialsForm({ ...credentialsForm, vesselFinderApiKey: e.target.value })}
+                placeholder={data?.aisProviders?.vesselFinder.configured ? 'Leave blank to keep current key' : 'Enter VesselFinder API key'}
+                fullWidth
+              />
+              <TextField
+                size="small"
+                label="AISHub API Key"
+                type="password"
+                value={credentialsForm.aisHubApiKey}
+                onChange={(e) => setCredentialsForm({ ...credentialsForm, aisHubApiKey: e.target.value })}
+                placeholder={data?.aisProviders?.aisHub.configured ? 'Leave blank to keep current key' : 'Enter AISHub API key'}
+                fullWidth
+              />
+            </Box>
+
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 1 }}>
+              <Button
+                variant="primary"
+                size="sm"
+                icon={<Key className="w-4 h-4" />}
+                loading={savingCredentials}
+                onClick={async () => {
+                  const payload: Record<string, string> = {};
+                  if (credentialsForm.marineTrafficApiKey) payload.marineTrafficApiKey = credentialsForm.marineTrafficApiKey;
+                  if (credentialsForm.vesselFinderApiKey) payload.vesselFinderApiKey = credentialsForm.vesselFinderApiKey;
+                  if (credentialsForm.aisHubApiKey) payload.aisHubApiKey = credentialsForm.aisHubApiKey;
+                  if (Object.keys(payload).length === 0) {
+                    toast.info('Enter at least one API key to save');
+                    return;
+                  }
+                  try {
+                    setSavingCredentials(true);
+                    const res = await fetch('/api/settings/tracking-apis', {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(payload),
+                    });
+                    const result = await res.json();
+                    if (!res.ok) throw new Error(result.message || 'Failed to save AIS keys');
+                    toast.success('AIS provider API keys saved!');
+                    await fetchStatus(true);
+                  } catch (err: any) {
+                    toast.error(err.message || 'Failed to save AIS keys');
+                  } finally {
+                    setSavingCredentials(false);
+                  }
+                }}
+              >
+                Save AIS API Keys
+              </Button>
+            </Box>
+          </Box>
+        </div>
+      </DashboardPanel>
+
+      {/* 4. Interactive Live Tracking Test Playground */}
       <DashboardPanel
         title="Live Tracking API Test Playground"
         description="Query live container numbers, inspect carrier responses, trace execution through the fallback pipeline, or test vessel AIS telematics."

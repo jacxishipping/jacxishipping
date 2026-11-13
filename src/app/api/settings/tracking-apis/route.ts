@@ -21,6 +21,9 @@ const updateSettingsSchema = z.object({
   userId: z.string().trim().optional(),
   subscriptionStatus: z.string().trim().optional(),
   publicTrackingApiKey: z.string().trim().optional(),
+  marineTrafficApiKey: z.string().trim().optional(),
+  vesselFinderApiKey: z.string().trim().optional(),
+  aisHubApiKey: z.string().trim().optional(),
 });
 
 async function requireAdmin() {
@@ -121,6 +124,20 @@ export async function GET() {
         keyCount: publicKeysList.length,
         maskedKeys: publicKeysList.map((k) => maskSecret(k)),
       },
+      aisProviders: {
+        marineTraffic: {
+          configured: !!storedSettings.marineTrafficApiKey,
+          maskedKey: maskSecret(storedSettings.marineTrafficApiKey),
+        },
+        vesselFinder: {
+          configured: !!storedSettings.vesselFinderApiKey,
+          maskedKey: maskSecret(storedSettings.vesselFinderApiKey),
+        },
+        aisHub: {
+          configured: !!storedSettings.aisHubApiKey,
+          maskedKey: maskSecret(storedSettings.aisHubApiKey),
+        },
+      },
       recentContainers,
     });
   } catch (error) {
@@ -148,6 +165,9 @@ export async function PATCH(request: NextRequest) {
     if (payload.userId !== undefined) partial.userId = payload.userId;
     if (payload.subscriptionStatus !== undefined) partial.subscriptionStatus = payload.subscriptionStatus;
     if (payload.publicTrackingApiKey !== undefined) partial.publicTrackingApiKey = payload.publicTrackingApiKey;
+    if (payload.marineTrafficApiKey !== undefined && payload.marineTrafficApiKey !== '') partial.marineTrafficApiKey = payload.marineTrafficApiKey;
+    if (payload.vesselFinderApiKey !== undefined && payload.vesselFinderApiKey !== '') partial.vesselFinderApiKey = payload.vesselFinderApiKey;
+    if (payload.aisHubApiKey !== undefined && payload.aisHubApiKey !== '') partial.aisHubApiKey = payload.aisHubApiKey;
 
     const saved = saveStoredTrackingSettings(partial);
     containerTrackingClient.updateConfig(saved);

@@ -139,6 +139,27 @@ export class AISProviderService {
   }
 
   /**
+   * Load AIS API keys from the server-side stored tracking settings.
+   * This allows keys saved via the Settings UI to be picked up at runtime.
+   */
+  async loadFromServerSettings(): Promise<void> {
+    try {
+      const res = await fetch('/api/settings/tracking-apis', { cache: 'no-store' });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.aisProviders) {
+        this.updateConfig({
+          marineTrafficApiKey: data.aisProviders.marineTraffic?.key || this.config.marineTrafficApiKey,
+          vesselFinderApiKey: data.aisProviders.vesselFinder?.key || this.config.vesselFinderApiKey,
+          aisHubApiKey: data.aisProviders.aisHub?.key || this.config.aisHubApiKey,
+        });
+      }
+    } catch {
+      // Silently fail, keep existing config
+    }
+  }
+
+  /**
    * Update provider API keys at runtime.
    */
   updateConfig(config: Partial<AISProviderConfig>) {
