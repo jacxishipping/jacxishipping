@@ -202,13 +202,6 @@ export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
   return (
     <header
       className="sticky top-0 z-[1020] border-b border-[var(--border)] bg-[var(--panel)] shadow-[0_8px_16px_rgba(var(--text-primary-rgb),0.06)]"
-      style={{
-        backgroundImage:
-          "linear-gradient(90deg, transparent, rgba(var(--accent-gold-rgb), 0.3), transparent)",
-        backgroundSize: "100% 1px",
-        backgroundRepeat: "no-repeat",
-        backgroundPosition: "bottom",
-      }}
     >
       <div
         className="flex items-center px-3 py-0 text-[var(--text-primary)] sm:px-5"
@@ -275,7 +268,7 @@ export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
                   window.dispatchEvent(new CustomEvent("open-global-search"))
                 }
                 style={{ fontFamily: "inherit" }}
-                className="!h-9 !w-9 !min-h-0 !min-w-0 !rounded-lg !border-0 !bg-transparent !p-1.5 !text-[var(--text-secondary)] hover:!text-[var(--text-primary)] hover:!bg-[rgba(var(--accent-gold-rgb),0.1)] !shadow-none"
+                className="!h-9 !w-9 !min-h-0 !min-w-0 !rounded-lg !border-0 !bg-transparent !p-1.5 !text-[var(--text-secondary)] hover:!text-[var(--text-primary)] hover:!bg-[rgba(var(--border-rgb),0.4)] !shadow-none"
                 aria-label="Search"
               >
                 <SearchIcon className="h-[22px] w-[22px]" />
@@ -295,7 +288,7 @@ export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
                     aria-expanded={quickActionMenuOpen}
                     aria-haspopup="menu"
                     style={{ fontFamily: "inherit" }}
-                    className="!h-9 !w-9 !min-h-0 !min-w-0 !rounded-lg !border-0 !bg-transparent !p-1.5 !text-[var(--accent-gold-text)] hover:!bg-[rgba(var(--accent-gold-rgb),0.1)] hover:!shadow-[0_0_0_1px_rgba(var(--accent-gold-rgb),0.2)] !shadow-none"
+                    className="!h-9 !w-9 !min-h-0 !min-w-0 !rounded-lg !border-0 !bg-transparent !p-1.5 !text-[var(--text-secondary)] hover:!bg-[rgba(var(--border-rgb),0.4)] hover:!text-[var(--text-primary)] !shadow-none"
                   >
                     <AddIcon className="h-[22px] w-[22px]" />
                   </JacxiButton>
@@ -350,7 +343,7 @@ export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
                 tone="primary"
                 onClick={() => openUniversalShipmentExport()}
                 style={{ fontFamily: "inherit" }}
-                className="!h-9 !w-9 !min-h-0 !min-w-0 !rounded-lg !border-0 !bg-transparent !p-1.5 !text-[var(--text-secondary)] hover:!text-[var(--accent-gold-text)] hover:!bg-[rgba(var(--accent-gold-rgb),0.1)] !shadow-none"
+                className="!h-9 !w-9 !min-h-0 !min-w-0 !rounded-lg !border-0 !bg-transparent !p-1.5 !text-[var(--text-secondary)] hover:!text-[var(--text-primary)] hover:!bg-[rgba(var(--border-rgb),0.4)] !shadow-none"
                 aria-label="Export Shipments"
               >
                 <Download style={{ width: 20, height: 20 }} />

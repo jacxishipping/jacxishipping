@@ -106,7 +106,7 @@ export default function HeroSection() {
       </motion.div>
 
       {/* High-end cinematic overlays */}
-      <div className="pointer-events-none absolute inset-0 -z-20 bg-gradient-to-b from-white/60 via-white/20 to-white/90" />
+      <div className="pointer-events-none absolute inset-0 -z-20 bg-gradient-to-b from-white/60 via-white/40 to-white/90" />
       <div className="pointer-events-none absolute inset-0 -z-20 bg-[radial-gradient(circle_at_center,transparent_0%,white_100%)] opacity-70" />
       
       {/* Noise filter overlay for premium feel */}
@@ -171,7 +171,7 @@ export default function HeroSection() {
           </motion.h1>
 
           {/* Value Prop text */}
-          <motion.p variants={itemVariants} className="mt-6 sm:mt-8 max-w-xl text-base sm:text-lg leading-relaxed text-slate-600 sm:text-xl font-medium">
+          <motion.p variants={itemVariants} className="mt-6 sm:mt-8 max-w-xl text-base sm:text-lg leading-relaxed text-slate-700 sm:text-xl font-medium">
             Premium vehicle logistics from <span className="text-slate-900 font-semibold">USA and Canada</span> directly to{' '}
             <span className="text-slate-900 font-semibold">Afghanistan</span>. Flawless handling through <span className="text-[#8D7A1F] font-semibold underline decoration-[#D4AF37]/50 underline-offset-4 decoration-2">Mersin</span> or <span className="text-[#8D7A1F] font-semibold underline decoration-[#D4AF37]/50 underline-offset-4 decoration-2">UAE</span>.
           </motion.p>
@@ -203,7 +203,7 @@ export default function HeroSection() {
           </motion.div>
 
           <motion.div variants={itemVariants} className="mt-6 max-w-xl">
-            <p className="mb-2 text-xs sm:text-sm font-semibold text-slate-600">Already shipping with us? Track your container.</p>
+            <p className="mb-2 text-xs sm:text-sm font-semibold text-slate-700">Already shipping with us? Track your container.</p>
             <HeroTrackingForm />
           </motion.div>
 

@@ -119,13 +119,12 @@ export default function StatsCard({
 				component="article"
 				surface="elevated"
 				padding="none"
-				className="stats-card hover-lift relative z-[1] hover:z-[2] flex h-full w-full min-w-0 items-center overflow-hidden !bg-[var(--panel)] !border-[var(--border)] hover:!border-[rgba(var(--accent-gold-rgb),0.35)] jx-elevation-1 jx-spring"
+				className="stats-card relative z-[1] hover:z-[2] flex h-full w-full min-w-0 items-center overflow-hidden !bg-[var(--panel)] !border-[var(--border)] hover:!border-[rgba(var(--accent-gold-rgb),0.35)] jx-elevation-1"
 				style={{
 					borderRadius: isCompact ? '12px' : '16px',
-					borderLeft: variant === 'default' ? '3px solid var(--accent-gold)' : undefined,
 					padding: `${sizes.padding * 8}px`,
 					gap: isCompact ? '8px' : '12px',
-					transition: 'transform 200ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 200ms cubic-bezier(0.22, 1, 0.36, 1), border-color 200ms ease',
+					transition: 'transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease',
 					fontFamily: 'inherit',
 				}}
 			>
@@ -138,26 +137,21 @@ export default function StatsCard({
 						color: colors.iconColor,
 					}}
 				>
-					<div
-						aria-hidden="true"
-						className="pointer-events-none absolute inset-0"
-						style={{ background: 'linear-gradient(135deg, rgba(var(--accent-gold-rgb), 0.08), transparent 72%)' }}
-					/>
 					<span className="relative z-[1] flex items-center justify-center">{icon}</span>
 				</div>
 				<div className="min-w-0 flex-1 overflow-hidden">
-					<p className="mb-0.5 overflow-hidden text-ellipsis whitespace-nowrap text-[0.65rem] uppercase tracking-[0.15em] text-[var(--text-secondary)] sm:text-[0.7rem] md:text-[0.75rem]">
+					<p className="mb-0.5 line-clamp-2 break-words text-[0.65rem] font-medium leading-snug text-[var(--text-secondary)] sm:text-[0.68rem] md:text-[0.7rem]">
 						{title}
 					</p>
 					<span
 						title={typeof value === 'string' && value.length > 12 ? value : undefined}
-						className="block w-full overflow-hidden text-ellipsis whitespace-nowrap font-bold tabular-nums leading-[1.15] tracking-[-0.02em] text-[var(--text-primary)]"
+						className="block w-full overflow-hidden text-ellipsis whitespace-nowrap font-semibold tabular-nums leading-[1.15] tracking-[-0.02em] text-[var(--text-primary)]"
 						style={{ fontSize: sizes.fontSize }}
 					>
 						{compactValue || value}
 					</span>
 					{subtitle && (
-						<p className="mt-0.5 overflow-hidden text-ellipsis whitespace-nowrap text-[0.7rem] text-[var(--text-secondary)] sm:text-[0.75rem] md:text-[0.8rem]">
+						<p className="mt-0.5 line-clamp-3 text-[0.7rem] leading-snug text-[var(--text-secondary)] sm:text-[0.75rem] md:text-[0.8rem]">
 							{subtitle}
 						</p>
 					)}

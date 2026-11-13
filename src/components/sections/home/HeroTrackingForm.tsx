@@ -25,8 +25,7 @@ export default function HeroTrackingForm() {
 
   return (
     <form onSubmit={handleSubmit} className="w-full max-w-xl mx-auto relative group">
-      <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-[var(--accent-gold)]/20 to-blue-500/20 blur-xl opacity-70 transition-all duration-300 group-hover:opacity-100" />
-      <div className="relative flex items-center rounded-2xl border border-[var(--border)] bg-white p-2 shadow-xl shadow-slate-900/5 focus-within:border-[var(--accent-gold)] focus-within:ring-2 focus-within:ring-[rgba(var(--accent-gold-rgb),0.2)]">
+      <div className="relative flex items-center rounded-xl border border-[var(--border)] bg-white p-2 shadow-lg shadow-slate-900/5 focus-within:border-[var(--accent-gold)] focus-within:ring-2 focus-within:ring-[rgba(var(--accent-gold-rgb),0.2)]">
         <div className="pl-4 text-[var(--text-secondary)]">
           <Search className="h-5 w-5" />
         </div>

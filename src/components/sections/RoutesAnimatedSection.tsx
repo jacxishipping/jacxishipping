@@ -36,9 +36,8 @@ export default function RoutesAnimatedSection() {
   const pathLength = useTransform(scrollYProgress, [0, 1], [0, 1]);
 
   return (
-    <section ref={containerRef} id="route" className="relative overflow-hidden bg-[#F9FAFB] py-16 sm:py-24 lg:py-32 selection:bg-[var(--accent-gold)] selection:text-gray-900 scroll-mt-20">
+    <section ref={containerRef} id="route" className="relative overflow-hidden bg-[#F9FAFB] py-16 sm:py-20 lg:py-24 selection:bg-[var(--accent-gold)] selection:text-gray-900 scroll-mt-20">
       <div id="routes" className="absolute -top-20" aria-hidden="true" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(var(--accent-gold-rgb),0.1)_0%,transparent_70%)]" />
       <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10" />
 
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -50,21 +49,21 @@ export default function RoutesAnimatedSection() {
             viewport={{ once: true, margin: '-10% 0px' }}
             transition={{ duration: 0.8, ease: "easeOut" }}
           >
-            <div className="inline-flex items-center rounded-full border border-black/5 bg-white/80 px-3 py-1 font-mono text-xs uppercase tracking-widest text-[#D4AF37] backdrop-blur-md shadow-sm">
-              <span className="mr-2 h-1.5 w-1.5 rounded-full bg-[#D4AF37] animate-pulse" />
+            <div className="inline-flex items-center rounded-full border border-black/5 bg-white/80 px-3 py-1 font-mono text-xs uppercase tracking-widest text-black/60 backdrop-blur-md shadow-sm">
+              <span className="mr-2 h-1.5 w-1.5 rounded-full bg-slate-400 animate-pulse" />
               Global routing
             </div>
             
-            <h2 className="mt-6 text-3xl font-extrabold leading-[1.1] tracking-tight text-gray-900 sm:text-5xl lg:text-[4rem]">
+            <h2 className="mt-6 text-3xl font-bold leading-[1.1] tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
               Precision paths to <br/>
               <span className="text-black/50 italic font-serif font-light">Afghanistan.</span>
             </h2>
             <p className="mt-4 sm:mt-6 text-base sm:text-lg leading-relaxed text-black/60">
-              Your vehicle moves from <span className="text-gray-900 font-semibold">North America</span> to <span className="text-gray-900 font-semibold">Afghanistan</span> through carefully optimized corridors: the <span className="text-[#D4AF37] font-semibold">Mersin Route</span> or the <span className="text-[#D4AF37] font-semibold">UAE Route</span>. Clear visibility at every nautical mile.
+              Your vehicle moves from <span className="text-gray-900 font-semibold">North America</span> to <span className="text-gray-900 font-semibold">Afghanistan</span> through carefully optimized corridors: the <span className="text-gray-900 font-semibold">Mersin Route</span> or the <span className="text-gray-900 font-semibold">UAE Route</span>. Clear visibility at every nautical mile.
             </p>
 
             <div className="mt-12 flex flex-col gap-6 relative">
-              <div className="absolute left-[19px] top-4 bottom-4 w-px bg-gradient-to-b from-[#D4AF37]/50 via-white/10 to-transparent" />
+              <div className="absolute left-[19px] top-4 bottom-4 w-px bg-gradient-to-b from-black/20 via-black/5 to-transparent" />
               {[
                 { label: 'Origin', value: 'USA & Canada' },
                 { label: 'Hubs', value: 'Turkey or UAE' },
@@ -77,8 +76,8 @@ export default function RoutesAnimatedSection() {
                   key={item.label} 
                   className="flex items-center gap-6"
                 >
-                  <div className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#F9FAFB] border border-black/10 shadow-[0_0_15px_rgba(212,175,55,0.2)] text-[#D4AF37]">
-                    <div className="h-2 w-2 rounded-full bg-[#D4AF37]" />
+                  <div className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#F9FAFB] border border-black/10 shadow-sm text-slate-500">
+                    <div className="h-2 w-2 rounded-full bg-slate-900" />
                   </div>
                   <div>
                     <p className="text-xs uppercase tracking-widest text-black/50 font-mono">{item.label}</p>
@@ -94,10 +93,10 @@ export default function RoutesAnimatedSection() {
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 1, ease: 'easeOut' }}
-            className="relative w-full rounded-[2.5rem] border border-black/10 bg-white/90 p-2 backdrop-blur-xl shadow-xl"
+            className="relative w-full rounded-2xl border border-black/10 bg-white/90 p-2 backdrop-blur-xl shadow-lg"
           >
-            <div className="absolute inset-0 rounded-[2.5rem] bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
-            <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[2rem] bg-[#F9FAFB]">
+            <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
+            <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl bg-[#F9FAFB]">
               <div className="absolute inset-0 bg-[url('/world-map.svg')] bg-cover bg-center bg-no-repeat opacity-20 sepia hue-rotate-180 brightness-50" />
               
               <svg viewBox="0 0 950 620" className="absolute inset-0 h-full w-full" preserveAspectRatio="xMidYMid meet">
@@ -149,7 +148,7 @@ export default function RoutesAnimatedSection() {
                 className="absolute bottom-6 left-6 rounded-2xl border border-black/5 bg-white/80 p-5 backdrop-blur-xl shadow-2xl"
               >
                 <div className="flex items-center gap-3">
-                  <div className="rounded-full bg-[#D4AF37]/20 p-2 text-[#D4AF37]">
+                  <div className="rounded-full bg-black/5 p-2 text-slate-700">
                     <Clock className="h-5 w-5" />
                   </div>
                   <div>
@@ -162,28 +161,28 @@ export default function RoutesAnimatedSection() {
           </motion.div>
         </div>
 
-        <div className="mt-20 grid gap-6 sm:grid-cols-2 lg:grid-cols-4 perspective-1000">
+        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4 perspective-1000">
           {journeySteps.map((step, index) => {
             const Icon = step.icon;
             return (
               <motion.div
                 key={step.step}
-                initial={{ opacity: 0, rotateX: 45, y: 40 }}
-                whileInView={{ opacity: 1, rotateX: 0, y: 0 }}
+                initial={{ opacity: 0, y: 24 }}
+                whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: '-50px' }}
                 transition={{ duration: 0.6, delay: 0.2 + (index * 0.1), ease: "easeOut" }}
-                whileHover={{ y: -8, transition: { duration: 0.3 } }}
-                className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-slate-200/80 bg-white p-6 jx-elevation-1 transition-all duration-300 jx-spring hover:border-[#D4AF37] hover:shadow-[0_20px_40px_-15px_rgba(212,175,55,0.18)]"
+                whileHover={{ y: -4, transition: { duration: 0.25 } }}
+                className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-6 jx-elevation-1 transition-all duration-300 jx-spring hover:border-black/20 hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.15)]"
               >
                 <div className="mb-8 flex items-start justify-between">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-white/10 to-transparent shadow-inner border border-black/[0.03] group-hover:border-[#D4AF37]/50 transition-colors">
-                    <Icon className="h-5 w-5 text-gray-900 group-hover:text-[#D4AF37] transition-colors" />
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-white/10 to-transparent shadow-inner border border-black/[0.03] group-hover:border-black/20 transition-colors">
+                    <Icon className="h-5 w-5 text-gray-900 transition-colors" />
                   </div>
-                  <span className="text-4xl font-black text-gray-900/5 group-hover:text-black/10 transition-colors">{step.step}</span>
+                  <span className="text-4xl font-bold text-gray-900/5 group-hover:text-black/10 transition-colors">{step.step}</span>
                 </div>
                 
                 <div>
-                  <p className="mb-2 inline-block rounded-full bg-[#D4AF37]/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[#8D7A1F]">
+                  <p className="mb-2 inline-block rounded-full bg-black/5 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-black/60">
                     {step.location}
                   </p>
                   <h3 className="mb-3 text-xl font-semibold text-gray-900">{step.title}</h3>

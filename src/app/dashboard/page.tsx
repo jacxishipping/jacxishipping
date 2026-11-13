@@ -272,11 +272,19 @@ async function getDashboardKpiData(
 
     const priorCount = shipmentsInRange.filter((shipment) => shipment.createdAt >= twentyEightDaysAgo && shipment.createdAt < fourteenDaysAgo).length;
     const currentCount = shipmentsInRange.filter((shipment) => shipment.createdAt >= fourteenDaysAgo).length;
-    const shipmentTrendValue = Math.round(((currentCount - priorCount) / Math.max(priorCount, 1)) * 100);
-    const shipmentTrend = {
-        value: shipmentTrendValue,
-        isPositive: currentCount >= priorCount,
-    };
+    // A trend % is only meaningful when both periods have shipments. With a
+    // zero baseline the divisor would be fabricated (Math.max(prior, 1)),
+    // and with a zero current period the -100% reads as a collapse of the
+    // live operation even though the active counts (all-time, by status)
+    // are untouched. Omit the pill in both cases instead of showing a
+    // number; the KPI grid renders no trend pill when this is undefined.
+    const shipmentTrend =
+        priorCount > 0 && currentCount > 0
+            ? {
+                value: Math.round(((currentCount - priorCount) / priorCount) * 100),
+                isPositive: currentCount >= priorCount,
+            }
+            : undefined;
 
     return {
         activeShipmentsCount,

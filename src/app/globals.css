@@ -778,26 +778,32 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* Typography Scale - High Contrast in Light & Dark Mode */
-h1 {
-  font-size: 2.25rem;
-  line-height: 1.25;
-  font-weight: 700;
-  color: var(--text-primary);
-}
+/* Typography Scale - High Contrast in Light & Dark Mode.
+   In @layer base so Tailwind utilities (e.g. text-white on dark heroes)
+   win over these base heading colours: unlayered author styles beat
+   layered utilities in the cascade, which made every h1/h2/h3 render
+   dark even with an explicit text colour utility. */
+@layer base {
+  h1 {
+    font-size: 2.25rem;
+    line-height: 1.25;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
 
-h2 {
-  font-size: 1.875rem;
-  line-height: 1.3;
-  font-weight: 600;
-  color: var(--text-primary);
-}
+  h2 {
+    font-size: 1.875rem;
+    line-height: 1.3;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
 
-h3 {
-  font-size: 1.5rem;
-  line-height: 1.35;
-  font-weight: 600;
-  color: var(--text-primary);
+  h3 {
+    font-size: 1.5rem;
+    line-height: 1.35;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
 }
 
 /* Futuristic Gradients */

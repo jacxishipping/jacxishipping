@@ -172,11 +172,11 @@ export default function SmartSearch({
       {/* Search Bar */}
       <div style={{position: 'relative'}}>
         <div style={{display: 'flex', alignItems: 'center', position: 'relative'}}>
-          <div className="relative"><span className="pointer-events-none absolute left-3 top-1/2 flex -translate-y-1/2 text-[var(--text-secondary)]">{isSearching ? (
+          <div className="relative" style={{flex: '1 1 auto', minWidth: 0}}><span className="pointer-events-none absolute left-3 top-1/2 flex -translate-y-1/2 text-[var(--text-secondary)]">{isSearching ? (
                       <span role="status" aria-label="Loading" style={{width: 20, height: 20, borderTopColor: 'var(--accent-gold)', color: 'var(--accent-gold)'}} className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-[var(--border)]" />
                     ) : (
                       <Search className="h-5 w-5" style={{ color: 'rgba(var(--text-secondary-rgb), 0.5)' }}/>
-                    )}</span><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={placeholder} className="ds-form-field-control w-full rounded-lg border bg-[var(--background)] text-[var(--text-primary)] outline-none transition-colors placeholder:text-[var(--text-secondary)] px-3 py-2 text-[0.875rem] pl-9 border-[rgba(var(--border-rgb),0.9)] hover:border-[var(--border)] focus:border-[var(--accent-gold)] focus:ring-2 focus:ring-[rgba(var(--accent-gold-rgb),0.2)]" /></div>
+                    )}</span><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={placeholder} className={`ds-form-field-control w-full rounded-lg border bg-[var(--background)] text-[var(--text-primary)] outline-none transition-colors placeholder:text-[var(--text-secondary)] px-3 py-2 text-[0.875rem] pl-9 border-[rgba(var(--border-rgb),0.9)] hover:border-[var(--border)] focus:border-[var(--accent-gold)] focus:ring-2 focus:ring-[rgba(var(--accent-gold-rgb),0.2)] ${hasActiveFilters ? 'pr-[250px] sm:pr-[290px]' : 'pr-[170px] sm:pr-[210px]'}`} /></div>
           <div style={{position: 'absolute', right: 8, display: 'flex', alignItems: 'center', gap: '8px'}}>
             {showScanner && (
               <Button onClick={() => setScannerOpen(true)} title="Scan QR Code or VIN Barcode" aria-label="Scan QR Code or VIN Barcode" style={{minWidth: 32, paddingLeft: '10px', paddingRight: '10px', paddingTop: '4px', paddingBottom: '4px', fontSize: '0.8125rem', fontWeight: 600, borderColor: 'rgba(var(--accent-gold-rgb), 0.35)', backgroundColor: 'rgba(var(--accent-gold-rgb), 0.08)', color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', gap: '4px'}} variant="outline" size="sm">

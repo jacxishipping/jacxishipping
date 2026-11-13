@@ -43,7 +43,7 @@ export default function ServicesPreviewSection() {
   return (
     <section ref={containerRef} className="relative bg-[#F9FAFB] text-gray-900 py-12 lg:py-0">
       {/* Header Section */}
-      <div className="relative lg:sticky top-0 z-10 flex flex-col justify-center bg-[#F9FAFB] px-4 pt-8 lg:pt-16 sm:px-6 lg:px-8 max-w-7xl mx-auto lg:h-[35vh]">
+      <div className="relative lg:sticky top-0 z-30 flex flex-col justify-center bg-[#F9FAFB] px-4 pt-10 pb-6 lg:pt-14 lg:pb-8 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <motion.div
            initial={{ opacity: 0, y: 20 }}
            whileInView={{ opacity: 1, y: 0 }}
@@ -51,10 +51,10 @@ export default function ServicesPreviewSection() {
            transition={{ duration: 0.6 }}
         >
           <div className="inline-flex items-center gap-3">
-             <div className="h-px w-6 sm:w-8 bg-[#D4AF37]" />
-             <span className="text-xs font-mono uppercase tracking-widest text-[#8D7A1F] font-semibold">capabilities</span>
+             <div className="h-px w-6 sm:w-8 bg-black/25" />
+             <span className="text-xs font-mono uppercase tracking-widest text-black/50 font-semibold">capabilities</span>
           </div>
-          <h2 className="mt-4 sm:mt-8 text-3xl font-extrabold tracking-tight sm:text-5xl lg:text-7xl">
+          <h2 className="mt-4 sm:mt-8 text-3xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
             End-to-end logistics.<br />
             <span className="text-black/40 italic font-serif font-light tracking-normal">Simplified.</span>
           </h2>
@@ -62,7 +62,7 @@ export default function ServicesPreviewSection() {
       </div>
 
       {/* Spaced out scrolling content */}
-      <div className="relative z-20 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-16 lg:pb-[20vh] mt-8 sm:mt-10 space-y-12 sm:space-y-16 lg:space-y-[20vh]">
+      <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-16 lg:pb-24 mt-8 sm:mt-10 lg:mt-12 space-y-12 sm:space-y-16 lg:space-y-24">
         {services.map((service, index) => {
           return (
             <ServiceCard 
@@ -100,28 +100,28 @@ function ServiceCard({ service, index, progress, total }: { service: any, index:
     >
        {/* Left side text */}
        <div className={`flex flex-col justify-center ${index % 2 === 1 ? 'lg:order-2 lg:pl-16' : 'lg:pr-16'}`}>
-          <div className="mb-8 flex h-16 w-16 items-center justify-center rounded-[2rem] bg-white border border-black/10 text-[#8D7A1F] shadow-sm">
+          <div className="mb-8 flex h-16 w-16 items-center justify-center rounded-2xl bg-white border border-black/10 text-slate-900 shadow-sm">
             {service.icon}
           </div>
           
           <h3 className="text-3xl font-bold tracking-tight mb-6">{service.title}</h3>
           
-          <div className="h-px w-full bg-gradient-to-r from-[#D4AF37]/50 to-transparent mb-6" />
+          <div className="h-px w-full bg-black/10 mb-6" />
           
           <p className="text-lg text-black/60 leading-relaxed font-medium">
             {service.description}
           </p>
 
-          <Link href="/services" className="mt-10 group inline-flex items-center gap-3 text-sm font-bold uppercase tracking-widest text-black/70 hover:text-gray-900 transition-colors w-fit">
+          <Link href="/services" className="mt-10 group inline-flex items-center gap-3 text-sm font-bold uppercase tracking-widest text-black/70 hover:text-slate-900 transition-colors w-fit">
             Explore service
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white border border-black/10 shadow-sm group-hover:bg-[#D4AF37] group-hover:border-[#D4AF37] group-hover:text-black transition-all">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white border border-black/10 shadow-sm group-hover:bg-slate-900 group-hover:border-slate-900 group-hover:text-white transition-all">
               <ExternalLink className="h-3 w-3" />
             </div>
           </Link>
        </div>
 
        {/* Right side Image Parallax Frame */}
-       <div className={`relative aspect-[4/3] w-full overflow-hidden rounded-[2.5rem] bg-white pointer-events-none ${index % 2 === 1 ? 'lg:order-1' : ''}`}>
+       <div className={`relative aspect-[4/3] w-full overflow-hidden rounded-2xl bg-white pointer-events-none ${index % 2 === 1 ? 'lg:order-1' : ''}`}>
           <motion.div 
             style={{ y: yImage, scale: scaleImage }}
             className="absolute inset-0 h-[120%]"

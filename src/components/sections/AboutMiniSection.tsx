@@ -27,13 +27,13 @@ const trustCards = [
 
 export default function AboutMiniSection() {
 	return (
-		<section id="about" className="relative overflow-hidden bg-[var(--background)] py-20 sm:py-24 scroll-mt-20">
+		<section id="about" className="relative overflow-hidden bg-[var(--background)] py-16 sm:py-20 scroll-mt-20">
 			<div id="about-us" className="absolute -top-20" aria-hidden="true" />
 			<div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 				<div className="grid gap-10 lg:grid-cols-[0.82fr_1.18fr] lg:items-start">
 					<div>
-						<p className="landing-reveal text-sm font-bold uppercase text-[var(--accent-gold)]">Our story</p>
-						<h2 className="landing-reveal mt-4 max-w-xl text-4xl font-black leading-tight text-[var(--text-primary)] sm:text-5xl">
+						<p className="landing-reveal text-sm font-bold uppercase text-black/50">Our story</p>
+						<h2 className="landing-reveal mt-4 max-w-xl text-4xl font-bold leading-tight text-[var(--text-primary)] sm:text-5xl">
 							A specialist car shipping partner for Afghan importers.
 						</h2>
 						<p className="landing-reveal mt-5 max-w-2xl text-base leading-7 text-[var(--text-secondary)] sm:text-lg">
@@ -46,7 +46,7 @@ export default function AboutMiniSection() {
 						<div className="landing-reveal mt-7 grid gap-2 sm:grid-cols-2">
 							{highlights.map((item) => (
 								<div key={item} className="flex items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--panel)] px-4 py-3">
-									<CheckCircle2 className="h-4 w-4 text-[var(--accent-gold)]" />
+									<CheckCircle2 className="h-4 w-4 text-slate-900" />
 									<span className="text-sm font-bold text-[var(--text-primary)]">{item}</span>
 								</div>
 							))}
@@ -58,13 +58,13 @@ export default function AboutMiniSection() {
 							{trustCards.map((card) => {
 								const Icon = card.icon;
 								return (
-									<div key={card.title} className="rounded-xl border border-[var(--border)] bg-[var(--panel)] p-5 jx-elevation-1 transition-all duration-300 jx-spring hover:border-[#D4AF37] hover:shadow-md">
+									<div key={card.title} className="rounded-xl border border-[var(--border)] bg-[var(--panel)] p-5 jx-elevation-1 transition-all duration-300 jx-spring hover:border-black/20 hover:shadow-md">
 										<div className="flex gap-4">
-											<div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[rgba(var(--accent-gold-rgb),0.12)] text-[var(--accent-gold)]">
+											<div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-black/5 text-slate-900">
 												<Icon className="h-5 w-5" />
 											</div>
 											<div>
-												<h3 className="text-lg font-black text-[var(--text-primary)]">{card.title}</h3>
+												<h3 className="text-lg font-bold text-[var(--text-primary)]">{card.title}</h3>
 												<p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">{card.description}</p>
 											</div>
 										</div>
