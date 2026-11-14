@@ -3,7 +3,6 @@
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { SiteMark } from '@/components/brand/SiteLogo';
-import Magnetic from '@/components/ui/Magnetic';
 
 const footerNavigation = {
   solutions: [
@@ -37,7 +36,6 @@ export default function Footer() {
       
       {/* Abstract Background Effects */}
       <div className="absolute inset-0 z-0">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[600px] w-[600px] rounded-full bg-[#D4AF37]/5 blur-[120px]" />
         <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-[0.02]" />
       </div>
 
@@ -50,7 +48,7 @@ export default function Footer() {
              whileInView={{ opacity: 1, y: 0 }}
              viewport={{ once: true }}
              transition={{ duration: 0.6, ease: "easeOut" }}
-             className="text-4xl font-black leading-none tracking-tight text-gray-900 sm:text-7xl md:text-8xl lg:text-9xl"
+             className="text-4xl font-bold leading-none tracking-tight text-gray-900 sm:text-7xl md:text-8xl lg:text-9xl"
            >
              READY TO <br/>
              <span className="text-[#D4AF37] font-serif font-light italic tracking-normal">SHIP?</span>
@@ -61,23 +59,21 @@ export default function Footer() {
              whileInView={{ opacity: 1, scale: 1 }}
              viewport={{ once: true }}
              transition={{ duration: 0.5, delay: 0.2 }}
-             className="-mt-6 sm:-mt-12 md:-mt-16"
+             className="mt-8 sm:mt-10 relative z-10"
            >
-            <Magnetic strength={0.4} intensity={0.2}>
-              <Link
-                href="/#quote"
-                className="group relative flex h-24 w-24 sm:h-36 sm:w-36 items-center justify-center rounded-full bg-slate-950 text-white shadow-2xl transition-transform hover:scale-105"
-              >
-                <div className="absolute inset-0 rounded-full border border-[#D4AF37] scale-150 opacity-0 group-hover:scale-100 group-hover:opacity-100 transition-all duration-500 ease-out" />
-                <span className="text-xs sm:text-sm font-bold uppercase tracking-widest text-[#D4AF37] group-hover:text-white transition-colors">Start now</span>
-              </Link>
-            </Magnetic>
-           </motion.div>
+            <Link
+              href="/#quote"
+              className="group relative flex h-24 w-24 sm:h-36 sm:w-36 items-center justify-center rounded-full bg-slate-950 text-white shadow-lg transition-transform hover:scale-105"
+            >
+              <div className="absolute inset-0 rounded-full border border-[#D4AF37] scale-150 opacity-0 group-hover:scale-100 group-hover:opacity-100 transition-all duration-500 ease-out" />
+              <span className="text-xs sm:text-sm font-bold uppercase tracking-widest text-[#D4AF37] group-hover:text-white transition-colors">Start now</span>
+            </Link>
+          </motion.div>
         </div>
 
         <div className="grid border-t border-black/5 pt-12 sm:pt-16 xl:grid-cols-3 xl:gap-8">
           <div className="space-y-6 sm:space-y-8 xl:col-span-1">
-            <SiteMark className="h-8 text-gray-900 relative z-10" />
+            <SiteMark size={56} className="h-14 w-14 text-gray-900 relative z-10" />
             <p className="max-w-xs text-sm leading-relaxed text-black/60">
               Premium vehicle logistics from North America to Afghanistan. Flawless handling through trusted corridors.
             </p>

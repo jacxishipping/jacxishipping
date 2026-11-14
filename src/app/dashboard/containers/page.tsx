@@ -631,9 +631,11 @@ export default function ContainersPage() {
           title="Containers"
           description="Manage shipping containers and tracking"
           actions={
-            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '6px', flexWrap: 'nowrap', overflowX: 'auto', maxWidth: '100%'}}>
               <Button
                 variant={showOceanTracker ? 'primary' : 'outline'}
+                size="sm"
+                className="shrink-0 whitespace-nowrap"
                 onClick={() => setShowOceanTracker((prev) => !prev)}
                 icon={<Compass className="w-4 h-4" />}
               >
@@ -641,6 +643,8 @@ export default function ContainersPage() {
               </Button>
               <Button
                 variant="outline"
+                size="sm"
+                className="shrink-0 whitespace-nowrap"
                 onClick={() => {
                   const target = containers.find(c => c.id === activeOceanContainerId) || containers[0] || null;
                   if (target) setPlannerContainer(target);
@@ -652,6 +656,8 @@ export default function ContainersPage() {
               {isAdmin && (
                 <Button 
                   variant="outline"
+                  size="sm"
+                  className="shrink-0 whitespace-nowrap"
                   onClick={handleToggleViewMode}
                 >
                   {showBulkTable ? 'Card view' : 'Bulk mode'}
@@ -659,6 +665,8 @@ export default function ContainersPage() {
               )}
               <Button
                 variant="outline"
+                size="sm"
+                className="shrink-0 whitespace-nowrap"
                 onClick={handleRefreshAllTracking}
                 disabled={refreshingTracking}
                 icon={<RefreshCw className={`w-4 h-4 ${refreshingTracking ? 'animate-spin text-[var(--accent-gold)]' : ''}`} />}
@@ -667,13 +675,15 @@ export default function ContainersPage() {
               </Button>
               <Button 
                 variant="outline" 
+                size="sm"
+                className="shrink-0 whitespace-nowrap"
                 onClick={handleExport}
                 icon={<Download className="w-4 h-4" />}
               >
                 Export CSV
               </Button>
               {isAdmin && (
-                <Button href="/dashboard/containers/new" variant="primary" icon={<Package className="w-4 h-4" />}>
+                <Button href="/dashboard/containers/new" variant="primary" size="sm" className="shrink-0 whitespace-nowrap" icon={<Package className="w-4 h-4" />}>
                   New Container
                 </Button>
               )}
@@ -849,14 +859,14 @@ export default function ContainersPage() {
                 {displayedContainers.map((container, index) => (
                   <JXBox padding="none" border={false} key={container.id} onClick={() => router.push(`/dashboard/containers/${container.id}`)} className="hover:-translate-y-1 hover:!shadow-[0_20px_40px_rgba(var(--text-primary-rgb),0.12)]" style={{borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--panel)', boxShadow: '0 12px 30px rgba(var(--text-primary-rgb), 0.08)', padding: '16px', cursor: 'pointer', transition: 'all 0.2s ease'}}>
                     {/* Header */}
-                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between', gap: '12px', marginBottom: '16px'}} className="flex-col sm:flex-row items-stretch sm:items-start">
-                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flex: 1, minWidth: '0px'}}>
-                        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, minWidth: '0px'}}>
+                    <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '12px', marginBottom: '16px'}} className="flex-col sm:flex-row items-stretch sm:items-start">
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flex: 1}}>
+                        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
                           <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px'}}>
-                            <p className="text-sm leading-relaxed" style={{fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis'}}>
+                            <p className="text-sm leading-relaxed" style={{fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'monospace', whiteSpace: 'nowrap', minWidth: 0}}>
                               {container.containerNumber}
                             </p>
-                            <span onClick={(e) => e.stopPropagation()}>
+                            <span onClick={(e) => e.stopPropagation()} style={{flexShrink: 0}}>
                               <CopyButton value={container.containerNumber} label="Container #" />
                             </span>
                           </JXBox>

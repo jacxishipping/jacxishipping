@@ -86,10 +86,10 @@ export default function QuoteFormSection() {
           animate={{ scale: 1, opacity: 1 }}
           className="text-center"
         >
-          <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[#D4AF37] text-white shadow-xl">
+          <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-slate-900 text-white shadow-lg">
             <CheckCircle className="h-10 w-10" />
           </div>
-          <h2 className="mb-3 text-3xl sm:text-4xl font-black tracking-tight text-black">Quote requested.</h2>
+          <h2 className="mb-3 text-3xl sm:text-4xl font-bold tracking-tight text-black">Quote requested.</h2>
           <p className="text-base sm:text-lg text-black/60 max-w-lg mx-auto">
             Our logistics team is analyzing the lane. We will contact you shortly with accurate pricing and routing options.
           </p>
@@ -102,7 +102,7 @@ export default function QuoteFormSection() {
   }
 
   return (
-    <section ref={containerRef} id="quote" className="relative flex min-h-screen items-center justify-center bg-white py-16 sm:py-24 lg:py-32">
+    <section ref={containerRef} id="quote" className="relative flex items-center justify-center bg-white py-16 sm:py-20 lg:py-24">
       <div className="absolute inset-0 bg-[#F9FAFB] [clip-path:polygon(0_0,100%_0,100%_80%,0_100%)] pointer-events-none" />
 
       <div className="relative mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -112,10 +112,10 @@ export default function QuoteFormSection() {
           <div className="lg:pr-8">
             <div>
               <div className="inline-flex items-center gap-3 mb-4 sm:mb-6">
-                <span className="h-px w-8 bg-[#D4AF37]" />
-                <span className="text-xs font-mono uppercase tracking-[0.2em] text-[#D4AF37]">Initiate shipment</span>
+                <span className="h-px w-8 bg-black/25" />
+                <span className="text-xs font-mono uppercase tracking-[0.2em] text-black/50">Initiate shipment</span>
               </div>
-              <h2 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-900 leading-[1.05]">
+              <h2 className="text-3xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-slate-900 leading-[1.05]">
                 Precision pricing.<br/>
                 <span className="italic font-serif font-light text-slate-400">Guaranteed lanes.</span>
               </h2>
@@ -129,7 +129,7 @@ export default function QuoteFormSection() {
                   { title: "Clear Customs", sub: "No hidden fees", icon: ShieldCheck }
                 ].map((feature, i) => (
                   <div key={i} className="flex gap-3.5 items-start p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-900 text-[#D4AF37]">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-900 text-white">
                        <feature.icon className="h-5 w-5" />
                     </div>
                     <div>
@@ -169,7 +169,7 @@ export default function QuoteFormSection() {
               </div>
 
               <div className="pt-3 pb-1">
-                <h3 className="text-xs font-mono uppercase tracking-[0.2em] text-[#D4AF37]">Vehicle Data</h3>
+                <h3 className="text-xs font-mono uppercase tracking-[0.2em] text-black/50">Vehicle Data</h3>
               </div>
 
               <div className="grid gap-6 grid-cols-1 sm:grid-cols-3">
@@ -188,7 +188,7 @@ export default function QuoteFormSection() {
               </div>
 
               <div className="pt-3 pb-1">
-                <h3 className="text-xs font-mono uppercase tracking-[0.2em] text-[#D4AF37]">Routing Requirements</h3>
+                <h3 className="text-xs font-mono uppercase tracking-[0.2em] text-black/50">Routing Requirements</h3>
               </div>
 
               <div className="grid gap-6 sm:grid-cols-2">
@@ -211,7 +211,7 @@ export default function QuoteFormSection() {
                 <SpringButton
                   type="submit"
                   disabled={isSubmitting}
-                  className="group relative inline-flex h-14 w-full sm:w-auto items-center justify-center gap-3 overflow-hidden rounded-full bg-slate-950 px-8 text-base font-bold text-white shadow-xl transition-all duration-300 hover:brightness-110 disabled:opacity-50"
+                  className="group relative inline-flex h-14 w-full sm:w-auto items-center justify-center gap-3 overflow-hidden rounded-xl bg-slate-950 px-8 text-base font-bold text-white shadow-lg transition-all duration-300 hover:brightness-110 disabled:opacity-50"
                 >
                   <div className="absolute inset-0 bg-[#D4AF37] translate-y-full transition-transform duration-300 ease-out group-hover:translate-y-0" />
                   <span className="relative z-10 group-hover:text-slate-950 transition-colors duration-300">

@@ -44,10 +44,10 @@ export default function PageHeader({ title, description, actions, showBreadcrumb
 					fontFamily: 'inherit',
 				}}
 			>
-				<div className="flex min-w-0 flex-col gap-1">
+				<div className="flex min-w-0 shrink-0 flex-col gap-1">
 					<h1
 						className="text-[1.15rem] sm:text-[1.25rem] md:text-[1.4rem] font-semibold leading-[1.2] text-[var(--text-primary)]"
-						style={{ overflowWrap: 'anywhere' }}
+						style={{ overflowWrap: 'break-word' }}
 					>
 						{title}
 					</h1>
@@ -57,7 +57,7 @@ export default function PageHeader({ title, description, actions, showBreadcrumb
 						</p>
 					)}
 				</div>
-				<div className="flex flex-wrap items-center justify-start md:justify-end gap-3">
+				<div className="flex min-w-0 flex-wrap items-center justify-start md:justify-end gap-3">
 					{meta && meta.length > 0 && (
 						<div className="flex flex-wrap gap-2">
 							{meta.map((item) => (
@@ -88,7 +88,7 @@ export default function PageHeader({ title, description, actions, showBreadcrumb
 							))}
 						</div>
 					)}
-					{actions && <div className="flex flex-wrap gap-2">{actions}</div>}
+					{actions && <div className="flex min-w-0 flex-wrap gap-2">{actions}</div>}
 				</div>
 			</JXBox>
 		</div>

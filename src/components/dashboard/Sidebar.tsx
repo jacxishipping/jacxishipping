@@ -302,7 +302,7 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }: SidebarPr
 							transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
 							className="absolute bottom-0 left-0 top-0 flex w-[min(300px,85vw)] flex-col overflow-hidden border-r border-[var(--border)] text-[var(--text-primary)] shadow-[0_10px_30px_rgba(var(--text-primary-rgb),0.2)]"
 							style={{
-								background: 'linear-gradient(180deg, var(--panel) 0%, rgba(var(--panel-rgb), 0.97) 100%)',
+								background: 'var(--panel)',
 							}}
 						>
 							<SidebarContent
@@ -324,8 +324,7 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }: SidebarPr
 				className="hidden shrink-0 overflow-hidden border-r border-[var(--border)] text-[var(--text-primary)] transition-[width] duration-200 lg:block"
 				style={{
 					width: desktopDrawerWidth,
-					background: 'linear-gradient(180deg, var(--panel) 0%, rgba(var(--panel-rgb), 0.97) 100%)',
-					borderTop: '2px solid rgba(var(--accent-gold-rgb), 0.15)',
+					background: 'var(--panel)',
 					boxShadow: 'inset -1px 0 0 var(--border)',
 				}}
 			>
@@ -403,7 +402,7 @@ function NavItem({ item, isActive, badge, badgeColor, onNavClick, collapsed }: N
 			{active && (
 				<span
 					aria-hidden="true"
-					className="absolute bottom-1 left-0 top-1 w-1 rounded-r-[2px] bg-[var(--accent-gold)] shadow-[2px_0_8px_rgba(var(--accent-gold-rgb),0.4)]"
+					className="absolute bottom-1 left-0 top-1 w-1 rounded-r-[2px] bg-[var(--accent-gold)]"
 				/>
 			)}
 			<span
@@ -415,7 +414,6 @@ function NavItem({ item, isActive, badge, badgeColor, onNavClick, collapsed }: N
 			>
 				<Icon
 					className="h-[18px] w-[18px]"
-					style={active ? { filter: 'drop-shadow(0 0 4px rgba(var(--accent-gold-rgb), 0.5))' } : undefined}
 				/>
 				{collapsed && typeof badge === 'number' && badge > 0 && (
 					<span
@@ -489,7 +487,10 @@ function isNavigationItemActive(pathname: string, href: string) {
 		return pathname === href;
 	}
 
-	return pathname.startsWith(href);
+	// Match the item itself or a real sub-route of it. A plain startsWith
+	// would also match sibling routes such as /dashboard/tracking-diagnostics
+	// when checking /dashboard/tracking, highlighting two nav items at once.
+	return pathname === href || pathname.startsWith(`${href}/`);
 }
 
 function filterNavigationItems(items: NavigationItem[], role?: string) {
@@ -721,8 +722,15 @@ function SidebarContent({
 				</JXBox>
 			)}
 
-			{/* Navigation - scrollable */}
-			<div className="flex flex-1 flex-col overflow-auto px-1 py-3">
+			{/* Navigation - scrollable. Vertical scroll only: the nav links
+			    are `w-full` plus horizontal margins, so they overflow the
+			    container sideways; with `overflow-auto` that produced a
+			    horizontal scrollbar at the bottom of this area, just above
+			    the profile card — and the global scrollbar thumb is gold
+			    (globals.css `::-webkit-scrollbar-thumb` gradient resolves
+			    to hsl(45 63% 52%)), so it read as a thick gold stripe.
+			    `overflow-x-hidden` removes that scrollbar entirely. */}
+			<div className="flex flex-1 flex-col overflow-y-auto overflow-x-hidden px-1 py-3">
 				{/* Main */}
 				<NavSection items={mainNavigation} role={userRole} isActive={isActive} onNavClick={onNavClick} collapsed={collapsed} />
 

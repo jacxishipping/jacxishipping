@@ -261,6 +261,7 @@ function ShipmentDetailPageContent() {
   const [shipment, setShipment] = useState<Shipment | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [failedPhotoUrl, setFailedPhotoUrl] = useState<string | null>(null);
   const [arrivalPhotos, setArrivalPhotos] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<Array<{ name: string; progress: number }>>([]);
@@ -1107,8 +1108,8 @@ function ShipmentDetailPageContent() {
                 onClick={() => openLightbox(primaryPhoto ? [primaryPhoto] : [], 0, 'Vehicle Photo')}
                 className="relative h-48 sm:h-52 w-full overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--background)] text-left lg:h-auto lg:w-72 lg:flex-shrink-0 group cursor-pointer"
               >
-                {primaryPhoto ? (
-                  <Image src={primaryPhoto} alt={vehicleLabel} fill className="object-cover transition-transform duration-300 group-hover:scale-105" sizes="(max-width: 1024px) 100vw, 288px" />
+                {primaryPhoto && primaryPhoto !== failedPhotoUrl ? (
+                  <Image src={primaryPhoto} alt={vehicleLabel} fill className="object-cover transition-transform duration-300 group-hover:scale-105" sizes="(max-width: 1024px) 100vw, 288px" onError={() => setFailedPhotoUrl(primaryPhoto)} />
                 ) : (
                   <div className="flex h-full min-h-48 items-center justify-center text-[var(--text-secondary)]">
                     <ImageIcon className="h-10 w-10" />
@@ -1222,8 +1223,8 @@ function ShipmentDetailPageContent() {
                       <MapPin className="h-3.5 w-3.5 text-[var(--accent-gold)]" />
                       Route
                     </div>
-                    <div className="mt-1 truncate text-xs sm:text-sm font-semibold text-[var(--text-primary)]">{shipmentRoute}</div>
-                    <div className="truncate text-[11px] text-[var(--text-secondary)]">{movementLabel}: {activeMovement}</div>
+                    <div className="mt-1 line-clamp-2 break-words text-xs sm:text-sm font-semibold leading-snug text-[var(--text-primary)]">{shipmentRoute}</div>
+                    <div className="line-clamp-2 break-words text-[11px] leading-snug text-[var(--text-secondary)]">{movementLabel}: {activeMovement}</div>
                   </div>
 
                   <div className="rounded-xl border border-[var(--border)] bg-[var(--background)] p-2.5 sm:p-3">

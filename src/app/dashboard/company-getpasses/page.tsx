@@ -193,7 +193,7 @@ export default function CompanyGetpassesPage() {
             ) : (
               <div className="overflow-x-auto">
                 <table className="min-w-full text-left text-sm">
-                  <thead className="border-b border-[var(--border)] text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
+                  <thead className="border-b border-[var(--border)] text-xs font-semibold uppercase tracking-wide whitespace-nowrap text-[var(--text-secondary)]">
                     <tr>
                       <th className="px-3 py-3">Shipment</th>
                       <th className="px-3 py-3">Shipping Company</th>

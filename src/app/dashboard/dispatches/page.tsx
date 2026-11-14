@@ -371,7 +371,7 @@ export default function DispatchesPage() {
           title="Dispatches"
           description="Manage haulage and transport dispatches to port"
           actions={
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Link href="/dashboard/operations" style={{ textDecoration: 'none' }}>
                 <Button variant="outline" icon={<Layers className="w-4 h-4 text-[var(--accent-gold)]" />}>
                   Operations Board

@@ -390,6 +390,7 @@ function InvoicesPageContent() {
 			key: 'invoiceNumber',
 			header: 'Invoice #',
 			sortable: true,
+			className: 'whitespace-nowrap',
 			render: (value) => (
 				<span className="inline-flex items-center gap-1.5 font-mono font-semibold">
 					<span>{String(value)}</span>
@@ -429,11 +430,13 @@ function InvoicesPageContent() {
 			key: 'issueDate',
 			header: 'Issue Date',
 			sortable: true,
+			className: 'whitespace-nowrap',
 			render: (value) => formatDate(String(value)),
 		},
 		{
 			key: 'dueDate',
 			header: 'Due Date',
+			className: 'whitespace-nowrap',
 			render: (value) => formatDate(value ? String(value) : null),
 		},
 		{
@@ -444,6 +447,7 @@ function InvoicesPageContent() {
 		{
 			key: 'reversedAt',
 			header: 'Reversed',
+			className: 'whitespace-nowrap',
 			render: (value, row) => {
 				if (!row.reversedAt) {
 					return <span className="text-[var(--text-secondary)]">-</span>;

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Bell, X, Check, Package, Ship, FileText, AlertCircle, RefreshCw } from 'lucide-react';
 import Drawer from '@/components/design-system/Drawer';
 import { IconButton } from '@/components/design-system';
+import { JacxiButton } from '@/components/design-system/JacxiButton';
 import Tooltip from '@/components/design-system/Tooltip';
 import { toast } from '@/components/design-system';
 
@@ -193,12 +194,21 @@ export function NotificationCenter() {
     <>
       <Tooltip title="Notifications">
         <span className="relative inline-flex">
-          <IconButton
+          {/* Same treatment as every other header icon button (Settings,
+              Export, Quick Actions): transparent, secondary text, neutral
+              hover. IconButton defaults to variant="primary", i.e. a solid
+              gold square — that was the odd one out in the top bar. */}
+          <JacxiButton
+            type="button"
+            variant="outline"
+            tone="primary"
             onClick={() => setOpen(true)}
-            ariaLabel="Notifications"
-            icon={<Bell className="w-5 h-5" />}
-            className="!text-[var(--text-secondary)] hover:!bg-[rgba(var(--border-rgb),0.4)] hover:!text-[var(--text-primary)]"
-          />
+            aria-label="Notifications"
+            style={{ fontFamily: 'inherit' }}
+            className="!h-9 !w-9 !min-h-0 !min-w-0 !rounded-lg !border-0 !bg-transparent !p-1.5 !text-[var(--text-secondary)] hover:!bg-[rgba(var(--border-rgb),0.4)] hover:!text-[var(--text-primary)] !shadow-none"
+          >
+            <Bell className="w-5 h-5" />
+          </JacxiButton>
           {unreadCount > 0 && (
             <span
               aria-label={`${unreadCount} unread notifications`}
@@ -229,6 +239,7 @@ export function NotificationCenter() {
               <Tooltip title="Refresh">
                 <span className="inline-flex">
                   <IconButton
+                    variant="ghost"
                     onClick={fetchNotifications}
                     ariaLabel="Refresh notifications"
                     icon={<RefreshCw className="w-4 h-4" />}
@@ -305,6 +316,7 @@ export function NotificationCenter() {
                         <Tooltip title="Delete">
                           <span className="-mt-1 inline-flex">
                             <IconButton
+                              variant="ghost"
                               size="sm"
                               onClick={(e) => {
                                 e.stopPropagation();

@@ -65,11 +65,11 @@ export default function ProcessSection() {
         <div className="mx-auto max-w-2xl">
           <div className="mb-10 text-center sm:text-left">
             <div className="inline-flex items-center gap-2">
-              <span className="h-px w-6 bg-[#D4AF37]" />
-              <span className="text-xs font-mono uppercase tracking-[0.2em] text-[#D4AF37]">Execution</span>
-              <span className="h-px w-6 bg-[#D4AF37] sm:hidden" />
+              <span className="h-px w-6 bg-black/25" />
+              <span className="text-xs font-mono uppercase tracking-[0.2em] text-black/50">Execution</span>
+              <span className="h-px w-6 bg-black/25 sm:hidden" />
             </div>
-            <h2 className="mt-4 text-3xl font-extrabold text-gray-900 tracking-tight leading-[1.1]">
+            <h2 className="mt-4 text-3xl font-bold text-gray-900 tracking-tight leading-[1.1]">
               Five milestones. <br/>
               <span className="text-black/50 italic font-serif font-light">Zero friction.</span>
             </h2>
@@ -85,11 +85,11 @@ export default function ProcessSection() {
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#F9FAFB] border border-black/5 text-[#D4AF37] shadow-inner">
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#F9FAFB] border border-black/5 text-slate-900 shadow-inner">
                         <Icon className="h-5 w-5" />
                       </div>
                       <div>
-                        <span className="inline-block font-mono text-[10px] uppercase tracking-widest text-[#D4AF37] font-bold">
+                        <span className="inline-block font-mono text-[10px] uppercase tracking-widest text-black/50 font-bold">
                           {step.location}
                         </span>
                         <h3 className="text-lg font-bold text-gray-900 leading-tight">
@@ -97,7 +97,7 @@ export default function ProcessSection() {
                         </h3>
                       </div>
                     </div>
-                    <span className="text-2xl font-black text-black/10 font-mono">{step.number}</span>
+                    <span className="text-2xl font-bold text-black/10 font-mono">{step.number}</span>
                   </div>
 
                   <p className="mt-3 text-sm text-black/65 leading-relaxed">
@@ -119,18 +119,16 @@ export default function ProcessSection() {
       <section ref={targetRef} id="process" className="relative hidden lg:block h-[300vh] bg-[#F9FAFB]">
         <div className="sticky top-0 flex h-screen items-center overflow-hidden bg-[#F9FAFB]">
           <motion.div style={{ opacity: bgOpacity }} className="absolute inset-0 z-0">
-            <div className="absolute top-0 right-1/4 h-[50vh] w-[50vh] rounded-full bg-[#D4AF37]/10 blur-[120px]" />
-            <div className="absolute bottom-0 left-1/4 h-[50vh] w-[50vh] rounded-full bg-[#D4AF37]/5 blur-[100px]" />
             <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-[0.03]" />
           </motion.div>
 
           <div className="relative z-10 w-full pl-6 lg:pl-16 flex flex-col justify-center h-full">
             <div className="mb-10 lg:mb-16">
               <div className="inline-flex items-center gap-3">
-                <span className="h-px w-6 bg-[#D4AF37]" />
-                <span className="text-xs font-mono uppercase tracking-[0.2em] text-[#D4AF37]">Execution</span>
+                <span className="h-px w-6 bg-black/25" />
+                <span className="text-xs font-mono uppercase tracking-[0.2em] text-black/50">Execution</span>
               </div>
-              <h2 className="mt-6 text-4xl font-extrabold text-gray-900 sm:text-5xl lg:text-7xl max-w-4xl tracking-tight leading-[1.05]">
+              <h2 className="mt-6 text-4xl font-bold text-gray-900 sm:text-5xl lg:text-6xl max-w-4xl tracking-tight leading-[1.05]">
                 Five milestones. <br/>
                 <span className="text-black/50 italic font-serif font-light">Zero friction.</span>
               </h2>
@@ -145,18 +143,18 @@ export default function ProcessSection() {
                 return (
                   <div 
                     key={step.number}
-                    className="group relative flex w-[350px] sm:w-[420px] shrink-0 flex-col rounded-[2rem] border border-black/[0.03] bg-white p-10 transition-all hover:bg-white hover:border-black/5 shadow-sm"
+                    className="group relative flex w-[350px] sm:w-[420px] shrink-0 flex-col rounded-2xl border border-black/[0.03] bg-white p-10 transition-all hover:bg-white hover:border-black/10 shadow-sm"
                   >
                     <div className="absolute top-10 right-10 text-[6rem] font-bold text-gray-900/5 leading-none transition-colors group-hover:text-black/10">
                       {step.number}
                     </div>
 
-                    <div className="flex h-16 w-16 items-center justify-center rounded-[1.5rem] bg-white border border-black/10 group-hover:border-[#D4AF37]/50 group-hover:text-[#8D7A1F] transition-colors shadow-sm">
-                      <Icon className="h-7 w-7 text-gray-900 group-hover:text-[#8D7A1F] transition-colors" />
+                    <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white border border-black/10 transition-colors shadow-sm">
+                      <Icon className="h-7 w-7 text-gray-900 transition-colors" />
                     </div>
 
                     <div className="mt-20">
-                      <span className="inline-block rounded-full bg-[#D4AF37]/10 px-3 py-1 font-mono text-[10px] uppercase tracking-widest text-[#8D7A1F] mb-4">
+                      <span className="inline-block rounded-full bg-black/5 px-3 py-1 font-mono text-[10px] uppercase tracking-widest text-black/60 mb-4">
                         {step.location}
                       </span>
                       <h3 className="text-2xl font-bold text-gray-900 mb-4">

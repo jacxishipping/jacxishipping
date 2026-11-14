@@ -508,8 +508,8 @@ export function TrackingDiagnosticsPanel() {
             Real-time health checks, test console, container stats, carrier detection, and milestone alert testing
           </p>
         </div>
-        <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
-          <span className="flex items-center gap-2"><button type="button" role="switch" aria-checked={autoRefresh} onClick={() => setAutoRefresh(!(autoRefresh))} className="relative h-5 w-9 shrink-0 rounded-full transition-colors" style={{ backgroundColor: autoRefresh ? 'var(--accent-gold)' : 'rgba(var(--border-rgb),0.6)' }}><span className="absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all" style={{ left: autoRefresh ? '18px' : '2px' }} /></button><p style={{fontSize: '0.75rem', color: 'var(--text-secondary)'}}>Auto-refresh 30s</p></span>
+        <div style={{display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap'}}>
+          <span className="flex shrink-0 items-center gap-2"><button type="button" role="switch" aria-checked={autoRefresh} onClick={() => setAutoRefresh(!(autoRefresh))} className="relative h-5 w-9 shrink-0 rounded-full transition-colors" style={{ backgroundColor: autoRefresh ? 'var(--accent-gold)' : 'rgba(var(--border-rgb),0.6)' }}><span className="absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all" style={{ left: autoRefresh ? '18px' : '2px' }} /></button><p style={{fontSize: '0.75rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap'}}>Auto-refresh 30s</p></span>
           <Button variant="outline" size="sm" icon={<Download className="w-4 h-4" />} onClick={handleExportReport}>
             Export Report
           </Button>
@@ -527,8 +527,8 @@ export function TrackingDiagnosticsPanel() {
           <>
             <DashboardGrid className="grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
               <StatsCard title="Total Containers" value={stats.totalContainers.toLocaleString()} icon={<Package className="w-5 h-5" />} />
-              <StatsCard title="Active" value={stats.activeContainers.toLocaleString()} icon={<Activity className="w-5 h-5" />} trend={stats.activeContainers > 0 ? { value: stats.activeContainers, isPositive: true } : undefined} />
-              <StatsCard title="Auto-Tracking" value={stats.autoTrackingEnabled.toLocaleString()} icon={<Radio className="w-5 h-5" />} trend={stats.autoTrackingEnabled > 0 ? { value: stats.autoTrackingEnabled, isPositive: true } : undefined} />
+              <StatsCard title="Active" value={stats.activeContainers.toLocaleString()} icon={<Activity className="w-5 h-5" />} />
+              <StatsCard title="Auto-Tracking" value={stats.autoTrackingEnabled.toLocaleString()} icon={<Radio className="w-5 h-5" />} />
               <StatsCard title="With Events" value={stats.containersWithTrackingEvents.toLocaleString()} icon={<Database className="w-5 h-5" />} />
               <StatsCard title="Updated (24h)" value={stats.containersLast24h.toLocaleString()} icon={<Clock className="w-5 h-5" />} />
               <StatsCard title="Tracking Rate" value={stats.totalContainers > 0 ? `${Math.round((stats.autoTrackingEnabled / stats.totalContainers) * 100)}%` : '0%'} icon={<TrendingUp className="w-5 h-5" />} />
@@ -625,7 +625,6 @@ export function TrackingDiagnosticsPanel() {
               </div>
             }
             icon={<Wifi className="w-5 h-5" />}
-            trend={s?.hasAnonKey ? { value: 1, isPositive: true } : { value: 0, isPositive: false }}
           />
           <StatsCard
             title="Access Token"
@@ -641,7 +640,6 @@ export function TrackingDiagnosticsPanel() {
               </div>
             }
             icon={<Shield className="w-5 h-5" />}
-            trend={isTokenValid ? { value: 1, isPositive: true } : s?.isTokenExpired ? { value: 0, isPositive: false } : { value: 0, isPositive: false }}
           />
           <StatsCard
             title="Token Expiry"
@@ -658,9 +656,6 @@ export function TrackingDiagnosticsPanel() {
             value={
               <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
                 <StatusBadge status={s?.subscriptionStatus || 'unknown'} size="sm" />
-                <p style={{fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)'}}>
-                  {s?.subscriptionStatus || 'Unknown'}
-                </p>
               </div>
             }
             icon={<Radio className="w-5 h-5" />}
@@ -733,11 +728,11 @@ export function TrackingDiagnosticsPanel() {
           {/* Supabase */}
           <div style={{padding: '20px', borderRadius: '16px', border: '1px solid var(--border)', backgroundColor: 'var(--surface-subtle)'}}>
             <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px'}}>
-              <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+              <div style={{display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: '1 1 auto'}}>
                 <div style={{padding: '8px', borderRadius: '12px', backgroundColor: isTokenValid ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)'}}>
                   <Database className={`w-4 h-4 ${isTokenValid ? 'text-emerald-500' : 'text-red-500'}`} />
                 </div>
-                <div>
+                <div style={{minWidth: 0}}>
                   <p style={{fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)'}}>
                     Supabase ContainerTracking
                   </p>
@@ -746,7 +741,7 @@ export function TrackingDiagnosticsPanel() {
                   </p>
                 </div>
               </div>
-              <StatusBadge status={isTokenValid ? 'ACTIVE' : 'ERROR'} size="sm" />
+              <div style={{flexShrink: 0}}><StatusBadge status={isTokenValid ? 'ACTIVE' : 'ERROR'} size="sm" /></div>
             </div>
             <div role="separator" style={{borderColor: 'var(--border)', marginBottom: '12px'}} className="border-t border-[var(--border)]" />
             <div style={{display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-secondary)'}}>
@@ -758,11 +753,11 @@ export function TrackingDiagnosticsPanel() {
           {/* Turkon */}
           <div style={{padding: '20px', borderRadius: '16px', border: '1px solid var(--border)', backgroundColor: 'var(--surface-subtle)'}}>
             <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px'}}>
-              <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+              <div style={{display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: '1 1 auto'}}>
                 <div style={{padding: '8px', borderRadius: '12px', backgroundColor: 'rgba(6,182,212,0.12)'}}>
                   <Ship className="w-4 h-4 text-cyan-500" />
                 </div>
-                <div>
+                <div style={{minWidth: 0}}>
                   <p style={{fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)'}}>
                     Turkon Line
                   </p>
@@ -771,7 +766,7 @@ export function TrackingDiagnosticsPanel() {
                   </p>
                 </div>
               </div>
-              <StatusBadge status={data?.turkon?.status || 'ACTIVE'} size="sm" />
+              <div style={{flexShrink: 0}}><StatusBadge status={data?.turkon?.status || 'ACTIVE'} size="sm" /></div>
             </div>
             <div role="separator" style={{borderColor: 'var(--border)', marginBottom: '12px'}} className="border-t border-[var(--border)]" />
             <div style={{display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-secondary)'}}>
@@ -785,11 +780,11 @@ export function TrackingDiagnosticsPanel() {
           {/* PGL */}
           <div style={{padding: '20px', borderRadius: '16px', border: '1px solid var(--border)', backgroundColor: 'var(--surface-subtle)'}}>
             <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px'}}>
-              <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+              <div style={{display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: '1 1 auto'}}>
                 <div style={{padding: '8px', borderRadius: '12px', backgroundColor: 'rgba(139,92,246,0.12)'}}>
                   <Anchor className="w-4 h-4 text-purple-500" />
                 </div>
-                <div>
+                <div style={{minWidth: 0}}>
                   <p style={{fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)'}}>
                     PGL Legacy
                   </p>
@@ -798,11 +793,11 @@ export function TrackingDiagnosticsPanel() {
                   </p>
                 </div>
               </div>
-              <StatusBadge status={data?.pgl?.status || 'ACTIVE'} size="sm" />
+              <div style={{flexShrink: 0}}><StatusBadge status={data?.pgl?.status || 'ACTIVE'} size="sm" /></div>
             </div>
             <div role="separator" style={{borderColor: 'var(--border)', marginBottom: '12px'}} className="border-t border-[var(--border)]" />
-            <div style={{display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-secondary)'}}>
-              <span>Protocol: {data?.pgl?.protocol?.slice(0, 30)}</span>
+            <div style={{display: 'flex', justifyContent: 'space-between', gap: '12px', fontSize: '0.75rem', color: 'var(--text-secondary)'}}>
+              <span title={data?.pgl?.protocol || undefined} style={{minWidth: 0, flex: '1 1 auto', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>Protocol: {data?.pgl?.protocol ? `${data.pgl.protocol.slice(0, 28)}…` : '—'}</span>
               <Button variant="ghost" size="sm" onClick={() => handleQuickTest('pgl')}>
                 Test
               </Button>
@@ -812,11 +807,11 @@ export function TrackingDiagnosticsPanel() {
           {/* Public Gateway */}
           <div style={{padding: '20px', borderRadius: '16px', border: '1px solid var(--border)', backgroundColor: 'var(--surface-subtle)'}}>
             <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px'}}>
-              <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+              <div style={{display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: '1 1 auto'}}>
                 <div style={{padding: '8px', borderRadius: '12px', backgroundColor: 'rgba(251,191,36,0.12)'}}>
                   <Globe className="w-4 h-4 text-amber-500" />
                 </div>
-                <div>
+                <div style={{minWidth: 0}}>
                   <p style={{fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)'}}>
                     Public API Gateway
                   </p>
@@ -825,7 +820,7 @@ export function TrackingDiagnosticsPanel() {
                   </p>
                 </div>
               </div>
-              <StatusBadge status={data?.publicGateway?.keysConfigured ? 'ACTIVE' : 'INACTIVE'} size="sm" />
+              <div style={{flexShrink: 0}}><StatusBadge status={data?.publicGateway?.keysConfigured ? 'ACTIVE' : 'INACTIVE'} size="sm" /></div>
             </div>
             <div role="separator" style={{borderColor: 'var(--border)', marginBottom: '12px'}} className="border-t border-[var(--border)]" />
             <div style={{display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-secondary)'}}>

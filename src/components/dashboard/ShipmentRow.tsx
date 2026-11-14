@@ -101,23 +101,25 @@ export default function ShipmentRow({
 	const shipmentHref = `/dashboard/shipments/${id}`;
 	const editHref = `/dashboard/shipments/${id}/edit`;
     const statusRow = (
-		<div style={{display: 'flex', flexWrap: 'wrap', gap: '6px', minWidth: 0, marginTop: '4px'}}>
-			<StatusBadge 
-				status={status} 
-				variant="default" 
-				size="sm"
-				showIcon
-			/>
-			{yardReceived && (
-				<span style={{height: 24, fontSize: '0.7rem', fontWeight: 700, backgroundColor: 'rgba(34, 197, 94, 0.12)', color: 'rgb(21, 128, 61)', border: '1px solid rgba(34, 197, 94, 0.28)'}} className="inline-flex items-center gap-1 rounded-full font-medium text-[0.7rem] px-2 py-0.5 border border-[var(--border)] bg-[var(--background)] text-[var(--text-primary)]">{yardReceivedAt ? `Yard Received ${new Date(yardReceivedAt).toLocaleDateString()}` : 'Yard Received'}</span>
-			)}
-			{paymentStatus && (
+		<div style={{display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0, marginTop: '4px'}}>
+			<div style={{display: 'flex', flexWrap: 'wrap', gap: '6px', minWidth: 0}}>
 				<StatusBadge 
-					status={paymentStatus} 
+					status={status} 
 					variant="default" 
 					size="sm"
-					icon={<CreditCard className="h-3 w-3"/>}
+					showIcon
 				/>
+				{paymentStatus && (
+					<StatusBadge 
+						status={paymentStatus} 
+						variant="default" 
+						size="sm"
+						icon={<CreditCard className="h-3 w-3"/>}
+					/>
+				)}
+			</div>
+			{yardReceived && (
+				<span style={{height: 24, fontSize: '0.7rem', fontWeight: 700, backgroundColor: 'rgba(34, 197, 94, 0.12)', color: 'rgb(21, 128, 61)', border: '1px solid rgba(34, 197, 94, 0.28)', width: 'fit-content', maxWidth: '100%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}} className="inline-flex items-center gap-1 rounded-full font-medium text-[0.7rem] px-2 py-0.5 border border-[var(--border)] bg-[var(--background)] text-[var(--text-primary)]">{yardReceivedAt ? `Yard Received ${new Date(yardReceivedAt).toLocaleDateString()}` : 'Yard Received'}</span>
 			)}
 		</div>
 	);

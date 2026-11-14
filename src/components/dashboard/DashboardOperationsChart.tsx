@@ -97,16 +97,20 @@ export default function DashboardOperationsChart({
     const priorSlice = trends.slice(-sliceCount * 2, -sliceCount);
     const priorShipments = priorSlice.reduce((sum, item) => sum + item.shipments, 0);
 
-    let velocityPct = 0;
-    if (priorSlice.length > 0) {
-      velocityPct = Math.round(((currentShipments - priorShipments) / Math.max(priorShipments, 1)) * 100);
-    }
+    // A velocity % is only meaningful when both periods have shipments: a
+    // zero baseline would force a fabricated divisor, and a zero current
+    // period would render as a -100% "collapse" even though the live
+    // pipeline (all-time, by status) is untouched. Null means "no pill".
+    const velocityPct =
+      priorShipments > 0 && currentShipments > 0
+        ? Math.round(((currentShipments - priorShipments) / priorShipments) * 100)
+        : null;
 
     return {
       currentShipments,
       currentInTransit,
       velocityPct,
-      isPositive: velocityPct >= 0,
+      isPositive: velocityPct !== null && velocityPct >= 0,
       priorLabel: trendPeriod === '7d' ? 'prior 7d' : trendPeriod === '14d' ? 'prior 14d' : 'prior 30d',
     };
   }, [trends, sliceCount, trendPeriod]);
@@ -224,18 +228,28 @@ export default function DashboardOperationsChart({
       <div className="w-full pt-2">
         {activeTab === 'trends' && (
           <div>
+            {periodMetrics.currentShipments === 0 ? (
+              <div className="flex min-h-[280px] flex-col items-center justify-center gap-1.5 px-4 py-8 text-center">
+                <Activity className="h-5 w-5 text-[var(--text-secondary)]" />
+                <p className="text-sm font-semibold text-[var(--text-primary)]">No shipments in this period</p>
+                <p className="max-w-sm text-xs leading-relaxed text-[var(--text-secondary)]">
+                  No shipments were created in the selected period. Try a longer period, or check the Pipeline Status tab for current totals.
+                </p>
+              </div>
+            ) : (
+              <>
             {/* Interactive Analytical Metrics Summary Bar */}
             <div className="mb-3 flex items-center justify-between border-b border-[var(--border)] pb-2 px-1 text-xs">
               <div className="flex items-center gap-4">
                 <div>
-                  <span className="text-[10px] uppercase font-semibold text-[var(--text-secondary)]">Period Shipments</span>
+                  <span className="text-[11px] font-medium text-[var(--text-secondary)]">Period shipments</span>
                   <div className="font-bold text-[var(--text-primary)] text-sm tabular-nums">
                     {periodMetrics.currentShipments} units
                   </div>
                 </div>
                 <div className="h-6 w-px bg-[var(--border)]" />
                 <div>
-                  <span className="text-[10px] uppercase font-semibold text-[var(--text-secondary)]">In Transit</span>
+                  <span className="text-[11px] font-medium text-[var(--text-secondary)]">In transit</span>
                   <div className="font-bold text-emerald-600 dark:text-emerald-400 text-sm tabular-nums">
                     {periodMetrics.currentInTransit} active
                   </div>
@@ -244,14 +258,18 @@ export default function DashboardOperationsChart({
 
               <div className="flex items-center gap-1.5">
                 <span className="text-[11px] text-[var(--text-secondary)] hidden sm:inline">Velocity vs {periodMetrics.priorLabel}:</span>
-                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold tabular-nums border ${
-                  periodMetrics.isPositive
-                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
-                    : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
-                }`}>
-                  {periodMetrics.isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                  {periodMetrics.velocityPct > 0 ? `+${periodMetrics.velocityPct}%` : `${periodMetrics.velocityPct}%`}
-                </span>
+                {periodMetrics.velocityPct !== null ? (
+                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold tabular-nums border ${
+                    periodMetrics.isPositive
+                      ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                      : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
+                  }`}>
+                    {periodMetrics.isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                    {periodMetrics.velocityPct > 0 ? `+${periodMetrics.velocityPct}%` : `${periodMetrics.velocityPct}%`}
+                  </span>
+                ) : (
+                  <span className="text-[11px] text-[var(--text-secondary)]">No prior-period baseline</span>
+                )}
               </div>
             </div>
 
@@ -319,6 +337,8 @@ export default function DashboardOperationsChart({
                 </AreaChart>
               </ResponsiveContainer>
             </div>
+              </>
+            )}
           </div>
         )}
 

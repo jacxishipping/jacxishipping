@@ -625,7 +625,7 @@ export default function OperationsBoardPage() {
           title="Logistics Operations & Command Board"
           description="Drag-and-drop command center for inland carrier dispatches, ocean container stowing, and fleet pipeline"
           actions={
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex flex-wrap items-center justify-end gap-2">
               <Button
                 variant="outline"
                 size="sm"
@@ -766,7 +766,7 @@ export default function OperationsBoardPage() {
             </div>
 
             {/* Search Input */}
-            <div className="flex items-center gap-2 flex-1 max-w-md min-w-[240px]">
+            <div className="flex items-center gap-2 flex-1 min-w-[320px]">
               <div className="relative w-full">
                 <Search className="w-4 h-4 text-[var(--text-secondary)] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <input
