@@ -128,9 +128,9 @@ export default function ShipmentRow({
 	// from `globals.css` (`className="animate-fade-in-up"`) applying the delay using inline styles.
 	// This eliminates the double-render on mount for each row, significantly boosting list rendering performance.
 	return (
-			<article className="animate-fade-in-up" style={{animationDelay: `${delay}s`, animationFillMode: 'both', background: selected ? 'rgba(var(--accent-gold-rgb), 0.05)' : 'var(--panel)', border: selected ? '1px solid var(--accent-gold)' : '1px solid rgba(var(--panel-rgb), 0.9)', borderLeft: selected ? '3px solid var(--accent-gold)' : '3px solid transparent', borderRadius: '16px', boxShadow: '0 18px 32px rgba(var(--text-primary-rgb), 0.08)', padding: 1.75, display: 'grid', gridTemplateColumns: purchasePrice != null
-							? 'minmax(0, 1.6fr) minmax(0, 1.15fr) minmax(0, 0.95fr) minmax(0, 1fr) auto'
-							: 'minmax(0, 1.6fr) minmax(0, 1.15fr) minmax(0, 1fr) auto', gap: '12px', alignItems: 'center', minHeight: 'auto', minWidth: 0, width: '100%', boxSizing: 'border-box', color: 'inherit', transition: 'all 200ms ease', outline: 'none'}}>
+			<article className={`animate-fade-in-up grid grid-cols-1 ${purchasePrice != null
+							? 'sm:grid-cols-[minmax(0,1.6fr)_minmax(0,1.15fr)_minmax(0,0.95fr)_minmax(0,1fr)_auto]'
+							: 'sm:grid-cols-[minmax(0,1.6fr)_minmax(0,1.15fr)_minmax(0,1fr)_auto]'}`} style={{animationDelay: `${delay}s`, animationFillMode: 'both', background: selected ? 'rgba(var(--accent-gold-rgb), 0.05)' : 'var(--panel)', border: selected ? '1px solid var(--accent-gold)' : '1px solid rgba(var(--panel-rgb), 0.9)', borderLeft: selected ? '3px solid var(--accent-gold)' : '3px solid transparent', borderRadius: '16px', boxShadow: '0 18px 32px rgba(var(--text-primary-rgb), 0.08)', padding: 1.75, display: 'grid', gap: '12px', alignItems: 'center', minHeight: 'auto', minWidth: 0, width: '100%', boxSizing: 'border-box', color: 'inherit', transition: 'all 200ms ease', outline: 'none'}}>
 				{/* Column 1: Vehicle Info & Status */}
 				<div style={{display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0, overflow: 'hidden'}}>
 					<div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px'}}>
@@ -337,7 +337,9 @@ export default function ShipmentRow({
 					)}
 				</div>
 
-				<div style={{display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '6px', flexShrink: 0}}>
+				{/* Desktop actions column — hidden on mobile, where the compact
+				    footer action row below takes over. */}
+				<div className="hidden sm:flex" style={{justifyContent: 'flex-end', alignItems: 'center', gap: '6px', flexShrink: 0, flexWrap: 'wrap'}}>
 					{onQuickPeek && (
 						<Button
 							variant="outline"
@@ -401,7 +403,9 @@ export default function ShipmentRow({
 					</Button>
 				</div>
 
-				<div style={{display: 'none', gridColumn: '1 / -1', justifyContent: 'space-between', alignItems: 'center', gap: '8px', paddingTop: '8px', marginTop: '4px', borderTop: '1px solid rgba(var(--border-rgb), 0.4)'}}>
+				{/* Mobile action row — compact icon actions + View/Edit, shown only
+				    below sm so card actions stay reachable without sideways scroll. */}
+				<div className="flex sm:hidden" style={{gridColumn: '1 / -1', justifyContent: 'space-between', alignItems: 'center', gap: '8px', paddingTop: '8px', marginTop: '4px', borderTop: '1px solid rgba(var(--border-rgb), 0.4)', flexWrap: 'wrap'}}>
 					<div style={{display: 'flex', flexWrap: 'wrap', gap: '4px', minWidth: 0}}>
 						{yardReceived && (
 							<span style={{height: 22, fontSize: '0.65rem', fontWeight: 700, backgroundColor: 'rgba(34, 197, 94, 0.12)', color: 'rgb(21, 128, 61)'}} className="inline-flex items-center gap-1 rounded-full font-medium text-[0.7rem] px-2 py-0.5 border border-[var(--border)] bg-[var(--background)] text-[var(--text-primary)]">"Yard Received"</span>

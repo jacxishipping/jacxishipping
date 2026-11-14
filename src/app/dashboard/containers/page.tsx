@@ -5,7 +5,7 @@ import { JXBox } from '@jacxishippingorg/jx-ui-react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
-import { Package, Ship, MapPin, TrendingUp, Calendar, FileText, DollarSign, Receipt, MoreVertical, Eye, Copy, Trash2, Download, PanelRightOpen, QrCode, Layers, Compass, Clock, AlertTriangle, ShieldCheck, RefreshCw } from 'lucide-react';
+import { Package, Ship, MapPin, TrendingUp, Calendar, FileText, DollarSign, Receipt, MoreVertical, Eye, Copy, Trash2, Download, PanelRightOpen, QrCode, Layers, Compass, Clock, AlertTriangle, ShieldCheck, RefreshCw, Search } from 'lucide-react';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
 import { Button, CompactSkeleton, CopyButton, DashboardPageSkeleton, EmptyState, FormField, IconButton, PageHeader, Select, SkeletonCard, StatsCard, StatusBadge, StatusFilterPills, Tooltip, toast } from '@/components/design-system';
@@ -631,7 +631,10 @@ export default function ContainersPage() {
           title="Containers"
           description="Manage shipping containers and tracking"
           actions={
-            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '6px', flexWrap: 'nowrap', overflowX: 'auto', maxWidth: '100%'}}>
+            // Header actions wrap onto further rows on small screens so every
+            // action stays reachable without horizontal scrolling; on sm+ they
+            // keep the single scrollable row.
+            <JXBox padding="none" border={false} className="flex max-w-full flex-wrap sm:flex-nowrap sm:overflow-x-auto" style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '6px', maxWidth: '100%'}}>
               <Button
                 variant={showOceanTracker ? 'primary' : 'outline'}
                 size="sm"
@@ -767,17 +770,19 @@ export default function ContainersPage() {
 
         {/* Filters */}
         <DashboardPanel title="Search & Filter" description="Find containers quickly">
-          <form onSubmit={handleSearch}>
-            <FormField
-              label=""
-              placeholder="Search by container #, tracking #, vessel, destination..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              leftIcon={<Package style={{ fontSize: 20, color: 'var(--text-secondary)' }} />}
-            />
-            <button type="submit" className="sr-only">
-              Search containers
-            </button>
+          <form onSubmit={handleSearch} className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="min-w-0 flex-1">
+              <FormField
+                label=""
+                placeholder="Container #, tracking #, vessel…"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                leftIcon={<Package style={{ fontSize: 20, color: 'var(--text-secondary)' }} />}
+              />
+            </div>
+            <Button type="submit" variant="outline" size="sm" icon={<Search className="w-4 h-4" />} className="w-full shrink-0 sm:w-auto">
+              Search
+            </Button>
           </form>
           <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '12px'}} className="hidden sm:block">
             <SavedFilterPresets
@@ -814,7 +819,7 @@ export default function ContainersPage() {
         </div>
 
         {/* Container Grid */}
-        <DashboardPanel title={`All Containers (${displayedContainers.length})`} fullHeight>
+        <DashboardPanel title={loading ? 'All Containers (…)' : `All Containers (${displayedContainers.length})`} fullHeight>
           {loading ? (
             <CompactSkeleton />
           ) : containers.length === 0 ? (

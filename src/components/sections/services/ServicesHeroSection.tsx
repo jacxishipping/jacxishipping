@@ -50,9 +50,6 @@ export default function ServicesHeroSection() {
     restDelta: 0.001,
   });
 
-  const contentY = useTransform(smoothYProgress, [0, 1], ['0%', '40%']);
-  const contentOpacity = useTransform(smoothYProgress, [0, 0.6], [1, 0]);
-  const wordsBlur = useTransform(smoothYProgress, [0, 0.5], ['blur(0px)', 'blur(10px)']);
   const card1Y = useTransform(smoothYProgress, [0, 1], [0, -150]);
   const gridOpacity = useTransform(smoothYProgress, [0, 1], [0.12, 0]);
 
@@ -85,7 +82,7 @@ export default function ServicesHeroSection() {
       />
 
       <motion.div
-        style={{ y: contentY, opacity: contentOpacity, filter: wordsBlur }}
+        style={{ y: 0 }}
         className="mx-auto grid h-full w-full max-w-7xl gap-8 lg:grid-cols-[1.3fr_0.7fr] lg:items-center relative z-10"
       >
         {/* Left content */}

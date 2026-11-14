@@ -35,7 +35,7 @@ export default function ServicesSupportSection() {
         {/* Section header */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
+          animate={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.8 }}
           className="mx-auto max-w-3xl text-center mb-20"
@@ -62,7 +62,7 @@ export default function ServicesSupportSection() {
             <motion.article
               key={pillar.title}
               initial={{ opacity: 0, y: 40 }}
-              whileInView={{ opacity: 1, y: 0 }}
+              animate={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-50px' }}
               transition={{ duration: 0.6, delay: i * 0.15 }}
               className="group relative rounded-[2rem] border border-slate-700/50 bg-slate-900/60 p-8 transition-all hover:border-[#D4AF37]/30 hover:bg-slate-900"
@@ -80,7 +80,7 @@ export default function ServicesSupportSection() {
         {/* CTA block */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
+          animate={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.8, delay: 0.4 }}
           className="mt-20 flex flex-col items-center gap-6 text-center"

@@ -145,13 +145,14 @@ export function AiDocumentAutoFillDropzone({ onExtracted, disabled = false }: Ai
         disabled={disabled || isProcessing}
       />
 
-      {/* Header & Description */}
-      <div style={{display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', marginBottom: '12px'}}>
-        <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
-          <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: '12px', backgroundColor: 'rgba(var(--accent-gold-rgb), 0.12)', color: 'var(--accent-gold)'}}>
+      {/* Header & Description — stacked on phones so the copy gets the full
+          card width instead of a narrow column beside the Upload button. */}
+      <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          <div className="shrink-0" style={{display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: '12px', backgroundColor: 'rgba(var(--accent-gold-rgb), 0.12)', color: 'var(--accent-gold)'}}>
             <Sparkles size={16} />
           </div>
-          <div>
+          <div className="min-w-0">
             <p style={{fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.2}}>
               Smart Document Auto-Fill
             </p>
@@ -167,7 +168,7 @@ export function AiDocumentAutoFillDropzone({ onExtracted, disabled = false }: Ai
             variant="outline"
             onClick={() => fileInputRef.current?.click()}
             disabled={disabled}
-            className="text-xs shrink-0"
+            className="w-full shrink-0 justify-center sm:w-auto"
           >
             <Upload className="w-3.5 h-3.5 mr-1" />
             Upload File
@@ -179,7 +180,7 @@ export function AiDocumentAutoFillDropzone({ onExtracted, disabled = false }: Ai
             size="sm"
             variant="ghost"
             onClick={reset}
-            className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+            className="w-full shrink-0 justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] sm:w-auto"
           >
             <RefreshCw className="w-3.5 h-3.5 mr-1" />
             Upload Another

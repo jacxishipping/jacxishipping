@@ -62,7 +62,7 @@ export default function ShipmentsSearchPanel({
 					<SmartSearch
 						onSearch={onSearch}
 						onScan={onScan}
-						placeholder="Search shipments by tracking number, VIN, origin, destination..."
+						placeholder="Search shipments, VIN, tracking #"
 						showTypeFilter={false}
 						showStatusFilter={false}
 						showWorkflowStageFilter={false}

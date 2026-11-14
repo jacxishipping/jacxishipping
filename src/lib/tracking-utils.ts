@@ -122,6 +122,12 @@ export async function fetchWithRetry(
 			}
 		} catch (err) {
 			lastError = err instanceof Error ? err : new Error(String(err));
+			// An aborted request must fail fast — retrying it would just
+			// re-issue a fetch that throws immediately, and the backoff
+			// delays would defeat the caller's timeout.
+			if (lastError.name === 'AbortError' || options.signal?.aborted) {
+				throw lastError;
+			}
 			if (attempt < maxRetries) {
 				await new Promise((r) => setTimeout(r, initialDelayMs * Math.pow(2, attempt)));
 			}

@@ -5,9 +5,10 @@ import { signIn } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { getPortalBrandIdentity } from '@/lib/partner-portal-branding';
+import { SiteMark } from '@/components/brand/SiteLogo';
 import { useSiteBranding } from '@/hooks/useSiteBranding';
-import { Eye as Visibility, EyeOff as VisibilityOff, KeyRound as VpnKey, ArrowRight as ArrowForward, LogIn as LoginOutlined } from 'lucide-react';
-import { Alert, Tooltip } from '@/components/design-system';
+import { KeyRound as VpnKey, ArrowRight as ArrowForward, LogIn as LoginOutlined } from 'lucide-react';
+import { Alert } from '@/components/design-system';
 
 type PortalLoginBranding = {
   id: string;
@@ -26,7 +27,6 @@ export default function SimpleLoginPageClient({ portal }: SimpleLoginPageClientP
 	const searchParams = useSearchParams();
 	const { branding } = useSiteBranding();
 	const [loginCode, setLoginCode] = useState('');
-	const [showCode, setShowCode] = useState(false);
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState('');
 	const brand = useMemo(() => getPortalBrandIdentity(portal), [portal]);
@@ -100,11 +100,18 @@ export default function SimpleLoginPageClient({ portal }: SimpleLoginPageClientP
 					>
 						<div style={{ position: 'relative', zIndex: 1 }}>
 							<div style={{ textAlign: 'center', marginBottom: 24 }}>
+								<div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
+									{activeLogoUrl ? (
+										<img src={activeLogoUrl} alt="Jacxi Shipping logo" style={{ width: 72, height: 72, borderRadius: 20, objectFit: 'contain', backgroundColor: '#ffffff', border: '1px solid rgba(15,23,42,0.08)', boxShadow: '0 10px 24px rgba(15,23,42,0.10)' }} />
+									) : (
+										<SiteMark size={72} />
+									)}
+								</div>
 								<h3
 									
 									className="text-[1.875rem] sm:text-4xl" style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}
 								>
-									Login With Code
+									Login with Code
 								</h3>
 								<p
 									
@@ -135,41 +142,27 @@ export default function SimpleLoginPageClient({ portal }: SimpleLoginPageClientP
 									</span>
 									<input
 										id="loginCode"
-										type={showCode ? 'text' : 'password'}
+										type="password"
 										value={loginCode}
 										onChange={handleCodeChange}
 										required
 										placeholder="Enter your 8-character code"
 										autoComplete="off"
 										autoFocus
-										className="w-full rounded-2xl border border-[rgba(var(--panel-rgb),0.9)] bg-[var(--background)] py-2 pl-10 pr-12 text-center text-[var(--text-primary)] outline-none transition-colors placeholder:text-[var(--text-secondary)] hover:border-[var(--panel)] focus:border-2 focus:border-[var(--accent-gold)] focus:ring-2 focus:ring-[rgba(var(--accent-gold-rgb),0.2)]"
+										className="w-full rounded-2xl border border-[rgba(var(--panel-rgb),0.9)] bg-[var(--background)] py-2 pl-10 pr-10 text-center text-[var(--text-primary)] outline-none transition-colors placeholder:text-[var(--text-secondary)] placeholder:tracking-normal placeholder:font-medium hover:border-[var(--panel)] focus:border-2 focus:border-[var(--accent-gold)] focus:ring-2 focus:ring-[rgba(var(--accent-gold-rgb),0.2)]"
 										style={{ letterSpacing: '0.28em', fontWeight: 600 }}
 									/>
-									<Tooltip title={showCode ? 'Hide code' : 'Show code'}>
-										<button
-											type="button"
-											aria-label={showCode ? 'Hide code' : 'Show code'}
-											onClick={() => setShowCode(!showCode)}
-											className="absolute right-0 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center text-[var(--accent-gold)] hover:text-[var(--accent-gold)]"
-										>
-											{showCode ? (
-												<VisibilityOff size={20} />
-											) : (
-												<Visibility size={20} />
-											)}
-										</button>
-									</Tooltip>
 								</div>
 								</div>
 
 							<button
 								type="submit"
 								disabled={isLoading || loginCode.length !== 8}
-								className="flex w-full items-center justify-center gap-2 rounded-lg bg-[var(--accent-gold)] py-3 text-base font-semibold text-[var(--background)] transition-colors hover:bg-[var(--accent-gold)] disabled:bg-[rgba(var(--accent-gold-rgb),0.5)] disabled:text-[rgba(var(--background-rgb),0.85)]"
+								className="flex w-full items-center justify-center gap-2 rounded-lg bg-[var(--accent-gold)] py-3 text-base font-semibold text-[#09090B] transition-colors hover:bg-[var(--accent-gold)] hover:brightness-105 disabled:bg-[rgba(var(--accent-gold-rgb),0.5)] disabled:text-[rgba(9,9,11,0.55)]"
 							>
 								{isLoading ? (
 									<span className="flex items-center gap-2">
-										<span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" style={{ color: 'var(--background)' }} />
+										<span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" style={{ color: '#09090B' }} />
 										<span>Signing in...</span>
 									</span>
 								) : (
@@ -264,7 +257,7 @@ export default function SimpleLoginPageClient({ portal }: SimpleLoginPageClientP
 								</span>
 								<input
 									id="loginCode"
-									type={showCode ? 'text' : 'password'}
+									type="password"
 									value={loginCode}
 									onChange={handleCodeChange}
 									required
@@ -274,17 +267,6 @@ export default function SimpleLoginPageClient({ portal }: SimpleLoginPageClientP
 									className="w-full rounded-[28px] border-2 border-[rgba(var(--portal-accent-rgb),0.2)] bg-[rgba(255,255,255,0.88)] py-4 pl-14 pr-14 text-center text-[1.5rem] font-bold text-[var(--text-primary)] outline-none transition-colors placeholder:text-[1rem] placeholder:font-normal placeholder:tracking-normal placeholder:opacity-70 hover:border-[var(--portal-accent)] focus:border-[3px] focus:border-[var(--portal-accent)]"
 									style={{ letterSpacing: '0.3em' }}
 								/>
-								<Tooltip title={showCode ? 'Hide code' : 'Show code'}>
-									<button
-										type="button"
-										aria-label={showCode ? 'Hide code' : 'Show code'}
-										onClick={() => setShowCode(!showCode)}
-										className="absolute right-1 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center"
-										style={{ color: brand.accentColor }}
-									>
-										{showCode ? <VisibilityOff size={24} /> : <Visibility size={24} />}
-									</button>
-								</Tooltip>
 							</div>
 								<p style={{ display: 'block', marginTop: 8, color: 'var(--text-secondary)', fontSize: '0.875rem', textAlign: 'center' }}>
 									{loginCode.length}/8 characters

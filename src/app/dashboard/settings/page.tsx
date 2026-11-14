@@ -510,18 +510,32 @@ function SettingsPageContent() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [profileRes, settingsRes, backupRes, aiConnectivityRes, aiProviderRes, communicationRes, callAgentRes, milestoneRes] = await Promise.all([
-          fetch('/api/profile'),
-          fetch('/api/settings'),
-          isAdmin ? fetch('/api/settings/backup', { cache: 'no-store' }) : Promise.resolve(null),
-          isAdmin ? fetch('/api/settings/ai-connectivity', { cache: 'no-store' }) : Promise.resolve(null),
-          isAdmin ? fetch('/api/settings/ai-provider', { cache: 'no-store' }) : Promise.resolve(null),
-          isAdmin ? fetch('/api/settings/communications', { cache: 'no-store' }) : Promise.resolve(null),
-          isAdmin ? fetch('/api/settings/call-agent', { cache: 'no-store' }) : Promise.resolve(null),
-          isAdmin ? fetch('/api/notifications/milestone-alerts', { cache: 'no-store' }) : Promise.resolve(null),
-        ]);
+        // Each section fetch is time-boxed and settles independently: one slow
+        // or failed endpoint (e.g. the Twilio-backed call-agent check, which
+        // used to hang for ~2 minutes) must not block the whole page behind
+        // the loading skeleton. Failed sections keep their defaults.
+        const fetchWithTimeout = (url: string, init?: RequestInit, ms = 10_000) => {
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), ms);
+          return fetch(url, { ...init, signal: controller.signal }).finally(() => clearTimeout(timer));
+        };
+        const settledResponse = (result: PromiseSettledResult<Response | null>) =>
+          result.status === 'fulfilled' ? result.value : null;
 
-        if (profileRes.ok) {
+        const [profileRes, settingsRes, backupRes, aiConnectivityRes, aiProviderRes, communicationRes, callAgentRes, milestoneRes] = (
+          await Promise.allSettled([
+            fetchWithTimeout('/api/profile'),
+            fetchWithTimeout('/api/settings'),
+            isAdmin ? fetchWithTimeout('/api/settings/backup', { cache: 'no-store' }) : Promise.resolve(null),
+            isAdmin ? fetchWithTimeout('/api/settings/ai-connectivity', { cache: 'no-store' }) : Promise.resolve(null),
+            isAdmin ? fetchWithTimeout('/api/settings/ai-provider', { cache: 'no-store' }) : Promise.resolve(null),
+            isAdmin ? fetchWithTimeout('/api/settings/communications', { cache: 'no-store' }) : Promise.resolve(null),
+            isAdmin ? fetchWithTimeout('/api/settings/call-agent', { cache: 'no-store' }) : Promise.resolve(null),
+            isAdmin ? fetchWithTimeout('/api/notifications/milestone-alerts', { cache: 'no-store' }) : Promise.resolve(null),
+          ])
+        ).map(settledResponse);
+
+        if (profileRes?.ok) {
           const data = await profileRes.json();
           setProfile(data.user);
           setProfileForm({
@@ -533,7 +547,7 @@ function SettingsPageContent() {
           });
         }
 
-        if (settingsRes.ok) {
+        if (settingsRes?.ok) {
           const data = await settingsRes.json();
           const values = data.settings;
           const calculatorConfig = normalizeShippingRateConfig(values.calculatorConfig);

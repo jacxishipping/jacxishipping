@@ -9,7 +9,7 @@ import { useSession } from 'next-auth/react';
 import { hasPermission } from '@/lib/rbac';
 import { useConfirmAction } from '@/components/ui/ConfirmActionProvider';
 import Link from 'next/link';
-import { Calendar, ChevronDown, DollarSign, Download, ExternalLink, Eye, FileText, Package, PanelRightOpen, Search, User } from 'lucide-react';
+import { Calendar, ChevronDown, DollarSign, Download, ExternalLink, Eye, FileText, MoreHorizontal, Package, PanelRightOpen, Search, User } from 'lucide-react';
 import { DashboardSurface, DashboardPanel } from '@/components/dashboard/DashboardSurface';
 import InvoiceQuickPeek from '@/components/dashboard/InvoiceQuickPeek';
 import InvoicePreviewModal from '@/components/invoices/InvoicePreviewModal';
@@ -221,6 +221,32 @@ function InvoicesPageContent() {
 		totalAmount?: number;
 		status?: string;
 	} | null>(null);
+	// Row actions menu (Round 3 F5): the four per-row buttons made the table
+	// ~380 px wider than the viewport. One menu trigger per row instead.
+	// Rendered fixed-position (not inside the scrolling table) so the menu
+	// is never clipped by the table's horizontal scroller.
+	const [actionMenu, setActionMenu] = useState<{ rowId: string; top: number; left: number } | null>(null);
+
+	const openActionMenu = (event: React.MouseEvent<HTMLElement>, rowId: string) => {
+		event.stopPropagation();
+		const rect = event.currentTarget.getBoundingClientRect();
+		const menuWidth = 200;
+		const menuHeight = 184;
+		const left = Math.max(8, Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - 8));
+		const top = rect.bottom + 6 + menuHeight > window.innerHeight
+			? Math.max(8, rect.top - menuHeight - 6)
+			: rect.bottom + 6;
+		setActionMenu({ rowId, top, left });
+	};
+
+	useEffect(() => {
+		if (!actionMenu) return;
+		const handleKey = (e: KeyboardEvent) => {
+			if (e.key === 'Escape') setActionMenu(null);
+		};
+		window.addEventListener('keydown', handleKey);
+		return () => window.removeEventListener('keydown', handleKey);
+	}, [actionMenu]);
 
 	const isAdmin = hasPermission(session?.user?.role, 'invoices:manage');
 	const customerFilterUserId = searchParams.get('userId');
@@ -385,6 +411,10 @@ function InvoicesPageContent() {
 		};
 	});
 
+	// The Reversed column is mostly "-" — only show it when at least one
+	// visible invoice is actually reversed (Round 3 F5: table width).
+	const hasReversed = invoices.some((invoice) => Boolean((invoice as { reversedAt?: string | null }).reversedAt));
+
 	const invoiceColumns: Column<InvoiceTableRow>[] = [
 		{
 			key: 'invoiceNumber',
@@ -398,32 +428,39 @@ function InvoicesPageContent() {
 				</span>
 			),
 		},
-		...(isAdmin ? [{ key: 'customer', header: 'Customer', sortable: true }] : []),
+		...(isAdmin ? [{ key: 'customer', header: 'Customer', sortable: true, render: (value: unknown) => (
+			<span className="block max-w-[170px] truncate" title={String(value ?? '')}>{String(value ?? '')}</span>
+		) }] : []),
 		{
 			key: 'reference',
 			header: 'Shipment / Container',
 			render: (value, row) => {
-				if (row.referenceType === 'shipment' && row.referenceId) {
-					return (
-						<Link
-							href={`/dashboard/shipments/${row.referenceId}`}
-							style={{ color: 'var(--accent-gold)', textDecoration: 'none', fontWeight: 600 }}
-						>
-							{String(value)}
-						</Link>
-					);
-				}
-				if (row.referenceType === 'container' && row.referenceId) {
-					return (
-						<Link
-							href={`/dashboard/containers/${row.referenceId}`}
-							style={{ color: 'var(--accent-gold)', textDecoration: 'none', fontFamily: 'monospace', fontWeight: 600 }}
-						>
-							{String(value)}
-						</Link>
-					);
-				}
-				return <span>{String(value)}</span>;
+				const inner = (() => {
+					if (row.referenceType === 'shipment' && row.referenceId) {
+						return (
+							<Link
+								href={`/dashboard/shipments/${row.referenceId}`}
+								style={{ color: 'var(--accent-gold)', textDecoration: 'none', fontWeight: 600 }}
+							>
+								{String(value)}
+							</Link>
+						);
+					}
+					if (row.referenceType === 'container' && row.referenceId) {
+						return (
+							<Link
+								href={`/dashboard/containers/${row.referenceId}`}
+								style={{ color: 'var(--accent-gold)', textDecoration: 'none', fontFamily: 'monospace', fontWeight: 600 }}
+							>
+								{String(value)}
+							</Link>
+						);
+					}
+					return <span>{String(value)}</span>;
+				})();
+				// Truncate long vehicle/VIN references so the table fits the
+				// viewport (Round 3 F5); full text stays in the title tooltip.
+				return <span className="block max-w-[210px] truncate" title={String(value)}>{inner}</span>;
 			},
 		},
 		{
@@ -444,11 +481,11 @@ function InvoicesPageContent() {
 			header: 'Status',
 			render: (value) => <StatusBadge status={String(value)} size="sm" />,
 		},
-		{
+		...(hasReversed ? [{
 			key: 'reversedAt',
 			header: 'Reversed',
 			className: 'whitespace-nowrap',
-			render: (value, row) => {
+			render: (value: unknown, row: InvoiceTableRow) => {
 				if (!row.reversedAt) {
 					return <span className="text-[var(--text-secondary)]">-</span>;
 				}
@@ -463,7 +500,7 @@ function InvoicesPageContent() {
 					</span>
 				);
 			},
-		},
+		}] : []),
 		{
 			key: 'total',
 			header: 'Total',
@@ -478,47 +515,13 @@ function InvoicesPageContent() {
 					<Button
 						variant="outline"
 						size="sm"
-						icon={<Eye className="w-3 h-3 text-[var(--accent-gold)]" />}
-						onClick={() => {
-							setPreviewInvoice({
-								id: row.id,
-								invoiceNumber: row.invoiceNumber,
-								customerName: row.customer,
-								totalAmount: row.total,
-								status: row.status,
-							});
-						}}
-						title="Interactive PDF preview"
+						icon={<MoreHorizontal className="w-4 h-4" />}
+						onClick={(e) => openActionMenu(e, row.id)}
+						aria-haspopup="menu"
+						aria-expanded={actionMenu?.rowId === row.id}
+						title="Invoice actions"
 					>
-						Preview
-					</Button>
-					<Button
-						variant="outline"
-						size="sm"
-						icon={<PanelRightOpen className="w-3 h-3" />}
-						onClick={() => setQuickPeekInvoiceId(row.id)}
-						title="Quick peek invoice details"
-					>
-						Peek
-					</Button>
-					<Button
-						variant="outline"
-						size="sm"
-						icon={<ExternalLink className="w-3 h-3" />}
-						onClick={() => router.push(`/dashboard/invoices/${row.id}`)}
-					>
-						View
-					</Button>
-					<Button
-						variant="outline"
-						size="sm"
-						icon={<Download className="w-3 h-3" />}
-						onClick={() => {
-							const inv = invoices.find((i) => i.id === row.id);
-							if (inv) handleDownloadPDF(inv);
-						}}
-					>
-						PDF
+						Actions
 					</Button>
 				</JXBox>
 			),
@@ -895,6 +898,76 @@ const confirmAction = useConfirmAction();
 					status={previewInvoice?.status}
 					onClose={() => setPreviewInvoice(null)}
 				/>
+
+				{/* Row actions menu (Round 3 F5) — fixed-position so it is never
+				    clipped by the table scroller; closes on backdrop click,
+				    Escape, or after picking an action. */}
+				{actionMenu && (() => {
+					const menuRow = invoiceRows.find((r) => r.id === actionMenu.rowId);
+					if (!menuRow) return null;
+					const menuItems = [
+						{
+							label: 'Preview',
+							icon: <Eye className="w-4 h-4 text-[var(--accent-gold)]" />,
+							onSelect: () => setPreviewInvoice({
+								id: menuRow.id,
+								invoiceNumber: menuRow.invoiceNumber,
+								customerName: menuRow.customer,
+								totalAmount: menuRow.total,
+								status: menuRow.status,
+							}),
+						},
+						{
+							label: 'Peek',
+							icon: <PanelRightOpen className="w-4 h-4" />,
+							onSelect: () => setQuickPeekInvoiceId(menuRow.id),
+						},
+						{
+							label: 'View',
+							icon: <ExternalLink className="w-4 h-4" />,
+							onSelect: () => router.push(`/dashboard/invoices/${menuRow.id}`),
+						},
+						{
+							label: 'PDF',
+							icon: <Download className="w-4 h-4" />,
+							onSelect: () => {
+								const inv = invoices.find((i) => i.id === menuRow.id);
+								if (inv) handleDownloadPDF(inv);
+							},
+						},
+					];
+					return (
+						<>
+							<div
+								className="fixed inset-0 z-[1050]"
+								aria-hidden="true"
+								onClick={() => setActionMenu(null)}
+							/>
+							<div
+								role="menu"
+								aria-label={`Actions for ${menuRow.invoiceNumber}`}
+								className="fixed z-[1051] w-[200px] overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--panel)] p-1 shadow-[0_16px_40px_rgba(0,0,0,0.16)]"
+								style={{ top: actionMenu.top, left: actionMenu.left }}
+							>
+								{menuItems.map((item) => (
+									<button
+										key={item.label}
+										type="button"
+										role="menuitem"
+										className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--background)]"
+										onClick={() => {
+											setActionMenu(null);
+											item.onSelect();
+										}}
+									>
+										{item.icon}
+										{item.label}
+									</button>
+								))}
+							</div>
+						</>
+					);
+				})()}
 		</DashboardSurface>
 	);
 }

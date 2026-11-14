@@ -24,8 +24,8 @@ const footerNavigation = {
   ],
   legal: [
     { name: 'Privacy policy', href: '/legal/app-privacy-policy' },
-    { name: 'Terms of service', href: '/legal/app-privacy-policy' },
-    { name: 'Cookie policy', href: '/legal/app-privacy-policy' },
+    // Terms of service / Cookie policy pages do not exist yet — no link
+    // is shown for them rather than pointing both at the privacy policy.
   ],
 };
 
@@ -45,7 +45,7 @@ export default function Footer() {
         <div className="mb-16 sm:mb-28 flex flex-col items-center justify-center text-center">
            <motion.h3 
              initial={{ opacity: 0, y: 30 }}
-             whileInView={{ opacity: 1, y: 0 }}
+             animate={{ opacity: 1, y: 0 }}
              viewport={{ once: true }}
              transition={{ duration: 0.6, ease: "easeOut" }}
              className="text-4xl font-bold leading-none tracking-tight text-gray-900 sm:text-7xl md:text-8xl lg:text-9xl"
@@ -56,7 +56,7 @@ export default function Footer() {
            
            <motion.div
              initial={{ opacity: 0, scale: 0.8 }}
-             whileInView={{ opacity: 1, scale: 1 }}
+             animate={{ opacity: 1, scale: 1 }}
              viewport={{ once: true }}
              transition={{ duration: 0.5, delay: 0.2 }}
              className="mt-8 sm:mt-10 relative z-10"

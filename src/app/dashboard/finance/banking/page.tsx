@@ -363,7 +363,9 @@ export default function BankingFinancePage() {
         align: 'right',
         render: (_, row) => (
           <span style={{ color: row.type === 'DEBIT' ? 'var(--error)' : '#16a34a', fontWeight: 700 }}>
-            {row.type === 'DEBIT' ? '+' : '-'}{formatCurrency(row.amount)}
+            {/* Money direction (Round 3 F4): DEBIT is money out (−, red),
+                CREDIT is money in (+, green). */}
+            {row.type === 'DEBIT' ? '−' : '+'}{formatCurrency(row.amount)}
           </span>
         ),
       },
@@ -473,9 +475,20 @@ export default function BankingFinancePage() {
 
           <DashboardGrid className="grid-cols-1 md:grid-cols-2 xl:grid-cols-4 mb-4">
             <StatsCard icon={<ReceiptText className="w-5 h-5" />} title="Imported Rows" value={summary.entryCount} variant="default" />
-            <StatsCard icon={<ArrowRightLeft className="w-5 h-5" />} title="Money In" value={formatCurrency(summary.totalDebit)} variant="error" />
-            <StatsCard icon={<ArrowRightLeft className="w-5 h-5" />} title="Money Out" value={formatCurrency(summary.totalCredit)} variant="success" />
-            <StatsCard icon={<Landmark className="w-5 h-5" />} title="Imported Net" value={formatCurrency(summary.netChange)} variant="info" />
+            {/*
+              Money direction (Round 3 F4): DEBIT rows are money out, CREDIT
+              rows money in — so Money In totals CREDIT and Money Out totals
+              DEBIT, and Imported Net is In minus Out. NOTE: this only fixes
+              the display. The bank-import path still stores every imported
+              row as a DEBIT that adds to the ledger balance (including rows
+              that are plainly withdrawals/purchases, and even credits such
+              as "Interest Credit"), so the stored balances move the opposite
+              way from these signs. That classification lives in the import
+              path / API, not here — flagging, not silently reclassifying.
+            */}
+            <StatsCard icon={<ArrowRightLeft className="w-5 h-5" />} title="Money In" value={formatCurrency(summary.totalCredit)} variant="success" />
+            <StatsCard icon={<ArrowRightLeft className="w-5 h-5" />} title="Money Out" value={formatCurrency(summary.totalDebit)} variant="error" />
+            <StatsCard icon={<Landmark className="w-5 h-5" />} title="Imported Net" value={formatCurrency(summary.totalCredit - summary.totalDebit)} variant="info" />
           </DashboardGrid>
 
           <JXBox padding="none" border={false} style={{marginBottom: '16px', padding: '12px', borderRadius: '16px', border: '1px solid var(--border)', background: 'rgba(59, 130, 246, 0.06)', color: 'var(--text-secondary)', fontSize: '0.82rem'}}>
@@ -644,7 +657,7 @@ export default function BankingFinancePage() {
                               </span>
                             </td>
                             <td style={{ padding: '10px 12px', verticalAlign: 'top', textAlign: 'right', color: row.type === 'DEBIT' ? 'var(--error)' : 'var(--success)', fontWeight: 700 }}>
-                              {row.type === 'DEBIT' ? '+' : '-'}{formatCurrency(row.amount)}
+                              {row.type === 'DEBIT' ? '−' : '+'}{formatCurrency(row.amount)}
                             </td>
                           </tr>
                         ))}

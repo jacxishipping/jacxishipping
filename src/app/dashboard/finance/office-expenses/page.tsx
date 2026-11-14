@@ -6,7 +6,7 @@ import { useSession } from 'next-auth/react';
 import { formatMoney } from '@/lib/format';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
-import { Button, IconButton, Modal, PageHeader, Select, StatsCard, TableSkeleton, Tooltip, toast } from '@/components/design-system';
+import { Button, IconButton, Modal, PageHeader, Select, StatsCard, SkeletonStatsCard, TableSkeleton, Tooltip, toast } from '@/components/design-system';
 import { ArrowUpRight, Building2, Calendar, CheckCircle2, ChevronDown, ChevronRight, Clock, CreditCard, DollarSign, Download, Edit2, ExternalLink, FileCheck, FileText, Filter, Layers, PieChart as PieIcon, Plus, Receipt, Repeat, Search, Sliders, Store, Tag, Trash2, TrendingUp, XCircle } from 'lucide-react';
 import RecurringExpensesTab from './RecurringExpensesTab';
 import BudgetsTab from './BudgetsTab';
@@ -509,13 +509,21 @@ export default function OfficeExpensesPage() {
           }
         />
 
-        {/* Top KPI Metric Cards */}
+        {/* Top KPI Metric Cards — skeleton placeholders while loading, never
+            wrong $0.00s (Round 3 F8). */}
+        {loading ? (
+          <DashboardGrid className="grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+            {[0, 1, 2, 3].map((i) => (
+              <SkeletonStatsCard key={i} />
+            ))}
+          </DashboardGrid>
+        ) : (
         <DashboardGrid className="grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 mb-6">
           <StatsCard
             title="This Month Expenses"
             value={formatMoney(summary?.thisMonthAmount || 0)}
             icon={<Calendar className="w-5 h-5 text-indigo-400" />}
-            subtitle={`${summary?.thisMonthCount || 0} bills recorded this month`}
+            subtitle={`${summary?.thisMonthCount || 0} bills this month`}
             variant="default"
           />
           <StatsCard
@@ -540,6 +548,7 @@ export default function OfficeExpensesPage() {
             variant="default"
           />
         </DashboardGrid>
+        )}
 
         {/* View Tabs */}
         <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, borderBottom: 1, borderColor: 'var(--border)', marginBottom: '24px'}}>
@@ -554,7 +563,7 @@ export default function OfficeExpensesPage() {
             >
               {<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px'}}>
                   <Layers className="w-4 h-4" />
-                  <span>Expense Ledger ({summary?.totalCount || expenses.length})</span>
+                  <span>Expense Ledger ({loading ? '…' : (summary?.totalCount || expenses.length)})</span>
                 </JXBox>}
             </button>
             <button
@@ -860,13 +869,13 @@ export default function OfficeExpensesPage() {
                     const meta = CATEGORY_METADATA[item.category] || CATEGORY_METADATA.OTHER;
                     return (
                       <div key={item.category} className="space-y-1.5">
-                        <div className="flex items-center justify-between text-sm">
-                          <div className="flex items-center gap-2 font-medium text-[var(--text-primary)]">
-                            <span>{meta.icon}</span>
-                            <span>{meta.label}</span>
-                            <span className="text-xs text-[var(--text-secondary)]">({item.count} bills)</span>
+                        <div className="flex items-center justify-between gap-3 text-sm">
+                          <div className="flex min-w-0 flex-1 items-center gap-2 font-medium text-[var(--text-primary)]">
+                            <span className="shrink-0">{meta.icon}</span>
+                            <span className="min-w-0 truncate" title={meta.label}>{meta.label}</span>
+                            <span className="shrink-0 whitespace-nowrap text-xs text-[var(--text-secondary)]">({item.count} bills)</span>
                           </div>
-                          <div className="font-semibold text-[var(--text-primary)]">
+                          <div className="shrink-0 whitespace-nowrap font-semibold text-[var(--text-primary)]">
                             {formatMoney(item.amount)}{' '}
                             <span className="text-xs text-[var(--text-secondary)] font-normal">
                               ({item.percentage.toFixed(1)}%)
@@ -907,7 +916,7 @@ export default function OfficeExpensesPage() {
                       >
                         <div className="text-xs font-semibold text-[var(--text-secondary)]">{m.month}</div>
                         <div className="my-1.5 font-bold text-[var(--text-primary)] text-sm">
-                          {m.total > 0 ? formatMoney(m.total) : '$0'}
+                          {formatMoney(m.total)}
                         </div>
                         <div className="text-[10px] text-[var(--text-secondary)]">{m.count} bills</div>
                       </div>
@@ -976,7 +985,7 @@ export default function OfficeExpensesPage() {
               <label className="block text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-1.5">
                 Expense Title *
               </label>
-              <div className="min-w-0 flex-1"><BareInput required placeholder="e.g. Office Rent (September), High-Speed Internet Bill" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} size="small" /></div>
+              <div className="min-w-0 flex-1"><BareInput required placeholder="e.g. Office Rent (September)" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} size="small" /></div>
             </div>
 
             {/* Category & Amount */}
@@ -1059,8 +1068,9 @@ export default function OfficeExpensesPage() {
               </div>
             </div>
 
-            {/* Buttons */}
-            <div className="flex justify-end gap-2 pt-3 border-t border-[var(--border)]">
+            {/* Buttons — sticky to the bottom of the scrolling modal content
+                (Round 3 F14) so Save/Cancel stay reachable on short screens. */}
+            <div className="sticky bottom-0 -mx-4 flex justify-end gap-2 border-t border-[var(--border)] bg-[var(--panel)] px-4 pb-4 pt-3 sm:-mx-6 sm:px-6">
               <Button
                 type="button"
                 variant="ghost"

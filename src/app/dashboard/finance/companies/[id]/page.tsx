@@ -1387,7 +1387,9 @@ function CompanyLedgerDetailPageContent() {
           const normalizedType = getDisplayType(row);
           return (
           <span style={{ color: normalizedType === 'DEBIT' ? 'var(--error)' : '#22c55e', fontWeight: 600 }}>
-            {normalizedType === 'DEBIT' ? '+' : '-'}{formatCurrency(row.amount)}
+            {/* Money direction (Round 3 F4): DEBIT is money out (−, red),
+                CREDIT is money in (+, green). */}
+            {normalizedType === 'DEBIT' ? '−' : '+'}{formatCurrency(row.amount)}
           </span>
           );
         },
@@ -3135,7 +3137,7 @@ function CompanyLedgerDetailPageContent() {
                               </span>
                             </td>
                             <td style={{ padding: '10px 12px', verticalAlign: 'top', textAlign: 'right', color: row.type === 'DEBIT' ? 'var(--error)' : '#16a34a', fontWeight: 700 }}>
-                              {row.type === 'DEBIT' ? '+' : '-'}{formatCurrency(row.amount)}
+                              {row.type === 'DEBIT' ? '−' : '+'}{formatCurrency(row.amount)}
                             </td>
                           </tr>
                         ))}

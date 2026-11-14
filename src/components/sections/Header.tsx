@@ -90,17 +90,6 @@ export default function Header({ isAuthenticated = false }: { isAuthenticated?: 
                 </Link>
               </Magnetic>
               
-              {!isAuthenticated && (
-                <Magnetic>
-                  <Link
-                    href="/auth/signup"
-                    className="group relative inline-flex h-10 items-center justify-center overflow-hidden rounded-full bg-white px-6 font-bold text-black"
-                  >
-                    <div className="absolute inset-0 translate-y-full bg-[#D4AF37] transition-transform duration-500 ease-[cubic-bezier(0.76,0,0.24,1)] group-hover:translate-y-0" />
-                    <span className="relative z-10 transition-colors duration-500 group-hover:text-gray-900">Sign up</span>
-                  </Link>
-                </Magnetic>
-              )}
             </div>
 
             {/* Mobile menu trigger */}
@@ -188,15 +177,6 @@ export default function Header({ isAuthenticated = false }: { isAuthenticated?: 
                 >
                   {isAuthenticated ? "Go to Dashboard" : "Sign In"}
                 </Link>
-                {!isAuthenticated && (
-                   <Link
-                    href="/auth/signup"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center justify-center h-12 rounded-xl bg-[#D4AF37] text-slate-950 font-bold hover:brightness-110 shadow-lg shadow-[#D4AF37]/20 transition-all"
-                  >
-                    Create Account
-                  </Link>
-                )}
               </motion.div>
             </div>
           </motion.div>

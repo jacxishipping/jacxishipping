@@ -27,6 +27,7 @@ import {
   Button,
   toast,
   StatsCard,
+  SkeletonStatsCard,
   PageHeader,
   Modal,
 } from '@/components/design-system';
@@ -95,6 +96,10 @@ export default function LedgerTransfersPage() {
     companyToCompanyCount: 0,
   });
   const [isLoading, setIsLoading] = useState(true);
+  // Round 3 F9: a failed fetch must not render as "no transfers". Track the
+  // failure so the page can show an error state with a retry instead of the
+  // false empty state (and $0.00 KPIs).
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -129,6 +134,7 @@ export default function LedgerTransfersPage() {
   // Fetch transfers
   const fetchTransfers = useCallback(async () => {
     setIsLoading(true);
+    setLoadError(null);
     try {
       const params = new URLSearchParams();
       if (searchQuery.trim()) params.append('search', searchQuery.trim());
@@ -143,6 +149,7 @@ export default function LedgerTransfersPage() {
       setTransfers(data.transfers || []);
       if (data.stats) setStats(data.stats);
     } catch (err: any) {
+      setLoadError(err.message || 'Could not load transfer history');
       toast.error('Error', { description: err.message || 'Could not load transfer history' });
     } finally {
       setIsLoading(false);
@@ -367,37 +374,46 @@ export default function LedgerTransfersPage() {
           }
         />
 
-        {/* KPI Metrics */}
+        {/* KPI Metrics — skeletons while loading, "—" (not $0.00) when the
+            load failed (Round 3 F8/F9). */}
+        {isLoading ? (
+          <DashboardGrid className="grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+            {[0, 1, 2, 3].map((i) => (
+              <SkeletonStatsCard key={i} />
+            ))}
+          </DashboardGrid>
+        ) : (
         <DashboardGrid className="grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           <StatsCard
             icon={<DollarSign className="w-5 h-5" />}
             title="Total Transferred"
-            value={formatCurrency(stats.totalAmount)}
-            subtitle={`${stats.completedCount} completed transfers`}
+            value={loadError ? '—' : formatCurrency(stats.totalAmount)}
+            subtitle={loadError ? 'Could not load' : `${stats.completedCount} completed transfers`}
             variant="default"
           />
           <StatsCard
             icon={<User className="w-5 h-5" />}
             title="Customer Transfers"
-            value={stats.userToUserCount}
+            value={loadError ? '—' : stats.userToUserCount}
             subtitle="Customer-to-Customer balance moves"
             variant="success"
           />
           <StatsCard
             icon={<Building2 className="w-5 h-5" />}
             title="Company Allocations"
-            value={stats.userToCompanyCount + stats.companyToUserCount}
+            value={loadError ? '—' : stats.userToCompanyCount + stats.companyToUserCount}
             subtitle="Customer ⇄ Company cross-transfers"
             variant="warning"
           />
           <StatsCard
             icon={<ArrowLeftRight className="w-5 h-5" />}
             title="Company-to-Company"
-            value={stats.companyToCompanyCount}
+            value={loadError ? '—' : stats.companyToCompanyCount}
             subtitle="Partner settlements & reallocations"
             variant="default"
           />
         </DashboardGrid>
+        )}
 
         {/* Filter Toolbar */}
         <DashboardPanel>
@@ -482,6 +498,28 @@ export default function LedgerTransfersPage() {
                       <div className="flex items-center justify-center gap-2">
                         <RefreshCw className="w-4 h-4 animate-spin text-[var(--accent-gold)]" />
                         Loading transfer history...
+                      </div>
+                    </td>
+                  </tr>
+                ) : loadError ? (
+                  <tr>
+                    <td colSpan={8} className="py-12 text-center text-muted-foreground">
+                      <div className="flex flex-col items-center justify-center gap-2">
+                        <AlertTriangle className="w-8 h-8 text-[var(--error)]" />
+                        <p className="font-medium text-foreground">Couldn&apos;t load transfers</p>
+                        <p className="text-xs max-w-sm">
+                          The transfer list failed to load ({loadError}). Your transfers
+                          are still there — this is a loading failure, not an empty list.
+                        </p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mt-2"
+                          icon={<RotateCcw className="w-4 h-4" />}
+                          onClick={() => fetchTransfers()}
+                        >
+                          Retry
+                        </Button>
                       </div>
                     </td>
                   </tr>

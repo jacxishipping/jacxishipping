@@ -888,7 +888,24 @@ body {
   background-clip: text;
 }
 
-/* Futuristic Custom Scrollbar */
+/* Hide native number-input spinners (Round 3 F14) — the Amount field in
+   the Add-Expense modal (and every other number field) shows its own
+   formatting; the browser's tiny up/down arrows add noise and overlap
+   the field's left "$" affordance on narrow screens. */
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* Neutral scrollbar thumb (Round 3 — gold leftover). The gradient below
+   used to resolve to gold (both --cyber-blue and --neon-purple are hue
+   45°); the thumb is now a plain neutral grey in both themes. The
+   --cyber-blue / --neon-purple tokens themselves are untouched. */
 ::-webkit-scrollbar {
   width: 10px;
 }
@@ -899,20 +916,13 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(135deg, 
-    hsl(var(--cyber-blue)) 0%, 
-    hsl(var(--neon-purple)) 100%
-  );
+  background: rgba(128, 128, 128, 0.55);
   border-radius: 10px;
 		border: 2px solid var(--panel);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(135deg, 
-    hsl(var(--neon-purple)) 0%, 
-    hsl(var(--cyber-blue)) 100%
-  );
-  box-shadow: 0 0 10px hsl(var(--cyber-blue) / 0.5);
+  background: rgba(128, 128, 128, 0.8);
 }
 
 /* Enhanced Focus styles with glow */
