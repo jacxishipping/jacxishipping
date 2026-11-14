@@ -117,12 +117,12 @@ export function RolePerspectiveSwitcher({
               style={{ fontFamily: 'inherit' }}
               className={`flex items-center gap-1.5 !h-auto !min-h-0 !px-3 !py-1.5 !rounded-lg !text-xs !font-semibold whitespace-nowrap ${
                 isActive
-                  ? '!border-transparent !bg-[var(--accent-gold)] !text-white shadow-sm'
+                  ? '!border-transparent !bg-[var(--panel)] !text-[var(--text-primary)] shadow-sm'
                   : '!border-transparent !bg-transparent !text-[var(--text-secondary)] hover:!text-[var(--text-primary)] hover:!bg-[rgba(var(--text-primary-rgb),0.05)] !shadow-none'
               }`}
               title={p.description}
             >
-              <Icon className="w-3.5 h-3.5" />
+              <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-[var(--accent-gold-text)]' : ''}`} />
               <span>{p.shortLabel}</span>
             </JacxiButton>
           );

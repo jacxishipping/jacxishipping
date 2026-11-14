@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Clock, AlertCircle, TrendingUp } from 'lucide-react';
-import { Button, Breadcrumbs, PageHeader, LoadingState } from '@/components/design-system';
+import { Button, Breadcrumbs, PageHeader, DashboardPageSkeleton } from '@/components/design-system';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { ResponsiveDataView, CardField } from '@/components/ui/MobileCardView';
 import { DashboardSurface, DashboardPanel } from '@/components/dashboard/DashboardSurface';
@@ -183,7 +183,10 @@ export default function AgingReportPage() {
           <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingLeft: '16px', paddingRight: '16px', paddingTop: '16px'}}>
             <Breadcrumbs />
           </JXBox>
-          <LoadingState message="Loading aging report..." />
+          {/* Round 3 part 2 C-5: report/list surface → DashboardPageSkeleton
+              (was a full-screen LoadingState); crumbs kept, matching the
+              ledgers list loading branch. */}
+          <DashboardPageSkeleton />
         </DashboardSurface>
       </AdminRoute>
     );

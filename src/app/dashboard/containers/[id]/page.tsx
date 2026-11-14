@@ -10,7 +10,7 @@ import { Activity, AlertTriangle, ArrowLeft, Calendar, ChevronDown, Compass, Cop
 import QRCode from 'react-qr-code';
 import { formatMoney as formatCurrency } from '@/lib/format';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
-import { PageHeader, Button, Breadcrumbs, toast, LoadingState, EmptyState, StatsCard, DashboardPageSkeleton, DetailPageSkeleton, FormPageSkeleton, CopyButton, MilestoneStepper, StatusBadge, type MilestoneStep, Modal } from '@/components/design-system';
+import { PageHeader, Breadcrumbs, Button, toast, LoadingState, EmptyState, StatsCard, DashboardPageSkeleton, DetailPageSkeleton, FormPageSkeleton, FormField, CopyButton, MilestoneStepper, StatusBadge, type MilestoneStep, Modal } from '@/components/design-system';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import AddExpenseModal from '@/components/containers/AddExpenseModal';
 import AddDamageModal from '@/components/containers/AddDamageModal';
@@ -882,11 +882,16 @@ function ContainerDetailPageContent() {
 	return (
 		<ProtectedRoute>
 			<DashboardSurface>
-				{/* Breadcrumbs */}
-				<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingLeft: '16px', paddingRight: '16px', paddingTop: '16px'}}>
-					<Breadcrumbs />
-				</JXBox>
-
+				{/* Breadcrumbs — explicit items so the last crumb is the container
+				    number (TRKU4441025), not the raw route id, matching the
+				    dispatch/transit detail pages. Round 3 part 2. */}
+				<Breadcrumbs
+					items={[
+						{ label: 'Dashboard', href: '/dashboard' },
+						{ label: 'Containers', href: '/dashboard/containers' },
+						{ label: container.containerNumber },
+					]}
+				/>
 				{/* Page Header */}
 				<PageHeader
 					title={container.containerNumber}
@@ -2716,30 +2721,16 @@ function ContainerDetailPageContent() {
 								</JXBox>
 							</JXBox>
 
-							{/* Search */}
-							<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
-								<JXBox padding="none" border={false} component="label" style={{backgroundColor: 'transparent', borderRadius: 0, display: 'block', fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px'}}>
-									Search Shipments
-								</JXBox>
-								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, position: 'relative'}}>
-									<Search className="w-4 h-4" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
-									<input
-										type="text"
-										value={shipmentSearchQuery}
-										onChange={(e) => setShipmentSearchQuery(e.target.value)}
-										placeholder="Search by vehicle, VIN, or customer..."
-										style={{
-											width: '100%',
-											padding: '10px 12px 10px 36px',
-											borderRadius: '8px',
-											border: '1px solid var(--border)',
-											backgroundColor: 'var(--background)',
-											color: 'var(--text-primary)',
-											fontSize: '0.875rem',
-										}}
-									/>
-								</JXBox>
-							</JXBox>
+							{/* Search — Round 3 part 2 C-2: design-system FormField
+							    (was a hand-rolled label + absolutely-positioned icon
+							    + raw input). */}
+							<FormField
+								label="Search Shipments"
+								placeholder="Search by vehicle, VIN, or customer..."
+								value={shipmentSearchQuery}
+								onChange={(e) => setShipmentSearchQuery(e.target.value)}
+								leftIcon={<Search className="w-4 h-4" />}
+							/>
 
 							{/* Shipments List */}
 							{loadingAvailableShipments ? (

@@ -25,6 +25,7 @@ import {
 	StatusBadge,
 	CopyButton,
 	StatusFilterPills,
+	IconButton,
 } from '@/components/design-system';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { exportToCSVWithHeaders } from '@/lib/export';
@@ -429,7 +430,7 @@ function InvoicesPageContent() {
 			),
 		},
 		...(isAdmin ? [{ key: 'customer', header: 'Customer', sortable: true, render: (value: unknown) => (
-			<span className="block max-w-[170px] truncate" title={String(value ?? '')}>{String(value ?? '')}</span>
+			<span className="block max-w-[110px] truncate" title={String(value ?? '')}>{String(value ?? '')}</span>
 		) }] : []),
 		{
 			key: 'reference',
@@ -459,8 +460,9 @@ function InvoicesPageContent() {
 					return <span>{String(value)}</span>;
 				})();
 				// Truncate long vehicle/VIN references so the table fits the
-				// viewport (Round 3 F5); full text stays in the title tooltip.
-				return <span className="block max-w-[210px] truncate" title={String(value)}>{inner}</span>;
+				// viewport (Round 3 F5 + part 2: 210 -> 150 -> 120 -> 110);
+				// full text stays in the title tooltip.
+				return <span className="block max-w-[110px] truncate" title={String(value)}>{inner}</span>;
 			},
 		},
 		{
@@ -510,19 +512,26 @@ function InvoicesPageContent() {
 			key: 'actions',
 			header: 'Actions',
 			align: 'right',
+			// Round 3 part 2: the "Actions" header text (not the 34 px icon
+			// button) sets this column's 91 px width — th/td px-4 alone costs
+			// 32 px. px-2 here (twMerge overrides the density px-4 for this
+			// column only) trims it to ~75 px.
+			className: 'px-2',
 			render: (_, row) => (
 				<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '6px', justifyContent: 'flex-end', flexWrap: 'nowrap', whiteSpace: 'nowrap'}} onClick={(e) => e.stopPropagation()}>
-					<Button
+					{/* IconButton trigger (Round 3 part 2): the outline Button
+					    rendered 58 px wide; the 32 px icon button frees 26 px
+					    so the table fits its container. */}
+					<IconButton
 						variant="outline"
 						size="sm"
 						icon={<MoreHorizontal className="w-4 h-4" />}
 						onClick={(e) => openActionMenu(e, row.id)}
 						aria-haspopup="menu"
 						aria-expanded={actionMenu?.rowId === row.id}
+						ariaLabel="Invoice actions"
 						title="Invoice actions"
-					>
-						Actions
-					</Button>
+					/>
 				</JXBox>
 			),
 		},
@@ -802,6 +811,12 @@ const confirmAction = useConfirmAction();
 						keyField="id"
 						selectable={isAdmin}
 						onRowClick={(row) => router.push(`/dashboard/invoices/${row.id}`)}
+						// Round 3 part 2: prefetch the detail route on row hover.
+						// The row click itself was never broken — router.push
+						// fires at once — but a cold [id] route compile/load
+						// left the URL unchanged for 90 s+. Warming it on
+						// hover makes the click commit promptly.
+						onRowHover={(row) => router.prefetch(`/dashboard/invoices/${row.id}`)}
 						onDelete={isAdmin ? handleBulkDelete : undefined}
 						onExport={isAdmin ? handleBulkExport : undefined}
 						bulkStatusOptions={invoiceStatusOptions}

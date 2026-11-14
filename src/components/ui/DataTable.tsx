@@ -63,6 +63,12 @@ interface DataTableProps<T> {
   stickyHeader?: boolean;
   zebraStripes?: boolean;
   onRowClick?: (row: T) => void;
+  // Round 3 part 2: hover prefetch hook. Lets a caller warm the row's
+  // destination (e.g. router.prefetch) on pointer hover, so a click on a
+  // row whose target route is expensive to compile/load commits at once
+  // instead of sitting on the list with the URL unchanged. Optional;
+  // no-op when unset.
+  onRowHover?: (row: T) => void;
   onDelete?: (selectedIds: string[]) => void;
   onEdit?: (row: T) => void;
   renderRowActions?: (row: T) => React.ReactNode;
@@ -90,6 +96,7 @@ export function DataTable<T extends Record<string, any>>({
   stickyHeader = true,
   zebraStripes = true,
   onRowClick,
+  onRowHover,
   onDelete,
   onEdit,
   renderRowActions,
@@ -514,6 +521,7 @@ export function DataTable<T extends Record<string, any>>({
                   key={rowId}
                   data-row-id={rowId}
                   onClick={() => onRowClick?.(row)}
+                  onMouseEnter={() => onRowHover?.(row)}
                   className={cn(
                     "rounded-xl border border-[var(--border)] bg-[var(--panel)] p-3 shadow-xs transition-all",
                     onRowClick && "cursor-pointer active:scale-[0.99] active:bg-[var(--background)]",
@@ -722,6 +730,7 @@ export function DataTable<T extends Record<string, any>>({
                       customRowClassName
                     )}
                     onClick={() => onRowClick?.(row)}
+                    onMouseEnter={() => onRowHover?.(row)}
                   >
                     {selectable && (
                       <td className={cn(density === 'compact' ? 'px-2 py-0.5' : 'px-4 py-3')} onClick={(e) => e.stopPropagation()}>

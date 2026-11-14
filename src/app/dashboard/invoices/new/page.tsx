@@ -8,7 +8,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
-import { Button, Breadcrumbs, PageHeader, toast, LoadingState } from '@/components/design-system';
+import { Button, Breadcrumbs, PageHeader, toast, FormPageSkeleton } from '@/components/design-system';
 import { DashboardSurface, DashboardPanel } from '@/components/dashboard/DashboardSurface';
 
 type ContainerItem = {
@@ -130,10 +130,10 @@ function NewInvoicePageContent() {
 	};
 
 	if (loading) {
+		// Round 3 part 2 C-5: form surface → FormPageSkeleton (was a
+		// full-screen LoadingState).
 		return (
-			<DashboardSurface>
-				<LoadingState message="Loading container details..." />
-			</DashboardSurface>
+			<FormPageSkeleton />
 		);
 	}
 

@@ -631,10 +631,10 @@ export default function ContainersPage() {
           title="Containers"
           description="Manage shipping containers and tracking"
           actions={
-            // Header actions wrap onto further rows on small screens so every
-            // action stays reachable without horizontal scrolling; on sm+ they
-            // keep the single scrollable row.
-            <JXBox padding="none" border={false} className="flex max-w-full flex-wrap sm:flex-nowrap sm:overflow-x-auto" style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '6px', maxWidth: '100%'}}>
+            // Header actions wrap onto further rows whenever they do not fit,
+            // so every action stays fully visible and reachable without a
+            // half-cut button at the right edge (Round 3 part 2).
+            <JXBox padding="none" border={false} className="flex max-w-full flex-wrap" style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '6px', maxWidth: '100%'}}>
               <Button
                 variant={showOceanTracker ? 'primary' : 'outline'}
                 size="sm"

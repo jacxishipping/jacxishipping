@@ -234,6 +234,10 @@ export default function UsersPage() {
 			render: (_, row) => (
 				<StatusBadge
 					status={row.role === 'admin' ? 'SUCCESS' : 'INFO'}
+					// Round 3 part 2: label the badge with the role itself —
+					// without it StatusBadge falls back to the variant name
+					// ("Success" / "Info"), which says nothing about the role.
+					label={formatRole(row.role)}
 					size="sm"
 				/>
 			),

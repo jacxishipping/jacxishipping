@@ -28,7 +28,7 @@ import {
   DashboardSurface, 
   DashboardPanel 
 } from '@/components/dashboard/DashboardSurface';
-import { Alert, Breadcrumbs, Button, FormField, IconButton, LoadingState, PageHeader, toast } from '@/components/design-system';
+import { Alert, Button, FormField, IconButton, FormPageSkeleton, PageHeader, toast } from '@/components/design-system';
 import { formatLoginCode, loginCodeToVoiceDigits } from '@/lib/loginCode';
 import { hasPermission } from '@/lib/rbac';
 
@@ -348,16 +348,15 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
   };
 
   if (loading || status === 'loading') {
-    return <LoadingState />;
+    // Round 3 part 2 C-5: form surface → FormPageSkeleton (was a
+    // full-screen LoadingState).
+    return <FormPageSkeleton />;
   }
 
   return (
     <DashboardSurface>
-      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingLeft: '16px', paddingRight: '16px', paddingTop: '16px'}}>
-        <Breadcrumbs />
-      </JXBox>
-
       <PageHeader
+        showBreadcrumbs
         title="Edit User"
         description="Update user profile information and security credentials"
         actions={

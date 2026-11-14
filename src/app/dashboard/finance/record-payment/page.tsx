@@ -19,7 +19,7 @@ import {
   Info
 } from 'lucide-react';
 import { DashboardSurface, DashboardPanel } from '@/components/dashboard/DashboardSurface';
-import { Alert, Breadcrumbs, Button, DashboardPageSkeleton, EmptyState, FormField, LoadingState, PageHeader, Select, toast, Modal, MilestoneStepper } from '@/components/design-system';
+import { Alert, Button, FormPageSkeleton, EmptyState, FormField, LoadingState, PageHeader, Select, toast, Modal, MilestoneStepper } from '@/components/design-system';
 import AdminRoute from '@/components/auth/AdminRoute';
 
 /** Bare input with the Jacxi field look (no label) — search fields, table-cell editors. */
@@ -390,7 +390,9 @@ export default function RecordPaymentPage() {
   if (status === 'loading') {
     return (
       <AdminRoute>
-        <DashboardPageSkeleton />
+        {/* Round 3 part 2 C-5: form surface → FormPageSkeleton (was
+            DashboardPageSkeleton, the list-surface skeleton). */}
+        <FormPageSkeleton />
       </AdminRoute>
     );
   }
@@ -398,11 +400,8 @@ export default function RecordPaymentPage() {
   return (
     <AdminRoute>
       <DashboardSurface>
-        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingLeft: '16px', paddingRight: '16px', paddingTop: '16px'}}>
-          <Breadcrumbs />
-        </JXBox>
-
         <PageHeader
+          showBreadcrumbs
           title="Record Shipment Payment"
           description="Record either a car purchase payment or an expense payment for a shipment"
           actions={

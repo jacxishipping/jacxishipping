@@ -11,7 +11,7 @@ import Link from 'next/link';
 import { ArrowLeft, DollarSign, AlertCircle, CheckCircle, Package } from 'lucide-react';
 import AdminRoute from '@/components/auth/AdminRoute';
 import { DashboardSurface, DashboardPanel } from '@/components/dashboard/DashboardSurface';
-import { Button, Breadcrumbs, PageHeader, LoadingState, toast } from '@/components/design-system';
+import { Button, FormPageSkeleton, PageHeader, toast } from '@/components/design-system';
 
 interface Shipment {
   id: string;
@@ -147,14 +147,11 @@ function AddExpensePageContent() {
   const selectedShipment = shipments.find(s => s.id === selectedShipmentId);
 
   if (status === 'loading' || loadingShipments) {
+    // Round 3 part 2 C-5: form surface → FormPageSkeleton (was a
+    // full-screen LoadingState + standalone Breadcrumbs).
     return (
       <AdminRoute>
-        <DashboardSurface>
-          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingLeft: '16px', paddingRight: '16px', paddingTop: '16px'}}>
-            <Breadcrumbs />
-          </JXBox>
-          <LoadingState message="Loading expense form…" />
-        </DashboardSurface>
+        <FormPageSkeleton />
       </AdminRoute>
     );
   }

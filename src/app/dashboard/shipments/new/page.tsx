@@ -10,7 +10,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowLeft, Upload, X, Loader2, Package, User, FileText, CheckCircle, ArrowRight, Camera, Zap } from 'lucide-react';
 import { DashboardSurface, DashboardPanel } from '@/components/dashboard/DashboardSurface';
-import { Autocomplete, PageHeader, Button, FormField, Breadcrumbs, toast, MilestoneStepper } from '@/components/design-system';
+import { Autocomplete, PageHeader, Button, FormField, toast, MilestoneStepper } from '@/components/design-system';
 import { shipmentSchema, type ShipmentFormData } from '@/lib/validations/shipment';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { BarcodeScannerModal } from '@/components/ui/BarcodeScannerModal';
@@ -633,12 +633,8 @@ export default function NewShipmentPage() {
 	return (
 		<ProtectedRoute>
 			<DashboardSurface>
-				{/* Breadcrumbs */}
-				<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingLeft: '16px', paddingRight: '16px', paddingTop: '16px'}}>
-					<Breadcrumbs />
-				</JXBox>
-				
 				<PageHeader
+					showBreadcrumbs
 					title="Create New Shipment"
 					description="Add vehicle information with guided steps"
 					actions={
