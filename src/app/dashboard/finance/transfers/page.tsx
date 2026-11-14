@@ -30,6 +30,7 @@ import {
   SkeletonStatsCard,
   PageHeader,
   Modal,
+  FormField,
 } from '@/components/design-system';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
@@ -418,16 +419,15 @@ export default function LedgerTransfersPage() {
         {/* Filter Toolbar */}
         <DashboardPanel>
           <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
-            <div className="flex-1 relative">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by Transfer #, Customer, Company, Ref, or notes..."
-                className="w-full pl-9 pr-4 py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-[var(--accent-gold)]"
-              />
-            </div>
+            {/* Round 3 part 2 C-2: search = design-system FormField
+                (was a hand-rolled Search icon + raw input). */}
+            <FormField
+              label=""
+              placeholder="Search by Transfer #, Customer, Company, Ref, or notes..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              leftIcon={<Search className="w-4 h-4" />}
+            />
 
             <div className="flex flex-wrap items-center gap-2">
               <select

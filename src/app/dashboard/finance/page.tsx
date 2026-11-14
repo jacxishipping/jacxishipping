@@ -15,6 +15,7 @@ import {
   StatsCard,
   Button,
   PageHeader,
+  StatsGridSkeleton,
 } from '@/components/design-system';
 import {
   DollarSign,
@@ -29,7 +30,7 @@ import {
   GitCompareArrows,
   ArrowLeftRight,
 } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { Suspense, type ReactNode } from 'react';
 
 // Force dynamic rendering (requires database connection)
 export const dynamic = 'force-dynamic';
@@ -129,12 +130,14 @@ type QuickAction = {
     adminOnly?: boolean;
 };
 
-export default async function FinancePage() {
-    const session = await auth();
-    if (!session?.user) redirect('/auth/signin');
-
-    const isAdmin = hasPermission(session.user.role, 'finance:manage');
-    const data = await getFinancialData(session.user.id, isAdmin);
+// Round 3 part 2: the 4 Prisma aggregations in getFinancialData are fast
+// once warm (~1.5 s total; slowest single query ~0.5 s) but a cold pool +
+// dev-mode route compile left the whole page — header included — blank for
+// ~15-33 s. Streaming the data fetch behind Suspense paints the shell
+// (header + stats skeleton) immediately; stats / quick actions / balances
+// fill in when the data lands. No query, API, or pool change.
+async function FinanceOverview({ userId, isAdmin }: { userId: string | undefined; isAdmin: boolean }) {
+    const data = await getFinancialData(userId, isAdmin);
 
     const quickActions: QuickAction[] = [
         { href: '/dashboard/finance/office-expenses', label: 'Office & Operating Expenses', description: 'Manage office overhead, rent, utilities, payroll, and supplies', icon: <Building2 className="w-5 h-5" />, adminOnly: true },
@@ -151,22 +154,7 @@ export default async function FinancePage() {
     const showOutstandingBalances = isAdmin && data.userBalances.length > 0;
 
     return (
-        <DashboardSurface>
-            <PageHeader 
-                showBreadcrumbs
-                title="Accounting & Finance"
-                description="Manage client ledgers, payment records, and financial accounting reports"
-                actions={
-                    isAdmin && (
-                        <Link href="/dashboard/finance/record-payment" style={{ textDecoration: 'none' }}>
-                            <Button variant="primary" icon={<PlusCircle className="w-4 h-4" />}>
-                                Record Payment
-                            </Button>
-                        </Link>
-                    )
-                }
-            />
-
+        <>
             {/* Summary Stats */}
             <DashboardGrid className={isAdmin ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4' : 'grid-cols-1 md:grid-cols-3'}>
                 <StatsCard
@@ -244,6 +232,35 @@ export default async function FinancePage() {
                     </DashboardPanel>
                 )}
             </DashboardGrid>
+        </>
+    );
+}
+
+export default async function FinancePage() {
+    const session = await auth();
+    if (!session?.user) redirect('/auth/signin');
+
+    const isAdmin = hasPermission(session.user.role, 'finance:manage');
+
+    return (
+        <DashboardSurface>
+            <PageHeader 
+                showBreadcrumbs
+                title="Accounting & Finance"
+                description="Manage client ledgers, payment records, and financial accounting reports"
+                actions={
+                    isAdmin && (
+                        <Link href="/dashboard/finance/record-payment" style={{ textDecoration: 'none' }}>
+                            <Button variant="primary" icon={<PlusCircle className="w-4 h-4" />}>
+                                Record Payment
+                            </Button>
+                        </Link>
+                    )
+                }
+            />
+            <Suspense fallback={<StatsGridSkeleton count={isAdmin ? 4 : 3} />}>
+                <FinanceOverview userId={session.user.id} isAdmin={isAdmin} />
+            </Suspense>
         </DashboardSurface>
     );
 }

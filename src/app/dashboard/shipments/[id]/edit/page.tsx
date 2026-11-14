@@ -11,7 +11,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowLeft, Upload, X, Loader2, Package, User, CheckCircle, Save, AlertCircle, Zap } from 'lucide-react';
 
 import { DashboardSurface, DashboardPanel } from '@/components/dashboard/DashboardSurface';
-import { Autocomplete, PageHeader, Button, FormField, Breadcrumbs, toast, EmptyState, FormPageSkeleton } from '@/components/design-system';
+import { Autocomplete, PageHeader, Button, FormField, toast, EmptyState, FormPageSkeleton } from '@/components/design-system';
 import ShipmentWorkflowStrip from '@/components/shipments/ShipmentWorkflowStrip';
 import AuctionSmartFillModal from '@/components/shipments/AuctionSmartFillModal';
 import type { ParsedAuctionData } from '@/lib/auction-smart-parser';
@@ -687,11 +687,8 @@ export default function EditShipmentPage() {
   return (
     <ProtectedRoute>
       <DashboardSurface>
-        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingLeft: '16px', paddingRight: '16px', paddingTop: '16px'}}>
-          <Breadcrumbs />
-        </JXBox>
-
         <PageHeader
+          showBreadcrumbs
           title="Edit Shipment"
           description="Update shipment details, status, and documents"
           actions={

@@ -166,12 +166,12 @@ export default function ShipmentsResultsPanel({
 							onClick={() => handleViewModeChange('cards')}
 							className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
 								viewMode === 'cards'
-									? 'bg-[var(--accent-gold)] text-white shadow-sm'
+									? 'bg-[var(--panel)] text-[var(--text-primary)] shadow-sm'
 									: 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
 							}`}
 							title="Card View"
 						>
-							<LayoutGrid className="w-3.5 h-3.5" />
+							<LayoutGrid className={`w-3.5 h-3.5 ${viewMode === 'cards' ? 'text-[var(--accent-gold-text)]' : ''}`} />
 							<span className="hidden sm:inline">Cards</span>
 						</button>
 						<button
@@ -179,12 +179,12 @@ export default function ShipmentsResultsPanel({
 							onClick={() => handleViewModeChange('table')}
 							className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
 								viewMode === 'table'
-									? 'bg-[var(--accent-gold)] text-white shadow-sm'
+									? 'bg-[var(--panel)] text-[var(--text-primary)] shadow-sm'
 									: 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
 							}`}
 							title="Table / Bulk Mode"
 						>
-							<Table2 className="w-3.5 h-3.5" />
+							<Table2 className={`w-3.5 h-3.5 ${viewMode === 'table' ? 'text-[var(--accent-gold-text)]' : ''}`} />
 							<span className="hidden sm:inline">Table</span>
 						</button>
 						<button
@@ -192,12 +192,12 @@ export default function ShipmentsResultsPanel({
 							onClick={() => handleViewModeChange('kanban')}
 							className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
 								viewMode === 'kanban'
-									? 'bg-[var(--accent-gold)] text-white shadow-sm'
+									? 'bg-[var(--panel)] text-[var(--text-primary)] shadow-sm'
 									: 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
 							}`}
 							title="Pipeline Kanban Board"
 						>
-							<Kanban className="w-3.5 h-3.5" />
+							<Kanban className={`w-3.5 h-3.5 ${viewMode === 'kanban' ? 'text-[var(--accent-gold-text)]' : ''}`} />
 							<span className="hidden sm:inline">Kanban</span>
 						</button>
 					</div>

@@ -40,8 +40,7 @@ import {
 import {
   PageHeader,
   Button,
-  Breadcrumbs,
-  LoadingState,
+  DetailPageSkeleton,
   EmptyState,
   StatsCard,
   StatusBadge,
@@ -200,7 +199,9 @@ function UserViewPageContent({ params }: { params: Promise<{ id: string }> }) {
   }, [user?.statement?.collections]);
 
   if (loading || status === 'loading') {
-    return <LoadingState />;
+    // Round 3 part 2 C-5: detail surface → DetailPageSkeleton (was a
+    // full-screen LoadingState).
+    return <DetailPageSkeleton />;
   }
 
   if (!user) {
