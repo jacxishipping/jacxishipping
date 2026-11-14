@@ -487,7 +487,10 @@ function isNavigationItemActive(pathname: string, href: string) {
 		return pathname === href;
 	}
 
-	return pathname.startsWith(href);
+	// Match the item itself or a real sub-route of it. A plain startsWith
+	// would also match sibling routes such as /dashboard/tracking-diagnostics
+	// when checking /dashboard/tracking, highlighting two nav items at once.
+	return pathname === href || pathname.startsWith(`${href}/`);
 }
 
 function filterNavigationItems(items: NavigationItem[], role?: string) {

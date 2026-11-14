@@ -284,7 +284,7 @@ export default function ShipmentMilestoneStepper({
 
                 {/* Subtitle / Detail */}
                 <p
-                  className="mt-1 text-[11px] leading-tight text-[var(--text-secondary)] truncate font-mono"
+                  className="mt-1 text-[11px] leading-snug text-[var(--text-secondary)] line-clamp-2 font-mono"
                   title={stage.detail}
                 >
                   {stage.detail}

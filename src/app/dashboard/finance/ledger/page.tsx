@@ -429,6 +429,7 @@ export default function LedgerPage() {
       header: 'Date',
       sortable: true,
       width: '15%',
+      className: 'whitespace-nowrap',
       render: (_, row) => (
         <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
           {formatDate(row.transactionDate)}
@@ -467,7 +468,7 @@ export default function LedgerPage() {
                 </JXBox>
               )}
             </JXBox>
-            <p className="text-sm leading-relaxed" style={{fontSize: '0.72rem', color: 'var(--accent-gold)', marginTop: '4px', fontWeight: 600}}>
+            <p className="text-sm leading-relaxed" style={{fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '4px', fontWeight: 600}}>
               {row.transactionInfoType ? transactionInfoTypeLabels[row.transactionInfoType] : 'Not specified'}
             </p>
             {row.notes && (
@@ -476,7 +477,7 @@ export default function LedgerPage() {
               </p>
             )}
             {row.shipment && (
-              <p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', color: 'var(--accent-gold)', marginTop: '4px'}}>
+              <p className="text-sm leading-relaxed" style={{fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '4px'}}>
                 {row.shipment.vehicleVIN
                   ? `VIN: ${row.shipment.vehicleVIN}`
                   : `${row.shipment.vehicleMake || ''} ${row.shipment.vehicleModel || ''}`.trim() || row.shipment.id}
@@ -641,6 +642,7 @@ export default function LedgerPage() {
         <DashboardPanel
           title="Filters & Search"
           description="Filter ledger transactions by type, category, date range, or origin"
+          noBodyPadding={!showFilters}
           actions={
             <Button
               variant="outline"

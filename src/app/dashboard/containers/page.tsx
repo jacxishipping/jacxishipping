@@ -860,10 +860,10 @@ export default function ContainersPage() {
                   <JXBox padding="none" border={false} key={container.id} onClick={() => router.push(`/dashboard/containers/${container.id}`)} className="hover:-translate-y-1 hover:!shadow-[0_20px_40px_rgba(var(--text-primary-rgb),0.12)]" style={{borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--panel)', boxShadow: '0 12px 30px rgba(var(--text-primary-rgb), 0.08)', padding: '16px', cursor: 'pointer', transition: 'all 0.2s ease'}}>
                     {/* Header */}
                     <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '12px', marginBottom: '16px'}} className="flex-col sm:flex-row items-stretch sm:items-start">
-                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flex: 1, minWidth: '0px'}}>
-                        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, minWidth: '0px'}}>
+                      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flex: 1}}>
+                        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0}}>
                           <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px'}}>
-                            <p className="text-sm leading-relaxed" style={{fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'monospace', whiteSpace: 'normal', overflowWrap: 'anywhere', wordBreak: 'break-all', minWidth: 0}}>
+                            <p className="text-sm leading-relaxed" style={{fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'monospace', whiteSpace: 'nowrap', minWidth: 0}}>
                               {container.containerNumber}
                             </p>
                             <span onClick={(e) => e.stopPropagation()} style={{flexShrink: 0}}>

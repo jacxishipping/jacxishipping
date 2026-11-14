@@ -609,7 +609,7 @@ export default function OfficeExpensesPage() {
                 <div className="min-w-0 flex-1"><BareInput placeholder="Search title, vendor, check #, notes..." value={searchQuery} onChange={(e) => {
                     setSearchQuery(e.target.value);
                     setPage(1);
-                  }} leftIcon={<Search className="w-4 h-4 text-slate-400" />} size="small" /></div>
+                  }} leftIcon={<Search className="w-4 h-4 text-[var(--text-secondary)]" />} size="small" /></div>
               </JXBox>
 
               {/* Category Filter */}
@@ -665,11 +665,11 @@ export default function OfficeExpensesPage() {
               <TableSkeleton rows={8} />
             ) : expenses.length === 0 ? (
               <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingTop: '80px', paddingBottom: '80px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'}}>
-                <Building2 className="w-12 h-12 text-slate-500 mb-3 opacity-60" />
-                <h6 className="text-sm font-semibold font-semibold text-slate-200">
+                <Building2 className="w-12 h-12 text-[var(--text-secondary)] mb-3 opacity-60" />
+                <h6 className="text-sm font-semibold font-semibold text-[var(--text-primary)]">
                   No office expenses found
                 </h6>
-                <p className="text-sm leading-relaxed text-slate-400 mt-1 max-w-sm">
+                <p className="text-sm leading-relaxed text-[var(--text-secondary)] mt-1 max-w-sm">
                   {searchQuery || categoryFilter !== 'ALL' || statusFilter !== 'ALL'
                     ? 'Try adjusting your search query or filters.'
                     : 'Start tracking your office overhead, payroll, utilities, and running expenses by adding your first expense.'}
@@ -688,7 +688,7 @@ export default function OfficeExpensesPage() {
               <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, overflowX: 'auto'}}>
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="border-b border-[var(--panel-border,rgba(255,255,255,0.08))] text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                    <tr className="border-b border-[var(--border)] text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
                       <th className="py-3 px-4">Expense / Title</th>
                       <th className="py-3 px-4">Category</th>
                       <th className="py-3 px-4">Vendor / Payee</th>
@@ -699,7 +699,7 @@ export default function OfficeExpensesPage() {
                       <th className="py-3 px-4 text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[var(--panel-border,rgba(255,255,255,0.05))] text-sm">
+                  <tbody className="divide-y divide-[var(--border)] text-sm">
                     {expenses.map((expense) => {
                       const meta = CATEGORY_METADATA[expense.category] || CATEGORY_METADATA.OTHER;
                       return (
@@ -708,7 +708,7 @@ export default function OfficeExpensesPage() {
                           className="hover:bg-white/[0.02] transition-colors group"
                         >
                           {/* Title & Details */}
-                          <td className="py-3.5 px-4 font-medium text-slate-200">
+                          <td className="py-3.5 px-4 font-medium text-[var(--text-primary)]">
                             <div className="flex items-center gap-2">
                               <span>{expense.title}</span>
                               {expense.receiptUrl && (
@@ -720,7 +720,7 @@ export default function OfficeExpensesPage() {
                                         name: expense.receiptName || 'Receipt Attachment',
                                       })
                                     }
-                                    className="text-indigo-400 hover:text-indigo-300"
+                                    className="text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
                                   >
                                     <Receipt className="w-3.5 h-3.5" />
                                   </button>
@@ -728,12 +728,12 @@ export default function OfficeExpensesPage() {
                               )}
                             </div>
                             {expense.referenceNumber && (
-                              <div className="text-xs text-slate-400 mt-0.5">
+                              <div className="text-xs text-[var(--text-secondary)] mt-0.5">
                                 Ref: <span className="font-mono">{expense.referenceNumber}</span>
                               </div>
                             )}
                             {expense.notes && (
-                              <div className="text-xs text-slate-500 italic mt-0.5 line-clamp-1">
+                              <div className="text-xs text-[var(--text-secondary)] italic mt-0.5 line-clamp-1">
                                 {expense.notes}
                               </div>
                             )}
@@ -748,19 +748,19 @@ export default function OfficeExpensesPage() {
                           </td>
 
                           {/* Vendor */}
-                          <td className="py-3.5 px-4 text-slate-300">
+                          <td className="py-3.5 px-4 text-[var(--text-secondary)]">
                             {expense.vendor ? (
                               <div className="flex items-center gap-1.5">
-                                <Store className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                                <Store className="w-3.5 h-3.5 text-[var(--text-secondary)] flex-shrink-0" />
                                 <span>{expense.vendor}</span>
                               </div>
                             ) : (
-                              <span className="text-slate-500 italic">—</span>
+                              <span className="text-[var(--text-secondary)] italic">—</span>
                             )}
                           </td>
 
                           {/* Date */}
-                          <td className="py-3.5 px-4 text-slate-300 whitespace-nowrap">
+                          <td className="py-3.5 px-4 text-[var(--text-secondary)] whitespace-nowrap">
                             {new Date(expense.expenseDate).toLocaleDateString(undefined, {
                               year: 'numeric',
                               month: 'short',
@@ -769,32 +769,32 @@ export default function OfficeExpensesPage() {
                           </td>
 
                           {/* Payment Method */}
-                          <td className="py-3.5 px-4 text-slate-300">
-                            <div className="flex items-center gap-1.5 text-xs text-slate-400">
-                              <CreditCard className="w-3.5 h-3.5 text-slate-400" />
+                          <td className="py-3.5 px-4 text-[var(--text-secondary)]">
+                            <div className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
+                              <CreditCard className="w-3.5 h-3.5 text-[var(--text-secondary)]" />
                               <span>{expense.paymentMethod.replace(/_/g, ' ')}</span>
                             </div>
                           </td>
 
                           {/* Amount */}
-                          <td className="py-3.5 px-4 text-right font-semibold text-slate-100 whitespace-nowrap">
+                          <td className="py-3.5 px-4 text-right font-semibold text-[var(--text-primary)] whitespace-nowrap">
                             {formatMoney(expense.amount)}
                           </td>
 
                           {/* Status */}
                           <td className="py-3.5 px-4 text-center">
                             {expense.status === 'PAID' ? (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                                 <CheckCircle2 className="w-3 h-3" />
                                 Paid
                               </span>
                             ) : expense.status === 'PENDING' ? (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
                                 <Clock className="w-3 h-3" />
                                 Pending
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
                                 <XCircle className="w-3 h-3" />
                                 Cancelled
                               </span>
@@ -821,7 +821,7 @@ export default function OfficeExpensesPage() {
                 {/* Pagination */}
                 {totalPages > 1 && (
                   <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '24px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.06)'}}>
-                    <p className="text-sm leading-relaxed text-slate-400">
+                    <p className="text-sm leading-relaxed text-[var(--text-secondary)]">
                       Page {page} of {totalPages}
                     </p>
                     <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '8px'}}>
@@ -861,20 +861,20 @@ export default function OfficeExpensesPage() {
                     return (
                       <div key={item.category} className="space-y-1.5">
                         <div className="flex items-center justify-between text-sm">
-                          <div className="flex items-center gap-2 font-medium text-slate-200">
+                          <div className="flex items-center gap-2 font-medium text-[var(--text-primary)]">
                             <span>{meta.icon}</span>
                             <span>{meta.label}</span>
-                            <span className="text-xs text-slate-400">({item.count} bills)</span>
+                            <span className="text-xs text-[var(--text-secondary)]">({item.count} bills)</span>
                           </div>
-                          <div className="font-semibold text-slate-100">
+                          <div className="font-semibold text-[var(--text-primary)]">
                             {formatMoney(item.amount)}{' '}
-                            <span className="text-xs text-slate-400 font-normal">
+                            <span className="text-xs text-[var(--text-secondary)] font-normal">
                               ({item.percentage.toFixed(1)}%)
                             </span>
                           </div>
                         </div>
                         {/* Progress Bar */}
-                        <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                        <div className="w-full h-2 bg-[var(--border)] rounded-full overflow-hidden">
                           <div
                             className="h-full rounded-full transition-all duration-500"
                             style={{
@@ -888,7 +888,7 @@ export default function OfficeExpensesPage() {
                   })}
                 </div>
               ) : (
-                <div className="py-8 text-center text-slate-400 text-sm">
+                <div className="py-8 text-center text-[var(--text-secondary)] text-sm">
                   No category spending recorded yet.
                 </div>
               )}
@@ -903,40 +903,40 @@ export default function OfficeExpensesPage() {
                     {stats.monthlyTrend.map((m) => (
                       <div
                         key={m.month}
-                        className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 text-center flex flex-col justify-between"
+                        className="p-2.5 rounded-xl bg-[var(--background)] border border-[var(--border)] text-center flex flex-col justify-between"
                       >
-                        <div className="text-xs font-semibold text-slate-400">{m.month}</div>
-                        <div className="my-1.5 font-bold text-slate-100 text-sm">
+                        <div className="text-xs font-semibold text-[var(--text-secondary)]">{m.month}</div>
+                        <div className="my-1.5 font-bold text-[var(--text-primary)] text-sm">
                           {m.total > 0 ? formatMoney(m.total) : '$0'}
                         </div>
-                        <div className="text-[10px] text-slate-500">{m.count} bills</div>
+                        <div className="text-[10px] text-[var(--text-secondary)]">{m.count} bills</div>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="py-8 text-center text-slate-400 text-sm">Loading trend data...</div>
+                  <div className="py-8 text-center text-[var(--text-secondary)] text-sm">Loading trend data...</div>
                 )}
               </DashboardPanel>
 
               {/* Top Vendors */}
               <DashboardPanel title="Top Payees & Vendors" description="Highest spending recipients">
                 {stats?.topVendors?.length ? (
-                  <div className="divide-y divide-slate-800">
+                  <div className="divide-y divide-[var(--border)]">
                     {stats.topVendors.map((v, i) => (
                       <div key={v.vendor} className="py-2.5 flex items-center justify-between text-sm">
-                        <div className="flex items-center gap-2 text-slate-200 font-medium">
-                          <span className="w-5 h-5 rounded-full bg-slate-800 text-slate-400 text-xs flex items-center justify-center font-bold">
+                        <div className="flex items-center gap-2 text-[var(--text-primary)] font-medium">
+                          <span className="w-5 h-5 rounded-full bg-[var(--border)] text-[var(--text-secondary)] text-xs flex items-center justify-center font-bold">
                             {i + 1}
                           </span>
                           <span>{v.vendor}</span>
-                          <span className="text-xs text-slate-400">({v.count} payments)</span>
+                          <span className="text-xs text-[var(--text-secondary)]">({v.count} payments)</span>
                         </div>
-                        <div className="font-semibold text-slate-100">{formatMoney(v.amount)}</div>
+                        <div className="font-semibold text-[var(--text-primary)]">{formatMoney(v.amount)}</div>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="py-8 text-center text-slate-400 text-sm">No vendor data available.</div>
+                  <div className="py-8 text-center text-[var(--text-secondary)] text-sm">No vendor data available.</div>
                 )}
               </DashboardPanel>
             </div>
@@ -973,7 +973,7 @@ export default function OfficeExpensesPage() {
           <form onSubmit={handleSaveExpense} className="space-y-4">
             {/* Title */}
             <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-1.5">
                 Expense Title *
               </label>
               <div className="min-w-0 flex-1"><BareInput required placeholder="e.g. Office Rent (September), High-Speed Internet Bill" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} size="small" /></div>
@@ -982,7 +982,7 @@ export default function OfficeExpensesPage() {
             {/* Category & Amount */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-1.5">
                   Category *
                 </label>
                 <div className="min-w-0 flex-1"><BareSelect options={Object.entries(CATEGORY_METADATA).map(([catKey, meta]) => ({ value: catKey, label: meta.label }))} value={formData.category} size="small" onChange={(e) =>
@@ -991,7 +991,7 @@ export default function OfficeExpensesPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-1.5">
                   Amount (USD) *
                 </label>
                 <div className="min-w-0 flex-1"><BareInput type="number" required placeholder="0.00" inputProps={{ step: '0.01', min: '0.01' }} value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} leftIcon="$" size="small" /></div>
@@ -1001,14 +1001,14 @@ export default function OfficeExpensesPage() {
             {/* Date & Payment Method */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-1.5">
                   Expense Date *
                 </label>
                 <div className="min-w-0 flex-1"><BareInput type="date" required value={formData.expenseDate} onChange={(e) => setFormData({ ...formData, expenseDate: e.target.value })} size="small" /></div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-1.5">
                   Payment Method
                 </label>
                 <div className="min-w-0 flex-1"><BareSelect options={PAYMENT_METHODS.map((pm) => ({ value: pm.value, label: pm.label }))} value={formData.paymentMethod} size="small" onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })} style={{backgroundColor: 'var(--background)', borderRadius: '16px'}} /></div>
@@ -1018,14 +1018,14 @@ export default function OfficeExpensesPage() {
             {/* Vendor / Payee & Reference # */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-1.5">
                   Vendor / Payee
                 </label>
                 <div className="min-w-0 flex-1"><BareInput placeholder="e.g. Landlord Name, Verizon, Staples" value={formData.vendor} onChange={(e) => setFormData({ ...formData, vendor: e.target.value })} size="small" /></div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-1.5">
                   Reference # (Invoice / Check)
                 </label>
                 <div className="min-w-0 flex-1"><BareInput placeholder="e.g. INV-9042, Check #1042" value={formData.referenceNumber} onChange={(e) => setFormData({ ...formData, referenceNumber: e.target.value })} size="small" /></div>
@@ -1034,23 +1034,23 @@ export default function OfficeExpensesPage() {
 
             {/* Receipt URL / Attachment Link */}
             <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-1.5">
                 Receipt / Document Link
               </label>
-              <div className="min-w-0 flex-1"><BareInput placeholder="https://... (Receipt image or PDF link)" value={formData.receiptUrl} onChange={(e) => setFormData({ ...formData, receiptUrl: e.target.value })} leftIcon={<Receipt className="w-4 h-4 text-slate-400" />} size="small" /></div>
+              <div className="min-w-0 flex-1"><BareInput placeholder="https://... (Receipt image or PDF link)" value={formData.receiptUrl} onChange={(e) => setFormData({ ...formData, receiptUrl: e.target.value })} leftIcon={<Receipt className="w-4 h-4 text-[var(--text-secondary)]" />} size="small" /></div>
             </div>
 
             {/* Notes & Status */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="sm:col-span-2">
-                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-1.5">
                   Internal Notes
                 </label>
                 <div className="min-w-0 flex-1"><BareInput placeholder="Additional context or notes..." value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} size="small" /></div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-1.5">
                   Status
                 </label>
                 <div className="min-w-0 flex-1"><BareSelect options={[{ value: "PAID", label: 'Paid' }, { value: "PENDING", label: 'Pending' }, { value: "CANCELLED", label: 'Cancelled' }]} value={formData.status} size="small" onChange={(e) =>
@@ -1060,7 +1060,7 @@ export default function OfficeExpensesPage() {
             </div>
 
             {/* Buttons */}
-            <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">
+            <div className="flex justify-end gap-2 pt-3 border-t border-[var(--border)]">
               <Button
                 type="button"
                 variant="ghost"
@@ -1116,7 +1116,7 @@ export default function OfficeExpensesPage() {
         >
           {receiptPreviewUrl && (
             <div className="space-y-4 text-center">
-              <div className="max-h-[60vh] overflow-auto rounded-xl border border-slate-800 p-2 bg-black/40">
+              <div className="max-h-[60vh] overflow-auto rounded-xl border border-[var(--border)] p-2 bg-[var(--background)]">
                 {receiptPreviewUrl.url.endsWith('.pdf') ? (
                   <iframe
                     src={receiptPreviewUrl.url}

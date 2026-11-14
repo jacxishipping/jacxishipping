@@ -119,7 +119,7 @@ export default function StatsCard({
 				component="article"
 				surface="elevated"
 				padding="none"
-				className="stats-card relative z-[1] hover:z-[2] flex h-full w-full min-w-0 items-center overflow-hidden !bg-[var(--panel)] !border-[var(--border)] hover:!border-[rgba(var(--accent-gold-rgb),0.35)] jx-elevation-1"
+				className="stats-card relative z-[1] hover:z-[2] flex h-full w-full min-w-0 flex-wrap items-center overflow-hidden !bg-[var(--panel)] !border-[var(--border)] hover:!border-[rgba(var(--accent-gold-rgb),0.35)] jx-elevation-1"
 				style={{
 					borderRadius: isCompact ? '12px' : '16px',
 					padding: `${sizes.padding * 8}px`,
@@ -145,7 +145,7 @@ export default function StatsCard({
 					</p>
 					<span
 						title={typeof value === 'string' && value.length > 12 ? value : undefined}
-						className="block w-full overflow-hidden text-ellipsis whitespace-nowrap font-semibold tabular-nums leading-[1.15] tracking-[-0.02em] text-[var(--text-primary)]"
+						className="block w-full overflow-hidden text-ellipsis whitespace-nowrap font-semibold tabular-nums leading-[1.25] tracking-[-0.02em] text-[var(--text-primary)]"
 						style={{ fontSize: sizes.fontSize }}
 					>
 						{compactValue || value}
@@ -156,7 +156,9 @@ export default function StatsCard({
 						</p>
 					)}
 				</div>
-				{trend && (
+				{/* A 0% trend carries no information — a "no change" pill on
+				    every card reads as placeholder data, so omit it. */}
+				{trend && trend.value !== 0 && (
 					<span
 						aria-label={`Trend: ${trendPrefix}${Math.abs(trend.value)}% ${
 							isNeutralTrend ? 'no change' : trend.isPositive ? 'increase' : 'decrease'

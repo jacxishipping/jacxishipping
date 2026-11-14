@@ -391,6 +391,7 @@ export default function TransitsPage() {
     {
       key: 'estimatedDelivery',
       header: 'Est. Delivery',
+      width: '110px',
       render: (_, row) =>
         row.estimatedDelivery ? new Date(row.estimatedDelivery).toLocaleDateString() : '-',
     },

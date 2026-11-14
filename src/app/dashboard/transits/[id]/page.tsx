@@ -688,7 +688,13 @@ export default function TransitDetailPage() {
     <PermissionRoute anyOf={['transits:manage', 'finance:manage']}>
       <DashboardSurface>
         <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingLeft: '16px', paddingRight: '16px', paddingTop: '16px'}}>
-          <Breadcrumbs />
+          <Breadcrumbs
+            items={[
+              { label: 'Dashboard', href: '/dashboard' },
+              { label: 'Transits', href: '/dashboard/transits' },
+              { label: transit.referenceNumber },
+            ]}
+          />
         </JXBox>
 
         <PageHeader

@@ -16,7 +16,7 @@ export function DashboardSurface({ children, className, noPadding = false }: Das
 			padding="none"
 			border={false}
 			className={cn(
-				'dashboard-surface relative mx-auto flex w-full max-w-[1380px] flex-col gap-6 px-4 pt-4 pb-4 sm:px-5 lg:px-8',
+				'dashboard-surface relative mx-auto flex w-full max-w-[1380px] flex-col gap-6 px-4 pt-4 pb-24 sm:px-5 lg:px-8 lg:pb-4',
 				'text-[var(--text-primary)]',
 				'min-w-0 overflow-hidden',
 				'animate-fade-in-up',

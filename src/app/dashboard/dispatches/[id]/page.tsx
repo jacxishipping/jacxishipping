@@ -461,7 +461,9 @@ export default function DispatchDetailPage() {
     {
       key: 'status',
       header: 'Status',
-      render: (_, row) => row.status,
+      render: (_, row) => (
+        <StatusBadge status={row.status} size="sm" />
+      ),
     },
     {
       key: 'user',
@@ -652,7 +654,13 @@ export default function DispatchDetailPage() {
     <PermissionRoute permission="dispatches:manage">
       <DashboardSurface>
         <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingLeft: '16px', paddingRight: '16px', paddingTop: '16px'}}>
-          <Breadcrumbs />
+          <Breadcrumbs
+            items={[
+              { label: 'Dashboard', href: '/dashboard' },
+              { label: 'Dispatches', href: '/dashboard/dispatches' },
+              { label: dispatch.referenceNumber },
+            ]}
+          />
         </JXBox>
 
         <PageHeader
