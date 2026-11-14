@@ -600,7 +600,7 @@ export default async function DashboardPage() {
                     <DashboardHeader
                         title="My Dashboard"
                         description="Your shipments, invoices and account overview."
-                        actions={<OnboardingTour autoStart={true} role={role} />}
+                        actions={<OnboardingTour role={role} />}
                     />
                 </div>
                 <CustomerDashboardSummary role={role} />
@@ -724,7 +724,7 @@ export default async function DashboardPage() {
                     actions={
                       <>
                         <QuickCalculatorButton />
-                        <OnboardingTour autoStart={true} />
+                        <OnboardingTour />
                       </>
                     }
                 />

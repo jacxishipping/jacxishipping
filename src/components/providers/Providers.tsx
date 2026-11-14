@@ -54,7 +54,14 @@ export function Providers({ children }: { children: React.ReactNode }) {
                     className: 'toast-custom',
                   }}
                 />
-                <ReactQueryDevtools initialIsOpen={false} />
+                {/* React Query Devtools — opt-in only (NEXT_PUBLIC_QUERY_DEVTOOLS=true).
+                    Its floating button sits bottom-right over the mobile bottom nav and
+                    over dashboard content (e.g. the Priority Work cards), so it must
+                    not render in normal dev/prod runs. Enable it only while actively
+                    debugging queries. */}
+                {process.env.NEXT_PUBLIC_QUERY_DEVTOOLS === 'true' ? (
+                  <ReactQueryDevtools initialIsOpen={false} />
+                ) : null}
               </CommandPaletteProvider>
             </QueryClientProvider>
           </I18nextProvider>

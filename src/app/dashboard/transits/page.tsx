@@ -470,17 +470,17 @@ export default function TransitsPage() {
 
         {/* Stats */}
         <DashboardGrid className="grid-cols-2 md:grid-cols-4">
-          <StatsCard icon={<Truck className="w-5 h-5" />} title="Total Transits" value={stats.total} variant="default" />
-          <StatsCard icon={<Truck className="w-5 h-5" />} title="Active Transits" value={stats.active} variant="info" />
-          <StatsCard icon={<Truck className="w-5 h-5" />} title="Delivered" value={stats.delivered} variant="success" />
-          <StatsCard icon={<Package className="w-5 h-5" />} title="Pending" value={stats.pending} variant="warning" />
+          <StatsCard icon={<Truck className="w-5 h-5" />} title="Total Transits" value={loading ? '…' : stats.total} variant="default" />
+          <StatsCard icon={<Truck className="w-5 h-5" />} title="Active Transits" value={loading ? '…' : stats.active} variant="info" />
+          <StatsCard icon={<Truck className="w-5 h-5" />} title="Delivered" value={loading ? '…' : stats.delivered} variant="success" />
+          <StatsCard icon={<Package className="w-5 h-5" />} title="Pending" value={loading ? '…' : stats.pending} variant="warning" />
         </DashboardGrid>
 
         {/* Search & Filter */}
         <DashboardPanel title="Search & Filter" description="Find transits quickly">
           <FormField
             label=""
-            placeholder="Search by reference #, destination, notes..."
+            placeholder="Reference #, destination, notes"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             leftIcon={<Search className="w-4 h-4 text-[var(--text-secondary)]" />}
@@ -505,7 +505,7 @@ export default function TransitsPage() {
         </div>
 
         {/* Data Table Panel */}
-        <DashboardPanel title={`Transits List (${transits.length})`} fullHeight>
+        <DashboardPanel title={loading ? 'Transits List (…)' : `Transits List (${transits.length})`} fullHeight>
           {loading ? (
             <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingTop: '32px', paddingBottom: '32px', textAlign: 'center', color: 'var(--text-secondary)'}}>Loading transits...</JXBox>
           ) : (

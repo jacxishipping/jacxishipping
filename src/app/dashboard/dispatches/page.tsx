@@ -42,7 +42,9 @@ function formatDateTime(value: string | null) {
   if (!value) return '-';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '-';
-  return date.toLocaleString();
+  // Date only: the time portion ("12:00:00 AM") adds no information for an
+  // ETA and clips the cell at 375px.
+  return date.toLocaleDateString();
 }
 
 export default function DispatchesPage() {
@@ -386,17 +388,17 @@ export default function DispatchesPage() {
 
         {/* Stats */}
         <DashboardGrid className="grid-cols-2 md:grid-cols-4">
-          <StatsCard icon={<Truck className="w-5 h-5" />} title="Total Dispatches" value={stats.total} variant="default" />
-          <StatsCard icon={<Truck className="w-5 h-5" />} title="Active Dispatches" value={stats.active} variant="info" />
-          <StatsCard icon={<Truck className="w-5 h-5" />} title="Completed" value={stats.completed} variant="success" />
-          <StatsCard icon={<Truck className="w-5 h-5" />} title="Assigned Units" value={stats.shipments} variant="warning" />
+          <StatsCard icon={<Truck className="w-5 h-5" />} title="Total Dispatches" value={loading ? '…' : stats.total} variant="default" />
+          <StatsCard icon={<Truck className="w-5 h-5" />} title="Active Dispatches" value={loading ? '…' : stats.active} variant="info" />
+          <StatsCard icon={<Truck className="w-5 h-5" />} title="Completed" value={loading ? '…' : stats.completed} variant="success" />
+          <StatsCard icon={<Truck className="w-5 h-5" />} title="Assigned Units" value={loading ? '…' : stats.shipments} variant="warning" />
         </DashboardGrid>
 
         {/* Search */}
         <DashboardPanel title="Search & Filter" description="Find dispatches quickly">
           <FormField
             label=""
-            placeholder="Search by reference #, company, route..."
+            placeholder="Reference #, company, route"
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -426,7 +428,7 @@ export default function DispatchesPage() {
         </div>
 
         {/* Data Table Panel */}
-        <DashboardPanel title={`Dispatches List (${totalCount || dispatches.length})`} fullHeight>
+        <DashboardPanel title={loading ? 'Dispatches List (…)' : `Dispatches List (${totalCount || dispatches.length})`} fullHeight>
           {loading ? (
             <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingTop: '32px', paddingBottom: '32px', textAlign: 'center', color: 'var(--text-secondary)'}}>Loading dispatches...</JXBox>
           ) : (

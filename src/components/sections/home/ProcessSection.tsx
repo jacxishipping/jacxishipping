@@ -104,9 +104,9 @@ export default function ProcessSection() {
                     {step.description}
                   </p>
 
-                  <div className="mt-4 pt-3 border-t border-black/5 flex items-center justify-between text-xs">
-                    <span className="text-black/40 font-mono uppercase tracking-wider">Checkpoint:</span>
-                    <span className="font-semibold text-slate-800">{step.checkpoint}</span>
+                  <div className="mt-4 pt-3 border-t border-black/5 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs">
+                    <span className="shrink-0 text-black/40 font-mono uppercase tracking-wider">Checkpoint:</span>
+                    <span className="min-w-0 break-words text-right font-semibold text-slate-800">{step.checkpoint}</span>
                   </div>
                 </div>
               );
@@ -132,6 +132,14 @@ export default function ProcessSection() {
                 Five milestones. <br/>
                 <span className="text-black/50 italic font-serif font-light">Zero friction.</span>
               </h2>
+              {/* Scroll affordance: the track moves as the page scrolls */}
+              <div className="mt-8 flex items-center gap-4">
+                <span className="text-xs font-mono uppercase tracking-widest text-black/50">Scroll to follow the route</span>
+                <div className="h-0.5 w-40 overflow-hidden rounded-full bg-black/10">
+                  <motion.div style={{ scaleX: scrollYProgress }} className="h-full w-full origin-left bg-[#D4AF37]" />
+                </div>
+                <span className="text-xs font-bold text-black/40">01 — 05</span>
+              </div>
             </div>
 
             <motion.div 
@@ -143,7 +151,7 @@ export default function ProcessSection() {
                 return (
                   <div 
                     key={step.number}
-                    className="group relative flex w-[350px] sm:w-[420px] shrink-0 flex-col rounded-2xl border border-black/[0.03] bg-white p-10 transition-all hover:bg-white hover:border-black/10 shadow-sm"
+                    className="group relative flex w-[350px] sm:w-[420px] shrink-0 flex-col rounded-2xl border border-black/[0.03] bg-white p-8 transition-all hover:bg-white hover:border-black/10 shadow-sm"
                   >
                     <div className="absolute top-10 right-10 text-[6rem] font-bold text-gray-900/5 leading-none transition-colors group-hover:text-black/10">
                       {step.number}
@@ -153,7 +161,7 @@ export default function ProcessSection() {
                       <Icon className="h-7 w-7 text-gray-900 transition-colors" />
                     </div>
 
-                    <div className="mt-20">
+                    <div className="mt-8">
                       <span className="inline-block rounded-full bg-black/5 px-3 py-1 font-mono text-[10px] uppercase tracking-widest text-black/60 mb-4">
                         {step.location}
                       </span>
@@ -173,7 +181,7 @@ export default function ProcessSection() {
                 );
               })}
 
-              <div className="flex w-[200px] shrink-0 items-center justify-center text-black/20 px-10 border-l border-dashed border-black/5">
+              <div className="flex w-[120px] shrink-0 items-center justify-center text-black/20 px-6 border-l border-dashed border-black/5">
                 <span className="text-sm font-mono tracking-widest uppercase rotate-[-90deg] whitespace-nowrap">End of process</span>
               </div>
             </motion.div>

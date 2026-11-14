@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 
 import { DashboardGrid, DashboardPanel, DashboardSurface } from '@/components/dashboard/DashboardSurface';
-import { Alert, Breadcrumbs, Button, FormField, LoadingState, PageHeader, StatsCard, toast } from '@/components/design-system';
+import { Alert, Button, FormField, FormPageSkeleton, PageHeader, StatsCard, toast } from '@/components/design-system';
 import { GoogleVoiceLiveCallPanel } from '@/components/voice/GoogleVoiceLiveCallPanel';
 
 const DEFAULT_TWILIO_VALUES = {
@@ -301,18 +301,18 @@ export default function CallAgentSettingsPage() {
   };
 
   if (status === 'loading' || loading) {
-    return <LoadingState fullScreen message="Loading call agent settings..." />;
+    // Round 3 C-5: settings/form surfaces use FormPageSkeleton (same as
+    // the Settings page), not a full-screen LoadingState.
+    return <FormPageSkeleton />;
   }
 
   if (error || !config) {
     return (
       <DashboardSurface>
-        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingLeft: '16px', paddingRight: '16px', paddingTop: '16px'}}>
-          <Breadcrumbs />
-        </JXBox>
         <PageHeader
+          showBreadcrumbs
           title="Call Agent"
-          description="Voice webhook endpoints and provider readiness"
+          description="Twilio endpoints, Gemini readiness, and live voice configuration"
           actions={
             <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '12px', flexWrap: 'wrap'}}>
               <Button
@@ -350,11 +350,8 @@ export default function CallAgentSettingsPage() {
 
   return (
     <DashboardSurface>
-      <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingLeft: '16px', paddingRight: '16px', paddingTop: '16px'}}>
-        <Breadcrumbs />
-      </JXBox>
-
       <PageHeader
+        showBreadcrumbs
         title="Call Agent"
         description="Twilio endpoints, Gemini readiness, and live voice configuration"
         actions={

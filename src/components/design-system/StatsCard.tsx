@@ -113,7 +113,11 @@ export default function StatsCard({
 		<motion.div
 			initial={{ opacity: 0 }}
 			animate={{ opacity: isVisible ? 1 : 0 }}
-			transition={{ duration: 0.6 }}
+			// Round 3 F7: a 0.6 s fade left KPI values near-invisible long
+			// enough to be caught by screenshots (and by a glance) on slow
+			// pages. Keep the fade, but make it short so values are legible
+			// promptly.
+			transition={{ duration: 0.25 }}
 		>
 			<JXBox
 				component="article"

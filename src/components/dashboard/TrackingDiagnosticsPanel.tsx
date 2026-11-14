@@ -525,7 +525,9 @@ export function TrackingDiagnosticsPanel() {
           <div style={{padding: '24px', display: 'flex', justifyContent: 'center'}}><Loader2 className="w-5 h-5 animate-spin text-cyan-500" /></div>
         ) : stats ? (
           <>
-            <DashboardGrid className="grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
+            {/* Single column on phones: two columns squeeze the icon + label
+                until "Total Containers" / "Auto-Tracking" ellipsise. */}
+            <DashboardGrid className="grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
               <StatsCard title="Total Containers" value={stats.totalContainers.toLocaleString()} icon={<Package className="w-5 h-5" />} />
               <StatsCard title="Active" value={stats.activeContainers.toLocaleString()} icon={<Activity className="w-5 h-5" />} />
               <StatsCard title="Auto-Tracking" value={stats.autoTrackingEnabled.toLocaleString()} icon={<Radio className="w-5 h-5" />} />

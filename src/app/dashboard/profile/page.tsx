@@ -20,7 +20,7 @@ import {
 	Upload,
 } from 'lucide-react';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
-import { PageHeader, Button, Breadcrumbs, toast, EmptyState, StatsCard, DashboardPageSkeleton, FormField } from '@/components/design-system';
+import { PageHeader, Button, toast, EmptyState, StatsCard, DashboardPageSkeleton, FormField } from '@/components/design-system';
 import { formatLoginCode } from '@/lib/loginCode';
 import NotificationComposer from '@/components/notifications/NotificationComposer';
 
@@ -308,12 +308,8 @@ export default function ProfilePage() {
 
 	return (
 		<DashboardSurface>
-			{/* Breadcrumbs */}
-			<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, paddingLeft: '16px', paddingRight: '16px', paddingTop: '16px'}}>
-				<Breadcrumbs />
-			</JXBox>
-
 			<PageHeader
+				showBreadcrumbs
 				title="Profile"
 				description="Manage your personal information and account settings"
 			/>

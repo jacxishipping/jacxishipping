@@ -1174,10 +1174,13 @@ export default function InvoiceDetailPage() {
 							description="Basic invoice information"
 						>
 							<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '16px'}}>
-								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', color: 'var(--text-secondary)'}}>Invoice Number</JXBox>
+								{/* Invoice number stays on one line (Round 3 F12): the row
+								    wraps label-above-value on narrow screens instead of
+								    breaking the number mid-string. */}
+								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '4px 12px'}}>
+									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.875rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap'}}>Invoice Number</JXBox>
 									<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '8px'}}>
-										<span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'monospace' }}>
+										<span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'monospace', whiteSpace: 'nowrap' }}>
 											{invoice.invoiceNumber}
 										</span>
 										<CopyButton value={invoice.invoiceNumber} label="Invoice #" />

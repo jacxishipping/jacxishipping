@@ -117,7 +117,6 @@ function TrackingPageInner() {
 	const { scrollYProgress } = useScroll({ target: heroRef, offset: ['start start', 'end start'] });
 	const smoothY = useSpring(scrollYProgress, { stiffness: 100, damping: 30, restDelta: 0.001 });
 	const heroContentY = useTransform(smoothY, [0, 1], ['0%', '30%']);
-	const heroOpacity = useTransform(smoothY, [0, 0.6], [1, 0]);
 
 	const handleTrack = useCallback(async (overrideValue?: string) => {
 		const raw = (overrideValue ?? trackingNumber).trim();
@@ -215,7 +214,7 @@ function TrackingPageInner() {
 				<div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_70%_50%_at_50%_0%,rgba(212,175,55,0.07),transparent)]" />
 
 				<motion.div
-					style={{ y: heroContentY, opacity: heroOpacity }}
+					style={{ y: heroContentY }}
 					className="mx-auto w-full max-w-4xl"
 				>
 					<motion.div
@@ -335,13 +334,13 @@ function TrackingPageInner() {
 			<div className="relative overflow-hidden border-y border-black/[0.04] py-5 bg-[#F9FAFB] [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]">
 				<motion.div
 					className="flex items-center gap-16 whitespace-nowrap px-8"
-					animate={{ x: [0, -2000] }}
+					animate={{ x: ['0%', '-33.333%'] }}
 					transition={{ duration: 35, ease: 'linear', repeat: Infinity }}
 				>
 					{Array.from({ length: 3 }).flatMap((_, gi) =>
 						['Container tracking', 'Real-time updates', 'Live route visibility', 'USA → Afghanistan', 'Herat • Kabul • Kandahar'].map((t) => (
 							<span key={`${gi}-${t}`} className="flex items-center gap-10">
-								<span className="text-sm font-bold uppercase tracking-[0.2em] text-black/20">{t}</span>
+								<span className="text-sm font-bold uppercase tracking-[0.2em] text-slate-900/50">{t}</span>
 								<span className="text-[#D4AF37] text-lg font-serif">+</span>
 							</span>
 						))
@@ -385,7 +384,7 @@ function TrackingPageInner() {
 
 				{/* Tracking Results */}
 				{trackingDetails && (
-					<div className="space-y-10 landing-reveal">
+					<div className="space-y-10 landing-reveal is-visible">
 
 						{/* Container Details Card */}
 						<motion.div

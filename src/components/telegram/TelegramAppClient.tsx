@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Script from 'next/script';
-import SiteLogo from '@/components/brand/SiteLogo';
+import { SiteMark } from '@/components/brand/SiteLogo';
 import { KeyRound as VpnKey, CircleCheck as CheckCircle, CircleAlert, CircleQuestionMark as HelpOutline, ArrowRight as ArrowForward, X as Close, ExternalLink as OpenInNew } from 'lucide-react';
 
 type TelegramUser = {
@@ -188,9 +188,13 @@ export function TelegramAppClient() {
             className="rounded-[32px] border border-[rgba(212,175,55,0.2)] bg-[rgba(18,24,38,0.95)] p-6 text-center shadow-[0_20px_40px_rgba(0,0,0,0.6)] sm:p-8"
             style={{ backdropFilter: 'blur(20px)' }}
           >
-            {/* Logo */}
+            {/* Logo — the mark's dark-navy wordmark is illegible directly on the
+                dark card, so it sits on a light chip (same treatment as the
+                sign-in / code-login cards). */}
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
-              <SiteLogo variant="dashboard" className="w-[130px]" priority />
+              <div style={{ backgroundColor: '#ffffff', borderRadius: 20, padding: 10, lineHeight: 0, boxShadow: '0 10px 24px rgba(0,0,0,0.35)' }}>
+                <SiteMark size={76} priority />
+              </div>
             </div>
 
             {isLoading ? (

@@ -24,12 +24,19 @@ type PortalSummary = {
 export default function PortalHomePage() {
   const [portals, setPortals] = useState<PortalSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
+    // The partner-portals lookup can hang on a slow database; bound it so
+    // the page never sits on a bare spinner with no way forward.
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20000);
     const fetchPortals = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/api/partner-portals', { cache: 'no-store' });
+        setLoadError(null);
+        const response = await fetch('/api/partner-portals', { cache: 'no-store', signal: controller.signal });
         const data = await response.json();
 
         if (!response.ok) {
@@ -38,15 +45,25 @@ export default function PortalHomePage() {
 
         setPortals(data.portals || []);
       } catch (error) {
-        console.error(error);
+        if ((error as { name?: string }).name === 'AbortError') {
+          setLoadError('Loading your workspaces is taking too long. Check your connection and try again.');
+        } else {
+          console.error(error);
+          setLoadError('We could not load your workspaces. Try again in a moment.');
+        }
         toast.error('Failed to load your portals');
       } finally {
+        clearTimeout(timeout);
         setLoading(false);
       }
     };
 
     void fetchPortals();
-  }, []);
+    return () => {
+      clearTimeout(timeout);
+      controller.abort();
+    };
+  }, [retryCount]);
 
   const totals = useMemo(() => {
     return portals.reduce(
@@ -74,7 +91,33 @@ export default function PortalHomePage() {
 
       <DashboardPanel title="My Portals" description="Open a workspace to manage partner shipments, downstream customers, and member access in one place.">
         {loading ? (
-          <div style={{ color: 'var(--text-secondary)' }}>Loading portals...</div>
+          <div aria-busy="true" aria-label="Loading your workspaces">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="animate-pulse rounded-3xl border border-black/5 bg-white p-6">
+                  <div className="mb-4 h-5 w-2/3 rounded bg-slate-200" />
+                  <div className="mb-6 h-4 w-1/3 rounded bg-slate-100" />
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="h-14 rounded-2xl bg-slate-100" />
+                    <div className="h-14 rounded-2xl bg-slate-100" />
+                    <div className="h-14 rounded-2xl bg-slate-100" />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="mt-4 text-sm" style={{ color: 'var(--text-secondary)' }}>Loading your workspaces…</p>
+          </div>
+        ) : loadError ? (
+          <EmptyState
+            icon={<AccountTreeOutlinedIcon />}
+            title="Workspaces did not load"
+            description={loadError}
+            action={
+              <Button variant="primary" size="sm" onClick={() => setRetryCount((c) => c + 1)}>
+                Try again
+              </Button>
+            }
+          />
         ) : portals.length === 0 ? (
           <EmptyState icon={<AccountTreeOutlinedIcon />} title="No portal access" description="You are signed in, but no partner portal workspace has been assigned to your account yet." />
         ) : (

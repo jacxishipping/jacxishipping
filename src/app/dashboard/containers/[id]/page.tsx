@@ -280,6 +280,7 @@ function ContainerDetailPageContent() {
 	const [newContainerNumber, setNewContainerNumber] = useState('');
 	const [generatingInvoices, setGeneratingInvoices] = useState(false);
     const [refreshingTracking, setRefreshingTracking] = useState(false);
+	const [trackingSyncNotice, setTrackingSyncNotice] = useState<string | null>(null);
 	const [invoiceGenerationModalOpen, setInvoiceGenerationModalOpen] = useState(false);
     const [qrModalOpen, setQrModalOpen] = useState(false);
 	const [loadPlannerOpen, setLoadPlannerOpen] = useState(false);
@@ -432,6 +433,14 @@ function ContainerDetailPageContent() {
 				}
 				setSelectedCompanyId(containerData.companyId || '');
 				setContainer(containerData);
+				// Honest staleness: the API serves stored tracking when the live
+				// sync times out or fails — say so instead of showing it as live.
+				const syncStatus = data.trackingSync as { attempted?: boolean; fresh?: boolean; error?: string } | undefined;
+				setTrackingSyncNotice(
+					syncStatus?.attempted && !syncStatus.fresh
+						? syncStatus.error || 'Live tracking sync failed; showing stored tracking data.'
+						: null
+				);
 			} else {
 				toast.error('Container not found');
 				router.push('/dashboard/containers');
@@ -2121,6 +2130,15 @@ function ContainerDetailPageContent() {
 									fetchContainer();
 								}}
 							/>
+
+							{trackingSyncNotice && (
+								<JXBox padding="none" border={false} style={{padding: '12px 16px', backgroundColor: 'rgba(var(--warning-rgb), 0.1)', border: '1px solid rgba(var(--warning-rgb), 0.3)', borderRadius: '8px', display: 'flex', gap: '8px', alignItems: 'flex-start'}}>
+									<AlertTriangle className="w-4 h-4" style={{ color: 'var(--warning)', marginTop: 2, flexShrink: 0 }} />
+									<p className="text-sm leading-relaxed" style={{fontSize: '0.875rem', color: 'var(--warning)'}}>
+										{trackingSyncNotice} Use Refresh Tracking below to retry.
+									</p>
+								</JXBox>
+							)}
 
 							<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', justifyContent: 'flex-start', marginBottom: '8px'}}>
 								<Button

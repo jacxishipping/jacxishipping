@@ -45,7 +45,7 @@ export default function RoutesAnimatedSection() {
           
           <motion.div
             initial={{ opacity: 0, x: -40 }}
-            whileInView={{ opacity: 1, x: 0 }}
+            animate={{ opacity: 1, x: 0 }}
             viewport={{ once: true, margin: '-10% 0px' }}
             transition={{ duration: 0.8, ease: "easeOut" }}
           >
@@ -71,7 +71,7 @@ export default function RoutesAnimatedSection() {
               ].map((item, i) => (
                 <motion.div 
                   initial={{ opacity: 0, x: -20 }}
-                  whileInView={{ opacity: 1, x: 0 }}
+                  animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.2 + (i * 0.1), duration: 0.5 }}
                   key={item.label} 
                   className="flex items-center gap-6"
@@ -90,7 +90,7 @@ export default function RoutesAnimatedSection() {
 
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
+            animate={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 1, ease: 'easeOut' }}
             className="relative w-full rounded-2xl border border-black/10 bg-white/90 p-2 backdrop-blur-xl shadow-lg"
@@ -168,7 +168,7 @@ export default function RoutesAnimatedSection() {
               <motion.div
                 key={step.step}
                 initial={{ opacity: 0, y: 24 }}
-                whileInView={{ opacity: 1, y: 0 }}
+                animate={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: '-50px' }}
                 transition={{ duration: 0.6, delay: 0.2 + (index * 0.1), ease: "easeOut" }}
                 whileHover={{ y: -4, transition: { duration: 0.25 } }}

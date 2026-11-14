@@ -42,6 +42,13 @@ export default function PublicRateCalculatorSection() {
 
     const controller = new AbortController();
     setRateStatus('loading');
+    // Live origin pricing comes from the server price lists; never leave the
+    // estimator stuck on "Checking…" if that lookup hangs.
+    const timeout = setTimeout(() => {
+      controller.abort();
+      setOriginRate(null);
+      setRateStatus('unavailable');
+    }, 10000);
     fetch(`/api/public/shipping-rate-estimate?originState=${origin.stateCode}`, { signal: controller.signal })
       .then(async (response) => {
         if (!response.ok) throw new Error('Rate unavailable');
@@ -60,7 +67,10 @@ export default function PublicRateCalculatorSection() {
         }
       });
 
-    return () => controller.abort();
+    return () => {
+      clearTimeout(timeout);
+      controller.abort();
+    };
   }, [origin.stateCode]);
 
   const basePrice = originRate === null ? null : (originRate + dest.price) * vType.multiplier;
@@ -140,18 +150,19 @@ export default function PublicRateCalculatorSection() {
                <p className="text-xs font-mono uppercase tracking-[0.2em] text-black/50 mb-3">03. Vehicle Class</p>
                <div className="grid grid-cols-3 gap-2 sm:gap-3">
                   {vehicleTypes.map((v) => (
-                    <SpringButton
+                    <button
                       key={v.id}
+                      type="button"
                       onClick={() => setVType(v)}
                       aria-pressed={vType.id === v.id}
                       className={`flex justify-center items-center py-3 px-2 rounded-xl border text-center transition-all text-xs sm:text-sm ${
                         vType.id === v.id
-                           ? 'border-slate-950 !bg-slate-950 !text-white font-bold shadow-md'
-                           : 'border-black/5 bg-white/60 text-black/70 hover:bg-white font-medium'
+                           ? 'border-slate-950 bg-slate-950 text-white font-bold shadow-md'
+                           : 'border-black/5 bg-white/60 text-slate-900 hover:bg-white font-medium'
                       }`}
                     >
                       {v.name}
-                    </SpringButton>
+                    </button>
                   ))}
                </div>
             </div>
@@ -163,20 +174,28 @@ export default function PublicRateCalculatorSection() {
           >
             <p className="text-xs font-bold uppercase tracking-widest text-black/50 mb-4">Estimated Subtotal</p>
             
-            <div className="flex items-baseline text-slate-900 mb-6">
-              <span className="text-2xl sm:text-3xl text-slate-400 font-light mr-1">$</span>
-              <AnimatePresence mode='popLayout'>
-                <motion.span 
-                  key={basePrice}
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 10, position: 'absolute' }}
-                  transition={{ duration: 0.3 }}
-                  className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-none"
-                >
-                  {basePrice === null ? '—' : basePrice.toLocaleString()}
-                </motion.span>
-              </AnimatePresence>
+            <div className="flex items-baseline text-slate-900 mb-6" role="status">
+              {rateStatus === 'loading' ? (
+                <span className="inline-block h-12 w-44 animate-pulse rounded-lg bg-slate-200 sm:h-14" aria-label="Checking current origin pricing" />
+              ) : basePrice === null ? (
+                <span className="text-3xl font-bold tracking-tight leading-none sm:text-4xl">Price on request</span>
+              ) : (
+                <>
+                  <span className="text-2xl sm:text-3xl text-slate-400 font-light mr-1">$</span>
+                  <AnimatePresence mode='popLayout'>
+                    <motion.span
+                      key={basePrice}
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10, position: 'absolute' }}
+                      transition={{ duration: 0.3 }}
+                      className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-none"
+                    >
+                      {basePrice.toLocaleString()}
+                    </motion.span>
+                  </AnimatePresence>
+                </>
+              )}
             </div>
 
             <div className="space-y-3 mb-6 border-t border-slate-100 pt-4">

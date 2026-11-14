@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { Building2, CheckCircle2, Clock3, ExternalLink, Search, Undo2 } from 'lucide-react';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { DashboardSurface, DashboardPanel } from '@/components/dashboard/DashboardSurface';
-import { PageHeader, Button, EmptyState, toast } from '@/components/design-system';
+import { PageHeader, Button, EmptyState, FormField, toast } from '@/components/design-system';
 
 type GetpassShipment = {
   id: string;
@@ -161,15 +161,16 @@ export default function CompanyGetpassesPage() {
                 setSearch(searchInput.trim());
               }}
             >
-              <label className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3">
-                <Search className="h-4 w-4 shrink-0 text-[var(--text-secondary)]" />
-                <input
+              {/* Round 3 C-2: the standard FormField search (same as the
+                  Documents search panel), not a hand-rolled raw input. */}
+              <div className="min-w-0 flex-1">
+                <FormField
                   value={searchInput}
                   onChange={(event) => setSearchInput(event.target.value)}
                   placeholder="Search VIN, vehicle, container, or company"
-                  className="h-10 min-w-0 flex-1 bg-transparent text-sm text-[var(--text-primary)] outline-none placeholder:text-[var(--text-secondary)]"
+                  leftIcon={<Search className="h-4 w-4 text-[var(--text-secondary)]" />}
                 />
-              </label>
+              </div>
               <select
                 value={stateFilter}
                 onChange={(event) => setStateFilter(event.target.value as 'active' | 'completed' | 'all')}
@@ -192,39 +193,41 @@ export default function CompanyGetpassesPage() {
               />
             ) : (
               <div className="overflow-x-auto">
+                {/* Round 3 C-3: DataTable density — px-4/py-3 cells, panel
+                    header row, divide-y body (was px-3/py-4 + raw table). */}
                 <table className="min-w-full text-left text-sm">
-                  <thead className="border-b border-[var(--border)] text-xs font-semibold uppercase tracking-wide whitespace-nowrap text-[var(--text-secondary)]">
+                  <thead className="bg-[var(--panel)] border-b border-[var(--border)] whitespace-nowrap">
                     <tr>
-                      <th className="px-3 py-3">Shipment</th>
-                      <th className="px-3 py-3">Shipping Company</th>
-                      <th className="px-3 py-3">Container</th>
-                      <th className="px-3 py-3">Expenses</th>
-                      <th className="px-3 py-3">Company Payment</th>
-                      <th className="px-3 py-3">Getpass</th>
-                      <th className="px-3 py-3 text-right">Actions</th>
+                      <th className="px-4 py-3 text-sm font-semibold text-[var(--text-primary)]">Shipment</th>
+                      <th className="px-4 py-3 text-sm font-semibold text-[var(--text-primary)]">Shipping Company</th>
+                      <th className="px-4 py-3 text-sm font-semibold text-[var(--text-primary)]">Container</th>
+                      <th className="px-4 py-3 text-sm font-semibold text-[var(--text-primary)]">Expenses</th>
+                      <th className="px-4 py-3 text-sm font-semibold text-[var(--text-primary)]">Company Payment</th>
+                      <th className="px-4 py-3 text-sm font-semibold text-[var(--text-primary)]">Getpass</th>
+                      <th className="px-4 py-3 text-sm font-semibold text-[var(--text-primary)] text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-[var(--border)]">
                     {shipments.map((shipment) => (
-                      <tr key={shipment.id} className="border-b border-[var(--border)] last:border-0">
-                        <td className="px-3 py-4">
+                      <tr key={shipment.id}>
+                        <td className="px-4 py-3">
                           <p className="font-semibold text-[var(--text-primary)]">{formatVehicle(shipment)}</p>
                           <p className="mt-1 text-xs text-[var(--text-secondary)]">VIN: {shipment.vehicleVIN || 'Not recorded'}</p>
                         </td>
-                        <td className="px-3 py-4">
+                        <td className="px-4 py-3">
                           <div className="flex items-center gap-2 text-[var(--text-primary)]">
                             <Building2 className="h-4 w-4 text-[var(--accent-gold)]" />
                             <span>{shipment.shippingCompany?.name || 'Not assigned'}</span>
                           </div>
                         </td>
-                        <td className="px-3 py-4 text-[var(--text-primary)]">{shipment.container?.containerNumber || 'Not assigned'}</td>
-                        <td className="px-3 py-4">
+                        <td className="px-4 py-3 text-[var(--text-primary)]">{shipment.container?.containerNumber || 'Not assigned'}</td>
+                        <td className="px-4 py-3">
                           <p className="font-semibold text-[var(--text-primary)]">{formatMoney(shipment.expenses.total)}</p>
                           <p className="mt-1 text-xs text-[var(--text-secondary)]">
                             Shipping {formatMoney(shipment.expenses.shipping)} | Dispatch {formatMoney(shipment.expenses.dispatch)} | Transit {formatMoney(shipment.expenses.transit)}
                           </p>
                         </td>
-                        <td className="px-3 py-4">
+                        <td className="px-4 py-3">
                           <p className={shipment.companyPayment.status === 'PAID_TO_COMPANY' ? 'font-semibold text-emerald-600' : shipment.companyPayment.status === 'PARTIAL' ? 'font-semibold text-[var(--warning)]' : 'font-semibold text-[var(--text-primary)]'}>
                             {companyPaymentLabel(shipment.companyPayment.status)}
                           </p>
@@ -232,7 +235,7 @@ export default function CompanyGetpassesPage() {
                             Paid {formatMoney(shipment.companyPayment.paid)} of {formatMoney(shipment.companyPayment.charged)}
                           </p>
                         </td>
-                        <td className="px-3 py-4">
+                        <td className="px-4 py-3">
                           <span className="font-mono text-base font-semibold tabular-nums text-[var(--text-primary)]">
                             {shipment.companyGetpassCompletedAt
                               ? formatDuration(shipment.companyGetpassDurationSeconds || 0)
@@ -242,7 +245,7 @@ export default function CompanyGetpassesPage() {
                             {shipment.companyGetpassCompletedAt ? `Completed ${new Date(shipment.companyGetpassCompletedAt).toLocaleDateString()}` : 'Active'}
                           </p>
                         </td>
-                        <td className="px-3 py-4">
+                        <td className="px-4 py-3">
                           <div className="flex justify-end gap-2">
                             <Link href={`/dashboard/shipments/${shipment.id}?tab=company-getpass`}>
                               <Button variant="outline" size="sm" aria-label={`Open ${formatVehicle(shipment)} getpass`}>

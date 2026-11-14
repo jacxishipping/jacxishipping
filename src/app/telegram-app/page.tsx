@@ -1,20 +1,19 @@
-import { Suspense } from 'react';
-import { TelegramAppClient } from '@/components/telegram/TelegramAppClient';
+import { redirect } from 'next/navigation';
 
-export const dynamic = 'force-dynamic';
-
-export default function TelegramAppPage() {
-  return (
-    <Suspense
-      fallback={
-        <div
-          style={{ minHeight: '100vh', backgroundColor: '#0a0d14', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-        >
-          <span className="inline-block h-8 w-8 animate-spin rounded-full border-2 border-[#D4AF37] border-t-transparent" />
-        </div>
-      }
-    >
-      <TelegramAppClient />
-    </Suspense>
-  );
+// /telegram-app used to render a byte-identical copy of /telegram.
+// There is a single Telegram launchpad: /telegram already detects the
+// Telegram WebApp (Mini App) environment and handles bridge tokens, so
+// this route redirects there, preserving any token/target query params.
+export default async function TelegramAppPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const resolved = await searchParams;
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(resolved)) {
+    if (typeof value === 'string' && value) query.set(key, value);
+    else if (Array.isArray(value) && value[0]) query.set(key, value[0]);
+  }
+  redirect(query.size ? `/telegram?${query.toString()}` : '/telegram');
 }

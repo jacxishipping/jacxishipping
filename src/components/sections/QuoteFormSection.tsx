@@ -145,7 +145,7 @@ export default function QuoteFormSection() {
           {/* Right Form Block */}
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            animate={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
             className="rounded-2xl sm:rounded-3xl bg-white p-5 sm:p-8 md:p-10 shadow-xl border border-black/5"

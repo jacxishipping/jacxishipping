@@ -408,10 +408,12 @@ export default function UserLedgerManagementPage() {
     });
   };
 
+  // Balance reads neutral; only a genuinely negative (overdrawn) balance
+  // reads red. (Round 3 F4 — money-direction display fix.)
   const getBalanceColor = (balance: number) => {
-    if (balance > 0) return "var(--error)";
-    if (balance < 0) return "var(--success)";
-    return "var(--text-secondary)";
+    if (balance < 0) return "var(--error)";
+    if (balance === 0) return "var(--text-secondary)";
+    return "var(--text-primary)";
   };
 
   const columns = useMemo<Column<LedgerEntry>[]>(
@@ -483,7 +485,7 @@ export default function UserLedgerManagementPage() {
         render: (_, row) => (
           <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5" style={{backgroundColor: row.type === "DEBIT"
                   ? "rgba(var(--error-rgb), 0.1)"
-                  : "rgba(var(--success-rgb), 0.1)", color: row.type === "DEBIT" ? "var(--error)" : "var(--success)", fontWeight: 600, fontSize: "0.75rem"}}>{row.type === "DEBIT" ? <TrendingUpIcon /> : <TrendingDownIcon />} {row.type}</span>
+                  : "rgba(var(--success-rgb), 0.1)", color: row.type === "DEBIT" ? "var(--error)" : "var(--success)", fontWeight: 600, fontSize: "0.75rem"}}>{row.type === "DEBIT" ? <TrendingDownIcon /> : <TrendingUpIcon />} {row.type}</span>
         ),
       },
       {
@@ -500,7 +502,9 @@ export default function UserLedgerManagementPage() {
               color: row.type === "DEBIT" ? "var(--error)" : "var(--success)",
             }}
           >
-            {row.type === "DEBIT" ? "+" : "-"}
+            {/* Money direction (Round 3 F4): DEBIT is money out (−, red),
+                CREDIT is money in (+, green). */}
+            {row.type === "DEBIT" ? "−" : "+"}
             {formatCurrency(row.amount)}
           </span>
         ),
@@ -582,18 +586,18 @@ export default function UserLedgerManagementPage() {
         {/* Summary Cards */}
         <DashboardGrid className="grid-cols-1 md:grid-cols-2 xl:grid-cols-4">
           <StatsCard
-            icon={<TrendingDownIcon />}
+            icon={<TrendingUpIcon />}
             title="Total Credits"
             value={formatCurrency(summary.totalCredit)}
             subtitle="Amount paid"
             variant="success"
           />
           <StatsCard
-            icon={<TrendingUpIcon />}
+            icon={<TrendingDownIcon />}
             title="Total Debits"
             value={formatCurrency(summary.totalDebit)}
             subtitle="Amount charged"
-            variant="warning"
+            variant="error"
           />
           <StatsCard
             icon={<LocalShipping />}

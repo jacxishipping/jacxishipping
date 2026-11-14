@@ -63,9 +63,6 @@ export default function HeroSection() {
   });
 
   const videoScale = useTransform(smoothYProgress, [0, 1], [1.05, 1.25]);
-  const contentY = useTransform(smoothYProgress, [0, 1], ['0%', '40%']);
-  const contentOpacity = useTransform(smoothYProgress, [0, 0.6], [1, 0]);
-  const wordsBlur = useTransform(smoothYProgress, [0, 0.5], ['blur(0px)', 'blur(10px)']);
   
   const card1Y = useTransform(smoothYProgress, [0, 1], [0, -150]);
   const card2Y = useTransform(smoothYProgress, [0, 1], [0, -80]);
@@ -101,7 +98,7 @@ export default function HeroSection() {
           preload="none"
           aria-label="Vehicle shipping hero preview"
         >
-          <source src="/Pull-back_to_wide_shot_202607030933.mp4" media="(min-width: 768px)" type="video/mp4" />
+          <source src="/Pull-back_to_wide_shot_202607030933.mp4" type="video/mp4" />
         </video>
       </motion.div>
 
@@ -123,7 +120,7 @@ export default function HeroSection() {
       />
 
       <motion.div 
-        style={{ y: contentY, opacity: contentOpacity, filter: wordsBlur }}
+        style={{ y: 0 }}
         className="mx-auto grid h-full w-full max-w-7xl gap-8 lg:grid-cols-[1.3fr_0.7fr] xl:grid-cols-[1.3fr_0.7fr] lg:items-center relative z-10"
       >
         <motion.div
@@ -138,7 +135,7 @@ export default function HeroSection() {
               <ShieldCheck className="h-3.5 w-3.5" />
             </span>
             <span className="relative z-10 text-xs font-bold uppercase tracking-[0.12em] text-slate-900">
-              #1 N.A. to Afghanistan
+              #1 North America to Afghanistan
             </span>
           </motion.div>
 

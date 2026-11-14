@@ -687,7 +687,8 @@ export default function ShipmentFinancialsTab({
                           </div>
                         </div>
                         <div className={cn('col-span-2 text-right font-semibold', entry.type === 'DEBIT' ? 'text-[var(--error)]' : 'text-[var(--success)]')}>
-                          {entry.type === 'DEBIT' ? '+' : '-'}${entry.amount.toFixed(2)}
+                          {/* Money direction (Round 3 F4): DEBIT is money out (−, red), CREDIT is money in (+, green). */}
+                          {entry.type === 'DEBIT' ? '−' : '+'}${entry.amount.toFixed(2)}
                         </div>
                       </div>
                     ))}

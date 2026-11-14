@@ -78,17 +78,17 @@ export default function ContactSection({ isAuthenticated = false }: ContactSecti
               <span className="text-xs font-mono uppercase tracking-[0.2em] text-black/50">Contact</span>
               <span className="h-px w-6 bg-black/25" />
            </div>
-          <h2 className="landing-reveal text-3xl font-bold tracking-tight sm:text-5xl lg:text-6xl text-gray-900 mb-4 sm:mb-6">
+          <h2 className="landing-reveal is-visible text-3xl font-bold tracking-tight sm:text-5xl lg:text-6xl text-gray-900 mb-4 sm:mb-6">
             Talk to a shipping coordinator.
           </h2>
-          <p className="landing-reveal text-base sm:text-xl text-black/60">
+          <p className="landing-reveal is-visible text-base sm:text-xl text-black/60">
             Ready to ship your vehicle or need route clarity? Reach the team by phone, WhatsApp, email, or the message form.
           </p>
         </div>
 
         <div className="grid gap-8 lg:gap-12 lg:grid-cols-[1fr_1.5fr] items-start">
           <div className="space-y-6 sm:space-y-8">
-            <div className="landing-reveal grid gap-3">
+            <div className="landing-reveal is-visible grid gap-3">
               <div className="rounded-2xl border border-black/5 bg-white p-4 sm:p-5 shadow-sm">
                 <div className="flex gap-4">
                   <MapPin className="mt-1 h-5 w-5 shrink-0 text-slate-700" />
@@ -126,7 +126,7 @@ export default function ContactSection({ isAuthenticated = false }: ContactSecti
               </div>
             </div>
 
-            <div className="landing-reveal flex flex-wrap gap-2.5">
+            <div className="landing-reveal is-visible flex flex-wrap gap-2.5">
               {socialLinks.map((link) => (
                 <a
                   key={link.label}
@@ -147,7 +147,7 @@ export default function ContactSection({ isAuthenticated = false }: ContactSecti
             </div>
           </div>
 
-          <div className="landing-reveal rounded-2xl border border-black/5 bg-white p-5 sm:p-8 shadow-lg relative overflow-hidden">
+          <div className="landing-reveal is-visible rounded-2xl border border-black/5 bg-white p-5 sm:p-8 shadow-lg relative overflow-hidden">
             <div className="relative mb-6">
               <div>
                 <h3 className="text-xs font-mono font-bold uppercase tracking-widest text-black/50 mb-1">Send a message</h3>

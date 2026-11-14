@@ -307,7 +307,10 @@ export default function DashboardTodayWork({
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="truncate font-semibold text-[var(--text-primary)] group-hover:text-[var(--accent-gold)] transition-colors">
+                        <span
+                          title={item.title}
+                          className="min-w-0 truncate font-semibold text-[var(--text-primary)] group-hover:text-[var(--accent-gold)] transition-colors"
+                        >
                           {item.title}
                         </span>
                         <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
@@ -321,7 +324,10 @@ export default function DashboardTodayWork({
                           </span>
                         )}
                       </div>
-                      <div className="truncate text-xs text-[var(--text-secondary)] mt-0.5">
+                      <div
+                        title={`${item.subtitle} • ${item.detail}`}
+                        className="truncate text-xs text-[var(--text-secondary)] mt-0.5"
+                      >
                         {item.subtitle} • {item.detail}
                       </div>
                     </div>

@@ -134,7 +134,7 @@ class ContainerTrackingSupabaseClient {
   /**
    * Test and renew Supabase OAuth access token using refresh_token grant
    */
-  public async testTokenRenewal(): Promise<{
+  public async testTokenRenewal(signal?: AbortSignal): Promise<{
     success: boolean;
     httpStatus?: number;
     error?: string;
@@ -161,6 +161,7 @@ class ContainerTrackingSupabaseClient {
           apikey: this.anonKey,
           'Content-Type': 'application/json',
         },
+        signal,
         body: JSON.stringify({ refresh_token: this.refreshToken }),
       });
 
@@ -258,20 +259,20 @@ class ContainerTrackingSupabaseClient {
   /**
    * Automatically exchange refresh token for a fresh JWT access token
    */
-  private async refreshAccessToken(): Promise<boolean> {
-    const res = await this.testTokenRenewal();
+  private async refreshAccessToken(signal?: AbortSignal): Promise<boolean> {
+    const res = await this.testTokenRenewal(signal);
     return res.success;
   }
 
   /**
    * Ensure the access token is fresh before making API calls.
    */
-  private async ensureFreshToken(): Promise<void> {
+  private async ensureFreshToken(signal?: AbortSignal): Promise<void> {
     const exp = this.getTokenExpiry(this.accessToken);
     const nowEpoch = Math.floor(Date.now() / 1000);
     // If expires in less than 5 minutes (300 seconds), renew it
     if (exp && exp - nowEpoch < 300) {
-      await this.refreshAccessToken();
+      await this.refreshAccessToken(signal);
     }
   }
 
@@ -283,7 +284,7 @@ class ContainerTrackingSupabaseClient {
     options: RequestInit,
     retries = 2
   ): Promise<Response> {
-    await this.ensureFreshToken();
+    await this.ensureFreshToken(options.signal ?? undefined);
 
     for (let attempt = 0; attempt < retries; attempt++) {
       const headers = {
@@ -298,11 +299,13 @@ class ContainerTrackingSupabaseClient {
       try {
         const response = await fetch(url, { ...options, headers });
         if (response.status === 401 && attempt < retries - 1) {
-          const renewed = await this.refreshAccessToken();
+          const renewed = await this.refreshAccessToken(options.signal ?? undefined);
           if (renewed) continue;
         }
         return response;
       } catch (error) {
+        // An aborted request must fail fast instead of burning the retry delay.
+        if (error instanceof Error && error.name === 'AbortError') throw error;
         if (attempt === retries - 1) throw error;
         await new Promise((r) => setTimeout(r, 1000));
       }
@@ -313,7 +316,7 @@ class ContainerTrackingSupabaseClient {
   /**
    * Register a container with the tracking backend.
    */
-  async registerContainer(trackingNumber: string): Promise<boolean> {
+  async registerContainer(trackingNumber: string, options?: { signal?: AbortSignal }): Promise<boolean> {
     const cleanNumber = trackingNumber.trim().toUpperCase();
     const url = `${this.supabaseUrl}/rest/v1/trackings_ids?on_conflict=user_id%2Ctracking_number`;
 
@@ -331,6 +334,7 @@ class ContainerTrackingSupabaseClient {
     try {
       const res = await this.authenticatedFetch(url, {
         method: 'POST',
+        signal: options?.signal,
         headers: {
           'content-profile': 'public',
           'accept-profile': 'public',
@@ -348,16 +352,20 @@ class ContainerTrackingSupabaseClient {
   /**
    * Fetch real-time container tracking data from update-tracking-v2 function.
    */
-  async fetchContainerTracking(trackingNumber: string): Promise<SupabaseTrackingData | null> {
+  async fetchContainerTracking(
+    trackingNumber: string,
+    options?: { signal?: AbortSignal }
+  ): Promise<SupabaseTrackingData | null> {
     const cleanNumber = trackingNumber.trim().toUpperCase();
     // Auto-register first if needed
-    await this.registerContainer(cleanNumber).catch(() => {});
+    await this.registerContainer(cleanNumber, { signal: options?.signal }).catch(() => {});
 
     const url = `${this.supabaseUrl}/functions/v1/update-tracking-v2`;
 
     try {
       const res = await this.authenticatedFetch(url, {
         method: 'POST',
+        signal: options?.signal,
         body: JSON.stringify({ tracking_number: cleanNumber }),
       });
 

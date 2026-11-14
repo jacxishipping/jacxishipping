@@ -36,7 +36,6 @@ export default function TestimonialsSection() {
   });
 
   const x1 = useTransform(scrollYProgress, [0, 1], [0, -400]);
-  const x2 = useTransform(scrollYProgress, [0, 1], [-400, 0]);
 
   return (
     <section ref={containerRef} className="relative overflow-hidden bg-[#F9FAFB] py-16 sm:py-20 lg:py-24 text-black">
@@ -51,7 +50,7 @@ export default function TestimonialsSection() {
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 mb-10 sm:mb-16 text-center">
         <motion.div
            initial={{ opacity: 0, y: 20 }}
-           whileInView={{ opacity: 1, y: 0 }}
+           animate={{ opacity: 1, y: 0 }}
            viewport={{ once: true }}
            transition={{ duration: 0.6 }}
         >
@@ -67,20 +66,12 @@ export default function TestimonialsSection() {
         </motion.div>
       </div>
 
-      {/* Marquee Row 1 */}
-      <div className="relative flex whitespace-nowrap mb-6 [mask-image:linear-gradient(to_right,black,black_90%,transparent)]">
-        <motion.div style={{ x: x1 }} className="flex gap-4 sm:gap-8 px-6 sm:px-8">
-          {[...testimonials, ...testimonials].slice(0, 4).map((item, idx) => (
+      {/* Marquee row — the four verified quotes, shown once each.
+          A second row would repeat the same four quotes verbatim. */}
+      <div className="relative flex whitespace-nowrap mb-6 [mask-image:linear-gradient(to_right,black,black_96%,transparent)]">
+        <motion.div style={{ x: x1 }} className="flex gap-4 sm:gap-8 px-6 sm:px-8 pr-12">
+          {testimonials.map((item, idx) => (
              <TestimonialCard key={`row1-${idx}`} item={item} />
-          ))}
-        </motion.div>
-      </div>
-
-      {/* Marquee Row 2 */}
-      <div className="relative flex whitespace-nowrap [mask-image:linear-gradient(to_right,black,black_90%,transparent)]">
-        <motion.div style={{ x: x2 }} className="flex gap-4 sm:gap-8 px-6 sm:px-8">
-          {[...testimonials, ...testimonials].slice(4, 8).map((item, idx) => (
-             <TestimonialCard key={`row2-${idx}`} item={item} />
           ))}
         </motion.div>
       </div>

@@ -429,7 +429,7 @@ export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
                 <p className="text-[0.75rem] text-[var(--text-secondary)]">
                   {session?.user?.email}
                 </p>
-                <p className="mt-2 text-[0.6875rem] font-semibold uppercase text-[var(--accent-gold-text)]">
+                <p className="mt-2 text-[0.6875rem] font-semibold uppercase text-[var(--text-secondary)]">
                   {session?.user?.role || "user"}
                 </p>
               </JXBox>

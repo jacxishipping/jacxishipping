@@ -161,79 +161,79 @@ export async function GET(
       // Filter documents if needed (e.g. only public ones), but keeping all for now as container docs are usually shared
     }
 
-    // Auto-sync tracking if enabled and has tracking number
+    // Live-sync status, surfaced honestly to the page: the stored container is
+    // always served below; a timed-out/failed sync means the tracking shown
+    // may be stale — never invented.
+    let trackingSyncStatus: { attempted: boolean; fresh: boolean; error?: string } = {
+      attempted: false,
+      fresh: true,
+    };
+
+    // Auto-sync tracking if enabled and has tracking number.
+    // Time-boxed: the live sync must never block the page. If it times out or
+    // fails, the stored container (already loaded above) is served as-is.
     if (canReadAllContainers && container.autoTrackingEnabled && container.trackingNumber) {
+      const syncController = new AbortController();
+      const syncTimeout = setTimeout(() => syncController.abort(), 10_000);
       try {
         const { trackingSync } = await import('@/lib/services/tracking-sync');
-        const syncResult = await trackingSync.syncContainerTracking(params.id);
-        
+        const syncResult = await trackingSync.syncContainerTracking(params.id, {
+          signal: syncController.signal,
+        });
+
+        if (syncController.signal.aborted) {
+          trackingSyncStatus = {
+            attempted: true,
+            fresh: false,
+            error: 'Live tracking sync timed out after 10s; showing stored tracking data.',
+          };
+        } else {
+          trackingSyncStatus = {
+            attempted: true,
+            fresh: syncResult.success,
+            ...(syncResult.success
+              ? {}
+              : { error: syncResult.error || 'Live tracking sync failed; showing stored tracking data.' }),
+          };
+        }
+
         if (syncResult.newEvents > 0) {
           routeDeps.logger.info(`Synced ${syncResult.newEvents} new tracking events for container ${params.id}`);
-          
-          // Re-fetch container with updated tracking events
-          const updatedContainer = await routeDeps.prisma.container.findUnique({
+
+          // Re-fetch only what the sync can change (scalars + latest events),
+          // not the whole container graph — the stored container is already loaded.
+          const refreshed = await routeDeps.prisma.container.findUnique({
             where: { id: params.id },
-            include: {
-              company: {
-                select: {
-                  id: true,
-                  name: true,
-                  code: true,
-                },
-              },
-              shipments: {
-                include: {
-                  user: {
-                    select: {
-                      id: true,
-                      name: true,
-                      email: true,
-                    },
-                  },
-                },
-              },
-              expenses: {
-                orderBy: { date: 'desc' },
-              },
-              invoices: {
-                orderBy: { date: 'desc' },
-              },
-              documents: {
-                orderBy: { uploadedAt: 'desc' },
-              },
+            select: {
+              estimatedArrival: true,
+              progress: true,
+              currentLocation: true,
+              vesselName: true,
+              status: true,
+              lastLocationUpdate: true,
               trackingEvents: {
                 orderBy: { eventDate: 'desc' },
                 take: 20,
               },
-              auditLogs: {
-                orderBy: { timestamp: 'desc' },
-                take: 50,
-              },
-              userInvoices: {
-                include: {
-                  user: {
-                    select: {
-                      id: true,
-                      name: true,
-                      email: true,
-                    },
-                  },
-                  _count: {
-                    select: { lineItems: true },
-                  },
-                },
-                orderBy: { issueDate: 'desc' },
-              },
             },
           });
-          
-          if (updatedContainer) {
-            Object.assign(container, updatedContainer);
+
+          if (refreshed) {
+            Object.assign(container, refreshed);
           }
         }
       } catch (syncError) {
         routeDeps.logger.error('Error auto-syncing tracking:', syncError);
-        // Continue even if sync fails
+        trackingSyncStatus = {
+          attempted: true,
+          fresh: false,
+          error: syncController.signal.aborted
+            ? 'Live tracking sync timed out after 10s; showing stored tracking data.'
+            : 'Live tracking sync failed; showing stored tracking data.',
+        };
+        // Continue even if sync fails — the stored container is served below.
+      } finally {
+        clearTimeout(syncTimeout);
       }
     }
 
@@ -322,6 +322,7 @@ export async function GET(
           invoices: totalInvoices,
         },
       },
+      trackingSync: trackingSyncStatus,
     });
   } catch (error) {
     routeDeps.logger.error('Error fetching container:', error);

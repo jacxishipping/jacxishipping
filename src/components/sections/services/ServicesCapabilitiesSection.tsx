@@ -70,7 +70,7 @@ export default function ServicesCapabilitiesSection() {
       <div className="sticky top-0 z-10 flex h-[35vh] flex-col justify-center bg-[#F9FAFB] px-4 pt-16 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
+          animate={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.8 }}
         >
@@ -120,14 +120,12 @@ function ServiceCard({
   const springProgress = useSpring(scrollYProgress, { stiffness: 100, damping: 20 });
   const yImage = useTransform(springProgress, [0, 1], [-80, 0]);
   const scaleImage = useTransform(springProgress, [0, 1], [1.15, 1]);
-  const opacity = useTransform(springProgress, [0, 0.4], [0, 1]);
 
   const isOdd = index % 2 === 1;
 
   return (
     <motion.div
       ref={cardRef}
-      style={{ opacity }}
       className="grid gap-12 lg:grid-cols-[1fr_1.2fr] items-center"
     >
       {/* Text side */}

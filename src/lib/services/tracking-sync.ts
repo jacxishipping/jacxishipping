@@ -15,7 +15,7 @@ export class TrackingSyncService {
 	 */
 	async syncContainerTracking(
 		containerId: string,
-		options?: { force?: boolean }
+		options?: { force?: boolean; signal?: AbortSignal }
 	): Promise<{
 		success: boolean;
 		newEvents: number;
@@ -50,10 +50,10 @@ export class TrackingSyncService {
 				return { success: false, newEvents: 0, updatedETA: false, error: 'Container has no tracking or container number' };
 			}
 
-			// Fetch tracking data from external API
+			// Fetch tracking data from external API (time-boxed by the caller's signal)
 			const snapshot = await trackingAPI.fetchContainerTrackingData(
 				trackingNum,
-				{ forceRefresh: options?.force }
+				{ forceRefresh: options?.force, signal: options?.signal }
 			);
 
 			if (!snapshot || snapshot.trackingEvents.length === 0) {
@@ -111,7 +111,7 @@ export class TrackingSyncService {
 
 			// Update estimated arrival if available
 			let updatedETA = false;
-			const eta = await trackingAPI.getEstimatedArrival(trackingNum);
+			const eta = await trackingAPI.getEstimatedArrival(trackingNum, options?.signal);
 			if (eta && (!container.estimatedArrival || eta.getTime() !== container.estimatedArrival.getTime())) {
 				await prisma.container.update({
 					where: { id: containerId },

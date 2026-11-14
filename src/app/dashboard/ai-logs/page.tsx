@@ -172,7 +172,10 @@ export default function AiLogsPage() {
         header: 'Status',
         sortable: true,
         render: (_, log) => (
+          // Round 3 C-1: badges inside tables are sm everywhere (dense
+          // context); md is reserved for headers/panels.
           <StatusBadge
+            size="sm"
             status={log.status === 'SUCCESS' ? 'success' : log.status === 'FALLBACK' ? 'warning' : 'error'}
           />
         ),

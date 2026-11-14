@@ -212,7 +212,7 @@ function SignInPageContent() {
 									value={email}
 									onChange={(e) => setEmail(e.target.value)}
 									required
-									placeholder="Enter email or 8-character code (e.g. C24FBSUX)"
+									placeholder="Email or 8-character code"
 									autoComplete="username"
 									className={INPUT_CLS + " pl-9"}
 									style={isAccessCode ? { letterSpacing: '0.18em', fontWeight: 700 } : undefined}
@@ -280,19 +280,19 @@ function SignInPageContent() {
 						</button>
 						</form>
 
-						{/* Sign Up Link */}
+						{/* Access hint — there is no public self-registration;
+						    new customer accounts are created by the Jacxi team. */}
 						<div style={{ textAlign: 'center', paddingTop: 16 }}>
 							<p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-								{t('auth.dontHaveAccount')}{' '}
+								Need access to a customer portal?{' '}
 								<button
-									
 									type="button"
-									onClick={() => router.push('/auth/signup')}
+									onClick={() => router.push('/#contact')}
 									className="hover:text-[#6B5C17]"
-										style={{ background: 'none', border: 'none', // Gold-800 from the design token scale: passes AA on white panels (gold-500 is too light for text)
+									style={{ background: 'none', border: 'none',
 										color: '#8D7A1F', fontWeight: 600, minHeight: 36, paddingLeft: 8, paddingRight: 8, paddingTop: 4, paddingBottom: 4, display: 'inline-flex', alignItems: 'center', cursor: 'pointer', transition: 'color 0.2s ease' }}
 								>
-									{t('auth.signUp')}
+									Contact the team
 								</button>
 							</p>
 						</div>

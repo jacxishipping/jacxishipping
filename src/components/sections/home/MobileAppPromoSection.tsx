@@ -27,20 +27,20 @@ export default function MobileAppPromoSection() {
     <section ref={sectionRef} className="relative overflow-hidden bg-white py-16 sm:py-20 lg:py-24 text-black">
       <div className="absolute inset-0 bg-[#f8f8f8] opacity-50" style={{ backgroundImage: 'radial-gradient(#e5e7eb 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
 
-      <div className="relative mx-auto grid max-w-7xl items-center gap-16 px-4 sm:px-6 lg:grid-cols-2 lg:px-8">
+      <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-4 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:px-8">
         
         {/* Left Content */}
-        <div className="max-w-2xl relative z-10 pl-4 lg:pl-10">
+        <div className="max-w-2xl relative z-10 lg:pl-6">
           <motion.div
             initial={{ opacity: 0, scaleX: 0 }}
-            whileInView={{ opacity: 1, scaleX: 1 }}
+            animate={{ opacity: 1, scaleX: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8, ease: "circOut" }}
             className="mb-8 h-1 w-24 bg-black/15 origin-left"
           />
           <motion.div
             initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            animate={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8, delay: 0.2 }}
           >
@@ -58,7 +58,7 @@ export default function MobileAppPromoSection() {
               <motion.div 
                 key={feature.title}
                 initial={{ opacity: 0, x: -20 }}
-                whileInView={{ opacity: 1, x: 0 }}
+                animate={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: 0.3 + (i * 0.1) }}
                 className="group flex gap-5 rounded-2xl border border-black/5 bg-white p-6 shadow-sm transition-all hover:shadow-md cursor-default"
@@ -76,7 +76,7 @@ export default function MobileAppPromoSection() {
 
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            animate={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.8 }}
             className="mt-12"
@@ -98,7 +98,7 @@ export default function MobileAppPromoSection() {
           {/* Floating Floating Widget */}
           <motion.div
             style={{ y: yWidget }}
-            className="absolute -left-16 top-1/4 z-30 flex items-center gap-4 rounded-2xl border border-white/40 bg-white/80 p-5 text-black shadow-lg backdrop-blur-3xl"
+            className="absolute -left-4 bottom-20 z-30 flex items-center gap-4 rounded-2xl border border-white/40 bg-white/90 p-5 text-black shadow-lg backdrop-blur-3xl"
           >
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-green-50 text-green-600">
               <ShieldCheck className="h-6 w-6" />
@@ -151,7 +151,7 @@ export default function MobileAppPromoSection() {
                   </div>
 
                   <div className="relative mt-6 flex-1 overflow-hidden rounded-xl border border-black/5 bg-[#F9FAFB]">
-                    <div className="absolute inset-0 bg-[url('/world-map.svg')] bg-cover bg-center bg-no-repeat opacity-[0.08]" />
+                    <div className="absolute inset-0 bg-[url('/world-map.svg')] bg-cover bg-center bg-no-repeat opacity-[0.22]" />
                     
                     {/* Simulated Map Path */}
                     <div className="absolute left-6 right-6 top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-black/5 overflow-hidden">
@@ -165,7 +165,7 @@ export default function MobileAppPromoSection() {
                     {/* Map Nodes */}
                     <div className="absolute left-6 top-1/2 h-4 w-4 -translate-y-1/2 rounded-full border-4 border-white bg-black shadow-md" />
                     <motion.div 
-                      className="absolute top-1/2 h-6 w-6 -translate-y-1/2 rounded-full border-[6px] border-white bg-slate-900 shadow-xl"
+                      className="absolute top-1/2 h-6 w-6 -translate-y-1/2 rounded-full border-[6px] border-white bg-[#D4AF37] shadow-xl"
                       animate={{ left: ['6%', '90%'] }}
                       transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
                     />

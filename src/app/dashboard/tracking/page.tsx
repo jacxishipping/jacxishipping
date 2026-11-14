@@ -6,7 +6,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { AlertCircle, Calendar, CheckCircle2, Clock, Copy, MapPin, Package, Search, Ship, XCircle, Camera, Plus, Minus, Layers, List, Loader2 } from 'lucide-react';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
-import { PageHeader, Button, EmptyState, FormField, Breadcrumbs, toast, DashboardPageSkeleton, StatusBadge } from '@/components/design-system';
+import { PageHeader, Button, EmptyState, FormField, toast, DashboardPageSkeleton, StatusBadge } from '@/components/design-system';
 import TrackingRouteMap from '@/components/tracking/TrackingRouteMap';
 import { BarcodeScannerModal } from '@/components/ui/BarcodeScannerModal';
 import { sanitizeTrackNumber } from '@/lib/tracking-sanitize';
@@ -358,7 +358,7 @@ export default function DashboardTrackingPage() {
 							type="text"
 							value={trackingNumber}
 							onChange={(e) => setTrackingNumber(e.target.value)}
-							placeholder="Container or tracking number (e.g., UETU6059142)"
+							placeholder="Container or tracking number"
 							leftIcon={<Search style={{ fontSize: 20, color: 'var(--text-secondary)' }} />}
 							onKeyPress={(e) => {
 								if (e.key === 'Enter') {

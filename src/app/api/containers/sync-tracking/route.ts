@@ -23,18 +23,40 @@ export async function POST(request: NextRequest) {
     }
 
     if (containerId) {
-      const result = await trackingSync.syncContainerTracking(containerId, { force: true });
-      return NextResponse.json({
-        success: result.success,
-        processed: 1,
-        synced: result.success ? 1 : 0,
-        newEvents: result.newEvents,
-        updatedEta: result.updatedETA,
-        error: result.error,
-        message: result.success
-          ? `Container tracking refreshed successfully (${result.newEvents} new events).`
-          : (result.error || 'Failed to refresh tracking for container.'),
-      });
+      // Explicit refresh, but still time-boxed: the live providers have no
+      // timeout of their own, so an uncapped sync here would hang the request.
+      const refreshController = new AbortController();
+      const refreshTimeout = setTimeout(() => refreshController.abort(), 30_000);
+      try {
+        const result = await trackingSync.syncContainerTracking(containerId, {
+          force: true,
+          signal: refreshController.signal,
+        });
+        if (refreshController.signal.aborted) {
+          return NextResponse.json({
+            success: false,
+            processed: 1,
+            synced: 0,
+            newEvents: 0,
+            updatedEta: false,
+            error: 'Tracking refresh timed out after 30s.',
+            message: 'Tracking refresh timed out after 30s. Stored tracking data is unchanged.',
+          });
+        }
+        return NextResponse.json({
+          success: result.success,
+          processed: 1,
+          synced: result.success ? 1 : 0,
+          newEvents: result.newEvents,
+          updatedEta: result.updatedETA,
+          error: result.error,
+          message: result.success
+            ? `Container tracking refreshed successfully (${result.newEvents} new events).`
+            : (result.error || 'Failed to refresh tracking for container.'),
+        });
+      } finally {
+        clearTimeout(refreshTimeout);
+      }
     }
 
     // Refresh all trackable active containers (exclude closed)
@@ -59,12 +81,19 @@ export async function POST(request: NextRequest) {
     let updatedEtas = 0;
     const errors: Array<{ containerNumber: string; error: string }> = [];
 
-    // Process in concurrent batches of 4
+    // Process in concurrent batches of 4. Each container sync is time-boxed
+    // so one hung provider cannot stall the whole batch (or the request).
     const BATCH_SIZE = 4;
     for (let i = 0; i < containers.length; i += BATCH_SIZE) {
       const batch = containers.slice(i, i + BATCH_SIZE);
       const results = await Promise.allSettled(
-        batch.map((c) => trackingSync.syncContainerTracking(c.id, { force: true }))
+        batch.map((c) => {
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), 30_000);
+          return trackingSync
+            .syncContainerTracking(c.id, { force: true, signal: controller.signal })
+            .finally(() => clearTimeout(timer));
+        })
       );
 
       results.forEach((res, index) => {

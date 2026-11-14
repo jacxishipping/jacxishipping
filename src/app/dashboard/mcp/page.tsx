@@ -1282,7 +1282,10 @@ response = client.chat.completions.create(
                   <div className="flex items-center justify-between">
                     <Unlock className="h-5 w-5 text-[var(--warning)]" />
                     {data.settings.authMode === 'optional' && (
-                      <StatusBadge status="warning" label="ACTIVE" />
+                      // Round 3 C-4: a warning-coloured pill must not say
+                      // ACTIVE — this state means public (unauthenticated)
+                      // read access is on, which is the caution.
+                      <StatusBadge status="warning" label="PUBLIC" />
                     )}
                   </div>
                   <div className="mt-3 font-semibold text-sm text-[var(--text-primary)]">
@@ -1412,7 +1415,9 @@ response = client.chat.completions.create(
                           {log.response}
                         </td>
                         <td className="py-3 px-4">
+                          {/* Round 3 C-1: badges inside tables are sm. */}
                           <StatusBadge
+                            size="sm"
                             status={log.status === 'SUCCESS' ? 'success' : 'error'}
                             label={log.status}
                           />

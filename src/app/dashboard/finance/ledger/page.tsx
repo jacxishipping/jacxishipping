@@ -387,10 +387,12 @@ export default function LedgerPage() {
     });
   };
 
+  // Balance reads neutral; only a genuinely negative (overdrawn) balance
+  // reads red. (Round 3 F4 — money-direction display fix.)
   const getBalanceColor = (balance: number) => {
-    if (balance > 0) return 'var(--error)';
-    if (balance < 0) return '#22c55e';
-    return 'var(--text-secondary)';
+    if (balance < 0) return 'var(--error)';
+    if (balance === 0) return 'var(--text-secondary)';
+    return 'var(--text-primary)';
   };
 
   const isBankImportEntry = (entry: LedgerEntry) => entry.metadata?.importSource === 'BANK_OF_AMERICA_CSV';
@@ -495,7 +497,7 @@ export default function LedgerPage() {
       width: '15%',
       render: (_, row) => (
         <JXBox padding="none" border={false} style={{display: 'inline-flex', alignItems: 'center', gap: '4px', paddingLeft: '12px', paddingRight: '12px', paddingTop: '4px', paddingBottom: '4px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 600, backgroundColor: row.type === 'DEBIT' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(34, 197, 94, 0.1)', color: row.type === 'DEBIT' ? '#ef4444' : '#22c55e'}}>
-          {row.type === 'DEBIT' ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+          {row.type === 'DEBIT' ? <TrendingDown size={14} /> : <TrendingUp size={14} />}
           {row.type}
         </JXBox>
       )
@@ -508,7 +510,9 @@ export default function LedgerPage() {
       width: '15%',
       render: (_, row) => (
         <span style={{ fontSize: '0.9rem', fontWeight: 600, color: row.type === 'DEBIT' ? '#ef4444' : '#22c55e' }}>
-          {row.type === 'DEBIT' ? '+' : '-'}{formatCurrency(row.amount)}
+          {/* Money direction (Round 3 F4): DEBIT is money out (−, red),
+              CREDIT is money in (+, green). */}
+          {row.type === 'DEBIT' ? '−' : '+'}{formatCurrency(row.amount)}
         </span>
       )
     },
@@ -609,18 +613,18 @@ export default function LedgerPage() {
         {/* Stats Cards */}
         <DashboardGrid className="grid-cols-1 md:grid-cols-2 xl:grid-cols-4">
           <StatsCard
-            icon={<TrendingDown size={22} />}
+            icon={<TrendingUp size={22} />}
             title="Total Credits"
             value={formatCurrency(summary.totalCredit)}
             subtitle="Amount paid into accounts"
             variant="success"
           />
           <StatsCard
-            icon={<TrendingUp size={22} />}
+            icon={<TrendingDown size={22} />}
             title="Total Debits"
             value={formatCurrency(summary.totalDebit)}
             subtitle="Total amount charged"
-            variant="warning"
+            variant="error"
           />
           <StatsCard
             icon={<Truck size={22} />}

@@ -101,7 +101,7 @@ export class TrackingAPIService {
 	async fetchTrackingData(
 		trackingNumber: string,
 		shippingLine?: string,
-		options?: { forceRefresh?: boolean }
+		options?: { forceRefresh?: boolean; signal?: AbortSignal }
 	): Promise<ExternalTrackingEvent[]> {
 		try {
 			const snapshot = await this.fetchContainerTrackingData(trackingNumber, options);
@@ -133,7 +133,7 @@ export class TrackingAPIService {
 	 */
 	async fetchContainerTrackingData(
 		containerNumber: string,
-		options?: { forceRefresh?: boolean }
+		options?: { forceRefresh?: boolean; signal?: AbortSignal }
 	): Promise<ContainerTrackingSnapshot | null> {
 		try {
 			const normalizedContainerNumber = containerNumber.trim().toUpperCase();
@@ -151,7 +151,7 @@ export class TrackingAPIService {
 			// 0. Dedicated Turkon Line Integration (for TRKU containers)
 			if (normalizedContainerNumber.startsWith('TRKU')) {
 				try {
-					const turkonSnapshot = await this.fetchTurkonTrackingData(normalizedContainerNumber);
+					const turkonSnapshot = await this.fetchTurkonTrackingData(normalizedContainerNumber, options?.signal);
 					if (turkonSnapshot) {
 						logger.info(`Container tracking data retrieved via Turkon Online for ${normalizedContainerNumber}`);
 						trackingCache.set(normalizedContainerNumber, {
@@ -167,7 +167,7 @@ export class TrackingAPIService {
 
 			// 1. PRIMARY: Try the new Supabase Tracking URL backend
 			try {
-				const supabaseData = await containerTrackingClient.fetchContainerTracking(normalizedContainerNumber);
+				const supabaseData = await containerTrackingClient.fetchContainerTracking(normalizedContainerNumber, { signal: options?.signal });
 				if (
 					supabaseData &&
 					(Boolean(supabaseData.events?.length) || Boolean(supabaseData.pol) || Boolean(supabaseData.pod))
@@ -186,7 +186,7 @@ export class TrackingAPIService {
 
 			// 2. FALLBACK: Query legacy PGL endpoint if Supabase didn't have data
 			logger.info(`Supabase returned no tracking for ${normalizedContainerNumber}. Falling back to legacy PGL tracking URL...`);
-			const pglEntries = await this.fetchPGLEntries(normalizedContainerNumber);
+			const pglEntries = await this.fetchPGLEntries(normalizedContainerNumber, options?.signal);
 			if (pglEntries.length > 0) {
 				logger.info(`Container tracking data retrieved via legacy PGL for ${normalizedContainerNumber}`);
 				const snapshot = this.buildSnapshotFromPGLEntries(normalizedContainerNumber, pglEntries);
@@ -417,13 +417,15 @@ export class TrackingAPIService {
 	 * Directly query Turkon Online Tracking service for TRKU containers.
 	 */
 	private async fetchTurkonTrackingData(
-		containerNumber: string
+		containerNumber: string,
+		signal?: AbortSignal
 	): Promise<ContainerTrackingSnapshot | null> {
 		const url = `https://myturkonline.turkon.com/shipping-prod-service/tracking/getTrackingTopInformation/en/${encodeURIComponent(containerNumber)}`;
 		const res = await fetchWithRetry(
 			url,
 			{
 				method: 'POST',
+				signal,
 				headers: {
 					'accept': 'application/json, text/plain, */*',
 					'accept-language': 'en-GB,en-US;q=0.9,en;q=0.8',
@@ -561,9 +563,9 @@ export class TrackingAPIService {
 	/**
 	 * Get estimated arrival from tracking data.
 	 */
-	async getEstimatedArrival(trackingNumber: string): Promise<Date | null> {
+	async getEstimatedArrival(trackingNumber: string, signal?: AbortSignal): Promise<Date | null> {
 		try {
-			const snapshot = await this.fetchContainerTrackingData(trackingNumber);
+			const snapshot = await this.fetchContainerTrackingData(trackingNumber, { signal });
 			if (!snapshot?.estimatedArrival) {
 				return null;
 			}
@@ -660,7 +662,7 @@ export class TrackingAPIService {
 		};
 	}
 
-	private async fetchPGLEntries(containerNumber: string): Promise<PGLTrackingEntry[]> {
+	private async fetchPGLEntries(containerNumber: string, signal?: AbortSignal): Promise<PGLTrackingEntry[]> {
 		const normalizedContainerNumber = containerNumber.trim().toUpperCase();
 		const url = `${PGL_TRACKING_ENDPOINT}?tracking_value=${encodeURIComponent(normalizedContainerNumber)}`;
 
@@ -669,6 +671,7 @@ export class TrackingAPIService {
 				url,
 				{
 					cache: 'no-store',
+					signal,
 					headers: {
 						Accept: 'application/json',
 					},

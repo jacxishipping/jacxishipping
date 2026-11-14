@@ -144,14 +144,16 @@ export default function ShipmentsResultsPanel({
 				<div style={{display: 'inline-flex', alignItems: 'center', gap: '8px'}}>
 					<span>Results</span>
 					<span style={{display: 'inline-flex', alignItems: 'center', justifyContent: 'center', paddingLeft: '8px', paddingRight: '8px', paddingTop: '2px', paddingBottom: '2px', borderRadius: '999px', backgroundColor: 'rgba(var(--accent-gold-rgb), 0.12)', color: 'var(--accent-gold-text)', border: '1px solid rgba(var(--accent-gold-rgb), 0.25)', fontSize: '0.72rem', fontWeight: 700, lineHeight: 1.2}}>
-						{shipments.length}
+						{loading ? '…' : shipments.length}
 					</span>
 				</div>
 			}
 			description={
-				shipments.length
-					? `Showing ${shipments.length} shipment${shipments.length !== 1 ? 's' : ''}`
-					: 'No shipments found'
+				loading
+					? 'Loading shipments…'
+					: shipments.length
+						? `Showing ${shipments.length} shipment${shipments.length !== 1 ? 's' : ''}`
+						: 'No shipments found'
 			}
 			fullHeight
 			className="overflow-hidden"

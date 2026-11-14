@@ -2,7 +2,7 @@
 
 import { JXBox } from '@jacxishippingorg/jx-ui-react';
 import { ReactNode } from 'react';
-import Breadcrumbs from './Breadcrumbs';
+import Breadcrumbs, { BreadcrumbsCompact } from './Breadcrumbs';
 import { useTheme } from '@/hooks/useTheme';
 
 interface PageHeaderProps {
@@ -25,7 +25,15 @@ export default function PageHeader({ title, description, actions, showBreadcrumb
 		<div className={`page-header-root ${isCompact ? 'mb-3' : 'mb-6'}`}>
 			{showBreadcrumbs && (
 				<div className={isCompact ? 'mb-1.5' : 'mb-3'}>
-					<Breadcrumbs />
+					{/* Round 3 F15: on phones the full trail wraps mid-trail over
+					    two lines — show the compact parent › current trail
+					    instead; full breadcrumbs from sm up. */}
+					<div className="sm:hidden">
+						<BreadcrumbsCompact />
+					</div>
+					<div className="hidden sm:block">
+						<Breadcrumbs />
+					</div>
 				</div>
 			)}
 			<JXBox

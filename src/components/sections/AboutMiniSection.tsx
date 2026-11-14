@@ -32,18 +32,18 @@ export default function AboutMiniSection() {
 			<div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 				<div className="grid gap-10 lg:grid-cols-[0.82fr_1.18fr] lg:items-start">
 					<div>
-						<p className="landing-reveal text-sm font-bold uppercase text-black/50">Our story</p>
-						<h2 className="landing-reveal mt-4 max-w-xl text-4xl font-bold leading-tight text-[var(--text-primary)] sm:text-5xl">
+						<p className="landing-reveal is-visible text-sm font-bold uppercase text-black/50">Our story</p>
+						<h2 className="landing-reveal is-visible mt-4 max-w-xl text-4xl font-bold leading-tight text-[var(--text-primary)] sm:text-5xl">
 							A specialist car shipping partner for Afghan importers.
 						</h2>
-						<p className="landing-reveal mt-5 max-w-2xl text-base leading-7 text-[var(--text-secondary)] sm:text-lg">
+						<p className="landing-reveal is-visible mt-5 max-w-2xl text-base leading-7 text-[var(--text-secondary)] sm:text-lg">
 							JACXI Shipping has been building vehicle logistics from the USA and Canada to Afghanistan for over a decade. We combine customs support, tracking, and careful route coordination so families and businesses can move vehicles with confidence.
 						</p>
-						<p className="landing-reveal mt-4 max-w-2xl text-base leading-7 text-[var(--text-secondary)] sm:text-lg">
+						<p className="landing-reveal is-visible mt-4 max-w-2xl text-base leading-7 text-[var(--text-secondary)] sm:text-lg">
 							We understand the unique needs of Afghan expatriates and businesses importing vehicles, and we design the process to be direct, transparent, and reliable.
 						</p>
 
-						<div className="landing-reveal mt-7 grid gap-2 sm:grid-cols-2">
+						<div className="landing-reveal is-visible mt-7 grid gap-2 sm:grid-cols-2">
 							{highlights.map((item) => (
 								<div key={item} className="flex items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--panel)] px-4 py-3">
 									<CheckCircle2 className="h-4 w-4 text-slate-900" />
@@ -54,7 +54,7 @@ export default function AboutMiniSection() {
 					</div>
 
 					<div className="grid gap-3">
-						<div className="landing-reveal grid gap-3">
+						<div className="landing-reveal is-visible grid gap-3">
 							{trustCards.map((card) => {
 								const Icon = card.icon;
 								return (

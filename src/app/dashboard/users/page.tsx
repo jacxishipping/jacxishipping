@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { User, UserPlus, Eye, EyeOff, Copy, Check, Pencil, Trash2, Shield, Users as UsersIcon } from 'lucide-react';
-import { Button, CompactSkeleton, IconButton, PageHeader, SkeletonCard, StatsCard, StatusBadge, Tooltip, toast } from '@/components/design-system';
+import { Button, DashboardPageSkeleton, IconButton, PageHeader, SkeletonCard, StatsCard, StatusBadge, Tooltip, toast } from '@/components/design-system';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import SmartSearch, { SearchFilters } from '@/components/dashboard/SmartSearch';
 import { DashboardSurface, DashboardPanel, DashboardGrid } from '@/components/dashboard/DashboardSurface';
@@ -328,13 +328,8 @@ export default function UsersPage() {
 	const paginatedUsers = users;
 
 	if (status === 'loading') {
-		return (
-			<DashboardSurface>
-				<DashboardPanel>
-					<CompactSkeleton />
-				</DashboardPanel>
-			</DashboardSurface>
-		);
+		// Round 3 C-5: list/dashboard surfaces use DashboardPageSkeleton.
+		return <DashboardPageSkeleton />;
 	}
 
 	const role = session?.user?.role;

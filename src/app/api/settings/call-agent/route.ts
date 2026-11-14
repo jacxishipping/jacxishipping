@@ -140,11 +140,14 @@ function createTwilioAuthHeader(authMode: TwilioAuthMode, settings: CallAgentSet
 }
 
 async function fetchTwilioJson(pathname: string, authHeader: string, accountSid: string) {
+  // Time-boxed: api.twilio.com has no timeout of its own, and this call runs
+  // inside the settings page load — an uncapped hang blocks the whole page.
   const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}${pathname}`, {
     headers: {
       Authorization: authHeader,
     },
     cache: 'no-store',
+    signal: AbortSignal.timeout(10_000),
   });
 
   if (!response.ok) {
