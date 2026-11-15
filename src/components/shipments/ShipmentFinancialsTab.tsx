@@ -982,9 +982,9 @@ export default function ShipmentFinancialsTab({
             <FormField label="Date (Read-only)" value={editingExpense ? new Date(editingExpense.transactionDate).toLocaleDateString() : ''} disabled />
           </div>
 
-          <FormField label="Description *" value={editDescription} onChange={(event) => setEditDescription(event.target.value)} required />
+          <FormField id="edit-expense-description" name="description" label="Description *" value={editDescription} onChange={(event) => setEditDescription(event.target.value)} required />
 
-          <FormField label="Notes" rows={2} multiline value={editNotes} onChange={(event) => setEditNotes(event.target.value)} />
+          <FormField id="edit-expense-notes" name="notes" label="Notes" rows={2} multiline value={editNotes} onChange={(event) => setEditNotes(event.target.value)} />
 
           {/* Receipt Attachment in Edit Modal */}
           <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>

@@ -63,22 +63,28 @@ export default function Modal({
   actionsSx,
 }: ModalProps) {
   const panelRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
-  // Close on Escape + lock body scroll while open; focus the panel.
+  // Close on Escape + lock body scroll while open; focus the panel once on open if not already focused inside.
   useEffect(() => {
     if (!open) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") onCloseRef.current?.();
     };
     window.addEventListener("keydown", handleKeyDown);
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    panelRef.current?.focus();
+    if (panelRef.current && !panelRef.current.contains(document.activeElement)) {
+      panelRef.current.focus();
+    }
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
       document.body.style.overflow = prevOverflow;
     };
-  }, [open, onClose]);
+  }, [open]);
 
   return (
     <AnimatePresence>

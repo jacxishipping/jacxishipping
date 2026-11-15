@@ -20,6 +20,14 @@ export function useKeyboardShortcuts(shortcuts: KeyboardShortcut[], enabled = tr
     if (!enabled) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
+      // Don't trigger shortcuts when typing in input fields
+      const target = event.target as HTMLElement | null;
+      if (target) {
+        const isInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName);
+        const isContentEditable = target.isContentEditable;
+        if (isInput || isContentEditable) return;
+      }
+
       for (const shortcut of shortcuts) {
         const ctrlMatch = shortcut.ctrl ? event.ctrlKey : !event.ctrlKey;
         const metaMatch = shortcut.meta ? event.metaKey : !event.metaKey;
