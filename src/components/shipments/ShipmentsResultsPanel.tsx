@@ -141,9 +141,9 @@ export default function ShipmentsResultsPanel({
 	return (
 		<DashboardPanel
 			title={
-				<div style={{display: 'inline-flex', alignItems: 'center', gap: '8px'}}>
+				<div className="inline-flex items-center gap-2">
 					<span>Results</span>
-					<span style={{display: 'inline-flex', alignItems: 'center', justifyContent: 'center', paddingLeft: '8px', paddingRight: '8px', paddingTop: '2px', paddingBottom: '2px', borderRadius: '999px', backgroundColor: 'rgba(var(--accent-gold-rgb), 0.12)', color: 'var(--accent-gold-text)', border: '1px solid rgba(var(--accent-gold-rgb), 0.25)', fontSize: '0.72rem', fontWeight: 700, lineHeight: 1.2}}>
+					<span className="inline-flex items-center justify-center rounded-full border border-[rgba(var(--accent-gold-rgb),0.25)] bg-[rgba(var(--accent-gold-rgb),0.12)] px-2 py-0.5 text-[0.72rem] font-bold tabular-nums leading-tight text-[var(--accent-gold-text)]">
 						{loading ? '…' : shipments.length}
 					</span>
 				</div>
@@ -159,45 +159,58 @@ export default function ShipmentsResultsPanel({
 			className="overflow-hidden"
 			bodyClassName="overflow-hidden"
 			actions={
-				<div style={{display: 'flex', gap: '8px', alignItems: 'center'}}>
-					<div style={{display: 'inline-flex', alignItems: 'center', padding: '3px', borderRadius: '12px', backgroundColor: 'rgba(var(--text-primary-rgb), 0.04)', border: '1px solid var(--border)'}}>
+				<div className="flex items-center gap-2">
+					<div
+						role="tablist"
+						aria-label="Shipment view mode"
+						className="inline-flex items-center rounded-xl border border-[var(--border)] bg-[rgba(var(--text-primary-rgb),0.04)] p-0.5"
+					>
 						<button
 							type="button"
+							role="tab"
+							aria-selected={viewMode === 'cards'}
+							aria-label="Card view"
 							onClick={() => handleViewModeChange('cards')}
-							className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+							className={`inline-flex min-h-9 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(var(--accent-gold-rgb),0.35)] ${
 								viewMode === 'cards'
 									? 'bg-[var(--panel)] text-[var(--text-primary)] shadow-sm'
 									: 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
 							}`}
 							title="Card View"
 						>
-							<LayoutGrid className={`w-3.5 h-3.5 ${viewMode === 'cards' ? 'text-[var(--accent-gold-text)]' : ''}`} />
+							<LayoutGrid className={`h-3.5 w-3.5 ${viewMode === 'cards' ? 'text-[var(--accent-gold-text)]' : ''}`} />
 							<span className="hidden sm:inline">Cards</span>
 						</button>
 						<button
 							type="button"
+							role="tab"
+							aria-selected={viewMode === 'table'}
+							aria-label="Table view"
 							onClick={() => handleViewModeChange('table')}
-							className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+							className={`inline-flex min-h-9 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(var(--accent-gold-rgb),0.35)] ${
 								viewMode === 'table'
 									? 'bg-[var(--panel)] text-[var(--text-primary)] shadow-sm'
 									: 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
 							}`}
 							title="Table / Bulk Mode"
 						>
-							<Table2 className={`w-3.5 h-3.5 ${viewMode === 'table' ? 'text-[var(--accent-gold-text)]' : ''}`} />
+							<Table2 className={`h-3.5 w-3.5 ${viewMode === 'table' ? 'text-[var(--accent-gold-text)]' : ''}`} />
 							<span className="hidden sm:inline">Table</span>
 						</button>
 						<button
 							type="button"
+							role="tab"
+							aria-selected={viewMode === 'kanban'}
+							aria-label="Kanban view"
 							onClick={() => handleViewModeChange('kanban')}
-							className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+							className={`inline-flex min-h-9 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(var(--accent-gold-rgb),0.35)] ${
 								viewMode === 'kanban'
 									? 'bg-[var(--panel)] text-[var(--text-primary)] shadow-sm'
 									: 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
 							}`}
 							title="Pipeline Kanban Board"
 						>
-							<Kanban className={`w-3.5 h-3.5 ${viewMode === 'kanban' ? 'text-[var(--accent-gold-text)]' : ''}`} />
+							<Kanban className={`h-3.5 w-3.5 ${viewMode === 'kanban' ? 'text-[var(--accent-gold-text)]' : ''}`} />
 							<span className="hidden sm:inline">Kanban</span>
 						</button>
 					</div>

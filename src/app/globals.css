@@ -246,9 +246,7 @@ html {
 	/* Other */
 	--radius: 0.75rem;
 
-	/* Fonts */
-	--font-inter: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-	--font-urbanist: 'Urbanist', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+	/* Fonts: --font-inter / --font-urbanist are owned by next/font on <html> */
 
 	/* Density Tokens - Default / Comfortable */
 	--density-table-py: 0.75rem;

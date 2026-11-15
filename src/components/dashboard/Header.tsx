@@ -218,7 +218,7 @@ export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
           aria-label="Open mobile menu"
           onClick={onMenuClick}
           style={{ fontFamily: "inherit" }}
-          className="mr-2 flex md:hidden !h-9 !w-9 !min-h-0 !min-w-0 items-center justify-center !rounded-lg !border-0 !bg-transparent !p-1.5 !text-[var(--text-primary)] hover:!bg-[rgba(var(--accent-gold-rgb),0.1)] !shadow-none"
+          className="mr-2 flex md:hidden !h-11 !w-11 !min-h-11 !min-w-11 items-center justify-center !rounded-lg !border-0 !bg-transparent !p-1.5 !text-[var(--text-primary)] transition-colors duration-200 hover:!bg-[rgba(var(--accent-gold-rgb),0.1)] focus-visible:!ring-2 focus-visible:!ring-[rgba(var(--accent-gold-rgb),0.35)] !shadow-none"
         >
           <MenuIcon className="h-[22px] w-[22px]" />
         </JacxiButton>
@@ -271,7 +271,7 @@ export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
                   window.dispatchEvent(new CustomEvent("open-global-search"))
                 }
                 style={{ fontFamily: "inherit" }}
-                className="!h-9 !w-9 !min-h-0 !min-w-0 !rounded-lg !border-0 !bg-transparent !p-1.5 !text-[var(--text-secondary)] hover:!text-[var(--text-primary)] hover:!bg-[rgba(var(--border-rgb),0.4)] !shadow-none"
+                className="!h-11 !w-11 !min-h-11 !min-w-11 !rounded-lg !border-0 !bg-transparent !p-1.5 !text-[var(--text-secondary)] transition-colors duration-200 hover:!bg-[rgba(var(--border-rgb),0.4)] hover:!text-[var(--text-primary)] focus-visible:!ring-2 focus-visible:!ring-[rgba(var(--accent-gold-rgb),0.35)] !shadow-none"
                 aria-label="Search"
               >
                 <SearchIcon className="h-[22px] w-[22px]" />
@@ -291,7 +291,7 @@ export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
                     aria-expanded={quickActionMenuOpen}
                     aria-haspopup="menu"
                     style={{ fontFamily: "inherit" }}
-                    className="!h-9 !w-9 !min-h-0 !min-w-0 !rounded-lg !border-0 !bg-transparent !p-1.5 !text-[var(--text-secondary)] hover:!bg-[rgba(var(--border-rgb),0.4)] hover:!text-[var(--text-primary)] !shadow-none"
+                    className="!h-11 !w-11 !min-h-11 !min-w-11 md:!h-9 md:!w-9 md:!min-h-9 md:!min-w-9 !rounded-lg !border-0 !bg-transparent !p-1.5 !text-[var(--text-secondary)] transition-colors duration-200 hover:!bg-[rgba(var(--border-rgb),0.4)] hover:!text-[var(--text-primary)] focus-visible:!ring-2 focus-visible:!ring-[rgba(var(--accent-gold-rgb),0.35)] !shadow-none"
                   >
                     <AddIcon className="h-[22px] w-[22px]" />
                   </JacxiButton>
@@ -346,7 +346,7 @@ export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
                 tone="primary"
                 onClick={() => openUniversalShipmentExport()}
                 style={{ fontFamily: "inherit" }}
-                className="!h-9 !w-9 !min-h-0 !min-w-0 !rounded-lg !border-0 !bg-transparent !p-1.5 !text-[var(--text-secondary)] hover:!text-[var(--text-primary)] hover:!bg-[rgba(var(--border-rgb),0.4)] !shadow-none"
+                className="!h-9 !w-9 !min-h-9 !min-w-9 !rounded-lg !border-0 !bg-transparent !p-1.5 !text-[var(--text-secondary)] transition-colors duration-200 hover:!bg-[rgba(var(--border-rgb),0.4)] hover:!text-[var(--text-primary)] focus-visible:!ring-2 focus-visible:!ring-[rgba(var(--accent-gold-rgb),0.35)] !shadow-none"
                 aria-label="Export Shipments"
               >
                 <Download style={{ width: 20, height: 20 }} />
@@ -364,7 +364,7 @@ export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
                 onClick={toggleKeyboardShortcuts}
                 aria-label="Keyboard Shortcuts"
                 style={{ fontFamily: "inherit" }}
-                className="!h-9 !w-9 !min-h-0 !min-w-0 !rounded-lg !border-0 !bg-transparent !p-1.5 !text-[var(--text-secondary)] hover:!bg-[rgba(var(--border-rgb),0.4)] hover:!text-[var(--text-primary)] !shadow-none"
+                className="!h-9 !w-9 !min-h-9 !min-w-9 !rounded-lg !border-0 !bg-transparent !p-1.5 !text-[var(--text-secondary)] transition-colors duration-200 hover:!bg-[rgba(var(--border-rgb),0.4)] hover:!text-[var(--text-primary)] focus-visible:!ring-2 focus-visible:!ring-[rgba(var(--accent-gold-rgb),0.35)] !shadow-none"
               >
                 <KeyboardIcon className="h-5 w-5" />
               </JacxiButton>
@@ -388,7 +388,7 @@ export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
                 tone="primary"
                 aria-label="Settings"
                 style={{ fontFamily: "inherit" }}
-                className="!h-9 !w-9 !min-h-0 !min-w-0 !rounded-lg !border-0 !bg-transparent !p-1.5 !text-[var(--text-secondary)] hover:!bg-[rgba(var(--border-rgb),0.4)] hover:!text-[var(--text-primary)] !shadow-none"
+                className="!h-9 !w-9 !min-h-9 !min-w-9 !rounded-lg !border-0 !bg-transparent !p-1.5 !text-[var(--text-secondary)] transition-colors duration-200 hover:!bg-[rgba(var(--border-rgb),0.4)] hover:!text-[var(--text-primary)] focus-visible:!ring-2 focus-visible:!ring-[rgba(var(--accent-gold-rgb),0.35)] !shadow-none"
               >
                 <Settings className="h-5 w-5" />
               </JacxiButton>
@@ -408,7 +408,7 @@ export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
                   aria-expanded={profileMenuOpen}
                   aria-haspopup="menu"
                   style={{ fontFamily: "inherit" }}
-                  className="!h-auto !w-auto !min-h-0 !min-w-0 !rounded-full !border-0 !bg-transparent !p-1 !shadow-none"
+                  className="!h-11 !w-11 !min-h-11 !min-w-11 !rounded-full !border-0 !bg-transparent !p-1 transition-colors duration-200 focus-visible:!ring-2 focus-visible:!ring-[rgba(var(--accent-gold-rgb),0.35)] !shadow-none"
                 >
                   <JXAvatar
                     name={session?.user?.name || "User"}

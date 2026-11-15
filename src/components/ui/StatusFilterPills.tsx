@@ -24,20 +24,30 @@ export function StatusFilterPills({
     <div className={`relative ${className}`}>
       <div
         aria-hidden="true"
+        className="pointer-events-none absolute inset-y-0 left-0 z-10 w-6 bg-gradient-to-r from-[var(--panel)] to-transparent sm:hidden"
+      />
+      <div
+        aria-hidden="true"
         className="pointer-events-none absolute inset-y-0 right-0 z-10 w-8 bg-gradient-to-l from-[var(--panel)] to-transparent sm:hidden"
       />
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 [scrollbar-gutter:stable] scrollbar-thin">
+      <div
+        role="tablist"
+        aria-label="Status filters"
+        className="flex items-center gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-gutter:stable] scrollbar-thin"
+      >
       {options.map((option) => {
         const isSelected = selectedValue === option.value;
         return (
           <button
             key={option.value}
             type="button"
+            role="tab"
+            aria-selected={isSelected}
             onClick={() => onSelect(option.value)}
-            className={`inline-flex min-h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold transition-all ${
+            className={`inline-flex min-h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(var(--accent-gold-rgb),0.35)] ${
               isSelected
                 ? 'bg-[var(--accent-gold)] text-black shadow-sm ring-2 ring-[var(--accent-gold)]/20'
-                : 'border border-[var(--border)] bg-[var(--panel)] text-[var(--text-secondary)] hover:border-[var(--accent-gold)]/50 hover:text-[var(--text-primary)] hover:bg-[var(--background)]'
+                : 'border border-[var(--border)] bg-[var(--panel)] text-[var(--text-secondary)] hover:border-[rgba(var(--accent-gold-rgb),0.5)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
             }`}
           >
             {option.color && (
@@ -49,7 +59,7 @@ export function StatusFilterPills({
             <span>{option.label}</span>
             {typeof option.count === 'number' && (
               <span
-                className={`rounded-full px-1.5 py-0.2 text-[10px] font-bold ${
+                className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums ${
                   isSelected ? 'bg-black/15 text-black' : 'bg-[var(--background)] text-[var(--text-secondary)]'
                 }`}
               >

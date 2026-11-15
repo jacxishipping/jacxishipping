@@ -743,7 +743,7 @@ const confirmAction = useConfirmAction();
 						].map((item) => (
 							<JXBox padding="none" border={false} key={item.label} style={{padding: '10px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--background)'}}>
 								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontSize: '0.68rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 800}}>{item.label}</JXBox>
-								<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '2px', fontWeight: 800, color: 'var(--text-primary)'}}>{item.value}</JXBox>
+								<JXBox padding="none" border={false} className="tabular-nums" style={{backgroundColor: 'transparent', borderRadius: 0, marginTop: '2px', fontWeight: 800, color: 'var(--text-primary)'}}>{item.value}</JXBox>
 							</JXBox>
 						))}
 					</JXBox>
@@ -805,23 +805,25 @@ const confirmAction = useConfirmAction();
 						}
 					/>
 				) : (
-					<DataTable
-						data={invoiceRows}
-						columns={invoiceColumns}
-						keyField="id"
-						selectable={isAdmin}
-						onRowClick={(row) => router.push(`/dashboard/invoices/${row.id}`)}
-						// Round 3 part 2: prefetch the detail route on row hover.
-						// The row click itself was never broken — router.push
-						// fires at once — but a cold [id] route compile/load
-						// left the URL unchanged for 90 s+. Warming it on
-						// hover makes the click commit promptly.
-						onRowHover={(row) => router.prefetch(`/dashboard/invoices/${row.id}`)}
-						onDelete={isAdmin ? handleBulkDelete : undefined}
-						onExport={isAdmin ? handleBulkExport : undefined}
-						bulkStatusOptions={invoiceStatusOptions}
-						onBulkStatusChange={isAdmin ? handleBulkStatusUpdate : undefined}
-					/>
+					<div className="w-full min-w-0 overflow-x-auto">
+						<DataTable
+							data={invoiceRows}
+							columns={invoiceColumns}
+							keyField="id"
+							selectable={isAdmin}
+							onRowClick={(row) => router.push(`/dashboard/invoices/${row.id}`)}
+							// Round 3 part 2: prefetch the detail route on row hover.
+							// The row click itself was never broken — router.push
+							// fires at once — but a cold [id] route compile/load
+							// left the URL unchanged for 90 s+. Warming it on
+							// hover makes the click commit promptly.
+							onRowHover={(row) => router.prefetch(`/dashboard/invoices/${row.id}`)}
+							onDelete={isAdmin ? handleBulkDelete : undefined}
+							onExport={isAdmin ? handleBulkExport : undefined}
+							bulkStatusOptions={invoiceStatusOptions}
+							onBulkStatusChange={isAdmin ? handleBulkStatusUpdate : undefined}
+						/>
+					</div>
 				)}
 			</DashboardPanel>
 

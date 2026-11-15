@@ -720,7 +720,7 @@ export default async function DashboardPage() {
             <div id="dashboard-header">
                 <DashboardHeader
                     title="Overview"
-                    description="Operations at a glance."
+                    description="Exceptions, pipeline momentum, and revenue that need attention today."
                     actions={
                       <>
                         <QuickCalculatorButton />
@@ -741,7 +741,18 @@ export default async function DashboardPage() {
 
             {/* Workflow exceptions + recent activity stream separately when the
                 heavier workflow-scan query completes */}
-            <Suspense fallback={null}>
+            <Suspense
+                fallback={
+                    <div className="rounded-2xl border border-[var(--border)] bg-[var(--panel)] p-4 shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
+                        <div className="mb-3 h-4 w-40 animate-pulse rounded bg-[var(--border)]" />
+                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                            {Array.from({ length: 4 }).map((_, index) => (
+                                <div key={index} className="h-[72px] animate-pulse rounded-xl bg-[var(--background)]" />
+                            ))}
+                        </div>
+                    </div>
+                }
+            >
                 <WorkSection />
             </Suspense>
         </DashboardSurface>

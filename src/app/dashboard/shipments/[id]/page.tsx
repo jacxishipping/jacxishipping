@@ -957,18 +957,36 @@ function ShipmentDetailPageContent() {
         description: entry.description,
         type: entry.type,
         amount: entry.amount,
+        balance: entry.balance,
+        notes: entry.notes,
+        reference: entry.reference,
+        metadata: entry.metadata,
       }));
 
-      const customerEntries: ComparisonTransactionWithDrillDown[] = (shipment?.ledgerEntries || []).map((entry) => ({
-        id: `customer-${entry.id}`,
-        source: 'CUSTOMER',
-        transactionDate: entry.transactionDate,
-        description: entry.description,
-        type: entry.type,
-        amount: entry.amount,
-        userLedgerEntryId: entry.id,
-        linkedCompanyLedgerEntry: linkedCompanyLedgerEntriesByUserEntryId.get(entry.id) || null,
-      }));
+      const customerEntries: ComparisonTransactionWithDrillDown[] = (shipment?.ledgerEntries || []).map((entry) => {
+        const metadata = (entry.metadata ?? {}) as Record<string, unknown>;
+        const ref = typeof metadata.reference === 'string'
+          ? metadata.reference
+          : typeof metadata.invoiceNumber === 'string'
+          ? metadata.invoiceNumber
+          : null;
+
+        return {
+          id: `customer-${entry.id}`,
+          source: 'CUSTOMER',
+          transactionDate: entry.transactionDate,
+          description: entry.description,
+          type: entry.type,
+          amount: entry.amount,
+          balance: entry.balance,
+          notes: entry.notes,
+          reference: ref,
+          metadata: entry.metadata,
+          userLedgerEntryId: entry.id,
+          userLedgerEntry: entry,
+          linkedCompanyLedgerEntry: linkedCompanyLedgerEntriesByUserEntryId.get(entry.id) || null,
+        };
+      });
 
       return [...companyEntries, ...customerEntries].sort(
         (left, right) => new Date(right.transactionDate).getTime() - new Date(left.transactionDate).getTime()

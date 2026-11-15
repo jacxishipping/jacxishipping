@@ -88,7 +88,7 @@ export function DashboardHeader({ title, description, meta, actions, className }
 								}}
 							>
 								<p className="text-[0.65rem] uppercase tracking-[0.2em] text-[var(--text-secondary)]">{item.label}</p>
-								<p className="text-[1rem] font-semibold">{item.value}</p>
+								<p className="text-[1rem] font-semibold tabular-nums">{item.value}</p>
 								{item.helper && <p className="text-[0.7rem] text-[var(--text-secondary)]">{item.helper}</p>}
 							</JXBox>
 						))}
@@ -132,13 +132,13 @@ export function DashboardPanel({
 			padding="none"
 			className={cn(
 				'dashboard-panel relative flex flex-col !rounded-2xl !border-[var(--border)] !bg-[var(--panel)] text-[var(--text-primary)]',
-				'min-w-0 overflow-hidden',
+				'min-w-0 overflow-hidden transition-shadow duration-200',
 				fullHeight && 'h-full',
 				className,
 			)}
 			style={{
 				borderTop: '2px solid rgba(var(--accent-gold-rgb), 0.3)',
-				boxShadow: '0 20px 48px rgba(var(--text-primary-rgb), 0.10)',
+				boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04), 0 12px 28px rgba(var(--text-primary-rgb), 0.06)',
 				maxWidth: '100%',
 				fontFamily: 'inherit',
 			}}

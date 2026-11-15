@@ -246,6 +246,10 @@ type ComparisonTransactionBase = {
   description: string;
   type: string;
   amount: number;
+  balance?: number;
+  notes?: string | null;
+  reference?: string | null;
+  metadata?: Record<string, unknown> | null;
 };
 
 export type CompanyComparisonTransaction = ComparisonTransactionBase & {
@@ -257,6 +261,7 @@ export type CustomerComparisonTransaction = ComparisonTransactionBase & {
   source: 'CUSTOMER';
   userLedgerEntryId: string;
   linkedCompanyLedgerEntry: LinkedCompanyLedgerEntry | null;
+  userLedgerEntry?: Shipment['ledgerEntries'][number];
 };
 
 export type ComparisonTransactionWithDrillDown =

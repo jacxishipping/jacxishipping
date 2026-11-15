@@ -15,11 +15,10 @@ import {
   PanelRightOpen, 
   MessageSquare, 
   Route, 
-  ExternalLink,
   ChevronRight,
   Sparkles
 } from 'lucide-react';
-import { Button, CopyButton, Tooltip } from '@/components/design-system';
+import { Button, CopyButton, EmptyState } from '@/components/design-system';
 
 import { hasPermission } from '@/lib/rbac';
 import ShipmentQuickPeek from '@/components/dashboard/ShipmentQuickPeek';
@@ -238,10 +237,10 @@ export default function DashboardTodayWork({
   return (
     <div className="space-y-3">
       {/* Header row */}
-      <div className="mb-2 flex items-center justify-between">
-        <div>
-          <div className="text-sm font-semibold text-[var(--text-primary)]">Priority Work</div>
-          <div className="text-xs text-[var(--text-secondary)]">Urgent items, 1-click resolvers and role-adaptive workflows</div>
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="text-sm font-semibold text-[var(--text-primary)]">Priority Work</h2>
+          <p className="text-xs text-[var(--text-secondary)]">Urgent exceptions, quick resolvers, and role-focused workflows</p>
         </div>
         <Button href="/dashboard/shipments" variant="ghost" size="sm">
           Workbench
@@ -261,15 +260,15 @@ export default function DashboardTodayWork({
           <Link
             key={card.label}
             href={card.href}
-            className="group rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2 transition-all hover:border-[var(--accent-gold)] hover:bg-[var(--panel)]"
+            className="group min-h-[72px] rounded-xl border border-[var(--border)] bg-[var(--panel)] px-3 py-2.5 shadow-[0_1px_3px_rgba(15,23,42,0.04)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[rgba(var(--accent-gold-rgb),0.45)] hover:shadow-[0_8px_24px_rgba(15,23,42,0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(var(--accent-gold-rgb),0.35)]"
           >
-            <div className="flex items-baseline justify-between">
+            <div className="flex items-baseline justify-between gap-2">
               <span className="text-[10px] font-medium uppercase tracking-wide text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]">
                 {card.label}
               </span>
-              <span className={`rounded px-1.5 py-0.5 text-lg font-semibold tabular-nums ${card.tone}`}>{card.value}</span>
+              <span className={`rounded-md px-1.5 py-0.5 text-lg font-semibold tabular-nums ${card.tone}`}>{card.value}</span>
             </div>
-            <div className="mt-0.5 text-[10px] text-[var(--text-secondary)] truncate">{card.detail}</div>
+            <div className="mt-0.5 truncate text-[10px] text-[var(--text-secondary)]">{card.detail}</div>
           </Link>
         ))}
       </div>
@@ -291,8 +290,22 @@ export default function DashboardTodayWork({
           <span className="text-[10px] text-[var(--text-secondary)]">1-Click quick actions available</span>
         </div>
         {displayedWorkItems.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-[var(--border)] bg-[var(--background)] p-4 text-xs text-[var(--text-secondary)] text-center">
-            No urgent operational exceptions for this view. All systems running smoothly.
+          <div className="rounded-xl border border-dashed border-[var(--border)] bg-[var(--background)]">
+            <EmptyState
+              icon={<Sparkles className="h-8 w-8" />}
+              title="No urgent exceptions"
+              description="Nothing needs attention in this view. Check shipments or invoices if you want to keep moving work."
+              action={
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  <Button href="/dashboard/shipments" variant="outline" size="sm">
+                    Open Shipments
+                  </Button>
+                  <Button href="/dashboard/invoices" variant="primary" size="sm">
+                    Review Invoices
+                  </Button>
+                </div>
+              }
+            />
           </div>
         ) : (
           <div className="divide-y divide-[var(--border)] rounded-xl border border-[var(--border)] bg-[var(--panel)] text-sm shadow-sm overflow-hidden">
@@ -343,8 +356,8 @@ export default function DashboardTodayWork({
 
                   {/* Right: Inline 1-Click Action Resolvers */}
                   <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0 pt-1 sm:pt-0 border-t sm:border-t-0 border-[var(--border)]">
-                    <div className="text-right text-xs hidden lg:block mr-1">
-                      <div className="font-semibold text-[var(--text-primary)]">{item.ageDays}d old</div>
+                    <div className="mr-1 hidden text-right text-xs lg:block">
+                      <div className="font-semibold tabular-nums text-[var(--text-primary)]">{item.ageDays}d old</div>
                       <div className="text-[10px] text-[var(--text-secondary)]">Pending review</div>
                     </div>
 
@@ -407,10 +420,10 @@ export default function DashboardTodayWork({
                         title="Send SMS/WhatsApp notification or nudge"
                         aria-label="Send notification"
                         style={{ fontFamily: 'inherit' }}
-                        className="!p-1.5 !text-xs !rounded-lg !border !border-[var(--border)] !bg-transparent !text-[var(--text-secondary)] hover:!text-[var(--text-primary)] hover:!border-[var(--border-hover)] hover:!bg-[var(--background)] shadow-none transition-all cursor-pointer"
-                      >
-                        <MessageSquare className="h-3.5 w-3.5" />
-                      </JacxiButton>
+                          className="!inline-flex !min-h-11 !min-w-11 !items-center !justify-center !rounded-lg !border !border-[var(--border)] !bg-transparent !p-1.5 !text-xs !text-[var(--text-secondary)] shadow-none transition-all duration-200 hover:!border-[var(--border-hover)] hover:!bg-[var(--background)] hover:!text-[var(--text-primary)] focus-visible:!ring-2 focus-visible:!ring-[rgba(var(--accent-gold-rgb),0.35)] cursor-pointer"
+                        >
+                          <MessageSquare className="h-3.5 w-3.5" />
+                        </JacxiButton>
 
                       {/* 4. Full Page Navigation */}
                       <Link

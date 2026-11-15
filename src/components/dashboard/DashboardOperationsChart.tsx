@@ -1,6 +1,7 @@
 'use client';
 
 import { JacxiButton } from '@/components/design-system/JacxiButton';
+import { EmptyState, Button } from '@/components/design-system';
 import { useMemo, useState } from 'react';
 import {
   AreaChart,
@@ -17,7 +18,7 @@ import {
   PieChart,
   Pie,
 } from 'recharts';
-import { Activity, BarChart3, PieChart as PieIcon, Layers, TrendingUp, TrendingDown } from 'lucide-react';
+import { Activity, PieChart as PieIcon, Layers, TrendingUp, TrendingDown, Ship } from 'lucide-react';
 
 import { DashboardPanel } from '@/components/dashboard/DashboardSurface';
 
@@ -58,14 +59,14 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const STATUS_COLORS = [
-  '#D4AF37', // Accent Gold
-  '#3B82F6', // Blue
-  '#10B981', // Emerald
-  '#8B5CF6', // Purple
-  '#F59E0B', // Amber
-  '#EC4899', // Pink
-  '#6366F1', // Indigo
-  '#14B8A6', // Teal
+  'var(--accent-gold)',
+  'var(--info)',
+  'var(--success)',
+  '#8B5CF6',
+  'var(--warning)',
+  '#EC4899',
+  '#6366F1',
+  '#14B8A6',
 ];
 
 export default function DashboardOperationsChart({
@@ -149,7 +150,7 @@ export default function DashboardOperationsChart({
           <span className="font-semibold text-[var(--text-primary)]">Operations Velocity &amp; Analytics</span>
         </div>
       }
-      description="Real-time operational momentum, pipeline distribution, and fleet utilization"
+      description="Shipment velocity, pipeline mix, and container fill rates"
       actions={
         <div className="flex items-center gap-2 flex-wrap">
           {/* Main Tab Switcher */}
@@ -158,14 +159,15 @@ export default function DashboardOperationsChart({
               type="button"
               variant="outline"
               onClick={() => setActiveTab('trends')}
+              aria-pressed={activeTab === 'trends'}
               style={{ fontFamily: 'inherit' }}
-              className={`!inline-flex !items-center !gap-1.5 !rounded-lg !px-2.5 !py-1 !text-xs !font-medium !border-transparent shadow-none transition-all cursor-pointer ${
+              className={`!inline-flex !min-h-8 !items-center !gap-1.5 !rounded-lg !px-2.5 !py-1.5 !text-xs !font-medium !border-transparent shadow-none transition-all duration-200 cursor-pointer focus-visible:!ring-2 focus-visible:!ring-[rgba(var(--accent-gold-rgb),0.35)] ${
                 activeTab === 'trends'
                   ? '!bg-[var(--panel)] !text-[var(--accent-gold-text)] shadow-xs'
                   : '!bg-transparent !text-[var(--text-secondary)] hover:!text-[var(--text-primary)]'
               }`}
             >
-              <Activity className="h-3.5 w-3.5" />
+              <Activity className="h-3.5 w-3.5 text-[var(--accent-gold)]" />
               <span className="hidden sm:inline">Movement Trends</span>
               <span className="sm:hidden">Trends</span>
             </JacxiButton>
@@ -173,14 +175,15 @@ export default function DashboardOperationsChart({
               type="button"
               variant="outline"
               onClick={() => setActiveTab('status')}
+              aria-pressed={activeTab === 'status'}
               style={{ fontFamily: 'inherit' }}
-              className={`!inline-flex !items-center !gap-1.5 !rounded-lg !px-2.5 !py-1 !text-xs !font-medium !border-transparent shadow-none transition-all cursor-pointer ${
+              className={`!inline-flex !min-h-8 !items-center !gap-1.5 !rounded-lg !px-2.5 !py-1.5 !text-xs !font-medium !border-transparent shadow-none transition-all duration-200 cursor-pointer focus-visible:!ring-2 focus-visible:!ring-[rgba(var(--accent-gold-rgb),0.35)] ${
                 activeTab === 'status'
                   ? '!bg-[var(--panel)] !text-[var(--accent-gold-text)] shadow-xs'
                   : '!bg-transparent !text-[var(--text-secondary)] hover:!text-[var(--text-primary)]'
               }`}
             >
-              <PieIcon className="h-3.5 w-3.5" />
+              <PieIcon className="h-3.5 w-3.5 text-[var(--accent-gold)]" />
               <span className="hidden sm:inline">Pipeline Status</span>
               <span className="sm:hidden">Pipeline</span>
             </JacxiButton>
@@ -188,14 +191,15 @@ export default function DashboardOperationsChart({
               type="button"
               variant="outline"
               onClick={() => setActiveTab('containers')}
+              aria-pressed={activeTab === 'containers'}
               style={{ fontFamily: 'inherit' }}
-              className={`!inline-flex !items-center !gap-1.5 !rounded-lg !px-2.5 !py-1 !text-xs !font-medium !border-transparent shadow-none transition-all cursor-pointer ${
+              className={`!inline-flex !min-h-8 !items-center !gap-1.5 !rounded-lg !px-2.5 !py-1.5 !text-xs !font-medium !border-transparent shadow-none transition-all duration-200 cursor-pointer focus-visible:!ring-2 focus-visible:!ring-[rgba(var(--accent-gold-rgb),0.35)] ${
                 activeTab === 'containers'
                   ? '!bg-[var(--panel)] !text-[var(--accent-gold-text)] shadow-xs'
                   : '!bg-transparent !text-[var(--text-secondary)] hover:!text-[var(--text-primary)]'
               }`}
             >
-              <Layers className="h-3.5 w-3.5" />
+              <Layers className="h-3.5 w-3.5 text-[var(--accent-gold)]" />
               <span className="hidden sm:inline">Container Capacity</span>
               <span className="sm:hidden">Capacity</span>
             </JacxiButton>
@@ -212,7 +216,7 @@ export default function DashboardOperationsChart({
                   onClick={() => setTrendPeriod(period)}
                   aria-label={`Show ${period.toUpperCase()} trends`}
                   style={{ fontFamily: 'inherit' }}
-                  className={`!min-h-8 !min-w-8 !px-2.5 !py-1.5 !rounded-md !text-[11px] !font-semibold shadow-none transition-all cursor-pointer ${
+                  className={`!min-h-8 !min-w-8 !px-2.5 !py-1.5 !rounded-md !text-[11px] !font-semibold shadow-none transition-all duration-200 cursor-pointer focus-visible:!ring-2 focus-visible:!ring-[rgba(var(--accent-gold-rgb),0.35)] ${
                     trendPeriod === period
                       ? '!bg-[var(--panel)] !text-[var(--accent-gold-text)] shadow-xs !border !border-[var(--border)]'
                       : '!bg-transparent !border-transparent !text-[var(--text-secondary)] hover:!text-[var(--text-primary)]'
@@ -230,13 +234,31 @@ export default function DashboardOperationsChart({
         {activeTab === 'trends' && (
           <div>
             {periodMetrics.currentShipments === 0 ? (
-              <div className="flex min-h-[280px] flex-col items-center justify-center gap-1.5 px-4 py-8 text-center">
-                <Activity className="h-5 w-5 text-[var(--text-secondary)]" />
-                <p className="text-sm font-semibold text-[var(--text-primary)]">No shipments in this period</p>
-                <p className="max-w-sm text-xs leading-relaxed text-[var(--text-secondary)]">
-                  Try 30D, or open Pipeline Status for current totals.
-                </p>
-              </div>
+              <EmptyState
+                icon={<Activity className="h-8 w-8" />}
+                title="No shipments in this period"
+                description="Widen the range to 30D, or switch to Pipeline Status for live totals."
+                action={
+                  <div className="flex flex-wrap items-center justify-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setTrendPeriod('30d')}
+                    >
+                      Show 30D
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="primary"
+                      size="sm"
+                      onClick={() => setActiveTab('status')}
+                    >
+                      Open Pipeline
+                    </Button>
+                  </div>
+                }
+              />
             ) : (
               <>
             {/* Interactive Analytical Metrics Summary Bar */}
@@ -279,12 +301,12 @@ export default function DashboardOperationsChart({
                 <AreaChart data={formattedTrends} margin={{ top: 10, right: 15, left: -15, bottom: 0 }}>
                   <defs>
                     <linearGradient id="opGoldGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#D4AF37" stopOpacity={0.35} />
-                      <stop offset="100%" stopColor="#D4AF37" stopOpacity={0.02} />
+                      <stop offset="0%" stopColor="var(--accent-gold)" stopOpacity={0.35} />
+                      <stop offset="100%" stopColor="var(--accent-gold)" stopOpacity={0.02} />
                     </linearGradient>
                     <linearGradient id="opTransitGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#10B981" stopOpacity={0.35} />
-                      <stop offset="100%" stopColor="#10B981" stopOpacity={0.02} />
+                      <stop offset="0%" stopColor="var(--success)" stopOpacity={0.35} />
+                      <stop offset="100%" stopColor="var(--success)" stopOpacity={0.02} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.5} vertical={false} />
@@ -321,19 +343,19 @@ export default function DashboardOperationsChart({
                     type="monotone"
                     dataKey="shipments"
                     name="New Shipments"
-                    stroke="#D4AF37"
+                    stroke="var(--accent-gold)"
                     strokeWidth={2.2}
                     fill="url(#opGoldGrad)"
-                    activeDot={{ r: 6, stroke: '#FFFFFF', strokeWidth: 2 }}
+                    activeDot={{ r: 6, stroke: 'var(--panel)', strokeWidth: 2 }}
                   />
                   <Area
                     type="monotone"
                     dataKey="inTransit"
                     name="In Transit"
-                    stroke="#10B981"
+                    stroke="var(--success)"
                     strokeWidth={2.2}
                     fill="url(#opTransitGrad)"
-                    activeDot={{ r: 6, stroke: '#FFFFFF', strokeWidth: 2 }}
+                    activeDot={{ r: 6, stroke: 'var(--panel)', strokeWidth: 2 }}
                   />
                 </AreaChart>
               </ResponsiveContainer>
@@ -381,15 +403,15 @@ export default function DashboardOperationsChart({
                 return (
                   <div
                     key={item.name}
-                    className="flex flex-col justify-between rounded-xl border border-[var(--border)] bg-[var(--background)] p-3 transition-colors hover:border-[var(--accent-gold)]/40"
+                    className="flex flex-col justify-between rounded-xl border border-[var(--border)] bg-[var(--background)] p-3 transition-all duration-200 hover:-translate-y-0.5 hover:border-[rgba(var(--accent-gold-rgb),0.4)] hover:shadow-[0_8px_24px_rgba(15,23,42,0.08)]"
                   >
                     <div className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
                       <span className="h-2.5 w-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
                       <span className="truncate font-medium">{item.name}</span>
                     </div>
                     <div className="mt-2 flex items-baseline justify-between">
-                      <span className="text-lg font-bold text-[var(--text-primary)]">{item.count}</span>
-                      <span className="text-[11px] font-semibold text-[var(--text-secondary)]">{pct}%</span>
+                      <span className="text-lg font-bold tabular-nums text-[var(--text-primary)]">{item.count}</span>
+                      <span className="text-[11px] font-semibold tabular-nums text-[var(--text-secondary)]">{pct}%</span>
                     </div>
                   </div>
                 );
@@ -401,9 +423,16 @@ export default function DashboardOperationsChart({
         {activeTab === 'containers' && (
           <div className="h-[280px] w-full">
             {formattedContainers.length === 0 ? (
-              <div className="flex h-full items-center justify-center text-sm text-[var(--text-secondary)]">
-                No active containers recorded yet.
-              </div>
+              <EmptyState
+                icon={<Ship className="h-8 w-8" />}
+                title="No active containers yet"
+                description="Container capacity appears here once units are loaded into active containers."
+                action={
+                  <Button href="/dashboard/containers" variant="outline" size="sm">
+                    Open Containers
+                  </Button>
+                }
+              />
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={formattedContainers} margin={{ top: 10, right: 15, left: -15, bottom: 0 }}>
@@ -444,8 +473,8 @@ export default function DashboardOperationsChart({
                       </span>
                     )}
                   />
-                  <Bar dataKey="utilized" stackId="a" fill="#D4AF37" radius={[0, 0, 4, 4]} />
-                  <Bar dataKey="remaining" stackId="a" fill="#E5E7EB" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="utilized" stackId="a" fill="var(--accent-gold)" radius={[0, 0, 4, 4]} />
+                  <Bar dataKey="remaining" stackId="a" fill="var(--border)" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             )}

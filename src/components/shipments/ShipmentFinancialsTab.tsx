@@ -25,6 +25,7 @@ import { Alert, Button, FormField, Modal, toast } from '@/components/design-syst
 import { cn } from '@/lib/utils';
 import { formatMoney as formatSnapshotMoney } from '@/lib/format';
 import { ShipmentProfitabilityCard } from '@/components/dashboard/ShipmentProfitabilityCard';
+import LedgerComparisonTable from '@/components/shipments/LedgerComparisonTable';
 import type {
   ClassifiedExpenseSource,
   ClassifiedShipmentExpenseData,
@@ -607,97 +608,18 @@ export default function ShipmentFinancialsTab({
 
           {/* Ledger Comparison View */}
           {canViewLedgerComparison && (
-            <div className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-4">
-              <h3 className="mb-3 text-sm font-semibold uppercase text-[var(--text-secondary)]">Ledger Comparison</h3>
-              <p className="mb-4 text-xs text-[var(--text-secondary)]">
-                Compare what the company charged on this shipment versus what was charged to the customer.
-              </p>
-
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                <div className="rounded-lg border border-[var(--border)] bg-[var(--panel)] p-3">
-                  <p className="text-xs uppercase tracking-wide text-[var(--text-secondary)]">Company Charged Me (Net)</p>
-                  <p className="mt-1 text-lg font-semibold text-[var(--error)]">${companyChargedForComparison.toFixed(2)}</p>
-                  <p className="mt-1 text-[11px] text-[var(--text-secondary)]">
-                    Debits ${companyLedgerDebitsTotal.toFixed(2)} - Credits ${companyLedgerCreditsTotal.toFixed(2)}
-                  </p>
-                </div>
-
-                <div className="rounded-lg border border-[var(--border)] bg-[var(--panel)] p-3">
-                  <p className="text-xs uppercase tracking-wide text-[var(--text-secondary)]">Charged To Customer (Net)</p>
-                  <p className="mt-1 text-lg font-semibold text-[var(--success)]">${customerChargedForComparison.toFixed(2)}</p>
-                  <p className="mt-1 text-[11px] text-[var(--text-secondary)]">
-                    Debits ${userLedgerDebitsTotal.toFixed(2)} - Credits ${userLedgerCreditsTotal.toFixed(2)}
-                  </p>
-                </div>
-
-                <div className="rounded-lg border border-[var(--border)] bg-[var(--panel)] p-3">
-                  <p className="text-xs uppercase tracking-wide text-[var(--text-secondary)]">Difference (Customer - Company)</p>
-                  <p className={cn('mt-1 text-lg font-semibold', netDifference >= 0 ? 'text-[var(--success)]' : 'text-[var(--error)]')}>
-                    ${netDifference.toFixed(2)}
-                  </p>
-                  <p className="mt-1 text-[11px] text-[var(--text-secondary)]">Based on ledger transactions linked to this shipment.</p>
-                </div>
-              </div>
-
-              <div className="mt-4 overflow-hidden rounded-lg border border-[var(--border)]">
-                <div className="grid grid-cols-12 border-b border-[var(--border)] bg-[var(--panel)] px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
-                  <div className="col-span-2">Source</div>
-                  <div className="col-span-2">Date</div>
-                  <div className="col-span-6">Description</div>
-                  <div className="col-span-2 text-right">Amount</div>
-                </div>
-                {comparisonTransactions.length > 0 ? (
-                  <div className="max-h-72 overflow-y-auto">
-                    {comparisonTransactions.map((entry) => (
-                      <div key={entry.id} className="grid grid-cols-12 items-center border-b border-[var(--border)] px-3 py-2 text-xs last:border-b-0">
-                        <div className="col-span-2">
-                          <span
-                            className={cn(
-                              'inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
-                              entry.source === 'COMPANY'
-                                ? 'border border-[var(--error)]/35 bg-[var(--error)]/10 text-[var(--error)]'
-                                : 'border border-[var(--success)]/35 bg-[var(--success)]/10 text-[var(--success)]'
-                            )}
-                          >
-                            {entry.source}
-                          </span>
-                        </div>
-                        <div className="col-span-2 text-[var(--text-secondary)]">{new Date(entry.transactionDate).toLocaleDateString()}</div>
-                        <div className="col-span-6 truncate text-[var(--text-primary)]" title={entry.description}>
-                          <div className="flex items-center gap-2">
-                            <span className="truncate">{entry.description}</span>
-                            {entry.source === 'COMPANY' && (
-                              <button
-                                type="button"
-                                onClick={() => onOpenCompanyLedgerEntry(entry.companyLedgerEntry)}
-                                className="shrink-0 rounded border border-[var(--border)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--accent-gold)] hover:border-[var(--accent-gold)]"
-                              >
-                                View Entry
-                              </button>
-                            )}
-                            {entry.source === 'CUSTOMER' && entry.linkedCompanyLedgerEntry && (
-                              <button
-                                type="button"
-                                onClick={() => onOpenCompanyLedgerEntry(entry.linkedCompanyLedgerEntry!)}
-                                className="shrink-0 rounded border border-[var(--border)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--accent-gold)] hover:border-[var(--accent-gold)]"
-                              >
-                                Company Entry
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                        <div className={cn('col-span-2 text-right font-semibold', entry.type === 'DEBIT' ? 'text-[var(--error)]' : 'text-[var(--success)]')}>
-                          {/* Money direction (Round 3 F4): DEBIT is money out (−, red), CREDIT is money in (+, green). */}
-                          {entry.type === 'DEBIT' ? '−' : '+'}${entry.amount.toFixed(2)}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="px-3 py-4 text-sm text-[var(--text-secondary)]">No ledger transactions linked to this shipment yet.</div>
-                )}
-              </div>
-            </div>
+            <LedgerComparisonTable
+              transactions={comparisonTransactions}
+              companyChargedNet={companyChargedForComparison}
+              companyDebitsTotal={companyLedgerDebitsTotal}
+              companyCreditsTotal={companyLedgerCreditsTotal}
+              customerChargedNet={customerChargedForComparison}
+              customerDebitsTotal={userLedgerDebitsTotal}
+              customerCreditsTotal={userLedgerCreditsTotal}
+              netDifference={netDifference}
+              shipmentNumber={shipment.vehicleVIN || shipment.lotNumber || shipment.id}
+              onOpenCompanyLedgerEntry={onOpenCompanyLedgerEntry}
+            />
           )}
 
           {/* Base Costs */}

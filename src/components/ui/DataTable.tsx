@@ -755,7 +755,7 @@ export function DataTable<T extends Record<string, any>>({
                           className={cn(
                             'text-[var(--text-primary)]',
                             column.align === 'center' && 'text-center',
-                            column.align === 'right' && 'text-right',
+                            column.align === 'right' && 'text-right tabular-nums',
                             (!column.align || column.align === 'left') && 'text-left',
                             density === 'compact' ? 'px-2.5 py-1 text-xs' : 'px-4 py-3 text-sm',
                             column.className

@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Inter, Urbanist } from "next/font/google";
 import "./globals.css";
 import "./print.css";
 import ConditionalLayout from "@/components/layout/ConditionalLayout";
@@ -9,8 +10,17 @@ import OfflineStatusBanner from "@/components/pwa/OfflineStatusBanner";
 import SmoothScrolling from "@/components/ui/SmoothScrolling";
 import { LenisWrapperProvider } from "@/components/providers/LenisWrapperProvider";
 
-// Use system fonts as fallback when Google Fonts aren't available
-const fontVariables = '';
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
+
+const urbanist = Urbanist({
+  subsets: ["latin"],
+  variable: "--font-urbanist",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "JACXI Shipping - Vehicle Shipping from USA & Canada to Afghanistan",
@@ -50,8 +60,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-		<html lang="en" className={fontVariables} dir="ltr" data-scroll-behavior="smooth" suppressHydrationWarning>
-      <body suppressHydrationWarning className="min-h-screen bg-background antialiased" style={{ fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
+		<html lang="en" className={`${inter.variable} ${urbanist.variable}`} dir="ltr" data-scroll-behavior="smooth" suppressHydrationWarning>
+      <body suppressHydrationWarning className="min-h-screen bg-background antialiased" style={{ fontFamily: 'var(--font-inter), Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
         <Providers>
           <PWARegister />
           <OfflineStatusBanner />
