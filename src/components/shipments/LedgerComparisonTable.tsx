@@ -1,17 +1,23 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import Link from 'next/link';
 import {
+  AlertCircle,
+  AlertTriangle,
   ArrowDownLeft,
+  ArrowRight,
   ArrowUpDown,
   ArrowUpRight,
   Building2,
   Calendar,
+  Check,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
   Columns2,
   Copy,
+  DollarSign,
   Download,
   ExternalLink,
   FileSpreadsheet,
@@ -20,16 +26,19 @@ import {
   Layers,
   Link2,
   Minus,
+  Pencil,
   Plus,
   RefreshCw,
   Search,
   Sparkles,
+  Trash2,
   TrendingDown,
   TrendingUp,
+  Unlink,
   UserCheck,
   X,
 } from 'lucide-react';
-import { Button, Tooltip, toast } from '@/components/design-system';
+import { Button, ConfirmDialog, Modal, toast } from '@/components/design-system';
 import { cn } from '@/lib/utils';
 import { formatMoney } from '@/lib/format';
 import type {
@@ -47,11 +56,27 @@ export type LedgerComparisonTableProps = {
   customerCreditsTotal: number;
   netDifference: number;
   shipmentNumber?: string;
+  canDelete?: boolean;
+  canEdit?: boolean;
+  deletingTransactionId?: string | null;
   onOpenCompanyLedgerEntry: (entry: LinkedCompanyLedgerEntry) => void;
+  onDeleteTransaction?: (transaction: ComparisonTransactionWithDrillDown) => Promise<void> | void;
+  onUpdateTransaction?: (
+    transaction: ComparisonTransactionWithDrillDown,
+    updates: { description?: string; reference?: string | null; notes?: string | null; invoiceNumber?: string | null }
+  ) => Promise<void> | void;
+  onLinkTransactions?: (companyEntryId: string, customerEntryId: string) => Promise<void> | void;
+  onUnlinkTransactions?: (companyEntryId: string, customerEntryId: string) => Promise<void> | void;
+  onBatchDeleteTransactions?: (transactions: ComparisonTransactionWithDrillDown[]) => Promise<void> | void;
+  onOpenShipmentExpense?: () => void;
+  onOpenDispatchExpense?: () => void;
+  onOpenTransitExpense?: () => void;
 };
 
 type SourceFilter = 'ALL' | 'COMPANY' | 'CUSTOMER';
 type TypeFilter = 'ALL' | 'DEBIT' | 'CREDIT';
+type DiscrepancyFilter = 'ALL' | 'DEFICIT_ONLY' | 'LINKED_ONLY' | 'UNLINKED_ONLY';
+type DatePreset = 'ALL' | '7_DAYS' | '30_DAYS' | 'THIS_MONTH';
 type SortOption = 'DATE_DESC' | 'DATE_ASC' | 'AMOUNT_DESC' | 'AMOUNT_ASC';
 type ViewMode = 'unified' | 'split';
 
@@ -65,17 +90,57 @@ export function LedgerComparisonTable({
   customerCreditsTotal,
   netDifference,
   shipmentNumber,
+  canDelete = true,
+  canEdit = true,
+  deletingTransactionId,
   onOpenCompanyLedgerEntry,
+  onDeleteTransaction,
+  onUpdateTransaction,
+  onLinkTransactions,
+  onUnlinkTransactions,
+  onBatchDeleteTransactions,
+  onOpenShipmentExpense,
+  onOpenDispatchExpense,
+  onOpenTransitExpense,
 }: LedgerComparisonTableProps) {
-  // State
+  // State: Filter & Search
   const [searchQuery, setSearchQuery] = useState('');
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>('ALL');
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('ALL');
+  const [discrepancyFilter, setDiscrepancyFilter] = useState<DiscrepancyFilter>('ALL');
+  const [datePreset, setDatePreset] = useState<DatePreset>('ALL');
   const [sortOption, setSortOption] = useState<SortOption>('DATE_DESC');
   const [viewMode, setViewMode] = useState<ViewMode>('unified');
+
+  // State: Pagination & Expand
   const [expandedRowIds, setExpandedRowIds] = useState<Set<string>>(new Set());
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<number | 'ALL'>(10);
+
+  // State: Selection for Batch Actions
+  const [selectedRowIds, setSelectedRowIds] = useState<Set<string>>(new Set());
+
+  // State: Modals
+  const [transactionToDelete, setTransactionToDelete] = useState<ComparisonTransactionWithDrillDown | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [batchDeleteConfirmOpen, setBatchDeleteConfirmOpen] = useState(false);
+  const [isBatchDeleting, setIsBatchDeleting] = useState(false);
+
+  // State: Inline Edit Modal
+  const [editingTransaction, setEditingTransaction] = useState<ComparisonTransactionWithDrillDown | null>(null);
+  const [editDescription, setEditDescription] = useState('');
+  const [editReference, setEditReference] = useState('');
+  const [editNotes, setEditNotes] = useState('');
+  const [editInvoiceNumber, setEditInvoiceNumber] = useState('');
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+
+  // State: Match / Pairing Modal
+  const [linkingTransaction, setLinkingTransaction] = useState<ComparisonTransactionWithDrillDown | null>(null);
+  const [selectedCounterpartId, setSelectedCounterpartId] = useState<string>('');
+  const [isLinking, setIsLinking] = useState(false);
+
+  // State: Add Transaction Dropdown
+  const [showAddMenu, setShowAddMenu] = useState(false);
 
   // Profit Margin & Counts
   const marginPercentage = useMemo(() => {
@@ -83,17 +148,31 @@ export function LedgerComparisonTable({
     return (netDifference / customerChargedNet) * 100;
   }, [customerChargedNet, netDifference]);
 
+  // Overall Statistics & Discrepancies
   const stats = useMemo(() => {
     let companyCount = 0;
     let customerCount = 0;
     let linkedCount = 0;
+    let deficitCount = 0;
 
     for (const t of transactions) {
       if (t.source === 'COMPANY') {
         companyCount++;
+        if (t.linkedCustomerEntry) {
+          linkedCount++;
+          // Deficit check: Carrier cost > Customer revenue
+          if (t.amount > t.linkedCustomerEntry.amount) {
+            deficitCount++;
+          }
+        }
       } else {
         customerCount++;
-        if (t.linkedCompanyLedgerEntry) linkedCount++;
+        if (t.linkedCompanyLedgerEntry) {
+          // Deficit check: Carrier cost > Customer billed
+          if (t.linkedCompanyLedgerEntry.amount > t.amount) {
+            deficitCount++;
+          }
+        }
       }
     }
 
@@ -102,18 +181,16 @@ export function LedgerComparisonTable({
       companyCount,
       customerCount,
       linkedCount,
+      deficitCount,
     };
   }, [transactions]);
 
-  // Toggle Row Expansion
+  // Row Expand Helpers
   const toggleRowExpanded = (id: string) => {
     setExpandedRowIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   };
@@ -126,9 +203,49 @@ export function LedgerComparisonTable({
     }
   };
 
+  // Selection Helpers
+  const toggleRowSelected = (id: string) => {
+    setSelectedRowIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedRowIds.size === pagedTransactions.length) {
+      setSelectedRowIds(new Set());
+    } else {
+      setSelectedRowIds(new Set(pagedTransactions.map((t) => t.id)));
+    }
+  };
+
+  // Helper: Determine if an entry is in deficit / negative margin
+  const getEntryDiscrepancy = (entry: ComparisonTransactionWithDrillDown) => {
+    if (entry.source === 'CUSTOMER') {
+      if (!entry.linkedCompanyLedgerEntry) {
+        return { isLinked: false, isDeficit: false, marginDiff: entry.amount, carrierCost: 0 };
+      }
+      const carrierCost = entry.linkedCompanyLedgerEntry.amount;
+      const marginDiff = entry.amount - carrierCost;
+      const isDeficit = carrierCost > entry.amount;
+      return { isLinked: true, isDeficit, marginDiff, carrierCost };
+    } else {
+      if (!entry.linkedCustomerEntry) {
+        return { isLinked: false, isDeficit: entry.type === 'DEBIT', marginDiff: -entry.amount, customerRevenue: 0 };
+      }
+      const customerRevenue = entry.linkedCustomerEntry.amount;
+      const marginDiff = customerRevenue - entry.amount;
+      const isDeficit = entry.amount > customerRevenue;
+      return { isLinked: true, isDeficit, marginDiff, customerRevenue };
+    }
+  };
+
   // Filtered & Sorted Transactions
   const filteredTransactions = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
+    const now = new Date();
 
     return transactions
       .filter((entry) => {
@@ -138,17 +255,43 @@ export function LedgerComparisonTable({
         // Type filter
         if (typeFilter !== 'ALL' && entry.type !== typeFilter) return false;
 
+        // Discrepancy filter
+        const disc = getEntryDiscrepancy(entry);
+        if (discrepancyFilter === 'DEFICIT_ONLY' && !disc.isDeficit) return false;
+        if (discrepancyFilter === 'LINKED_ONLY' && !disc.isLinked) return false;
+        if (discrepancyFilter === 'UNLINKED_ONLY' && disc.isLinked) return false;
+
+        // Date Preset Filter
+        if (datePreset !== 'ALL') {
+          const entryDate = new Date(entry.transactionDate);
+          if (datePreset === '7_DAYS') {
+            const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            if (entryDate < sevenDaysAgo) return false;
+          } else if (datePreset === '30_DAYS') {
+            const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+            if (entryDate < thirtyDaysAgo) return false;
+          } else if (datePreset === 'THIS_MONTH') {
+            if (
+              entryDate.getMonth() !== now.getMonth() ||
+              entryDate.getFullYear() !== now.getFullYear()
+            ) {
+              return false;
+            }
+          }
+        }
+
         // Search query
         if (q) {
           const descMatch = entry.description?.toLowerCase().includes(q);
           const refMatch = entry.reference?.toLowerCase().includes(q);
           const notesMatch = entry.notes?.toLowerCase().includes(q);
           const idMatch = entry.id.toLowerCase().includes(q);
+          const invoiceMatch = entry.invoiceNumber?.toLowerCase().includes(q);
           const companyNameMatch =
             entry.source === 'COMPANY' &&
             entry.companyLedgerEntry?.company?.name?.toLowerCase().includes(q);
 
-          if (!descMatch && !refMatch && !notesMatch && !idMatch && !companyNameMatch) {
+          if (!descMatch && !refMatch && !notesMatch && !idMatch && !companyNameMatch && !invoiceMatch) {
             return false;
           }
         }
@@ -170,7 +313,7 @@ export function LedgerComparisonTable({
         }
         return 0;
       });
-  }, [transactions, sourceFilter, typeFilter, searchQuery, sortOption]);
+  }, [transactions, sourceFilter, typeFilter, discrepancyFilter, datePreset, searchQuery, sortOption]);
 
   // Pagination
   const totalPages = pageSize === 'ALL' ? 1 : Math.ceil(filteredTransactions.length / pageSize);
@@ -180,16 +323,41 @@ export function LedgerComparisonTable({
     return filteredTransactions.slice(start, start + pageSize);
   }, [filteredTransactions, page, pageSize]);
 
-  // Export CSV
-  const handleExportCSV = () => {
-    if (filteredTransactions.length === 0) {
+  // Selected Transactions for Bulk Actions
+  const selectedTransactions = useMemo(
+    () => transactions.filter((t) => selectedRowIds.has(t.id)),
+    [transactions, selectedRowIds]
+  );
+
+  // Export CSV (Full or Selected)
+  const handleExportCSV = (itemsToExport = filteredTransactions) => {
+    if (itemsToExport.length === 0) {
       toast.error('No transactions to export');
       return;
     }
 
-    const headers = ['Source', 'Date', 'Type', 'Amount', 'Description', 'Reference', 'Company/Carrier', 'Notes'];
-    const rows = filteredTransactions.map((t) => {
+    const headers = [
+      'Source',
+      'Date',
+      'Type',
+      'Amount',
+      'Description',
+      'Reference',
+      'Invoice',
+      'Company/Carrier',
+      'Status',
+      'Margin Status',
+      'Notes',
+    ];
+    const rows = itemsToExport.map((t) => {
       const companyName = t.source === 'COMPANY' ? t.companyLedgerEntry.company?.name || '' : '';
+      const disc = getEntryDiscrepancy(t);
+      const marginStatus = disc.isDeficit
+        ? `DEFICIT (${disc.marginDiff.toFixed(2)})`
+        : disc.isLinked
+        ? `PROFIT (+${disc.marginDiff.toFixed(2)})`
+        : 'UNLINKED';
+
       return [
         `"${t.source}"`,
         `"${new Date(t.transactionDate).toISOString().split('T')[0]}"`,
@@ -197,7 +365,10 @@ export function LedgerComparisonTable({
         t.type === 'DEBIT' ? `-${t.amount.toFixed(2)}` : `+${t.amount.toFixed(2)}`,
         `"${(t.description || '').replace(/"/g, '""')}"`,
         `"${(t.reference || '').replace(/"/g, '""')}"`,
+        `"${(t.invoiceNumber || '').replace(/"/g, '""')}"`,
         `"${companyName.replace(/"/g, '""')}"`,
+        `"${t.invoiceStatus || 'RECORDED'}"`,
+        `"${marginStatus}"`,
         `"${(t.notes || '').replace(/"/g, '""')}"`,
       ].join(',');
     });
@@ -213,7 +384,7 @@ export function LedgerComparisonTable({
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
 
-    toast.success(`Exported ${filteredTransactions.length} transactions to CSV`);
+    toast.success(`Exported ${itemsToExport.length} transactions to CSV`);
   };
 
   // Copy Summary
@@ -226,6 +397,7 @@ export function LedgerComparisonTable({
       `• Charged to Customer (Net Revenue): $${customerChargedNet.toFixed(2)} [Debits: $${customerDebitsTotal.toFixed(2)} | Credits: $${customerCreditsTotal.toFixed(2)}]`,
       `• Net Difference (Customer - Company): ${netDifference >= 0 ? '+' : ''}$${netDifference.toFixed(2)} (${marginPercentage.toFixed(1)}% margin)`,
       `• Total Transactions: ${transactions.length} (${stats.companyCount} Company, ${stats.customerCount} Customer)`,
+      `• Reconciliation Health: ${stats.linkedCount} linked pairs, ${stats.deficitCount} deficit warnings`,
       `----------------------------------------`,
     ].join('\n');
 
@@ -242,11 +414,147 @@ export function LedgerComparisonTable({
     setSearchQuery('');
     setSourceFilter('ALL');
     setTypeFilter('ALL');
+    setDiscrepancyFilter('ALL');
+    setDatePreset('ALL');
     setSortOption('DATE_DESC');
     setPage(1);
   };
 
-  // Separate lists for Split/Side-by-Side View
+  // Handle Confirmed Deletion of a Single Transaction
+  const handleConfirmDelete = async () => {
+    if (!transactionToDelete) return;
+    try {
+      setIsDeleting(true);
+      if (onDeleteTransaction) {
+        await onDeleteTransaction(transactionToDelete);
+      }
+      setTransactionToDelete(null);
+    } catch (error) {
+      // toast is handled in parent
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // Handle Confirmed Batch Deletion
+  const handleConfirmBatchDelete = async () => {
+    if (!selectedTransactions.length) return;
+    try {
+      setIsBatchDeleting(true);
+      if (onBatchDeleteTransactions) {
+        await onBatchDeleteTransactions(selectedTransactions);
+      }
+      setSelectedRowIds(new Set());
+      setBatchDeleteConfirmOpen(false);
+    } catch (error) {
+      // toast is handled in parent
+    } finally {
+      setIsBatchDeleting(false);
+    }
+  };
+
+  // Open Edit Modal
+  const openEditModal = (entry: ComparisonTransactionWithDrillDown) => {
+    setEditingTransaction(entry);
+    setEditDescription(entry.description || '');
+    setEditReference(entry.reference || '');
+    setEditNotes(entry.notes || '');
+    setEditInvoiceNumber(entry.invoiceNumber || '');
+  };
+
+  // Submit Edit
+  const handleSubmitEdit = async () => {
+    if (!editingTransaction) return;
+    if (!editDescription.trim()) {
+      toast.error('Description is required');
+      return;
+    }
+    try {
+      setIsSavingEdit(true);
+      if (onUpdateTransaction) {
+        await onUpdateTransaction(editingTransaction, {
+          description: editDescription.trim(),
+          reference: editReference.trim() || null,
+          notes: editNotes.trim() || null,
+          invoiceNumber: editInvoiceNumber.trim() || null,
+        });
+      }
+      setEditingTransaction(null);
+    } catch (error) {
+      // Handled in parent
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
+  // Candidate counterpart entries for manual pairing
+  const availableCounterparts = useMemo(() => {
+    if (!linkingTransaction) return [];
+    if (linkingTransaction.source === 'CUSTOMER') {
+      // Looking for Company entries to pair with this customer entry
+      return transactions.filter((t) => t.source === 'COMPANY');
+    } else {
+      // Looking for Customer entries to pair with this company entry
+      return transactions.filter((t) => t.source === 'CUSTOMER');
+    }
+  }, [linkingTransaction, transactions]);
+
+  // Open Linking Modal
+  const openLinkingModal = (entry: ComparisonTransactionWithDrillDown) => {
+    setLinkingTransaction(entry);
+    setSelectedCounterpartId('');
+  };
+
+  // Submit Linking
+  const handleSubmitLink = async () => {
+    if (!linkingTransaction || !selectedCounterpartId) {
+      toast.error('Please select a counterpart transaction to match');
+      return;
+    }
+    try {
+      setIsLinking(true);
+      const companyEntryId =
+        linkingTransaction.source === 'COMPANY'
+          ? linkingTransaction.companyLedgerEntry.id
+          : selectedCounterpartId.replace('company-', '');
+      const customerEntryId =
+        linkingTransaction.source === 'CUSTOMER'
+          ? linkingTransaction.userLedgerEntryId
+          : selectedCounterpartId.replace('customer-', '');
+
+      if (onLinkTransactions) {
+        await onLinkTransactions(companyEntryId, customerEntryId);
+      }
+      setLinkingTransaction(null);
+    } catch (error) {
+      // Handled in parent
+    } finally {
+      setIsLinking(false);
+    }
+  };
+
+  // Handle Unlinking
+  const handleUnlink = async (entry: ComparisonTransactionWithDrillDown) => {
+    if (!confirm('Unlink this cost and revenue pair?')) return;
+    try {
+      const companyEntryId =
+        entry.source === 'COMPANY'
+          ? entry.companyLedgerEntry.id
+          : entry.linkedCompanyLedgerEntry?.id;
+      const customerEntryId =
+        entry.source === 'CUSTOMER'
+          ? entry.userLedgerEntryId
+          : entry.linkedCustomerEntry?.id;
+
+      if (companyEntryId && customerEntryId && onUnlinkTransactions) {
+        await onUnlinkTransactions(companyEntryId, customerEntryId);
+      }
+    } catch (error) {
+      // Handled in parent
+    }
+  };
+
+  // Separate lists for Split / Side-by-Side View
   const splitCompanyTransactions = useMemo(
     () => filteredTransactions.filter((t) => t.source === 'COMPANY'),
     [filteredTransactions]
@@ -256,9 +564,40 @@ export function LedgerComparisonTable({
     [filteredTransactions]
   );
 
+  // Grouped Paired Legs for Side-by-Side Visual Alignment
+  const pairedLegs = useMemo(() => {
+    const pairs: Array<{
+      id: string;
+      customerEntry: ComparisonTransactionWithDrillDown;
+      companyEntry: LinkedCompanyLedgerEntry;
+      marginDiff: number;
+      isDeficit: boolean;
+      marginPct: number;
+    }> = [];
+
+    for (const entry of transactions) {
+      if (entry.source === 'CUSTOMER' && entry.linkedCompanyLedgerEntry) {
+        const carrierCost = entry.linkedCompanyLedgerEntry.amount;
+        const marginDiff = entry.amount - carrierCost;
+        const isDeficit = carrierCost > entry.amount;
+        const marginPct = entry.amount > 0 ? (marginDiff / entry.amount) * 100 : 0;
+
+        pairs.push({
+          id: `pair-${entry.id}-${entry.linkedCompanyLedgerEntry.id}`,
+          customerEntry: entry,
+          companyEntry: entry.linkedCompanyLedgerEntry,
+          marginDiff,
+          isDeficit,
+          marginPct,
+        });
+      }
+    }
+    return pairs;
+  }, [transactions]);
+
   return (
     <div className="space-y-4">
-      {/* KPI Comparison Summary Cards */}
+      {/* 1. KPI Comparison Summary Cards */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {/* Company Charged */}
         <div className="relative overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--panel)] p-4 shadow-sm transition-all hover:border-[var(--error)]/30 hover:shadow-md">
@@ -358,16 +697,23 @@ export function LedgerComparisonTable({
           </div>
         </div>
 
-        {/* Audit & Reconciliation Stats */}
+        {/* Audit & Discrepancy Health */}
         <div className="relative overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--panel)] p-4 shadow-sm transition-all hover:shadow-md">
           <div className="flex items-center justify-between">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-500/25 bg-blue-500/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-blue-500">
               <Layers className="h-3 w-3" />
-              Audit Integrity
+              Reconciliation
             </span>
-            <span className="text-[11px] font-medium text-[var(--text-secondary)]">
-              {stats.linkedCount} linked
-            </span>
+            {stats.deficitCount > 0 ? (
+              <span className="inline-flex items-center gap-1 rounded-full border border-[var(--error)]/30 bg-[var(--error)]/10 px-2 py-0.5 text-[10px] font-bold text-[var(--error)]">
+                <AlertTriangle className="h-3 w-3" />
+                {stats.deficitCount} Deficit{stats.deficitCount === 1 ? '' : 's'}
+              </span>
+            ) : (
+              <span className="text-[11px] font-medium text-[var(--text-secondary)]">
+                {stats.linkedCount} linked
+              </span>
+            )}
           </div>
           <div className="mt-3">
             <p className="font-mono text-2xl font-bold tracking-tight text-[var(--text-primary)] tabular-nums">
@@ -381,13 +727,13 @@ export function LedgerComparisonTable({
             </div>
           </div>
           <div className="mt-3 flex items-center justify-between border-t border-[var(--border)] pt-2 text-[11px]">
-            <span className="text-[var(--text-secondary)]">Drilldown active</span>
+            <span className="text-[var(--text-secondary)]">Deficit detection active</span>
             <span className="font-semibold text-[var(--accent-gold-text)]">Double-entry ready</span>
           </div>
         </div>
       </div>
 
-      {/* Main Container */}
+      {/* 2. Main Ledger Container */}
       <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--panel)] shadow-sm">
         {/* Header & Controls Toolbar */}
         <div className="border-b border-[var(--border)] bg-[var(--background)]/60 p-4">
@@ -400,14 +746,85 @@ export function LedgerComparisonTable({
                 <span className="rounded-full border border-[var(--border)] bg-[var(--panel)] px-2 py-0.5 font-mono text-[11px] font-semibold text-[var(--text-secondary)]">
                   {filteredTransactions.length} of {transactions.length}
                 </span>
+                {stats.deficitCount > 0 && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-[var(--error)]/40 bg-[var(--error)]/10 px-2 py-0.5 text-[10px] font-bold text-[var(--error)]">
+                    <AlertTriangle className="h-3 w-3" />
+                    {stats.deficitCount} Negative Margin Warning{stats.deficitCount === 1 ? '' : 's'}
+                  </span>
+                )}
               </div>
               <p className="mt-0.5 text-xs text-[var(--text-secondary)]">
-                Examine individual debit and credit transactions across Company payables and Customer receivables.
+                Examine debit and credit flows, detect carrier deficits, link cost-vs-revenue legs, and audit real transactions.
               </p>
             </div>
 
-            {/* Quick Actions (Export, Copy, View Mode) */}
+            {/* Quick Actions (Add, Export, Copy, View Mode) */}
             <div className="flex flex-wrap items-center gap-2">
+              {/* Quick + Add Transaction Menu */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowAddMenu(!showAddMenu)}
+                  className="inline-flex min-h-[32px] items-center gap-1.5 rounded-lg border border-[var(--accent-gold)]/40 bg-[rgba(var(--accent-gold-rgb),0.12)] px-2.5 py-1 text-xs font-semibold text-[var(--accent-gold-text)] shadow-xs transition-colors hover:bg-[rgba(var(--accent-gold-rgb),0.2)]"
+                  title="Add new expense or transaction"
+                  aria-expanded={showAddMenu}
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  <span>+ Add Record</span>
+                  <ChevronDown className="h-3 w-3" />
+                </button>
+
+                {showAddMenu && (
+                  <div
+                    className="absolute right-0 z-30 mt-1 w-52 rounded-xl border border-[var(--border)] bg-[var(--panel)] p-1.5 shadow-lg"
+                    onMouseLeave={() => setShowAddMenu(false)}
+                  >
+                    <p className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">
+                      Create Transaction
+                    </p>
+                    {onOpenShipmentExpense && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowAddMenu(false);
+                          onOpenShipmentExpense();
+                        }}
+                        className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs font-medium text-[var(--text-primary)] hover:bg-[var(--background)]"
+                      >
+                        <DollarSign className="h-3.5 w-3.5 text-[var(--accent-gold-text)]" />
+                        <span>Shipment Expense</span>
+                      </button>
+                    )}
+                    {onOpenDispatchExpense && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowAddMenu(false);
+                          onOpenDispatchExpense();
+                        }}
+                        className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs font-medium text-[var(--text-primary)] hover:bg-[var(--background)]"
+                      >
+                        <DollarSign className="h-3.5 w-3.5 text-[var(--accent-gold-text)]" />
+                        <span>Dispatch Expense</span>
+                      </button>
+                    )}
+                    {onOpenTransitExpense && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowAddMenu(false);
+                          onOpenTransitExpense();
+                        }}
+                        className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs font-medium text-[var(--text-primary)] hover:bg-[var(--background)]"
+                      >
+                        <DollarSign className="h-3.5 w-3.5 text-[var(--accent-gold-text)]" />
+                        <span>Transit Expense</span>
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+
               {/* View Mode Toggle */}
               <div className="flex items-center rounded-lg border border-[var(--border)] bg-[var(--panel)] p-0.5">
                 <button
@@ -444,7 +861,7 @@ export function LedgerComparisonTable({
               <button
                 type="button"
                 onClick={handleCopySummary}
-                className="inline-flex min-h-[32px] items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--panel)] px-2.5 py-1 text-xs font-semibold text-[var(--text-primary)] shadow-xs transition-colors hover:border-[var(--accent-gold)] hover:bg-[var(--background)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-gold)]"
+                className="inline-flex min-h-[32px] items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--panel)] px-2.5 py-1 text-xs font-semibold text-[var(--text-primary)] shadow-xs transition-colors hover:border-[var(--accent-gold)] hover:bg-[var(--background)]"
                 title="Copy comparison summary to clipboard"
                 aria-label="Copy comparison summary"
               >
@@ -455,8 +872,8 @@ export function LedgerComparisonTable({
               {/* Export CSV Button */}
               <button
                 type="button"
-                onClick={handleExportCSV}
-                className="inline-flex min-h-[32px] items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--panel)] px-2.5 py-1 text-xs font-semibold text-[var(--text-primary)] shadow-xs transition-colors hover:border-[var(--accent-gold)] hover:bg-[var(--background)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-gold)]"
+                onClick={() => handleExportCSV()}
+                className="inline-flex min-h-[32px] items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--panel)] px-2.5 py-1 text-xs font-semibold text-[var(--text-primary)] shadow-xs transition-colors hover:border-[var(--accent-gold)] hover:bg-[var(--background)]"
                 title="Export transactions to CSV"
                 aria-label="Export transactions to CSV"
               >
@@ -466,10 +883,10 @@ export function LedgerComparisonTable({
             </div>
           </div>
 
-          {/* Filter & Search Bar */}
+          {/* Filter Bar Row 1: Search, Source, Type, Discrepancy */}
           <div className="mt-3.5 grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-12">
             {/* Search Input */}
-            <div className="relative sm:col-span-2 lg:col-span-5">
+            <div className="relative sm:col-span-2 lg:col-span-4">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--text-secondary)]" />
               <input
                 type="text"
@@ -478,7 +895,7 @@ export function LedgerComparisonTable({
                   setSearchQuery(e.target.value);
                   setPage(1);
                 }}
-                placeholder="Search description, reference, carrier, notes..."
+                placeholder="Search description, reference, carrier, invoice..."
                 className="w-full rounded-lg border border-[var(--border)] bg-[var(--panel)] py-1.5 pl-8 pr-8 text-xs text-[var(--text-primary)] placeholder-[var(--text-secondary)] transition-colors focus:border-[var(--accent-gold)] focus:outline-none focus:ring-1 focus:ring-[var(--accent-gold)]"
               />
               {searchQuery && (
@@ -497,7 +914,7 @@ export function LedgerComparisonTable({
             </div>
 
             {/* Source Filter Tabs */}
-            <div className="flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--panel)] p-1 sm:col-span-2 lg:col-span-4">
+            <div className="flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--panel)] p-1 sm:col-span-2 lg:col-span-3">
               {(
                 [
                   { value: 'ALL', label: 'All', count: stats.total },
@@ -534,42 +951,156 @@ export function LedgerComparisonTable({
               ))}
             </div>
 
-            {/* Type Filter */}
-            <div className="lg:col-span-3 flex items-center gap-2">
+            {/* Discrepancy & Health Filter */}
+            <div className="lg:col-span-3">
+              <select
+                value={discrepancyFilter}
+                onChange={(e) => {
+                  setDiscrepancyFilter(e.target.value as DiscrepancyFilter);
+                  setPage(1);
+                }}
+                className={cn(
+                  'w-full rounded-lg border py-1.5 px-2 text-xs transition-colors focus:border-[var(--accent-gold)] focus:outline-none',
+                  discrepancyFilter === 'DEFICIT_ONLY'
+                    ? 'border-[var(--error)]/50 bg-[var(--error)]/10 font-bold text-[var(--error)]'
+                    : 'border-[var(--border)] bg-[var(--panel)] text-[var(--text-primary)]'
+                )}
+                aria-label="Filter by reconciliation health"
+              >
+                <option value="ALL">All Financial Records</option>
+                <option value="DEFICIT_ONLY">⚠️ Deficits Only (Carrier &gt; Customer)</option>
+                <option value="LINKED_ONLY">🔗 Paired &amp; Reconciled Only</option>
+                <option value="UNLINKED_ONLY">Unlinked Standalone Items Only</option>
+              </select>
+            </div>
+
+            {/* Type & Sort Selector */}
+            <div className="lg:col-span-2 flex items-center gap-1.5">
               <select
                 value={typeFilter}
                 onChange={(e) => {
                   setTypeFilter(e.target.value as TypeFilter);
                   setPage(1);
                 }}
-                className="w-1/2 rounded-lg border border-[var(--border)] bg-[var(--panel)] py-1.5 px-2 text-xs text-[var(--text-primary)] transition-colors focus:border-[var(--accent-gold)] focus:outline-none"
+                className="w-1/2 rounded-lg border border-[var(--border)] bg-[var(--panel)] py-1.5 px-1.5 text-xs text-[var(--text-primary)] transition-colors focus:border-[var(--accent-gold)] focus:outline-none"
                 aria-label="Filter by transaction type"
               >
-                <option value="ALL">All Types</option>
-                <option value="DEBIT">Debits (− Outflow)</option>
-                <option value="CREDIT">Credits (+ Inflow)</option>
+                <option value="ALL">All Flows</option>
+                <option value="DEBIT">Debits (−)</option>
+                <option value="CREDIT">Credits (+)</option>
               </select>
 
-              {/* Sort Selector */}
               <select
                 value={sortOption}
                 onChange={(e) => {
                   setSortOption(e.target.value as SortOption);
                   setPage(1);
                 }}
-                className="w-1/2 rounded-lg border border-[var(--border)] bg-[var(--panel)] py-1.5 px-2 text-xs text-[var(--text-primary)] transition-colors focus:border-[var(--accent-gold)] focus:outline-none"
+                className="w-1/2 rounded-lg border border-[var(--border)] bg-[var(--panel)] py-1.5 px-1.5 text-xs text-[var(--text-primary)] transition-colors focus:border-[var(--accent-gold)] focus:outline-none"
                 aria-label="Sort transactions"
               >
-                <option value="DATE_DESC">Date (Newest)</option>
-                <option value="DATE_ASC">Date (Oldest)</option>
-                <option value="AMOUNT_DESC">Amount (High to Low)</option>
-                <option value="AMOUNT_ASC">Amount (Low to High)</option>
+                <option value="DATE_DESC">Date ↓</option>
+                <option value="DATE_ASC">Date ↑</option>
+                <option value="AMOUNT_DESC">Amount ↓</option>
+                <option value="AMOUNT_ASC">Amount ↑</option>
               </select>
             </div>
           </div>
+
+          {/* Filter Bar Row 2: Date Range Presets */}
+          <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 border-t border-[var(--border)]/60 pt-2.5">
+            <div className="flex flex-wrap items-center gap-1.5 text-xs">
+              <span className="text-[11px] font-medium text-[var(--text-secondary)]">Date Range:</span>
+              {(
+                [
+                  { value: 'ALL', label: 'All Time' },
+                  { value: '7_DAYS', label: 'Last 7 Days' },
+                  { value: '30_DAYS', label: 'Last 30 Days' },
+                  { value: 'THIS_MONTH', label: 'This Month' },
+                ] as const
+              ).map((preset) => (
+                <button
+                  key={preset.value}
+                  type="button"
+                  onClick={() => {
+                    setDatePreset(preset.value);
+                    setPage(1);
+                  }}
+                  className={cn(
+                    'rounded-full px-2.5 py-0.5 text-[11px] font-semibold transition-colors',
+                    datePreset === preset.value
+                      ? 'bg-[var(--text-primary)] text-white shadow-xs'
+                      : 'border border-[var(--border)] bg-[var(--panel)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                  )}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Active filter reset shortcut */}
+            {(searchQuery ||
+              sourceFilter !== 'ALL' ||
+              typeFilter !== 'ALL' ||
+              discrepancyFilter !== 'ALL' ||
+              datePreset !== 'ALL') && (
+              <button
+                type="button"
+                onClick={handleResetFilters}
+                className="inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--accent-gold-text)] hover:underline"
+              >
+                <RefreshCw className="h-3 w-3" />
+                <span>Reset Filters</span>
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* VIEW 1: UNIFIED FEED TABLE */}
+        {/* 3. Batch Action Sticky Toolbar */}
+        {selectedRowIds.size > 0 && (
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--accent-gold)]/30 bg-[rgba(var(--accent-gold-rgb),0.08)] px-4 py-2 text-xs">
+            <div className="flex items-center gap-2">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--accent-gold)] text-[10px] font-bold text-black">
+                {selectedRowIds.size}
+              </span>
+              <span className="font-semibold text-[var(--text-primary)]">
+                transactions selected
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => handleExportCSV(selectedTransactions)}
+                className="inline-flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--panel)] px-2.5 py-1 text-xs font-semibold text-[var(--text-primary)] hover:border-[var(--accent-gold)]"
+              >
+                <Download className="h-3 w-3" />
+                <span>Export Selected</span>
+              </button>
+
+              {canDelete && (
+                <button
+                  type="button"
+                  onClick={() => setBatchDeleteConfirmOpen(true)}
+                  className="inline-flex items-center gap-1 rounded-md border border-[var(--error)]/40 bg-[var(--error)]/10 px-2.5 py-1 text-xs font-semibold text-[var(--error)] hover:bg-[var(--error)] hover:text-white"
+                >
+                  <Trash2 className="h-3 w-3" />
+                  <span>Delete Selected ({selectedRowIds.size})</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setSelectedRowIds(new Set())}
+                className="text-[11px] font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+              >
+                Deselect All
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* 4. VIEW 1: UNIFIED AUDIT TABLE */}
         {viewMode === 'unified' && (
           <div>
             {filteredTransactions.length === 0 ? (
@@ -602,7 +1133,21 @@ export function LedgerComparisonTable({
                 <table className="w-full border-collapse text-left">
                   <thead>
                     <tr className="border-b border-[var(--border)] bg-[var(--background)]/90 text-[11px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">
-                      <th className="w-10 px-3 py-2.5 text-center">
+                      {/* Batch checkbox */}
+                      <th className="w-8 px-2 py-2.5 text-center">
+                        <input
+                          type="checkbox"
+                          checked={
+                            pagedTransactions.length > 0 &&
+                            selectedRowIds.size === pagedTransactions.length
+                          }
+                          onChange={toggleSelectAll}
+                          className="h-3.5 w-3.5 rounded border-[var(--border)] text-[var(--accent-gold)] focus:ring-[var(--accent-gold)]"
+                          aria-label="Select all transactions on page"
+                        />
+                      </th>
+                      {/* Accordion Expand All */}
+                      <th className="w-8 px-1 py-2.5 text-center">
                         <button
                           type="button"
                           onClick={toggleAllExpanded}
@@ -617,36 +1162,54 @@ export function LedgerComparisonTable({
                           )}
                         </button>
                       </th>
-                      <th className="px-3 py-2.5">Source &amp; Entity</th>
+                      <th className="px-3 py-2.5">Source &amp; Carrier</th>
                       <th className="px-3 py-2.5">Date</th>
-                      <th className="px-3 py-2.5">Description &amp; Context</th>
-                      <th className="px-3 py-2.5">Flow Type</th>
+                      <th className="px-3 py-2.5">Description &amp; Reference</th>
+                      <th className="px-3 py-2.5">Reconciliation &amp; Invoice</th>
+                      <th className="px-3 py-2.5">Flow</th>
                       <th className="px-3 py-2.5 text-right">Amount</th>
-                      <th className="px-3 py-2.5 text-right">Action</th>
+                      <th className="px-3 py-2.5 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[var(--border)] text-xs">
                     {pagedTransactions.map((entry) => {
                       const isExpanded = expandedRowIds.has(entry.id);
+                      const isSelected = selectedRowIds.has(entry.id);
                       const isDebit = entry.type === 'DEBIT';
                       const isCompany = entry.source === 'COMPANY';
+                      const isRowDeleting =
+                        deletingTransactionId === entry.id ||
+                        (isDeleting && transactionToDelete?.id === entry.id);
                       const companyName = isCompany
                         ? entry.companyLedgerEntry?.company?.name || 'Carrier / Partner'
                         : null;
+
+                      // Discrepancy details
+                      const disc = getEntryDiscrepancy(entry);
 
                       return (
                         <tr
                           key={entry.id}
                           className={cn(
                             'group transition-colors hover:bg-[var(--background)]/70',
-                            isExpanded && 'bg-[var(--background)]/40'
+                            isExpanded && 'bg-[var(--background)]/40',
+                            isSelected && 'bg-[rgba(var(--accent-gold-rgb),0.05)]',
+                            disc.isDeficit && 'border-l-4 border-l-[var(--error)]',
+                            isRowDeleting && 'opacity-50 pointer-events-none'
                           )}
                         >
-                          <td colSpan={7} className="p-0">
-                            {/* Main Row */}
+                          <td colSpan={9} className="p-0">
+                            {/* Main Row Grid */}
                             <div className="grid grid-cols-12 items-center px-3 py-2.5">
-                              {/* Expand Chevron */}
-                              <div className="col-span-1 flex items-center justify-center">
+                              {/* Batch Checkbox & Expand Chevron */}
+                              <div className="col-span-1 flex items-center gap-1">
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => toggleRowSelected(entry.id)}
+                                  className="h-3.5 w-3.5 rounded border-[var(--border)] text-[var(--accent-gold)] focus:ring-[var(--accent-gold)]"
+                                  aria-label={`Select transaction ${entry.description}`}
+                                />
                                 <button
                                   type="button"
                                   onClick={() => toggleRowExpanded(entry.id)}
@@ -654,16 +1217,16 @@ export function LedgerComparisonTable({
                                   aria-label={isExpanded ? 'Collapse row details' : 'Expand row details'}
                                 >
                                   {isExpanded ? (
-                                    <ChevronUp className="h-4 w-4" />
+                                    <ChevronUp className="h-3.5 w-3.5" />
                                   ) : (
-                                    <ChevronDown className="h-4 w-4" />
+                                    <ChevronDown className="h-3.5 w-3.5" />
                                   )}
                                 </button>
                               </div>
 
                               {/* Source Badge */}
                               <div className="col-span-2">
-                                <div className="flex flex-col items-start gap-1">
+                                <div className="flex flex-col items-start gap-0.5">
                                   <span
                                     className={cn(
                                       'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide',
@@ -691,17 +1254,17 @@ export function LedgerComparisonTable({
                               </div>
 
                               {/* Date */}
-                              <div className="col-span-2 text-[var(--text-secondary)]">
-                                <div className="flex items-center gap-1.5 font-medium">
-                                  <Calendar className="h-3 w-3 text-[var(--text-secondary)]/70" />
+                              <div className="col-span-1 text-[var(--text-secondary)]">
+                                <div className="flex items-center gap-1 font-medium text-[11px]">
+                                  <Calendar className="h-3 w-3 text-[var(--text-secondary)]/70 shrink-0" />
                                   <span>{new Date(entry.transactionDate).toLocaleDateString()}</span>
                                 </div>
                               </div>
 
                               {/* Description & Reference */}
-                              <div className="col-span-4 pr-2">
+                              <div className="col-span-3 pr-2">
                                 <div className="flex flex-col gap-0.5">
-                                  <div className="flex items-center gap-2">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
                                     <span
                                       className="truncate font-semibold text-[var(--text-primary)]"
                                       title={entry.description}
@@ -717,17 +1280,96 @@ export function LedgerComparisonTable({
                                       </span>
                                     )}
                                   </div>
-                                  {/* Matched Pill */}
-                                  {!isCompany && entry.linkedCompanyLedgerEntry && (
-                                    <div className="flex items-center gap-1 text-[10px] text-[var(--accent-gold-text)] font-medium">
-                                      <Link2 className="h-2.5 w-2.5" />
-                                      <span>Matched to Carrier Entry</span>
+
+                                  {/* Deficit / Discrepancy Margin Alert */}
+                                  {disc.isDeficit && (
+                                    <div className="flex items-center gap-1 font-semibold text-[10px] text-[var(--error)]">
+                                      <AlertTriangle className="h-3 w-3 shrink-0" />
+                                      <span>
+                                        {isCompany
+                                          ? `Overhead unrecovered (${formatMoney(Math.abs(disc.marginDiff))})`
+                                          : `Margin Deficit: Cost exceeds revenue by ${formatMoney(Math.abs(disc.marginDiff))}`}
+                                      </span>
                                     </div>
                                   )}
                                 </div>
                               </div>
 
-                              {/* Type Badge */}
+                              {/* Reconciliation & Invoice Badges */}
+                              <div className="col-span-2">
+                                <div className="flex flex-col gap-1 items-start">
+                                  {/* Matched Pair Status */}
+                                  {disc.isLinked ? (
+                                    <div className="flex items-center gap-1">
+                                      <span
+                                        className={cn(
+                                          'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider',
+                                          disc.isDeficit
+                                            ? 'border border-[var(--error)]/30 bg-[var(--error)]/10 text-[var(--error)]'
+                                            : 'border border-[var(--success)]/30 bg-[var(--success)]/10 text-[var(--success)]'
+                                        )}
+                                      >
+                                        <Link2 className="h-2.5 w-2.5" />
+                                        <span>
+                                          {disc.isDeficit
+                                            ? `Deficit ${formatMoney(disc.marginDiff)}`
+                                            : `+${formatMoney(disc.marginDiff)}`}
+                                        </span>
+                                      </span>
+                                      {canEdit && onUnlinkTransactions && (
+                                        <button
+                                          type="button"
+                                          onClick={() => handleUnlink(entry)}
+                                          className="text-[var(--text-secondary)] hover:text-[var(--error)] p-0.5"
+                                          title="Unlink transactions"
+                                          aria-label="Unlink transactions"
+                                        >
+                                          <Unlink className="h-3 w-3" />
+                                        </button>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    canEdit && onLinkTransactions && (
+                                      <button
+                                        type="button"
+                                        onClick={() => openLinkingModal(entry)}
+                                        className="inline-flex items-center gap-1 rounded border border-dashed border-[var(--border)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--accent-gold-text)] hover:border-[var(--accent-gold)] hover:bg-[var(--background)]"
+                                      >
+                                        <Link2 className="h-2.5 w-2.5" />
+                                        <span>+ Pair Leg</span>
+                                      </button>
+                                    )
+                                  )}
+
+                                  {/* Clickable Invoice Badge */}
+                                  {entry.invoiceNumber && (
+                                    <Link
+                                      href={
+                                        entry.invoiceId
+                                          ? `/dashboard/invoices/${entry.invoiceId}`
+                                          : `/dashboard/invoices?search=${encodeURIComponent(entry.invoiceNumber)}`
+                                      }
+                                      className={cn(
+                                        'inline-flex items-center gap-1 rounded-full border px-2 py-0.2 text-[10px] font-semibold transition-colors hover:underline',
+                                        entry.invoiceStatus === 'PAID'
+                                          ? 'border-[var(--success)]/35 bg-[var(--success)]/10 text-[var(--success)]'
+                                          : entry.invoiceStatus === 'PENDING'
+                                          ? 'border-amber-500/35 bg-amber-500/10 text-amber-500'
+                                          : 'border-blue-500/35 bg-blue-500/10 text-blue-500'
+                                      )}
+                                      title="View invoice details"
+                                    >
+                                      <FileText className="h-2.5 w-2.5" />
+                                      <span>
+                                        {entry.invoiceNumber}
+                                        {entry.invoiceStatus ? ` (${entry.invoiceStatus})` : ''}
+                                      </span>
+                                    </Link>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Flow Type */}
                               <div className="col-span-1">
                                 <span
                                   className={cn(
@@ -753,28 +1395,66 @@ export function LedgerComparisonTable({
                                 {formatMoney(entry.amount)}
                               </div>
 
-                              {/* Action */}
-                              <div className="col-span-1 flex justify-end">
+                              {/* Actions */}
+                              <div className="col-span-1 flex items-center justify-end gap-1">
                                 {isCompany && (
                                   <button
                                     type="button"
                                     onClick={() => onOpenCompanyLedgerEntry(entry.companyLedgerEntry)}
-                                    className="inline-flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--panel)] px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--accent-gold-text)] transition-colors hover:border-[var(--accent-gold)] hover:bg-[var(--accent-gold)]/10"
+                                    className="inline-flex items-center gap-0.5 rounded border border-[var(--border)] bg-[var(--panel)] px-1.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--accent-gold-text)] transition-colors hover:border-[var(--accent-gold)] hover:bg-[var(--accent-gold)]/10"
                                     title="Inspect in Company Ledger"
                                   >
-                                    <span>Inspect</span>
+                                    <span>Open</span>
                                     <ExternalLink className="h-2.5 w-2.5" />
                                   </button>
                                 )}
+
                                 {!isCompany && entry.linkedCompanyLedgerEntry && (
                                   <button
                                     type="button"
                                     onClick={() => onOpenCompanyLedgerEntry(entry.linkedCompanyLedgerEntry!)}
-                                    className="inline-flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--panel)] px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--accent-gold-text)] transition-colors hover:border-[var(--accent-gold)] hover:bg-[var(--accent-gold)]/10"
+                                    className="inline-flex items-center gap-0.5 rounded border border-[var(--border)] bg-[var(--panel)] px-1.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--accent-gold-text)] transition-colors hover:border-[var(--accent-gold)] hover:bg-[var(--accent-gold)]/10"
                                     title="Open matched Company Ledger entry"
                                   >
                                     <span>Carrier</span>
                                     <ExternalLink className="h-2.5 w-2.5" />
+                                  </button>
+                                )}
+
+                                {/* Inline Edit Button */}
+                                {canEdit && onUpdateTransaction && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openEditModal(entry);
+                                    }}
+                                    className="inline-flex h-6 w-6 items-center justify-center rounded border border-[var(--border)] bg-[var(--panel)] text-[var(--text-secondary)] transition-colors hover:border-[var(--accent-gold)] hover:text-[var(--accent-gold-text)]"
+                                    title="Edit description, reference, or notes"
+                                    aria-label={`Edit ${entry.description}`}
+                                  >
+                                    <Pencil className="h-3 w-3" />
+                                  </button>
+                                )}
+
+                                {/* Real Transaction Delete Button */}
+                                {canDelete && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setTransactionToDelete(entry);
+                                    }}
+                                    disabled={isRowDeleting}
+                                    className="inline-flex h-6 w-6 items-center justify-center rounded border border-[var(--border)] bg-[var(--panel)] text-[var(--text-secondary)] transition-colors hover:border-[var(--error)]/40 hover:bg-[var(--error)]/10 hover:text-[var(--error)] disabled:opacity-40"
+                                    title={`Delete ${entry.source.toLowerCase()} transaction record`}
+                                    aria-label={`Delete ${entry.source.toLowerCase()} transaction ${entry.description}`}
+                                  >
+                                    {isRowDeleting ? (
+                                      <RefreshCw className="h-3 w-3 animate-spin text-[var(--error)]" />
+                                    ) : (
+                                      <Trash2 className="h-3 w-3" />
+                                    )}
                                   </button>
                                 )}
                               </div>
@@ -804,6 +1484,14 @@ export function LedgerComparisonTable({
                                           </span>
                                         </div>
                                       )}
+                                      {entry.invoiceNumber && (
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-[var(--text-secondary)]">Invoice #:</span>
+                                          <span className="font-mono font-semibold text-blue-500">
+                                            {entry.invoiceNumber}
+                                          </span>
+                                        </div>
+                                      )}
                                       {entry.balance !== undefined && (
                                         <div className="flex items-center justify-between">
                                           <span className="text-[var(--text-secondary)]">Running Balance:</span>
@@ -818,7 +1506,7 @@ export function LedgerComparisonTable({
                                   {/* Info Column 2: Partner / Context */}
                                   <div className="space-y-1.5">
                                     <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">
-                                      Entity Context
+                                      Entity Context &amp; Margins
                                     </p>
                                     <div className="flex flex-col gap-1 text-[11px]">
                                       {isCompany ? (
@@ -847,14 +1535,15 @@ export function LedgerComparisonTable({
                                         </div>
                                       )}
                                       <div className="flex items-center justify-between">
-                                        <span className="text-[var(--text-secondary)]">Direction:</span>
+                                        <span className="text-[var(--text-secondary)]">Leg Margin:</span>
                                         <span
                                           className={cn(
-                                            'font-semibold',
-                                            isDebit ? 'text-[var(--error)]' : 'text-[var(--success)]'
+                                            'font-mono font-bold',
+                                            disc.isDeficit ? 'text-[var(--error)]' : 'text-[var(--success)]'
                                           )}
                                         >
-                                          {isDebit ? 'Debit (− Outflow / Charge)' : 'Credit (+ Inflow / Payment)'}
+                                          {disc.marginDiff >= 0 ? '+' : ''}
+                                          {formatMoney(disc.marginDiff)}
                                         </span>
                                       </div>
                                     </div>
@@ -863,7 +1552,7 @@ export function LedgerComparisonTable({
                                   {/* Info Column 3: Linked Transaction Card or Notes */}
                                   <div className="space-y-1.5">
                                     <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">
-                                      Notes &amp; Reconciliation Link
+                                      Notes &amp; Counterpart Link
                                     </p>
                                     {entry.notes ? (
                                       <p className="rounded-md border border-[var(--border)] bg-[var(--background)] p-2 text-[11px] italic text-[var(--text-secondary)]">
@@ -894,6 +1583,41 @@ export function LedgerComparisonTable({
                                           </span>
                                         </div>
                                       </div>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Expanded Footer: Actions */}
+                                <div className="mt-3 flex flex-wrap items-center justify-between border-t border-[var(--border)] pt-2.5">
+                                  <span className="text-[11px] text-[var(--text-secondary)]">
+                                    Real transaction key:{' '}
+                                    <span className="font-mono font-medium text-[var(--text-primary)]">
+                                      {isCompany ? entry.companyLedgerEntry.id : entry.userLedgerEntryId}
+                                    </span>
+                                  </span>
+
+                                  <div className="flex items-center gap-2">
+                                    {canEdit && onUpdateTransaction && (
+                                      <button
+                                        type="button"
+                                        onClick={() => openEditModal(entry)}
+                                        className="inline-flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--background)] px-2.5 py-1 text-xs font-semibold text-[var(--text-primary)] hover:border-[var(--accent-gold)]"
+                                      >
+                                        <Pencil className="h-3 w-3" />
+                                        <span>Edit Memo &amp; Reference</span>
+                                      </button>
+                                    )}
+
+                                    {canDelete && (
+                                      <button
+                                        type="button"
+                                        onClick={() => setTransactionToDelete(entry)}
+                                        disabled={isRowDeleting}
+                                        className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--error)]/30 bg-[var(--error)]/10 px-2.5 py-1 text-xs font-semibold text-[var(--error)] transition-colors hover:bg-[var(--error)] hover:text-white disabled:opacity-40"
+                                      >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                        <span>Delete Transaction</span>
+                                      </button>
                                     )}
                                   </div>
                                 </div>
@@ -979,9 +1703,108 @@ export function LedgerComparisonTable({
           </div>
         )}
 
-        {/* VIEW 2: SIDE-BY-SIDE SPLIT RECONCILIATION */}
+        {/* 5. VIEW 2: SIDE-BY-SIDE SPLIT RECONCILIATION WITH PAIRED ALIGNMENT */}
         {viewMode === 'split' && (
-          <div className="p-4">
+          <div className="p-4 space-y-6">
+            {/* Visual Paired Leg Reconciliation Section */}
+            {pairedLegs.length > 0 && (
+              <div className="rounded-xl border border-[var(--accent-gold)]/40 bg-[var(--background)] p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-[var(--accent-gold-text)]" />
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--text-primary)]">
+                      Paired Cost-to-Revenue Legs ({pairedLegs.length})
+                    </h4>
+                  </div>
+                  <span className="text-[11px] text-[var(--text-secondary)]">
+                    Direct vendor-to-client matched transactions
+                  </span>
+                </div>
+
+                <div className="space-y-2.5">
+                  {pairedLegs.map((pair) => (
+                    <div
+                      key={pair.id}
+                      className={cn(
+                        'flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 rounded-lg border p-3 transition-colors',
+                        pair.isDeficit
+                          ? 'border-[var(--error)]/40 bg-[var(--error)]/5'
+                          : 'border-[var(--border)] bg-[var(--panel)]'
+                      )}
+                    >
+                      {/* Left: Carrier Cost */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="inline-flex items-center gap-1 rounded bg-[var(--error)]/10 px-1.5 py-0.5 text-[10px] font-bold text-[var(--error)]">
+                            <Building2 className="h-3 w-3" />
+                            Carrier Cost
+                          </span>
+                          <span className="truncate text-xs font-semibold text-[var(--text-primary)]">
+                            {pair.companyEntry.description}
+                          </span>
+                        </div>
+                        <div className="mt-1 flex items-center gap-2 text-[10px] text-[var(--text-secondary)]">
+                          <span>{pair.companyEntry.company?.name || 'Carrier'}</span>
+                          <span>•</span>
+                          <span className="font-mono font-bold text-[var(--error)]">
+                            −{formatMoney(pair.companyEntry.amount)}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Center: Margin Bridge */}
+                      <div className="flex items-center justify-center gap-2 px-3 py-1 bg-[var(--background)] rounded-md border border-[var(--border)] shrink-0">
+                        <ArrowRight className="h-3.5 w-3.5 text-[var(--text-secondary)]" />
+                        <div className="text-center font-mono text-xs">
+                          <span
+                            className={cn(
+                              'font-bold',
+                              pair.isDeficit ? 'text-[var(--error)]' : 'text-[var(--success)]'
+                            )}
+                          >
+                            {pair.marginDiff >= 0 ? '+' : ''}
+                            {formatMoney(pair.marginDiff)}
+                          </span>
+                          <div className="text-[9px] uppercase tracking-wider font-semibold">
+                            {pair.isDeficit ? 'Deficit' : `+${pair.marginPct.toFixed(1)}%`}
+                          </div>
+                        </div>
+                        <ArrowRight className="h-3.5 w-3.5 text-[var(--text-secondary)]" />
+                      </div>
+
+                      {/* Right: Customer Charge */}
+                      <div className="flex-1 min-w-0 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <span className="truncate text-xs font-semibold text-[var(--text-primary)]">
+                            {pair.customerEntry.description}
+                          </span>
+                          <span className="inline-flex items-center gap-1 rounded bg-[var(--success)]/10 px-1.5 py-0.5 text-[10px] font-bold text-[var(--success)]">
+                            <UserCheck className="h-3 w-3" />
+                            Client Revenue
+                          </span>
+                        </div>
+                        <div className="mt-1 flex items-center justify-end gap-2 text-[10px] text-[var(--text-secondary)]">
+                          <span className="font-mono font-bold text-[var(--success)]">
+                            +{formatMoney(pair.customerEntry.amount)}
+                          </span>
+                          {canEdit && onUnlinkTransactions && (
+                            <button
+                              type="button"
+                              onClick={() => handleUnlink(pair.customerEntry)}
+                              className="text-[10px] text-[var(--error)] hover:underline ml-2"
+                            >
+                              Unlink
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Split Columns Grid */}
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               {/* Left Column: Company Ledger Payables */}
               <div className="flex flex-col rounded-xl border border-[var(--error)]/30 bg-[var(--background)]">
@@ -1010,55 +1833,76 @@ export function LedgerComparisonTable({
                       No company ledger entries matching filters.
                     </div>
                   ) : (
-                    splitCompanyTransactions.map((item) => (
-                      <div
-                        key={item.id}
-                        className="rounded-lg p-2.5 transition-colors hover:bg-[var(--panel)]"
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <p className="font-semibold text-xs text-[var(--text-primary)]">{item.description}</p>
-                            <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-[var(--text-secondary)]">
-                              <span>{new Date(item.transactionDate).toLocaleDateString()}</span>
-                              {item.companyLedgerEntry?.company?.name && (
-                                <>
-                                  <span>•</span>
-                                  <span className="font-medium text-[var(--text-primary)]">
-                                    {item.companyLedgerEntry.company.name}
-                                  </span>
-                                </>
-                              )}
-                              {item.reference && (
-                                <>
-                                  <span>•</span>
-                                  <span className="font-mono">#{item.reference}</span>
-                                </>
-                              )}
+                    splitCompanyTransactions.map((item) => {
+                      const disc = getEntryDiscrepancy(item);
+                      return (
+                        <div
+                          key={item.id}
+                          className={cn(
+                            'rounded-lg p-2.5 transition-colors hover:bg-[var(--panel)]',
+                            disc.isDeficit && 'bg-[var(--error)]/5'
+                          )}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <p className="font-semibold text-xs text-[var(--text-primary)]">{item.description}</p>
+                              <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-[var(--text-secondary)]">
+                                <span>{new Date(item.transactionDate).toLocaleDateString()}</span>
+                                {item.companyLedgerEntry?.company?.name && (
+                                  <>
+                                    <span>•</span>
+                                    <span className="font-medium text-[var(--text-primary)]">
+                                      {item.companyLedgerEntry.company.name}
+                                    </span>
+                                  </>
+                                )}
+                                {item.reference && (
+                                  <>
+                                    <span>•</span>
+                                    <span className="font-mono">#{item.reference}</span>
+                                  </>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                          <div className="text-right">
-                            <span
-                              className={cn(
-                                'font-mono text-xs font-bold tabular-nums',
-                                item.type === 'DEBIT' ? 'text-[var(--error)]' : 'text-[var(--success)]'
-                              )}
-                            >
-                              {item.type === 'DEBIT' ? '−' : '+'}
-                              {formatMoney(item.amount)}
-                            </span>
-                            <div className="mt-1">
-                              <button
-                                type="button"
-                                onClick={() => onOpenCompanyLedgerEntry(item.companyLedgerEntry)}
-                                className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-[var(--accent-gold-text)] hover:underline"
+                            <div className="text-right">
+                              <span
+                                className={cn(
+                                  'font-mono text-xs font-bold tabular-nums',
+                                  item.type === 'DEBIT' ? 'text-[var(--error)]' : 'text-[var(--success)]'
+                                )}
                               >
-                                View Entry &rarr;
-                              </button>
+                                {item.type === 'DEBIT' ? '−' : '+'}
+                                {formatMoney(item.amount)}
+                              </span>
+                              <div className="mt-1 flex items-center justify-end gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => onOpenCompanyLedgerEntry(item.companyLedgerEntry)}
+                                  className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-[var(--accent-gold-text)] hover:underline"
+                                >
+                                  Inspect &rarr;
+                                </button>
+                                {canDelete && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setTransactionToDelete(item);
+                                    }}
+                                    disabled={deletingTransactionId === item.id || isDeleting}
+                                    className="inline-flex h-5 w-5 items-center justify-center rounded text-[var(--text-secondary)] transition-colors hover:bg-[var(--error)]/10 hover:text-[var(--error)] disabled:opacity-40"
+                                    title="Delete company transaction"
+                                    aria-label={`Delete company transaction ${item.description}`}
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </button>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
 
@@ -1102,55 +1946,101 @@ export function LedgerComparisonTable({
                       No customer ledger entries matching filters.
                     </div>
                   ) : (
-                    splitCustomerTransactions.map((item) => (
-                      <div
-                        key={item.id}
-                        className="rounded-lg p-2.5 transition-colors hover:bg-[var(--panel)]"
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <p className="font-semibold text-xs text-[var(--text-primary)]">{item.description}</p>
-                            <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-[var(--text-secondary)]">
-                              <span>{new Date(item.transactionDate).toLocaleDateString()}</span>
-                              {item.reference && (
-                                <>
-                                  <span>•</span>
-                                  <span className="font-mono">#{item.reference}</span>
-                                </>
-                              )}
-                              {item.linkedCompanyLedgerEntry && (
-                                <>
-                                  <span>•</span>
-                                  <span className="font-semibold text-[var(--accent-gold-text)]">🔗 Linked</span>
-                                </>
-                              )}
+                    splitCustomerTransactions.map((item) => {
+                      const disc = getEntryDiscrepancy(item);
+                      return (
+                        <div
+                          key={item.id}
+                          className={cn(
+                            'rounded-lg p-2.5 transition-colors hover:bg-[var(--panel)]',
+                            disc.isDeficit && 'bg-[var(--error)]/5'
+                          )}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <p className="font-semibold text-xs text-[var(--text-primary)]">{item.description}</p>
+                              <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-[var(--text-secondary)]">
+                                <span>{new Date(item.transactionDate).toLocaleDateString()}</span>
+                                {item.reference && (
+                                  <>
+                                    <span>•</span>
+                                    <span className="font-mono">#{item.reference}</span>
+                                  </>
+                                )}
+                                {item.invoiceNumber && (
+                                  <>
+                                    <span>•</span>
+                                    <span className="font-semibold text-blue-500">
+                                      {item.invoiceNumber}
+                                    </span>
+                                  </>
+                                )}
+                                {disc.isLinked && (
+                                  <>
+                                    <span>•</span>
+                                    <span
+                                      className={cn(
+                                        'font-bold',
+                                        disc.isDeficit ? 'text-[var(--error)]' : 'text-[var(--success)]'
+                                      )}
+                                    >
+                                      {disc.isDeficit ? '⚠️ Deficit' : '🔗 Paired'}
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <span
+                                className={cn(
+                                  'font-mono text-xs font-bold tabular-nums',
+                                  item.type === 'DEBIT' ? 'text-[var(--error)]' : 'text-[var(--success)]'
+                                )}
+                              >
+                                {item.type === 'DEBIT' ? '−' : '+'}
+                                {formatMoney(item.amount)}
+                              </span>
+                              <div className="mt-1 flex items-center justify-end gap-2">
+                                {disc.isLinked ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => onOpenCompanyLedgerEntry(item.linkedCompanyLedgerEntry!)}
+                                    className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-[var(--accent-gold-text)] hover:underline"
+                                  >
+                                    Carrier Link &rarr;
+                                  </button>
+                                ) : (
+                                  canEdit && onLinkTransactions && (
+                                    <button
+                                      type="button"
+                                      onClick={() => openLinkingModal(item)}
+                                      className="text-[10px] font-bold text-[var(--accent-gold-text)] hover:underline"
+                                    >
+                                      + Pair Leg
+                                    </button>
+                                  )
+                                )}
+                                {canDelete && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setTransactionToDelete(item);
+                                    }}
+                                    disabled={deletingTransactionId === item.id || isDeleting}
+                                    className="inline-flex h-5 w-5 items-center justify-center rounded text-[var(--text-secondary)] transition-colors hover:bg-[var(--error)]/10 hover:text-[var(--error)] disabled:opacity-40"
+                                    title="Delete customer transaction"
+                                    aria-label={`Delete customer transaction ${item.description}`}
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </button>
+                                )}
+                              </div>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <span
-                              className={cn(
-                                'font-mono text-xs font-bold tabular-nums',
-                                item.type === 'DEBIT' ? 'text-[var(--error)]' : 'text-[var(--success)]'
-                              )}
-                            >
-                              {item.type === 'DEBIT' ? '−' : '+'}
-                              {formatMoney(item.amount)}
-                            </span>
-                            {item.linkedCompanyLedgerEntry && (
-                              <div className="mt-1">
-                                <button
-                                  type="button"
-                                  onClick={() => onOpenCompanyLedgerEntry(item.linkedCompanyLedgerEntry!)}
-                                  className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-[var(--accent-gold-text)] hover:underline"
-                                >
-                                  Carrier Link &rarr;
-                                </button>
-                              </div>
-                            )}
-                          </div>
                         </div>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
 
@@ -1169,7 +2059,7 @@ export function LedgerComparisonTable({
             </div>
 
             {/* Reconciliation Banner */}
-            <div className="mt-4 flex flex-col gap-2 rounded-xl border border-[var(--border)] bg-[var(--panel)] p-4 sm:flex-row sm:items-center sm:justify-between shadow-xs">
+            <div className="flex flex-col gap-2 rounded-xl border border-[var(--border)] bg-[var(--panel)] p-4 sm:flex-row sm:items-center sm:justify-between shadow-xs">
               <div className="flex items-center gap-3">
                 <div
                   className={cn(
@@ -1181,11 +2071,11 @@ export function LedgerComparisonTable({
                 </div>
                 <div>
                   <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--text-primary)]">
-                    Reconciliation Balance (Customer − Company)
+                    Overall Reconciliation Balance (Customer − Company)
                   </h4>
                   <p className="text-[11px] text-[var(--text-secondary)]">
                     {netDifference >= 0
-                      ? `Yields a positive net profit margin of ${marginPercentage.toFixed(1)}%.`
+                      ? `Yields a positive shipment profit margin of ${marginPercentage.toFixed(1)}%.`
                       : `Deficit balance: company costs exceed customer billing by ${formatMoney(Math.abs(netDifference))}.`}
                   </p>
                 </div>
@@ -1209,15 +2099,319 @@ export function LedgerComparisonTable({
                       : 'border border-[var(--error)]/30 bg-[var(--error)]/10 text-[var(--error)]'
                   )}
                 >
-                  {netDifference >= 0 ? 'Profitable' : 'Deficit'}
+                  {netDifference >= 0 ? 'Profitable' : 'Deficit Alert'}
                 </span>
               </div>
             </div>
           </div>
         )}
       </div>
+
+      {/* 6. MODAL: Manual Pair / Match Tool (Reconciliation Engine) */}
+      <Modal
+        open={Boolean(linkingTransaction)}
+        onClose={() => {
+          if (!isLinking) setLinkingTransaction(null);
+        }}
+        title="Pair Transactions for Leg Reconciliation"
+        size="md"
+        actions={
+          <div className="flex items-center justify-end gap-2">
+            <button
+              type="button"
+              disabled={isLinking}
+              onClick={() => setLinkingTransaction(null)}
+              className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-[var(--background)]"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={isLinking || !selectedCounterpartId}
+              onClick={handleSubmitLink}
+              className="rounded-lg bg-[var(--accent-gold)] px-4 py-1.5 text-xs font-bold text-black transition-opacity hover:opacity-90 disabled:opacity-50"
+            >
+              {isLinking ? 'Linking...' : 'Confirm Reconciliation Link'}
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-4 text-xs">
+          <p className="text-[var(--text-secondary)]">
+            Pairing an expense cost with its billing charge enables real-time leg profitability and deficit alerts.
+          </p>
+
+          {/* Target Transaction Card */}
+          {linkingTransaction && (
+            <div className="rounded-lg border border-[var(--accent-gold)]/40 bg-[rgba(var(--accent-gold-rgb),0.06)] p-3">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--accent-gold-text)]">
+                Selected {linkingTransaction.source === 'CUSTOMER' ? 'Client Charge' : 'Carrier Payable'}
+              </span>
+              <div className="mt-1 flex items-center justify-between">
+                <span className="font-semibold text-[var(--text-primary)] text-sm">
+                  {linkingTransaction.description}
+                </span>
+                <span className="font-mono font-bold text-sm">
+                  {formatMoney(linkingTransaction.amount)}
+                </span>
+              </div>
+              <p className="mt-1 text-[11px] text-[var(--text-secondary)]">
+                Date: {new Date(linkingTransaction.transactionDate).toLocaleDateString()}
+                {linkingTransaction.reference ? ` • Ref: #${linkingTransaction.reference}` : ''}
+              </p>
+            </div>
+          )}
+
+          {/* Select Counterpart */}
+          <div>
+            <label className="block text-xs font-bold text-[var(--text-primary)] mb-1.5">
+              Choose Matching{' '}
+              {linkingTransaction?.source === 'CUSTOMER' ? 'Carrier Expense Entry' : 'Client Revenue Entry'}:
+            </label>
+
+            {availableCounterparts.length === 0 ? (
+              <p className="p-4 text-center text-[var(--text-secondary)] border rounded-lg">
+                No available counterpart entries found to link.
+              </p>
+            ) : (
+              <div className="max-h-56 divide-y divide-[var(--border)] overflow-y-auto rounded-lg border border-[var(--border)]">
+                {availableCounterparts.map((cand) => {
+                  const isCandSelected = selectedCounterpartId === cand.id;
+                  const candAmount = cand.amount;
+                  const targetAmount = linkingTransaction?.amount || 0;
+                  const projectedMargin =
+                    linkingTransaction?.source === 'CUSTOMER'
+                      ? targetAmount - candAmount
+                      : candAmount - targetAmount;
+                  const isProjectedDeficit = projectedMargin < 0;
+
+                  return (
+                    <label
+                      key={cand.id}
+                      className={cn(
+                        'flex cursor-pointer items-center justify-between p-3 transition-colors hover:bg-[var(--background)]',
+                        isCandSelected && 'bg-[rgba(var(--accent-gold-rgb),0.08)]'
+                      )}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <input
+                          type="radio"
+                          name="counterpartOption"
+                          value={cand.id}
+                          checked={isCandSelected}
+                          onChange={() => setSelectedCounterpartId(cand.id)}
+                          className="h-4 w-4 border-[var(--border)] text-[var(--accent-gold)] focus:ring-[var(--accent-gold)]"
+                        />
+                        <div>
+                          <p className="font-semibold text-[var(--text-primary)]">{cand.description}</p>
+                          <p className="text-[10px] text-[var(--text-secondary)]">
+                            {new Date(cand.transactionDate).toLocaleDateString()}
+                            {cand.source === 'COMPANY' && cand.companyLedgerEntry?.company?.name
+                              ? ` • ${cand.companyLedgerEntry.company.name}`
+                              : ''}
+                            {cand.reference ? ` • Ref: #${cand.reference}` : ''}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="text-right">
+                        <span className="font-mono font-bold">{formatMoney(cand.amount)}</span>
+                        <div
+                          className={cn(
+                            'text-[10px] font-bold',
+                            isProjectedDeficit ? 'text-[var(--error)]' : 'text-[var(--success)]'
+                          )}
+                        >
+                          {isProjectedDeficit
+                            ? `Deficit ${formatMoney(projectedMargin)}`
+                            : `+${formatMoney(projectedMargin)} profit`}
+                        </div>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      </Modal>
+
+      {/* 7. MODAL: Inline Edit (Description, Reference, Invoice, Notes) */}
+      <Modal
+        open={Boolean(editingTransaction)}
+        onClose={() => {
+          if (!isSavingEdit) setEditingTransaction(null);
+        }}
+        title={`Edit ${editingTransaction?.source === 'COMPANY' ? 'Company' : 'Customer'} Ledger Entry`}
+        size="md"
+        actions={
+          <div className="flex items-center justify-end gap-2">
+            <button
+              type="button"
+              disabled={isSavingEdit}
+              onClick={() => setEditingTransaction(null)}
+              className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-[var(--background)]"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={isSavingEdit}
+              onClick={handleSubmitEdit}
+              className="rounded-lg bg-[var(--accent-gold)] px-4 py-1.5 text-xs font-bold text-black transition-opacity hover:opacity-90 disabled:opacity-50"
+            >
+              {isSavingEdit ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-3.5 text-xs">
+          <div>
+            <label className="block text-xs font-bold text-[var(--text-primary)] mb-1">
+              Description <span className="text-[var(--error)]">*</span>
+            </label>
+            <input
+              type="text"
+              value={editDescription}
+              onChange={(e) => setEditDescription(e.target.value)}
+              className="w-full rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs text-[var(--text-primary)] focus:border-[var(--accent-gold)] focus:outline-none"
+              placeholder="e.g. Ocean Freight Booking"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold text-[var(--text-primary)] mb-1">
+                Reference Number (#)
+              </label>
+              <input
+                type="text"
+                value={editReference}
+                onChange={(e) => setEditReference(e.target.value)}
+                className="w-full rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs text-[var(--text-primary)] focus:border-[var(--accent-gold)] focus:outline-none"
+                placeholder="e.g. PO-8921 or BOL-441"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-[var(--text-primary)] mb-1">
+                Invoice Number (INV-#)
+              </label>
+              <input
+                type="text"
+                value={editInvoiceNumber}
+                onChange={(e) => setEditInvoiceNumber(e.target.value)}
+                className="w-full rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs text-[var(--text-primary)] focus:border-[var(--accent-gold)] focus:outline-none"
+                placeholder="e.g. INV-2026-001"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-[var(--text-primary)] mb-1">
+              Internal Memo &amp; Accounting Notes
+            </label>
+            <textarea
+              rows={3}
+              value={editNotes}
+              onChange={(e) => setEditNotes(e.target.value)}
+              className="w-full rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs text-[var(--text-primary)] focus:border-[var(--accent-gold)] focus:outline-none"
+              placeholder="Add accounting notes, reconciliation context, or payment instructions..."
+            />
+          </div>
+        </div>
+      </Modal>
+
+      {/* 8. CONFIRM DIALOG: Single Transaction Deletion */}
+      <ConfirmDialog
+        open={Boolean(transactionToDelete)}
+        onClose={() => {
+          if (!isDeleting) setTransactionToDelete(null);
+        }}
+        onConfirm={handleConfirmDelete}
+        title={`Delete ${transactionToDelete?.source === 'COMPANY' ? 'Company' : 'Customer'} Transaction`}
+        message={
+          <div className="space-y-2.5 text-xs">
+            <p className="text-[var(--text-secondary)]">
+              Are you sure you want to permanently delete this real transaction from the{' '}
+              <strong className="text-[var(--text-primary)]">
+                {transactionToDelete?.source === 'COMPANY' ? 'Company / Carrier' : 'Customer'} Ledger
+              </strong>
+              ?
+            </p>
+            <div className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-3">
+              <div className="font-semibold text-[var(--text-primary)]">
+                {transactionToDelete?.description}
+              </div>
+              <div className="mt-1.5 flex flex-wrap items-center justify-between gap-2 font-mono text-[11px]">
+                <span className="text-[var(--text-secondary)]">
+                  Date: {transactionToDelete && new Date(transactionToDelete.transactionDate).toLocaleDateString()}
+                </span>
+                <span
+                  className={cn(
+                    'font-bold',
+                    transactionToDelete?.type === 'DEBIT' ? 'text-[var(--error)]' : 'text-[var(--success)]'
+                  )}
+                >
+                  {transactionToDelete?.type === 'DEBIT' ? '−' : '+'}
+                  {transactionToDelete && formatMoney(transactionToDelete.amount)}
+                </span>
+              </div>
+              {transactionToDelete?.reference && (
+                <div className="mt-1 text-[10px] text-[var(--text-secondary)] font-mono">
+                  Reference: #{transactionToDelete.reference}
+                </div>
+              )}
+            </div>
+            <p className="text-[11px] text-[var(--text-secondary)]">
+              {transactionToDelete?.source === 'COMPANY'
+                ? 'This action will reverse the company ledger entry, recalculate carrier balances, and unlink any associated shipment records.'
+                : 'This action will reverse the customer ledger record, recalculate subsequent running balances, and update unbilled invoice line items.'}
+            </p>
+          </div>
+        }
+        confirmText="Delete Transaction"
+        cancelText="Cancel"
+        severity="error"
+        loading={isDeleting || deletingTransactionId === transactionToDelete?.id}
+      />
+
+      {/* 9. CONFIRM DIALOG: Batch Deletion */}
+      <ConfirmDialog
+        open={batchDeleteConfirmOpen}
+        onClose={() => {
+          if (!isBatchDeleting) setBatchDeleteConfirmOpen(false);
+        }}
+        onConfirm={handleConfirmBatchDelete}
+        title={`Delete ${selectedTransactions.length} Selected Transactions`}
+        message={
+          <div className="space-y-2.5 text-xs">
+            <p className="text-[var(--text-secondary)]">
+              You are about to delete <strong className="text-[var(--error)]">{selectedTransactions.length}</strong> real
+              ledger transactions.
+            </p>
+            <div className="max-h-40 overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--background)] p-2 divide-y divide-[var(--border)]">
+              {selectedTransactions.map((t) => (
+                <div key={t.id} className="py-1 flex items-center justify-between text-[11px]">
+                  <span className="truncate max-w-[200px]">{t.description}</span>
+                  <span className="font-mono font-bold">
+                    {t.type === 'DEBIT' ? '−' : '+'}
+                    {formatMoney(t.amount)}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <p className="text-[11px] text-[var(--error)] font-medium">
+              This action cannot be undone. All corresponding customer and company balances will be reversed and recalculated.
+            </p>
+          </div>
+        }
+        confirmText={`Delete ${selectedTransactions.length} Records`}
+        cancelText="Cancel"
+        severity="error"
+        loading={isBatchDeleting}
+      />
     </div>
   );
 }
 export default LedgerComparisonTable;
-

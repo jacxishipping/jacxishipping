@@ -69,6 +69,14 @@ type ShipmentFinancialsTabProps = {
   onExpenseSourceFilterChange: (value: ExpenseSourceFilter) => void;
   onOpenCompanyLedgerEntry: (entry: NonNullable<Shipment['companyLedgerEntries']>[number]) => void;
   onDeleteExpense: (entryId: string) => void;
+  onDeleteComparisonTransaction?: (transaction: ComparisonTransactionWithDrillDown) => Promise<void> | void;
+  onUpdateComparisonTransaction?: (
+    transaction: ComparisonTransactionWithDrillDown,
+    updates: { description?: string; reference?: string | null; notes?: string | null; invoiceNumber?: string | null }
+  ) => Promise<void> | void;
+  onLinkTransactions?: (companyEntryId: string, customerEntryId: string) => Promise<void> | void;
+  onUnlinkTransactions?: (companyEntryId: string, customerEntryId: string) => Promise<void> | void;
+  onBatchDeleteTransactions?: (transactions: ComparisonTransactionWithDrillDown[]) => Promise<void> | void;
   onExpenseUpdated: () => void;
 };
 
@@ -206,6 +214,11 @@ export default function ShipmentFinancialsTab({
   onExpenseSourceFilterChange,
   onOpenCompanyLedgerEntry,
   onDeleteExpense,
+  onDeleteComparisonTransaction,
+  onUpdateComparisonTransaction,
+  onLinkTransactions,
+  onUnlinkTransactions,
+  onBatchDeleteTransactions,
   onExpenseUpdated,
 }: ShipmentFinancialsTabProps) {
   const priceListSnapshot = shipment.priceListPricingSnapshot;
@@ -618,7 +631,18 @@ export default function ShipmentFinancialsTab({
               customerCreditsTotal={userLedgerCreditsTotal}
               netDifference={netDifference}
               shipmentNumber={shipment.vehicleVIN || shipment.lotNumber || shipment.id}
+              canDelete={canManageShipmentExpenses}
+              canEdit={canManageShipmentExpenses}
+              deletingTransactionId={deletingExpenseId}
               onOpenCompanyLedgerEntry={onOpenCompanyLedgerEntry}
+              onDeleteTransaction={onDeleteComparisonTransaction}
+              onUpdateTransaction={onUpdateComparisonTransaction}
+              onLinkTransactions={onLinkTransactions}
+              onUnlinkTransactions={onUnlinkTransactions}
+              onBatchDeleteTransactions={onBatchDeleteTransactions}
+              onOpenShipmentExpense={onOpenShipmentExpense}
+              onOpenDispatchExpense={onOpenDispatchExpense}
+              onOpenTransitExpense={onOpenTransitExpense}
             />
           )}
 

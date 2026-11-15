@@ -438,6 +438,209 @@ function ShipmentDetailPageContent() {
     }
   };
 
+  const handleDeleteComparisonTransaction = async (transaction: ComparisonTransactionWithDrillDown) => {
+    try {
+      setDeletingExpenseId(transaction.id);
+
+      let response: Response;
+      if (transaction.source === 'COMPANY') {
+        const metadata = (transaction.companyLedgerEntry.metadata ?? {}) as Record<string, unknown>;
+        const linkedUserExpenseId = typeof metadata.linkedUserExpenseEntryId === 'string'
+          ? metadata.linkedUserExpenseEntryId
+          : typeof transaction.companyLedgerEntry.reference === 'string' &&
+            transaction.companyLedgerEntry.reference.startsWith('shipment-expense:')
+          ? transaction.companyLedgerEntry.reference.replace('shipment-expense:', '')
+          : null;
+
+        if (linkedUserExpenseId) {
+          response = await fetch(`/api/ledger/${linkedUserExpenseId}`, { method: 'DELETE' });
+        } else {
+          response = await fetch(`/api/finance/companies/ledger/${transaction.companyLedgerEntry.id}`, {
+            method: 'DELETE',
+          });
+        }
+      } else {
+        response = await fetch(`/api/ledger/${transaction.userLedgerEntryId}`, { method: 'DELETE' });
+      }
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || data.message || 'Failed to delete transaction');
+      }
+
+      toast.success('Transaction deleted', {
+        description: 'Ledger entries reversed and balances recalculated successfully',
+      });
+      void refreshShipmentPage();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to delete transaction');
+      throw error;
+    } finally {
+      setDeletingExpenseId(null);
+    }
+  };
+
+  const handleUpdateComparisonTransaction = async (
+    transaction: ComparisonTransactionWithDrillDown,
+    updates: { description?: string; reference?: string | null; notes?: string | null; invoiceNumber?: string | null }
+  ) => {
+    try {
+      let response: Response;
+      if (transaction.source === 'COMPANY') {
+        const metadata = (transaction.companyLedgerEntry.metadata ?? {}) as Record<string, unknown>;
+        response = await fetch(`/api/finance/companies/ledger/${transaction.companyLedgerEntry.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            description: updates.description,
+            reference: updates.reference,
+            notes: updates.notes,
+            metadata: {
+              ...metadata,
+              ...(updates.invoiceNumber ? { invoiceNumber: updates.invoiceNumber } : {}),
+            },
+          }),
+        });
+      } else {
+        const metadata = (transaction.metadata ?? {}) as Record<string, unknown>;
+        response = await fetch(`/api/ledger/${transaction.userLedgerEntryId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            description: updates.description,
+            notes: updates.notes,
+            metadata: {
+              ...metadata,
+              ...(updates.reference ? { reference: updates.reference } : {}),
+              ...(updates.invoiceNumber ? { invoiceNumber: updates.invoiceNumber } : {}),
+            },
+          }),
+        });
+      }
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update transaction');
+      }
+
+      toast.success('Transaction updated');
+      void refreshShipmentPage();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to update transaction');
+      throw error;
+    }
+  };
+
+  const handleLinkTransactions = async (companyEntryId: string, customerEntryId: string) => {
+    try {
+      const comp = companyLedgerEntries.find((c) => c.id === companyEntryId);
+      const compMeta = (comp?.metadata ?? {}) as Record<string, unknown>;
+
+      const userEntry = (shipment?.ledgerEntries || []).find((u) => u.id === customerEntryId);
+      const userMeta = (userEntry?.metadata ?? {}) as Record<string, unknown>;
+
+      const compRes = await fetch(`/api/finance/companies/ledger/${companyEntryId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          metadata: {
+            ...compMeta,
+            linkedUserExpenseEntryId: customerEntryId,
+          },
+        }),
+      });
+
+      if (!compRes.ok) {
+        const data = await compRes.json();
+        throw new Error(data.error || 'Failed to link company entry');
+      }
+
+      const userRes = await fetch(`/api/ledger/${customerEntryId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          metadata: {
+            ...userMeta,
+            linkedCompanyLedgerEntryId: companyEntryId,
+          },
+        }),
+      });
+
+      if (!userRes.ok) {
+        const data = await userRes.json();
+        throw new Error(data.error || 'Failed to link customer entry');
+      }
+
+      toast.success('Transactions matched and linked', {
+        description: 'Cost and revenue are now paired for leg-by-leg reconciliation.',
+      });
+      void refreshShipmentPage();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to link transactions');
+      throw error;
+    }
+  };
+
+  const handleUnlinkTransactions = async (companyEntryId: string, customerEntryId: string) => {
+    try {
+      const comp = companyLedgerEntries.find((c) => c.id === companyEntryId);
+      const compMeta = { ...((comp?.metadata ?? {}) as Record<string, unknown>) };
+      delete compMeta.linkedUserExpenseEntryId;
+
+      const userEntry = (shipment?.ledgerEntries || []).find((u) => u.id === customerEntryId);
+      const userMeta = { ...((userEntry?.metadata ?? {}) as Record<string, unknown>) };
+      delete userMeta.linkedCompanyLedgerEntryId;
+
+      await fetch(`/api/finance/companies/ledger/${companyEntryId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ metadata: compMeta }),
+      });
+
+      await fetch(`/api/ledger/${customerEntryId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ metadata: userMeta }),
+      });
+
+      toast.success('Transactions unlinked');
+      void refreshShipmentPage();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to unlink transactions');
+      throw error;
+    }
+  };
+
+  const handleBatchDeleteTransactions = async (transactionsToDelete: ComparisonTransactionWithDrillDown[]) => {
+    if (!transactionsToDelete.length) return;
+    try {
+      for (const t of transactionsToDelete) {
+        if (t.source === 'COMPANY') {
+          const metadata = (t.companyLedgerEntry.metadata ?? {}) as Record<string, unknown>;
+          const linkedUserExpenseId = typeof metadata.linkedUserExpenseEntryId === 'string'
+            ? metadata.linkedUserExpenseEntryId
+            : typeof t.companyLedgerEntry.reference === 'string' &&
+              t.companyLedgerEntry.reference.startsWith('shipment-expense:')
+            ? t.companyLedgerEntry.reference.replace('shipment-expense:', '')
+            : null;
+
+          if (linkedUserExpenseId) {
+            await fetch(`/api/ledger/${linkedUserExpenseId}`, { method: 'DELETE' });
+          } else {
+            await fetch(`/api/finance/companies/ledger/${t.companyLedgerEntry.id}`, { method: 'DELETE' });
+          }
+        } else {
+          await fetch(`/api/ledger/${t.userLedgerEntryId}`, { method: 'DELETE' });
+        }
+      }
+      toast.success(`Deleted ${transactionsToDelete.length} transactions successfully`);
+      void refreshShipmentPage();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to delete selected transactions');
+      throw error;
+    }
+  };
+
   const handleDelete = async () => {
     if (!confirm('Are you sure you want to delete this shipment?')) {
       return;
@@ -935,8 +1138,57 @@ function ShipmentDetailPageContent() {
       }
     }
 
+    // Bidirectional link support: check customer entries that link to company entry id
+    for (const entry of shipment?.ledgerEntries || []) {
+      const metadata = (entry.metadata ?? {}) as Record<string, unknown>;
+      const linkedCompanyId = typeof metadata.linkedCompanyLedgerEntryId === 'string'
+        ? metadata.linkedCompanyLedgerEntryId
+        : null;
+
+      if (linkedCompanyId && !map.has(entry.id)) {
+        const foundCompany = companyLedgerEntries.find((c) => c.id === linkedCompanyId);
+        if (foundCompany) {
+          map.set(entry.id, foundCompany);
+        }
+      }
+    }
+
     return map;
-  }, [companyLedgerEntries]);
+  }, [companyLedgerEntries, shipment?.ledgerEntries]);
+
+  const linkedCustomerEntriesByCompanyEntryId = useMemo(() => {
+    const map = new Map<string, Shipment['ledgerEntries'][number]>();
+    const userEntries = shipment?.ledgerEntries || [];
+
+    for (const companyEntry of companyLedgerEntries) {
+      const metadata = (companyEntry.metadata ?? {}) as Record<string, unknown>;
+      const userEntryId = typeof metadata.linkedUserExpenseEntryId === 'string'
+        ? metadata.linkedUserExpenseEntryId
+        : typeof companyEntry.reference === 'string' && companyEntry.reference.startsWith('shipment-expense:')
+        ? companyEntry.reference.replace('shipment-expense:', '')
+        : null;
+
+      if (userEntryId) {
+        const found = userEntries.find((u) => u.id === userEntryId);
+        if (found) {
+          map.set(companyEntry.id, found);
+        }
+      }
+    }
+
+    for (const userEntry of userEntries) {
+      const metadata = (userEntry.metadata ?? {}) as Record<string, unknown>;
+      const companyId = typeof metadata.linkedCompanyLedgerEntryId === 'string'
+        ? metadata.linkedCompanyLedgerEntryId
+        : null;
+
+      if (companyId && !map.has(companyId)) {
+        map.set(companyId, userEntry);
+      }
+    }
+
+    return map;
+  }, [companyLedgerEntries, shipment?.ledgerEntries]);
 
   const expenseEntriesWithCompanyLedger = useMemo(
     () =>
@@ -961,6 +1213,7 @@ function ShipmentDetailPageContent() {
         notes: entry.notes,
         reference: entry.reference,
         metadata: entry.metadata,
+        linkedCustomerEntry: linkedCustomerEntriesByCompanyEntryId.get(entry.id) || null,
       }));
 
       const customerEntries: ComparisonTransactionWithDrillDown[] = (shipment?.ledgerEntries || []).map((entry) => {
@@ -969,6 +1222,22 @@ function ShipmentDetailPageContent() {
           ? metadata.reference
           : typeof metadata.invoiceNumber === 'string'
           ? metadata.invoiceNumber
+          : null;
+
+        const invoiceNumber = typeof metadata.invoiceNumber === 'string'
+          ? metadata.invoiceNumber
+          : typeof ref === 'string' && ref.startsWith('INV-')
+          ? ref
+          : null;
+        const invoiceId = typeof metadata.invoiceId === 'string' ? metadata.invoiceId : null;
+        const invoiceStatus = typeof metadata.invoiceStatus === 'string'
+          ? metadata.invoiceStatus
+          : metadata.settled === true || metadata.isSettled === true
+          ? 'PAID'
+          : metadata.pendingInvoice === true
+          ? 'PENDING'
+          : invoiceNumber
+          ? 'BILLED'
           : null;
 
         return {
@@ -982,6 +1251,9 @@ function ShipmentDetailPageContent() {
           notes: entry.notes,
           reference: ref,
           metadata: entry.metadata,
+          invoiceId,
+          invoiceNumber,
+          invoiceStatus,
           userLedgerEntryId: entry.id,
           userLedgerEntry: entry,
           linkedCompanyLedgerEntry: linkedCompanyLedgerEntriesByUserEntryId.get(entry.id) || null,
@@ -992,7 +1264,7 @@ function ShipmentDetailPageContent() {
         (left, right) => new Date(right.transactionDate).getTime() - new Date(left.transactionDate).getTime()
       );
     },
-    [companyLedgerEntries, linkedCompanyLedgerEntriesByUserEntryId, shipment?.ledgerEntries]
+    [companyLedgerEntries, linkedCompanyLedgerEntriesByUserEntryId, linkedCustomerEntriesByCompanyEntryId, shipment?.ledgerEntries]
   );
 
   const purchasePriceRecord = useMemo(() => {
@@ -1632,6 +1904,11 @@ function ShipmentDetailPageContent() {
             onDeleteExpense={(entryId) => {
               void handleDeleteExpense(entryId);
             }}
+            onDeleteComparisonTransaction={handleDeleteComparisonTransaction}
+            onUpdateComparisonTransaction={handleUpdateComparisonTransaction}
+            onLinkTransactions={handleLinkTransactions}
+            onUnlinkTransactions={handleUnlinkTransactions}
+            onBatchDeleteTransactions={handleBatchDeleteTransactions}
             onExpenseUpdated={() => {
               void refreshShipmentPage();
             }}

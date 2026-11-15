@@ -250,11 +250,15 @@ type ComparisonTransactionBase = {
   notes?: string | null;
   reference?: string | null;
   metadata?: Record<string, unknown> | null;
+  invoiceId?: string | null;
+  invoiceNumber?: string | null;
+  invoiceStatus?: 'PAID' | 'PENDING' | 'BILLED' | 'CANCELLED' | string | null;
 };
 
 export type CompanyComparisonTransaction = ComparisonTransactionBase & {
   source: 'COMPANY';
   companyLedgerEntry: LinkedCompanyLedgerEntry;
+  linkedCustomerEntry?: Shipment['ledgerEntries'][number] | null;
 };
 
 export type CustomerComparisonTransaction = ComparisonTransactionBase & {
