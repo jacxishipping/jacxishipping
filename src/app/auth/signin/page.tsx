@@ -14,7 +14,7 @@ import { Eye as Visibility, EyeOff as VisibilityOff, Mail as Email, Lock, ArrowR
 // TextField look: --background surface, gold focus ring). Worker C's
 // migration referenced INPUT_CLS but never defined it.
 const INPUT_CLS =
-  'w-full rounded-lg border border-[rgba(var(--border-rgb),0.9)] bg-[var(--background)] px-3 py-2 text-[0.875rem] text-[var(--text-primary)] outline-none transition-colors placeholder:text-[var(--text-secondary)] hover:border-[var(--border)] focus:border-[var(--accent-gold)] focus:ring-2 focus:ring-[rgba(var(--accent-gold-rgb),0.2)]';
+  'w-full rounded-lg border border-[rgba(var(--border-rgb),0.9)] bg-[var(--background)] px-3 py-2.5 text-base text-[var(--text-primary)] outline-none transition-colors placeholder:text-[var(--text-secondary)] hover:border-[var(--border)] focus:border-[var(--accent-gold)] focus:ring-2 focus:ring-[rgba(var(--accent-gold-rgb),0.2)]';
 
 
 function SignInPageContent() {
@@ -156,13 +156,12 @@ function SignInPageContent() {
 							<div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
 								<SiteLogo variant="dashboard" className="w-[120px]" priority />
 							</div>
-							<h3
-								
+							<h1
 								className="text-[1.875rem] sm:text-4xl"
-									style={{ fontWeight: 700, background: 'linear-gradient(135deg, var(--text-primary) 0%, var(--accent-gold) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: 8 }}
+								style={{ fontWeight: 700, background: 'linear-gradient(135deg, var(--text-primary) 0%, var(--accent-gold) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: 8 }}
 							>
 								{t('auth.signIn')}
-							</h3>
+							</h1>
 							<p
 								
 								style={{ color: 'var(--text-secondary)' }}

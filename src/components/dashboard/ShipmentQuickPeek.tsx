@@ -284,7 +284,7 @@ export default function ShipmentQuickPeek({
                       onClick={onClose}
                       style={{ textDecoration: 'none' }}
                     >
-                      <span className="font-mono font-bold text-sm text-[var(--accent-gold,#D4AF37)] hover:underline block truncate">
+                      <span className="font-mono font-bold text-sm text-[var(--accent-gold-text,#8D7A1F)] hover:underline block truncate">
                         {shipment.container.containerNumber}
                       </span>
                     </Link>

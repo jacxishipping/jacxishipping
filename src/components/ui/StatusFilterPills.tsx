@@ -21,7 +21,12 @@ export function StatusFilterPills({
   className = '',
 }: StatusFilterPillsProps) {
   return (
-    <div className={`flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none ${className}`}>
+    <div className={`relative ${className}`}>
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-y-0 right-0 z-10 w-8 bg-gradient-to-l from-[var(--panel)] to-transparent sm:hidden"
+      />
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 [scrollbar-gutter:stable] scrollbar-thin">
       {options.map((option) => {
         const isSelected = selectedValue === option.value;
         return (
@@ -29,7 +34,7 @@ export function StatusFilterPills({
             key={option.value}
             type="button"
             onClick={() => onSelect(option.value)}
-            className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold transition-all ${
+            className={`inline-flex min-h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold transition-all ${
               isSelected
                 ? 'bg-[var(--accent-gold)] text-black shadow-sm ring-2 ring-[var(--accent-gold)]/20'
                 : 'border border-[var(--border)] bg-[var(--panel)] text-[var(--text-secondary)] hover:border-[var(--accent-gold)]/50 hover:text-[var(--text-primary)] hover:bg-[var(--background)]'
@@ -54,6 +59,7 @@ export function StatusFilterPills({
           </button>
         );
       })}
+      </div>
     </div>
   );
 }

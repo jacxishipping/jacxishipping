@@ -210,7 +210,7 @@ const aiDocumentNavigation: NavigationItem[] = [
 const settingsNavigation: NavigationItem[] = [
 	{
 		name: 'My Profile',
-		href: '/dashboard/settings',
+		href: '/dashboard/profile',
 		icon: Settings,
 	},
 ];
@@ -283,7 +283,7 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }: SidebarPr
 			{/* Mobile Drawer */}
 			<AnimatePresence>
 				{mobileOpen && (
-					<div className="fixed inset-0 z-[1030] lg:hidden" role="presentation">
+					<div className="fixed inset-0 z-[1030] md:hidden" role="presentation">
 						<motion.div
 							aria-hidden="true"
 							className="absolute inset-0 bg-black/50 backdrop-blur-[2px]"
@@ -321,7 +321,7 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }: SidebarPr
 			{/* Desktop Sidebar */}
 			<aside
 				aria-label="Sidebar navigation"
-				className="hidden shrink-0 overflow-hidden border-r border-[var(--border)] text-[var(--text-primary)] transition-[width] duration-200 lg:block"
+				className="hidden shrink-0 overflow-hidden border-r border-[var(--border)] text-[var(--text-primary)] transition-[width] duration-200 md:block"
 				style={{
 					width: desktopDrawerWidth,
 					background: 'var(--panel)',
@@ -395,7 +395,7 @@ function NavItem({ item, isActive, badge, badgeColor, onNavClick, collapsed }: N
 						? 'mx-1.5 my-0.5 px-2.5 py-1.5'
 						: 'mx-2 my-1 px-3 py-2',
 				active
-					? 'bg-[rgba(var(--accent-gold-rgb),0.15)] text-[var(--accent-gold)] shadow-[inset_0_0_0_1px_rgba(var(--accent-gold-rgb),0.2)]'
+					? 'bg-[rgba(var(--accent-gold-rgb),0.15)] text-[var(--accent-gold-text)] shadow-[inset_0_0_0_1px_rgba(var(--accent-gold-rgb),0.2)]'
 					: 'text-[var(--text-secondary)] hover:bg-[rgba(var(--accent-gold-rgb),0.08)] hover:text-[var(--text-primary)]',
 			].join(' ')}
 		>
@@ -408,7 +408,7 @@ function NavItem({ item, isActive, badge, badgeColor, onNavClick, collapsed }: N
 			<span
 				className={[
 					'flex shrink-0 items-center justify-center text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]',
-					active ? '!text-[var(--accent-gold)]' : '',
+					active ? '!text-[var(--accent-gold-text)]' : '',
 					collapsed ? '' : 'w-8',
 				].join(' ')}
 			>
@@ -770,7 +770,7 @@ function SidebarContent({
 							src={userImage}
 							shape="circle"
 							size="sm"
-							gradientClass="from-[#D4AF37] to-[#96791F]"
+							gradientClass="from-[var(--jx-accent-500)] to-[var(--jx-accent-700)]"
 							className="!h-8 !w-8 !text-[0.875rem]"
 						/>
 					</Tooltip>
@@ -784,7 +784,7 @@ function SidebarContent({
 									onClick={onToggleCollapse}
 									aria-label="Expand sidebar"
 									style={{ fontFamily: 'inherit' }}
-									className="!h-7 !w-7 !min-h-0 !min-w-0 !rounded-md !border-0 !bg-transparent !p-1 !text-[var(--text-secondary)] hover:!bg-[rgba(var(--accent-gold-rgb),0.1)] hover:!text-[var(--accent-gold-text)] !shadow-none"
+									className="!h-8 !w-8 !min-h-8 !min-w-8 !rounded-md !border-0 !bg-transparent !p-1.5 !text-[var(--text-secondary)] hover:!bg-[rgba(var(--accent-gold-rgb),0.1)] hover:!text-[var(--accent-gold-text)] !shadow-none"
 								>
 									<ChevronRight className="h-[18px] w-[18px]" />
 								</JacxiButton>
@@ -800,7 +800,7 @@ function SidebarContent({
 								onClick={() => signOut({ callbackUrl: '/auth/signin' })}
 								aria-label="Sign out"
 								style={{ fontFamily: 'inherit' }}
-								className="!h-7 !w-7 !min-h-0 !min-w-0 !rounded-md !border-0 !bg-transparent !p-1 !text-[var(--text-secondary)] hover:!bg-[rgba(239,68,68,0.1)] hover:!text-[var(--error,#ef4444)] !shadow-none"
+								className="!h-8 !w-8 !min-h-8 !min-w-8 !rounded-md !border-0 !bg-transparent !p-1.5 !text-[var(--text-secondary)] hover:!bg-[rgba(239,68,68,0.1)] hover:!text-[var(--error,#ef4444)] !shadow-none"
 							>
 								<LogOut className="h-[18px] w-[18px]" />
 							</JacxiButton>
@@ -826,7 +826,7 @@ function SidebarContent({
 								src={userImage}
 								shape="circle"
 								size="sm"
-								gradientClass="from-[#D4AF37] to-[#96791F]"
+								gradientClass="from-[var(--jx-accent-500)] to-[var(--jx-accent-700)]"
 								className="!h-8 !w-8 !text-[0.875rem]"
 							/>
 							<div className="min-w-0">
@@ -848,7 +848,7 @@ function SidebarContent({
 										onClick={onToggleCollapse}
 										aria-label="Collapse sidebar"
 										style={{ fontFamily: 'inherit' }}
-										className="!h-7 !w-7 !min-h-0 !min-w-0 !rounded-md !border-0 !bg-transparent !p-1 !text-[var(--text-secondary)] hover:!bg-[rgba(var(--accent-gold-rgb),0.1)] hover:!text-[var(--text-primary)] !shadow-none"
+										className="!h-8 !w-8 !min-h-8 !min-w-8 !rounded-md !border-0 !bg-transparent !p-1.5 !text-[var(--text-secondary)] hover:!bg-[rgba(var(--accent-gold-rgb),0.1)] hover:!text-[var(--text-primary)] !shadow-none"
 									>
 										<ChevronLeft className="h-[18px] w-[18px]" />
 									</JacxiButton>

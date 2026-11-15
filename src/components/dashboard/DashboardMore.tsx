@@ -51,7 +51,7 @@ export default function DashboardMore({
               <div className="rounded-md p-2 bg-[rgba(var(--accent-gold-rgb),0.08)] text-[var(--accent-gold)]">
                 <Activity className="h-4 w-4" />
               </div>
-              <ArrowRight className="h-4 w-4 text-[var(--text-secondary)] group-hover:text-[var(--accent-gold)] transition-colors" />
+              <ArrowRight className="h-4 w-4 text-[var(--text-secondary)] transition-colors group-hover:text-[var(--accent-gold-text)]" />
             </div>
             <div className="mt-2">
               <div className="font-medium text-[var(--text-primary)] text-sm">Trends &amp; Utilization</div>
@@ -97,7 +97,7 @@ export default function DashboardMore({
               <div className="rounded-md p-2 bg-[rgba(var(--info-rgb),0.1)] text-[var(--info)]">
                 <Truck className="h-4 w-4" />
               </div>
-              <ArrowRight className="h-4 w-4 text-[var(--text-secondary)] group-hover:text-[var(--accent-gold)] transition-colors" />
+              <ArrowRight className="h-4 w-4 text-[var(--text-secondary)] transition-colors group-hover:text-[var(--accent-gold-text)]" />
             </div>
             <div className="mt-3">
               <div className="font-semibold text-[var(--text-primary)]">Operations Pipeline</div>

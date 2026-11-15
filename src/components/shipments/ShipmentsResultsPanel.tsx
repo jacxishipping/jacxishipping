@@ -316,7 +316,7 @@ export default function ShipmentsResultsPanel({
 												setSelectedIds(new Set(shipments.map((s) => s.id)));
 											}
 										}}
-										className="text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--accent-gold)] transition-colors inline-flex items-center gap-1.5"
+										className="min-h-[32px] text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--accent-gold-text)] transition-colors inline-flex items-center gap-1.5"
 									>
 										{selectedIds.size === shipments.length ? (
 											<>

@@ -209,7 +209,7 @@ export default function CustomerDashboardSummary({ role }: CustomerDashboardSumm
           <div className="flex items-center gap-2 px-4 py-3 border-b border-[var(--border)]">
             <Bell className="h-4 w-4 text-[var(--accent-gold)]" />
             <span className="text-sm font-semibold text-[var(--text-primary)]">Milestone Alerts</span>
-            <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--accent-gold)]/10 text-[var(--accent-gold)] font-medium">
+            <span className="ml-auto rounded-full bg-[var(--accent-gold)]/10 px-1.5 py-0.5 text-[10px] font-medium text-[var(--accent-gold-text)]">
               {milestoneAlerts.length}
             </span>
           </div>
@@ -284,7 +284,7 @@ export default function CustomerDashboardSummary({ role }: CustomerDashboardSumm
                                 isCompleted
                                   ? 'bg-[var(--success)]/15 text-[var(--success)]'
                                   : isActive
-                                  ? 'bg-[var(--accent-gold)]/15 text-[var(--accent-gold)] ring-2 ring-[var(--accent-gold)]/30'
+                                  ? 'bg-[var(--accent-gold)]/15 text-[var(--accent-gold-text)] ring-2 ring-[var(--accent-gold)]/30'
                                   : 'bg-[var(--border)]/30 text-[var(--text-secondary)]/40'
                               }`}
                             >
@@ -316,7 +316,7 @@ export default function CustomerDashboardSummary({ role }: CustomerDashboardSumm
           {shipments.filter((s) => !['DELIVERED', 'CANCELLED'].includes(s.status)).length > 3 && (
             <Link
               href="/dashboard/shipments"
-              className="block text-center text-xs text-[var(--accent-gold)] hover:underline mt-2"
+              className="mt-2 block min-h-8 text-center text-xs font-semibold text-[var(--accent-gold-text)] hover:underline"
             >
               View all {shipments.filter((s) => !['DELIVERED', 'CANCELLED'].includes(s.status)).length} active shipments
             </Link>
@@ -365,7 +365,7 @@ export default function CustomerDashboardSummary({ role }: CustomerDashboardSumm
             </div>
             <Link
               href="/dashboard/tracking"
-              className="block text-center text-xs text-[var(--accent-gold)] hover:underline mt-2"
+              className="mt-2 block min-h-8 text-center text-xs font-semibold text-[var(--accent-gold-text)] hover:underline"
             >
               Track all shipments
             </Link>
@@ -436,7 +436,7 @@ export default function CustomerDashboardSummary({ role }: CustomerDashboardSumm
           </div>
           <Link
             href="/dashboard/shipments"
-            className="text-xs text-[var(--accent-gold)] hover:underline flex items-center gap-1"
+            className="flex min-h-8 items-center gap-1 text-xs font-semibold text-[var(--accent-gold-text)] hover:underline"
           >
             View all <ArrowRight className="h-3 w-3" />
           </Link>
@@ -480,7 +480,7 @@ export default function CustomerDashboardSummary({ role }: CustomerDashboardSumm
           </div>
           <Link
             href="/dashboard/invoices"
-            className="text-xs text-[var(--accent-gold)] hover:underline flex items-center gap-1"
+            className="flex min-h-8 items-center gap-1 text-xs font-semibold text-[var(--accent-gold-text)] hover:underline"
           >
             View all <ArrowRight className="h-3 w-3" />
           </Link>

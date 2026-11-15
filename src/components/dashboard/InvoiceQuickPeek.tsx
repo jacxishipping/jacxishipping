@@ -206,7 +206,7 @@ export default function InvoiceQuickPeek({
                   onClick={onClose}
                   style={{ textDecoration: 'none' }}
                 >
-                  <p style={{whiteSpace: 'nowrap', fontWeight: 700, fontSize: '0.875rem', color: 'var(--accent-gold, #D4AF37)', fontFamily: 'monospace'}} className="truncate">
+                  <p style={{whiteSpace: 'nowrap', fontWeight: 700, fontSize: '0.875rem', color: 'var(--accent-gold-text, #8D7A1F)', fontFamily: 'monospace', textDecoration: 'underline', textDecorationColor: 'var(--accent-gold)'}} className="truncate">
                     {invoice.container.containerNumber}
                   </p>
                 </Link>
@@ -225,7 +225,7 @@ export default function InvoiceQuickPeek({
                   onClick={onClose}
                   style={{ textDecoration: 'none' }}
                 >
-                  <p style={{whiteSpace: 'nowrap', fontWeight: 700, fontSize: '0.875rem', color: 'var(--accent-gold, #D4AF37)'}} className="truncate">
+                  <p style={{whiteSpace: 'nowrap', fontWeight: 700, fontSize: '0.875rem', color: 'var(--accent-gold-text, #8D7A1F)', textDecoration: 'underline', textDecorationColor: 'var(--accent-gold)'}} className="truncate">
                     {[invoice.shipment.vehicleYear, invoice.shipment.vehicleMake, invoice.shipment.vehicleModel].filter(Boolean).join(' ') || 'Vehicle'}
                   </p>
                 </Link>

@@ -45,21 +45,21 @@ const quickActionDefinitions = [
     icon: <Ship style={{ width: 20, height: 20 }} />,
     label: "New Shipment",
     href: "/dashboard/shipments/new",
-    color: "#3B82F6",
+    color: "var(--info)",
     requiredPermission: "shipments:manage",
   },
   {
     icon: <Package style={{ width: 20, height: 20 }} />,
     label: "New Container",
     href: "/dashboard/containers/new",
-    color: "#10B981",
+    color: "var(--success)",
     allowedRoles: ["admin"],
   },
   {
     icon: <FileText style={{ width: 20, height: 20 }} />,
     label: "New Invoice",
     href: "/dashboard/invoices/new",
-    color: "#F59E0B",
+    color: "var(--warning-dark)",
     requiredPermission: "invoices:manage",
   },
 ] satisfies QuickAction[];
@@ -122,10 +122,12 @@ function HeaderMenuItem({
   onClick,
   children,
   danger = false,
+  className = "",
 }: {
   onClick?: () => void;
   children: React.ReactNode;
   danger?: boolean;
+  className?: string;
 }) {
   return (
     <button
@@ -137,7 +139,8 @@ function HeaderMenuItem({
         danger
           ? "text-[var(--error)] hover:bg-[rgba(var(--error-rgb),0.1)]"
           : "text-[var(--text-primary)] hover:bg-[rgba(var(--border-rgb),0.4)]",
-      ].join(" ")}
+        className,
+      ].filter(Boolean).join(" ")}
     >
       {children}
     </button>
@@ -215,7 +218,7 @@ export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
           aria-label="Open mobile menu"
           onClick={onMenuClick}
           style={{ fontFamily: "inherit" }}
-          className="mr-2 flex lg:hidden !h-9 !w-9 !min-h-0 !min-w-0 items-center justify-center !rounded-lg !border-0 !bg-transparent !p-1.5 !text-[var(--text-primary)] hover:!bg-[rgba(var(--accent-gold-rgb),0.1)] !shadow-none"
+          className="mr-2 flex md:hidden !h-9 !w-9 !min-h-0 !min-w-0 items-center justify-center !rounded-lg !border-0 !bg-transparent !p-1.5 !text-[var(--text-primary)] hover:!bg-[rgba(var(--accent-gold-rgb),0.1)] !shadow-none"
         >
           <MenuIcon className="h-[22px] w-[22px]" />
         </JacxiButton>
@@ -334,9 +337,9 @@ export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
             </span>
           )}
 
-          {/* Quick Universal Export Shipments Button */}
+          {/* Quick Universal Export — desktop/tablet only; available in account menu on mobile */}
           <Tooltip title="Export Shipments (Excel/CSV)">
-            <span className="inline-flex mr-0.5">
+            <span className="mr-0.5 hidden md:inline-flex">
               <JacxiButton
                 type="button"
                 variant="outline"
@@ -368,15 +371,17 @@ export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
             </span>
           </Tooltip>
 
-          {/* Theme Toggle */}
-          <ThemeToggle />
+          {/* Theme Toggle — desktop/tablet; also available in account menu on mobile */}
+          <span className="hidden md:inline-flex">
+            <ThemeToggle />
+          </span>
 
           {/* Notifications */}
           <NotificationCenter />
 
-          {/* Settings */}
+          {/* Settings — desktop/tablet; linked from account menu on mobile */}
           <Tooltip title="Settings">
-            <Link href="/dashboard/settings" style={{ textDecoration: "none" }} className="inline-flex">
+            <Link href="/dashboard/settings" style={{ textDecoration: "none" }} className="hidden md:inline-flex">
               <JacxiButton
                 type="button"
                 variant="outline"
@@ -410,7 +415,7 @@ export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
                     src={session?.user?.image || undefined}
                     shape="circle"
                     size="sm"
-                    gradientClass="from-[#D4AF37] to-[#96791F]"
+                    gradientClass="from-[var(--jx-accent-500)] to-[var(--jx-accent-700)]"
                     className="!h-[30px] !w-[30px] !text-[0.875rem]"
                   />
                 </JacxiButton>
@@ -450,6 +455,28 @@ export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
                   Settings
                 </span>
               </Link>
+
+              <HeaderMenuItem
+                onClick={() => {
+                  handleMenuClose();
+                  openUniversalShipmentExport();
+                }}
+                className="md:hidden"
+              >
+                <Download className="mr-3 h-5 w-5" />
+                Export Shipments
+              </HeaderMenuItem>
+
+              <HeaderMenuItem
+                onClick={() => {
+                  handleMenuClose();
+                  toggleKeyboardShortcuts();
+                }}
+                className="md:hidden"
+              >
+                <KeyboardIcon className="mr-3 h-5 w-5" />
+                Keyboard Shortcuts
+              </HeaderMenuItem>
 
               <JXDivider className="!border-[var(--border)]" />
 

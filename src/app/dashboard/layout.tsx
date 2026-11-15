@@ -58,7 +58,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
       padding="none"
       border={false}
       className="dashboard-surface-root flex h-[100vh] flex-col overflow-hidden bg-[var(--background)] text-[var(--text-primary)] transition-colors duration-200 !rounded-none"
-      style={{ fontFamily: 'inherit' }}
+      style={{ fontFamily: 'var(--font-inter)' }}
     >
       {/* Header */}
       <Header onMenuClick={() => setMobileOpen(!mobileOpen)} />
@@ -76,7 +76,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
         {/* Main Content - This is the scroll container for Lenis */}
         <main
           ref={mainContentRef}
-          className="dashboard-scroll min-h-0 min-w-0 flex-1 overflow-auto bg-[var(--background)] pb-[calc(76px+env(safe-area-inset-bottom,0px))] lg:pb-0"
+          className="dashboard-scroll min-h-0 min-w-0 flex-1 overflow-auto bg-[var(--background)] pb-[calc(76px+env(safe-area-inset-bottom,0px))] md:pb-0"
         >
           {children}
         </main>

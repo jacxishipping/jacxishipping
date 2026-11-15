@@ -3,7 +3,8 @@
 import { JacxiButton } from '@/components/design-system/JacxiButton';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Home, Ship, Package, FileText, Menu } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Home, Ship, Landmark, FileText, Menu } from 'lucide-react';
 
 import { useSession } from 'next-auth/react';
 import { cn } from '@/lib/utils';
@@ -20,7 +21,7 @@ type NavItemDef = {
 const navItems: NavItemDef[] = [
   { icon: Home, label: 'Home', href: '/dashboard', permission: 'dashboard:view' as Permission },
   { icon: Ship, label: 'Shipments', href: '/dashboard/shipments', permission: 'shipments:view' as Permission },
-  { icon: Package, label: 'Containers', href: '/dashboard/containers', permission: 'containers:view' as Permission },
+  { icon: Landmark, label: 'Finance', href: '/dashboard/finance', permission: 'finance:view' as Permission },
   { icon: FileText, label: 'Invoices', href: '/dashboard/invoices', permission: 'invoices:view' as Permission },
   { icon: Menu, label: 'Menu', href: '#menu', isMenuToggle: true },
 ];
@@ -28,6 +29,25 @@ const navItems: NavItemDef[] = [
 export function BottomNavigation({ onMenuClick }: { onMenuClick?: () => void }) {
   const pathname = usePathname();
   const { data: session, status } = useSession();
+  const [overdueInvoices, setOverdueInvoices] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadBadges = async () => {
+      try {
+        const res = await fetch('/api/nav-badges', { cache: 'no-store' });
+        if (!res.ok) return;
+        const data = (await res.json()) as { overdueInvoices?: number };
+        if (!cancelled) setOverdueInvoices(Number(data.overdueInvoices) || 0);
+      } catch {
+        // ignore badge fetch errors
+      }
+    };
+    void loadBadges();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleMenuToggle = () => {
     if (onMenuClick) {
@@ -38,7 +58,7 @@ export function BottomNavigation({ onMenuClick }: { onMenuClick?: () => void }) 
   };
 
   const isMenuSectionActive =
-    !['/dashboard', '/dashboard/shipments', '/dashboard/containers', '/dashboard/invoices'].some(
+    !['/dashboard', '/dashboard/shipments', '/dashboard/finance', '/dashboard/invoices'].some(
       (h) => pathname === h || (h !== '/dashboard' && pathname.startsWith(h + '/'))
     );
 
@@ -48,7 +68,7 @@ export function BottomNavigation({ onMenuClick }: { onMenuClick?: () => void }) 
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 lg:hidden safe-area-inset-bottom"
+      className="fixed bottom-0 left-0 right-0 z-50 md:hidden safe-area-inset-bottom"
       style={{
         paddingBottom: 'max(env(safe-area-inset-bottom), 6px)',
         backdropFilter: 'blur(20px)',
@@ -77,10 +97,10 @@ export function BottomNavigation({ onMenuClick }: { onMenuClick?: () => void }) 
                 className={cn(
                   'relative !flex !flex-1 !flex-col !items-center !justify-center !h-full !min-w-0 !px-1 !py-1 !rounded-none !border-transparent !bg-transparent shadow-none transition-all duration-150 active:scale-95 touch-target',
                   isActive
-                    ? '!text-[var(--accent-gold)]'
+                    ? '!text-[var(--accent-gold-text)]'
                     : '!text-[var(--text-secondary)] hover:!text-[var(--text-primary)]'
                 )}
-                aria-label="Open navigation menu"
+                aria-label={overdueInvoices > 0 ? `Open navigation menu, ${overdueInvoices} overdue invoices` : 'Open navigation menu'}
               >
                 {isActive && (
                   <div
@@ -93,7 +113,7 @@ export function BottomNavigation({ onMenuClick }: { onMenuClick?: () => void }) 
                 )}
                 <div
                   className={cn(
-                    'flex flex-col items-center justify-center gap-0.5',
+                    'relative flex flex-col items-center justify-center gap-0.5',
                     isActive && 'px-2 py-0.5'
                   )}
                   style={
@@ -107,6 +127,14 @@ export function BottomNavigation({ onMenuClick }: { onMenuClick?: () => void }) 
                   }
                 >
                   <Icon className="h-5 w-5 flex-shrink-0" />
+                  {overdueInvoices > 0 && (
+                    <span
+                      aria-hidden="true"
+                      className="absolute -right-0.5 top-0 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--error)] px-1 text-[9px] font-bold text-white"
+                    >
+                      {overdueInvoices > 99 ? '99+' : overdueInvoices}
+                    </span>
+                  )}
                   <span className="w-full truncate text-center text-[11px] font-semibold tracking-tight">
                     {item.label}
                   </span>
@@ -122,7 +150,7 @@ export function BottomNavigation({ onMenuClick }: { onMenuClick?: () => void }) 
               className={cn(
                 'relative flex flex-1 flex-col items-center justify-center h-full min-w-0 px-1 py-1 transition-all duration-150 active:scale-95 touch-target',
                 isActive
-                  ? 'text-[var(--accent-gold)]'
+                  ? 'text-[var(--accent-gold-text)]'
                   : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
               )}
             >

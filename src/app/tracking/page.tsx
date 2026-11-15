@@ -583,7 +583,7 @@ function TrackingPageInner() {
 									<p className="text-white/60 text-sm font-medium mt-1">Our team is available to assist you at every step.</p>
 								</div>
 								<Link
-									href="/#contact-us"
+									href="/#contact"
 									className="group relative inline-flex h-12 items-center justify-center gap-3 overflow-hidden rounded-full bg-white px-7 font-bold text-gray-900 transition-all duration-500 hover:shadow-[0_8px_30px_rgba(255,255,255,0.2)] flex-shrink-0"
 								>
 									<div className="absolute inset-0 translate-y-full bg-[#D4AF37] transition-transform duration-500 ease-[cubic-bezier(0.76,0,0.24,1)] group-hover:translate-y-0" />

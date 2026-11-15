@@ -172,28 +172,36 @@ export default function DashboardTodayWork({
       label: 'Urgent Work',
       value: displayedWorkItems.length,
       detail: displayedWorkItems.length > 0 ? 'Open exceptions in view' : 'No operational exceptions',
-      tone: displayedWorkItems.length > 0 ? 'text-[var(--warning)]' : 'text-[var(--success)]',
+      tone: displayedWorkItems.length > 0
+        ? 'bg-[var(--warning-light)] text-[var(--warning-dark)]'
+        : 'bg-[var(--success-light)] text-[var(--success-dark)]',
       href: '#top-exceptions-list',
     },
     {
       label: 'Overdue Invoices',
       value: overdueInvoicesCount,
       detail: overdueInvoicesCount > 0 ? 'Payment follow-up needed' : 'No overdue invoices',
-      tone: overdueInvoicesCount > 0 ? 'text-[var(--error)]' : 'text-[var(--success)]',
+      tone: overdueInvoicesCount > 0
+        ? 'bg-[var(--error-light)] text-[var(--error-dark)]'
+        : 'bg-[var(--success-light)] text-[var(--success-dark)]',
       href: '/dashboard/invoices?status=OVERDUE',
     },
     {
       label: 'Pending Invoices',
       value: pendingInvoicesCount,
       detail: pendingInvoicesCount > 0 ? 'Awaiting payment or review' : 'No pending invoices',
-      tone: pendingInvoicesCount > 0 ? 'text-[var(--warning)]' : 'text-[var(--success)]',
+      tone: pendingInvoicesCount > 0
+        ? 'bg-[var(--warning-light)] text-[var(--warning-dark)]'
+        : 'bg-[var(--success-light)] text-[var(--success-dark)]',
       href: '/dashboard/invoices?status=PENDING',
     },
     {
       label: 'AI Failures',
       value: failedAiJobsCount,
       detail: failedAiJobsCount > 0 ? 'Check AI logs/settings' : 'AI jobs healthy',
-      tone: failedAiJobsCount > 0 ? 'text-[var(--error)]' : 'text-[var(--success)]',
+      tone: failedAiJobsCount > 0
+        ? 'bg-[var(--error-light)] text-[var(--error-dark)]'
+        : 'bg-[var(--success-light)] text-[var(--success-dark)]',
       href: '/dashboard/ai-logs',
     },
   ];
@@ -259,7 +267,7 @@ export default function DashboardTodayWork({
               <span className="text-[10px] font-medium uppercase tracking-wide text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]">
                 {card.label}
               </span>
-              <span className={`text-lg font-semibold tabular-nums ${card.tone}`}>{card.value}</span>
+              <span className={`rounded px-1.5 py-0.5 text-lg font-semibold tabular-nums ${card.tone}`}>{card.value}</span>
             </div>
             <div className="mt-0.5 text-[10px] text-[var(--text-secondary)] truncate">{card.detail}</div>
           </Link>
@@ -309,7 +317,7 @@ export default function DashboardTodayWork({
                       <div className="flex items-center gap-2 flex-wrap">
                         <span
                           title={item.title}
-                          className="min-w-0 truncate font-semibold text-[var(--text-primary)] group-hover:text-[var(--accent-gold)] transition-colors"
+                          className="min-w-0 truncate font-semibold text-[var(--text-primary)] group-hover:text-[var(--accent-gold-text)] transition-colors"
                         >
                           {item.title}
                         </span>
@@ -407,7 +415,7 @@ export default function DashboardTodayWork({
                       {/* 4. Full Page Navigation */}
                       <Link
                         href={item.href}
-                        className="flex items-center justify-center p-1 rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--accent-gold)] hover:border-[var(--accent-gold)] transition-all"
+                        className="flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-[var(--border)] p-1 text-[var(--text-secondary)] transition-all hover:border-[var(--accent-gold)] hover:text-[var(--accent-gold-text)]"
                         title="Open full page"
                         aria-label="Open full page"
                       >

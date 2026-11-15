@@ -238,7 +238,7 @@ export default function ContainerQuickPeek({
                 <Link
                   href={`/dashboard/containers/${container.id}?tab=cargo`}
                   onClick={onClose}
-                  style={{ fontSize: '0.75rem', color: 'var(--accent-gold, #D4AF37)', fontWeight: 600, textDecoration: 'none' }}
+                  style={{ fontSize: '0.75rem', color: 'var(--accent-gold-text, #8D7A1F)', fontWeight: 600, textDecoration: 'underline', textDecorationColor: 'var(--accent-gold)' }}
                 >
                   View All &rarr;
                 </Link>

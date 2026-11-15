@@ -31,15 +31,17 @@ function GoldCheckbox({
     if (ref.current) ref.current.indeterminate = indeterminate;
   }, [indeterminate]);
   return (
-    <input
-      ref={ref}
-      type="checkbox"
-      checked={checked}
-      disabled={disabled}
-      aria-label={label}
-      onChange={(e) => onChange(e.target.checked)}
-      className="h-4 w-4 shrink-0 cursor-pointer accent-[var(--accent-gold)] disabled:cursor-not-allowed disabled:opacity-50"
-    />
+    <label className="inline-flex min-h-[28px] min-w-[28px] cursor-pointer items-center justify-center rounded-md p-1 hover:bg-[rgba(var(--border-rgb),0.35)]">
+      <input
+        ref={ref}
+        type="checkbox"
+        checked={checked}
+        disabled={disabled}
+        aria-label={label}
+        onChange={(e) => onChange(e.target.checked)}
+        className="h-4 w-4 shrink-0 cursor-pointer accent-[var(--accent-gold)] disabled:cursor-not-allowed disabled:opacity-50"
+      />
+    </label>
   );
 }
 

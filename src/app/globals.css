@@ -167,7 +167,10 @@ html {
 	/* Primary Colors */
 	--accent-gold: #D4AF37;
 	--accent-gold-rgb: 212, 175, 55;
-	--accent-gold-text: #8D7A1F;
+	/* Darker than #8D7A1F so body/link text clears 4.5:1 on #FFFFFF / #F9FAFB */
+	--accent-gold-text: #6B5C17;
+	--accent-gold-text-on-tint: #5C4F14;
+	--link-on-panel: var(--text-primary);
 
 	/* Gold tonal ramp (Jacxi-defined; JXUI has no gold palette). Centred on
 	   #D4AF37; used by Jacxi wrappers/CSS. Not brand-approved beyond the

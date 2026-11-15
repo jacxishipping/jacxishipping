@@ -210,8 +210,9 @@ export default function DashboardOperationsChart({
                   type="button"
                   variant="outline"
                   onClick={() => setTrendPeriod(period)}
+                  aria-label={`Show ${period.toUpperCase()} trends`}
                   style={{ fontFamily: 'inherit' }}
-                  className={`!px-2 !py-0.5 !rounded-md !text-[11px] !font-semibold shadow-none transition-all cursor-pointer ${
+                  className={`!min-h-8 !min-w-8 !px-2.5 !py-1.5 !rounded-md !text-[11px] !font-semibold shadow-none transition-all cursor-pointer ${
                     trendPeriod === period
                       ? '!bg-[var(--panel)] !text-[var(--accent-gold-text)] shadow-xs !border !border-[var(--border)]'
                       : '!bg-transparent !border-transparent !text-[var(--text-secondary)] hover:!text-[var(--text-primary)]'
@@ -233,7 +234,7 @@ export default function DashboardOperationsChart({
                 <Activity className="h-5 w-5 text-[var(--text-secondary)]" />
                 <p className="text-sm font-semibold text-[var(--text-primary)]">No shipments in this period</p>
                 <p className="max-w-sm text-xs leading-relaxed text-[var(--text-secondary)]">
-                  No shipments were created in the selected period. Try a longer period, or check the Pipeline Status tab for current totals.
+                  Try 30D, or open Pipeline Status for current totals.
                 </p>
               </div>
             ) : (

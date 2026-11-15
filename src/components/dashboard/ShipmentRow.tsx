@@ -192,7 +192,7 @@ export default function ShipmentRow({
 						<p style={{fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.18em', color: 'var(--text-secondary)', marginBottom: '2.4px'}}>
 							Purchase Price
 						</p>
-						<p style={{fontSize: '0.95rem', fontWeight: 700, color: 'var(--accent-gold)'}}>
+						<p style={{fontSize: '0.95rem', fontWeight: 700, color: 'var(--accent-gold-text)'}}>
 							${purchasePrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
 						</p>
 						{paidAmount > 0 ? (
@@ -309,7 +309,7 @@ export default function ShipmentRow({
 							</p>
 							<div style={{display: 'flex', alignItems: 'center', gap: '4px'}}>
 								<Truck className="h-4 w-4" style={{ color: 'var(--accent-gold)' }}/>
-								<p style={{fontSize: '0.78rem', fontWeight: 600, color: 'var(--accent-gold)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
+								<p style={{fontSize: '0.78rem', fontWeight: 600, color: 'var(--accent-gold-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
 									{dispatch.referenceNumber}
 								</p>
 							</div>
@@ -399,7 +399,7 @@ export default function ShipmentRow({
 						}}
 						style={{borderRadius: '999px', minWidth: 'auto', minHeight: 'auto', paddingLeft: '10px', paddingRight: '10px', color: 'var(--accent-gold-text)'}}
 					>
-						Pencil
+						Edit
 					</Button>
 				</div>
 
@@ -425,11 +425,12 @@ export default function ShipmentRow({
 								variant="outline"
 								size="sm"
 								icon={<PanelRightOpen className="w-3.5 h-3.5" />}
+								aria-label="Quick peek details"
 								onClick={(event) => {
 									event.stopPropagation();
 									onQuickPeek(id);
 								}}
-								style={{minWidth: 'auto', minHeight: 'auto', borderRadius: '999px', paddingLeft: '8px', paddingRight: '8px'}}
+								className="!h-11 !min-h-11 !min-w-11 !rounded-full !px-2"
 							/>
 						)}
 						{onOpenQR && (
@@ -437,6 +438,7 @@ export default function ShipmentRow({
 								variant="outline"
 								size="sm"
 								icon={<QrCode className="w-3.5 h-3.5" />}
+								aria-label="Print Yard QR Sticker"
 								onClick={(event) => {
 									event.stopPropagation();
 									onOpenQR({
@@ -447,7 +449,7 @@ export default function ShipmentRow({
 										status,
 									});
 								}}
-								style={{minWidth: 'auto', minHeight: 'auto', borderRadius: '999px', paddingLeft: '8px', paddingRight: '8px'}}
+								className="!h-11 !min-h-11 !min-w-11 !rounded-full !px-2"
 							/>
 						)}
 						<Button
@@ -458,7 +460,7 @@ export default function ShipmentRow({
 							onClick={(event) => {
 								event.stopPropagation();
 							}}
-							style={{minHeight: 'auto', borderRadius: '999px', paddingLeft: '12px', paddingRight: '12px', fontSize: '0.75rem', fontWeight: 600}}
+							className="!h-11 !min-h-11 !rounded-full !px-3 !text-[0.75rem] !font-semibold"
 						>
 							View
 						</Button>
@@ -472,9 +474,9 @@ export default function ShipmentRow({
 							onClick={(event) => {
 								event.stopPropagation();
 							}}
-							style={{minHeight: 'auto', borderRadius: '999px', paddingLeft: '10px', paddingRight: '10px', fontSize: '0.75rem', fontWeight: 600, color: 'var(--accent-gold-text)'}}
+							className="!h-11 !min-h-11 !rounded-full !px-2.5 !text-[0.75rem] !font-semibold !text-[var(--accent-gold-text)]"
 						>
-							Pencil
+							Edit
 						</Button>
 					</div>
 				</div>

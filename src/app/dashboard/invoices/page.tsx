@@ -38,7 +38,7 @@ const BareInput = forwardRef<HTMLInputElement | HTMLTextAreaElement, BareInputPr
 ) {
   const controlClass = [
     'w-full rounded-lg border bg-[var(--background)] text-[var(--text-primary)] outline-none transition-colors placeholder:text-[var(--text-secondary)]',
-    size === 'small' ? 'px-2.5 py-1.5 text-[0.8125rem]' : 'px-3 py-2 text-[0.875rem]',
+    size === 'small' ? 'px-2.5 py-1.5 text-base sm:text-[0.8125rem]' : 'px-3 py-2 text-base sm:text-[0.875rem]',
     leftIcon ? 'pl-9' : '',
     rightIcon || rightElement ? 'pr-9' : '',
     error
@@ -115,7 +115,7 @@ function BareSelect({ options, placeholder, error = false, size = 'small', leftI
         style={style}
         className={[
           'w-full appearance-none rounded-lg border bg-[var(--background)] text-[var(--text-primary)] outline-none transition-colors',
-          size === 'small' ? 'px-2.5 py-1.5 text-[0.8125rem]' : 'px-3 py-2 text-[0.875rem]',
+          size === 'small' ? 'px-2.5 py-1.5 text-base sm:text-[0.8125rem]' : 'px-3 py-2 text-base sm:text-[0.875rem]',
           leftIcon ? 'pl-9' : '',
           'pr-9',
           error
@@ -441,7 +441,7 @@ function InvoicesPageContent() {
 						return (
 							<Link
 								href={`/dashboard/shipments/${row.referenceId}`}
-								style={{ color: 'var(--accent-gold)', textDecoration: 'none', fontWeight: 600 }}
+								style={{ color: 'var(--text-primary)', textDecoration: 'underline', textDecorationColor: 'var(--accent-gold)', textUnderlineOffset: 3, fontWeight: 600 }}
 							>
 								{String(value)}
 							</Link>
@@ -451,7 +451,7 @@ function InvoicesPageContent() {
 						return (
 							<Link
 								href={`/dashboard/containers/${row.referenceId}`}
-								style={{ color: 'var(--accent-gold)', textDecoration: 'none', fontFamily: 'monospace', fontWeight: 600 }}
+								style={{ color: 'var(--text-primary)', textDecoration: 'underline', textDecorationColor: 'var(--accent-gold)', textUnderlineOffset: 3, fontFamily: 'monospace', fontWeight: 600 }}
 							>
 								{String(value)}
 							</Link>
@@ -772,7 +772,7 @@ const confirmAction = useConfirmAction();
 
 				{/* Filters */}
 				<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px'}}>
-					<div className="min-w-0 flex-1"><BareInput placeholder="Search by invoice #, customer, VIN, vehicle, or container..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} leftIcon={<Search className="w-4 h-4" />} size="small" /></div>
+					<div className="min-w-0 flex-1"><BareInput aria-label="Search invoices by invoice number, customer, VIN, vehicle, or container" placeholder="Search by invoice #, customer, VIN, vehicle, or container..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} leftIcon={<Search className="w-4 h-4" />} size="small" /></div>
 					<SavedFilterPresets
 						storageKey="invoices"
 						currentFilters={{ status: statusFilter, search: searchTerm }}
@@ -831,7 +831,7 @@ const confirmAction = useConfirmAction();
 						{/* Items per page selector */}
 						<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', alignItems: 'center', gap: '16px'}}>
 							<span style={{ fontSize: '0.875rem' }}>Items per page:</span>
-							<div style={{minWidth: '80px'}}><BareSelect options={[{ value: 10, label: '10' }, { value: 25, label: '25' }, { value: 50, label: '50' }, { value: 100, label: '100' }]} value={itemsPerPage} size="small" onChange={(e) => handleItemsPerPageChange(Number(e.target.value))} /></div>
+							<div style={{minWidth: '80px'}}><BareSelect aria-label="Invoices per page" options={[{ value: 10, label: '10' }, { value: 25, label: '25' }, { value: 50, label: '50' }, { value: 100, label: '100' }]} value={itemsPerPage} size="small" onChange={(e) => handleItemsPerPageChange(Number(e.target.value))} /></div>
 						</JXBox>
 
 						{/* Pagination info and controls */}
