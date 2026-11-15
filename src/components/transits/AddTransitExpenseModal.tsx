@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { DollarSign } from 'lucide-react';
 import { Button, FormField, Modal, Select, toast } from '@/components/design-system';
 
@@ -66,9 +66,16 @@ export default function AddTransitExpenseModal({
 		}
 	}, [initialExpense, open]);
 
-	const handleChange = (field: string, value: string) => {
+	const handleChange = useCallback((field: string, value: string) => {
 		setFormData((prev) => ({ ...prev, [field]: value }));
-	};
+	}, []);
+
+	const handleClose = useCallback(() => {
+		if (!loading) {
+			setFormData(createInitialForm(null));
+			onClose();
+		}
+	}, [loading, onClose]);
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -112,13 +119,6 @@ export default function AddTransitExpenseModal({
 		}
 	};
 
-	const handleClose = () => {
-		if (!loading) {
-			setFormData(createInitialForm(null));
-			onClose();
-		}
-	};
-
 	const formId = 'transit-expense-form';
 
 	return (
@@ -150,17 +150,17 @@ export default function AddTransitExpenseModal({
 					<Select label="Expense Type" value={formData.type} onChange={(val) => handleChange('type', String(val))} options={[...(!expenseTypes.some((type) => type.value === formData.type) ? [{ value: formData.type, label: formData.type.replace(/_/g, ' ') }] : []), ...expenseTypes.map((type) => ({ value: type.value, label: type.label }))]} />
 
 					<div style={{display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px'}}>
-						<FormField label="Amount" type="number" value={formData.amount} onChange={(e) => handleChange('amount', e.target.value)} required inputProps={{ min: 0, step: 0.01 }} size="small" leftIcon={'$'} />
-						<FormField label="Currency" value={formData.currency} onChange={(e) => handleChange('currency', e.target.value)} disabled size="small" />
+						<FormField id="transit-expense-amount" name="amount" label="Amount" type="number" value={formData.amount} onChange={(e) => handleChange('amount', e.target.value)} required inputProps={{ min: 0, step: 0.01 }} size="small" leftIcon={'$'} />
+						<FormField id="transit-expense-currency" name="currency" label="Currency" value={formData.currency} disabled size="small" />
 					</div>
 
-					<FormField label="Vendor" value={formData.vendor} onChange={(e) => handleChange('vendor', e.target.value)} placeholder="e.g., Customs Office, Transport Co." size="small" />
+					<FormField id="transit-expense-vendor" name="vendor" label="Vendor" value={formData.vendor} onChange={(e) => handleChange('vendor', e.target.value)} placeholder="e.g., Customs Office, Transport Co." size="small" />
 
-					<FormField label="Invoice Number" value={formData.invoiceNumber} onChange={(e) => handleChange('invoiceNumber', e.target.value)} placeholder="Vendor's invoice reference" size="small" />
+					<FormField id="transit-expense-invoice" name="invoiceNumber" label="Invoice Number" value={formData.invoiceNumber} onChange={(e) => handleChange('invoiceNumber', e.target.value)} placeholder="Vendor's invoice reference" size="small" />
 
-					<FormField label="Date" type="date" value={formData.date} onChange={(e) => handleChange('date', e.target.value)} required InputLabelProps={{ shrink: true }} size="small" />
+					<FormField id="transit-expense-date" name="date" label="Date" type="date" value={formData.date} onChange={(e) => handleChange('date', e.target.value)} required InputLabelProps={{ shrink: true }} size="small" />
 
-					<FormField label="Notes" value={formData.notes} onChange={(e) => handleChange('notes', e.target.value)} multiline rows={3} placeholder="Additional details..." size="small" />
+					<FormField id="transit-expense-notes" name="notes" label="Notes" value={formData.notes} onChange={(e) => handleChange('notes', e.target.value)} multiline rows={3} placeholder="Additional details..." size="small" />
 			</form>
 		</Modal>
 	);

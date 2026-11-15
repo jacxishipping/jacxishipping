@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { DollarSign, Paperclip, Upload } from 'lucide-react';
 import { Button, FormField, Modal, Select, toast } from '@/components/design-system';
 import {
@@ -78,24 +78,24 @@ export default function DispatchExpenseModal({
     }
   }, [initialExpense, open]);
 
-  const handleChange = (field: string, value: string) => {
+  const handleChange = useCallback((field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-  };
+  }, []);
 
-  const handleCategoryChange = (category: DispatchExpenseCategory) => {
+  const handleCategoryChange = useCallback((category: DispatchExpenseCategory) => {
     const nextTypes = getDispatchExpenseTypes(category);
     setFormData((prev) => ({
       ...prev,
       category,
       type: nextTypes.some((option) => option.value === prev.type) ? prev.type : nextTypes[0].value,
     }));
-  };
+  }, []);
 
-  const resetAndClose = () => {
+  const resetAndClose = useCallback(() => {
     if (loading || uploading) return;
     setFormData(createInitialForm(initialExpense));
     onClose();
-  };
+  }, [loading, uploading, initialExpense, onClose]);
 
   const handleAttachmentUpload = async (file: File) => {
     try {
@@ -214,19 +214,19 @@ export default function DispatchExpenseModal({
             <Select label="Expense Type" value={formData.type} onChange={(val) => handleChange('type', String(val))} options={typeOptions.map((option) => ({ value: option.value, label: option.label }))} />
           </div>
 
-          <FormField label="Description" value={formData.description} onChange={(e) => handleChange('description', e.target.value)} required placeholder="What was this dispatch expense for?" size="small" />
+          <FormField id="dispatch-expense-description" name="description" label="Description" value={formData.description} onChange={(e) => handleChange('description', e.target.value)} required placeholder="What was this dispatch expense for?" size="small" />
 
           <div style={{display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px'}}>
-            <FormField label="Amount" type="number" value={formData.amount} onChange={(e) => handleChange('amount', e.target.value)} required inputProps={{ min: 0, step: 0.01 }} size="small" leftIcon={'$'} />
-            <FormField label="Currency" value={formData.currency} disabled size="small" />
+            <FormField id="dispatch-expense-amount" name="amount" label="Amount" type="number" value={formData.amount} onChange={(e) => handleChange('amount', e.target.value)} required inputProps={{ min: 0, step: 0.01 }} size="small" leftIcon={'$'} />
+            <FormField id="dispatch-expense-currency" name="currency" label="Currency" value={formData.currency} disabled size="small" />
           </div>
 
           <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
-            <FormField label="Vendor" value={formData.vendor} onChange={(e) => handleChange('vendor', e.target.value)} size="small" />
-            <FormField label="Invoice Number" value={formData.invoiceNumber} onChange={(e) => handleChange('invoiceNumber', e.target.value)} helperText="3-40 chars: letters, numbers, dash, slash, underscore, or period" size="small" />
+            <FormField id="dispatch-expense-vendor" name="vendor" label="Vendor" value={formData.vendor} onChange={(e) => handleChange('vendor', e.target.value)} size="small" />
+            <FormField id="dispatch-expense-invoice" name="invoiceNumber" label="Invoice Number" value={formData.invoiceNumber} onChange={(e) => handleChange('invoiceNumber', e.target.value)} helperText="3-40 chars: letters, numbers, dash, slash, underscore, or period" size="small" />
           </div>
 
-          <FormField label="Date" type="date" value={formData.date} onChange={(e) => handleChange('date', e.target.value)} required InputLabelProps={{ shrink: true }} size="small" />
+          <FormField id="dispatch-expense-date" name="date" label="Date" type="date" value={formData.date} onChange={(e) => handleChange('date', e.target.value)} required InputLabelProps={{ shrink: true }} size="small" />
 
           <div style={{border: '1px solid var(--border)', borderRadius: '16px', padding: '12px', display: 'grid', gap: '12px'}}>
             <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap'}}>
@@ -284,7 +284,7 @@ export default function DispatchExpenseModal({
             ) : null}
           </div>
 
-          <FormField label="Notes" value={formData.notes} onChange={(e) => handleChange('notes', e.target.value)} multiline rows={3} size="small" />
+          <FormField id="dispatch-expense-notes" name="notes" label="Notes" value={formData.notes} onChange={(e) => handleChange('notes', e.target.value)} multiline rows={3} size="small" />
       </form>
     </Modal>
   );

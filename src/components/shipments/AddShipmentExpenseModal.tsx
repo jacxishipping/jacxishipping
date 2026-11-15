@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { DollarSign, Plus, Trash2, Paperclip, X, TrendingUp, TrendingDown } from 'lucide-react';
 import { Button, FormField, Modal, Select, toast } from '@/components/design-system';
 
@@ -75,7 +75,8 @@ export default function AddShipmentExpenseModal({
 		paymentMode: 'DUE' as 'DUE',
 	});
 
-	const createEmptyItem = () => ({
+	const createEmptyItem = useCallback(() => ({
+		id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `item-${Date.now()}-${Math.random()}`,
 		shipmentId: singleShipmentId || '',
 		expenseType: 'SHIPPING_FEE',
 		amount: '',
@@ -86,7 +87,7 @@ export default function AddShipmentExpenseModal({
 		receiptName: '',
 		paymentMode: 'DUE' as 'DUE',
 		useSplitAmounts: false,
-	});
+	}), [singleShipmentId]);
 
 	const [expenseItems, setExpenseItems] = useState([createEmptyItem()]);
 
@@ -105,11 +106,11 @@ export default function AddShipmentExpenseModal({
 		if (open && isBulkMode) {
 			setExpenseItems([createEmptyItem()]);
 		}
-	}, [open, isBulkMode, singleShipmentId]);
+	}, [open, isBulkMode, createEmptyItem]);
 
-	const handleChange = (field: string, value: string) => {
+	const handleChange = useCallback((field: string, value: string) => {
 		setFormData((prev) => ({ ...prev, [field]: value }));
-	};
+	}, []);
 
 	const handleFileUpload = async (file: File) => {
 		if (!file) return;
@@ -316,7 +317,7 @@ export default function AddShipmentExpenseModal({
 		}
 	};
 
-	const handleClose = () => {
+	const handleClose = useCallback(() => {
 		if (!loading) {
 			setFormData({
 				expenseType: 'SHIPPING_FEE',
@@ -334,26 +335,26 @@ export default function AddShipmentExpenseModal({
 			if (!shipmentIdProp) setSelectedShipmentId(singleShipmentId || '');
 			onClose();
 		}
-	};
+	}, [loading, createEmptyItem, shipmentIdProp, singleShipmentId, onClose]);
 
-	const updateItem = (index: number, field: string, value: string | boolean) => {
+	const updateItem = useCallback((index: number, field: string, value: string | boolean) => {
 		setExpenseItems((prev) =>
 			prev.map((item, itemIndex) =>
 				itemIndex === index ? { ...item, [field]: value } : item
 			)
 		);
-	};
+	}, []);
 
-	const addItem = () => {
+	const addItem = useCallback(() => {
 		setExpenseItems((prev) => [...prev, createEmptyItem()]);
-	};
+	}, [createEmptyItem]);
 
-	const removeItem = (index: number) => {
+	const removeItem = useCallback((index: number) => {
 		setExpenseItems((prev) => {
 			if (prev.length === 1) return prev;
 			return prev.filter((_, itemIndex) => itemIndex !== index);
 		});
-	};
+	}, []);
 
 	const formId = 'shipment-expense-form';
 
@@ -400,7 +401,7 @@ export default function AddShipmentExpenseModal({
 						</div>
 
 						{expenseItems.map((item, index) => (
-							<div key={`expense-row-${index}`} style={{border: '1px solid var(--border)', borderRadius: '16px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px'}}>
+							<div key={item.id || `expense-row-${index}`} style={{border: '1px solid var(--border)', borderRadius: '16px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px'}}>
 								<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
 									<div style={{fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)'}}>Expense #{index + 1}</div>
 									<Button type="button" variant="outline" size="sm" icon={<Trash2 className="w-3 h-3" />} onClick={() => removeItem(index)} disabled={loading || expenseItems.length === 1}>
@@ -412,16 +413,16 @@ export default function AddShipmentExpenseModal({
 
 								<Select label="Expense Type" value={item.expenseType} onChange={(val) => updateItem(index, 'expenseType', String(val))} options={expenseTypes.map((type) => ({ value: type.value, label: type.label }))} />
 
-								<FormField label="Description" value={item.description} onChange={(e) => updateItem(index, 'description', e.target.value)} required size="small" />
+								<FormField id={`bulk-desc-${item.id || index}`} name="description" label="Description" value={item.description} onChange={(e) => updateItem(index, 'description', e.target.value)} required size="small" />
 
 								<label className="flex cursor-pointer items-center gap-2 text-sm text-[var(--text-primary)]"><input type="checkbox" checked={item.useSplitAmounts} onChange={(e) => updateItem(index, 'useSplitAmounts', e.target.checked)} className="h-4 w-4 shrink-0 cursor-pointer accent-[var(--accent-gold)] disabled:cursor-not-allowed disabled:opacity-50" />{<span style={{fontSize: '0.8125rem', color: 'var(--text-secondary)'}}>Use split amounts (Customer vs. Company Cost)</span>}</label>
 
 								{!item.useSplitAmounts ? (
-									<FormField label="Amount (USD)" type="number" value={item.amount} onChange={(e) => updateItem(index, 'amount', e.target.value)} required inputProps={{ min: 0, step: 0.01 }} helperText="Only the customer ledger will be debited" size="small" leftIcon={'$'} />
+									<FormField id={`bulk-amount-${item.id || index}`} name="amount" label="Amount (USD)" type="number" value={item.amount} onChange={(e) => updateItem(index, 'amount', e.target.value)} required inputProps={{ min: 0, step: 0.01 }} helperText="Only the customer ledger will be debited" size="small" leftIcon={'$'} />
 								) : (
 									<>
-										<FormField label="Customer Amount (USD)" type="number" value={item.amount} onChange={(e) => updateItem(index, 'amount', e.target.value)} required inputProps={{ min: 0, step: 0.01 }} helperText="Amount debited to the customer ledger" size="small" leftIcon={'$'} />
-										<FormField label="Carrier Cost (USD)" type="number" value={item.companyAmount} onChange={(e) => updateItem(index, 'companyAmount', e.target.value)} required inputProps={{ min: 0, step: 0.01 }} helperText="Amount credited to the company ledger" size="small" leftIcon={'$'} />
+										<FormField id={`bulk-cust-amount-${item.id || index}`} name="amount" label="Customer Amount (USD)" type="number" value={item.amount} onChange={(e) => updateItem(index, 'amount', e.target.value)} required inputProps={{ min: 0, step: 0.01 }} helperText="Amount debited to the customer ledger" size="small" leftIcon={'$'} />
+										<FormField id={`bulk-carrier-cost-${item.id || index}`} name="companyAmount" label="Carrier Cost (USD)" type="number" value={item.companyAmount} onChange={(e) => updateItem(index, 'companyAmount', e.target.value)} required inputProps={{ min: 0, step: 0.01 }} helperText="Amount credited to the company ledger" size="small" leftIcon={'$'} />
 									</>
 								)}
 
@@ -463,7 +464,7 @@ export default function AddShipmentExpenseModal({
 									Payment mode: Due (invoice first)
 								</div>
 
-								<FormField label="Notes" value={item.notes} onChange={(e) => updateItem(index, 'notes', e.target.value)} multiline rows={2} size="small" />
+								<FormField id={`bulk-notes-${item.id || index}`} name="notes" label="Notes" value={item.notes} onChange={(e) => updateItem(index, 'notes', e.target.value)} multiline rows={2} size="small" />
 							</div>
 						))}
 					</>
@@ -480,17 +481,17 @@ export default function AddShipmentExpenseModal({
 
 						<Select label="Expense Type" value={formData.expenseType} onChange={(val) => handleChange('expenseType', String(val))} options={expenseTypes.map((type) => ({ value: type.value, label: type.label }))} />
 
-						<FormField label="Description" value={formData.description} onChange={(e) => handleChange('description', e.target.value)} required placeholder="e.g. Forklift fee, storage demurrage, extra towing" size="small" />
+						<FormField id="shipment-expense-description" name="description" label="Description" value={formData.description} onChange={(e) => handleChange('description', e.target.value)} required placeholder="e.g. Forklift fee, storage demurrage, extra towing" size="small" />
 
 						<label className="flex cursor-pointer items-center gap-2 text-sm text-[var(--text-primary)]"><input type="checkbox" checked={useSplitAmounts} onChange={(e) => setUseSplitAmounts(e.target.checked)} className="h-4 w-4 shrink-0 cursor-pointer accent-[var(--accent-gold)] disabled:cursor-not-allowed disabled:opacity-50" />{<span style={{fontSize: '0.875rem', color: 'var(--text-secondary)'}}>Use split amounts (Track Customer Charge vs. Carrier Cost)</span>}</label>
 
 						{!useSplitAmounts ? (
-							<FormField label="Amount (USD)" type="number" value={formData.amount} onChange={(e) => handleChange('amount', e.target.value)} required inputProps={{ min: 0, step: 0.01 }} helperText="Customer ledger debited. Company ledger credited at same amount." size="small" leftIcon={'$'} />
+							<FormField id="shipment-expense-amount" name="amount" label="Amount (USD)" type="number" value={formData.amount} onChange={(e) => handleChange('amount', e.target.value)} required inputProps={{ min: 0, step: 0.01 }} helperText="Customer ledger debited. Company ledger credited at same amount." size="small" leftIcon={'$'} />
 						) : (
 							<div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
 								<div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px'}}>
-									<FormField label="Customer Charge (USD)" type="number" value={formData.amount} onChange={(e) => handleChange('amount', e.target.value)} required inputProps={{ min: 0, step: 0.01 }} helperText="Debited to customer" size="small" leftIcon={'$'} />
-									<FormField label="Carrier Cost (USD)" type="number" value={formData.companyAmount} onChange={(e) => handleChange('companyAmount', e.target.value)} required inputProps={{ min: 0, step: 0.01 }} helperText="Credited to company ledger" size="small" leftIcon={'$'} />
+									<FormField id="shipment-expense-amount" name="amount" label="Customer Charge (USD)" type="number" value={formData.amount} onChange={(e) => handleChange('amount', e.target.value)} required inputProps={{ min: 0, step: 0.01 }} helperText="Debited to customer" size="small" leftIcon={'$'} />
+									<FormField id="shipment-expense-company-amount" name="companyAmount" label="Carrier Cost (USD)" type="number" value={formData.companyAmount} onChange={(e) => handleChange('companyAmount', e.target.value)} required inputProps={{ min: 0, step: 0.01 }} helperText="Credited to company ledger" size="small" leftIcon={'$'} />
 								</div>
 
 								{/* Dynamic Margin Indicator */}
@@ -564,7 +565,7 @@ export default function AddShipmentExpenseModal({
 							Payment mode: Due (invoice first)
 						</div>
 
-						<FormField label="Notes" value={formData.notes} onChange={(e) => handleChange('notes', e.target.value)} multiline rows={2} placeholder="Additional vendor or handling details..." size="small" />
+						<FormField id="shipment-expense-notes" name="notes" label="Notes" value={formData.notes} onChange={(e) => handleChange('notes', e.target.value)} multiline rows={2} placeholder="Additional vendor or handling details..." size="small" />
 					</>
 				)}
 			</form>
