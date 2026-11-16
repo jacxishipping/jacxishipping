@@ -4,12 +4,15 @@ import { createTokenRouterChatCompletion, isTokenRouterConfigured } from '@/lib/
 import { createAiInteractionLog } from '@/lib/ai/audit';
 import { extractJsonObject } from '@/lib/ai/json';
 import {
+  buildBillOfLadingPrompt,
   buildDocumentReviewPrompt,
+  buildFallbackBillOfLading,
   buildFallbackDocumentReview,
   buildFallbackInvoiceExtraction,
   buildFallbackShipmentIntake,
   buildInvoiceExtractionPrompt,
   buildShipmentIntakePrompt,
+  billOfLadingResponseSchema,
   documentExtractionRequestSchema,
   documentReviewResponseSchema,
   extractDocumentTextWithMetadata,
@@ -54,11 +57,14 @@ export async function POST(request: NextRequest) {
     let result:
       | z.infer<typeof invoiceDraftResponseSchema>
       | z.infer<typeof documentReviewResponseSchema>
-      | z.infer<typeof shipmentIntakeResponseSchema>;
+      | z.infer<typeof shipmentIntakeResponseSchema>
+      | z.infer<typeof billOfLadingResponseSchema>;
     let model = parsed.mode === 'invoice-draft'
       ? 'deterministic-invoice-extraction'
       : parsed.mode === 'shipment-intake'
       ? 'deterministic-shipment-intake'
+      : parsed.mode === 'bill-of-lading'
+      ? 'deterministic-bill-of-lading'
       : 'deterministic-document-review';
     let source: 'tokenrouter-ai' | 'rules' = 'rules';
     let failureReason: string | null = extractedText ? null : extraction.failureReason || 'No text could be extracted from the document.';
@@ -66,12 +72,16 @@ export async function POST(request: NextRequest) {
       ? buildInvoiceExtractionPrompt(parsed, extractedText)
       : parsed.mode === 'shipment-intake'
       ? buildShipmentIntakePrompt(parsed, extractedText)
+      : parsed.mode === 'bill-of-lading'
+      ? buildBillOfLadingPrompt(parsed, extractedText)
       : buildDocumentReviewPrompt(parsed, extractedText);
 
     result = parsed.mode === 'invoice-draft'
       ? buildFallbackInvoiceExtraction(parsed, extractedText)
       : parsed.mode === 'shipment-intake'
       ? buildFallbackShipmentIntake(parsed, extractedText)
+      : parsed.mode === 'bill-of-lading'
+      ? buildFallbackBillOfLading(parsed, extractedText)
       : buildFallbackDocumentReview(parsed, extractedText);
 
     if ((await isTokenRouterConfigured()) && extractedText) {
@@ -84,6 +94,8 @@ export async function POST(request: NextRequest) {
                 ? 'You extract invoice fields from shipping documents. Return valid JSON only.'
                 : parsed.mode === 'shipment-intake'
                 ? 'You extract vehicle, auction, and intake fields from automotive bills of sale and titles. Return valid JSON only.'
+                : parsed.mode === 'bill-of-lading'
+                ? 'You extract maritime Bill of Lading and ocean container freight booking details. Return valid JSON only.'
                 : 'You extract document metadata for shipping operations. Return valid JSON only.',
             },
             { role: 'user', content: prompt },
@@ -95,6 +107,8 @@ export async function POST(request: NextRequest) {
           ? invoiceDraftResponseSchema.parse(extractJsonObject(completion.content))
           : parsed.mode === 'shipment-intake'
           ? shipmentIntakeResponseSchema.parse(extractJsonObject(completion.content))
+          : parsed.mode === 'bill-of-lading'
+          ? billOfLadingResponseSchema.parse(extractJsonObject(completion.content))
           : documentReviewResponseSchema.parse(extractJsonObject(completion.content));
         model = completion.model;
         source = 'tokenrouter-ai';

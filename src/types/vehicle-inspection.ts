@@ -84,6 +84,10 @@ export interface VehicleInspectionData {
   driverSignatureDate?: string | null;
   inspectorSignatureDate?: string | null;
   insuranceDisclaimerAgreed: boolean;
+
+  // AI Transit & Insurance Claims Analysis
+  insuranceReport?: InsuranceClaimConditionReport | null;
+  transitComparison?: TransitDamageComparisonResult | null;
 }
 
 export const DAMAGE_TYPE_LABELS: Record<DamageType, string> = {
@@ -228,6 +232,7 @@ export interface InsuranceClaimItem {
 
 export interface InsuranceClaimConditionReport {
   reportNumber: string;
+  claimReference?: string;
   claimDate: string;
   shipmentId: string;
   vehicle: {
@@ -328,6 +333,8 @@ export function convertAiResultToInspectionData(
     generalPhotos: result.analyzedPhotoUrls,
     generalNotes: result.generalNotes,
     insuranceDisclaimerAgreed: true,
+    insuranceReport: result.insuranceReport || null,
+    transitComparison: result.transitComparison || null,
   };
 }
 

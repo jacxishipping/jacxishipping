@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { hasPermission } from '@/lib/rbac';
 import { createDigitalOceanChatCompletion } from '@/lib/ai/digitalocean';
+import { createTokenRouterChatCompletion, isTokenRouterConfigured } from '@/lib/ai/tokenrouter';
 import { createAiInteractionLog } from '@/lib/ai/audit';
 import { extractJsonObject } from '@/lib/ai/json';
 import {
@@ -86,10 +87,31 @@ export async function POST(request: NextRequest) {
       releaseTokenCreatedAt: shipment.releaseTokenCreatedAt?.toISOString().slice(0, 10) || null,
     });
     let model = 'deterministic-shipment-draft';
-    let source: 'digitalocean-ai' | 'rules' = 'rules';
+    let source: 'tokenrouter-ai' | 'digitalocean-ai' | 'rules' = 'rules';
     let status = 'FALLBACK';
 
-    if (process.env.DO_AI_API_KEY) {
+    if (await isTokenRouterConfigured()) {
+      try {
+        const completion = await createTokenRouterChatCompletion(
+          [
+            {
+              role: 'system',
+              content: 'You write customer-facing shipping updates for auto transport & cargo logistics. Return valid JSON only with keys subject and message.',
+            },
+            { role: 'user', content: prompt },
+          ],
+          { maxTokens: 400, temperature: 0.2 },
+        );
+        result = shipmentDraftResponseSchema.parse(extractJsonObject(completion.content));
+        model = completion.model || 'tokenrouter-ai';
+        source = 'tokenrouter-ai';
+        status = 'SUCCESS';
+      } catch (trErr) {
+        console.warn('[shipment-update-draft] TokenRouter failed, trying DigitalOcean:', trErr);
+      }
+    }
+
+    if (status !== 'SUCCESS' && process.env.DO_AI_API_KEY) {
       try {
         const completion = await createDigitalOceanChatCompletion(
           [
@@ -115,7 +137,7 @@ export async function POST(request: NextRequest) {
       entityType: 'SHIPMENT',
       entityId: shipment.id,
       actorUserId: session.user.id,
-      provider: source === 'digitalocean-ai' ? 'digitalocean-ai' : 'rules',
+      provider: source,
       model,
       prompt,
       response: JSON.stringify(result),

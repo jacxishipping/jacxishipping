@@ -49,7 +49,7 @@ export const dashboardAssistantPayloadSchema = z.object({
 });
 
 export const dashboardAssistantRequestSchema = z.object({
-  mode: z.enum(['overview', 'exception-triage', 'finance-watch', 'dispatch-focus', 'custom']).default('overview'),
+  mode: z.enum(['overview', 'exception-triage', 'finance-watch', 'dispatch-focus', 'damage-claims', 'custom']).default('overview'),
   focus: z.string().trim().max(400).optional(),
   payload: dashboardAssistantPayloadSchema,
 });
@@ -63,6 +63,7 @@ const modeInstructions: Record<DashboardAssistantMode, string> = {
   'exception-triage': 'Prioritize exceptions, aging items, and operational blockers.',
   'finance-watch': 'Focus on pending revenue, cash-collection urgency, and operational blockers affecting billing.',
   'dispatch-focus': 'Focus on dispatch pipeline pressure, stalled handoffs, and route coordination.',
+  'damage-claims': 'Assess vehicle damage surveys, pre-existing vs transit-induced defects, carrier subrogation claims, and insurance filings.',
   custom: 'Answer the operator focus question using only the provided dashboard data.',
 };
 
@@ -190,6 +191,9 @@ export function buildHeuristicDashboardAssistantBrief({
   }
   if (payload.pendingRevenue > 0 && mode === 'finance-watch') {
     risks.push(`Open revenue collection is exposed while operational blockers remain active.`);
+  }
+  if (mode === 'damage-claims') {
+    risks.push('Review transit arrivals for new dents, scratches, or lashing scrapes to ensure subrogation claims are filed within the 7-day COGSA notice window.');
   }
   if (mode === 'dispatch-focus' && payload.activeDispatchesCount === 0) {
     risks.push('No active dispatch pipeline is visible right now, so new origin-to-port demand should be monitored closely.');

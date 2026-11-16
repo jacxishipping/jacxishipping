@@ -76,11 +76,169 @@ export default function ShipmentDamagesTab({ damages, shipment, onInspectionUpda
     : GRADE_CONFIG.GRADE_B;
 
   const totalPhotosCount = (shipment?.vehiclePhotos?.length || 0) + (shipment?.arrivalPhotos?.length || 0);
+  const insuranceReport = inspection?.insuranceReport;
+  const hasYardAndDeliveryPhotos =
+    (shipment?.vehiclePhotos?.length || 0) > 0 && (shipment?.arrivalPhotos?.length || 0) > 0;
+
+  const handlePrintInsuranceReport = () => {
+    if (!insuranceReport?.htmlReport) return;
+    const printWin = window.open('', '_blank');
+    if (printWin) {
+      printWin.document.open();
+      printWin.document.write(insuranceReport.htmlReport);
+      printWin.document.close();
+    }
+  };
 
   return (
     <div className="space-y-6">
-      {/* AI Quick-Scan Banner (Shown when no inspection or empty markers) */}
-      {markers.length === 0 && totalPhotosCount > 0 && (
+      {/* AI Insurance Claim & Differential Card (When Report Generated) */}
+      {insuranceReport && (
+        <div className="relative overflow-hidden rounded-2xl border border-red-500/30 bg-gradient-to-br from-red-500/10 via-background to-amber-500/5 p-5 shadow-lg shadow-red-500/5">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-[var(--border)] pb-4">
+            <div className="flex items-start gap-3.5">
+              <div className="flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-br from-red-500 to-amber-600 text-white shadow-md shadow-red-500/20 shrink-0">
+                <ShieldAlert className="w-6 h-6" />
+              </div>
+              <div className="space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h4 className="text-base font-bold text-[var(--text-primary)]">
+                    Carrier Transit Damage & Insurance Claim
+                  </h4>
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wide bg-red-500/20 text-red-400 border border-red-500/40">
+                    {insuranceReport.claimReference || insuranceReport.reportNumber}
+                  </span>
+                  {insuranceReport.liability.claimEligibility === 'APPROVED_FOR_SUBROGATION' ? (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/20 text-red-300 border border-red-500/40">
+                      Carrier Liable (Subrogation)
+                    </span>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-500/20 text-green-300 border border-green-500/40">
+                      Clean Handover / No Transit Damage
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-[var(--text-secondary)]">
+                  Differential audit comparing {insuranceReport.photosAudit.yardReceiptPhotosCount} Yard photo(s) vs.{' '}
+                  {insuranceReport.photosAudit.deliveryPhotosCount} Final Delivery photo(s).
+                  {insuranceReport.journey.carrierName && (
+                    <> Carrier: <strong className="text-[var(--text-primary)]">{insuranceReport.journey.carrierName}</strong></>
+                  )}
+                  {insuranceReport.journey.transitReference && (
+                    <> · Transit: <strong className="text-[var(--text-primary)]">{insuranceReport.journey.transitReference}</strong></>
+                  )}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePrintInsuranceReport}
+                className="border-red-500/40 text-red-400 hover:border-red-400 font-bold"
+              >
+                <Printer className="w-4 h-4 mr-1.5" />
+                Print Insurance Report
+              </Button>
+              <button
+                type="button"
+                onClick={() => setIsAiModalOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[var(--card)] text-[var(--text-primary)] border border-[var(--border)] hover:bg-[var(--background)] transition-all shadow-sm"
+              >
+                <RefreshCw className="w-3.5 h-3.5 text-amber-400" />
+                <span>Re-Audit Photos</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Financial Breakdown & Summary */}
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="rounded-xl border border-red-500/30 bg-red-500/5 p-3">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-red-400">
+                Claimable Transit Loss (USD)
+              </span>
+              <p className="text-lg font-extrabold text-red-400 mt-0.5">
+                ${insuranceReport.financials.totalClaimAmountUSD.toFixed(2)}
+              </p>
+              <p className="text-[11px] text-[var(--text-secondary)] mt-1">
+                New damages incurred during carrier custody
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400">
+                Pre-Existing Yard Wear
+              </span>
+              <p className="text-lg font-extrabold text-amber-400 mt-0.5">
+                ${insuranceReport.financials.preExistingDamageCostUSD.toFixed(2)}
+              </p>
+              <p className="text-[11px] text-[var(--text-secondary)] mt-1">
+                Exempt from carrier subrogation claim
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--background)] p-3">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">
+                Total Appraised Damage
+              </span>
+              <p className="text-lg font-extrabold text-[var(--text-primary)] mt-0.5">
+                ${insuranceReport.financials.totalDamageAppraisedUSD.toFixed(2)}
+              </p>
+              <p className="text-[11px] text-[var(--text-secondary)] mt-1">
+                Full vehicle condition appraised value
+              </p>
+            </div>
+          </div>
+
+          {insuranceReport.liability.executiveSummary && (
+            <div className="mt-3 rounded-lg border border-[var(--border)] bg-[var(--background)]/60 p-3 text-xs text-[var(--text-secondary)]">
+              <p>
+                <strong className="text-[var(--text-primary)] font-semibold">Executive Assessment: </strong>
+                {insuranceReport.liability.executiveSummary}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Differential Scan Banner (When both Yard and Delivery photos exist and no report yet) */}
+      {!insuranceReport && hasYardAndDeliveryPhotos && (
+        <div className="relative overflow-hidden rounded-2xl border border-cyan-500/30 bg-gradient-to-r from-cyan-500/10 via-background to-blue-500/5 p-5 shadow-lg shadow-cyan-500/5">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-400 to-blue-600 text-white shadow-md shadow-cyan-500/20 shrink-0">
+                <Sparkles className="w-6 h-6 animate-pulse" />
+              </div>
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2">
+                  <h4 className="text-sm font-bold text-[var(--text-primary)]">
+                    Transit Damage Differential Available
+                  </h4>
+                  <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wide bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                    Dual Photo Set
+                  </span>
+                </div>
+                <p className="text-xs text-[var(--text-secondary)]">
+                  Both Yard Intake photos ({shipment?.vehiclePhotos?.length || 0}) and Final Delivery photos ({shipment?.arrivalPhotos?.length || 0}) are uploaded. Run AI comparison to audit new transit damages and generate insurance subrogation files.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsAiModalOpen(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-cyan-500 to-blue-600 text-white hover:brightness-110 transition-all shadow-md shadow-cyan-500/20 shrink-0"
+            >
+              <Bot className="w-4 h-4" />
+              <span>Compare Yard vs. Delivery Photos</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* AI Quick-Scan Banner (Shown when no inspection or empty markers and single photo set) */}
+      {!insuranceReport && !hasYardAndDeliveryPhotos && markers.length === 0 && totalPhotosCount > 0 && (
         <div className="relative overflow-hidden rounded-2xl border border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-background to-amber-500/5 p-5 shadow-lg shadow-amber-500/5">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3.5">

@@ -734,6 +734,7 @@ export function generateInsuranceClaimConditionReport(
 
   return {
     reportNumber,
+    claimReference: reportNumber,
     claimDate,
     shipmentId: shipment.id,
     vehicle: {

@@ -4,7 +4,7 @@ import { createTokenRouterChatCompletion, isTokenRouterConfigured } from '@/lib/
 import { ensurePdfNodePolyfills } from '@/lib/pdf-node-polyfills';
 
 export const documentExtractionRequestSchema = z.object({
-  mode: z.enum(['document-review', 'invoice-draft', 'shipment-intake']),
+  mode: z.enum(['document-review', 'invoice-draft', 'shipment-intake', 'bill-of-lading']),
   fileUrl: z.string().url(),
   fileName: z.string().min(1),
   fileType: z.string().min(1),
@@ -30,6 +30,26 @@ export const invoiceDraftResponseSchema = z.object({
   date: z.string().optional(),
   dueDate: z.string().optional(),
   notes: z.string().optional(),
+  confidenceNotes: z.string(),
+  extractedTextPreview: z.string(),
+});
+
+export const billOfLadingResponseSchema = z.object({
+  billOfLadingNumber: z.string().optional(),
+  bookingNumber: z.string().optional(),
+  carrierName: z.string().optional(),
+  vesselName: z.string().optional(),
+  voyageNumber: z.string().optional(),
+  containerNumber: z.string().optional(),
+  sealNumber: z.string().optional(),
+  portOfLoading: z.string().optional(),
+  portOfDischarge: z.string().optional(),
+  consignee: z.string().optional(),
+  shipper: z.string().optional(),
+  piecesCount: z.number().nullable().optional(),
+  weightKg: z.number().nullable().optional(),
+  estimatedDeparture: z.string().optional(),
+  estimatedArrival: z.string().optional(),
   confidenceNotes: z.string(),
   extractedTextPreview: z.string(),
 });
@@ -475,6 +495,11 @@ export function buildFallbackShipmentIntake(input: z.infer<typeof documentExtrac
   const yearMatch = extractedText.match(/\b(19\d{2}|20[0-3]\d)\b/);
   const year = yearMatch ? parseInt(yearMatch[1], 10) : null;
 
+  // Make & Model heuristic
+  const ymmMatch = extractedText.match(/(?:year[\/\s]*make[\/\s]*model|vehicle|description)\s*[:\-]?\s*(?:\d{4})?\s*([A-Za-z]+)\s+([A-Za-z0-9\-]+)/i);
+  const make = ymmMatch ? ymmMatch[1].toUpperCase() : '';
+  const model = ymmMatch ? ymmMatch[2].toUpperCase() : '';
+
   // Keys match
   const hasKeys = /keys?\s*[:\-]?\s*yes/i.test(extractedText) || /with keys?/i.test(extractedText);
 
@@ -494,8 +519,8 @@ export function buildFallbackShipmentIntake(input: z.infer<typeof documentExtrac
   return {
     vin,
     year,
-    make: '',
-    model: '',
+    make,
+    model,
     lotNumber,
     auctionName,
     purchasePrice,
@@ -509,6 +534,76 @@ export function buildFallbackShipmentIntake(input: z.infer<typeof documentExtrac
     color: '',
     confidenceNotes: extractedText
       ? 'Fallback regex parser extracted available fields. Please verify against the original document.'
+      : 'No text could be extracted automatically from this file.',
+    extractedTextPreview: truncateText(extractedText || 'No extracted text available.', 500),
+  };
+}
+
+export function buildBillOfLadingPrompt(input: z.infer<typeof documentExtractionRequestSchema>, extractedText: string) {
+  return `You are an AI maritime logistics parser extracting Bill of Lading (BOL), Booking Confirmation, and Sea Waybill fields.
+Extract ocean freight shipping fields. Return valid JSON only matching these exact keys:
+- billOfLadingNumber: B/L or waybill tracking number string or empty string.
+- bookingNumber: ocean booking reservation number or empty string.
+- carrierName: ocean shipping line name (e.g. "Maersk", "MSC", "CMA CGM", "Hapag-Lloyd", "COSCO", "ONE") or empty string.
+- vesselName: ocean vessel ship name or empty string.
+- voyageNumber: voyage identifier code or empty string.
+- containerNumber: ISO 6346 11-character container number (e.g. "MSKU1234567") or empty string.
+- sealNumber: container door security seal number or empty string.
+- portOfLoading: origin departure port / terminal name (e.g. "Savannah, GA", "Newark, NJ") or empty string.
+- portOfDischarge: destination arrival port / terminal name (e.g. "Jebel Ali, UAE", "Karachi, PK") or empty string.
+- consignee: destination receiver / notify party entity or empty string.
+- shipper: exporting entity or empty string.
+- piecesCount: total cargo pieces or vehicles count as integer or null.
+- weightKg: gross cargo weight in kilograms as number or null.
+- estimatedDeparture: ISO format date YYYY-MM-DD or empty string.
+- estimatedArrival: ISO format date YYYY-MM-DD or empty string.
+- confidenceNotes: brief explanation of extracted values.
+- extractedTextPreview: first 500 characters of extracted text.
+
+File name: ${input.fileName}
+File type: ${input.fileType}
+Extracted text:
+${extractedText || 'No text could be extracted from the file.'}`;
+}
+
+export function buildFallbackBillOfLading(input: z.infer<typeof documentExtractionRequestSchema>, extractedText: string) {
+  const containerMatch = extractedText.match(/\b([A-Z]{4}\d{7})\b/i);
+  const bolMatch = extractedText.match(/(?:b\/l|bol|bill of lading|waybill)\s*(?:no\.?|#|number)?\s*[:#-]?\s*([A-Z0-9]{7,18})/i)
+    || input.fileName.match(/(?:bol|bl)[-_]?([A-Z0-9]{7,18})/i);
+  const bookingMatch = extractedText.match(/(?:booking|bkg)\s*(?:no\.?|#|number)?\s*[:#-]?\s*([A-Z0-9]{6,16})/i);
+  const sealMatch = extractedText.match(/(?:seal|seal no\.?)\s*[:#-]?\s*([A-Z0-9]{5,12})/i);
+  const vesselMatch = extractedText.match(/(?:vessel|ocean vessel|feeder)\s*[:\-]?\s*([A-Za-z0-9\s]{3,25})(?=\s+(?:voy|voyage|flag|\n|$))/i);
+  const voyageMatch = extractedText.match(/\b(?:voyage|voy\.?|voy)\s*[:#-]?\s*([0-9A-Za-z]{2,10})/i);
+  const polMatch = extractedText.match(/(?:port of loading|pol|loading port)\s*[:\-]?\s*([A-Za-z\s,]{3,30})(?=\s+(?:pod|discharge|\n|$))/i);
+  const podMatch = extractedText.match(/(?:port of discharge|pod|discharge port|final destination)\s*[:\-]?\s*([A-Za-z\s,]{3,30})/i);
+
+  let carrierName = '';
+  const lower = extractedText.toLowerCase();
+  if (lower.includes('maersk')) carrierName = 'Maersk Line';
+  else if (lower.includes('msc') || lower.includes('mediterranean shipping')) carrierName = 'MSC (Mediterranean Shipping Company)';
+  else if (lower.includes('cma cgm')) carrierName = 'CMA CGM';
+  else if (lower.includes('hapag')) carrierName = 'Hapag-Lloyd';
+  else if (lower.includes('cosco')) carrierName = 'COSCO Shipping';
+  else if (lower.includes('one') || lower.includes('ocean network express')) carrierName = 'Ocean Network Express (ONE)';
+
+  return {
+    billOfLadingNumber: bolMatch?.[1] || '',
+    bookingNumber: bookingMatch?.[1] || '',
+    carrierName,
+    vesselName: vesselMatch?.[1]?.trim() || '',
+    voyageNumber: voyageMatch?.[1]?.trim() || '',
+    containerNumber: containerMatch?.[1]?.toUpperCase() || '',
+    sealNumber: sealMatch?.[1] || '',
+    portOfLoading: polMatch?.[1]?.trim() || '',
+    portOfDischarge: podMatch?.[1]?.trim() || '',
+    consignee: '',
+    shipper: '',
+    piecesCount: null,
+    weightKg: null,
+    estimatedDeparture: '',
+    estimatedArrival: '',
+    confidenceNotes: extractedText
+      ? 'Fallback regex parser extracted available Bill of Lading fields. Please verify against original shipping document.'
       : 'No text could be extracted automatically from this file.',
     extractedTextPreview: truncateText(extractedText || 'No extracted text available.', 500),
   };

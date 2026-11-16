@@ -85,6 +85,11 @@ const modes: Array<{
     description: 'Examines yard-to-port coordination and dispatch pipeline pressure.',
   },
   {
+    value: 'damage-claims',
+    label: 'Damage & Claims',
+    description: 'Surfaces vehicle damage risks, carrier liability claims, and insurance subrogation items.',
+  },
+  {
     value: 'custom',
     label: 'Custom Ask',
     description: 'Lets you steer the summary with a focused operations question.',
