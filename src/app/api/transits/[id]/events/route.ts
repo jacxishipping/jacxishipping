@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { TransitStatus } from '@prisma/client';
 import { z } from 'zod';
 import { auth } from '@/lib/auth';
 import { companySupportsRole } from '@/lib/company-roles';
@@ -14,6 +15,23 @@ const createEventSchema = z.object({
   description: z.string().optional(),
   eventDate: z.string().optional(),
 });
+
+function mapEventStatusToTransitStatus(status: string): TransitStatus | null {
+  const upper = status.trim().toUpperCase().replace(/[\s_-]+/g, '_');
+  if (['IN_TRANSIT', 'LOADED', 'BORDER_CROSSING', 'CUSTOMS_CLEARANCE', 'CUSTOMS_HOLD', 'DEPARTED'].some(s => upper.includes(s))) {
+    return TransitStatus.IN_TRANSIT;
+  }
+  if (upper === 'ARRIVED' || upper.startsWith('ARRIV')) {
+    return TransitStatus.ARRIVED;
+  }
+  if (upper === 'DISPATCHED' || upper.startsWith('DISPATCH')) {
+    return TransitStatus.DISPATCHED;
+  }
+  if (upper === 'PENDING') {
+    return TransitStatus.PENDING;
+  }
+  return null;
+}
 
 export async function GET(
   _request: NextRequest,
@@ -69,7 +87,10 @@ export async function POST(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const transit = await prisma.transit.findUnique({ where: { id: params.id }, select: { id: true } });
+    const transit = await prisma.transit.findUnique({
+      where: { id: params.id },
+      select: { id: true, status: true, companyId: true },
+    });
     if (!transit) {
       return NextResponse.json({ error: 'Transit not found' }, { status: 404 });
     }
@@ -86,21 +107,44 @@ export async function POST(
       return NextResponse.json({ error: 'Transit company not found' }, { status: 404 });
     }
 
-    const event = await prisma.transitEvent.create({
-      data: {
-        transitId: params.id,
-        companyId: validatedData.companyId,
-        origin: validatedData.origin,
-        destination: validatedData.destination,
-        status: validatedData.status,
-        location: validatedData.location ?? null,
-        description: validatedData.description ?? null,
-        eventDate: validatedData.eventDate ? new Date(validatedData.eventDate) : new Date(),
-        createdBy: session.user!.id as string,
-      },
-      include: {
-        company: { select: { id: true, name: true, code: true } },
-      },
+    const event = await prisma.$transaction(async (tx) => {
+      const createdEvent = await tx.transitEvent.create({
+        data: {
+          transitId: params.id,
+          companyId: validatedData.companyId,
+          origin: validatedData.origin,
+          destination: validatedData.destination,
+          status: validatedData.status,
+          location: validatedData.location ?? null,
+          description: validatedData.description ?? null,
+          eventDate: validatedData.eventDate ? new Date(validatedData.eventDate) : new Date(),
+          createdBy: session.user!.id as string,
+        },
+        include: {
+          company: { select: { id: true, name: true, code: true } },
+        },
+      });
+
+      const transitUpdates: { companyId?: string; status?: TransitStatus } = {};
+      if (!transit.companyId) {
+        transitUpdates.companyId = validatedData.companyId;
+      }
+
+      if (transit.status !== TransitStatus.DELIVERED && transit.status !== TransitStatus.CANCELLED) {
+        const mappedStatus = mapEventStatusToTransitStatus(validatedData.status);
+        if (mappedStatus) {
+          transitUpdates.status = mappedStatus;
+        }
+      }
+
+      if (Object.keys(transitUpdates).length > 0) {
+        await tx.transit.update({
+          where: { id: params.id },
+          data: transitUpdates,
+        });
+      }
+
+      return createdEvent;
     });
 
     return NextResponse.json({ event }, { status: 201 });

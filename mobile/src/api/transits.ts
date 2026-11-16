@@ -51,4 +51,31 @@ export const transitsApi = {
     });
     return response.data;
   },
+
+  async updateEvent(
+    transitId: string,
+    eventId: string,
+    input: {
+      companyId?: string;
+      origin?: string;
+      destination?: string;
+      status?: string;
+      location?: string | null;
+      description?: string | null;
+      eventDate?: string;
+    }
+  ) {
+    const response = await client.patch<{ event: unknown }>(
+      `/api/transits/${transitId}/events/${eventId}`,
+      input
+    );
+    return response.data;
+  },
+
+  async deleteEvent(transitId: string, eventId: string) {
+    const response = await client.delete<{ success: boolean; message: string }>(
+      `/api/transits/${transitId}/events/${eventId}`
+    );
+    return response.data;
+  },
 };

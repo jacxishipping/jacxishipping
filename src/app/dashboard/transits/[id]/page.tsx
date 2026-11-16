@@ -161,6 +161,22 @@ export default function TransitDetailPage() {
   const [eventForm, setEventForm] = useState({ companyId: '', origin: '', destination: '', status: '', location: '', description: '', eventDate: new Date().toISOString().slice(0, 16) });
   const [postingEvent, setPostingEvent] = useState(false);
 
+  // Edit event state
+  const [openEditEvent, setOpenEditEvent] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<TransitEvent | null>(null);
+  const [editEventForm, setEditEventForm] = useState({
+    id: '',
+    companyId: '',
+    origin: '',
+    destination: '',
+    status: '',
+    location: '',
+    description: '',
+    eventDate: new Date().toISOString().slice(0, 16),
+  });
+  const [savingEditEvent, setSavingEditEvent] = useState(false);
+  const [deletingEventId, setDeletingEventId] = useState<string | null>(null);
+
   // Add expense state
   const [shipmentExpenseModalOpen, setShipmentExpenseModalOpen] = useState(false);
   const [selectedShipmentForExpense, setSelectedShipmentForExpense] = useState<string | undefined>(undefined);
@@ -415,6 +431,72 @@ export default function TransitDetailPage() {
     }
   };
 
+  const handleStartEditEvent = (event: TransitEvent) => {
+    setEditingEvent(event);
+    setEditEventForm({
+      id: event.id,
+      companyId: event.companyId,
+      origin: event.origin,
+      destination: event.destination,
+      status: event.status,
+      location: event.location || '',
+      description: event.description || '',
+      eventDate: event.eventDate ? new Date(event.eventDate).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16),
+    });
+    setOpenEditEvent(true);
+  };
+
+  const handleSaveEditEvent = async () => {
+    if (!editEventForm.status.trim()) { toast.error('Status is required'); return; }
+    if (!editEventForm.companyId) { toast.error('Transit company is required'); return; }
+    if (!editEventForm.origin.trim() || !editEventForm.destination.trim()) { toast.error('Transit leg origin and destination are required'); return; }
+
+    try {
+      setSavingEditEvent(true);
+      const response = await fetch(`/api/transits/${transitId}/events/${editEventForm.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          companyId: editEventForm.companyId,
+          origin: editEventForm.origin,
+          destination: editEventForm.destination,
+          status: editEventForm.status,
+          location: editEventForm.location || null,
+          description: editEventForm.description || null,
+          eventDate: editEventForm.eventDate || undefined,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to update event');
+      toast.success('Event updated successfully');
+      setOpenEditEvent(false);
+      setEditingEvent(null);
+      await fetchTransit();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to update event');
+    } finally {
+      setSavingEditEvent(false);
+    }
+  };
+
+  const handleDeleteEvent = async (eventId: string) => {
+    if (!window.confirm('Are you sure you want to delete this transit event?')) return;
+    try {
+      setDeletingEventId(eventId);
+      const response = await fetch(`/api/transits/${transitId}/events/${eventId}`, {
+        method: 'DELETE',
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to delete event');
+      toast.success('Event deleted successfully');
+      await fetchTransit();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to delete event');
+    } finally {
+      setDeletingEventId(null);
+    }
+  };
+
   const toggleShipmentSelection = (shipmentId: string) => {
     setSelectedShipmentIds((current) =>
       current.includes(shipmentId) ? current.filter((id) => id !== shipmentId) : [...current, shipmentId],
@@ -585,6 +667,36 @@ export default function TransitDetailPage() {
     { key: 'status', header: 'Status', render: (_, row) => <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, fontWeight: 600}}>{row.status}</JXBox> },
     { key: 'location', header: 'Location', render: (_, row) => row.location || '-' },
     { key: 'description', header: 'Description', render: (_, row) => row.description || '-' },
+    ...(canManageWorkflow ? [{
+      key: 'actions',
+      header: 'Actions',
+      render: (_: unknown, row: TransitEvent) => (
+        <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', gap: '4px', alignItems: 'center'}}>
+          <Tooltip title="Edit event" arrow={false}>
+            <IconButton
+              icon={<Pencil className="w-4 h-4" />}
+              ariaLabel="Edit event"
+              variant="ghost"
+              size="sm"
+              style={{ color: 'var(--accent-gold)' }}
+              disabled={isTransitWorkflowLocked || deletingEventId === row.id}
+              onClick={() => handleStartEditEvent(row)}
+            />
+          </Tooltip>
+          <Tooltip title="Delete event" arrow={false}>
+            <IconButton
+              icon={<Trash2 className="w-4 h-4" />}
+              ariaLabel="Delete event"
+              variant="ghost"
+              size="sm"
+              color="error"
+              disabled={isTransitWorkflowLocked || deletingEventId === row.id}
+              onClick={() => void handleDeleteEvent(row.id)}
+            />
+          </Tooltip>
+        </JXBox>
+      ),
+    }] : []),
   ];
 
   const expenseColumns: Column<TransitExpense>[] = [
@@ -983,6 +1095,32 @@ export default function TransitDetailPage() {
             <FormField label="Location" value={eventForm.location} onChange={(e) => setEventForm(prev => ({ ...prev, location: e.target.value }))} placeholder="e.g. Islam Qala Border" />
             <FormField label="Description" multiline rows={2} value={eventForm.description} onChange={(e) => setEventForm(prev => ({ ...prev, description: e.target.value }))} />
             <FormField label="Event Date" type="datetime-local" InputLabelProps={{ shrink: true }} value={eventForm.eventDate} onChange={(e) => setEventForm(prev => ({ ...prev, eventDate: e.target.value }))} />
+          </JXBox>
+        </Modal>
+
+        {/* Edit Transit Event Dialog */}
+        <Modal
+          open={openEditEvent}
+          onClose={() => !savingEditEvent && setOpenEditEvent(false)}
+          title="Edit Transit Event"
+          size="sm"
+          actions={
+            <>
+              <Button variant="outline" onClick={() => setOpenEditEvent(false)} disabled={savingEditEvent}>Cancel</Button>
+              <Button variant="primary" onClick={handleSaveEditEvent} disabled={savingEditEvent}>{savingEditEvent ? 'Saving...' : 'Save Changes'}</Button>
+            </>
+          }
+        >
+          <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gap: '16px', paddingTop: '12px'}}>
+            <Select label="Transit Company" options={[{ value: "", label: 'Select a company...' }, ...transitCompanies.map((company) => ({ value: company.id, label: `${company.name}${company.code ? ` (${company.code})` : ''}` }))]} value={editEventForm.companyId} onChange={(val) => setEditEventForm(prev => ({ ...prev, companyId: val as string }))} />
+            <JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
+              <FormField label="From" value={editEventForm.origin} onChange={(e) => setEditEventForm(prev => ({ ...prev, origin: e.target.value }))} required placeholder="e.g. Herat" />
+              <FormField label="To" value={editEventForm.destination} onChange={(e) => setEditEventForm(prev => ({ ...prev, destination: e.target.value }))} required placeholder="e.g. Kabul" />
+            </JXBox>
+            <FormField label="Status / Event" value={editEventForm.status} onChange={(e) => setEditEventForm(prev => ({ ...prev, status: e.target.value }))} required placeholder="e.g. Loaded, Border Crossed, Arrived Kabul" />
+            <FormField label="Location" value={editEventForm.location} onChange={(e) => setEditEventForm(prev => ({ ...prev, location: e.target.value }))} placeholder="e.g. Islam Qala Border" />
+            <FormField label="Description" multiline rows={2} value={editEventForm.description} onChange={(e) => setEditEventForm(prev => ({ ...prev, description: e.target.value }))} />
+            <FormField label="Event Date" type="datetime-local" InputLabelProps={{ shrink: true }} value={editEventForm.eventDate} onChange={(e) => setEditEventForm(prev => ({ ...prev, eventDate: e.target.value }))} />
           </JXBox>
         </Modal>
 

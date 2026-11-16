@@ -20,7 +20,8 @@ import { Typography } from '../../constants/typography';
 import { BorderRadius, Spacing } from '../../constants/spacing';
 import { AdminStackParamList } from '../../navigation/AdminNavigator';
 import { Shipment } from '../../types/shipment';
-import { TransitExpense } from '../../types/admin';
+import { TransitExpense, TransitEvent } from '../../types/admin';
+import { Input } from '../../components/ui/Input';
 
 type RouteProps = RouteProp<AdminStackParamList, 'TransitDetail'>;
 
@@ -243,13 +244,100 @@ const AddShipmentsModal: React.FC<AddShipmentsModalProps> = ({ visible, transitI
   );
 };
 
+interface EventEditModalProps {
+  visible: boolean;
+  transitId: string;
+  event: TransitEvent | null;
+  onClose: () => void;
+  onSaved: () => void;
+}
+
+const EventEditModal: React.FC<EventEditModalProps> = ({ visible, transitId, event, onClose, onSaved }) => {
+  const [origin, setOrigin] = useState(event?.origin || '');
+  const [destination, setDestination] = useState(event?.destination || '');
+  const [status, setStatus] = useState(event?.status || '');
+  const [location, setLocation] = useState(event?.location || '');
+  const [description, setDescription] = useState(event?.description || '');
+  const [submitting, setSubmitting] = useState(false);
+  const [toast, setToast] = useState<{ visible: boolean; message: string; type: 'success' | 'error' }>({
+    visible: false,
+    message: '',
+    type: 'success',
+  });
+
+  React.useEffect(() => {
+    if (event) {
+      setOrigin(event.origin || '');
+      setDestination(event.destination || '');
+      setStatus(event.status || '');
+      setLocation(event.location || '');
+      setDescription(event.description || '');
+    }
+  }, [event]);
+
+  const handleSubmit = async () => {
+    if (!event) return;
+    if (!origin.trim() || !destination.trim()) {
+      setToast({ visible: true, message: 'Origin and destination are required', type: 'error' });
+      return;
+    }
+    if (!status.trim()) {
+      setToast({ visible: true, message: 'Status is required', type: 'error' });
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      await transitsApi.updateEvent(transitId, event.id, {
+        origin: origin.trim(),
+        destination: destination.trim(),
+        status: status.trim(),
+        location: location.trim() || null,
+        description: description.trim() || null,
+      });
+      onSaved();
+      onClose();
+    } catch (err: any) {
+      const msg = err.response?.data?.error || err.message || 'Failed to update event';
+      setToast({ visible: true, message: msg, type: 'error' });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <>
+      <Modal visible={visible} onClose={onClose} title="Edit Transit Event" showCloseButton={!submitting}>
+        <View style={{ gap: Spacing.sm, paddingBottom: Spacing.xl }}>
+          <Input label="Origin" value={origin} onChangeText={setOrigin} placeholder="e.g. Dubai" />
+          <Input label="Destination" value={destination} onChangeText={setDestination} placeholder="e.g. Kabul" />
+          <Input label="Status" value={status} onChangeText={setStatus} placeholder="e.g. IN_TRANSIT" />
+          <Input label="Location" value={location} onChangeText={setLocation} placeholder="e.g. Islam Qala Border" />
+          <Input label="Description" value={description} onChangeText={setDescription} placeholder="Notes / details" multiline numberOfLines={2} />
+          <View style={{ marginTop: Spacing.md, gap: Spacing.sm }}>
+            <Button title="Save Changes" onPress={handleSubmit} loading={submitting} fullWidth />
+            <Button title="Cancel" variant="outline" onPress={onClose} disabled={submitting} fullWidth />
+          </View>
+        </View>
+      </Modal>
+      <Toast visible={toast.visible} message={toast.message} type={toast.type} onHide={() => setToast(prev => ({ ...prev, visible: false }))} />
+    </>
+  );
+};
+
 const TransitDetailScreen: React.FC = () => {
   const route = useRoute<RouteProps>();
   const navigation = useNavigation<any>();
   const { colors } = useAppTheme();
   const [activeTab, setActiveTab] = useState<string>('shipments');
   const [editingExpense, setEditingExpense] = useState<TransitExpense | null>(null);
+  const [editingEvent, setEditingEvent] = useState<TransitEvent | null>(null);
   const [addShipmentsVisible, setAddShipmentsVisible] = useState(false);
+  const [screenToast, setScreenToast] = useState<{ visible: boolean; message: string; type: 'success' | 'error' }>({
+    visible: false,
+    message: '',
+    type: 'success',
+  });
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['transit', route.params.id],
@@ -262,6 +350,30 @@ const TransitDetailScreen: React.FC = () => {
 
   const { transit, totalExpenses } = data;
   const expensesEditable = transit.status !== 'DELIVERED' && transit.status !== 'CANCELLED';
+
+  const handleDeleteEvent = (event: TransitEvent) => {
+    Alert.alert(
+      'Delete Event',
+      `Are you sure you want to delete event "${event.origin} to ${event.destination}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await transitsApi.deleteEvent(transit.id, event.id);
+              setScreenToast({ visible: true, message: 'Event deleted successfully', type: 'success' });
+              void refetch();
+            } catch (err: any) {
+              const msg = err.response?.data?.error || err.message || 'Failed to delete event';
+              setScreenToast({ visible: true, message: msg, type: 'error' });
+            }
+          },
+        },
+      ]
+    );
+  };
   const tabs: DetailTabOption[] = [
     { key: 'shipments', label: `Shipments (${transit._count.shipments})` },
     { key: 'events', label: `Events (${transit._count.events})` },
@@ -422,14 +534,42 @@ const TransitDetailScreen: React.FC = () => {
                   { borderBottomColor: colors.border },
                 ])}
               >
-                <Text style={[styles.itemTitle, { color: colors.textPrimary }]}>{event.origin} to {event.destination}</Text>
-                <Text style={[styles.itemMeta, { color: colors.textSecondary }]}>
-                  {titleCase(event.status)} • {event.company?.name || 'No company'}
-                </Text>
-                  {event.company?.phone || event.company?.email ? (
-                    <Text style={[styles.itemMeta, { color: colors.textSecondary }]}>{event.company?.phone || event.company?.email}</Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <View style={{ flex: 1, paddingRight: Spacing.sm }}>
+                    <Text style={[styles.itemTitle, { color: colors.textPrimary }]}>{event.origin} to {event.destination}</Text>
+                    <Text style={[styles.itemMeta, { color: colors.textSecondary }]}>
+                      {titleCase(event.status)} • {event.company?.name || 'No company'}
+                    </Text>
+                    {event.location ? (
+                      <Text style={[styles.itemMeta, { color: colors.textSecondary }]}>Location: {event.location}</Text>
+                    ) : null}
+                    {event.description ? (
+                      <Text style={[styles.itemMeta, { color: colors.textSecondary }]}>{event.description}</Text>
+                    ) : null}
+                    {event.company?.phone || event.company?.email ? (
+                      <Text style={[styles.itemMeta, { color: colors.textSecondary }]}>{event.company?.phone || event.company?.email}</Text>
+                    ) : null}
+                    <Text style={[styles.itemMeta, { color: colors.textSecondary }]}>{formatDate(event.eventDate || event.createdAt)}</Text>
+                  </View>
+                  {expensesEditable ? (
+                    <View style={{ flexDirection: 'row', gap: Spacing.sm, alignItems: 'center' }}>
+                      <TouchableOpacity
+                        activeOpacity={0.85}
+                        onPress={() => setEditingEvent(event)}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Text style={[styles.editLink, { color: colors.accent }]}>Edit</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        activeOpacity={0.85}
+                        onPress={() => handleDeleteEvent(event)}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Text style={[styles.editLink, { color: colors.error || '#EF4444' }]}>Delete</Text>
+                      </TouchableOpacity>
+                    </View>
                   ) : null}
-                <Text style={[styles.itemMeta, { color: colors.textSecondary }]}>{formatDate(event.eventDate || event.createdAt)}</Text>
+                </View>
               </View>
             ))
           )}
@@ -523,6 +663,16 @@ const TransitDetailScreen: React.FC = () => {
         onClose={() => setAddShipmentsVisible(false)}
         onAssigned={() => void refetch()}
       />
+
+      <EventEditModal
+        visible={editingEvent !== null}
+        transitId={transit.id}
+        event={editingEvent}
+        onClose={() => setEditingEvent(null)}
+        onSaved={() => void refetch()}
+      />
+
+      <Toast visible={screenToast.visible} message={screenToast.message} type={screenToast.type} onHide={() => setScreenToast(prev => ({ ...prev, visible: false }))} />
     </SafeAreaView>
   );
 };

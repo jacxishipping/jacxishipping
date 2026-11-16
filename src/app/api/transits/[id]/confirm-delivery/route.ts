@@ -90,9 +90,10 @@ export async function POST(
     }
 
     const currentEvent = transit.events?.[0] ?? null;
+    const resolvedCompanyId = currentEvent?.companyId || transit.companyId;
 
-    if (!currentEvent) {
-      return NextResponse.json({ error: 'Add at least one transit event before confirming delivery' }, { status: 400 });
+    if (!resolvedCompanyId) {
+      return NextResponse.json({ error: 'Please assign a transit carrier before confirming delivery' }, { status: 400 });
     }
 
     const deliveredAt = new Date(validatedData.deliveredDate);
@@ -120,9 +121,9 @@ export async function POST(
       await tx.transitEvent.create({
         data: {
           transitId: params.id,
-          companyId: currentEvent.companyId,
-          origin: currentEvent.origin,
-          destination: currentEvent.destination,
+          companyId: resolvedCompanyId,
+          origin: currentEvent?.origin || transit.origin,
+          destination: currentEvent?.destination || transit.destination,
           status: 'DELIVERY_CONFIRMED',
           location: transit.destination,
           description: `Receiver: ${validatedData.receiverName}${validatedData.notes ? ` | Notes: ${validatedData.notes}` : ''}`,

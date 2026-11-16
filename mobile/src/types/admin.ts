@@ -170,6 +170,9 @@ export interface TransitEvent {
   origin: string;
   destination: string;
   status: string;
+  location?: string | null;
+  description?: string | null;
+  companyId?: string;
   eventDate?: string;
   createdAt?: string;
   company?: TransitCompany | null;

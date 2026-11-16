@@ -142,7 +142,7 @@ export async function GET(
       transit: {
         ...transit,
         currentEvent: transit.events?.[0] ?? null,
-        currentCompany: transit.company ?? transit.events?.[0]?.company ?? null,
+        currentCompany: transit.events?.[0]?.company ?? transit.company ?? null,
         expenses: allExpenses,
         _count: {
           ...transit._count,
