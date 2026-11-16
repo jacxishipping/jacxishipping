@@ -204,6 +204,71 @@ export interface AiDamageDetectionResult {
   provider: string;
   analyzedAt: string;
   transitComparison?: TransitDamageComparisonResult;
+  insuranceReport?: InsuranceClaimConditionReport;
+}
+
+export interface InsuranceClaimItem {
+  id: string;
+  pinNumber: number;
+  zone: string;
+  view: BlueprintViewType;
+  x: number;
+  y: number;
+  damageType: DamageType;
+  severity: DamageSeverity;
+  origin: 'TRANSIT_INDUCED' | 'PRE_EXISTING';
+  description: string;
+  recommendedRepair: string;
+  estimatedCost: number;
+  confidence: number;
+  baselinePhotoUrl?: string;
+  deliveryPhotoUrl?: string;
+  claimNotes?: string;
+}
+
+export interface InsuranceClaimConditionReport {
+  reportNumber: string;
+  claimDate: string;
+  shipmentId: string;
+  vehicle: {
+    vin: string;
+    year?: number | null;
+    make?: string | null;
+    model?: string | null;
+    color?: string | null;
+  };
+  journey: {
+    transitId?: string | null;
+    transitReference?: string | null;
+    carrierName?: string | null;
+    originYard?: string | null;
+    destination?: string | null;
+    receiptDate?: string | null;
+    deliveryDate?: string | null;
+  };
+  liability: {
+    hasTransitDamage: boolean;
+    carrierLiable: boolean;
+    carrierName: string;
+    claimEligibility: 'APPROVED_FOR_SUBROGATION' | 'NO_TRANSIT_DAMAGE' | 'INSUFFICIENT_EVIDENCE';
+    executiveSummary: string;
+    adjusterRecommendation: string;
+  };
+  financials: {
+    totalClaimAmountUSD: number;
+    preExistingDamageCostUSD: number;
+    totalDamageAppraisedUSD: number;
+    currency: 'USD';
+  };
+  items: InsuranceClaimItem[];
+  photosAudit: {
+    yardReceiptPhotosCount: number;
+    deliveryPhotosCount: number;
+    totalPhotosCompared: number;
+  };
+  formalCertification: string;
+  markdownReport: string;
+  htmlReport: string;
 }
 
 export interface TransitDamageComparisonResult {
@@ -219,6 +284,7 @@ export interface TransitDamageComparisonResult {
   carrierLiabilityRecommendation: string;
   analyzedAt: string;
   provider: string;
+  insuranceReport?: InsuranceClaimConditionReport;
 }
 
 export function convertAiResultToInspectionData(

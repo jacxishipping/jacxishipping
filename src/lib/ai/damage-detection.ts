@@ -17,6 +17,8 @@ import {
   AiDetectedDamage,
   AiDamageDetectionResult,
   TransitDamageComparisonResult,
+  InsuranceClaimItem,
+  InsuranceClaimConditionReport,
   convertAiResultToInspectionData,
 } from '@/types/vehicle-inspection';
 
@@ -24,6 +26,8 @@ export type {
   AiDetectedDamage,
   AiDamageDetectionResult,
   TransitDamageComparisonResult,
+  InsuranceClaimItem,
+  InsuranceClaimConditionReport,
 };
 export { convertAiResultToInspectionData };
 
@@ -166,27 +170,35 @@ async function convertPhotoToDataUrl(photoUrl: string): Promise<{ dataUrl: strin
   return null;
 }
 
+export interface DetectDamagesOptions {
+  photoUrls?: string[];
+  photoSource?: 'ALL' | 'VEHICLE' | 'ARRIVAL' | 'CUSTOM';
+  maxPhotos?: number;
+  mode?: 'INSPECTION' | 'TRANSIT_COMPARISON';
+  yardReceiptPhotos?: string[];
+  deliveryPhotos?: string[];
+  carrierName?: string;
+  transitRef?: string;
+  originYard?: string;
+  destination?: string;
+  mockAiResponse?: any;
+}
+
 export async function detectDamagesWithAi(
   shipmentId: string,
-  options: {
-    photoUrls?: string[];
-    photoSource?: 'ALL' | 'VEHICLE' | 'ARRIVAL' | 'CUSTOM';
-    maxPhotos?: number;
-    mode?: 'INSPECTION' | 'TRANSIT_COMPARISON';
-  } = {},
+  options: DetectDamagesOptions = {},
 ): Promise<AiDamageDetectionResult> {
   const shipment = await prisma.shipment.findUnique({
     where: { id: shipmentId },
-    select: {
-      id: true,
-      vehicleMake: true,
-      vehicleModel: true,
-      vehicleYear: true,
-      vehicleColor: true,
-      vehicleVIN: true,
-      vehiclePhotos: true,
-      arrivalPhotos: true,
-      internalNotes: true,
+    include: {
+      transit: {
+        include: {
+          company: { select: { id: true, name: true, code: true } },
+        },
+      },
+      qualityChecks: {
+        select: { id: true, checkType: true, photos: true, notes: true, checkedAt: true, inspector: true },
+      },
     },
   });
 
@@ -194,12 +206,16 @@ export async function detectDamagesWithAi(
     throw new Error('Shipment not found');
   }
 
-  // If comparison mode is requested and both photo sets exist, run transit comparison
+  // If comparison mode is requested or both yard receipt & delivery photos exist, run transit comparison
+  const hasBothPhotoSets =
+    (options.yardReceiptPhotos?.length && options.deliveryPhotos?.length) ||
+    ((shipment.vehiclePhotos?.length || 0) > 0 && (shipment.arrivalPhotos?.length || 0) > 0);
+
   if (
     options.mode === 'TRANSIT_COMPARISON' ||
-    (shipment.vehiclePhotos?.length > 0 && shipment.arrivalPhotos?.length > 0 && options.photoSource === 'ALL')
+    (hasBothPhotoSets && options.photoSource === 'ALL')
   ) {
-    return compareTransitDamagesWithAi(shipment);
+    return compareTransitDamagesWithAi(shipment, options);
   }
 
   let targetPhotos: string[] = [];
@@ -347,142 +363,606 @@ export async function detectDamagesWithAi(
   return parseAndFormatAiResult(shipmentId, rawAiResponseText, loadedImages, providerUsed);
 }
 
-export async function compareTransitDamagesWithAi(shipment: any): Promise<AiDamageDetectionResult> {
-  const intakePhotos = (shipment.vehiclePhotos || []).slice(0, 5);
-  const arrivalPhotos = (shipment.arrivalPhotos || []).slice(0, 5);
+export interface CompareTransitDamagesOptions {
+  yardReceiptPhotos?: string[];
+  deliveryPhotos?: string[];
+  carrierName?: string;
+  transitRef?: string;
+  originYard?: string;
+  destination?: string;
+  maxPhotosPerStage?: number;
+  mockAiResponse?: any;
+}
+
+export function resolveComparisonPhotoSets(
+  shipment: any,
+  options: CompareTransitDamagesOptions = {},
+): {
+  yardReceiptPhotos: string[];
+  deliveryPhotos: string[];
+  carrierName: string;
+  transitReference: string;
+  originYard: string;
+  destination: string;
+} {
+  // 1. Yard Receipt Photos (Pre-Departure Baseline / Intake Inspection)
+  const initialQcPhotos = (shipment.qualityChecks || [])
+    .filter((qc: any) => qc.checkType === 'INITIAL_INSPECTION' || qc.checkType === 'PRE_LOADING')
+    .flatMap((qc: any) => qc.photos || []);
+
+  const rawYardPhotos = [
+    ...(options.yardReceiptPhotos || []),
+    ...initialQcPhotos,
+    ...(shipment.vehiclePhotos || []),
+  ];
+  const yardReceiptPhotos = Array.from(new Set(rawYardPhotos.filter(Boolean)));
+
+  // 2. Final Transit Delivery Photos (Destination / Delivery Handover Inspection)
+  const deliveryQcPhotos = (shipment.qualityChecks || [])
+    .filter((qc: any) => qc.checkType === 'DELIVERY_INSPECTION')
+    .flatMap((qc: any) => qc.photos || []);
+
+  const transitProof = shipment.transit?.deliveryProofUrl ? [shipment.transit.deliveryProofUrl] : [];
+
+  const rawDeliveryPhotos = [
+    ...(options.deliveryPhotos || []),
+    ...deliveryQcPhotos,
+    ...transitProof,
+    ...(shipment.arrivalPhotos || []),
+  ];
+  const deliveryPhotos = Array.from(new Set(rawDeliveryPhotos.filter(Boolean)));
+
+  const carrierName =
+    options.carrierName ||
+    shipment.transit?.company?.name ||
+    'JACXI Carrier Partner';
+
+  const transitReference =
+    options.transitRef ||
+    shipment.transit?.referenceNumber ||
+    shipment.referenceId ||
+    `TR-${shipment.id ? shipment.id.slice(-6).toUpperCase() : 'EXP'}`;
+
+  const originYard =
+    options.originYard ||
+    shipment.purchaseLocation ||
+    'Origin Loading Yard';
+
+  const destination =
+    options.destination ||
+    shipment.destinationCountry ||
+    'Final Delivery Point';
+
+  return {
+    yardReceiptPhotos,
+    deliveryPhotos,
+    carrierName,
+    transitReference,
+    originYard,
+    destination,
+  };
+}
+
+export function getRecommendedRepairMethod(damageType: DamageType, severity: DamageSeverity): string {
+  switch (damageType) {
+    case 'DENT':
+      return severity === 'LOW'
+        ? 'Paintless Dent Repair (PDR) - micro reflection crease removal'
+        : severity === 'MEDIUM'
+        ? 'Precision PDR & glue pull with thermal panel relief'
+        : 'Panel hydraulic pull, metal shrink, filler contouring & 2-stage respray';
+    case 'SCRATCH':
+      return severity === 'LOW'
+        ? 'Rotary machine compounding, polish & clearcoat sealant'
+        : severity === 'MEDIUM'
+        ? 'Wet sand (P2000), basecoat color touch-up & 2K clear spot blend'
+        : 'Full body panel mechanical sand, epoxy primer, OEM base & clearcoat respray bake';
+    case 'CRACK':
+      return severity === 'LOW'
+        ? 'Structural plastic staple fusion & urethane seam seal'
+        : 'Bumper cover / body panel replacement with OEM assembly';
+    case 'CHIP':
+      return 'Micro-pen color code pigment fill, leveling & UV clear seal';
+    case 'BROKEN_GLASS':
+      return 'OEM laminated acoustic safety glass replacement with ADAS sensor calibration';
+    case 'MISSING_PART':
+      return 'OEM replacement part acquisition and clip/bracket mounting';
+    default:
+      return 'Standard automotive collision repair & panel alignment';
+  }
+}
+
+export function generateInsuranceClaimConditionReport(
+  comparison: TransitDamageComparisonResult,
+  shipment: any,
+  options: {
+    carrierName?: string;
+    transitRef?: string;
+    originYard?: string;
+    destination?: string;
+    surveyorName?: string;
+  } = {},
+): InsuranceClaimConditionReport {
+  const claimDate = new Date().toISOString();
+  const reportNumber = `JACXI-ICR-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
+
+  const carrierName = options.carrierName || shipment.transit?.company?.name || 'Assigned Transit Carrier';
+  const transitRef = options.transitRef || shipment.transit?.referenceNumber || shipment.referenceId || `TR-${shipment.id?.slice(-6) || 'EXP'}`;
+  const originYard = options.originYard || shipment.purchaseLocation || 'USA Port Yard';
+  const destination = options.destination || shipment.destinationCountry || 'Destination Terminal';
+
+  const transitDamages = comparison.damages.filter((d) => d.origin === 'TRANSIT_INDUCED');
+  const preExistingDamages = comparison.damages.filter((d) => d.origin === 'PRE_EXISTING');
+
+  const hasTransitDamage = transitDamages.length > 0;
+  const claimEligibility = hasTransitDamage ? 'APPROVED_FOR_SUBROGATION' : 'NO_TRANSIT_DAMAGE';
+
+  const items: InsuranceClaimItem[] = comparison.damages.map((d, idx) => ({
+    id: d.id || `claim-item-${idx + 1}`,
+    pinNumber: d.pinNumber || idx + 1,
+    zone: d.zone,
+    view: d.view,
+    x: d.x,
+    y: d.y,
+    damageType: d.damageType,
+    severity: d.severity,
+    origin: (d.origin as 'TRANSIT_INDUCED' | 'PRE_EXISTING') || 'TRANSIT_INDUCED',
+    description: d.description,
+    recommendedRepair: d.claimNotes && d.claimNotes.includes('Repair:')
+      ? d.claimNotes.replace(/.*Repair:\s*/, '')
+      : getRecommendedRepairMethod(d.damageType, d.severity),
+    estimatedCost: d.estimatedCost,
+    confidence: d.confidence,
+    baselinePhotoUrl: d.intakeEvidenceUrl || d.sourcePhotoUrl,
+    deliveryPhotoUrl: d.arrivalEvidenceUrl || d.sourcePhotoUrl,
+    claimNotes: d.claimNotes,
+  }));
+
+  const formalCertification = [
+    `I hereby certify that on ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}, a certified comparative photographic damage survey was performed on subject vehicle VIN: ${shipment.vehicleVIN || 'N/A'}.`,
+    `Baseline pre-departure Yard Receipt photographs were systematically cross-referenced against destination Final Transit Delivery photographs under international cargo surveyor standards, the Carriage of Goods by Sea Act (COGSA), and CMR transport conventions.`,
+    hasTransitDamage
+      ? `Physical inspection confirmed ${transitDamages.length} new transit-induced defect(s) totaling $${comparison.transitClaimLiabilityCost.toFixed(2)} USD in carrier liability loss. These damages did not exist at the time of carrier custody intake. This document constitutes formal Proof of Loss for carrier subrogation and marine insurance indemnity.`
+      : `Physical inspection confirmed zero transit-induced damage during transport. Vehicle was delivered in condition consistent with baseline yard receipt intake. No carrier liability claim is warranted.`,
+  ].join(' ');
+
+  const claimDateFormatted = new Date().toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+
+  const transitTableRows = transitDamages.length > 0
+    ? transitDamages
+        .map((td, i) => {
+          const repair = getRecommendedRepairMethod(td.damageType, td.severity);
+          return `| ${i + 1} | **${td.zone}** | \`${td.damageType}\` | \`${td.severity}\` | ${td.description} | ${repair} | **$${td.estimatedCost.toFixed(2)}** |`;
+        })
+        .join('\n')
+    : '| — | None | — | — | No transit-induced damage detected. | None required | $0.00 |';
+
+  const preExistingTableRows = preExistingDamages.length > 0
+    ? preExistingDamages
+        .map((pd, i) => {
+          return `| ${i + 1} | **${pd.zone}** | \`${pd.damageType}\` | \`${pd.severity}\` | ${pd.description} | Pre-existing at intake | $${pd.estimatedCost.toFixed(2)} |`;
+        })
+        .join('\n')
+    : '| — | None | — | — | No baseline defects recorded. | — | $0.00 |';
+
+  const markdownReport = [
+    `# 📋 AUTOMATED VEHICLE CONDITION REPORT FOR INSURANCE CLAIMS`,
+    `**Report Reference:** \`${reportNumber}\`  `,
+    `**Issue Date:** ${claimDateFormatted}  `,
+    `**Survey Standard:** Marine Cargo & Inland Auto Transport Inspection (COGSA / CMR)  `,
+    ``,
+    `---`,
+    ``,
+    `### 1. Subject Vehicle & Voyage Information`,
+    `| Field | Value | Field | Value |`,
+    `| :--- | :--- | :--- | :--- |`,
+    `| **VIN** | \`${shipment.vehicleVIN || 'N/A'}\` | **Carrier / Transporter** | ${carrierName} |`,
+    `| **Vehicle** | ${[shipment.vehicleYear, shipment.vehicleMake, shipment.vehicleModel].filter(Boolean).join(' ') || 'Vehicle'} | **Transit Ref #** | \`${transitRef}\` |`,
+    `| **Exterior Color** | ${shipment.vehicleColor || 'Unspecified'} | **Origin Yard (Receipt)** | ${originYard} |`,
+    `| **Intake Date** | ${shipment.createdAt ? new Date(shipment.createdAt).toLocaleDateString() : 'Recorded'} | **Delivery Handover** | ${destination} |`,
+    ``,
+    `---`,
+    ``,
+    `### 2. Surveyor Executive Assessment & Liability Determination`,
+    `- **Carrier Liability Determination:** ${hasTransitDamage ? '⚠️ **CARRIER AT FAULT (LIABLE)**' : '✅ **NO CARRIER LIABILITY**'}`,
+    `- **Subrogation Eligibility:** \`${claimEligibility}\``,
+    `- **Executive Summary:** ${comparison.executiveSummary}`,
+    `- **Adjuster Recommendation:** ${comparison.carrierLiabilityRecommendation}`,
+    ``,
+    `---`,
+    ``,
+    `### 3. Claim Financial Summary (Loss Appraisal)`,
+    `| Category | Item Count | Assessed Total (USD) |`,
+    `| :--- | :---: | :---: |`,
+    `| **Transit-Induced Damages (Claimable Loss)** | **${transitDamages.length}** | **$${comparison.transitClaimLiabilityCost.toFixed(2)} USD** |`,
+    `| Pre-Existing Intake Wear & Tear | ${preExistingDamages.length} | $${comparison.preExistingCost.toFixed(2)} USD |`,
+    `| **Total Vehicle Appraised Defects** | **${comparison.damages.length}** | **$${comparison.totalDamageCost.toFixed(2)} USD** |`,
+    ``,
+    `---`,
+    ``,
+    `### 4. Itemized Transit-Induced Damage Schedule (Proof of Loss)`,
+    `| # | Panel / Zone | Damage Type | Severity | Description & Cause | Recommended Repair Operation | Claim Allowance |`,
+    `| :-: | :--- | :--- | :--- | :--- | :--- | --: |`,
+    transitTableRows,
+    ``,
+    `---`,
+    ``,
+    `### 5. Pre-Existing Baseline Defects (Not Claimable)`,
+    `| # | Panel / Zone | Damage Type | Severity | Description | Intake Origin | Non-Claimable Est. |`,
+    `| :-: | :--- | :--- | :--- | :--- | :--- | --: |`,
+    preExistingTableRows,
+    ``,
+    `---`,
+    ``,
+    `### 6. Formal Surveyor Certification & Legal Subrogation Assignment`,
+    `> ${formalCertification}`,
+    ``,
+    `**Lead Surveyor / Examiner:** \`${options.surveyorName || 'JACXI Automated Cargo Vision AI / Surveyor Directorate'}\`  `,
+    `**Authorization Status:** \`CERTIFIED FOR UNDERWRITER SUBROGATION\``,
+  ].join('\n');
+
+  const htmlReport = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <title>Automated Condition Report for Insurance Claim - ${reportNumber}</title>
+      <style>
+        @page { size: A4; margin: 15mm; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; color: #0f172a; margin: 0; padding: 24px; }
+        .header { display: flex; justify-content: space-between; border-bottom: 2px solid #0f172a; padding-bottom: 12px; }
+        .brand { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; }
+        .subbrand { font-size: 11px; color: #64748b; }
+        .meta { text-align: right; }
+        .meta h1 { margin: 0; font-size: 18px; text-transform: uppercase; color: #0f172a; }
+        .meta p { margin: 2px 0; font-size: 12px; color: #64748b; }
+        .grid-info { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 18px 0; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 14px; font-size: 12px; }
+        .grid-info h3 { margin: 0 0 6px 0; font-size: 10px; text-transform: uppercase; color: #64748b; letter-spacing: 0.5px; }
+        .grid-info p { margin: 3px 0; }
+        .liability-box { background: ${hasTransitDamage ? '#fef2f2' : '#f0fdf4'}; border: 1px solid ${hasTransitDamage ? '#fca5a5' : '#86efac'}; border-radius: 6px; padding: 12px 16px; margin-bottom: 18px; font-size: 12px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 11px; }
+        th { background: #0f172a; color: #fff; padding: 6px 8px; text-align: left; text-transform: uppercase; font-size: 10px; }
+        td { padding: 6px 8px; border-bottom: 1px solid #e2e8f0; }
+        .total-box { margin-top: 16px; display: flex; justify-content: flex-end; }
+        .total-table { width: 280px; font-size: 12px; }
+        .total-table td { padding: 4px 8px; }
+        .cert-box { margin-top: 24px; padding: 12px; background: #f8fafc; border-left: 3px solid #0f172a; font-size: 11px; color: #334155; line-height: 1.5; }
+        .signatures { margin-top: 36px; display: grid; grid-template-columns: 1fr 1fr; gap: 32px; font-size: 11px; }
+        .sign-line { border-top: 1px dashed #94a3b8; padding-top: 6px; text-align: center; color: #475569; }
+        @media print { .no-print { display: none; } body { padding: 0; } }
+      </style>
+    </head>
+    <body>
+      <div class="no-print" style="margin-bottom: 16px;">
+        <button onclick="window.print()" style="padding: 6px 14px; background: #0f172a; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">Print Condition Report</button>
+      </div>
+
+      <div class="header">
+        <div>
+          <div class="brand">JACXI LOGISTICS & MARINE SURVEYS</div>
+          <div class="subbrand">Automated Condition Report for Insurance Subrogation</div>
+          <div class="subbrand">Certified Comparative Cargo Survey System</div>
+        </div>
+        <div class="meta">
+          <h1>CONDITION REPORT</h1>
+          <p>Report Ref: <strong>${reportNumber}</strong></p>
+          <p>Date: <strong>${claimDateFormatted}</strong></p>
+        </div>
+      </div>
+
+      <div class="grid-info">
+        <div>
+          <h3>Subject Vehicle</h3>
+          <p>VIN: <strong>${shipment.vehicleVIN || 'N/A'}</strong></p>
+          <p>Vehicle: <strong>${[shipment.vehicleYear, shipment.vehicleMake, shipment.vehicleModel].filter(Boolean).join(' ') || 'Vehicle'}</strong></p>
+          <p>Color: ${shipment.vehicleColor || 'Unspecified'}</p>
+        </div>
+        <div>
+          <h3>Transport Voyage</h3>
+          <p>Carrier: <strong>${carrierName}</strong></p>
+          <p>Transit Ref: <strong>${transitRef}</strong></p>
+          <p>Corridor: <strong>${originYard} → ${destination}</strong></p>
+        </div>
+      </div>
+
+      <div class="liability-box">
+        <strong>Surveyor Liability Determination:</strong> ${hasTransitDamage ? 'CARRIER AT FAULT (TRANSIT DAMAGE CONFIRMED)' : 'NO TRANSIT DAMAGE - CLEAN HANDOVER'}<br />
+        <strong>Adjuster Recommendation:</strong> ${comparison.carrierLiabilityRecommendation}
+      </div>
+
+      <h3>Itemized Transit-Induced Damage Schedule</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Zone</th>
+            <th>Type</th>
+            <th>Severity</th>
+            <th>Surveyor Finding</th>
+            <th>Recommended Repair</th>
+            <th style="text-align: right;">Claim Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${transitDamages.map((td, i) => `
+            <tr>
+              <td>${i + 1}</td>
+              <td><strong>${td.zone}</strong></td>
+              <td>${td.damageType}</td>
+              <td>${td.severity}</td>
+              <td>${td.description}</td>
+              <td>${getRecommendedRepairMethod(td.damageType, td.severity)}</td>
+              <td style="text-align: right; font-weight: 700; color: #b91c1c;">$${td.estimatedCost.toFixed(2)}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+
+      <div class="total-box">
+        <table class="total-table">
+          <tr>
+            <td>Transit-Induced Loss (Claimable):</td>
+            <td style="text-align: right; font-weight: 700; color: #b91c1c;">$${comparison.transitClaimLiabilityCost.toFixed(2)} USD</td>
+          </tr>
+          <tr>
+            <td>Pre-Existing Baseline Defects:</td>
+            <td style="text-align: right;">$${comparison.preExistingCost.toFixed(2)} USD</td>
+          </tr>
+          <tr style="border-top: 1px solid #0f172a; font-weight: 800;">
+            <td>Total Appraised Defect Loss:</td>
+            <td style="text-align: right;">$${comparison.totalDamageCost.toFixed(2)} USD</td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="cert-box">
+        <strong>Formal Cargo Adjuster Certification:</strong><br />
+        ${formalCertification}
+      </div>
+
+      <div class="signatures">
+        <div class="sign-line">Certified Insurance Adjuster / Surveyor</div>
+        <div class="sign-line">Carrier Operations Acknowledgment</div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return {
+    reportNumber,
+    claimDate,
+    shipmentId: shipment.id,
+    vehicle: {
+      vin: shipment.vehicleVIN || 'N/A',
+      year: shipment.vehicleYear,
+      make: shipment.vehicleMake,
+      model: shipment.vehicleModel,
+      color: shipment.vehicleColor,
+    },
+    journey: {
+      transitId: shipment.transitId || shipment.transit?.id,
+      transitReference: transitRef,
+      carrierName,
+      originYard,
+      destination,
+      receiptDate: shipment.createdAt ? new Date(shipment.createdAt).toISOString() : null,
+      deliveryDate: shipment.transit?.actualDelivery ? new Date(shipment.transit.actualDelivery).toISOString() : new Date().toISOString(),
+    },
+    liability: {
+      hasTransitDamage,
+      carrierLiable: hasTransitDamage,
+      carrierName,
+      claimEligibility,
+      executiveSummary: comparison.executiveSummary,
+      adjusterRecommendation: comparison.carrierLiabilityRecommendation,
+    },
+    financials: {
+      totalClaimAmountUSD: comparison.transitClaimLiabilityCost,
+      preExistingDamageCostUSD: comparison.preExistingCost,
+      totalDamageAppraisedUSD: comparison.totalDamageCost,
+      currency: 'USD',
+    },
+    items,
+    photosAudit: {
+      yardReceiptPhotosCount: (comparison as any).yardReceiptPhotosCount || 0,
+      deliveryPhotosCount: (comparison as any).deliveryPhotosCount || 0,
+      totalPhotosCompared: comparison.damages.length,
+    },
+    formalCertification,
+    markdownReport,
+    htmlReport,
+  };
+}
+
+export async function compareTransitDamagesWithAi(
+  shipmentOrId: string | any,
+  options: CompareTransitDamagesOptions = {},
+): Promise<AiDamageDetectionResult> {
+  const shipment = typeof shipmentOrId === 'string'
+    ? await prisma.shipment.findUnique({
+        where: { id: shipmentOrId },
+        include: {
+          transit: {
+            include: {
+              company: { select: { id: true, name: true, code: true } },
+            },
+          },
+          qualityChecks: {
+            select: { id: true, checkType: true, photos: true, notes: true, checkedAt: true, inspector: true },
+          },
+        },
+      })
+    : shipmentOrId;
+
+  if (!shipment) {
+    throw new Error('Shipment not found for comparative damage analysis');
+  }
+
+  const photoSets = resolveComparisonPhotoSets(shipment, options);
+  const maxPhotos = options.maxPhotosPerStage || 6;
+
+  const intakePhotos = photoSets.yardReceiptPhotos.slice(0, maxPhotos);
+  const arrivalPhotos = photoSets.deliveryPhotos.slice(0, maxPhotos);
 
   const loadedIntake: { url: string; dataUrl: string; mimeType: string; base64: string; label: string }[] = [];
   for (let i = 0; i < intakePhotos.length; i++) {
     const res = await convertPhotoToDataUrl(intakePhotos[i]);
-    if (res) loadedIntake.push({ url: intakePhotos[i], ...res, label: `Intake Photo ${i + 1}` });
+    if (res) loadedIntake.push({ url: intakePhotos[i], ...res, label: `Yard Receipt Photo ${i + 1}` });
   }
 
   const loadedArrival: { url: string; dataUrl: string; mimeType: string; base64: string; label: string }[] = [];
   for (let i = 0; i < arrivalPhotos.length; i++) {
     const res = await convertPhotoToDataUrl(arrivalPhotos[i]);
-    if (res) loadedArrival.push({ url: arrivalPhotos[i], ...res, label: `Arrival Photo ${i + 1}` });
+    if (res) loadedArrival.push({ url: arrivalPhotos[i], ...res, label: `Delivery Photo ${i + 1}` });
   }
 
   const allLoaded = [...loadedIntake, ...loadedArrival];
-  const vehicleContext = `${shipment.vehicleYear || ''} ${shipment.vehicleMake || ''} ${shipment.vehicleModel || ''} (VIN: ${shipment.vehicleVIN || 'N/A'})`;
+  const vehicleContext = `${shipment.vehicleYear || ''} ${shipment.vehicleMake || ''} ${shipment.vehicleModel || ''} (${shipment.vehicleColor || 'Color unspecified'}, VIN: ${shipment.vehicleVIN || 'N/A'})`.trim();
 
-  const comparisonPrompt = `You are a Senior Marine Cargo & Automotive Insurance Adjuster.
+  const comparisonPrompt = `You are a certified Senior Marine Cargo & Automotive Insurance Adjuster.
 Perform a BEFORE vs AFTER differential damage inspection for: "${vehicleContext}".
-Intake Photos (Auction / Departure Baseline): ${loadedIntake.length} image(s).
-Arrival Photos (Destination Port / Delivery Inspection): ${loadedArrival.length} image(s).
+Carrier / Transit Company: "${photoSets.carrierName}"
+Voyage Corridor: "${photoSets.originYard}" → "${photoSets.destination}" (Ref: "${photoSets.transitReference}")
 
-Task:
-1. Examine Intake photos vs Arrival photos with extreme precision.
-2. Identify PRE_EXISTING damages (already present in Intake photos).
-3. Identify NEW TRANSIT_INDUCED damages (appeared ONLY in Arrival photos - e.g. container lashing scuffs, straps, ocean salt corrosion, impact during ocean transit, towing damage).
-4. Calculate separate costs for Pre-existing vs Transit Carrier Liability claims.
-5. Provide precise 2D blueprint view ('front' | 'rear' | 'left' | 'right' | 'top') and (x, y) coordinates (0-100).
-6. DO NOT classify reflections or lighting differences between photos as transit damage.
+Baseline Yard Receipt Photos (Pre-Departure): ${loadedIntake.length} image(s).
+Final Transit Delivery Photos (Destination Handover): ${loadedArrival.length} image(s).
 
-Return ONLY valid JSON:
+CRITICAL SURVEY OBJECTIVES:
+1. Examine Baseline Yard Receipt photos vs Final Delivery photos with extreme precision.
+2. Detect physical defects, especially:
+   - DENTS: Impact dents, door dings, quarter panel creases, forklift contact, tie-down strap compressions, roof buckling.
+   - SCRATCHES: Lashing strap abrasions, chain scratches, buffer scuffs, ramp bottoming scrapes, tree branch scratches, panel paint rubs.
+   - GLASS & LIGHTS: Stone chips on windshield, cracked headlights or taillights from lashing tension or road debris.
+   - STRUCTURAL / MISALIGNMENT: Bumper cover unclipped, fender gap widening.
+3. PRE-EXISTING vs TRANSIT-INDUCED ATTRIBUTION:
+   - PRE_EXISTING: Defect is already visible in the baseline Yard Receipt photos.
+   - TRANSIT_INDUCED: Defect is NOT present in baseline Yard Receipt photos and appears ONLY in the Final Transit Delivery photos.
+4. EXCLUDE NON-DAMAGE ARTIFACTS:
+   - Do NOT classify lighting reflections, sun glare, shadows, raindrops, road dirt, or camera compression as scratches or dents.
+5. REPAIR ESTIMATION & RECOMMENDED TECHNIQUE:
+   - For each damage, determine the insurance-standard repair operation:
+     - DENT -> "Paintless Dent Repair (PDR)" or "Panel Dent Pull & Refinish"
+     - SCRATCH -> "Compound Buff & Polish" or "Stage 2 Panel Blend & Respray"
+     - CRACK -> "Plastic Bumper Cover Weld & Repaint" or "Panel Replacement"
+     - CHIP -> "Stone Chip Touch-up & Clearcoat Seal"
+     - BROKEN_GLASS -> "OEM Windshield / Glass Replacement"
+   - Estimate realistic insurance repair costs in USD based on standard collision estimating guides.
+
+Return ONLY valid JSON matching this schema:
 {
   "hasNewTransitDamages": boolean,
-  "executiveSummary": "Executive surveyor statement on transit damages",
-  "carrierLiabilityRecommendation": "Recommendation for marine insurance subrogation",
+  "executiveSummary": "Concise surveyor statement on condition differential and transit liability",
+  "carrierLiabilityRecommendation": "Clear recommendation for marine/cargo insurance subrogation claim against carrier",
   "damages": [
     {
       "zone": "Front Bumper | Hood | Driver Front Door | Driver Rear Door | Left Front Fender | Left Rear Quarter Panel | Right Front Fender | Passenger Front Door | Passenger Rear Door | Right Rear Quarter Panel | Roof | Trunk | Rear Bumper | Windshield | Other",
       "view": "front" | "rear" | "left" | "right" | "top",
       "x": 50,
       "y": 50,
-      "damageType": "SCRATCH" | "DENT" | "CRACK" | "CHIP" | "BROKEN_GLASS" | "MISSING_PART" | "RUST" | "PAINT_PEEL" | "OTHER",
+      "damageType": "DENT" | "SCRATCH" | "CRACK" | "CHIP" | "BROKEN_GLASS" | "MISSING_PART" | "RUST" | "PAINT_PEEL" | "OTHER",
       "severity": "LOW" | "MEDIUM" | "HIGH" | "CRITICAL",
       "origin": "PRE_EXISTING" | "TRANSIT_INDUCED",
-      "description": "Clear defect description",
+      "description": "Clear defect description citing panel and observation",
+      "recommendedRepair": "Specific repair method (e.g. Paintless Dent Repair - PDR, Panel Respray)",
       "estimatedCost": 250.00,
       "confidence": 0.95,
-      "claimNotes": "Reasoning for pre-existing vs transit assignment"
+      "claimNotes": "Specific justification for transit-induced vs pre-existing attribution"
     }
   ]
 }`;
 
   let parsed: any = null;
   let providerUsed = 'Jacxi Vision Differential Engine';
-  const aiSettings = await getEffectiveAiProviderSettings();
-  const tokenRouterConfigured = isAiProviderConfigured(aiSettings);
-  const geminiApiKey = process.env.GEMINI_API_KEY || process.env.GEMINI_LIVE_API_KEY || process.env.GOOGLE_API_KEY;
 
-  if (tokenRouterConfigured && allLoaded.length > 0) {
-    try {
-      const messagesContent: any[] = [{ type: 'text', text: comparisonPrompt }];
-      for (const img of loadedIntake) {
-        messagesContent.push({ type: 'text', text: `[INTAKE - PRE-DEPARTURE]: ${img.label}` });
-        messagesContent.push({ type: 'image_url', image_url: { url: img.dataUrl } });
-      }
-      for (const img of loadedArrival) {
-        messagesContent.push({ type: 'text', text: `[ARRIVAL - DESTINATION PORT]: ${img.label}` });
-        messagesContent.push({ type: 'image_url', image_url: { url: img.dataUrl } });
-      }
+  if (options.mockAiResponse) {
+    parsed = options.mockAiResponse;
+    providerUsed = 'Automated Testing Mock Vision';
+  } else {
+    const aiSettings = await getEffectiveAiProviderSettings();
+    const tokenRouterConfigured = isAiProviderConfigured(aiSettings);
+    const geminiApiKey = process.env.GEMINI_API_KEY || process.env.GEMINI_LIVE_API_KEY || process.env.GOOGLE_API_KEY;
 
-      const completion = await createTokenRouterChatCompletion(
-        [{ role: 'user', content: messagesContent }],
-        { maxTokens: 3500, temperature: 0.1 }
-      );
-
-      let cleaned = completion.content.trim().replace(/^```json\s*/, '').replace(/```\s*$/, '');
-      parsed = JSON.parse(cleaned);
-      providerUsed = `TokenRouter AI (${completion.model || 'vision'})`;
-    } catch (err) {
-      console.warn('[ai-damage-detection] TokenRouter comparison failed, falling back:', err);
-    }
-  }
-
-  if (!parsed && geminiApiKey && allLoaded.length > 0) {
-    const candidateModels = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'];
-    for (const geminiModel of candidateModels) {
+    if (tokenRouterConfigured && allLoaded.length > 0) {
       try {
-        const parts: any[] = [{ text: comparisonPrompt }];
+        const messagesContent: any[] = [{ type: 'text', text: comparisonPrompt }];
         for (const img of loadedIntake) {
-          parts.push({ text: `[INTAKE - PRE-DEPARTURE]: ${img.label}` });
-          parts.push({ inline_data: { mime_type: img.mimeType, data: img.base64 } });
+          messagesContent.push({ type: 'text', text: `[YARD RECEIPT BASELINE]: ${img.label}` });
+          messagesContent.push({ type: 'image_url', image_url: { url: img.dataUrl } });
         }
         for (const img of loadedArrival) {
-          parts.push({ text: `[ARRIVAL - DESTINATION PORT]: ${img.label}` });
-          parts.push({ inline_data: { mime_type: img.mimeType, data: img.base64 } });
+          messagesContent.push({ type: 'text', text: `[FINAL TRANSIT DELIVERY]: ${img.label}` });
+          messagesContent.push({ type: 'image_url', image_url: { url: img.dataUrl } });
         }
 
-        const res = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${encodeURIComponent(geminiApiKey)}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ role: 'user', parts }],
-              generationConfig: {
-                temperature: 0.1,
-                maxOutputTokens: 3500,
-                responseMimeType: 'application/json',
-              },
-            }),
-          }
+        const completion = await createTokenRouterChatCompletion(
+          [{ role: 'user', content: messagesContent }],
+          { maxTokens: 3500, temperature: 0.1 }
         );
 
-        if (res.ok) {
-          const payload = await res.json();
-          const candidate = payload.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (candidate) {
-            let cleaned = candidate.trim().replace(/^```json\s*/, '').replace(/```\s*$/, '');
-            parsed = JSON.parse(cleaned);
-            providerUsed = `Google Gemini Vision (${geminiModel})`;
-            break;
-          }
-        }
+        const cleaned = completion.content.trim().replace(/^```json\s*/, '').replace(/```\s*$/, '');
+        parsed = JSON.parse(cleaned);
+        providerUsed = `TokenRouter AI (${completion.model || 'vision'})`;
       } catch (err) {
-        console.warn(`[ai-damage-detection] Gemini ${geminiModel} comparison failed:`, err);
+        console.warn('[ai-damage-detection] TokenRouter comparison failed, falling back:', err);
+      }
+    }
+
+    if (!parsed && geminiApiKey && allLoaded.length > 0) {
+      const candidateModels = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'];
+      for (const geminiModel of candidateModels) {
+        try {
+          const parts: any[] = [{ text: comparisonPrompt }];
+          for (const img of loadedIntake) {
+            parts.push({ text: `[YARD RECEIPT BASELINE]: ${img.label}` });
+            parts.push({ inline_data: { mime_type: img.mimeType, data: img.base64 } });
+          }
+          for (const img of loadedArrival) {
+            parts.push({ text: `[FINAL TRANSIT DELIVERY]: ${img.label}` });
+            parts.push({ inline_data: { mime_type: img.mimeType, data: img.base64 } });
+          }
+
+          const res = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${encodeURIComponent(geminiApiKey)}`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{ role: 'user', parts }],
+                generationConfig: {
+                  temperature: 0.1,
+                  maxOutputTokens: 3500,
+                  responseMimeType: 'application/json',
+                },
+              }),
+            }
+          );
+
+          if (res.ok) {
+            const payload = await res.json();
+            const candidate = payload.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (candidate) {
+              const cleaned = candidate.trim().replace(/^```json\s*/, '').replace(/```\s*$/, '');
+              parsed = JSON.parse(cleaned);
+              providerUsed = `Google Gemini Vision (${geminiModel})`;
+              break;
+            }
+          }
+        } catch (err) {
+          console.warn(`[ai-damage-detection] Gemini ${geminiModel} comparison failed:`, err);
+        }
       }
     }
   }
 
-  // Fallback when no AI engine is active: return honest comparison state
+  // Fallback when no AI engine is active or parsing fails
   if (!parsed || !Array.isArray(parsed.damages)) {
     parsed = {
       hasNewTransitDamages: false,
-      executiveSummary: 'Differential analysis completed. No definitive transit damage detected between intake and arrival photos.',
+      executiveSummary: 'Differential photographic analysis completed. No definitive transit damage detected between yard receipt baseline and final delivery photos.',
       carrierLiabilityRecommendation: 'No carrier liability claim required based on current visual survey.',
       damages: [],
     };
@@ -508,7 +988,9 @@ Return ONLY valid JSON:
       estimatedCost: typeof d.estimatedCost === 'number' ? Math.max(0, d.estimatedCost) : 150,
       confidence: typeof d.confidence === 'number' ? d.confidence : 0.9,
       sourcePhotoUrl: evidenceUrl,
-      claimNotes: d.claimNotes,
+      intakeEvidenceUrl: loadedIntake[0]?.url,
+      arrivalEvidenceUrl: loadedArrival[0]?.url,
+      claimNotes: d.claimNotes || (d.recommendedRepair ? `Repair: ${d.recommendedRepair}` : undefined),
     };
   });
 
@@ -533,6 +1015,18 @@ Return ONLY valid JSON:
     provider: providerUsed,
   };
 
+  (comparisonResult as any).yardReceiptPhotosCount = loadedIntake.length;
+  (comparisonResult as any).deliveryPhotosCount = loadedArrival.length;
+
+  const insuranceReport = generateInsuranceClaimConditionReport(comparisonResult, shipment, {
+    carrierName: photoSets.carrierName,
+    transitRef: photoSets.transitReference,
+    originYard: photoSets.originYard,
+    destination: photoSets.destination,
+  });
+
+  comparisonResult.insuranceReport = insuranceReport;
+
   return {
     shipmentId: shipment.id,
     overallGrade: transitDamages.length > 0 ? 'GRADE_C' : 'GRADE_B',
@@ -552,6 +1046,7 @@ Return ONLY valid JSON:
     provider: providerUsed,
     analyzedAt: new Date().toISOString(),
     transitComparison: comparisonResult,
+    insuranceReport,
   };
 }
 

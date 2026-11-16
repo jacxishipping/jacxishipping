@@ -32,9 +32,27 @@ export async function POST(
     }
 
     const body = await request.json().catch(() => ({}));
-    const { photoSource, photoUrls, maxPhotos, autoApply, mode } = body as {
+    const {
+      photoSource,
+      photoUrls,
+      yardReceiptPhotos,
+      deliveryPhotos,
+      carrierName,
+      transitRef,
+      originYard,
+      destination,
+      maxPhotos,
+      autoApply,
+      mode,
+    } = body as {
       photoSource?: 'ALL' | 'VEHICLE' | 'ARRIVAL' | 'CUSTOM';
       photoUrls?: string[];
+      yardReceiptPhotos?: string[];
+      deliveryPhotos?: string[];
+      carrierName?: string;
+      transitRef?: string;
+      originYard?: string;
+      destination?: string;
       maxPhotos?: number;
       autoApply?: boolean;
       mode?: 'INSPECTION' | 'TRANSIT_COMPARISON';
@@ -43,6 +61,12 @@ export async function POST(
     const aiResult = await detectDamagesWithAi(id, {
       photoSource,
       photoUrls,
+      yardReceiptPhotos,
+      deliveryPhotos,
+      carrierName,
+      transitRef,
+      originYard,
+      destination,
       maxPhotos,
       mode,
     });
@@ -52,8 +76,14 @@ export async function POST(
       const inspectionData = convertAiResultToInspectionData(
         aiResult,
         `AI Vision (${session.user?.name || 'Automated Surveyor'})`,
-        'AI Intake Analysis'
+        'AI Differential Survey'
       );
+
+      const inspectionPayload = {
+        ...inspectionData,
+        insuranceReport: aiResult.insuranceReport || null,
+        transitComparison: aiResult.transitComparison || null,
+      };
 
       const existingCheck = await prisma.qualityCheck.findFirst({
         where: {
@@ -69,7 +99,7 @@ export async function POST(
           data: {
             status: 'PASSED',
             inspector: inspectionData.inspectorName,
-            notes: JSON.stringify(inspectionData),
+            notes: JSON.stringify(inspectionPayload),
             checkedAt: new Date(),
           },
         });
@@ -80,19 +110,23 @@ export async function POST(
             checkType: 'DAMAGE_ASSESSMENT',
             status: 'PASSED',
             inspector: inspectionData.inspectorName,
-            notes: JSON.stringify(inspectionData),
+            notes: JSON.stringify(inspectionPayload),
             checkedAt: new Date(),
           },
         });
       }
 
       try {
+        const claimSummary = aiResult.insuranceReport?.liability?.carrierLiable
+          ? ` [INSURANCE CLAIM: $${aiResult.insuranceReport.financials.totalClaimAmountUSD.toFixed(2)} USD against ${aiResult.insuranceReport.journey.carrierName}]`
+          : '';
+
         await prisma.shipmentAuditLog.create({
           data: {
             shipmentId: id,
             performedBy: session.user?.name || session.user?.email || 'System',
             action: 'AI_DAMAGE_DETECTION_APPLIED',
-            description: `AI Vision auto-detected and logged ${aiResult.damagesCount} damages (${aiResult.overallGrade}, Est. $${aiResult.totalEstimatedCost.toFixed(2)}) from shipment photos.`,
+            description: `AI Vision comparative damage assessment logged ${aiResult.damagesCount} damages (${aiResult.overallGrade}, Est. $${aiResult.totalEstimatedCost.toFixed(2)})${claimSummary}.`,
           },
         });
       } catch (err) {

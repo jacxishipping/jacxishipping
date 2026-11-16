@@ -19,6 +19,8 @@ import {
   RefreshCw,
   Eye,
   Check,
+  Printer,
+  FileText,
 } from 'lucide-react';
 import { Button, StatusBadge, toast } from '@/components/design-system';
 import type { Shipment } from '@/components/shipments/shipment-detail-types';
@@ -866,6 +868,25 @@ export default function ShipmentAiDamageModal({
               </button>
             ) : (
               <>
+                {scanResult.insuranceReport && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const printWin = window.open('', '_blank');
+                      if (printWin) {
+                        printWin.document.open();
+                        printWin.document.write(scanResult.insuranceReport!.htmlReport);
+                        printWin.document.close();
+                      }
+                    }}
+                    className="border-amber-500/40 text-amber-400 hover:border-amber-400"
+                  >
+                    <Printer className="w-3.5 h-3.5 mr-1.5" />
+                    Print Insurance Report
+                  </Button>
+                )}
+
                 <Button
                   variant="outline"
                   size="sm"
