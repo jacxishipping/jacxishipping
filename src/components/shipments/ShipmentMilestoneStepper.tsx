@@ -151,6 +151,8 @@ export default function ShipmentMilestoneStepper({
       description: 'Delivered to recipient',
       detail: isDelivered
         ? 'Successfully completed'
+        : shipment.transit?.currentEvent
+        ? `${shipment.transit.currentEvent.status}${shipment.transit.currentEvent.location ? ` (${shipment.transit.currentEvent.location})` : ''} • ${shipment.transit.currentEvent.origin} → ${shipment.transit.currentEvent.destination}`
         : transitEta
         ? `Est. ${transitEta}`
         : shipment.transit?.referenceNumber

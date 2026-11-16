@@ -628,6 +628,9 @@ export async function GET(
                       origin: currentTransitEvent.origin,
                       destination: currentTransitEvent.destination,
                       status: currentTransitEvent.status,
+                      location: currentTransitEvent.location ?? null,
+                      description: currentTransitEvent.description ?? null,
+                      eventDate: currentTransitEvent.eventDate ? currentTransitEvent.eventDate.toISOString() : null,
                     }
                   : null,
                 currentCompany: canViewWorkflowCompanyDetails || canViewCompanyLedgerComparison ? currentTransitEvent?.company ?? null : null,

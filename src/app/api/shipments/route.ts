@@ -138,7 +138,21 @@ export async function GET(request: NextRequest) {
           id: true,
           referenceNumber: true,
           status: true,
+          origin: true,
           destination: true,
+          events: {
+            orderBy: [{ eventDate: 'desc' as const }, { createdAt: 'desc' as const }],
+            take: 1,
+            select: {
+              id: true,
+              origin: true,
+              destination: true,
+              status: true,
+              location: true,
+              description: true,
+              eventDate: true,
+            },
+          },
         },
       },
       user: {

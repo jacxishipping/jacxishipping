@@ -1414,7 +1414,25 @@ function ShipmentDetailPageContent() {
                 <div className="flex flex-col gap-3.5 xl:flex-row xl:items-start xl:justify-between">
                   <div className="min-w-0">
                     <div className="mb-2 flex flex-wrap items-center gap-1.5 sm:gap-2">
-                      <StatusBadge status={shipment.status} size="sm" />
+                      <StatusBadge
+                        status={shipment.status}
+                        size="sm"
+                        label={
+                          shipment.transit?.currentEvent
+                            ? `In Transit • ${shipment.transit.currentEvent.status}${
+                                shipment.transit.currentEvent.location ? ` (${shipment.transit.currentEvent.location})` : ''
+                              }`
+                            : undefined
+                        }
+                      />
+                      {shipment.transit?.currentEvent && (
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(99,102,241,0.35)] bg-[rgba(99,102,241,0.12)] px-2.5 py-0.5 text-xs font-semibold text-indigo-400">
+                          <Truck className="h-3.5 w-3.5" />
+                          <span>
+                            {shipment.transit.currentEvent.origin} → {shipment.transit.currentEvent.destination}
+                          </span>
+                        </span>
+                      )}
                       {shipment.paymentStatus && (
                         <StatusBadge status={shipment.paymentStatus} size="sm" />
                       )}
@@ -1513,8 +1531,16 @@ function ShipmentDetailPageContent() {
                       <MapPin className="h-3.5 w-3.5 text-[var(--accent-gold)]" />
                       Route
                     </div>
-                    <div className="mt-1 line-clamp-2 break-words text-xs sm:text-sm font-semibold leading-snug text-[var(--text-primary)]">{shipmentRoute}</div>
-                    <div className="line-clamp-2 break-words text-[11px] leading-snug text-[var(--text-secondary)]">{movementLabel}: {activeMovement}</div>
+                    <div className="mt-1 line-clamp-2 break-words text-xs sm:text-sm font-semibold leading-snug text-[var(--text-primary)]">
+                      {shipment.transit?.currentEvent
+                        ? `${shipment.transit.currentEvent.origin} to ${shipment.transit.currentEvent.destination}`
+                        : shipmentRoute}
+                    </div>
+                    <div className="line-clamp-2 break-words text-[11px] leading-snug text-[var(--text-secondary)]">
+                      {shipment.transit?.currentEvent
+                        ? `Event: ${shipment.transit.currentEvent.status}${shipment.transit.currentEvent.location ? ` (${shipment.transit.currentEvent.location})` : ''}`
+                        : `${movementLabel}: ${activeMovement}`}
+                    </div>
                   </div>
 
                   <div className="rounded-xl border border-[var(--border)] bg-[var(--background)] p-2.5 sm:p-3">
@@ -1613,6 +1639,7 @@ function ShipmentDetailPageContent() {
           containerLabel={shipment.container?.containerNumber}
           transitId={shipment.transitId}
           transitReference={shipment.transit?.referenceNumber}
+          transitEvent={shipment.transit?.currentEvent}
         />
 
         <ShipmentNextActionPanel

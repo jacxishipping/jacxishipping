@@ -181,6 +181,14 @@ export default function ShipmentsListPage() {
 					: shipment.dispatch?.referenceNumber
 						? `Dispatch ${shipment.dispatch.referenceNumber}`
 						: 'Warehouse',
+			transitEvent: shipment.transit?.events?.[0]
+				? {
+						status: shipment.transit.events[0].status,
+						location: shipment.transit.events[0].location ?? null,
+						origin: shipment.transit.events[0].origin,
+						destination: shipment.transit.events[0].destination,
+				  }
+				: null,
 			createdAt: shipment.createdAt,
 			customer: shipment.user?.name || shipment.user?.email || '-',
 		};
@@ -280,12 +288,23 @@ export default function ShipmentsListPage() {
 			key: 'status',
 			header: 'Status',
 			render: (value, row) => (
-				<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexWrap: 'wrap', gap: '6px'}}>
-					<StatusBadge status={String(value)} size="sm" />
-					{row.yardReceived && (
-						<JXBox padding="none" border={false} style={{display: 'inline-flex', alignItems: 'center', paddingLeft: '8px', paddingRight: '8px', paddingTop: '2.8px', paddingBottom: '2.8px', borderRadius: '7992px', fontSize: '0.72rem', fontWeight: 700, backgroundColor: 'rgba(34, 197, 94, 0.12)', color: 'rgb(21, 128, 61)', border: '1px solid rgba(34, 197, 94, 0.28)'}}>
-							Yard Received
-						</JXBox>
+				<JXBox padding="none" border={false} style={{backgroundColor: 'transparent', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: '3px'}}>
+					<div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
+						<StatusBadge status={String(value)} size="sm" />
+						{row.yardReceived && (
+							<JXBox padding="none" border={false} style={{display: 'inline-flex', alignItems: 'center', paddingLeft: '8px', paddingRight: '8px', paddingTop: '2.8px', paddingBottom: '2.8px', borderRadius: '7992px', fontSize: '0.72rem', fontWeight: 700, backgroundColor: 'rgba(34, 197, 94, 0.12)', color: 'rgb(21, 128, 61)', border: '1px solid rgba(34, 197, 94, 0.28)'}}>
+								Yard Received
+							</JXBox>
+						)}
+					</div>
+					{row.transitEvent && (
+						<div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', color: 'rgb(99, 102, 241)', fontWeight: 600 }}>
+							<span style={{ opacity: 0.7 }}>↳ Event:</span>
+							<span>{row.transitEvent.status}</span>
+							{row.transitEvent.location && (
+								<span style={{ color: 'var(--text-secondary)', fontWeight: 400 }}>({row.transitEvent.location})</span>
+							)}
+						</div>
 					)}
 				</JXBox>
 			),

@@ -9,6 +9,12 @@ type ShipmentWorkflowStripProps = {
   containerLabel?: string | null;
   transitId?: string | null;
   transitReference?: string | null;
+  transitEvent?: {
+    status: string;
+    origin?: string | null;
+    destination?: string | null;
+    location?: string | null;
+  } | null;
   className?: string;
 };
 
@@ -72,12 +78,15 @@ function getStageSummary(props: ShipmentWorkflowStripProps, currentStageIndex: n
     transit:
       isDelivered
         ? 'Shipment delivered'
-        : props.transitReference ||
-          (props.transitId
-            ? 'Transit assigned'
-            : props.shipmentStatus === 'RELEASED'
-            ? 'Ready for transit assignment'
-            : 'Awaiting transit / delivery handoff'),
+        : props.transitEvent
+        ? `${props.transitEvent.status}${props.transitEvent.location ? ` (${props.transitEvent.location})` : ''} • ${props.transitEvent.origin || ''} → ${props.transitEvent.destination || ''}`.trim()
+        : props.transitReference
+        ? `Transit #${props.transitReference}`
+        : props.transitId
+        ? 'Transit assigned'
+        : props.shipmentStatus === 'RELEASED'
+        ? 'Ready for transit assignment'
+        : 'Awaiting transit / delivery handoff',
   };
 }
 

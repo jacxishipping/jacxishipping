@@ -39,7 +39,12 @@ describe('Transit Events Business Logic & Flow', () => {
 
   it('falls back to transit company when no events exist yet', () => {
     const initialCompany = { id: 'comp-uae', name: 'UAE Hauler LLC', code: 'UAE' };
-    const transit = {
+    const transit: {
+      id: string;
+      company: typeof initialCompany;
+      companyId: string;
+      events: Array<{ id: string; companyId: string; company: typeof initialCompany; origin: string; destination: string; status: string }>;
+    } = {
       id: 'trn-2',
       company: initialCompany,
       companyId: initialCompany.id,
@@ -78,8 +83,8 @@ describe('Transit Events Business Logic & Flow', () => {
 
   it('prevents changing carrier on an event if expenses are bound to it', () => {
     const eventExpensesCount = 3;
-    const requestedCompanyId = 'new-comp-99';
-    const existingCompanyId = 'old-comp-11';
+    const requestedCompanyId: string = 'new-comp-99';
+    const existingCompanyId: string = 'old-comp-11';
 
     let error: string | null = null;
     if (requestedCompanyId !== existingCompanyId && eventExpensesCount > 0) {

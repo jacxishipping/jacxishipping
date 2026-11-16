@@ -316,6 +316,15 @@ export default function ShipmentMobileDetail({ shipment, onRefresh }: ShipmentMo
             <DetailRow label="Reference" value={shipment.transit.referenceNumber} />
           )}
           {shipment.transit?.status && <DetailRow label="Status" value={formatStatus(shipment.transit.status)} />}
+          {shipment.transit?.currentEvent && (
+            <>
+              <DetailRow label="Current Event" value={shipment.transit.currentEvent.status} />
+              <DetailRow label="Active Leg" value={`${shipment.transit.currentEvent.origin} → ${shipment.transit.currentEvent.destination}`} />
+              {shipment.transit.currentEvent.location && (
+                <DetailRow label="Location" value={shipment.transit.currentEvent.location} />
+              )}
+            </>
+          )}
         </CollapsibleSection>
       )}
 

@@ -78,6 +78,22 @@ export interface Shipment {
   containerNumber?: string;
   containerStatus?: string | null;
   transitId?: string | null;
+  transit?: {
+    id: string;
+    referenceNumber: string;
+    status?: string;
+    origin?: string;
+    destination?: string;
+    currentEvent?: {
+      id: string;
+      origin: string;
+      destination: string;
+      status: string;
+      location?: string | null;
+      description?: string | null;
+      eventDate?: string | null;
+    } | null;
+  } | null;
   releaseToken?: string | null;
   invoiceId?: string;
   pricing?: {

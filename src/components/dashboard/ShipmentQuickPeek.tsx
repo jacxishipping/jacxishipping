@@ -61,6 +61,20 @@ interface ShipmentDetail {
     estimatedArrival?: string | null;
     status?: string;
   } | null;
+  transit?: {
+    id: string;
+    referenceNumber: string;
+    status: string;
+    origin?: string;
+    destination?: string;
+    currentEvent?: {
+      id: string;
+      origin: string;
+      destination: string;
+      status: string;
+      location?: string | null;
+    } | null;
+  } | null;
   dispatch?: {
     id: string;
     driverName?: string | null;
@@ -296,6 +310,28 @@ export default function ShipmentQuickPeek({
                     {shipment.container.estimatedArrival && (
                       <p style={{whiteSpace: 'nowrap', fontSize: '0.68rem', color: 'var(--text-secondary, #6B7280)'}} className="truncate">
                         ETA: {new Date(shipment.container.estimatedArrival).toLocaleDateString()}
+                      </p>
+                    )}
+                  </>
+                ) : shipment.transit ? (
+                  <>
+                    <Link
+                      href={`/dashboard/transits/${shipment.transit.id}`}
+                      onClick={onClose}
+                      style={{ textDecoration: 'none' }}
+                    >
+                      <span className="font-mono font-bold text-sm text-[var(--accent-gold-text,#8D7A1F)] hover:underline block truncate">
+                        Transit {shipment.transit.referenceNumber}
+                      </span>
+                    </Link>
+                    {shipment.transit.currentEvent ? (
+                      <p style={{whiteSpace: 'nowrap', fontSize: '0.72rem', color: 'rgb(99, 102, 241)', fontWeight: 600, marginTop: '2px'}} className="truncate">
+                        Event: {shipment.transit.currentEvent.status}
+                        {shipment.transit.currentEvent.location ? ` (${shipment.transit.currentEvent.location})` : ''}
+                      </p>
+                    ) : (
+                      <p style={{whiteSpace: 'nowrap', fontSize: '0.72rem', color: 'var(--text-secondary, #6B7280)', marginTop: '2px'}} className="truncate">
+                        Status: {shipment.transit.status}
                       </p>
                     )}
                   </>

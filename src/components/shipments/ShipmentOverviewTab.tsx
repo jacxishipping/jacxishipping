@@ -215,6 +215,37 @@ export default function ShipmentOverviewTab({
                 {shipment.transit.status.replace(/_/g, ' ')}
               </span>
             </div>
+            {shipment.transit.currentEvent && (
+              <div className="rounded-xl border border-indigo-500/25 bg-indigo-500/5 p-3 sm:p-3.5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="relative flex h-2 w-2">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-indigo-400 opacity-75" />
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-indigo-500" />
+                    </span>
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-indigo-400">
+                      Active Transit Event
+                    </span>
+                  </div>
+                  <span className="rounded-full border border-indigo-500/30 bg-indigo-500/15 px-2.5 py-0.5 text-xs font-bold text-indigo-300">
+                    {shipment.transit.currentEvent.status}
+                  </span>
+                </div>
+                <div className="mt-2 text-sm font-semibold text-[var(--text-primary)]">
+                  {shipment.transit.currentEvent.origin} → {shipment.transit.currentEvent.destination}
+                  {shipment.transit.currentEvent.location && (
+                    <span className="ml-2 text-xs font-normal text-[var(--text-secondary)]">
+                      • Location: <strong className="text-[var(--text-primary)]">{shipment.transit.currentEvent.location}</strong>
+                    </span>
+                  )}
+                </div>
+                {shipment.transit.currentEvent.description && (
+                  <p className="mt-1 text-xs text-[var(--text-secondary)] italic">
+                    &ldquo;{shipment.transit.currentEvent.description}&rdquo;
+                  </p>
+                )}
+              </div>
+            )}
             <div className={`grid gap-2 text-sm ${canViewWorkflowCompanyDetails ? 'grid-cols-2' : 'grid-cols-1'}`}>
               {canViewWorkflowCompanyDetails ? (
                 <div>

@@ -50,6 +50,9 @@ export interface ShipmentTransit {
     origin: string;
     destination: string;
     status: string;
+    location?: string | null;
+    description?: string | null;
+    eventDate?: string | null;
   } | null;
 }
 

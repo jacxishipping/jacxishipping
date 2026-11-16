@@ -37,7 +37,17 @@ export interface Shipment {
 		id: string;
 		referenceNumber: string;
 		status?: string;
+		origin?: string | null;
 		destination?: string | null;
+		events?: Array<{
+			id: string;
+			origin: string;
+			destination: string;
+			status: string;
+			location?: string | null;
+			description?: string | null;
+			eventDate?: string | Date;
+		}>;
 	} | null;
 	yardReceived?: boolean;
 	yardReceivedAt?: string | null;
@@ -60,6 +70,12 @@ export interface ShipmentTableRow {
 	yardReceived: boolean;
 	paymentStatus: string;
 	container: string;
+	transitEvent?: {
+		status: string;
+		location?: string | null;
+		origin?: string | null;
+		destination?: string | null;
+	} | null;
 	createdAt: string;
 	customer: string;
 }

@@ -154,6 +154,20 @@ export const ShipmentDetailContent: React.FC<ShipmentDetailContentProps> = ({ sh
             <Text style={[styles.label, { color: colors.textSecondary }]}>Status</Text>
             <Text style={[styles.value, { color: colors.textPrimary }]}>{formatValue(shipment.status.replace(/_/g, ' '))}</Text>
           </View>
+          {shipment.transit?.currentEvent ? (
+            <View style={[styles.infoRow, { backgroundColor: `${colors.accent}14`, padding: Spacing.sm, borderRadius: BorderRadius.md, marginTop: Spacing.sm }]}>
+              <View>
+                <Text style={[styles.label, { color: colors.accent, fontWeight: Typography.fontWeight.semibold }]}>Transit Checkpoint</Text>
+                <Text style={[styles.value, { color: colors.textPrimary }]}>
+                  {shipment.transit.currentEvent.status}
+                  {shipment.transit.currentEvent.location ? ` (${shipment.transit.currentEvent.location})` : ''}
+                </Text>
+                <Text style={{ fontSize: Typography.fontSize.xs, color: colors.textSecondary, marginTop: 2 }}>
+                  Leg: {shipment.transit.currentEvent.origin} → {shipment.transit.currentEvent.destination}
+                </Text>
+              </View>
+            </View>
+          ) : null}
         </View>
       </Card>
 
@@ -341,6 +355,12 @@ export const ShipmentDetailContent: React.FC<ShipmentDetailContentProps> = ({ sh
                 <Text style={[styles.routeText, { color: colors.textSecondary }]}> 
                   {formatValue(routeOrigin)} {'->'} {formatValue(routeDestination)}
                 </Text>
+                {shipment.transit?.currentEvent ? (
+                  <Text style={{ fontSize: Typography.fontSize.xs, color: colors.accent, fontWeight: Typography.fontWeight.semibold, marginTop: 4 }}>
+                    Event: {shipment.transit.currentEvent.status}
+                    {shipment.transit.currentEvent.location ? ` (${shipment.transit.currentEvent.location})` : ''}
+                  </Text>
+                ) : null}
                 {showCustomer && shipment.customerName ? (
                   <Text style={[styles.customer, { color: colors.textSecondary }]}>Customer: {shipment.customerName}</Text>
                 ) : null}
