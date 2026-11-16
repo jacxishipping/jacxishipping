@@ -13,6 +13,7 @@ import { Breadcrumbs, Button, FormField, IconButton, PageHeader, Select, StatsCa
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { normalizeShippingRateConfig, type AuctionRateEntry, type ShippingRateCalculatorConfig } from '@/lib/shipping-rate-calculator';
 import CompanyPriceListDrawer from '@/components/finance/CompanyPriceListDrawer';
+import CarrierSettlementModal from '@/components/finance/CarrierSettlementModal';
 import { printCompanyPriceList, printTransitPriceList } from '@/lib/price-list-print';
 import { openUniversalShipmentExport } from '@/components/shipments/UniversalShipmentExportModal';
 import { detectPriceListCorridor, isTransitPriceList, CORRIDOR_DEFINITIONS } from '@/lib/price-list-corridors';
@@ -425,6 +426,7 @@ function CompanyLedgerDetailPageContent() {
   const [loading, setLoading] = useState(true);
   const [posting, setPosting] = useState(false);
   const [openEntry, setOpenEntry] = useState(false);
+  const [openSettlementModal, setOpenSettlementModal] = useState(false);
   const [isPaymentMode, setIsPaymentMode] = useState(false);
   const [openImportDialog, setOpenImportDialog] = useState(false);
   const [previewingImport, setPreviewingImport] = useState(false);
@@ -1668,6 +1670,13 @@ function CompanyLedgerDetailPageContent() {
                 setOpenEntry(true);
               }}>
                 Record Payment
+              </Button>
+              <Button
+                variant="outline"
+                icon={<ReceiptText className="w-4 h-4 text-[var(--accent-gold)]" />}
+                onClick={() => setOpenSettlementModal(true)}
+              >
+                Settle Payables / SOA
               </Button>
               <Button variant="primary" icon={<Plus className="w-4 h-4" />} onClick={() => {
                 setIsPaymentMode(false);
@@ -3257,6 +3266,21 @@ function CompanyLedgerDetailPageContent() {
             </JXBox>
             <FormField label="Notes" rows={3} multiline value={editForm.notes} onChange={(event) => setEditForm((prev) => ({ ...prev, notes: event.target.value }))} />
         </Modal>
+
+        {/* Carrier Settlement & Statement of Accounts (SOA) Modal */}
+        {company && (
+          <CarrierSettlementModal
+            open={openSettlementModal}
+            onClose={() => setOpenSettlementModal(false)}
+            companyId={company.id}
+            companyName={company.name}
+            companyCode={company.code}
+            onSuccess={() => {
+              fetchCompany();
+              fetchLedger();
+            }}
+          />
+        )}
 
         {/* Company Price List Slide-over Drawer */}
         <CompanyPriceListDrawer

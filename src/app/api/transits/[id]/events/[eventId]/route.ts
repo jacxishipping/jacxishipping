@@ -6,6 +6,7 @@ import { companySupportsRole } from '@/lib/company-roles';
 import { prisma } from '@/lib/db';
 import { hasPermission } from '@/lib/rbac';
 import { isClosedStageOverrideAllowed } from '@/lib/workflow-access';
+import { sendShipmentWorkflowNotifications } from '@/lib/workflow-notifications';
 
 const updateEventSchema = z.object({
   companyId: z.string().min(1).optional(),
@@ -53,7 +54,22 @@ export async function PATCH(
 
     const transit = await prisma.transit.findUnique({
       where: { id: params.id },
-      select: { id: true, status: true, companyId: true },
+      select: {
+        id: true,
+        referenceNumber: true,
+        status: true,
+        companyId: true,
+        shipments: {
+          select: {
+            id: true,
+            userId: true,
+            vehicleVIN: true,
+            vehicleYear: true,
+            vehicleMake: true,
+            vehicleModel: true,
+          },
+        },
+      },
     });
 
     if (!transit) {
@@ -150,6 +166,35 @@ export async function PATCH(
 
       return event;
     });
+
+    if (transit.shipments && transit.shipments.length > 0 && validatedData.status) {
+      try {
+        const statusLabel = validatedData.status.replace(/_/g, ' ');
+        const origin = validatedData.origin || existingEvent.origin;
+        const destination = validatedData.destination || existingEvent.destination;
+        const location = validatedData.location !== undefined ? validatedData.location : existingEvent.location;
+        const description = validatedData.description !== undefined ? validatedData.description : existingEvent.description;
+        const routeLabel = `${origin} → ${destination}`;
+        const locationLabel = location ? ` at ${location}` : '';
+        const descLabel = description ? ` (${description})` : '';
+
+        const notificationEvents = transit.shipments.map((shipment) => {
+          const vehicleName = [shipment.vehicleYear, shipment.vehicleMake, shipment.vehicleModel].filter(Boolean).join(' ') || 'Vehicle';
+          return {
+            shipmentId: shipment.id,
+            shipmentUserId: shipment.userId,
+            title: `Transit Milestone Updated: ${statusLabel}`,
+            customerDescription: `${vehicleName} milestone updated on leg ${routeLabel}${locationLabel}${descLabel}.`,
+            internalDescription: `Transit ${transit.referenceNumber} milestone updated: ${statusLabel} on ${routeLabel}${locationLabel}.`,
+            link: `/dashboard/shipments/${shipment.id}`,
+          };
+        });
+
+        await sendShipmentWorkflowNotifications(session.user!.id as string, notificationEvents, { prisma });
+      } catch (notifyErr) {
+        console.warn('[Transit Event Update] Workflow notification failed:', notifyErr);
+      }
+    }
 
     return NextResponse.json({ event: updatedEvent });
   } catch (error) {

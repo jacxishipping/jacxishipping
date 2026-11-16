@@ -3,7 +3,10 @@
  * Handles currency conversion and formatting
  */
 
-export type Currency = "USD" | "EUR" | "GBP" | "CAD" | "AUD" | "JPY" | "CNY" | "AED";
+export type Currency = "USD" | "EUR" | "GBP" | "CAD" | "AUD" | "JPY" | "CNY" | "AED" | "AFN";
+
+export const OPERATIONAL_CURRENCIES = ["USD", "AED", "AFN"] as const;
+export type OperationalCurrency = (typeof OPERATIONAL_CURRENCIES)[number];
 
 export interface CurrencyRate {
   currency: Currency;
@@ -12,7 +15,7 @@ export interface CurrencyRate {
 }
 
 // Default exchange rates (relative to USD = 1.0)
-// In production, these should be fetched from an API like exchangerate-api.com
+// UAE Dirham pegged at 3.6725; Afghan Afghani central market benchmark ~67.50
 const DEFAULT_RATES: Record<Currency, number> = {
   USD: 1.0,
   EUR: 0.92,
@@ -21,7 +24,8 @@ const DEFAULT_RATES: Record<Currency, number> = {
   AUD: 1.52,
   JPY: 149.50,
   CNY: 7.24,
-  AED: 3.67,
+  AED: 3.6725,
+  AFN: 67.50,
 };
 
 /**
@@ -57,6 +61,7 @@ export function formatCurrency(amount: number, currency: Currency = "USD"): stri
     JPY: "¥",
     CNY: "¥",
     AED: "AED ",
+    AFN: "؋ ",
   };
 
   const decimals = currency === "JPY" ? 0 : 2;
@@ -141,4 +146,5 @@ export const CURRENCY_CONFIG: Record<
   JPY: { name: "Japanese Yen", symbol: "¥", decimals: 0 },
   CNY: { name: "Chinese Yuan", symbol: "¥", decimals: 2 },
   AED: { name: "UAE Dirham", symbol: "AED ", decimals: 2 },
+  AFN: { name: "Afghan Afghani", symbol: "؋ ", decimals: 2 },
 };
