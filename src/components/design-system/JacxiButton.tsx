@@ -43,7 +43,7 @@ export type JacxiButtonProps = ComponentProps<typeof SpringButton>;
 const GOLD_SOLID: CSSProperties = {
   backgroundColor: 'var(--accent-gold)',
   borderColor: 'var(--accent-gold)',
-  color: '#020617', // slate-950 — dark text on gold, as on the Track button
+  color: '#FFFFFF', // White text on gold in light & dark themes
 };
 
 const GOLD_OUTLINE: CSSProperties = {

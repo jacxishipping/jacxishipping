@@ -493,7 +493,7 @@ export default function FinancialReportsPage() {
               <div className="flex items-end">
                 <Button
                   onClick={fetchReport}
-                  className="w-full bg-[var(--accent-gold)] hover:bg-[var(--accent-gold)] text-black"
+                  className="w-full bg-[var(--accent-gold)] hover:bg-[var(--accent-gold)] text-white"
                 >
                   Apply Filters
                 </Button>

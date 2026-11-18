@@ -833,7 +833,7 @@ export function LedgerComparisonTable({
                   className={cn(
                     'flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition-all',
                     viewMode === 'unified'
-                      ? 'bg-[var(--accent-gold)] text-black shadow-xs'
+                      ? 'bg-[var(--accent-gold)] text-white shadow-xs'
                       : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                   )}
                   aria-label="Unified Feed View"
@@ -847,7 +847,7 @@ export function LedgerComparisonTable({
                   className={cn(
                     'flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition-all',
                     viewMode === 'split'
-                      ? 'bg-[var(--accent-gold)] text-black shadow-xs'
+                      ? 'bg-[var(--accent-gold)] text-white shadow-xs'
                       : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                   )}
                   aria-label="Side-by-side View"
@@ -1060,7 +1060,7 @@ export function LedgerComparisonTable({
         {selectedRowIds.size > 0 && (
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--accent-gold)]/30 bg-[rgba(var(--accent-gold-rgb),0.08)] px-4 py-2 text-xs">
             <div className="flex items-center gap-2">
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--accent-gold)] text-[10px] font-bold text-black">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--accent-gold)] text-[10px] font-bold text-white">
                 {selectedRowIds.size}
               </span>
               <span className="font-semibold text-[var(--text-primary)]">
@@ -2129,7 +2129,7 @@ export function LedgerComparisonTable({
               type="button"
               disabled={isLinking || !selectedCounterpartId}
               onClick={handleSubmitLink}
-              className="rounded-lg bg-[var(--accent-gold)] px-4 py-1.5 text-xs font-bold text-black transition-opacity hover:opacity-90 disabled:opacity-50"
+              className="rounded-lg bg-[var(--accent-gold)] px-4 py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
             >
               {isLinking ? 'Linking...' : 'Confirm Reconciliation Link'}
             </button>
@@ -2258,7 +2258,7 @@ export function LedgerComparisonTable({
               type="button"
               disabled={isSavingEdit}
               onClick={handleSubmitEdit}
-              className="rounded-lg bg-[var(--accent-gold)] px-4 py-1.5 text-xs font-bold text-black transition-opacity hover:opacity-90 disabled:opacity-50"
+              className="rounded-lg bg-[var(--accent-gold)] px-4 py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
             >
               {isSavingEdit ? 'Saving...' : 'Save Changes'}
             </button>

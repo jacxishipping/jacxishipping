@@ -104,7 +104,7 @@ export function AutomationSettingsTab() {
       <div className="relative overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-sm">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 text-black shadow-md shadow-amber-500/20 shrink-0">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 text-white shadow-md shadow-amber-500/20 shrink-0">
               <Sparkles className="h-6 w-6" />
             </div>
             <div className="space-y-1">
@@ -249,7 +249,7 @@ export function AutomationSettingsTab() {
                     }
                     className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
                       settings.autoInvoicePaymentTermsDays === term.days
-                        ? 'bg-[var(--accent-gold)] text-black border-[var(--accent-gold)] font-bold'
+                        ? 'bg-[var(--accent-gold)] text-white border-[var(--accent-gold)] font-bold'
                         : 'bg-[var(--card)] text-[var(--text-secondary)] border-[var(--border)] hover:text-[var(--text-primary)]'
                     }`}
                   >

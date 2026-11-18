@@ -60,3 +60,29 @@ test('updateShipmentStatusTool rejects invalid status', async () => {
   assert.ok(res.reply.includes('Invalid status'));
 });
 
+test('processAdminCopilotMessage handles carrier partner queries', async () => {
+  const res = await processAdminCopilotMessage('who are our towing carriers and companies?', [], mockAdminUser);
+  assert.equal(res.toolExecuted, 'search_carriers');
+  assert.ok(res.actionCards);
+});
+
+test('processAdminCopilotMessage handles damage and condition report queries', async () => {
+  const res = await processAdminCopilotMessage('show me vehicles with damage and scratches', [], mockAdminUser);
+  assert.equal(res.toolExecuted, 'get_damage_summary');
+  assert.ok(res.actionCards);
+});
+
+test('processAdminCopilotMessage handles WhatsApp draft intent', async () => {
+  const res = await processAdminCopilotMessage('draft whatsapp update for 1HGCR2F83HA001234', [], mockAdminUser);
+  assert.equal(res.toolExecuted, 'draft_whatsapp');
+  assert.ok(res.actionCards);
+});
+
+test('processAdminCopilotMessage handles navigation intent', async () => {
+  const res = await processAdminCopilotMessage('go to automation settings', [], mockAdminUser);
+  assert.equal(res.toolExecuted, 'navigate_admin');
+  assert.ok(res.actionCards && res.actionCards[0].type === 'NAVIGATION');
+  assert.ok(res.actionCards[0].primaryAction?.href?.includes('/dashboard/settings'));
+});
+
+

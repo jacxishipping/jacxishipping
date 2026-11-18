@@ -6,12 +6,11 @@ import {
   updateShipmentStatusTool,
   createShipmentTool,
   getSystemOverviewTool,
-  searchShipmentsTool,
-  searchContainersTool,
-  getCustomerLedgerTool,
-  listInvoicesTool,
-  listDispatchesTool,
-  listTransitsTool,
+  searchCarriersTool,
+  getShipmentDamageTool,
+  draftWhatsAppUpdateTool,
+  generateReleaseTokenTool,
+  CopilotContext,
 } from '@/lib/ai/admin-copilot';
 import { createAiInteractionLog } from '@/lib/ai/audit';
 
@@ -27,11 +26,12 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { message, history = [], actionId, payload } = body as {
+    const { message, history = [], actionId, payload, context } = body as {
       message?: string;
       history?: Array<{ role: 'user' | 'assistant'; content: string }>;
       actionId?: string;
       payload?: Record<string, any>;
+      context?: CopilotContext;
     };
 
     const contextUser = {
@@ -50,6 +50,48 @@ export async function POST(request: NextRequest) {
           toolExecuted: 'get_system_overview',
           actionCards: res.actionCards,
           suggestedPrompts: ['Show active containers', 'List dispatches', 'Outstanding invoices'],
+        });
+      }
+
+      if (actionId === 'draft_whatsapp' && (payload?.shipmentId || payload?.vin)) {
+        const target = payload.shipmentId || payload.vin;
+        const res = await draftWhatsAppUpdateTool(target, payload?.note);
+        return NextResponse.json({
+          reply: res.reply,
+          toolExecuted: 'draft_whatsapp',
+          actionCards: res.actionCards,
+          suggestedPrompts: ['System Overview', 'View Shipments'],
+        });
+      }
+
+      if (actionId === 'generate_release_token' && (payload?.shipmentId || payload?.vin)) {
+        const target = payload.shipmentId || payload.vin;
+        const res = await generateReleaseTokenTool(target, contextUser);
+        return NextResponse.json({
+          reply: res.reply,
+          toolExecuted: 'generate_release_token',
+          actionCards: res.actionCards,
+          suggestedPrompts: ['Assign Transit', 'System Overview'],
+        });
+      }
+
+      if (actionId === 'search_carriers') {
+        const res = await searchCarriersTool(payload?.query);
+        return NextResponse.json({
+          reply: res.reply,
+          toolExecuted: 'search_carriers',
+          actionCards: res.actionCards,
+          suggestedPrompts: ['List dispatches', 'System Overview'],
+        });
+      }
+
+      if (actionId === 'get_damage_summary') {
+        const res = await getShipmentDamageTool(payload?.query);
+        return NextResponse.json({
+          reply: res.reply,
+          toolExecuted: 'get_damage_summary',
+          actionCards: res.actionCards,
+          suggestedPrompts: ['Vehicle Inspections', 'System Overview'],
         });
       }
 
@@ -78,7 +120,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 });
     }
 
-    const result = await processAdminCopilotMessage(message, history, contextUser);
+    const result = await processAdminCopilotMessage(message, history, contextUser, context);
 
     try {
       await createAiInteractionLog({
@@ -87,7 +129,7 @@ export async function POST(request: NextRequest) {
         entityId: session.user.id,
         prompt: message,
         response: result.reply,
-        requestPayload: { historyCount: history.length },
+        requestPayload: { historyCount: history.length, path: context?.currentPath },
         responsePayload: { tool: result.toolExecuted, cardsCount: result.actionCards?.length || 0 },
         status: 'SUCCESS',
         actorUserId: session.user.id,
@@ -108,4 +150,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

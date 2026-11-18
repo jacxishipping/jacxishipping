@@ -46,21 +46,21 @@ export function StatusFilterPills({
             onClick={() => onSelect(option.value)}
             className={`inline-flex min-h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(var(--accent-gold-rgb),0.35)] ${
               isSelected
-                ? 'bg-[var(--accent-gold)] text-black shadow-sm ring-2 ring-[var(--accent-gold)]/20'
+                ? 'bg-[var(--accent-gold)] text-white shadow-sm ring-2 ring-[var(--accent-gold)]/20'
                 : 'border border-[var(--border)] bg-[var(--panel)] text-[var(--text-secondary)] hover:border-[rgba(var(--accent-gold-rgb),0.5)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
             }`}
           >
             {option.color && (
               <span
                 className="h-1.5 w-1.5 rounded-full"
-                style={{ backgroundColor: isSelected ? '#000000' : option.color }}
+                style={{ backgroundColor: isSelected ? '#FFFFFF' : option.color }}
               />
             )}
             <span>{option.label}</span>
             {typeof option.count === 'number' && (
               <span
                 className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums ${
-                  isSelected ? 'bg-black/15 text-black' : 'bg-[var(--background)] text-[var(--text-secondary)]'
+                  isSelected ? 'bg-white/20 text-white' : 'bg-[var(--background)] text-[var(--text-secondary)]'
                 }`}
               >
                 {option.count}

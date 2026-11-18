@@ -304,7 +304,7 @@ export function DataTable<T extends Record<string, any>>({
               className={cn(
                 'flex items-center gap-1.5 rounded-md px-2.5 py-1 font-medium transition-all',
                 mobileLayout === 'cards'
-                  ? 'bg-[var(--accent-gold)] text-black font-semibold shadow-xs'
+                  ? 'bg-[var(--accent-gold)] text-white font-semibold shadow-xs'
                   : 'hover:text-[var(--text-primary)] hover:bg-[var(--background)]'
               )}
               title="Card view"
@@ -318,7 +318,7 @@ export function DataTable<T extends Record<string, any>>({
               className={cn(
                 'flex items-center gap-1.5 rounded-md px-2.5 py-1 font-medium transition-all',
                 mobileLayout === 'table'
-                  ? 'bg-[var(--accent-gold)] text-black font-semibold shadow-xs'
+                  ? 'bg-[var(--accent-gold)] text-white font-semibold shadow-xs'
                   : 'hover:text-[var(--text-primary)] hover:bg-[var(--background)]'
               )}
               title="Table view"
@@ -336,7 +336,7 @@ export function DataTable<T extends Record<string, any>>({
               className={cn(
                 'flex items-center gap-1.5 rounded-md px-2.5 py-1 font-medium transition-all',
                 density === 'compact'
-                  ? 'bg-[var(--accent-gold)] text-black font-semibold shadow-xs'
+                  ? 'bg-[var(--accent-gold)] text-white font-semibold shadow-xs'
                   : 'hover:text-[var(--text-primary)] hover:bg-[var(--background)]'
               )}
               title="Compact row density"
@@ -350,7 +350,7 @@ export function DataTable<T extends Record<string, any>>({
               className={cn(
                 'flex items-center gap-1.5 rounded-md px-2.5 py-1 font-medium transition-all',
                 density === 'comfortable'
-                  ? 'bg-[var(--accent-gold)] text-black font-semibold shadow-xs'
+                  ? 'bg-[var(--accent-gold)] text-white font-semibold shadow-xs'
                   : 'hover:text-[var(--text-primary)] hover:bg-[var(--background)]'
               )}
               title="Comfortable row density"
@@ -412,7 +412,7 @@ export function DataTable<T extends Record<string, any>>({
           density === 'compact' ? 'gap-2 rounded-xl px-3 py-1.5' : 'gap-3 rounded-2xl px-4 py-2.5'
         )}>
           <div className="flex items-center gap-2 pr-3 border-r border-[var(--border)]">
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--accent-gold)] text-[11px] font-bold text-black">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--accent-gold)] text-[11px] font-bold text-white">
               {selectedIds.size}
             </span>
             <span className="text-xs font-semibold text-[var(--text-primary)] whitespace-nowrap">Selected</span>
@@ -435,7 +435,7 @@ export function DataTable<T extends Record<string, any>>({
                 <button
                   onClick={handleBulkStatusUpdate}
                   disabled={!bulkStatus}
-                  className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-black bg-[var(--accent-gold)] hover:brightness-105 rounded-lg transition-all disabled:opacity-50"
+                  className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-white bg-[var(--accent-gold)] hover:brightness-105 rounded-lg transition-all disabled:opacity-50"
                 >
                   Apply
                 </button>

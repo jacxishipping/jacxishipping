@@ -197,7 +197,7 @@ export default function ShipmentAiDamageModal({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)] bg-[var(--background)]">
           <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 text-black shadow-lg shadow-amber-500/20">
+            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 text-white shadow-lg shadow-amber-500/20">
               <Sparkles className="w-5 h-5 animate-pulse" />
             </div>
             <div>
@@ -241,7 +241,7 @@ export default function ShipmentAiDamageModal({
                     onClick={() => setScanMode('INSPECTION')}
                     className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${
                       scanMode === 'INSPECTION'
-                        ? 'bg-amber-400 text-black shadow-sm'
+                        ? 'bg-amber-400 text-white shadow-sm'
                         : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                     }`}
                   >
@@ -333,7 +333,7 @@ export default function ShipmentAiDamageModal({
                         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent pointer-events-none" />
                         <div className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center transition-all bg-black/60 backdrop-blur-md">
                           {isSelected ? (
-                            <div className="w-5 h-5 rounded-full bg-amber-400 text-black flex items-center justify-center">
+                            <div className="w-5 h-5 rounded-full bg-amber-400 text-white flex items-center justify-center">
                               <Check className="w-3.5 h-3.5 stroke-[3]" />
                             </div>
                           ) : (
@@ -474,7 +474,7 @@ export default function ShipmentAiDamageModal({
                     onClick={() => setActiveTab('blueprint')}
                     className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
                       activeTab === 'blueprint'
-                        ? 'bg-amber-400 text-black shadow-sm'
+                        ? 'bg-amber-400 text-white shadow-sm'
                         : 'bg-[var(--background)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                     }`}
                   >
@@ -485,7 +485,7 @@ export default function ShipmentAiDamageModal({
                     onClick={() => setActiveTab('manifest')}
                     className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
                       activeTab === 'manifest'
-                        ? 'bg-amber-400 text-black shadow-sm'
+                        ? 'bg-amber-400 text-white shadow-sm'
                         : 'bg-[var(--background)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                     }`}
                   >
@@ -496,7 +496,7 @@ export default function ShipmentAiDamageModal({
                     onClick={() => setActiveTab('custody')}
                     className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
                       activeTab === 'custody'
-                        ? 'bg-amber-400 text-black shadow-sm'
+                        ? 'bg-amber-400 text-white shadow-sm'
                         : 'bg-[var(--background)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                     }`}
                   >
@@ -861,7 +861,7 @@ export default function ShipmentAiDamageModal({
                 type="button"
                 onClick={runAiScan}
                 disabled={isScanning || selectedPhotos.length === 0}
-                className="inline-flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-amber-400 to-amber-600 text-black hover:brightness-110 disabled:opacity-50 transition-all shadow-lg shadow-amber-500/20"
+                className="inline-flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-amber-400 to-amber-600 text-white hover:brightness-110 disabled:opacity-50 transition-all shadow-lg shadow-amber-500/20"
               >
                 <Sparkles className="w-4 h-4" />
                 <span>Run AI Damage Scan ({selectedPhotos.length} Photos)</span>

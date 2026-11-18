@@ -156,7 +156,7 @@ export function KeyboardShortcutsModal() {
           <JacxiButton
             type="button"
             onClick={() => setOpen(false)}
-            className="px-3 py-1 text-xs font-semibold rounded-lg bg-[var(--accent-gold)] text-slate-950 hover:brightness-105 transition-all shadow-sm"
+            className="px-3 py-1 text-xs font-semibold rounded-lg bg-[var(--accent-gold)] text-white hover:brightness-105 transition-all shadow-sm"
           >
             Got It
           </JacxiButton>

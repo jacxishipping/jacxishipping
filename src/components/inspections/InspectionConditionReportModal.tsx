@@ -115,7 +115,7 @@ export default function InspectionConditionReportModal({
             <button
               type="button"
               onClick={handleDownloadPDF}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[var(--accent-gold)] text-black hover:brightness-110 transition-all shadow-sm"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[var(--accent-gold)] text-white hover:brightness-110 transition-all shadow-sm"
             >
               <Download className="w-3.5 h-3.5" />
               <span>Download PDF</span>
@@ -140,7 +140,7 @@ export default function InspectionConditionReportModal({
               <div>
                 <div className="flex items-center gap-2">
                   <span className="font-extrabold text-xl tracking-wider text-white">JACXI</span>
-                  <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest bg-[var(--accent-gold)] text-black">
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest bg-[var(--accent-gold)] text-white">
                     LOGISTICS & SHIPPING
                   </span>
                 </div>

@@ -49,7 +49,7 @@ export default function ShipmentPhotosTab({
       {totalPhotos > 0 && onOpenAiDamageScan && (
         <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-xl bg-gradient-to-r from-amber-500/15 via-background to-amber-500/5 border border-amber-500/30 shadow-sm">
           <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 text-black shadow-md shadow-amber-500/20">
+            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 text-white shadow-md shadow-amber-500/20">
               <Sparkles className="w-5 h-5 animate-pulse" />
             </div>
             <div>
@@ -70,7 +70,7 @@ export default function ShipmentPhotosTab({
           <button
             type="button"
             onClick={onOpenAiDamageScan}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-amber-400 to-amber-600 text-black hover:brightness-110 transition-all shadow-md shadow-amber-500/20"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-amber-400 to-amber-600 text-white hover:brightness-110 transition-all shadow-md shadow-amber-500/20"
           >
             <Bot className="w-3.5 h-3.5" />
             <span>AI Damage Scan</span>

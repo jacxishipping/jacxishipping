@@ -1627,3 +1627,51 @@ html {
 .driver-popover-progress-text {
 	color: var(--text-secondary) !important;
 }
+
+/* =========================================================================
+   GOLDEN BUTTONS - WHITE TEXT REQUIREMENT
+   All buttons with gold background must have white text color in light theme.
+   ========================================================================= */
+button.ds-button.primary,
+.ds-button[class*="!bg-[var(--accent-gold)]"],
+button[class*="bg-[var(--accent-gold)]"],
+a[class*="bg-[var(--accent-gold)]"],
+button[class*="bg-[#D4AF37]"],
+a[class*="bg-[#D4AF37]"],
+button[class*="from-amber-"],
+a[class*="from-amber-"],
+button[style*="var(--accent-gold)"],
+button[style*="#D4AF37"],
+a[style*="var(--accent-gold)"],
+a[style*="#D4AF37"],
+.btn-gold,
+.btn-primary {
+	color: #FFFFFF !important;
+}
+
+button.ds-button.primary *,
+.ds-button[class*="!bg-[var(--accent-gold)]"] *,
+button[class*="bg-[var(--accent-gold)]"] *,
+a[class*="bg-[var(--accent-gold)]"] *,
+button[class*="bg-[#D4AF37]"] *,
+a[class*="bg-[#D4AF37]"] *,
+button[class*="from-amber-"] *,
+a[class*="from-amber-"] * {
+	color: inherit;
+}
+
+button.ds-button.primary svg,
+.ds-button[class*="!bg-[var(--accent-gold)]"] svg,
+button[class*="bg-[var(--accent-gold)]"] svg,
+a[class*="bg-[var(--accent-gold)]"] svg,
+button[class*="bg-[#D4AF37]"] svg,
+a[class*="bg-[#D4AF37]"] svg,
+button[class*="from-amber-"] svg,
+a[class*="from-amber-"] svg,
+button[style*="var(--accent-gold)"] svg,
+button[style*="#D4AF37"] svg,
+a[style*="var(--accent-gold)"] svg,
+a[style*="#D4AF37"] svg {
+	color: #FFFFFF !important;
+}
+

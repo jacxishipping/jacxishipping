@@ -450,7 +450,7 @@ export default function VehicleDamageInspectionModal({
                 type="button"
                 onClick={handleSaveInspection}
                 disabled={isSaving}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-[var(--accent-gold)] text-black hover:brightness-110 transition-all shadow-sm disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-[var(--accent-gold)] text-white hover:brightness-110 transition-all shadow-sm disabled:opacity-50"
               >
                 <Save className="w-3.5 h-3.5" />
                 <span>{isSaving ? 'Saving...' : 'Save Inspection'}</span>
@@ -615,7 +615,7 @@ export default function VehicleDamageInspectionModal({
                 <div className="rounded-xl border border-[var(--accent-gold)]/50 bg-[var(--card)] p-4 shadow-lg space-y-3.5 animate-in fade-in-0 duration-200">
                   <div className="flex items-center justify-between border-b border-[var(--border)] pb-2.5">
                     <div className="flex items-center gap-2">
-                      <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[var(--accent-gold)] text-black text-xs font-bold">
+                      <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[var(--accent-gold)] text-white text-xs font-bold">
                         {selectedMarkerId
                           ? markers.find((m) => m.id === selectedMarkerId)?.pinNumber || '•'
                           : markers.length + 1}
@@ -792,7 +792,7 @@ export default function VehicleDamageInspectionModal({
                       <button
                         type="button"
                         onClick={handleSavePin}
-                        className="px-4 py-1.5 rounded-lg bg-[var(--accent-gold)] text-black font-semibold text-xs hover:brightness-110"
+                        className="px-4 py-1.5 rounded-lg bg-[var(--accent-gold)] text-white font-semibold text-xs hover:brightness-110"
                       >
                         {selectedMarkerId ? 'Update Pin' : 'Save Pin'}
                       </button>
@@ -1058,7 +1058,7 @@ export default function VehicleDamageInspectionModal({
                 type="button"
                 onClick={handleSaveInspection}
                 disabled={isSaving}
-                className="inline-flex items-center gap-1.5 px-5 py-2 rounded-lg text-xs font-bold bg-[var(--accent-gold)] text-black hover:brightness-110 transition-all shadow-sm disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-5 py-2 rounded-lg text-xs font-bold bg-[var(--accent-gold)] text-white hover:brightness-110 transition-all shadow-sm disabled:opacity-50"
               >
                 <Save className="w-4 h-4" />
                 <span>{isSaving ? 'Saving...' : 'Save Yard Inspection'}</span>

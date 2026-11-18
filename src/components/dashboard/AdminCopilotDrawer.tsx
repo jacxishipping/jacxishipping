@@ -1,29 +1,32 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import {
   Sparkles,
   X,
   Send,
   Bot,
-  User,
   RotateCcw,
-  ExternalLink,
   ChevronRight,
   Car,
   Package,
   FileText,
   DollarSign,
   Truck,
-  CheckCircle2,
-  Clock,
   AlertTriangle,
   Loader2,
   Maximize2,
   Minimize2,
+  Copy,
+  Check,
+  Building2,
+  KeyRound,
+  MessageSquare,
+  ExternalLink,
+  ShieldAlert,
 } from 'lucide-react';
-import { Button, StatusBadge, toast } from '@/components/design-system';
+import { toast } from '@/components/design-system';
 import type { ActionCard } from '@/lib/ai/admin-copilot';
 
 interface ChatMessage {
@@ -35,22 +38,143 @@ interface ChatMessage {
   timestamp: string;
 }
 
-const DEFAULT_PROMPTS = [
-  '📊 System Overview',
-  '🚢 Active Containers',
-  '🚗 Search VIN',
-  '💵 Customer Balance',
-  '📋 Unpaid Invoices',
-  '🚚 Dispatches',
+const CATEGORIES = [
+  { id: 'all', label: 'All Actions' },
+  { id: 'overview', label: '📊 Overview' },
+  { id: 'shipments', label: '🚗 Shipments' },
+  { id: 'containers', label: '🚢 Containers' },
+  { id: 'dispatches', label: '🚚 Dispatches' },
+  { id: 'carriers', label: '🏢 Carriers' },
+  { id: 'whatsapp', label: '📱 WhatsApp' },
+  { id: 'damage', label: '⚠️ Damage' },
 ];
+
+const PROMPTS_BY_CATEGORY: Record<string, string[]> = {
+  all: [
+    '📊 System Overview',
+    '🚢 Active Containers',
+    '🚗 Search VIN',
+    '🏢 List Carriers',
+    '📱 Draft WhatsApp',
+    '📋 Unpaid Invoices',
+  ],
+  overview: [
+    '📊 Real-Time Operations Overview',
+    '💵 Outstanding Customer Balances',
+    '📈 Total Vehicles In-Transit',
+  ],
+  shipments: [
+    '🚗 Search on-hand vehicles',
+    '🔍 Look up VIN status',
+    '📍 Find vehicles at yard',
+  ],
+  containers: [
+    '🚢 List active ocean containers',
+    '📦 Waiting for loading containers',
+    '🌊 Vessel schedules & ETA',
+  ],
+  dispatches: [
+    '🚚 Active towing dispatches',
+    '🚛 Overland transit runs',
+    '📍 Pending vehicle pickups',
+  ],
+  carriers: [
+    '🏢 List all active carrier partners',
+    '🚛 Find towing companies',
+    '🚢 Ocean shipping line partners',
+  ],
+  whatsapp: [
+    '📱 Draft WhatsApp arrival notification',
+    '💬 Compose customs release message',
+    '🚗 Send ocean sailing update',
+  ],
+  damage: [
+    '⚠️ Show vehicles with damage cost',
+    '📸 Inspect damage photos',
+    '🔍 Yard intake condition reports',
+  ],
+};
+
+function formatMarkdownMessage(content: string) {
+  const lines = content.split('\n');
+  return lines.map((line, idx) => {
+    // Code block markers
+    if (line.startsWith('```')) {
+      return null;
+    }
+
+    // Headers
+    if (line.startsWith('### ')) {
+      return (
+        <h4 key={idx} className="font-bold text-xs text-[var(--accent-gold)] mt-2 mb-1">
+          {line.replace('### ', '')}
+        </h4>
+      );
+    }
+    if (line.startsWith('## ')) {
+      return (
+        <h3 key={idx} className="font-extrabold text-xs text-[var(--text-primary)] mt-2.5 mb-1">
+          {line.replace('## ', '')}
+        </h3>
+      );
+    }
+
+    // Bullet points
+    if (line.startsWith('- ') || line.startsWith('• ') || line.startsWith('* ')) {
+      const cleanLine = line.replace(/^[-•*]\s+/, '');
+      return (
+        <div key={idx} className="flex items-start gap-1.5 my-0.5 ml-1">
+          <span className="text-[var(--accent-gold)] select-none shrink-0">•</span>
+          <span>{renderInlineText(cleanLine)}</span>
+        </div>
+      );
+    }
+
+    // Default line
+    return (
+      <p key={idx} className={line.trim() === '' ? 'h-1.5' : 'my-0.5'}>
+        {renderInlineText(line)}
+      </p>
+    );
+  });
+}
+
+function renderInlineText(text: string) {
+  // Regex to split on bold (**text**) and code (`text`)
+  const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
+
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return (
+        <strong key={i} className="font-bold text-[var(--text-primary)]">
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+    if (part.startsWith('`') && part.endsWith('`')) {
+      return (
+        <code
+          key={i}
+          className="rounded bg-black/40 px-1 py-0.5 font-mono text-[10px] text-amber-300 border border-amber-500/20"
+        >
+          {part.slice(1, -1)}
+        </code>
+      );
+    }
+    return part;
+  });
+}
 
 export function AdminCopilotDrawer() {
   const router = useRouter();
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [activeCategory, setActiveCategory] = useState('all');
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -60,13 +184,13 @@ export function AdminCopilotDrawer() {
       id: 'welcome',
       role: 'assistant',
       content:
-        '👋 Welcome to the **JACXI Admin Copilot**! I can search and update shipments, check container bookings, query customer balances, list invoices, and manage dispatches across the entire admin panel.\n\nType a command or pick a quick action below:',
+        '👋 Welcome to the **JACXI Admin Copilot**! I can search and update shipments, check container manifests, query customer ledgers, draft WhatsApp milestone alerts, manage dispatches, and check damage reports across the entire platform.\n\nType a command or pick a quick action below:',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
     setMessages([welcomeMsg]);
   }, []);
 
-  // Global listeners (Keyboard shortcut & CustomEvent)
+  // Global listeners (Keyboard shortcut Ctrl+J & CustomEvents)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'j') {
@@ -132,7 +256,13 @@ export function AdminCopilotDrawer() {
       const res = await fetch('/api/admin/copilot', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: query, history }),
+        body: JSON.stringify({
+          message: query,
+          history,
+          context: {
+            currentPath: pathname,
+          },
+        }),
       });
 
       const data = await res.json();
@@ -170,11 +300,27 @@ export function AdminCopilotDrawer() {
     if (!action) return;
 
     if (action.href) {
-      router.push(action.href);
+      if (action.href.startsWith('http')) {
+        window.open(action.href, '_blank', 'noopener,noreferrer');
+      } else {
+        router.push(action.href);
+      }
       return;
     }
 
     if (action.actionId) {
+      if (action.actionId === 'copy_text' && card.data?.messageText) {
+        await navigator.clipboard.writeText(card.data.messageText);
+        toast.success('WhatsApp text copied to clipboard!');
+        return;
+      }
+
+      if (action.actionId === 'copy_token' && card.metrics?.[0]?.value) {
+        await navigator.clipboard.writeText(card.metrics[0].value);
+        toast.success('Release token copied to clipboard!');
+        return;
+      }
+
       if (action.actionId === 'prompt_status_update') {
         const targetVin = action.payload?.vin || action.payload?.shipmentId;
         setInput(`Update status of ${targetVin} to `);
@@ -187,7 +333,11 @@ export function AdminCopilotDrawer() {
         const res = await fetch('/api/admin/copilot', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ actionId: action.actionId, payload: action.payload }),
+          body: JSON.stringify({
+            actionId: action.actionId,
+            payload: action.payload,
+            context: { currentPath: pathname },
+          }),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Action failed');
@@ -209,6 +359,17 @@ export function AdminCopilotDrawer() {
     }
   };
 
+  const handleCopyMessage = async (msgId: string, text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedId(msgId);
+      toast.success('Copied to clipboard');
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch {
+      toast.error('Failed to copy');
+    }
+  };
+
   const handleResetChat = () => {
     setMessages([
       {
@@ -220,6 +381,8 @@ export function AdminCopilotDrawer() {
     ]);
   };
 
+  const currentPrompts = PROMPTS_BY_CATEGORY[activeCategory] || PROMPTS_BY_CATEGORY.all;
+
   return (
     <>
       {/* Floating Trigger Button (Bottom-Right) */}
@@ -229,14 +392,14 @@ export function AdminCopilotDrawer() {
             type="button"
             onClick={() => setIsOpen(true)}
             aria-label="Open Admin AI Copilot"
-            className="group relative flex items-center gap-2.5 rounded-full bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 px-4 py-2.5 text-black shadow-lg shadow-amber-500/25 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-amber-500/35 active:scale-95"
+            className="group relative flex items-center gap-2.5 rounded-full bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 px-4 py-2.5 text-white shadow-lg shadow-amber-500/25 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-amber-500/35 active:scale-95"
           >
-            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-black/15">
-              <Sparkles className="h-4 w-4 animate-pulse text-black" />
+            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-white/20">
+              <Sparkles className="h-4 w-4 animate-pulse text-white" />
             </div>
             <div className="text-left">
-              <p className="text-xs font-extrabold tracking-wide uppercase">Admin Copilot</p>
-              <p className="text-[10px] font-semibold text-black/75">Press Ctrl+J</p>
+              <p className="text-xs font-extrabold tracking-wide uppercase text-white">Admin Copilot</p>
+              <p className="text-[10px] font-semibold text-white/90">Press Ctrl+J</p>
             </div>
             <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
@@ -249,32 +412,32 @@ export function AdminCopilotDrawer() {
       {/* Drawer Overlay Backdrop */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm transition-opacity"
+          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs transition-opacity duration-300"
           onClick={() => setIsOpen(false)}
         />
       )}
 
-      {/* Slide-over Drawer Panel */}
+      {/* Slide-Over Drawer Container */}
       <div
-        className={`fixed top-0 right-0 z-50 flex h-full flex-col border-l border-[var(--border)] bg-[var(--background)] shadow-2xl transition-all duration-300 ease-in-out ${
+        className={`fixed inset-y-0 right-0 z-50 flex flex-col bg-[var(--background)] border-l border-[var(--border)] shadow-2xl transition-transform duration-300 ease-in-out ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
-        } ${isExpanded ? 'w-full md:w-[680px]' : 'w-full sm:w-[440px]'}`}
+        } ${isExpanded ? 'w-full md:w-[720px]' : 'w-full sm:w-[480px]'}`}
       >
         {/* Drawer Header */}
         <div className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--card)] px-4 py-3.5">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 text-black shadow-sm shadow-amber-500/20">
-              <Bot className="h-5 w-5" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 text-white shadow-sm shadow-amber-500/20">
+              <Bot className="h-5 w-5 text-white" />
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-sm font-bold text-[var(--text-primary)]">Admin Copilot</h3>
                 <span className="flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wide text-emerald-400 border border-emerald-500/30">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  Live System
+                  Live Platform
                 </span>
               </div>
-              <p className="text-[11px] text-[var(--text-secondary)]">Direct Admin Panel Orchestrator</p>
+              <p className="text-[11px] text-[var(--text-secondary)]">Direct Operations & Task Orchestrator</p>
             </div>
           </div>
 
@@ -306,14 +469,32 @@ export function AdminCopilotDrawer() {
           </div>
         </div>
 
+        {/* Category Selector Tabs */}
+        <div className="flex items-center gap-1 overflow-x-auto border-b border-[var(--border)] bg-[var(--card)]/60 px-3 py-1.5 text-xs no-scrollbar">
+          {CATEGORIES.map((cat) => (
+            <button
+              key={cat.id}
+              type="button"
+              onClick={() => setActiveCategory(cat.id)}
+              className={`shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-all ${
+                activeCategory === cat.id
+                  ? 'bg-[var(--accent-gold)] text-white shadow-xs font-bold'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--background)]'
+              }`}
+            >
+              {cat.label}
+            </button>
+          ))}
+        </div>
+
         {/* Quick Suggestion Pills */}
         <div className="flex items-center gap-1.5 overflow-x-auto border-b border-[var(--border)] bg-[var(--background)] px-4 py-2 text-xs no-scrollbar">
-          {DEFAULT_PROMPTS.map((prompt) => (
+          {currentPrompts.map((prompt) => (
             <button
               key={prompt}
               type="button"
               onClick={() => handleSendMessage(prompt.replace(/^[^\w\s]+\s*/, ''))}
-              className="shrink-0 rounded-full border border-[var(--border)] bg-[var(--card)] px-2.5 py-1 text-[11px] font-medium text-[var(--text-secondary)] hover:border-[var(--accent-gold)]/60 hover:text-[var(--text-primary)] transition-all shadow-sm"
+              className="shrink-0 rounded-full border border-[var(--border)] bg-[var(--card)] px-2.5 py-1 text-[11px] font-medium text-[var(--text-secondary)] hover:border-[var(--accent-gold)]/60 hover:text-[var(--text-primary)] transition-all shadow-xs"
             >
               {prompt}
             </button>
@@ -339,25 +520,33 @@ export function AdminCopilotDrawer() {
                     <Sparkles className="h-3 w-3 text-amber-400" />
                     <span>JACXI Copilot</span>
                     {m.toolExecuted && (
-                      <span className="rounded bg-amber-500/10 px-1 py-0.2 text-[9px] font-mono text-amber-400">
+                      <span className="rounded bg-amber-500/10 px-1 py-0.2 text-[9px] font-mono text-amber-400 border border-amber-500/20">
                         {m.toolExecuted}
                       </span>
                     )}
                     <span>·</span>
                     <span>{m.timestamp}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleCopyMessage(m.id, m.content)}
+                      title="Copy response"
+                      className="ml-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                    >
+                      {copiedId === m.id ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
+                    </button>
                   </>
                 )}
               </div>
 
               {/* Message Bubble */}
               <div
-                className={`rounded-2xl px-4 py-3 text-xs leading-relaxed max-w-[92%] shadow-sm ${
+                className={`rounded-2xl px-4 py-3 text-xs leading-relaxed max-w-[94%] shadow-sm ${
                   m.role === 'user'
-                    ? 'bg-gradient-to-br from-amber-500 to-amber-600 text-black font-medium'
+                    ? 'bg-gradient-to-br from-amber-500 to-amber-600 text-white font-medium'
                     : 'bg-[var(--card)] text-[var(--text-primary)] border border-[var(--border)]'
                 }`}
               >
-                <div className="whitespace-pre-wrap">{m.content}</div>
+                <div>{m.role === 'user' ? m.content : formatMarkdownMessage(m.content)}</div>
 
                 {/* Render Action Cards */}
                 {m.actionCards && m.actionCards.length > 0 && (
@@ -375,6 +564,10 @@ export function AdminCopilotDrawer() {
                             {card.type === 'TRANSIT' && <Truck className="h-4 w-4 text-amber-400 shrink-0" />}
                             {card.type === 'LEDGER' && <DollarSign className="h-4 w-4 text-emerald-400 shrink-0" />}
                             {card.type === 'INVOICE' && <FileText className="h-4 w-4 text-yellow-400 shrink-0" />}
+                            {card.type === 'CARRIER' && <Building2 className="h-4 w-4 text-indigo-400 shrink-0" />}
+                            {card.type === 'DAMAGE' && <ShieldAlert className="h-4 w-4 text-red-400 shrink-0" />}
+                            {card.type === 'WHATSAPP' && <MessageSquare className="h-4 w-4 text-emerald-400 shrink-0" />}
+                            {card.type === 'TOKEN' && <KeyRound className="h-4 w-4 text-amber-400 shrink-0" />}
 
                             <div>
                               <p className="font-bold text-[var(--text-primary)] text-xs">{card.title}</p>
@@ -417,7 +610,7 @@ export function AdminCopilotDrawer() {
                             <button
                               type="button"
                               onClick={() => handleCardAction(card, true)}
-                              className="inline-flex items-center gap-1 rounded-lg bg-[var(--accent-gold)] px-2.5 py-1 text-[10px] font-bold text-black hover:brightness-110 transition-all shadow-xs"
+                              className="inline-flex items-center gap-1 rounded-lg bg-[var(--accent-gold)] px-2.5 py-1 text-[10px] font-bold text-white hover:brightness-110 transition-all shadow-xs"
                             >
                               <span>{card.primaryAction.label}</span>
                               <ChevronRight className="h-3 w-3" />
@@ -443,11 +636,11 @@ export function AdminCopilotDrawer() {
 
           {isLoading && (
             <div className="flex items-start gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 text-black">
-                <Loader2 className="h-4 w-4 animate-spin" />
+              <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 text-white">
+                <Loader2 className="h-4 w-4 animate-spin text-white" />
               </div>
               <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] px-4 py-2.5 text-xs text-[var(--text-secondary)] flex items-center gap-2">
-                <span>Executing administrative task...</span>
+                <span>Executing operations task...</span>
               </div>
             </div>
           )}
@@ -469,15 +662,15 @@ export function AdminCopilotDrawer() {
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask anything or execute tasks (e.g. search VIN, active containers, balance of...)"
+              placeholder="Ask anything or execute tasks (e.g. search VIN, draft WhatsApp, active containers, carriers...)"
               className="flex-1 rounded-xl border border-[var(--border)] bg-[var(--background)] px-3.5 py-2.5 text-xs text-[var(--text-primary)] placeholder-[var(--text-secondary)]/70 focus:border-[var(--accent-gold)] focus:outline-none focus:ring-1 focus:ring-[var(--accent-gold)] transition-all"
             />
             <button
               type="submit"
               disabled={isLoading || !input.trim()}
-              className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-r from-amber-400 to-amber-600 text-black hover:brightness-110 disabled:opacity-40 transition-all shadow-md shadow-amber-500/20 shrink-0"
+              className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-r from-amber-400 to-amber-600 text-white hover:brightness-110 disabled:opacity-40 transition-all shadow-md shadow-amber-500/20 shrink-0"
             >
-              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              {isLoading ? <Loader2 className="h-4 w-4 animate-spin text-white" /> : <Send className="h-4 w-4 text-white" />}
             </button>
           </form>
           <div className="mt-1.5 flex items-center justify-between text-[10px] text-[var(--text-secondary)] px-1">
@@ -490,4 +683,3 @@ export function AdminCopilotDrawer() {
   );
 }
 export default AdminCopilotDrawer;
-

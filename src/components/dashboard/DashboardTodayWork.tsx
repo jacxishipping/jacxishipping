@@ -382,7 +382,7 @@ export default function DashboardTodayWork({
                       {item.type === 'released' && item.shipmentId && (
                         <Link
                           href={`/dashboard/transits/new?shipmentId=${item.shipmentId}`}
-                          className="flex items-center gap-1 px-2.5 py-1 text-xs rounded-lg bg-[var(--accent-gold)] text-black font-semibold hover:opacity-90 transition-all shadow-xs"
+                          className="flex items-center gap-1 px-2.5 py-1 text-xs rounded-lg bg-[var(--accent-gold)] text-white font-semibold hover:opacity-90 transition-all shadow-xs"
                           title="Assign to final transit leg"
                         >
                           <Route className="h-3.5 w-3.5" />

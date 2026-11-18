@@ -323,7 +323,7 @@ export default function VehicleDamageBlueprint({
             onClick={() => handleViewSelect('top')}
             className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
               currentView === 'top'
-                ? 'bg-[var(--accent-gold)] text-black font-semibold shadow-sm'
+                ? 'bg-[var(--accent-gold)] text-white font-semibold shadow-sm'
                 : 'bg-[var(--background)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border)]'
             }`}
           >
@@ -340,7 +340,7 @@ export default function VehicleDamageBlueprint({
             onClick={() => handleViewSelect('left')}
             className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
               currentView === 'left'
-                ? 'bg-[var(--accent-gold)] text-black font-semibold shadow-sm'
+                ? 'bg-[var(--accent-gold)] text-white font-semibold shadow-sm'
                 : 'bg-[var(--background)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border)]'
             }`}
           >
@@ -357,7 +357,7 @@ export default function VehicleDamageBlueprint({
             onClick={() => handleViewSelect('right')}
             className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
               currentView === 'right'
-                ? 'bg-[var(--accent-gold)] text-black font-semibold shadow-sm'
+                ? 'bg-[var(--accent-gold)] text-white font-semibold shadow-sm'
                 : 'bg-[var(--background)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border)]'
             }`}
           >
@@ -374,7 +374,7 @@ export default function VehicleDamageBlueprint({
             onClick={() => handleViewSelect('front')}
             className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
               currentView === 'front'
-                ? 'bg-[var(--accent-gold)] text-black font-semibold shadow-sm'
+                ? 'bg-[var(--accent-gold)] text-white font-semibold shadow-sm'
                 : 'bg-[var(--background)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border)]'
             }`}
           >
@@ -391,7 +391,7 @@ export default function VehicleDamageBlueprint({
             onClick={() => handleViewSelect('rear')}
             className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
               currentView === 'rear'
-                ? 'bg-[var(--accent-gold)] text-black font-semibold shadow-sm'
+                ? 'bg-[var(--accent-gold)] text-white font-semibold shadow-sm'
                 : 'bg-[var(--background)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border)]'
             }`}
           >
@@ -408,7 +408,7 @@ export default function VehicleDamageBlueprint({
             onClick={() => handleViewSelect('all')}
             className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
               currentView === 'all'
-                ? 'bg-[var(--accent-gold)] text-black font-semibold shadow-sm'
+                ? 'bg-[var(--accent-gold)] text-white font-semibold shadow-sm'
                 : 'bg-[var(--background)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border)]'
             }`}
           >

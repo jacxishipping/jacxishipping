@@ -244,7 +244,7 @@ export default function NewItemPage() {
 						<Button href={`/dashboard/containers/${containerId ?? ''}`} variant="outline" disabled={isSubmitting} className="w-full sm:w-auto border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--accent-gold)]">
 							Cancel
 						</Button>
-						<Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto bg-[var(--accent-gold)] text-black hover:bg-[var(--accent-gold)] font-semibold shadow-sm">
+						<Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto bg-[var(--accent-gold)] text-white hover:bg-[var(--accent-gold)] font-semibold shadow-sm">
 							{isSubmitting ? 'Creating...' : 'Create Item'}
 						</Button>
 					</div>

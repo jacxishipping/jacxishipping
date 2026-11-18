@@ -126,8 +126,8 @@ export default function AuctionSmartFillModal({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)] bg-[var(--background)]">
           <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 text-black shadow-lg shadow-amber-500/20">
-              <Zap className="w-5 h-5 fill-black" />
+            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 text-white shadow-lg shadow-amber-500/20">
+              <Zap className="w-5 h-5 fill-white text-white" />
             </div>
             <div>
               <div className="flex items-center gap-2">

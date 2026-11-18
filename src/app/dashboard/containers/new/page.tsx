@@ -555,7 +555,7 @@ export default function NewContainerPage() {
                   type="button"
                   onClick={handleNext}
                   disabled={loading || (activeStep === 0 && (!formData.containerNumber || !formData.companyId))}
-                  className="bg-[var(--accent-gold)] hover:bg-[var(--accent-gold)] text-black font-semibold shadow-sm"
+                  className="bg-[var(--accent-gold)] hover:bg-[var(--accent-gold)] text-white font-semibold shadow-sm"
                 >
                   Next
                   <ChevronRight className="w-4 h-4 ml-2" />
@@ -564,7 +564,7 @@ export default function NewContainerPage() {
                 <Button
                   type="submit"
                   disabled={loading || !formData.containerNumber || !formData.companyId}
-                  className="bg-[var(--accent-gold)] hover:bg-[var(--accent-gold)] text-black font-semibold shadow-sm"
+                  className="bg-[var(--accent-gold)] hover:bg-[var(--accent-gold)] text-white font-semibold shadow-sm"
                 >
                   {loading ? 'Creating...' : 'Create Container'}
                 </Button>

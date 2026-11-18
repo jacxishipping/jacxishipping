@@ -158,11 +158,11 @@ export default function SimpleLoginPageClient({ portal }: SimpleLoginPageClientP
 							<button
 								type="submit"
 								disabled={isLoading || loginCode.length !== 8}
-								className="flex w-full items-center justify-center gap-2 rounded-lg bg-[var(--accent-gold)] py-3 text-base font-semibold text-[#09090B] transition-colors hover:bg-[var(--accent-gold)] hover:brightness-105 disabled:bg-[rgba(var(--accent-gold-rgb),0.5)] disabled:text-[rgba(9,9,11,0.55)]"
+								className="flex w-full items-center justify-center gap-2 rounded-lg bg-[var(--accent-gold)] py-3 text-base font-semibold text-white transition-colors hover:bg-[var(--accent-gold)] hover:brightness-105 disabled:bg-[rgba(var(--accent-gold-rgb),0.5)] disabled:text-white/70"
 							>
 								{isLoading ? (
 									<span className="flex items-center gap-2">
-										<span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" style={{ color: '#09090B' }} />
+										<span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" style={{ color: '#FFFFFF' }} />
 										<span>Signing in...</span>
 									</span>
 								) : (

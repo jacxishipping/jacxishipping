@@ -191,7 +191,7 @@ export default function HeroSection() {
                 href="/#process"
                 className="group relative inline-flex h-14 sm:h-16 w-full sm:w-auto items-center justify-center gap-3 rounded-full border border-slate-200 bg-white/80 px-8 text-base font-semibold text-slate-900 backdrop-blur-md transition-all duration-300 hover:bg-white hover:border-[#D4AF37]"
               >
-                <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-slate-100 text-slate-900 group-hover:bg-[#D4AF37] group-hover:text-slate-950 transition-colors duration-300">
+                <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-slate-100 text-slate-900 group-hover:bg-[#D4AF37] group-hover:text-white transition-colors duration-300">
                   <CirclePlay className="h-4 w-4 fill-current" />
                 </div>
                 How it works

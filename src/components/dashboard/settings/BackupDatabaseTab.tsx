@@ -520,7 +520,7 @@ export function BackupDatabaseTab() {
                 onClick={() => setBackupMode('full')}
                 className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${
                   backupMode === 'full'
-                    ? 'bg-[var(--accent-gold)] text-black shadow-sm'
+                    ? 'bg-[var(--accent-gold)] text-white shadow-sm'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                 }`}
               >
@@ -531,7 +531,7 @@ export function BackupDatabaseTab() {
                 onClick={() => setBackupMode('custom')}
                 className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${
                   backupMode === 'custom'
-                    ? 'bg-[var(--accent-gold)] text-black shadow-sm'
+                    ? 'bg-[var(--accent-gold)] text-white shadow-sm'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                 }`}
               >

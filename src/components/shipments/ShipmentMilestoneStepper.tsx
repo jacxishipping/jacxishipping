@@ -254,7 +254,7 @@ export default function ShipmentMilestoneStepper({
                     className={cn(
                       'flex h-7 w-7 items-center justify-center rounded-lg border text-xs font-bold transition-all',
                       isComplete && 'border-emerald-500/40 bg-emerald-500/20 text-emerald-500',
-                      isCurrent && 'border-[var(--accent-gold)] bg-[var(--accent-gold)] text-black animate-pulse',
+                      isCurrent && 'border-[var(--accent-gold)] bg-[var(--accent-gold)] text-white animate-pulse',
                       isPending && 'border-[var(--border)] bg-[var(--background)] text-[var(--text-secondary)]'
                     )}
                   >

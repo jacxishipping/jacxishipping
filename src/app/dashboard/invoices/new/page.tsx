@@ -301,7 +301,7 @@ function NewInvoicePageContent() {
 							Cancel
 						</Button>
 					</Link>
-					<Button onClick={handleCreateInvoice} disabled={isCreating || selectedItems.length === 0} className="w-full sm:w-auto bg-[var(--accent-gold)] text-black hover:bg-[var(--accent-gold)] shadow-sm font-semibold">
+					<Button onClick={handleCreateInvoice} disabled={isCreating || selectedItems.length === 0} className="w-full sm:w-auto bg-[var(--accent-gold)] text-white hover:bg-[var(--accent-gold)] shadow-sm font-semibold">
 						{isCreating ? 'Creating...' : 'Create Invoice'}
 					</Button>
 				</div>

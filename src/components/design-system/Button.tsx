@@ -51,7 +51,7 @@ export interface ButtonProps
 
 const toneClasses: Record<NonNullable<ButtonProps['variant']>, string> = {
   primary:
-    '!bg-[var(--accent-gold)] !text-[var(--text-primary)] !border-transparent hover:!opacity-90 disabled:!bg-[rgba(var(--accent-gold-rgb),0.5)] disabled:!text-[rgba(var(--text-primary-rgb),0.7)]',
+    '!bg-[var(--accent-gold)] !text-white !border-transparent hover:!opacity-90 disabled:!bg-[rgba(var(--accent-gold-rgb),0.5)] disabled:!text-white/70',
   secondary:
     '!bg-[var(--panel)] !text-[var(--text-primary)] !border !border-[var(--border)] hover:!bg-[var(--background)] hover:!border-[var(--accent-gold)] disabled:!opacity-50',
   outline:

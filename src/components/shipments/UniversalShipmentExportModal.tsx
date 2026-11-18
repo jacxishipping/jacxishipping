@@ -618,7 +618,7 @@ export function UniversalShipmentExportModal() {
                       }`}
                     >
                       <div className={`w-3.5 h-3.5 rounded flex items-center justify-center border text-[9px] ${
-                        isChecked ? 'bg-[var(--accent-gold)] border-[var(--accent-gold)] text-slate-900 font-bold' : 'border-[var(--border)]'
+                        isChecked ? 'bg-[var(--accent-gold)] border-[var(--accent-gold)] text-white font-bold' : 'border-[var(--border)]'
                       }`}>
                         {isChecked && <Check className="w-3 h-3 stroke-[3]" />}
                       </div>

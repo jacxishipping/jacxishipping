@@ -262,7 +262,7 @@ function SignInPageContent() {
 						<button
 							type="submit"
 							disabled={isLoading}
-							className="flex w-full items-center justify-center gap-2 rounded-lg py-3 text-base font-semibold text-[var(--text-primary)] shadow-[0_4px_14px_rgba(var(--accent-gold-rgb),0.25)] transition-all hover:shadow-[0_4px_14px_rgba(var(--accent-gold-rgb),0.35)] disabled:opacity-60"
+							className="flex w-full items-center justify-center gap-2 rounded-lg py-3 text-base font-semibold text-white shadow-[0_4px_14px_rgba(var(--accent-gold-rgb),0.25)] transition-all hover:shadow-[0_4px_14px_rgba(var(--accent-gold-rgb),0.35)] disabled:opacity-60"
 							style={{ background: 'linear-gradient(135deg, var(--accent-gold) 0%, #B8960C 100%)' }}
 						>
 							{isLoading ? (

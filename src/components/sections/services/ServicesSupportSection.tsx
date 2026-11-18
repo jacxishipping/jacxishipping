@@ -25,7 +25,7 @@ const pillars = [
 
 export default function ServicesSupportSection() {
   return (
-    <section className="relative overflow-hidden bg-[#0f172a] py-32 text-white selection:bg-[#D4AF37] selection:text-black">
+    <section className="relative overflow-hidden bg-[#0f172a] py-32 text-white selection:bg-[#D4AF37] selection:text-white">
       {/* Ambient glow */}
       <div className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 h-[50vh] w-[80vw] rounded-full bg-[#D4AF37]/5 blur-[100px]" />
       <div className="pointer-events-none absolute bottom-0 right-0 h-[30vh] w-[30vw] rounded-full bg-[#D4AF37]/5 blur-[80px]" />
