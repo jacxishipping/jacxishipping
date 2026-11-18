@@ -15,6 +15,7 @@ import { ConfirmActionProvider } from '@/components/ui/ConfirmActionProvider';
 import { KeyboardShortcutsModal } from '@/components/dashboard/KeyboardShortcutsModal';
 import { WorkspaceTray } from '@/components/dashboard/WorkspaceTray';
 import { UniversalShipmentExportModal } from '@/components/shipments/UniversalShipmentExportModal';
+import AdminCopilotDrawer from '@/components/dashboard/AdminCopilotDrawer';
 
 // Inner component that uses the Lenis wrapper
 function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
@@ -93,6 +94,9 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
 
       {/* Universal Shipment Export Modal - Callable anywhere */}
       <UniversalShipmentExportModal />
+
+      {/* Omnipresent Admin AI Copilot Chatbot */}
+      <AdminCopilotDrawer />
     </JXBox>
   );
 }

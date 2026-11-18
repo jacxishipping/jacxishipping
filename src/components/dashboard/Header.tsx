@@ -13,6 +13,7 @@ import {
   Plus as AddIcon,
   Keyboard as KeyboardIcon,
   Search as SearchIcon,
+  Sparkles,
 } from "lucide-react";
 import { Ship, Package, FileText, Download, FileSpreadsheet } from "lucide-react";
 import { signOut } from "next-auth/react";
@@ -375,6 +376,27 @@ export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
           <span className="hidden md:inline-flex">
             <ThemeToggle />
           </span>
+
+          {/* Admin Copilot Chatbot */}
+          <Tooltip title="Admin Copilot (Ctrl+J)">
+            <span className="inline-flex">
+              <JacxiButton
+                type="button"
+                variant="outline"
+                tone="primary"
+                onClick={() => {
+                  if (typeof window !== "undefined") {
+                    window.dispatchEvent(new CustomEvent("toggle-admin-copilot"));
+                  }
+                }}
+                style={{ fontFamily: "inherit" }}
+                className="!h-9 !w-9 !min-h-9 !min-w-9 !rounded-lg !border-0 !bg-amber-500/10 !p-1.5 !text-amber-400 transition-colors duration-200 hover:!bg-amber-500/20 hover:!text-amber-300 focus-visible:!ring-2 focus-visible:!ring-[rgba(var(--accent-gold-rgb),0.35)] !shadow-none"
+                aria-label="Admin Copilot"
+              >
+                <Sparkles className="h-5 w-5" />
+              </JacxiButton>
+            </span>
+          </Tooltip>
 
           {/* Notifications */}
           <NotificationCenter />
