@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db';
 import { hasPermission } from '@/lib/rbac';
 import { generateInvoiceNumber } from '@/lib/shipment-invoice';
 import { syncShipmentPurchasePriceEntries } from '@/lib/shipment-purchase-price';
+import { getStoredAutomationSettings } from '@/lib/settings/automation-settings';
 
 const SUPPORTED_SHIPMENT_STATUSES = new Set<ShipmentSimpleStatus>([
   'ON_HAND',
@@ -500,53 +501,56 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      // Auto-create a per-shipment invoice
-      const createInvoice = async (attempt = 0): Promise<{ id: string; [key: string]: unknown }> => {
-        const invoiceNumber = await generateInvoiceNumber(tx);
+      // Auto-create a per-shipment invoice (guarded by Automation Settings)
+      const automationSettings = getStoredAutomationSettings();
+      if (automationSettings.autoInvoicingEnabled && automationSettings.autoInvoiceOnShipmentCreation) {
+        const createInvoice = async (attempt = 0): Promise<{ id: string; [key: string]: unknown }> => {
+          const invoiceNumber = await generateInvoiceNumber(tx);
 
-        try {
-          return await tx.userInvoice.create({
+          try {
+            return await tx.userInvoice.create({
+              data: {
+                invoiceNumber,
+                userId,
+                shipmentId: createdShipment.id,
+                status: 'PENDING',
+                subtotal: parsedPurchasePrice && parsedPurchasePrice > 0 ? parsedPurchasePrice : 0,
+                total: parsedPurchasePrice && parsedPurchasePrice > 0 ? parsedPurchasePrice : 0,
+                amountPaid: 0,
+                amountRemaining: parsedPurchasePrice && parsedPurchasePrice > 0 ? parsedPurchasePrice : 0,
+                tax: 0,
+                discount: 0,
+              },
+            });
+          } catch (error) {
+            if (
+              error instanceof Prisma.PrismaClientKnownRequestError &&
+              error.code === 'P2002' &&
+              attempt < 5
+            ) {
+              return createInvoice(attempt + 1);
+            }
+
+            throw error;
+          }
+        };
+
+        const invoice = await createInvoice();
+
+        if (parsedPurchasePrice && parsedPurchasePrice > 0) {
+          const vehicleLabel = [parsedVehicleYear, vehicleMake, vehicleModel].filter(Boolean).join(' ') || vehicleType;
+          await tx.invoiceLineItem.create({
             data: {
-              invoiceNumber,
-              userId,
+              invoiceId: invoice.id,
               shipmentId: createdShipment.id,
-              status: 'PENDING',
-              subtotal: parsedPurchasePrice && parsedPurchasePrice > 0 ? parsedPurchasePrice : 0,
-              total: parsedPurchasePrice && parsedPurchasePrice > 0 ? parsedPurchasePrice : 0,
-              amountPaid: 0,
-              amountRemaining: parsedPurchasePrice && parsedPurchasePrice > 0 ? parsedPurchasePrice : 0,
-              tax: 0,
-              discount: 0,
+              description: `${vehicleLabel} — Vehicle Purchase Price`,
+              type: LineItemType.PURCHASE_PRICE,
+              quantity: 1,
+              unitPrice: parsedPurchasePrice,
+              amount: parsedPurchasePrice,
             },
           });
-        } catch (error) {
-          if (
-            error instanceof Prisma.PrismaClientKnownRequestError &&
-            error.code === 'P2002' &&
-            attempt < 5
-          ) {
-            return createInvoice(attempt + 1);
-          }
-
-          throw error;
         }
-      };
-
-      const invoice = await createInvoice();
-
-      if (parsedPurchasePrice && parsedPurchasePrice > 0) {
-        const vehicleLabel = [parsedVehicleYear, vehicleMake, vehicleModel].filter(Boolean).join(' ') || vehicleType;
-        await tx.invoiceLineItem.create({
-          data: {
-            invoiceId: invoice.id,
-            shipmentId: createdShipment.id,
-            description: `${vehicleLabel} — Vehicle Purchase Price`,
-            type: LineItemType.PURCHASE_PRICE,
-            quantity: 1,
-            unitPrice: parsedPurchasePrice,
-            amount: parsedPurchasePrice,
-          },
-        });
       }
 
       const purchasePriceSyncInput =

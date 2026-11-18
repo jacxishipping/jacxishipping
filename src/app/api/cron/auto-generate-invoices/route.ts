@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { autoInvoice } from '@/lib/services/auto-invoice';
 import { validateCronRequest } from '@/lib/cron-auth';
 import { logger } from '@/lib/logger';
+import { getStoredAutomationSettings } from '@/lib/settings/automation-settings';
 
 /**
  * Cron job endpoint for auto-generating invoices
@@ -26,6 +27,17 @@ export async function GET(request: NextRequest) {
 		}
 
 		logger.info('[CRON] Starting auto-invoice generation...');
+
+		const automationSettings = getStoredAutomationSettings();
+		if (!automationSettings.autoInvoicingEnabled || !automationSettings.autoInvoiceCronBatchEnabled) {
+			logger.info('[CRON] Auto-invoice generation skipped: disabled in automation settings.');
+			return NextResponse.json({
+				success: true,
+				message: 'Auto-invoice generation skipped (disabled in automation settings)',
+				skipped: true,
+				timestamp: new Date().toISOString(),
+			});
+		}
 
 		// Generate invoices for all completed containers
 		const result = await autoInvoice.generateInvoicesForCompletedContainers();

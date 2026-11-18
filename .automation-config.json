@@ -1,0 +1,14 @@
+{
+  "autoInvoicingEnabled": true,
+  "autoInvoiceOnShipmentCreation": true,
+  "autoInvoiceOnContainerCompletion": true,
+  "autoInvoiceCronBatchEnabled": true,
+  "autoInvoicePaymentTermsDays": 30,
+  "autoInvoiceSendEmail": true,
+  "milestoneNotificationsEnabled": true,
+  "milestoneWhatsAppEnabled": true,
+  "milestoneEmailEnabled": true,
+  "autoMarkOverdueInvoices": true,
+  "autoPaymentRemindersEnabled": true,
+  "autoApplyAiDamageInspection": true
+}

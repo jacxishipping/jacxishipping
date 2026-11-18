@@ -59,6 +59,7 @@ import { TrackingApisTab } from '@/components/dashboard/settings/TrackingApisTab
 import { BackupDatabaseTab } from '@/components/dashboard/settings/BackupDatabaseTab';
 import { BrandingSettingsCard } from '@/components/dashboard/settings/BrandingSettingsCard';
 import { GoogleVoiceLiveCallPanel } from '@/components/voice/GoogleVoiceLiveCallPanel';
+import { AutomationSettingsTab } from '@/components/dashboard/settings/AutomationSettingsTab';
 
 /** Bare input with the Jacxi field look (no label) — search fields, table-cell editors. */
 const BareInput = forwardRef<HTMLInputElement | HTMLTextAreaElement, BareInputProps>(function BareInput(
@@ -146,7 +147,7 @@ const DEFAULT_SETTINGS = {
 };
 
 const baseSettingsTabSlugs = ['profile', 'preferences', 'notifications', 'security'];
-const adminSettingsTabSlugs = ['ai', 'communications', 'call-agent', 'price-calculator', 'tracking-apis'];
+const adminSettingsTabSlugs = ['ai', 'communications', 'call-agent', 'price-calculator', 'tracking-apis', 'automation'];
 
 function TabPanel({ children, value, index }: { children: ReactNode; value: number; index: number }) {
   return (
@@ -1118,6 +1119,7 @@ function SettingsPageContent() {
         { label: 'Call Agent', icon: <PhoneCall className="h-4 w-4" /> },
         { label: 'Price Calculator', icon: <DollarSign className="h-4 w-4" /> },
         { label: 'Tracking APIs', icon: <Radio className="h-4 w-4" /> },
+        { label: 'Automation & Invoicing', icon: <Sparkles className="h-4 w-4 text-amber-400" /> },
       );
     }
 
@@ -2618,6 +2620,11 @@ function SettingsPageContent() {
       {/* Tab 8: Tracking APIs */}
       <TabPanel value={activeTab} index={8}>
         {isAdmin ? <TrackingApisTab /> : null}
+      </TabPanel>
+
+      {/* Tab 9: Automation & Invoicing */}
+      <TabPanel value={activeTab} index={9}>
+        {isAdmin ? <AutomationSettingsTab /> : null}
       </TabPanel>
     </DashboardSurface>
   );

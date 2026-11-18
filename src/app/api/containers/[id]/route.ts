@@ -425,16 +425,23 @@ export async function PATCH(
       container.status !== validatedData.status
     ) {
       try {
-        const { autoInvoice } = await import('@/lib/services/auto-invoice');
-        const invoiceResult = await autoInvoice.generateInvoiceForContainer(params.id);
-        
-        if (invoiceResult.success) {
-          routeDeps.logger.info(`Auto-generated invoice for container ${params.id}: ${invoiceResult.message}`);
+        const { getStoredAutomationSettings } = await import('@/lib/settings/automation-settings');
+        const automationSettings = getStoredAutomationSettings();
+
+        if (!automationSettings.autoInvoicingEnabled || !automationSettings.autoInvoiceOnContainerCompletion) {
+          routeDeps.logger.info(`Automated container invoice skipped for ${params.id}: disabled in automation settings.`);
         } else {
-          routeDeps.logger.info(`Invoice not generated for container ${params.id}: ${invoiceResult.message}`);
+          const { autoInvoice } = await import('@/lib/services/auto-invoice');
+          const invoiceResult = await autoInvoice.generateInvoiceForContainer(params.id);
+          
+          if (invoiceResult.success) {
+            routeDeps.logger.info(`Auto-generated invoice for container ${params.id}: ${invoiceResult.message}`);
+          } else {
+            routeDeps.logger.info(`Invoice not generated for container ${params.id}: ${invoiceResult.message}`);
+          }
         }
       } catch (error) {
-        routeDeps.logger.error('Error auto-generating invoice:', error);
+        routeDeps.logger.error('Error in container auto-invoicing check:', error);
         // Don't fail the status update if invoice generation fails
       }
     }
