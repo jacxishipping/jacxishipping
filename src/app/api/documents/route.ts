@@ -1,9 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { auth } from '@/lib/auth';
+import type { DocumentCategory } from '@prisma/client';
 
-// Temporary type until migration
-type TempDocumentCategory = 'INVOICE' | 'BILL_OF_LADING' | 'CUSTOMS' | 'INSURANCE' | 'TITLE' | 'INSPECTION_REPORT' | 'PHOTO' | 'CONTRACT' | 'OTHER';
+const VALID_DOCUMENT_CATEGORIES: Set<DocumentCategory> = new Set([
+  'INVOICE',
+  'BILL_OF_LADING',
+  'CUSTOMS',
+  'INSURANCE',
+  'TITLE',
+  'INSPECTION_REPORT',
+  'PHOTO',
+  'CONTRACT',
+  'OTHER',
+  'EXPORT_DOCUMENT',
+  'PACKING_LIST',
+]);
+
+function normalizeDocumentCategory(input?: string | null): DocumentCategory {
+  if (!input) return 'OTHER';
+  const clean = input.trim().toUpperCase().replace(/[\s-]+/g, '_');
+  if (VALID_DOCUMENT_CATEGORIES.has(clean as DocumentCategory)) {
+    return clean as DocumentCategory;
+  }
+  if (clean.includes('INVOICE') || clean.includes('BILL_OF_SALE')) return 'INVOICE';
+  if (clean.includes('LADING') || clean.includes('BOL')) return 'BILL_OF_LADING';
+  if (clean.includes('CUSTOM')) return 'CUSTOMS';
+  if (clean.includes('INSUR')) return 'INSURANCE';
+  if (clean.includes('TITLE')) return 'TITLE';
+  if (clean.includes('INSPECT')) return 'INSPECTION_REPORT';
+  if (clean.includes('EXPORT')) return 'EXPORT_DOCUMENT';
+  if (clean.includes('PACK')) return 'PACKING_LIST';
+  if (clean.includes('PHOTO') || clean.includes('IMAGE')) return 'PHOTO';
+  if (clean.includes('CONTRACT') || clean.includes('AGREEMENT')) return 'CONTRACT';
+  return 'OTHER';
+}
 
 // GET: Fetch documents
 export async function GET(request: NextRequest) {
@@ -28,7 +59,7 @@ export async function GET(request: NextRequest) {
       AND?: Array<Record<string, unknown>>;
       shipmentId?: string;
       userId?: string;
-      category?: TempDocumentCategory;
+      category?: DocumentCategory;
       isPublic?: boolean;
     };
     const where: WhereType = {};
@@ -43,54 +74,54 @@ export async function GET(request: NextRequest) {
 
     if (shipmentId) where.shipmentId = shipmentId;
     if (userId && session.user?.role === 'admin') where.userId = userId;
-    if (category) where.category = category as TempDocumentCategory;
+    if (category) where.category = normalizeDocumentCategory(category);
     if (isPublic !== null) where.isPublic = isPublic === 'true';
 
     if (search) {
-        where.AND = [
-            {
-                OR: [
-                    { name: { contains: search, mode: 'insensitive' } },
-                    { description: { contains: search, mode: 'insensitive' } },
-                ]
-            }
-        ];
+      where.AND = [
+        {
+          OR: [
+            { name: { contains: search, mode: 'insensitive' } },
+            { description: { contains: search, mode: 'insensitive' } },
+          ],
+        },
+      ];
     }
 
     const [documents, total] = await Promise.all([
-        prisma.document.findMany({
-            where,
-            include: {
-                shipment: {
-                    select: {
-                        id: true,
-                        vehicleType: true,
-                    },
-                },
-                user: {
-                    select: {
-                        name: true,
-                        email: true,
-                    },
-                },
+      prisma.document.findMany({
+        where,
+        include: {
+          shipment: {
+            select: {
+              id: true,
+              vehicleType: true,
             },
-            orderBy: {
-                createdAt: 'desc',
+          },
+          user: {
+            select: {
+              name: true,
+              email: true,
             },
-            skip,
-            take: limit,
-        }),
-        prisma.document.count({ where })
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        skip,
+        take: limit,
+      }),
+      prisma.document.count({ where }),
     ]);
 
     return NextResponse.json({ 
-        documents,
-        pagination: {
-            total,
-            pages: Math.ceil(total / limit),
-            currentPage: page,
-            limit
-        }
+      documents,
+      pagination: {
+        total,
+        pages: Math.ceil(total / limit),
+        currentPage: page,
+        limit,
+      },
     });
   } catch (error) {
     console.error('Error fetching documents:', error);
@@ -123,26 +154,43 @@ export async function POST(request: NextRequest) {
       tags,
     } = data;
 
-    if (!name || !fileUrl || !fileType || !category) {
+    if (!name || !fileUrl || !fileType) {
       return NextResponse.json(
-        { message: 'Name, file URL, file type, and category are required' },
+        { message: 'Name, file URL, and file type are required' },
         { status: 400 }
       );
     }
 
+    const safeCategory = normalizeDocumentCategory(category);
+    const parsedFileSize = typeof fileSize === 'number'
+      ? Math.max(0, Math.round(fileSize))
+      : parseInt(String(fileSize || 0), 10) || 0;
+
+    // Verify shipment existence if shipmentId is provided
+    let safeShipmentId: string | null = null;
+    if (shipmentId && typeof shipmentId === 'string' && shipmentId.trim().length > 0) {
+      const shipment = await prisma.shipment.findUnique({
+        where: { id: shipmentId.trim() },
+        select: { id: true },
+      });
+      if (shipment) {
+        safeShipmentId = shipment.id;
+      }
+    }
+
     const document = await prisma.document.create({
       data: {
-        name,
-        description: description || null,
-        fileUrl,
-        fileType,
-        fileSize: fileSize || 0,
-        category: category as TempDocumentCategory,
-        shipmentId: shipmentId || null,
+        name: String(name).trim(),
+        description: description ? String(description).trim() : null,
+        fileUrl: String(fileUrl).trim(),
+        fileType: String(fileType).trim(),
+        fileSize: parsedFileSize,
+        category: safeCategory,
+        shipmentId: safeShipmentId,
         userId: userId || session.user?.id,
         uploadedBy: session.user?.name || session.user?.email || 'Unknown',
-        isPublic: isPublic || false,
-        tags: tags || [],
+        isPublic: Boolean(isPublic),
+        tags: Array.isArray(tags) ? tags.map((t: unknown) => String(t).trim()).filter(Boolean) : [],
       },
       include: {
         shipment: {
@@ -165,4 +213,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

@@ -2,9 +2,30 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { auth } from '@/lib/auth';
 import { hasPermission } from '@/lib/rbac';
+import type { DocumentCategory } from '@prisma/client';
 
-// Temporary type until migration
-type TempDocumentCategory = 'INVOICE' | 'BILL_OF_LADING' | 'CUSTOMS' | 'INSURANCE' | 'TITLE' | 'INSPECTION_REPORT' | 'PHOTO' | 'CONTRACT' | 'OTHER';
+const VALID_DOCUMENT_CATEGORIES: Set<DocumentCategory> = new Set([
+  'INVOICE',
+  'BILL_OF_LADING',
+  'CUSTOMS',
+  'INSURANCE',
+  'TITLE',
+  'INSPECTION_REPORT',
+  'PHOTO',
+  'CONTRACT',
+  'OTHER',
+  'EXPORT_DOCUMENT',
+  'PACKING_LIST',
+]);
+
+function normalizeDocumentCategory(input?: string | null): DocumentCategory {
+  if (!input) return 'OTHER';
+  const clean = input.trim().toUpperCase().replace(/[\s-]+/g, '_');
+  if (VALID_DOCUMENT_CATEGORIES.has(clean as DocumentCategory)) {
+    return clean as DocumentCategory;
+  }
+  return 'OTHER';
+}
 
 // GET: Get single document
 export async function GET(
@@ -104,14 +125,14 @@ export async function PATCH(
     type UpdateDataType = {
       name?: string;
       description?: string | null;
-      category?: TempDocumentCategory;
+      category?: DocumentCategory;
       isPublic?: boolean;
       tags?: string[];
     };
     const updateData: UpdateDataType = {};
     if (name) updateData.name = name;
     if (description !== undefined) updateData.description = description;
-    if (category) updateData.category = category as TempDocumentCategory;
+    if (category) updateData.category = normalizeDocumentCategory(category);
     if (isPublic !== undefined) updateData.isPublic = isPublic;
     if (tags) updateData.tags = tags;
 

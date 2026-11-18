@@ -23,12 +23,11 @@ import { z } from 'zod';
 
 function isTrustedUploadedFileUrl(fileUrl: string, request: NextRequest) {
   try {
-    const parsedUrl = new URL(fileUrl);
+    const parsedUrl = new URL(fileUrl, request.url);
     const requestUrl = new URL(request.url);
     const isSameOriginUpload = parsedUrl.origin === requestUrl.origin
-      && (parsedUrl.pathname.startsWith('/uploads/') || parsedUrl.pathname.startsWith('/shipments/'));
-    const isVercelBlobUpload = parsedUrl.hostname.endsWith('blob.vercel-storage.com')
-      && parsedUrl.pathname.startsWith('/shipments/');
+      && (parsedUrl.pathname.startsWith('/uploads/') || parsedUrl.pathname.startsWith('/shipments/') || parsedUrl.pathname.includes('/uploads/'));
+    const isVercelBlobUpload = parsedUrl.hostname.endsWith('blob.vercel-storage.com');
 
     return isSameOriginUpload || isVercelBlobUpload;
   } catch {

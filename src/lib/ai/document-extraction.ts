@@ -1,11 +1,16 @@
 import { z } from 'zod';
 import JSZip from 'jszip';
+import { readFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { createTokenRouterChatCompletion, isTokenRouterConfigured } from '@/lib/ai/tokenrouter';
 import { ensurePdfNodePolyfills } from '@/lib/pdf-node-polyfills';
 
 export const documentExtractionRequestSchema = z.object({
   mode: z.enum(['document-review', 'invoice-draft', 'shipment-intake', 'bill-of-lading']),
-  fileUrl: z.string().url(),
+  fileUrl: z.string().min(1).refine((val) => val.startsWith('/') || /^https?:\/\//i.test(val), {
+    message: 'fileUrl must be a valid URL or relative path',
+  }),
   fileName: z.string().min(1),
   fileType: z.string().min(1),
   entityType: z.string().optional(),
@@ -212,16 +217,31 @@ async function ocrPdfImages(buffer: Buffer) {
   return normalizeExtractedText(pageTexts.join('\n'));
 }
 
+async function getDocumentBuffer(fileUrl: string): Promise<Buffer | null> {
+  try {
+    if (fileUrl.startsWith('/')) {
+      const localPath = join(process.cwd(), 'public', fileUrl.replace(/^\//, ''));
+      if (existsSync(localPath)) {
+        return await readFile(localPath);
+      }
+    }
+    const response = await fetch(fileUrl, { cache: 'no-store' });
+    if (!response.ok) return null;
+    return Buffer.from(await response.arrayBuffer());
+  } catch {
+    return null;
+  }
+}
+
 export async function extractDocumentText(fileUrl: string, fileType: string) {
-  const response = await fetch(fileUrl, { cache: 'no-store' });
-  if (!response.ok) {
-    throw new Error('Failed to fetch uploaded file for extraction.');
+  const buffer = await getDocumentBuffer(fileUrl);
+  if (!buffer) {
+    throw new Error('Failed to access uploaded file for extraction.');
   }
 
   if (fileType.includes('pdf')) {
     await ensurePdfNodePolyfills();
     const { PDFParse } = await import('pdf-parse');
-    const buffer = Buffer.from(await response.arrayBuffer());
     const parser = new PDFParse({ data: buffer });
 
     try {
@@ -238,21 +258,19 @@ export async function extractDocumentText(fileUrl: string, fileType: string) {
   }
 
   if (fileType.includes('image/')) {
-    const buffer = Buffer.from(await response.arrayBuffer());
     return await ocrImageDataUrl(`data:${fileType};base64,${buffer.toString('base64')}`).catch(() => '');
   }
 
   if (fileType.includes('wordprocessingml.document') || fileType.includes('application/msword')) {
-    return extractDocxText(Buffer.from(await response.arrayBuffer()));
+    return extractDocxText(buffer);
   }
 
   if (fileType.includes('spreadsheetml.sheet') || fileType.includes('application/vnd.ms-excel')) {
-    return extractXlsxText(Buffer.from(await response.arrayBuffer()));
+    return extractXlsxText(buffer);
   }
 
   if (fileType.includes('csv') || fileType.includes('text')) {
-    const text = await response.text();
-    return normalizeExtractedText(text);
+    return normalizeExtractedText(buffer.toString('utf-8'));
   }
 
   return '';
@@ -260,12 +278,12 @@ export async function extractDocumentText(fileUrl: string, fileType: string) {
 
 export async function extractDocumentTextWithMetadata(fileUrl: string, fileType: string): Promise<DocumentTextExtractionResult> {
   try {
-    const response = await fetch(fileUrl, { cache: 'no-store' });
-    if (!response.ok) {
+    const buffer = await getDocumentBuffer(fileUrl);
+    if (!buffer) {
       return {
         text: '',
         method: 'failed',
-        failureReason: 'Failed to fetch uploaded file for extraction.',
+        failureReason: 'Failed to access uploaded file for extraction.',
         ocrAttempted: false,
       };
     }
@@ -273,7 +291,6 @@ export async function extractDocumentTextWithMetadata(fileUrl: string, fileType:
     if (fileType.includes('pdf')) {
       await ensurePdfNodePolyfills();
       const { PDFParse } = await import('pdf-parse');
-      const buffer = Buffer.from(await response.arrayBuffer());
       const parser = new PDFParse({ data: buffer });
 
       try {
@@ -305,7 +322,6 @@ export async function extractDocumentTextWithMetadata(fileUrl: string, fileType:
     }
 
     if (fileType.includes('image/')) {
-      const buffer = Buffer.from(await response.arrayBuffer());
       const text = await ocrImageDataUrl(`data:${fileType};base64,${buffer.toString('base64')}`).catch(() => '');
       return {
         text,
@@ -320,7 +336,7 @@ export async function extractDocumentTextWithMetadata(fileUrl: string, fileType:
     }
 
     if (fileType.includes('wordprocessingml.document') || fileType.includes('application/msword')) {
-      const text = await extractDocxText(Buffer.from(await response.arrayBuffer()));
+      const text = await extractDocxText(buffer);
       return {
         text,
         method: 'docx',
@@ -330,7 +346,7 @@ export async function extractDocumentTextWithMetadata(fileUrl: string, fileType:
     }
 
     if (fileType.includes('spreadsheetml.sheet') || fileType.includes('application/vnd.ms-excel')) {
-      const text = await extractXlsxText(Buffer.from(await response.arrayBuffer()));
+      const text = await extractXlsxText(buffer);
       return {
         text,
         method: 'xlsx',
@@ -340,7 +356,7 @@ export async function extractDocumentTextWithMetadata(fileUrl: string, fileType:
     }
 
     if (fileType.includes('csv') || fileType.includes('text')) {
-      const text = normalizeExtractedText(await response.text());
+      const text = normalizeExtractedText(buffer.toString('utf-8'));
       return {
         text,
         method: 'text',

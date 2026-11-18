@@ -97,7 +97,7 @@ export function DocumentManager({
 
   const handleFileUpload = async (file: File) => {
     try {
-      // 1. Upload file to blob storage
+      // 1. Upload file to storage
       const formData = new FormData();
       formData.append('file', file);
 
@@ -107,29 +107,36 @@ export function DocumentManager({
       });
 
       if (!uploadRes.ok) {
-        const error = await uploadRes.json();
+        const error = await uploadRes.json().catch(() => ({}));
         throw new Error(error.message || 'File upload failed');
       }
 
       const { url } = await uploadRes.json();
 
-      const extractRes = await fetch('/api/ai/document-extract', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          mode: 'document-review',
-          fileUrl: url,
-          fileName: file.name,
-          fileType: file.type,
-          entityType: entityType.toUpperCase(),
-          entityId,
-          categoryHint: category,
-        }),
-      });
+      // 2. AI metadata extraction (non-blocking: falls back to manual review if AI is unavailable or extraction fails)
+      let extracted: any = {};
+      try {
+        const extractRes = await fetch('/api/ai/document-extract', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            mode: 'document-review',
+            fileUrl: url,
+            fileName: file.name,
+            fileType: file.type,
+            entityType: entityType.toUpperCase(),
+            entityId,
+            categoryHint: category,
+          }),
+        });
 
-      const extracted = await extractRes.json().catch(() => ({}));
-      if (!extractRes.ok) {
-        throw new Error(extracted.error || 'Failed to extract document metadata');
+        if (extractRes.ok) {
+          extracted = await extractRes.json().catch(() => ({}));
+        } else {
+          console.warn('AI document extraction returned an error, falling back to manual metadata entry.');
+        }
+      } catch (extractError) {
+        console.warn('AI document extraction call failed, continuing with manual review:', extractError);
       }
 
       setReview({
@@ -140,10 +147,10 @@ export function DocumentManager({
         category: extracted.suggestedCategory || category,
         description: extracted.description || '',
         tags: Array.isArray(extracted.tags) ? extracted.tags : [],
-        summary: extracted.summary || 'No summary available.',
+        summary: extracted.summary || 'Uploaded document ready for review.',
         extractedTextPreview: extracted.extractedTextPreview || 'No extracted text available.',
         failureReason: extracted.failureReason || null,
-        extractionMethod: extracted.extractionMethod,
+        extractionMethod: extracted.extractionMethod || 'manual',
         ocrAttempted: Boolean(extracted.ocrAttempted),
         aiInteractionLogId: extracted.aiInteractionLogId,
         isCompanyDocument,

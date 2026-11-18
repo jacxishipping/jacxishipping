@@ -113,3 +113,19 @@ test('buildFallbackShipmentIntake extracts vehicle VIN and auction details', () 
   assert.equal(intakeResult.hasKeys, true);
 });
 
+test('documentExtractionRequestSchema accepts relative file URLs from local upload storage', () => {
+  const relativeUpload = documentExtractionRequestSchema.parse({
+    mode: 'document-review',
+    fileUrl: '/uploads/shipments/1700000000000-abcd1234-bol.pdf',
+    fileName: 'bol.pdf',
+    fileType: 'application/pdf',
+    entityType: 'SHIPMENT',
+    entityId: 'ship-123',
+    categoryHint: 'BILL_OF_LADING',
+  });
+
+  assert.equal(relativeUpload.fileUrl, '/uploads/shipments/1700000000000-abcd1234-bol.pdf');
+  assert.equal(relativeUpload.mode, 'document-review');
+});
+
+

@@ -189,22 +189,37 @@ export default function DocumentsPage() {
     
           const { url } = await uploadRes.json();
     
-          const extractRes = await fetch('/api/ai/document-extract', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                mode: 'document-review',
-                fileUrl: url,
-                fileName: file.name,
-                fileType: file.type,
-                entityType: 'DOCUMENT',
-                categoryHint: category,
-            }),
-          });
+          let extracted: ExtractionResult & { error?: string } = {
+            suggestedName: file.name,
+            suggestedCategory: category,
+            description: '',
+            tags: [],
+            summary: '',
+            extractedTextPreview: '',
+          };
 
-          const extracted = (await extractRes.json().catch(() => ({}))) as ExtractionResult & { error?: string };
-          if (!extractRes.ok) {
-            throw new Error(extracted.error || 'Document was uploaded, but AI extraction failed before it could be saved.');
+          try {
+            const extractRes = await fetch('/api/ai/document-extract', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                  mode: 'document-review',
+                  fileUrl: url,
+                  fileName: file.name,
+                  fileType: file.type,
+                  entityType: 'DOCUMENT',
+                  categoryHint: category,
+              }),
+            });
+
+            if (extractRes.ok) {
+              const resJson = await extractRes.json().catch(() => ({}));
+              extracted = { ...extracted, ...resJson };
+            } else {
+              console.warn('AI document extraction returned an error, proceeding with default metadata.');
+            }
+          } catch (extractError) {
+            console.warn('AI document extraction failed, proceeding with default metadata:', extractError);
           }
 
           const extractionNotes = [

@@ -2,13 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { z } from 'zod';
+import { hasAnyPermission } from '@/lib/rbac';
 
 const documentSchema = z.object({
   type: z.string().min(1),
   name: z.string().min(1),
-  fileUrl: z.string().url(),
+  fileUrl: z.string().min(1).refine((val) => val.startsWith('/') || /^https?:\/\//i.test(val), {
+    message: 'fileUrl must be a valid URL or relative path',
+  }),
   fileType: z.string().min(1),
-  fileSize: z.number().int().positive(),
+  fileSize: z.number().int().nonnegative().optional().default(0),
   notes: z.string().optional(),
 });
 
@@ -74,8 +77,12 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Only admins can add documents
-    if (session.user.role !== 'admin') {
+    // Only admins or authorized operations staff can add documents
+    const canManageDocuments =
+      session.user.role === 'admin' ||
+      hasAnyPermission(session.user.role, ['containers:manage', 'documents:manage']);
+
+    if (!canManageDocuments) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
