@@ -23,9 +23,34 @@ const urbanist = Urbanist({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://www.jacxishipping.com'),
   title: "JACXI Shipping - Vehicle Shipping from USA & Canada to Afghanistan",
   description: "Professional vehicle shipping from anywhere in the USA and Canada to Afghanistan through either the Mersin route or the UAE route. Complete service with customs clearance, insurance, and tracking for all Afghan provinces.",
   keywords: "vehicle shipping USA to Afghanistan, car shipping Canada to Afghanistan, USA Canada car shipping Afghanistan, Mersin route car shipping, UAE route car shipping, vehicle transport Kabul, Jacxi Shipping, Afghanistan car import",
+  alternates: {
+    canonical: '/',
+  },
+  openGraph: {
+    type: 'website',
+    url: 'https://www.jacxishipping.com',
+    siteName: 'JACXI Shipping',
+    title: 'JACXI Shipping — Vehicle Shipping from USA & Canada to Afghanistan',
+    description: 'Reliable vehicle logistics from the USA and Canada to Afghanistan via Mersin or UAE corridors with customs clearance and live container tracking.',
+    images: [
+      {
+        url: '/hero-shipping.jpg',
+        width: 1536,
+        height: 1024,
+        alt: 'JACXI Shipping — USA & Canada to Afghanistan Vehicle Logistics',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'JACXI Shipping — USA & Canada to Afghanistan Vehicle Logistics',
+    description: 'Fast, secure vehicle shipping via Mersin or UAE corridors with full customs clearance and live tracking.',
+    images: ['/hero-shipping.jpg'],
+  },
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [
@@ -62,6 +87,9 @@ export default function RootLayout({
   return (
 		<html lang="en" className={`${inter.variable} ${urbanist.variable}`} dir="ltr" data-scroll-behavior="smooth" suppressHydrationWarning>
       <body suppressHydrationWarning className="min-h-screen bg-background antialiased" style={{ fontFamily: 'var(--font-inter), Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
+        <a href="#main-content" className="skip-link">
+          Skip to main content
+        </a>
         <Providers>
           <PWARegister />
           <OfflineStatusBanner />

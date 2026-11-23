@@ -14,8 +14,8 @@ const faqs = [
     answer: 'Vehicle year, make, model, pickup location, destination province, title or auction details, vehicle condition, and any timing constraints help the team confirm the most accurate route and price.',
   },
   {
-    question: 'Does the quote form change any shipment or dashboard data?',
-    answer: 'No. The public quote form only sends your request to the JACXI team. It does not create a dashboard account, shipment record, or database workflow by itself.',
+    question: 'Does the quote form create a shipment or charge my account?',
+    answer: 'No. Submitting the public quote form only sends an inquiry to our dispatch team so we can price your lane. It does not open a shipment record, create an invoice, or charge your account.',
   },
   {
     question: 'Can I track a shipment after it is active?',
@@ -25,10 +25,10 @@ const faqs = [
 
 export default function FAQSection() {
   return (
-    <section id="faq" className="relative overflow-hidden bg-[var(--background)] py-16 sm:py-20">
+    <section id="faq" className="relative overflow-hidden bg-[var(--background)] py-16 sm:py-20 scroll-mt-20">
       <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
         <div className="text-center">
-          <p className="text-sm font-bold uppercase text-black/50">FAQ</p>
+          <p className="text-xs font-mono font-bold uppercase tracking-[0.2em] text-[var(--text-secondary)]">FAQ</p>
           <h2 className="mt-4 text-4xl font-bold leading-tight text-[var(--text-primary)] sm:text-5xl">
             Clear answers before you ship.
           </h2>
@@ -41,12 +41,12 @@ export default function FAQSection() {
           {faqs.map((faq, index) => (
             <details
               key={faq.question}
-              className="group rounded-lg border border-[var(--border)] bg-[var(--panel)] p-5 shadow-sm open:border-[rgba(var(--accent-gold-rgb),0.48)]"
+              className="group rounded-xl border border-[var(--border)] bg-[var(--panel)] p-5 shadow-sm open:border-[rgba(var(--accent-gold-rgb),0.55)]"
               open={index === 0}
             >
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-left text-lg font-bold text-[var(--text-primary)]">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-left text-base sm:text-lg font-bold text-[var(--text-primary)]">
                 {faq.question}
-                <ChevronDown className="h-5 w-5 shrink-0 text-black/40 transition-transform group-open:rotate-180" />
+                <ChevronDown className="h-5 w-5 shrink-0 text-[var(--text-secondary)] transition-transform group-open:rotate-180" aria-hidden="true" />
               </summary>
               <p className="mt-4 text-base leading-7 text-[var(--text-secondary)]">{faq.answer}</p>
             </details>

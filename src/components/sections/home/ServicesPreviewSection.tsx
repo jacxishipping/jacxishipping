@@ -1,138 +1,134 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, type ReactNode } from 'react';
 import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
-import { Anchor, Car, ExternalLink, Globe2, ShieldCheck, Ship, Warehouse } from 'lucide-react';
+import { Car, ExternalLink, ShieldCheck, Ship, Warehouse } from 'lucide-react';
 import Link from 'next/link';
 
-const services = [
+interface ServiceItem {
+  icon: ReactNode;
+  title: string;
+  description: string;
+  svgPath: string;
+}
+
+const services: ServiceItem[] = [
   {
     icon: <Car className="h-6 w-6" />,
     title: 'Vehicle sourcing & transport',
     description: 'We handle everything from auction acquisitions to domestic transport and port delivery.',
-    image: '/route-map.jpg',
+    svgPath: '/capability-vehicle.svg',
   },
   {
     icon: <Ship className="h-6 w-6" />,
     title: 'Ocean freight & RORO',
     description: 'Secure transatlantic vessel booking with confirmed space and consistent sailing schedules.',
-    image: '/port.jpg', 
+    svgPath: '/capability-ocean.svg',
   },
   {
     icon: <ShieldCheck className="h-6 w-6" />,
     title: 'Customs clearance',
     description: 'Expert documentation handling for export clearing and smooth import procedures.',
-    image: '/route-map.jpg',
+    svgPath: '/capability-customs.svg',
   },
   {
     icon: <Warehouse className="h-6 w-6" />,
     title: 'Secure storage & staging',
     description: 'Short and long-term staging at major ports and hubs to consolidate vehicle shipments.',
-    image: '/port.jpg',
+    svgPath: '/capability-storage.svg',
   },
 ];
 
 export default function ServicesPreviewSection() {
-  const containerRef = useRef<HTMLElement>(null);
-  
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ["start start", "end end"]
-  });
-
   return (
-    <section ref={containerRef} className="relative bg-[#F9FAFB] text-gray-900 py-12 lg:py-0">
-      {/* Header Section */}
-      <div className="relative lg:sticky top-0 z-30 flex flex-col justify-center bg-[#F9FAFB] px-4 pt-10 pb-6 lg:pt-14 lg:pb-8 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+    <section className="relative bg-[#F9FAFB] text-[#1C1C1E] py-16 sm:py-20 lg:py-24">
+      {/* Header Section — non-overlapping static header with clear breathing room below fixed navbar */}
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 mb-12 sm:mb-16">
         <motion.div
-           initial={{ opacity: 0, y: 20 }}
-           animate={{ opacity: 1, y: 0 }}
-           viewport={{ once: true }}
-           transition={{ duration: 0.6 }}
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.6 }}
         >
           <div className="inline-flex items-center gap-3">
-             <div className="h-px w-6 sm:w-8 bg-black/25" />
-             <span className="text-xs font-mono uppercase tracking-widest text-[#8D7A1F] font-semibold">capabilities</span>
+            <div className="h-px w-6 sm:w-8 bg-black/25" />
+            <span className="text-xs font-mono uppercase tracking-widest text-[#6B5C17] font-semibold">Capabilities</span>
           </div>
-          <h2 className="mt-4 sm:mt-8 text-3xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
+          <h2 className="mt-4 sm:mt-6 text-3xl font-bold tracking-tight sm:text-5xl lg:text-6xl text-[#1C1C1E]">
             End-to-end logistics.<br />
-            <span className="text-black/40 italic font-serif font-light tracking-normal">Simplified.</span>
+            <span className="text-[#5F6368] italic font-serif font-light tracking-normal">Simplified.</span>
           </h2>
         </motion.div>
       </div>
 
       {/* Spaced out scrolling content */}
-      <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-16 lg:pb-24 mt-8 sm:mt-10 lg:mt-12 space-y-12 sm:space-y-16 lg:space-y-24">
-        {services.map((service, index) => {
-          return (
-            <ServiceCard 
-              key={service.title} 
-              service={service} 
-              index={index} 
-              progress={scrollYProgress} 
-              total={services.length}
-            />
-          );
-        })}
+      <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-14 sm:space-y-20 lg:space-y-24">
+        {services.map((service, index) => (
+          <ServiceCard key={service.title} service={service} index={index} />
+        ))}
       </div>
     </section>
   );
 }
 
-function ServiceCard({ service, index, progress, total }: { service: any, index: number, progress: any, total: number }) {
+function ServiceCard({ service, index }: { service: ServiceItem; index: number }) {
   const cardRef = useRef<HTMLDivElement>(null);
 
   const { scrollYProgress } = useScroll({
     target: cardRef,
-    offset: ["start end", "start 20%"]
+    offset: ['start end', 'start 20%'],
   });
 
   const springProgress = useSpring(scrollYProgress, { stiffness: 100, damping: 20 });
-  const yImage = useTransform(springProgress, [0, 1], [-100, 0]);
-  const scaleImage = useTransform(springProgress, [0, 1], [1.2, 1]);
+  const yImage = useTransform(springProgress, [0, 1], [-80, 0]);
+  const scaleImage = useTransform(springProgress, [0, 1], [1.14, 1]);
 
   return (
-    <motion.div 
+    <motion.div
       ref={cardRef}
-      className="grid gap-12 lg:grid-cols-[1fr_1.2fr] items-center"
+      className="grid gap-10 lg:gap-12 lg:grid-cols-[1fr_1.2fr] items-center"
     >
-       {/* Left side text */}
-       <div className={`flex flex-col justify-center ${index % 2 === 1 ? 'lg:order-2 lg:pl-16' : 'lg:pr-16'}`}>
-          <div className="mb-8 flex h-16 w-16 items-center justify-center rounded-2xl bg-white border border-black/10 text-slate-900 shadow-sm">
-            {service.icon}
-          </div>
-          
-          <h3 className="text-3xl font-bold tracking-tight mb-6">{service.title}</h3>
-          
-          <div className="h-px w-full bg-black/10 mb-6" />
-          
-          <p className="text-lg text-black/60 leading-relaxed font-medium">
-            {service.description}
-          </p>
+      {/* Text Column */}
+      <div className={`flex flex-col justify-center ${index % 2 === 1 ? 'lg:order-2 lg:pl-16' : 'lg:pr-16'}`}>
+        <div className="mb-6 sm:mb-8 flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-2xl bg-white border border-[#E5E7EB] text-[#1C1C1E] shadow-sm">
+          {service.icon}
+        </div>
 
-          <Link href="/services" className="mt-10 group inline-flex items-center gap-3 text-sm font-bold uppercase tracking-widest text-black/70 hover:text-slate-900 transition-colors w-fit">
-            Explore service
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white border border-black/10 shadow-sm group-hover:bg-slate-900 group-hover:border-slate-900 group-hover:text-white transition-all">
-              <ExternalLink className="h-3 w-3" />
-            </div>
-          </Link>
-       </div>
+        <h3 className="text-2xl sm:text-3xl font-bold tracking-tight mb-5 text-[#1C1C1E]">{service.title}</h3>
 
-       {/* Right side Image Parallax Frame */}
-       <div className={`relative aspect-[4/3] w-full overflow-hidden rounded-2xl bg-white pointer-events-none ${index % 2 === 1 ? 'lg:order-1' : ''}`}>
-          <motion.div 
-            style={{ y: yImage, scale: scaleImage }}
-            className="absolute inset-0 h-[120%]"
-          >
-            {/* The SVGs themselves form the visual. No dark overlay needed anymore since they are meant to be light */}
-            <div className="absolute inset-0 z-0">
-               {index === 0 && <div className="absolute inset-0 bg-[url('/capability-vehicle.svg')] bg-cover bg-center" />}
-               {index === 1 && <div className="absolute inset-0 bg-[url('/capability-ocean.svg')] bg-cover bg-center" />}
-               {index === 2 && <div className="absolute inset-0 bg-[url('/capability-customs.svg')] bg-cover bg-center" />}
-               {index === 3 && <div className="absolute inset-0 bg-[url('/capability-storage.svg')] bg-cover bg-center" />}
-            </div>
-          </motion.div>
-       </div>
+        <div className="h-px w-full bg-[#E5E7EB] mb-5" />
+
+        <p className="text-base sm:text-lg text-[#5F6368] leading-relaxed font-medium">
+          {service.description}
+        </p>
+
+        <Link
+          href="/services"
+          className="mt-8 group inline-flex items-center gap-3 text-sm font-bold uppercase tracking-widest text-[#1C1C1E] hover:text-[#6B5C17] transition-colors w-fit"
+        >
+          Explore service
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white border border-[#E5E7EB] shadow-sm group-hover:bg-slate-900 group-hover:border-slate-900 group-hover:text-white transition-all">
+            <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+          </span>
+        </Link>
+      </div>
+
+      {/* Capability Graphic Parallax Frame */}
+      <div
+        role="img"
+        aria-label={`${service.title} illustration`}
+        className={`relative aspect-[4/3] w-full overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white pointer-events-none ${index % 2 === 1 ? 'lg:order-1' : ''}`}
+      >
+        <motion.div
+          style={{ y: yImage, scale: scaleImage }}
+          className="absolute inset-0 h-[116%]"
+        >
+          <div
+            className="absolute inset-0 bg-cover bg-center"
+            style={{ backgroundImage: `url('${service.svgPath}')` }}
+          />
+        </motion.div>
+      </div>
     </motion.div>
   );
 }

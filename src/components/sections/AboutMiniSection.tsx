@@ -32,7 +32,7 @@ export default function AboutMiniSection() {
 			<div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 				<div className="grid gap-10 lg:grid-cols-[0.82fr_1.18fr] lg:items-start">
 					<div>
-						<p className="landing-reveal is-visible text-sm font-bold uppercase text-black/50">Our story</p>
+						<p className="landing-reveal is-visible text-xs font-mono font-bold uppercase tracking-[0.2em] text-[var(--text-secondary)]">Our story</p>
 						<h2 className="landing-reveal is-visible mt-4 max-w-xl text-4xl font-bold leading-tight text-[var(--text-primary)] sm:text-5xl">
 							A specialist car shipping partner for Afghan importers.
 						</h2>

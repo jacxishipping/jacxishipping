@@ -39,10 +39,12 @@ export default function HeroTrackingForm() {
         />
         <JacxiButton
           type="submit"
-          className="inline-flex items-center gap-2 rounded-xl bg-[var(--accent-gold)] px-5 py-3 text-sm font-bold text-white shadow-md shadow-[var(--accent-gold)]/20 hover:brightness-105"
+          className="shrink-0 whitespace-nowrap rounded-xl bg-[#D4AF37] px-5 py-3 text-sm font-bold text-[#1C1C1E] shadow-md shadow-[#D4AF37]/25 hover:bg-[#B89428] hover:text-white transition-colors"
         >
-          <span>Track</span>
-          <ArrowRight className="h-4 w-4" />
+          <span className="inline-flex items-center gap-2 whitespace-nowrap">
+            <span>Track</span>
+            <ArrowRight className="h-4 w-4 shrink-0" aria-hidden="true" />
+          </span>
         </JacxiButton>
       </div>
     </form>

@@ -43,24 +43,24 @@ export default function Footer() {
         
         {/* Giant Typographic CTA */}
         <div className="mb-16 sm:mb-28 flex flex-col items-center justify-center text-center">
-           <motion.h3 
-             initial={{ opacity: 0, y: 30 }}
-             animate={{ opacity: 1, y: 0 }}
-             viewport={{ once: true }}
-             transition={{ duration: 0.6, ease: "easeOut" }}
-             className="text-4xl font-bold leading-none tracking-tight text-gray-900 sm:text-7xl md:text-8xl lg:text-9xl"
-           >
-             READY TO <br/>
-             <span className="text-[#D4AF37] font-serif font-light italic tracking-normal">SHIP?</span>
-           </motion.h3>
-           
-           <motion.div
-             initial={{ opacity: 0, scale: 0.8 }}
-             animate={{ opacity: 1, scale: 1 }}
-             viewport={{ once: true }}
-             transition={{ duration: 0.5, delay: 0.2 }}
-             className="mt-8 sm:mt-10 relative z-10"
-           >
+          <motion.h3
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.25 }}
+            transition={{ duration: 0.6, ease: 'easeOut' }}
+            className="text-4xl font-bold leading-none tracking-tight text-[#1C1C1E] sm:text-7xl md:text-8xl lg:text-9xl"
+          >
+            READY TO <br />
+            <span className="text-[#D4AF37] font-serif font-light italic tracking-normal">SHIP?</span>
+          </motion.h3>
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.88 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true, amount: 0.25 }}
+            transition={{ duration: 0.5, delay: 0.15 }}
+            className="mt-8 sm:mt-10 relative z-10"
+          >
             <Link
               href="/#quote"
               className="group relative flex h-24 w-24 sm:h-36 sm:w-36 items-center justify-center rounded-full bg-slate-950 text-white shadow-lg transition-transform hover:scale-105"
@@ -73,12 +73,12 @@ export default function Footer() {
 
         <div className="grid border-t border-black/5 pt-12 sm:pt-16 xl:grid-cols-3 xl:gap-8">
           <div className="space-y-6 sm:space-y-8 xl:col-span-1">
-            <SiteMark size={56} className="h-14 w-14 text-gray-900 relative z-10" />
-            <p className="max-w-xs text-sm leading-relaxed text-black/60">
+            <SiteMark size={56} className="h-14 w-14 text-[#1C1C1E] relative z-10" />
+            <p className="max-w-xs text-sm leading-relaxed text-[#5F6368]">
               Premium vehicle logistics from North America to Afghanistan. Flawless handling through trusted corridors.
             </p>
             <div className="flex gap-x-6">
-               <span className="text-xs font-mono uppercase tracking-widest text-[#8D7A1F] font-semibold">© 2026 JACXI SHIPPING</span>
+              <span className="text-xs font-mono uppercase tracking-widest text-[#6B5C17] font-semibold">© 2026 JACXI SHIPPING</span>
             </div>
           </div>
           
