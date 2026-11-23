@@ -56,9 +56,12 @@ export const STATUS_TONE_BY_DOMAIN: Record<string, Record<string, StatusTone>> =
     DRAFT: 'neutral',
     PENDING: 'warning',
     SENT: 'active',
+    PARTIALLY_PAID: 'warning',
     PAID: 'success',
     OVERDUE: 'danger',
     CANCELLED: 'neutral',
+    VOID: 'neutral',
+    REFUNDED: 'neutral',
   },
   transit: {
     PENDING: 'active',

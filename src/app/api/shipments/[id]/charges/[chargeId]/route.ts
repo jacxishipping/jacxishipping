@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ShipmentChargeStatus } from '@prisma/client';
+import { Prisma, ShipmentChargeStatus } from '@prisma/client';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { syncMutableInvoicesAfterChargeRelease } from '@/lib/billing/shipment-charges';
 import { hasAnyPermission, hasPermission } from '@/lib/rbac';
 
 const mutableStatuses = new Set<ShipmentChargeStatus>(['DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'DISPUTED', 'VOID']);
+const mutableInvoiceStatuses = new Set(['DRAFT', 'PENDING']);
+const inactiveInvoiceStatuses = new Set(['CANCELLED', 'VOID']);
 
 export async function PATCH(
   request: NextRequest,
@@ -24,11 +27,11 @@ export async function PATCH(
 
     const { id, chargeId } = await params;
     const body = (await request.json().catch(() => ({}))) as {
-      status?: 'APPROVED' | 'DISPUTED';
+      status?: 'APPROVED' | 'DISPUTED' | 'VOID';
       note?: string;
     };
 
-    if (body.status !== 'APPROVED' && body.status !== 'DISPUTED') {
+    if (body.status !== 'APPROVED' && body.status !== 'DISPUTED' && body.status !== 'VOID') {
       return NextResponse.json({ error: 'Invalid charge status update' }, { status: 400 });
     }
 
@@ -43,6 +46,7 @@ export async function PATCH(
         status: true,
         description: true,
         invoiceId: true,
+        metadata: true,
       },
     });
 
@@ -57,14 +61,14 @@ export async function PATCH(
         select: { userId: true },
       });
 
-      if (shipment?.userId === session.user.id && !hasPermission(session.user.role, 'shipments:manage')) {
+      if (!shipment || shipment.userId !== session.user.id || !hasPermission(session.user.role, 'shipments:manage')) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       }
     }
 
     // A charge linked to a DRAFT/PENDING (not yet issued) invoice can still be
-    // approved/disputed: the link is released and the invoice is refreshed the
-    // next time it is generated. Charges on issued invoices must be reversed first.
+    // approved/disputed/voided: the link is released and the draft invoice is
+    // synced immediately. Charges on issued invoices must be reversed first.
     let linkedInvoice: { id: string; invoiceNumber: string; status: string } | null = null;
     if (charge.invoiceId) {
       linkedInvoice = await prisma.userInvoice.findUnique({
@@ -72,7 +76,9 @@ export async function PATCH(
         select: { id: true, invoiceNumber: true, status: true },
       });
 
-      const invoiceIsMutable = linkedInvoice ? ['DRAFT', 'PENDING'].includes(linkedInvoice.status) : false;
+      const invoiceIsMutable = linkedInvoice
+        ? mutableInvoiceStatuses.has(linkedInvoice.status) || inactiveInvoiceStatuses.has(linkedInvoice.status)
+        : false;
       if (!invoiceIsMutable) {
         return NextResponse.json(
           {
@@ -94,6 +100,15 @@ export async function PATCH(
 
     const updatedCharge = await prisma.$transaction(async (tx) => {
       const isRestoringFromVoid = charge.status === 'VOID' && body.status === 'APPROVED';
+      const existingMeta =
+        charge.metadata && typeof charge.metadata === 'object' && !Array.isArray(charge.metadata)
+          ? { ...(charge.metadata as Record<string, unknown>) }
+          : {};
+      if (body.status === 'VOID') {
+        existingMeta.manuallyVoided = true;
+      } else if (isRestoringFromVoid) {
+        delete existingMeta.manuallyVoided;
+      }
 
       const nextCharge = await tx.shipmentCharge.update({
         where: { id: charge.id },
@@ -101,14 +116,21 @@ export async function PATCH(
           status: body.status,
           approvedAt: body.status === 'APPROVED' ? new Date() : null,
           approvedBy: body.status === 'APPROVED' ? session.user.id : null,
-          voidedAt: isRestoringFromVoid ? null : undefined,
+          voidedAt: body.status === 'VOID' ? new Date() : isRestoringFromVoid ? null : undefined,
+          ...(body.status === 'VOID' || isRestoringFromVoid
+            ? { metadata: existingMeta as Prisma.InputJsonValue }
+            : {}),
           notes: body.note ? body.note.trim() : undefined,
-          // Release the charge from a not-yet-issued invoice so it can be disputed
-          // or approved again. The next invoice generation rebuilds the draft.
           invoiceId: linkedInvoice ? null : undefined,
           invoicedAt: linkedInvoice ? null : undefined,
         },
       });
+
+      if (linkedInvoice && mutableInvoiceStatuses.has(linkedInvoice.status)) {
+        await syncMutableInvoicesAfterChargeRelease(tx, [
+          { invoiceId: linkedInvoice.id, chargeId: charge.id },
+        ]);
+      }
 
       await tx.shipmentChargeAuditLog.create({
         data: {
@@ -117,11 +139,15 @@ export async function PATCH(
             ? 'RESTORE_FROM_VOID'
             : body.status === 'APPROVED'
             ? 'MANUAL_APPROVAL'
+            : body.status === 'VOID'
+            ? 'MANUAL_VOID'
             : 'MANUAL_DISPUTE',
           description: isRestoringFromVoid
             ? `Shipment charge restored from void to approved: ${charge.description}`
             : body.status === 'APPROVED'
             ? `Shipment charge approved: ${charge.description}`
+            : body.status === 'VOID'
+            ? `Shipment charge voided: ${charge.description}`
             : `Shipment charge disputed: ${charge.description}`,
           performedBy: actorId,
           oldValue: charge.status,

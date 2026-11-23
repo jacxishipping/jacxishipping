@@ -273,7 +273,7 @@ export async function POST(req: NextRequest) {
           ? {
               userId,
               status: {
-                not: 'CANCELLED',
+                notIn: ['CANCELLED', 'VOID'],
               },
               shipmentId: {
                 in: shipmentScopeIds,
@@ -284,13 +284,14 @@ export async function POST(req: NextRequest) {
               containerId,
               shipmentId: null,
               status: {
-                not: 'CANCELLED',
+                notIn: ['CANCELLED', 'VOID'],
               },
             },
         select: {
           id: true,
           invoiceNumber: true,
           status: true,
+          amountPaid: true,
           createdAt: true,
           shipmentId: true,
         },
@@ -334,7 +335,10 @@ export async function POST(req: NextRequest) {
           },
         });
 
-        if (!invoiceCharges.length && !mutableInvoice) {
+        if (!invoiceCharges.length) {
+          if (mutableInvoice && mutableInvoice.status === 'DRAFT' && (mutableInvoice.amountPaid ?? 0) <= 0) {
+            await tx.userInvoice.delete({ where: { id: mutableInvoice.id } });
+          }
           return null;
         }
 
@@ -353,6 +357,7 @@ export async function POST(req: NextRequest) {
         let nextInvoice: { id: string; invoiceNumber: string; total: number };
 
         if (mutableInvoice) {
+          const amountRemaining = roundToCents(Math.max(0, total - (mutableInvoice.amountPaid ?? 0)));
           nextInvoice = await tx.userInvoice.update({
             where: { id: mutableInvoice.id },
             data: {
@@ -360,6 +365,7 @@ export async function POST(req: NextRequest) {
               subtotal,
               discount: discountAmount,
               total,
+              amountRemaining,
               lineItems: {
                 deleteMany: {},
                 create: lineItems,

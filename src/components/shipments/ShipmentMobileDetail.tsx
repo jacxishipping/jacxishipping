@@ -27,11 +27,18 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { StatusBadge, Button, toast } from '@/components/design-system';
+import ShipmentBillingTab from '@/components/shipments/ShipmentBillingTab';
 import type { Shipment } from '@/components/shipments/shipment-detail-types';
 
 interface ShipmentMobileDetailProps {
   shipment: Shipment;
   onRefresh?: () => void;
+  canViewBilling?: boolean;
+  purchasePriceRecord?: {
+    description: string;
+    amount: number;
+    transactionDate: string;
+  } | null;
 }
 
 function formatDate(value: string | null | undefined) {
@@ -96,7 +103,12 @@ function DetailRow({ label, value, icon }: { label: string; value: string | Reac
   );
 }
 
-export default function ShipmentMobileDetail({ shipment, onRefresh }: ShipmentMobileDetailProps) {
+export default function ShipmentMobileDetail({
+  shipment,
+  onRefresh,
+  canViewBilling = false,
+  purchasePriceRecord = null,
+}: ShipmentMobileDetailProps) {
   const [copying, setCopying] = useState(false);
 
   const copyToClipboard = async (text: string, label: string) => {
@@ -206,6 +218,18 @@ export default function ShipmentMobileDetail({ shipment, onRefresh }: ShipmentMo
           <DetailRow label="Service" value={formatStatus(shipment.serviceType)} />
         )}
       </CollapsibleSection>
+
+      {/* Billing & Charges (Mobile access for authorized staff) */}
+      {canViewBilling && (
+        <CollapsibleSection title="Billing & Charges" icon={<Receipt className="h-4 w-4" />}>
+          <ShipmentBillingTab
+            shipmentId={shipment.id}
+            refreshKey={`${shipment.updatedAt}-${shipment.ledgerEntries?.length || 0}-${shipment.containerDamages?.length || 0}`}
+            purchasePriceRecord={purchasePriceRecord}
+            onBillingChanged={onRefresh}
+          />
+        </CollapsibleSection>
+      )}
 
       {/* Vehicle Details */}
       <CollapsibleSection title="Vehicle Details" icon={<Package className="h-4 w-4" />}>

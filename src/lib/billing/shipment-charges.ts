@@ -165,16 +165,9 @@ async function reopenShipmentPaymentStatusIfNeeded(
   shipmentId: string,
   chargeStatus: ShipmentChargeStatus,
 ) {
-  if (chargeStatus === ShipmentChargeStatus.PAID || chargeStatus === ShipmentChargeStatus.VOID) {
+  if (chargeStatus !== ShipmentChargeStatus.APPROVED) {
     return;
   }
-
-  await db.shipmentCharge.findFirst({
-    where: {
-      sourceType: 'LEDGER_ENTRY',
-      sourceId: shipmentId,
-    },
-  }).catch(() => null);
 
   await db.shipment.updateMany({
     where: {
@@ -206,6 +199,18 @@ export async function syncShipmentChargeFromLedgerEntry(
       status: true,
       invoiceId: true,
       voidedAt: true,
+      chargeCode: true,
+      category: true,
+      billingMilestone: true,
+      description: true,
+      quantity: true,
+      unitAmount: true,
+      totalAmount: true,
+      currency: true,
+      notes: true,
+      metadata: true,
+      approvedAt: true,
+      approvedBy: true,
     },
   });
 
@@ -213,7 +218,8 @@ export async function syncShipmentChargeFromLedgerEntry(
     if (
       existingCharge &&
       existingCharge.status !== ShipmentChargeStatus.PAID &&
-      existingCharge.status !== ShipmentChargeStatus.INVOICED
+      existingCharge.status !== ShipmentChargeStatus.INVOICED &&
+      existingCharge.status !== ShipmentChargeStatus.VOID
     ) {
       await db.shipmentCharge.update({
         where: { id: existingCharge.id },
@@ -250,6 +256,7 @@ export async function syncShipmentChargeFromLedgerEntry(
       ? metadata.chargeCode
       : expenseType || input.transactionInfoType || category,
   ) || 'MANUAL_DEBIT';
+  const currency = typeof metadata.currency === 'string' ? metadata.currency : 'USD';
 
   const chargeData = {
     shipmentId,
@@ -263,7 +270,7 @@ export async function syncShipmentChargeFromLedgerEntry(
     quantity: 1,
     unitAmount: input.amount,
     totalAmount: input.amount,
-    currency: typeof metadata.currency === 'string' ? metadata.currency : 'USD',
+    currency,
     status: 'APPROVED' as const,
     billableAt: input.transactionDate,
     approvedBy: input.actorId,
@@ -277,6 +284,14 @@ export async function syncShipmentChargeFromLedgerEntry(
     } satisfies Prisma.InputJsonValue,
   };
 
+  const existingMetadata = asRecord(existingCharge?.metadata);
+  const isManuallyVoided =
+    existingCharge?.status === ShipmentChargeStatus.VOID && existingMetadata.manuallyVoided === true;
+
+  if (existingCharge && isManuallyVoided) {
+    return existingCharge;
+  }
+
   const nextStatus =
     existingCharge?.status === 'PAID'
       ? ShipmentChargeStatus.PAID
@@ -287,12 +302,37 @@ export async function syncShipmentChargeFromLedgerEntry(
       : ShipmentChargeStatus.APPROVED;
 
   if (existingCharge) {
+    const wasVoid = existingCharge.status === ShipmentChargeStatus.VOID;
+    const isUnchanged =
+      !wasVoid &&
+      existingCharge.status === nextStatus &&
+      existingCharge.description === input.description &&
+      existingCharge.unitAmount === input.amount &&
+      existingCharge.totalAmount === input.amount &&
+      existingCharge.chargeCode === chargeCode &&
+      existingCharge.category === category &&
+      existingCharge.billingMilestone === billingMilestone &&
+      existingCharge.currency === currency;
+
+    // Idempotent read-through: avoid rewriting unchanged charges, overwriting
+    // manual charge notes, or appending noisy audit logs on every billing tab load.
+    if (isUnchanged) {
+      return existingCharge;
+    }
+
+    const amountIncreased =
+      typeof existingCharge.totalAmount === 'number' && input.amount > existingCharge.totalAmount;
+
     const charge = await db.shipmentCharge.update({
       where: { id: existingCharge.id },
       data: {
         ...chargeData,
         status: nextStatus,
         voidedAt: null,
+        approvedAt: existingCharge.approvedAt ?? (nextStatus === ShipmentChargeStatus.APPROVED ? new Date() : null),
+        approvedBy: existingCharge.approvedBy ?? (nextStatus === ShipmentChargeStatus.APPROVED ? input.actorId : null),
+        // Preserve any manual billing note when the ledger entry itself has no note.
+        notes: existingCharge.notes && !input.notes ? existingCharge.notes : input.notes,
       },
     });
 
@@ -308,7 +348,9 @@ export async function syncShipmentChargeFromLedgerEntry(
       },
     });
 
-    await reopenShipmentPaymentStatusIfNeeded(db, shipmentId, nextStatus);
+    if (wasVoid || amountIncreased) {
+      await reopenShipmentPaymentStatusIfNeeded(db, shipmentId, nextStatus);
+    }
 
     return charge;
   }
@@ -367,15 +409,45 @@ export async function upsertShipmentSystemCharge(
     select: {
       id: true,
       status: true,
+      chargeCode: true,
+      category: true,
+      billingMilestone: true,
+      description: true,
+      quantity: true,
+      unitAmount: true,
+      totalAmount: true,
+      currency: true,
+      notes: true,
+      metadata: true,
+      approvedAt: true,
+      approvedBy: true,
     },
   });
 
+  const existingMetadata = asRecord(existingCharge?.metadata);
+  if (existingCharge?.status === ShipmentChargeStatus.VOID && existingMetadata.manuallyVoided === true) {
+    return existingCharge;
+  }
+
+  // Preserve manual review states (DISPUTED / DRAFT / PENDING_APPROVAL) as well
+  // as settled states (PAID / INVOICED) so re-materializing or generating an
+  // invoice never silently re-approves a disputed system charge.
   const preservedStatus =
-    existingCharge?.status === 'PAID'
+    existingCharge?.status === ShipmentChargeStatus.PAID
       ? ShipmentChargeStatus.PAID
-      : existingCharge?.status === 'INVOICED'
+      : existingCharge?.status === ShipmentChargeStatus.INVOICED
       ? ShipmentChargeStatus.INVOICED
+      : existingCharge?.status === ShipmentChargeStatus.DISPUTED
+      ? ShipmentChargeStatus.DISPUTED
+      : existingCharge?.status === ShipmentChargeStatus.DRAFT
+      ? ShipmentChargeStatus.DRAFT
+      : existingCharge?.status === ShipmentChargeStatus.PENDING_APPROVAL
+      ? ShipmentChargeStatus.PENDING_APPROVAL
       : ShipmentChargeStatus.APPROVED;
+
+  const billingMilestone = input.billingMilestone ?? resolveBillingMilestone(input.category);
+  const quantity = input.quantity ?? 1;
+  const currency = input.currency ?? 'USD';
 
   const chargeData = {
     shipmentId: input.shipmentId,
@@ -384,12 +456,12 @@ export async function upsertShipmentSystemCharge(
     sourceId: input.sourceId,
     chargeCode: input.chargeCode,
     category: input.category,
-    billingMilestone: input.billingMilestone ?? resolveBillingMilestone(input.category),
+    billingMilestone,
     description: input.description,
-    quantity: input.quantity ?? 1,
+    quantity,
     unitAmount: input.unitAmount,
     totalAmount: input.totalAmount,
-    currency: input.currency ?? 'USD',
+    currency,
     status: preservedStatus,
     billableAt: new Date(),
     approvedBy: input.actorId,
@@ -399,12 +471,44 @@ export async function upsertShipmentSystemCharge(
   };
 
   if (existingCharge) {
+    const wasVoid = existingCharge.status === ShipmentChargeStatus.VOID;
+    const isUnchanged =
+      !wasVoid &&
+      existingCharge.status === preservedStatus &&
+      existingCharge.chargeCode === input.chargeCode &&
+      existingCharge.category === input.category &&
+      existingCharge.billingMilestone === billingMilestone &&
+      existingCharge.description === input.description &&
+      existingCharge.quantity === quantity &&
+      existingCharge.unitAmount === input.unitAmount &&
+      existingCharge.totalAmount === input.totalAmount &&
+      existingCharge.currency === currency;
+
+    if (isUnchanged) {
+      return existingCharge;
+    }
+
+    const amountIncreased =
+      typeof existingCharge.totalAmount === 'number' && input.totalAmount > existingCharge.totalAmount;
+
     const charge = await db.shipmentCharge.update({
       where: { id: existingCharge.id },
-      data: chargeData,
+      data: {
+        ...chargeData,
+        voidedAt: null,
+        approvedAt:
+          existingCharge.approvedAt ??
+          (preservedStatus === ShipmentChargeStatus.APPROVED ? new Date() : null),
+        approvedBy:
+          existingCharge.approvedBy ??
+          (preservedStatus === ShipmentChargeStatus.APPROVED ? input.actorId : null),
+        notes: existingCharge.notes && !input.notes ? existingCharge.notes : input.notes,
+      },
     });
 
-    await reopenShipmentPaymentStatusIfNeeded(db, input.shipmentId, preservedStatus);
+    if (wasVoid || amountIncreased) {
+      await reopenShipmentPaymentStatusIfNeeded(db, input.shipmentId, preservedStatus);
+    }
 
     return charge;
   }
@@ -428,7 +532,7 @@ export async function voidShipmentChargeSource(
       sourceType,
       sourceId,
       status: {
-        not: ShipmentChargeStatus.PAID,
+        notIn: [ShipmentChargeStatus.PAID, ShipmentChargeStatus.VOID],
       },
     },
     data: {
@@ -522,4 +626,85 @@ export async function markInvoiceShipmentChargesPaid(
       paidAt: new Date(),
     },
   });
+}
+
+/**
+ * Keep un-issued (DRAFT / PENDING) invoices synchronized immediately when one
+ * or more charges are released from them (e.g. disputed from the Billing tab).
+ * Removes the released line items, recalculates subtotal/total/amountRemaining,
+ * and deletes empty DRAFT invoices that have no remaining items or payments.
+ */
+export async function syncMutableInvoicesAfterChargeRelease(
+  db: ShipmentChargeDbClient,
+  releases: Array<{ invoiceId: string; chargeId: string }>,
+) {
+  if (!releases.length) {
+    return;
+  }
+
+  const chargeIdsByInvoiceId = new Map<string, string[]>();
+  for (const release of releases) {
+    const existing = chargeIdsByInvoiceId.get(release.invoiceId) ?? [];
+    existing.push(release.chargeId);
+    chargeIdsByInvoiceId.set(release.invoiceId, existing);
+  }
+
+  for (const [invoiceId, chargeIds] of chargeIdsByInvoiceId.entries()) {
+    const invoice = await db.userInvoice.findUnique({
+      where: { id: invoiceId },
+      select: {
+        id: true,
+        status: true,
+        discount: true,
+        tax: true,
+        amountPaid: true,
+      },
+    });
+
+    if (!invoice || !['DRAFT', 'PENDING'].includes(invoice.status)) {
+      continue;
+    }
+
+    await db.invoiceLineItem.deleteMany({
+      where: {
+        invoiceId,
+        chargeId: { in: chargeIds },
+      },
+    });
+
+    const remainingItems = await db.invoiceLineItem.findMany({
+      where: { invoiceId },
+      select: { amount: true },
+    });
+
+    if (
+      remainingItems.length === 0 &&
+      invoice.status === 'DRAFT' &&
+      (invoice.amountPaid ?? 0) <= 0
+    ) {
+      await db.userInvoice.delete({
+        where: { id: invoiceId },
+      });
+      continue;
+    }
+
+    const subtotal = Math.round(
+      remainingItems.reduce((sum, item) => sum + item.amount, 0) * 100,
+    ) / 100;
+    const total = Math.round(
+      Math.max(0, subtotal - (invoice.discount ?? 0) + (invoice.tax ?? 0)) * 100,
+    ) / 100;
+    const amountRemaining = Math.round(
+      Math.max(0, total - (invoice.amountPaid ?? 0)) * 100,
+    ) / 100;
+
+    await db.userInvoice.update({
+      where: { id: invoiceId },
+      data: {
+        subtotal,
+        total,
+        amountRemaining,
+      },
+    });
+  }
 }

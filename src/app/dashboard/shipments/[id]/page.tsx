@@ -57,7 +57,7 @@ import ShipmentWorkflowStrip from '@/components/shipments/ShipmentWorkflowStrip'
 import ShipmentMobileDetail from '@/components/shipments/ShipmentMobileDetail';
 import { downloadShipmentInvoicePDF } from '@/lib/utils/generateShipmentInvoicePDF';
 import { downloadReleaseTokenPDF } from '@/lib/utils/generateReleaseTokenPDF';
-import { hasAnyPermission, hasPermission } from '@/lib/rbac';
+import { hasAnyPermission, hasPermission, isInternalUser, normalizeRole } from '@/lib/rbac';
 import { getShipmentWorkflowStage } from '@/lib/shipment-workflow-stage';
 import type {
   AvailableDispatchOption,
@@ -991,7 +991,19 @@ function ShipmentDetailPageContent() {
   }, [arrivalPhotos]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const statusStyles = useMemo(() => statusColors, []);
-  const isAdmin = session?.user?.role === 'admin';
+  const isAdmin = normalizeRole(session?.user?.role) === 'admin';
+  const isInternal = isInternalUser(session?.user?.role);
+  const canViewFinancialsTab =
+    isInternal && hasAnyPermission(session?.user?.role, ['finance:view', 'finance:manage', 'shipments:manage']);
+  const canViewBillingTab =
+    isInternal &&
+    hasAnyPermission(session?.user?.role, [
+      'invoices:view',
+      'invoices:manage',
+      'finance:view',
+      'finance:manage',
+      'shipments:manage',
+    ]);
   const canViewLedgerComparison = hasAnyPermission(session?.user?.role, ['finance:view', 'finance:manage', 'shipments:read_all']);
   const canManageCompanyLedger = hasPermission(session?.user?.role, 'finance:manage');
   const canViewWorkflowCompanyDetails = hasPermission(session?.user?.role, 'shipments:read_all');
@@ -1376,7 +1388,12 @@ function ShipmentDetailPageContent() {
       {shipment && (
         <div className="block sm:hidden">
           <DashboardSurface>
-            <ShipmentMobileDetail shipment={shipment} onRefresh={refreshShipmentPage} />
+            <ShipmentMobileDetail
+              shipment={shipment}
+              onRefresh={refreshShipmentPage}
+              canViewBilling={canViewBillingTab}
+              purchasePriceRecord={purchasePriceRecord}
+            />
           </DashboardSurface>
         </div>
       )}
@@ -1709,7 +1726,7 @@ function ShipmentDetailPageContent() {
             >
               {<FileText className="h-4 w-4" />} {<ShipmentTabLabel label="Documents" meta={String(documentCount)} tone={documentCount > 0 ? 'ready' : 'warning'} />}
             </button>
-            {isAdmin && (
+            {canViewFinancialsTab && (
             <button
               key={5}
               type="button"
@@ -1721,7 +1738,7 @@ function ShipmentDetailPageContent() {
               {<DollarSign className="h-4 w-4" />} {<ShipmentTabLabel label="Financials" meta={priceListTabMeta} tone={priceListTabTone} />}
             </button>
             )}
-            {isAdmin && (
+            {canViewBillingTab && (
             <button
               key={6}
               type="button"
@@ -1881,8 +1898,8 @@ function ShipmentDetailPageContent() {
           />
         </TabPanel>
 
-        {/* Financials Tab (Admin only) */}
-        {isAdmin && (
+        {/* Financials Tab (Internal finance/operations roles) */}
+        {canViewFinancialsTab && (
         <TabPanel value={activeTab} index={5}>
           <ShipmentFinancialsTab
             shipment={shipment}
@@ -1943,13 +1960,16 @@ function ShipmentDetailPageContent() {
         </TabPanel>
         )}
 
-        {/* Billing Tab (Admin only) */}
-        {isAdmin && (
+        {/* Billing Tab (Internal billing/finance/operations roles) */}
+        {canViewBillingTab && (
         <TabPanel value={activeTab} index={6}>
           <ShipmentBillingTab
             shipmentId={shipment.id}
             refreshKey={`${shipment.updatedAt}-${shipment.ledgerEntries.length}-${shipment.containerDamages.length}`}
             purchasePriceRecord={purchasePriceRecord}
+            onBillingChanged={() => {
+              void refreshShipmentPage();
+            }}
           />
         </TabPanel>
         )}

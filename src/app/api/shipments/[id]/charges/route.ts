@@ -1,12 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ShipmentChargeStatus } from '@prisma/client';
+import {
+  Prisma,
+  ShipmentBillingMilestone,
+  ShipmentChargeCategory,
+  ShipmentChargeSourceType,
+  ShipmentChargeStatus,
+} from '@prisma/client';
+import { z } from 'zod';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { materializeShipmentLedgerCharges } from '@/lib/billing/shipment-charge-backfill';
+import { allocateExpenses, type AllocationMethod } from '@/lib/expense-allocation';
+import { materializeContainerShipmentCharges } from '@/lib/billing/container-shipment-charge-materialization';
+import { syncMutableInvoicesAfterChargeRelease } from '@/lib/billing/shipment-charges';
 import { hasAnyPermission, hasPermission } from '@/lib/rbac';
 
-const mutableStatuses = new Set<ShipmentChargeStatus>(['DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'DISPUTED']);
+const mutableStatuses = new Set<ShipmentChargeStatus>([
+  'DRAFT',
+  'PENDING_APPROVAL',
+  'APPROVED',
+  'DISPUTED',
+  'VOID',
+]);
 const mutableInvoiceStatuses = new Set(['DRAFT', 'PENDING']);
+const inactiveInvoiceStatuses = new Set(['CANCELLED', 'VOID']);
+
+const createManualChargeSchema = z.object({
+  description: z.string().trim().min(1, 'Description is required').max(300),
+  category: z.nativeEnum(ShipmentChargeCategory).default(ShipmentChargeCategory.OTHER),
+  billingMilestone: z.nativeEnum(ShipmentBillingMilestone).default(ShipmentBillingMilestone.MANUAL),
+  quantity: z.number().positive('Quantity must be greater than zero').default(1),
+  unitAmount: z.number().finite('Amount must be a valid number').refine((val) => val !== 0, 'Amount cannot be zero'),
+  currency: z.string().trim().min(3).max(6).default('USD'),
+  status: z.enum(['DRAFT', 'APPROVED']).default('APPROVED'),
+  notes: z.string().trim().max(1000).optional(),
+});
 
 function buildPostIssueDelta(
   charges: Array<{
@@ -23,7 +50,7 @@ function buildPostIssueDelta(
           (charge) =>
             charge.invoice &&
             !mutableInvoiceStatuses.has(charge.invoice.status) &&
-            charge.invoice.status !== 'CANCELLED',
+            !inactiveInvoiceStatuses.has(charge.invoice.status),
         )
         .map((charge) => [charge.invoice!.id, charge.invoice]),
     ).values(),
@@ -49,17 +76,24 @@ function buildPostIssueDelta(
   };
 }
 
-function buildBillingReadiness(charges: Array<{ status: string; invoice: { id: string } | null }>) {
-  const approvedUninvoicedCount = charges.filter((charge) => charge.status === 'APPROVED' && !charge.invoice).length;
-  const blockedCount = charges.filter((charge) => ['DRAFT', 'PENDING_APPROVAL', 'DISPUTED', 'VOID'].includes(charge.status)).length;
-  const settledCount = charges.filter((charge) => ['INVOICED', 'PAID'].includes(charge.status) || Boolean(charge.invoice)).length;
-  const paidCount = charges.filter((charge) => charge.status === 'PAID').length;
+function buildBillingReadiness(charges: Array<{ status: string; invoice: { id: string; status?: string } | null }>) {
+  // Exclude VOID charges from readiness calculations so voided/replaced rows
+  // never permanently trap a shipment in PARTIALLY_BILLABLE.
+  const activeCharges = charges.filter((charge) => charge.status !== 'VOID');
+  const approvedUninvoicedCount = activeCharges.filter((charge) => charge.status === 'APPROVED' && !charge.invoice).length;
+  const blockedCount = activeCharges.filter((charge) => ['DRAFT', 'PENDING_APPROVAL', 'DISPUTED'].includes(charge.status)).length;
+  const settledCount = activeCharges.filter(
+    (charge) =>
+      ['INVOICED', 'PAID'].includes(charge.status) ||
+      Boolean(charge.invoice && !inactiveInvoiceStatuses.has(charge.invoice.status || '')),
+  ).length;
+  const paidCount = activeCharges.filter((charge) => charge.status === 'PAID').length;
 
-  if (!charges.length) {
+  if (!activeCharges.length) {
     return {
       status: 'NOT_BILLABLE',
       label: 'Not Billable',
-      description: 'No shipment charges are available yet. Add or sync billable activity before invoicing.',
+      description: 'No active shipment charges are available yet. Add or sync billable activity before invoicing.',
       approvedUninvoicedCount,
       blockedCount,
       settledCount,
@@ -67,27 +101,27 @@ function buildBillingReadiness(charges: Array<{ status: string; invoice: { id: s
     };
   }
 
-  if (paidCount === charges.length) {
+  if (paidCount === activeCharges.length) {
     return {
       status: 'PAID',
       label: 'Paid',
-      description: 'All shipment charges linked to this shipment have been settled.',
+      description: 'All active shipment charges linked to this shipment have been settled.',
       approvedUninvoicedCount,
       blockedCount,
       settledCount,
-      totalCharges: charges.length,
+      totalCharges: activeCharges.length,
     };
   }
 
-  if (settledCount === charges.length && approvedUninvoicedCount === 0 && blockedCount === 0) {
+  if (settledCount === activeCharges.length && approvedUninvoicedCount === 0 && blockedCount === 0) {
     return {
       status: 'INVOICED',
       label: 'Invoiced',
-      description: 'All shipment charges are already tied to invoices or completed payment.',
+      description: 'All active shipment charges are already tied to invoices or completed payment.',
       approvedUninvoicedCount,
       blockedCount,
       settledCount,
-      totalCharges: charges.length,
+      totalCharges: activeCharges.length,
     };
   }
 
@@ -99,7 +133,7 @@ function buildBillingReadiness(charges: Array<{ status: string; invoice: { id: s
       approvedUninvoicedCount,
       blockedCount,
       settledCount,
-      totalCharges: charges.length,
+      totalCharges: activeCharges.length,
     };
   }
 
@@ -113,7 +147,7 @@ function buildBillingReadiness(charges: Array<{ status: string; invoice: { id: s
     approvedUninvoicedCount,
     blockedCount,
     settledCount,
-    totalCharges: charges.length,
+    totalCharges: activeCharges.length,
   };
 }
 
@@ -156,36 +190,128 @@ export async function GET(
 
     const fallbackActorId = session.user.id as string;
 
-    // Phase 2: make the GET a pure read by default. Materializing charges is
-    // a write — it is only performed when the client explicitly opts in with
-    // `?materialize=true` (e.g. the billing tab that needs up-to-date rows).
+    // Materializing charges is a write — only performed when the client opts in
+    // with `?materialize=true` (e.g. the Billing tab). Materializes BOTH ledger
+    // expenses AND shipment/container/damage system charges idempotently so
+    // shipments without ledger expenses are still billable on first open.
     const { searchParams } = new URL(request.url);
     const shouldMaterialize = searchParams.get('materialize') === 'true';
 
     if (shouldMaterialize) {
-      await prisma.$transaction(async (tx) => {
-        const ledgerEntries = await tx.ledgerEntry.findMany({
-          where: {
-            shipmentId: id,
-            type: 'DEBIT',
+      const shipmentRecord = await prisma.shipment.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          userId: true,
+          serviceType: true,
+          purchasePrice: true,
+          price: true,
+          priceListPricingSnapshot: true,
+          insuranceValue: true,
+          damageCredit: true,
+          weight: true,
+          vehicleYear: true,
+          vehicleMake: true,
+          vehicleModel: true,
+          vehicleVIN: true,
+          containerId: true,
+          container: {
+            select: {
+              id: true,
+              expenseAllocationMethod: true,
+              expenses: true,
+              shipments: {
+                select: {
+                  id: true,
+                  price: true,
+                  insuranceValue: true,
+                  weight: true,
+                },
+              },
+            },
           },
-          select: {
-            id: true,
-            userId: true,
-            shipmentId: true,
-            description: true,
-            type: true,
-            amount: true,
-            transactionDate: true,
-            transactionInfoType: true,
-            notes: true,
-            metadata: true,
-            createdBy: true,
-          },
-        });
-
-        await materializeShipmentLedgerCharges(tx, ledgerEntries, fallbackActorId);
+        },
       });
+
+      if (shipmentRecord) {
+        const allocationMethod: AllocationMethod =
+          (shipmentRecord.container?.expenseAllocationMethod as AllocationMethod | null) || 'EQUAL';
+        const expenseAllocations = shipmentRecord.container
+          ? allocateExpenses(
+              shipmentRecord.container.shipments,
+              shipmentRecord.container.expenses,
+              allocationMethod,
+            )
+          : {};
+
+        await prisma.$transaction(async (tx) => {
+          const [ledgerEntries, damageRecords] = await Promise.all([
+            tx.ledgerEntry.findMany({
+              where: {
+                shipmentId: id,
+                type: 'DEBIT',
+              },
+              select: {
+                id: true,
+                userId: true,
+                shipmentId: true,
+                description: true,
+                type: true,
+                amount: true,
+                transactionDate: true,
+                transactionInfoType: true,
+                notes: true,
+                metadata: true,
+                createdBy: true,
+              },
+            }),
+            tx.containerDamage.findMany({
+              where: {
+                shipmentId: id,
+                damageType: 'WE_PAY',
+              },
+              select: {
+                shipmentId: true,
+                amount: true,
+              },
+            }),
+          ]);
+
+          await materializeContainerShipmentCharges(tx, {
+            actorId: fallbackActorId,
+            allocationMethod,
+            containerId: shipmentRecord.container?.id || `shipment:${shipmentRecord.id}`,
+            expenseAllocations,
+            shipmentDamageRecords: damageRecords,
+            shipmentLedgerEntries: ledgerEntries.map((entry) => ({
+              ...entry,
+              type: entry.type as 'DEBIT' | 'CREDIT',
+              transactionInfoType: entry.transactionInfoType as
+                | 'CAR_PAYMENT'
+                | 'SHIPPING_PAYMENT'
+                | 'STORAGE_PAYMENT'
+                | null,
+              metadata: (entry.metadata ?? {}) as Prisma.JsonValue,
+            })),
+            shipments: [
+              {
+                id: shipmentRecord.id,
+                userId: shipmentRecord.userId,
+                serviceType: shipmentRecord.serviceType,
+                purchasePrice: shipmentRecord.purchasePrice,
+                price: shipmentRecord.price,
+                priceListPricingSnapshot: shipmentRecord.priceListPricingSnapshot as Prisma.JsonValue | null,
+                insuranceValue: shipmentRecord.insuranceValue,
+                damageCredit: shipmentRecord.damageCredit,
+                vehicleYear: shipmentRecord.vehicleYear,
+                vehicleMake: shipmentRecord.vehicleMake,
+                vehicleModel: shipmentRecord.vehicleModel,
+                vehicleVIN: shipmentRecord.vehicleVIN,
+              },
+            ],
+          });
+        });
+      }
     }
 
     const charges = await prisma.shipmentCharge.findMany({
@@ -259,14 +385,20 @@ export async function GET(
 
     const summary = chargesWithActors.reduce(
       (accumulator, charge) => {
-        accumulator.total += charge.totalAmount;
+        if (charge.status === 'VOID') {
+          accumulator.voided += charge.totalAmount;
+        } else if (charge.status === 'DISPUTED') {
+          accumulator.disputed += charge.totalAmount;
+        } else {
+          accumulator.total += charge.totalAmount;
 
-        if (charge.status === 'PAID') {
-          accumulator.paid += charge.totalAmount;
-        } else if (charge.status === 'INVOICED') {
-          accumulator.invoiced += charge.totalAmount;
-        } else if (charge.status === 'APPROVED') {
-          accumulator.open += charge.totalAmount;
+          if (charge.status === 'PAID') {
+            accumulator.paid += charge.totalAmount;
+          } else if (charge.status === 'INVOICED') {
+            accumulator.invoiced += charge.totalAmount;
+          } else if (charge.status === 'APPROVED' && !charge.invoice) {
+            accumulator.open += charge.totalAmount;
+          }
         }
 
         accumulator.counts[charge.status] = (accumulator.counts[charge.status] || 0) + 1;
@@ -277,6 +409,8 @@ export async function GET(
         invoiced: 0,
         paid: 0,
         open: 0,
+        disputed: 0,
+        voided: 0,
         counts: {} as Record<string, number>,
       },
     );
@@ -290,6 +424,90 @@ export async function GET(
   } catch (error) {
     console.error('Error fetching shipment charges:', error);
     return NextResponse.json({ error: 'Failed to fetch shipment charges' }, { status: 500 });
+  }
+}
+
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (!hasAnyPermission(session.user.role, ['shipments:manage', 'invoices:manage', 'finance:manage'])) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const { id } = await params;
+    const access = await assertShipmentAccess(id, session.user.id, session.user.role);
+    if ('error' in access) {
+      return access.error;
+    }
+
+    const rawBody = await request.json().catch(() => ({}));
+    const parsed = createManualChargeSchema.safeParse(rawBody);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues[0]?.message || 'Invalid charge payload' },
+        { status: 400 },
+      );
+    }
+
+    const data = parsed.data;
+    const actorId = session.user.id;
+    const totalAmount = Math.round(data.quantity * data.unitAmount * 100) / 100;
+    const chargeCode = `MANUAL_${data.category}`;
+
+    const charge = await prisma.$transaction(async (tx) => {
+      const created = await tx.shipmentCharge.create({
+        data: {
+          shipmentId: access.shipment.id,
+          userId: access.shipment.userId,
+          sourceType: ShipmentChargeSourceType.MANUAL,
+          chargeCode,
+          category: data.category,
+          billingMilestone: data.billingMilestone,
+          description: data.description,
+          quantity: data.quantity,
+          unitAmount: data.unitAmount,
+          totalAmount,
+          currency: data.currency.toUpperCase(),
+          status: data.status,
+          billableAt: new Date(),
+          approvedAt: data.status === 'APPROVED' ? new Date() : null,
+          approvedBy: data.status === 'APPROVED' ? actorId : null,
+          notes: data.notes || null,
+          metadata: {
+            origin: 'manual-billing-tab',
+          },
+        },
+      });
+
+      await tx.shipmentChargeAuditLog.create({
+        data: {
+          chargeId: created.id,
+          action: 'MANUAL_CREATE',
+          description: `Manual shipment charge added: ${created.description}`,
+          performedBy: actorId,
+          newValue: created.status,
+          metadata: {
+            ...(data.notes ? { note: data.notes } : {}),
+            totalAmount,
+            currency: created.currency,
+          },
+        },
+      });
+
+      return created;
+    });
+
+    return NextResponse.json({ charge }, { status: 201 });
+  } catch (error) {
+    console.error('Error creating manual shipment charge:', error);
+    return NextResponse.json({ error: 'Failed to create shipment charge' }, { status: 500 });
   }
 }
 
@@ -315,7 +533,7 @@ export async function PATCH(
 
     const body = (await request.json().catch(() => ({}))) as {
       chargeIds?: string[];
-      status?: 'APPROVED' | 'DISPUTED';
+      status?: 'APPROVED' | 'DISPUTED' | 'VOID';
       note?: string;
     };
 
@@ -323,7 +541,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'At least one charge ID is required' }, { status: 400 });
     }
 
-    if (body.status !== 'APPROVED' && body.status !== 'DISPUTED') {
+    if (body.status !== 'APPROVED' && body.status !== 'DISPUTED' && body.status !== 'VOID') {
       return NextResponse.json({ error: 'Invalid bulk charge status update' }, { status: 400 });
     }
 
@@ -339,6 +557,7 @@ export async function PATCH(
         status: true,
         description: true,
         invoiceId: true,
+        metadata: true,
       },
     });
 
@@ -358,11 +577,13 @@ export async function PATCH(
         })
       : [];
     const linkedInvoiceMap = new Map(linkedInvoices.map((invoice) => [invoice.id, invoice]));
-    const mutableInvoiceStatuses = new Set(['DRAFT', 'PENDING']);
 
     const blockedCharge = charges.find((charge) => {
       const linkedInvoice = charge.invoiceId ? linkedInvoiceMap.get(charge.invoiceId) : undefined;
-      const invoiceMutable = Boolean(linkedInvoice && mutableInvoiceStatuses.has(linkedInvoice.status));
+      const invoiceMutable = Boolean(
+        linkedInvoice &&
+          (mutableInvoiceStatuses.has(linkedInvoice.status) || inactiveInvoiceStatuses.has(linkedInvoice.status)),
+      );
 
       if (charge.invoiceId && !invoiceMutable) {
         return true; // locked to an issued invoice
@@ -384,8 +605,20 @@ export async function PATCH(
 
     const actorId = session.user.id;
     await prisma.$transaction(async (tx) => {
+      const releasedLinks: Array<{ invoiceId: string; chargeId: string }> = [];
+
       for (const charge of charges) {
         const linkedInvoice = charge.invoiceId ? linkedInvoiceMap.get(charge.invoiceId) : undefined;
+        const isRestoringFromVoid = charge.status === 'VOID' && body.status === 'APPROVED';
+        const existingMeta =
+          charge.metadata && typeof charge.metadata === 'object' && !Array.isArray(charge.metadata)
+            ? { ...(charge.metadata as Record<string, unknown>) }
+            : {};
+        if (body.status === 'VOID') {
+          existingMeta.manuallyVoided = true;
+        } else if (isRestoringFromVoid) {
+          delete existingMeta.manuallyVoided;
+        }
 
         await tx.shipmentCharge.update({
           where: { id: charge.id },
@@ -393,23 +626,36 @@ export async function PATCH(
             status: body.status,
             approvedAt: body.status === 'APPROVED' ? new Date() : null,
             approvedBy: body.status === 'APPROVED' ? actorId : null,
-            notes: trimmedNote,
-            // Release the charge from a not-yet-issued invoice; the next invoice
-            // generation rebuilds the draft from approved charges.
-            ...(linkedInvoice
-              ? { invoiceId: null, invoicedAt: null }
+            voidedAt: body.status === 'VOID' ? new Date() : isRestoringFromVoid ? null : undefined,
+            ...(body.status === 'VOID' || isRestoringFromVoid
+              ? { metadata: existingMeta as Prisma.InputJsonValue }
               : {}),
+            ...(trimmedNote ? { notes: trimmedNote } : {}),
+            ...(linkedInvoice ? { invoiceId: null, invoicedAt: null } : {}),
           },
         });
+
+        if (linkedInvoice && mutableInvoiceStatuses.has(linkedInvoice.status)) {
+          releasedLinks.push({ invoiceId: linkedInvoice.id, chargeId: charge.id });
+        }
 
         await tx.shipmentChargeAuditLog.create({
           data: {
             chargeId: charge.id,
-            action: body.status === 'APPROVED' ? 'BULK_APPROVAL' : 'BULK_DISPUTE',
-            description:
-              body.status === 'APPROVED'
-                ? `Shipment charge approved in bulk: ${charge.description}`
-                : `Shipment charge disputed in bulk: ${charge.description}`,
+            action: isRestoringFromVoid
+              ? 'RESTORE_FROM_VOID'
+              : body.status === 'APPROVED'
+              ? 'BULK_APPROVAL'
+              : body.status === 'VOID'
+              ? 'BULK_VOID'
+              : 'BULK_DISPUTE',
+            description: isRestoringFromVoid
+              ? `Shipment charge restored from void in bulk: ${charge.description}`
+              : body.status === 'APPROVED'
+              ? `Shipment charge approved in bulk: ${charge.description}`
+              : body.status === 'VOID'
+              ? `Shipment charge voided in bulk: ${charge.description}`
+              : `Shipment charge disputed in bulk: ${charge.description}`,
             performedBy: actorId,
             oldValue: charge.status,
             newValue: body.status,
@@ -423,6 +669,10 @@ export async function PATCH(
             },
           },
         });
+      }
+
+      if (releasedLinks.length > 0) {
+        await syncMutableInvoicesAfterChargeRelease(tx, releasedLinks);
       }
     });
 

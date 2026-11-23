@@ -993,6 +993,12 @@ export async function PATCH(
           discount,
           tax,
           status: invoiceUpdateData.status ?? currentInvoice.status,
+          ...(invoiceUpdateData.status === 'VOID' && previousStatus !== 'VOID'
+            ? {
+                voidedAt: new Date(),
+                voidedReason: invoiceUpdateData.notes ?? 'Voided',
+              }
+            : {}),
         },
         include: {
           user: true,
@@ -1005,8 +1011,11 @@ export async function PATCH(
         },
       });
 
-      // When marking as VOID: release charges so they can be re-invoiced.
-      if (invoiceUpdateData.status === 'VOID' && previousStatus !== 'VOID') {
+      // When marking as VOID or CANCELLED: release charges so they can be disputed or re-invoiced.
+      if (
+        (invoiceUpdateData.status === 'VOID' || invoiceUpdateData.status === 'CANCELLED') &&
+        previousStatus !== invoiceUpdateData.status
+      ) {
         await releaseInvoiceShipmentCharges(tx, updatedInvoice.id);
       }
 

@@ -110,7 +110,7 @@ export async function materializeContainerShipmentCharges(
     const damageCreditSourceId = `shipment:${shipment.id}:damage-credit`;
     const damageCompensationSourceId = `shipment:${shipment.id}:damage-compensation`;
 
-    if ((shipment.purchasePrice || 0) > 0) {
+    if (shipment.serviceType === 'PURCHASE_AND_SHIPPING' && (shipment.purchasePrice || 0) > 0) {
       await upsertShipmentSystemCharge(tx, {
         shipmentId: shipment.id,
         userId: shipment.userId,

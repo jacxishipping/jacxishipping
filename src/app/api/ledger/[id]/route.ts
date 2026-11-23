@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { recalculateCompanyLedgerBalances } from '@/lib/company-ledger';
+import {
+  syncShipmentChargeFromLedgerEntry,
+  voidShipmentChargeSource,
+} from '@/lib/billing/shipment-charges';
 import { z } from 'zod';
 import { hasPermission } from '@/lib/rbac';
 
@@ -128,6 +132,22 @@ export async function PATCH(
       },
     });
 
+    if (updatedEntry.shipmentId && updatedEntry.type === 'DEBIT') {
+      await syncShipmentChargeFromLedgerEntry(prisma, {
+        entryId: updatedEntry.id,
+        userId: updatedEntry.userId,
+        shipmentId: updatedEntry.shipmentId,
+        description: updatedEntry.description,
+        type: 'DEBIT',
+        amount: updatedEntry.amount,
+        transactionDate: updatedEntry.transactionDate,
+        transactionInfoType: updatedEntry.transactionInfoType,
+        notes: updatedEntry.notes,
+        metadata: updatedEntry.metadata,
+        actorId: session.user.id || updatedEntry.createdBy,
+      });
+    }
+
     return NextResponse.json({ entry: updatedEntry });
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -199,13 +219,20 @@ export async function DELETE(
             shipmentId: entry.shipmentId,
             description: entry.description,
             amount: entry.amount,
-            invoice: { status: { notIn: ['PAID', 'CANCELLED'] } },
+            invoice: { status: { notIn: ['PAID', 'CANCELLED', 'VOID'] } },
           },
-          include: { invoice: { select: { id: true, subtotal: true, discount: true, tax: true } } },
+          include: {
+            invoice: {
+              select: { id: true, subtotal: true, discount: true, tax: true, amountPaid: true },
+            },
+          },
         });
 
         if (matchingLineItems.length > 0) {
-          const invoiceAdjustments = new Map<string, { subtotal: number; discount: number | null; tax: number | null; removedAmount: number }>();
+          const invoiceAdjustments = new Map<
+            string,
+            { subtotal: number; discount: number | null; tax: number | null; amountPaid: number; removedAmount: number }
+          >();
 
           for (const lineItem of matchingLineItems) {
             const existing = invoiceAdjustments.get(lineItem.invoice.id);
@@ -216,6 +243,7 @@ export async function DELETE(
                 subtotal: lineItem.invoice.subtotal,
                 discount: lineItem.invoice.discount,
                 tax: lineItem.invoice.tax,
+                amountPaid: lineItem.invoice.amountPaid ?? 0,
                 removedAmount: lineItem.amount,
               });
             }
@@ -228,14 +256,20 @@ export async function DELETE(
           });
 
           for (const [invoiceId, adjustment] of invoiceAdjustments.entries()) {
-            const newSubtotal = adjustment.subtotal - adjustment.removedAmount;
-            const newTotal = newSubtotal - (adjustment.discount ?? 0) + (adjustment.tax ?? 0);
+            const newSubtotal = Math.max(0, adjustment.subtotal - adjustment.removedAmount);
+            const newTotal = Math.max(0, newSubtotal - (adjustment.discount ?? 0) + (adjustment.tax ?? 0));
+            const newAmountRemaining = Math.max(0, newTotal - adjustment.amountPaid);
             await tx.userInvoice.update({
               where: { id: invoiceId },
-              data: { subtotal: newSubtotal, total: newTotal },
+              data: { subtotal: newSubtotal, total: newTotal, amountRemaining: newAmountRemaining },
             });
           }
         }
+      }
+
+      // Void any linked shipment charge so deleted expenses do not stay APPROVED in Billing.
+      if (entry.shipmentId) {
+        await voidShipmentChargeSource(tx, 'LEDGER_ENTRY', params.id);
       }
 
       // Delete the user ledger entry
