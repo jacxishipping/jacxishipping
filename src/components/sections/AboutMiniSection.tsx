@@ -1,80 +1,79 @@
-import { CheckCircle2, Globe2, ShieldCheck, Truck } from 'lucide-react';
+import Link from 'next/link';
+import { ArrowRight, Bell, MapPin, Receipt } from 'lucide-react';
 
-const highlights = [
-  'Licensed and bonded coordination',
-  'Dedicated vehicle logistics support',
-  'All Afghan provinces covered',
-  'Free route consultation',
-];
-
-const trustCards = [
+const portalHighlights = [
   {
-    icon: ShieldCheck,
-    title: 'High-trust handling',
-    description: 'Vehicle inspections, secure loading, and milestone communication are built into the workflow.',
+    icon: MapPin,
+    title: 'Live shipment tracking',
+    description: 'Follow container milestones across pickup, port loading, transit, customs, and delivery.',
   },
   {
-    icon: Globe2,
-    title: 'Corridor expertise',
-    description: 'USA and Canada pickup coordination with Mersin or UAE route planning into Afghanistan.',
+    icon: Receipt,
+    title: 'Invoices & documents',
+    description: 'View bills of lading, inspection photos, balances, and payment receipts in one browser portal.',
   },
   {
-    icon: Truck,
-    title: 'Final-mile network',
-    description: 'Delivery support from Herat to major cities and province destinations across Afghanistan.',
+    icon: Bell,
+    title: 'Milestone notifications',
+    description: 'Automatic status alerts when container handoffs, customs clearances, or deliveries post.',
   },
 ];
 
 export default function AboutMiniSection() {
-	return (
-		<section id="about" className="relative overflow-hidden bg-[var(--background)] py-16 sm:py-20 scroll-mt-20">
-			<div id="about-us" className="absolute -top-20" aria-hidden="true" />
-			<div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-				<div className="grid gap-10 lg:grid-cols-[0.82fr_1.18fr] lg:items-start">
-					<div>
-						<p className="landing-reveal is-visible text-xs font-mono font-bold uppercase tracking-[0.2em] text-[var(--text-secondary)]">Our story</p>
-						<h2 className="landing-reveal is-visible mt-4 max-w-xl text-4xl font-bold leading-tight text-[var(--text-primary)] sm:text-5xl">
-							A specialist car shipping partner for Afghan importers.
-						</h2>
-						<p className="landing-reveal is-visible mt-5 max-w-2xl text-base leading-7 text-[var(--text-secondary)] sm:text-lg">
-							JACXI Shipping has been building vehicle logistics from the USA and Canada to Afghanistan for over a decade. We combine customs support, tracking, and careful route coordination so families and businesses can move vehicles with confidence.
-						</p>
-						<p className="landing-reveal is-visible mt-4 max-w-2xl text-base leading-7 text-[var(--text-secondary)] sm:text-lg">
-							We understand the unique needs of Afghan expatriates and businesses importing vehicles, and we design the process to be direct, transparent, and reliable.
-						</p>
+  return (
+    <section id="about" className="relative border-t border-[#E5E7EB] bg-white py-20 sm:py-24 scroll-mt-16">
+      <div id="about-us" className="absolute -top-16" aria-hidden="true" />
 
-						<div className="landing-reveal is-visible mt-7 grid gap-2 sm:grid-cols-2">
-							{highlights.map((item) => (
-								<div key={item} className="flex items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--panel)] px-4 py-3">
-									<CheckCircle2 className="h-4 w-4 text-slate-900" />
-									<span className="text-sm font-bold text-[var(--text-primary)]">{item}</span>
-								</div>
-							))}
-						</div>
-					</div>
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+        <div className="grid gap-12 lg:grid-cols-[1fr_1.1fr] lg:items-start">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#6B5C17]">
+              About JACXI &amp; Portal
+            </p>
+            <h2 className="mt-3 text-3xl font-semibold tracking-[-0.025em] text-[#1C1C1E] sm:text-4xl">
+              Over a decade moving vehicles into Afghanistan.
+            </h2>
+            <p className="mt-4 text-base leading-relaxed text-[#5F6368]">
+              JACXI Shipping specializes exclusively in North America to Afghanistan vehicle
+              logistics. Every shipment is backed by licensed export handling, direct corridor
+              coordination, and a web customer portal—no separate app required.
+            </p>
 
-					<div className="grid gap-3">
-						<div className="landing-reveal is-visible grid gap-3">
-							{trustCards.map((card) => {
-								const Icon = card.icon;
-								return (
-									<div key={card.title} className="rounded-xl border border-[var(--border)] bg-[var(--panel)] p-5 jx-elevation-1 transition-all duration-300 jx-spring hover:border-black/20 hover:shadow-md">
-										<div className="flex gap-4">
-											<div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-black/5 text-slate-900">
-												<Icon className="h-5 w-5" />
-											</div>
-											<div>
-												<h3 className="text-lg font-bold text-[var(--text-primary)]">{card.title}</h3>
-												<p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">{card.description}</p>
-											</div>
-										</div>
-									</div>
-								);
-							})}
-						</div>
-					</div>
-				</div>
-			</div>
-		</section>
-	);
+            <div className="mt-7 flex flex-wrap items-center gap-4">
+              <Link
+                href="/auth/signin"
+                className="inline-flex h-11 items-center gap-2 rounded-lg border border-[#E5E7EB] bg-white px-5 text-sm font-medium text-[#1C1C1E] transition-colors hover:border-[#1C1C1E]/30 hover:bg-[#F9FAFB]"
+              >
+                <span>Open customer portal</span>
+                <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              </Link>
+              <Link
+                href="/tracking"
+                className="inline-flex h-11 items-center px-2 text-sm font-medium text-[#5F6368] transition-colors hover:text-[#1C1C1E]"
+              >
+                Public container lookup
+              </Link>
+            </div>
+          </div>
+
+          <div className="divide-y divide-[#E5E7EB] rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB]/60">
+            {portalHighlights.map((item) => {
+              const Icon = item.icon;
+              return (
+                <div key={item.title} className="flex items-start gap-4 p-5 sm:p-6">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#E5E7EB] bg-white text-[#1C1C1E]">
+                    <Icon className="h-4 w-4" aria-hidden="true" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-semibold text-[#1C1C1E]">{item.title}</h3>
+                    <p className="mt-1 text-sm leading-relaxed text-[#5F6368]">{item.description}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
 }

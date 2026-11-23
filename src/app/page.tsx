@@ -6,10 +6,7 @@ import QuoteFormSection from '@/components/sections/QuoteFormSection';
 import ContactSection from '@/components/sections/home/ContactSection';
 import FAQSection from '@/components/sections/home/FAQSection';
 import HeroSection from '@/components/sections/home/HeroSection';
-import LandingScrollAnimator from '@/components/sections/home/LandingScrollAnimator';
-import MobileAppPromoSection from '@/components/sections/home/MobileAppPromoSection';
 import ProcessSection from '@/components/sections/home/ProcessSection';
-import ProvinceCoverageSection from '@/components/sections/home/ProvinceCoverageSection';
 import PublicRateCalculatorSection from '@/components/sections/PublicRateCalculatorSection';
 import RoutesAnimatedSection from '@/components/sections/RoutesAnimatedSection';
 import ServicesPreviewSection from '@/components/sections/home/ServicesPreviewSection';
@@ -71,7 +68,7 @@ export default function Home() {
   return (
     <div
       style={landingLightTokens}
-      className="min-h-screen bg-[#F9FAFB] text-[#1C1C1E] font-sans selection:bg-[#D4AF37] selection:text-[#1C1C1E]"
+      className="min-h-screen bg-white text-[#1C1C1E] font-sans selection:bg-[#D4AF37] selection:text-[#1C1C1E]"
     >
       <script
         type="application/ld+json"
@@ -79,18 +76,15 @@ export default function Home() {
       />
       <Header />
       <main id="main-content">
-        <LandingScrollAnimator />
         <HeroSection />
         <RoutesAnimatedSection />
         <ServicesPreviewSection />
         <ProcessSection />
-        <ProvinceCoverageSection />
         <PublicRateCalculatorSection />
-        <MobileAppPromoSection />
         <TestimonialsSection />
+        <AboutMiniSection />
         <FAQSection />
         <QuoteFormSection />
-        <AboutMiniSection />
         <ContactSection />
       </main>
       <Footer />

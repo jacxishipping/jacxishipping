@@ -1,28 +1,26 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin } from 'lucide-react';
-import { SpringButton } from '@jacxishippingorg/jx-ui-react';
+import { ArrowRight } from 'lucide-react';
 
 const origins = [
-  { id: 'ca-east', name: 'East Coast (NY/NJ/PA)', stateCode: 'NJ' },
-  { id: 'ca-west', name: 'West Coast (CA/WA)', stateCode: 'CA' },
-  { id: 'canada', name: 'Canada (Toronto/Montreal)', stateCode: null },
-  { id: 'tx', name: 'South (TX/FL)', stateCode: 'TX' },
+  { id: 'ca-east', name: 'East Coast (NY / NJ / PA)', stateCode: 'NJ' },
+  { id: 'ca-west', name: 'West Coast (CA / WA)', stateCode: 'CA' },
+  { id: 'canada', name: 'Canada (Toronto / Montreal)', stateCode: null },
+  { id: 'tx', name: 'South (TX / FL)', stateCode: 'TX' },
 ];
 
 const destinations = [
-  { id: 'kbl', name: 'Kabul via Mersin', province: 'Kabul', price: 4500, time: '35-45 days' },
-  { id: 'hrt', name: 'Herat via UAE', province: 'Herat', price: 4200, time: '30-40 days' },
-  { id: 'kdh', name: 'Kandahar via UAE', province: 'Kandahar', price: 4400, time: '30-42 days' },
-  { id: 'mez', name: 'Mazar-i-Sharif via Mersin', province: 'Mazar-i-Sharif', price: 4600, time: '38-48 days' },
+  { id: 'kbl', name: 'Kabul via Mersin', province: 'Kabul', price: 4500, time: '35–45d' },
+  { id: 'hrt', name: 'Herat via UAE', province: 'Herat', price: 4200, time: '30–40d' },
+  { id: 'kdh', name: 'Kandahar via UAE', province: 'Kandahar', price: 4400, time: '30–42d' },
+  { id: 'mez', name: 'Mazar-i-Sharif via Mersin', province: 'Mazar-i-Sharif', price: 4600, time: '38–48d' },
 ];
 
 const vehicleTypes = [
-  { id: 'sedan', name: 'Standard Sedan', multiplier: 1 },
+  { id: 'sedan', name: 'Sedan', multiplier: 1 },
   { id: 'suv', name: 'SUV / Truck', multiplier: 1.25 },
-  { id: 'van', name: 'Van / Large Cargo', multiplier: 1.5 },
+  { id: 'van', name: 'Van / Cargo', multiplier: 1.5 },
 ];
 
 export default function PublicRateCalculatorSection() {
@@ -87,154 +85,162 @@ export default function PublicRateCalculatorSection() {
   };
 
   return (
-    <section id="calculator" className="relative bg-[#F9FAFB] py-16 sm:py-20 lg:py-24 text-[#1C1C1E] overflow-hidden scroll-mt-20">
-      <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-[0.05] pointer-events-none" />
-
-      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="text-center max-w-3xl mx-auto mb-10 sm:mb-16">
-          <div className="inline-flex items-center gap-3 justify-center mb-4 sm:mb-6">
-            <span className="h-px w-6 bg-black/25" />
-            <span className="text-xs font-mono font-semibold uppercase tracking-[0.2em] text-[#5F6368]">Estimator</span>
-            <span className="h-px w-6 bg-black/25" />
-          </div>
-          <h2 className="text-3xl font-bold tracking-tight sm:text-5xl lg:text-6xl text-[#1C1C1E] mb-4 sm:mb-6">
+    <section id="calculator" className="border-t border-[#E5E7EB] bg-white py-20 sm:py-24 scroll-mt-16">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+        <div className="max-w-2xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#6B5C17]">
+            Rate estimator
+          </p>
+          <h2 className="mt-3 text-3xl font-semibold tracking-[-0.025em] text-[#1C1C1E] sm:text-4xl">
             Instant lane pricing.
           </h2>
-          <p className="text-base sm:text-xl text-[#5F6368]">
-            Estimates use active shipping price lists where available. A firm quote confirms vehicle, pickup, and destination details.
+          <p className="mt-3 text-base leading-relaxed text-[#5F6368]">
+            Estimates use active origin rate tables where available. Request a firm quote to lock exact pickup and vehicle details.
           </p>
         </div>
 
-        <div className="grid gap-8 lg:gap-12 lg:grid-cols-[1.4fr_1fr] items-start">
-          <div className="space-y-8 sm:space-y-10">
-            {/* Origin Selection */}
+        <div className="mt-10 grid gap-8 lg:grid-cols-[1.35fr_1fr] lg:items-start">
+          <div className="space-y-7">
             <div>
-              <p className="text-xs font-mono font-semibold uppercase tracking-[0.2em] text-[#5F6368] mb-3">01. Origin Zone</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {origins.map((o) => (
-                  <SpringButton
-                    key={o.id}
-                    onClick={() => setOrigin(o)}
-                    aria-pressed={origin.id === o.id}
-                    className={`flex items-center p-3.5 sm:p-4 rounded-xl border text-left transition-all ${
-                      origin.id === o.id
-                        ? 'border-slate-900 bg-white shadow-sm ring-1 ring-slate-900'
-                        : 'border-[#E5E7EB] bg-white/75 hover:bg-white'
-                    }`}
-                  >
-                    <MapPin className={`h-4 w-4 sm:h-5 sm:w-5 shrink-0 mr-3 ${origin.id === o.id ? 'text-[#6B5C17]' : 'text-[#5F6368]'}`} aria-hidden="true" />
-                    <span className={`text-sm sm:text-base font-semibold ${origin.id === o.id ? 'text-[#1C1C1E]' : 'text-[#374151]'}`}>{o.name}</span>
-                  </SpringButton>
-                ))}
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[#5F6368]">
+                1. Origin zone
+              </p>
+              <div className="grid gap-2.5 sm:grid-cols-2">
+                {origins.map((o) => {
+                  const selected = origin.id === o.id;
+                  return (
+                    <button
+                      key={o.id}
+                      type="button"
+                      onClick={() => setOrigin(o)}
+                      aria-pressed={selected}
+                      className={`flex min-h-[46px] items-center rounded-lg border px-4 py-2.5 text-left text-sm font-medium transition-colors ${
+                        selected
+                          ? 'border-[#1C1C1E] bg-[#1C1C1E] text-white'
+                          : 'border-[#E5E7EB] bg-white text-[#1C1C1E] hover:border-[#1C1C1E]/30 hover:bg-[#F9FAFB]'
+                      }`}
+                    >
+                      {o.name}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
-            {/* Destination Selection */}
             <div>
-              <p className="text-xs font-mono font-semibold uppercase tracking-[0.2em] text-[#5F6368] mb-3">02. Destination Route</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {destinations.map((d) => (
-                  <SpringButton
-                    key={d.id}
-                    onClick={() => setDest(d)}
-                    aria-pressed={dest.id === d.id}
-                    className={`flex items-center justify-between p-3.5 sm:p-4 rounded-xl border text-left transition-all ${
-                      dest.id === d.id
-                        ? 'border-slate-900 bg-white shadow-sm ring-1 ring-slate-900'
-                        : 'border-[#E5E7EB] bg-white/75 hover:bg-white'
-                    }`}
-                  >
-                    <span className={`text-sm sm:text-base font-semibold ${dest.id === d.id ? 'text-[#1C1C1E]' : 'text-[#374151]'}`}>{d.name}</span>
-                    <span className={`text-xs font-mono shrink-0 ml-2 px-2 py-1 rounded-full ${dest.id === d.id ? 'bg-black/5 text-[#1C1C1E] font-bold' : 'bg-black/5 text-[#5F6368]'}`}>
-                      {d.time}
-                    </span>
-                  </SpringButton>
-                ))}
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[#5F6368]">
+                2. Destination route
+              </p>
+              <div className="grid gap-2.5 sm:grid-cols-2">
+                {destinations.map((d) => {
+                  const selected = dest.id === d.id;
+                  return (
+                    <button
+                      key={d.id}
+                      type="button"
+                      onClick={() => setDest(d)}
+                      aria-pressed={selected}
+                      className={`flex min-h-[46px] items-center justify-between gap-2 rounded-lg border px-4 py-2.5 text-left text-sm font-medium transition-colors ${
+                        selected
+                          ? 'border-[#1C1C1E] bg-[#1C1C1E] text-white'
+                          : 'border-[#E5E7EB] bg-white text-[#1C1C1E] hover:border-[#1C1C1E]/30 hover:bg-[#F9FAFB]'
+                      }`}
+                    >
+                      <span>{d.name}</span>
+                      <span
+                        className={`text-xs tabular-nums ${
+                          selected ? 'text-white/75' : 'text-[#5F6368]'
+                        }`}
+                      >
+                        {d.time}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
-            {/* Vehicle Type Selection */}
             <div>
-              <p className="text-xs font-mono font-semibold uppercase tracking-[0.2em] text-[#5F6368] mb-3">03. Vehicle Class</p>
-              <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                {vehicleTypes.map((v) => (
-                  <button
-                    key={v.id}
-                    type="button"
-                    onClick={() => setVType(v)}
-                    aria-pressed={vType.id === v.id}
-                    className={`flex justify-center items-center py-3 px-2 rounded-xl border text-center transition-all text-xs sm:text-sm ${
-                      vType.id === v.id
-                        ? 'border-slate-950 bg-slate-950 text-white font-bold shadow-md'
-                        : 'border-[#E5E7EB] bg-white/75 text-[#1C1C1E] hover:bg-white font-medium'
-                    }`}
-                  >
-                    {v.name}
-                  </button>
-                ))}
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[#5F6368]">
+                3. Vehicle class
+              </p>
+              <div className="grid grid-cols-3 gap-2.5">
+                {vehicleTypes.map((v) => {
+                  const selected = vType.id === v.id;
+                  return (
+                    <button
+                      key={v.id}
+                      type="button"
+                      onClick={() => setVType(v)}
+                      aria-pressed={selected}
+                      className={`flex min-h-[44px] items-center justify-center rounded-lg border px-3 py-2 text-center text-sm font-medium transition-colors ${
+                        selected
+                          ? 'border-[#1C1C1E] bg-[#1C1C1E] text-white'
+                          : 'border-[#E5E7EB] bg-white text-[#1C1C1E] hover:border-[#1C1C1E]/30 hover:bg-[#F9FAFB]'
+                      }`}
+                    >
+                      {v.name}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
 
-          <motion.div className="lg:sticky lg:top-28 rounded-2xl border border-[#E5E7EB] bg-white p-6 sm:p-8 shadow-lg relative overflow-hidden">
-            <p className="text-xs font-bold uppercase tracking-widest text-[#5F6368] mb-4">Estimated Subtotal</p>
+          <div className="rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] p-6 sm:p-7">
+            <p className="text-xs font-semibold uppercase tracking-wider text-[#5F6368]">
+              Estimated subtotal
+            </p>
 
-            <div className="flex items-baseline text-[#1C1C1E] mb-6" role="status">
+            <div className="mt-3 flex items-baseline text-[#1C1C1E]" role="status">
               {rateStatus === 'loading' ? (
-                <span className="inline-block h-12 w-44 animate-pulse rounded-lg bg-slate-200 sm:h-14" aria-label="Checking current origin pricing" />
+                <span
+                  className="inline-block h-11 w-40 animate-pulse rounded-lg bg-[#E5E7EB]"
+                  aria-label="Checking current origin pricing"
+                />
               ) : basePrice === null ? (
-                <span className="text-3xl font-bold tracking-tight leading-none sm:text-4xl">Price on request</span>
+                <span className="text-3xl font-semibold tracking-tight">Price on request</span>
               ) : (
-                <>
-                  <span className="text-2xl sm:text-3xl text-[#5F6368] font-light mr-1">$</span>
-                  <AnimatePresence mode="popLayout">
-                    <motion.span
-                      key={basePrice}
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 10, position: 'absolute' }}
-                      transition={{ duration: 0.3 }}
-                      className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-none tabular-nums"
-                    >
-                      {basePrice.toLocaleString()}
-                    </motion.span>
-                  </AnimatePresence>
-                </>
+                <span className="text-4xl font-semibold tracking-tight tabular-nums sm:text-5xl">
+                  ${basePrice.toLocaleString()}
+                </span>
               )}
             </div>
 
-            <div className="space-y-3 mb-6 border-t border-[#E5E7EB] pt-4">
-              <div className="flex justify-between text-xs sm:text-sm">
-                <span className="text-[#5F6368]">Origin transport</span>
-                <span className="font-mono font-semibold text-[#1C1C1E]">
+            <dl className="mt-6 space-y-3 border-t border-[#E5E7EB] pt-5 text-sm">
+              <div className="flex items-center justify-between gap-4">
+                <dt className="text-[#5F6368]">Origin transport</dt>
+                <dd className="font-medium text-[#1C1C1E] tabular-nums">
                   {originRate === null ? 'Custom quote' : `$${(originRate * vType.multiplier).toLocaleString()}`}
-                </span>
+                </dd>
               </div>
-              <div className="flex justify-between text-xs sm:text-sm">
-                <span className="text-[#5F6368]">Ocean / Export Transit</span>
-                <span className="font-mono font-semibold text-[#1C1C1E]">
+              <div className="flex items-center justify-between gap-4">
+                <dt className="text-[#5F6368]">Ocean & export transit</dt>
+                <dd className="font-medium text-[#1C1C1E] tabular-nums">
                   {originRate === null ? 'Included in firm quote' : `$${(dest.price * vType.multiplier).toLocaleString()}`}
-                </span>
+                </dd>
               </div>
-            </div>
+              <div className="flex items-center justify-between gap-4">
+                <dt className="text-[#5F6368]">Est. transit</dt>
+                <dd className="font-medium text-[#1C1C1E] tabular-nums">{dest.time}</dd>
+              </div>
+            </dl>
 
-            <p className="mb-6 text-xs sm:text-sm text-[#5F6368] leading-relaxed" role="status">
+            <p className="mt-5 text-xs leading-relaxed text-[#5F6368]" role="status">
               {rateStatus === 'loading' && 'Checking current origin pricing…'}
               {rateStatus === 'available' && 'Based on active origin pricing; destination transit is an estimate.'}
-              {rateStatus === 'unavailable' && 'This corridor is priced directly by our dispatch desk. Click below to pre-fill your quote request.'}
+              {rateStatus === 'unavailable' && 'This corridor is priced directly by dispatch. Click below to pre-fill your quote.'}
             </p>
 
-            <SpringButton
+            <button
               type="button"
               onClick={handleRequestQuote}
-              className="group relative flex w-full h-12 sm:h-14 items-center justify-center overflow-hidden rounded-xl bg-slate-950 font-bold text-white shadow-lg transition-transform hover:brightness-110"
+              className="mt-6 inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-[#1C1C1E] px-5 text-sm font-medium text-white transition-colors hover:bg-[#333336]"
             >
-              <div className="absolute inset-0 bg-[#D4AF37] translate-y-full transition-transform duration-300 ease-out group-hover:translate-y-0" />
-              <span className="relative z-10 text-white transition-colors duration-300 group-hover:text-slate-950 text-sm sm:text-base">
-                Request exact quote
-              </span>
-            </SpringButton>
-          </motion.div>
+              <span>Request exact quote</span>
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </button>
+          </div>
         </div>
       </div>
     </section>

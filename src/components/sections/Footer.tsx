@@ -1,6 +1,3 @@
-'use client';
-
-import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { SiteMark } from '@/components/brand/SiteLogo';
 
@@ -24,118 +21,96 @@ const footerNavigation = {
   ],
   legal: [
     { name: 'Privacy policy', href: '/legal/app-privacy-policy' },
-    // Terms of service / Cookie policy pages do not exist yet — no link
-    // is shown for them rather than pointing both at the privacy policy.
   ],
 };
 
 export default function Footer() {
   return (
-    <footer className="relative bg-[#F9FAFB] pt-16 sm:pt-24 lg:pt-32 pb-12 overflow-hidden selection:bg-[#D4AF37] selection:text-gray-900" aria-labelledby="footer-heading">
+    <footer className="border-t border-[#E5E7EB] bg-white text-[#1C1C1E]" aria-labelledby="footer-heading">
       <h2 id="footer-heading" className="sr-only">Footer</h2>
-      
-      {/* Abstract Background Effects */}
-      <div className="absolute inset-0 z-0">
-        <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-[0.02]" />
-      </div>
 
-      <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        
-        {/* Giant Typographic CTA */}
-        <div className="mb-16 sm:mb-28 flex flex-col items-center justify-center text-center">
-          <motion.h3
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.25 }}
-            transition={{ duration: 0.6, ease: 'easeOut' }}
-            className="text-4xl font-bold leading-none tracking-tight text-[#1C1C1E] sm:text-7xl md:text-8xl lg:text-9xl"
-          >
-            READY TO <br />
-            <span className="text-[#D4AF37] font-serif font-light italic tracking-normal">SHIP?</span>
-          </motion.h3>
-
-          <motion.div
-            initial={{ opacity: 0, scale: 0.88 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true, amount: 0.25 }}
-            transition={{ duration: 0.5, delay: 0.15 }}
-            className="mt-8 sm:mt-10 relative z-10"
-          >
-            <Link
-              href="/#quote"
-              className="group relative flex h-24 w-24 sm:h-36 sm:w-36 items-center justify-center rounded-full bg-slate-950 text-white shadow-lg transition-transform hover:scale-105"
-            >
-              <div className="absolute inset-0 rounded-full border border-[#D4AF37] scale-150 opacity-0 group-hover:scale-100 group-hover:opacity-100 transition-all duration-500 ease-out" />
-              <span className="text-xs sm:text-sm font-bold uppercase tracking-widest text-[#D4AF37] group-hover:text-white transition-colors">Start now</span>
+      <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:px-8 lg:py-16">
+        <div className="grid gap-10 lg:grid-cols-[1.3fr_2fr] lg:gap-12">
+          <div className="space-y-4">
+            <Link href="/" className="inline-flex items-center gap-2.5">
+              <SiteMark size={28} className="h-7 w-7 shrink-0" />
+              <span className="text-base font-semibold tracking-tight text-[#1C1C1E]">JACXI Shipping</span>
             </Link>
-          </motion.div>
+            <p className="max-w-xs text-sm leading-relaxed text-[#5F6368]">
+              Vehicle logistics from the USA and Canada to Afghanistan via Mersin and UAE corridors.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">
+            <div>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-[#1C1C1E]">Solutions</h3>
+              <ul role="list" className="mt-4 space-y-2.5">
+                {footerNavigation.solutions.map((item) => (
+                  <li key={item.name}>
+                    <Link
+                      href={item.href}
+                      className="inline-flex min-h-[28px] items-center text-sm text-[#5F6368] transition-colors hover:text-[#1C1C1E]"
+                    >
+                      {item.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-[#1C1C1E]">Support</h3>
+              <ul role="list" className="mt-4 space-y-2.5">
+                {footerNavigation.support.map((item) => (
+                  <li key={item.name}>
+                    <Link
+                      href={item.href}
+                      className="inline-flex min-h-[28px] items-center text-sm text-[#5F6368] transition-colors hover:text-[#1C1C1E]"
+                    >
+                      {item.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-[#1C1C1E]">Company</h3>
+              <ul role="list" className="mt-4 space-y-2.5">
+                {footerNavigation.company.map((item) => (
+                  <li key={item.name}>
+                    <Link
+                      href={item.href}
+                      className="inline-flex min-h-[28px] items-center text-sm text-[#5F6368] transition-colors hover:text-[#1C1C1E]"
+                    >
+                      {item.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-[#1C1C1E]">Legal</h3>
+              <ul role="list" className="mt-4 space-y-2.5">
+                {footerNavigation.legal.map((item) => (
+                  <li key={item.name}>
+                    <Link
+                      href={item.href}
+                      className="inline-flex min-h-[28px] items-center text-sm text-[#5F6368] transition-colors hover:text-[#1C1C1E]"
+                    >
+                      {item.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
         </div>
 
-        <div className="grid border-t border-black/5 pt-12 sm:pt-16 xl:grid-cols-3 xl:gap-8">
-          <div className="space-y-6 sm:space-y-8 xl:col-span-1">
-            <SiteMark size={56} className="h-14 w-14 text-[#1C1C1E] relative z-10" />
-            <p className="max-w-xs text-sm leading-relaxed text-[#5F6368]">
-              Premium vehicle logistics from North America to Afghanistan. Flawless handling through trusted corridors.
-            </p>
-            <div className="flex gap-x-6">
-              <span className="text-xs font-mono uppercase tracking-widest text-[#6B5C17] font-semibold">© 2026 JACXI SHIPPING</span>
-            </div>
-          </div>
-          
-          <div className="mt-16 grid grid-cols-2 gap-8 xl:col-span-2 xl:mt-0">
-            <div className="md:grid md:grid-cols-2 md:gap-8">
-              <div>
-                <h3 className="text-sm font-bold text-gray-900 tracking-widest uppercase">Solutions</h3>
-                <ul role="list" className="mt-6 space-y-3">
-                  {footerNavigation.solutions.map((item) => (
-                    <li key={item.name}>
-                      <Link href={item.href} className="inline-flex min-h-[28px] items-center py-1 text-sm text-black/60 hover:text-gray-900 transition-colors">
-                        {item.name}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div className="mt-10 md:mt-0">
-                <h3 className="text-sm font-bold text-gray-900 tracking-widest uppercase">Support</h3>
-                <ul role="list" className="mt-6 space-y-3">
-                  {footerNavigation.support.map((item) => (
-                    <li key={item.name}>
-                      <Link href={item.href} className="inline-flex min-h-[28px] items-center py-1 text-sm text-black/60 hover:text-gray-900 transition-colors">
-                        {item.name}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-            <div className="md:grid md:grid-cols-2 md:gap-8">
-              <div>
-                <h3 className="text-sm font-bold text-gray-900 tracking-widest uppercase">Company</h3>
-                <ul role="list" className="mt-6 space-y-3">
-                  {footerNavigation.company.map((item) => (
-                    <li key={item.name}>
-                      <Link href={item.href} className="inline-flex min-h-[28px] items-center py-1 text-sm text-black/60 hover:text-gray-900 transition-colors">
-                        {item.name}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div className="mt-10 md:mt-0">
-                <h3 className="text-sm font-bold text-gray-900 tracking-widest uppercase">Legal</h3>
-                <ul role="list" className="mt-6 space-y-3">
-                  {footerNavigation.legal.map((item) => (
-                    <li key={item.name}>
-                      <Link href={item.href} className="inline-flex min-h-[28px] items-center py-1 text-sm text-black/60 hover:text-gray-900 transition-colors">
-                        {item.name}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          </div>
+        <div className="mt-12 flex flex-col items-start justify-between gap-3 border-t border-[#E5E7EB] pt-6 text-xs text-[#5F6368] sm:flex-row sm:items-center">
+          <p>© {new Date().getFullYear()} JACXI Shipping. All rights reserved.</p>
+          <p>Herat Customs Department · USA & Canada Export Operations</p>
         </div>
       </div>
     </footer>

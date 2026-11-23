@@ -1,10 +1,8 @@
 'use client';
 
-import { JacxiButton } from '@/components/design-system/JacxiButton';
 import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, Search } from 'lucide-react';
-
 
 export default function HeroTrackingForm() {
   const [trackingInput, setTrackingInput] = useState('');
@@ -24,28 +22,26 @@ export default function HeroTrackingForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="w-full max-w-xl mx-auto relative group">
-      <div className="relative flex items-center rounded-xl border border-[var(--border)] bg-white p-2 shadow-lg shadow-slate-900/5 focus-within:border-[var(--accent-gold)] focus-within:ring-2 focus-within:ring-[rgba(var(--accent-gold-rgb),0.2)]">
-        <div className="pl-4 text-[var(--text-secondary)]">
-          <Search className="h-5 w-5" />
+    <form onSubmit={handleSubmit} className="w-full max-w-lg">
+      <div className="flex items-center rounded-xl border border-[#E5E7EB] bg-white p-1.5 transition-colors focus-within:border-[#1C1C1E] focus-within:ring-2 focus-within:ring-[#D4AF37]/25">
+        <div className="pl-3 text-[#5F6368]" aria-hidden="true">
+          <Search className="h-4 w-4" />
         </div>
         <input
           type="text"
           value={trackingInput}
           onChange={(event) => setTrackingInput(event.target.value)}
-          placeholder="Enter container number (e.g., UETU6059142)"
+          placeholder="Container # (e.g., UETU6059142)"
           aria-label="Container number"
-          className="w-full bg-transparent px-4 py-3 text-base font-medium text-[var(--text-primary)] outline-none placeholder:text-[var(--text-secondary)]"
+          className="w-full min-w-0 bg-transparent px-3 py-2.5 text-base text-[#1C1C1E] outline-none placeholder:text-[#5F6368]/75"
         />
-        <JacxiButton
+        <button
           type="submit"
-          className="shrink-0 whitespace-nowrap rounded-xl bg-[#D4AF37] px-5 py-3 text-sm font-bold text-[#1C1C1E] shadow-md shadow-[#D4AF37]/25 hover:bg-[#B89428] hover:text-white transition-colors"
+          className="inline-flex h-11 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-[#1C1C1E] px-4 text-sm font-medium text-white transition-colors hover:bg-[#333336] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37]"
         >
-          <span className="inline-flex items-center gap-2 whitespace-nowrap">
-            <span>Track</span>
-            <ArrowRight className="h-4 w-4 shrink-0" aria-hidden="true" />
-          </span>
-        </JacxiButton>
+          <span>Track</span>
+          <ArrowRight className="h-4 w-4 shrink-0" aria-hidden="true" />
+        </button>
       </div>
     </form>
   );
