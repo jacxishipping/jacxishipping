@@ -1,0 +1,82 @@
+<UserControl x:Class="JacxiShipping.WindowsApp.Views.DispatchesView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             mc:Ignorable="d" d:DesignHeight="800" d:DesignWidth="1100">
+    <Grid Margin="32,24,32,32">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0" Margin="0,0,0,16">
+            <StackPanel>
+                <TextBlock Text="Inland Auction Dispatches" FontSize="24" FontWeight="Bold" />
+                <TextBlock Text="Origin auction yard to US ocean port towing &amp; handoff management." FontSize="13" Foreground="{StaticResource JacxiTextSecondaryBrush}" Margin="0,4,0,0" />
+            </StackPanel>
+            <TextBlock Text="{Binding StatusMessage}" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource JacxiSuccessBrush}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+        </Grid>
+
+        <!-- New Dispatch Form -->
+        <Border Grid.Row="1" Style="{StaticResource JacxiCardBorder}" Margin="0,0,0,18">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="130" /><ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                    <TextBlock Text="Origin Auction Yard" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,4" />
+                    <TextBox Style="{StaticResource JacxiTextBox}" Text="{Binding NewOrigin}" Height="36" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Margin="0,0,10,0">
+                    <TextBlock Text="Destination Port Terminal" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,4" />
+                    <TextBox Style="{StaticResource JacxiTextBox}" Text="{Binding NewDestination}" Height="36" />
+                </StackPanel>
+                <StackPanel Grid.Column="2" Margin="0,0,10,0">
+                    <TextBlock Text="Towing Cost ($)" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,4" />
+                    <TextBox Style="{StaticResource JacxiTextBox}" Text="{Binding NewCost}" Height="36" />
+                </StackPanel>
+                <Button Grid.Column="3" Content="+ Create Dispatch" Style="{StaticResource JacxiPrimaryButton}" Command="{Binding CreateDispatchCommand}" VerticalAlignment="Bottom" Height="36" />
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="1.6*" /><ColumnDefinition Width="1*" /></Grid.ColumnDefinitions>
+            <Border Grid.Column="0" Style="{StaticResource JacxiCardBorder}" Margin="0,0,20,0" Padding="0">
+                <DataGrid ItemsSource="{Binding Dispatches}" SelectedItem="{Binding SelectedDispatch, Mode=TwoWay}"
+                          AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column"
+                          GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="{StaticResource JacxiBorderBrush}"
+                          Background="{StaticResource JacxiPanelBrush}" BorderThickness="0"
+                          ColumnHeaderStyle="{StaticResource JacxiDataGridColumnHeader}" RowStyle="{StaticResource JacxiDataGridRow}">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="REFERENCE" Binding="{Binding ReferenceNumber}" Width="140" />
+                        <DataGridTextColumn Header="ORIGIN YARD" Binding="{Binding Origin}" Width="*" />
+                        <DataGridTextColumn Header="PORT DESTINATION" Binding="{Binding Destination}" Width="*" />
+                        <DataGridTextColumn Header="STATUS" Binding="{Binding StatusLabel}" Width="130" />
+                        <DataGridTextColumn Header="COST" Binding="{Binding CostFormatted}" Width="90" />
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Border>
+
+            <Border Grid.Column="1" Style="{StaticResource JacxiCardBorder}">
+                <StackPanel>
+                    <TextBlock Text="DISPATCH DETAILS" FontSize="10" FontWeight="Bold" Foreground="{StaticResource JacxiTextSecondaryBrush}" Margin="0,0,0,10" />
+                    <TextBlock Text="{Binding SelectedDispatch.ReferenceNumber}" FontSize="18" FontWeight="Bold" Margin="0,0,0,4" />
+                    <TextBlock Text="{Binding SelectedDispatch.CompanyName}" FontSize="12" Foreground="{StaticResource JacxiGoldActiveBrush}" FontWeight="SemiBold" Margin="0,0,0,14" />
+
+                    <Border Background="{StaticResource JacxiBackgroundBrush}" BorderBrush="{StaticResource JacxiBorderBrush}" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,0,16">
+                        <StackPanel>
+                            <Grid Margin="0,0,0,4"><TextBlock Text="Origin:" FontSize="11" Foreground="{StaticResource JacxiTextSecondaryBrush}" /><TextBlock Text="{Binding SelectedDispatch.Origin}" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Right" /></Grid>
+                            <Grid Margin="0,0,0,4"><TextBlock Text="Port:" FontSize="11" Foreground="{StaticResource JacxiTextSecondaryBrush}" /><TextBlock Text="{Binding SelectedDispatch.Destination}" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Right" /></Grid>
+                            <Grid Margin="0,0,0,4"><TextBlock Text="Status:" FontSize="11" Foreground="{StaticResource JacxiTextSecondaryBrush}" /><TextBlock Text="{Binding SelectedDispatch.StatusLabel}" FontSize="11" FontWeight="Bold" Foreground="{StaticResource JacxiInfoBrush}" HorizontalAlignment="Right" /></Grid>
+                            <Grid><TextBlock Text="Cost:" FontSize="11" Foreground="{StaticResource JacxiTextSecondaryBrush}" /><TextBlock Text="{Binding SelectedDispatch.CostFormatted}" FontSize="12" FontWeight="Bold" HorizontalAlignment="Right" /></Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <Button Content="Advance Dispatch Status →" Style="{StaticResource JacxiPrimaryButton}" Command="{Binding AdvanceDispatchCommand}" />
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>

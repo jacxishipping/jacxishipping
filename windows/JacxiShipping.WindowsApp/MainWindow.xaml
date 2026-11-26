@@ -4,273 +4,246 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:JacxiShipping.WindowsApp.ViewModels;assembly=JacxiShipping.Core"
+        xmlns:converters="clr-namespace:JacxiShipping.WindowsApp.Converters"
         mc:Ignorable="d"
-        Title="JACXI Shipping - Logistics Operations Suite" 
-        Height="840" 
-        Width="1320"
-        MinHeight="700" 
-        MinWidth="1100"
+        Title="JACXI Shipping — Enterprise Admin Suite" 
+        Height="880" 
+        Width="1420"
+        MinHeight="720" 
+        MinWidth="1160"
         WindowStartupLocation="CenterScreen"
         Background="{StaticResource JacxiBackgroundBrush}"
         FontFamily="{StaticResource JacxiFontFamily}">
+
+    <Window.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVis" />
+        <converters:InverseBoolToVisibilityConverter x:Key="InvBoolToVis" />
+    </Window.Resources>
 
     <Window.DataContext>
         <vm:MainViewModel />
     </Window.DataContext>
 
     <Grid>
-        <Grid.ColumnDefinitions>
-            <!-- Left Navigation Sidebar -->
-            <ColumnDefinition Width="250" />
-            <!-- Main Content Area -->
-            <ColumnDefinition Width="*" />
-        </Grid.ColumnDefinitions>
-
         <!-- ================================================================= -->
-        <!-- LEFT SIDEBAR                                                      -->
+        <!-- MAIN AUTHENTICATED ADMIN SHELL                                    -->
         <!-- ================================================================= -->
-        <Border Grid.Column="0"
-                Background="{StaticResource JacxiDarkShellBrush}"
-                BorderBrush="{StaticResource JacxiDarkShellBorderBrush}"
-                BorderThickness="0,0,1,0">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
+        <Grid Visibility="{Binding IsAdminAuthenticated, Converter={StaticResource BoolToVis}}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="264" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
 
-                <!-- Brand Header -->
-                <Border Grid.Row="0" Padding="20,24,20,20" BorderBrush="{StaticResource JacxiDarkShellBorderBrush}" BorderThickness="0,0,0,1">
-                    <StackPanel>
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <!-- Gold Logo Mark Icon -->
-                            <Border Width="34"
-                                    Height="34"
-                                    CornerRadius="8"
-                                    Background="{StaticResource JacxiGoldBrush}"
-                                    Margin="0,0,12,0">
-                                <TextBlock Text="JX"
-                                           FontFamily="{StaticResource JacxiFontFamily}"
-                                           FontWeight="Bold"
-                                           FontSize="15"
-                                           Foreground="#111827"
-                                           HorizontalAlignment="Center"
-                                           VerticalAlignment="Center" />
+            <!-- LEFT GROUPED ADMIN SIDEBAR (Online Sidebar.tsx Parity) -->
+            <Border Grid.Column="0"
+                    Background="{StaticResource JacxiDarkShellBrush}"
+                    BorderBrush="{StaticResource JacxiDarkShellBorderBrush}"
+                    BorderThickness="0,0,1,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <!-- Brand Header -->
+                    <Border Grid.Row="0" Padding="20,20,20,16" BorderBrush="{StaticResource JacxiDarkShellBorderBrush}" BorderThickness="0,0,0,1">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Border Width="34" Height="34" CornerRadius="8" Background="{StaticResource JacxiGoldBrush}" Margin="0,0,12,0">
+                                    <TextBlock Text="JX" FontWeight="Bold" FontSize="15" Foreground="#111827" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="JACXI" FontSize="18" FontWeight="Bold" Foreground="#FFFFFF" />
+                                    <TextBlock Text="ADMIN PORTAL" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource JacxiGoldBrush}" Margin="0,-2,0,0" />
+                                </StackPanel>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Grouped Scrollable Navigation -->
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="12,12,12,12">
+                        <StackPanel>
+                            <!-- MAIN -->
+                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" IsChecked="True" Command="{Binding NavigateCommand}" CommandParameter="Dashboard">
+                                <TextBlock Text="⊞  Admin Dashboard" />
+                            </RadioButton>
+
+                            <!-- SHIPMENTS & LOGISTICS -->
+                            <TextBlock Text="SHIPMENTS &amp; LOGISTICS" FontSize="10" FontWeight="Bold" Foreground="#6B7280" Margin="8,14,0,6" />
+                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="Shipments">
+                                <Grid Width="200">
+                                    <TextBlock Text="📦  Shipments" VerticalAlignment="Center" />
+                                    <Border Background="{StaticResource JacxiWarningBgBrush}" CornerRadius="8" Padding="6,1" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Badges.AgingShipments}" FontSize="10" FontWeight="Bold" Foreground="{StaticResource JacxiWarningBrush}" />
+                                    </Border>
+                                </Grid>
+                            </RadioButton>
+                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="OperationsBoard">
+                                <TextBlock Text="⇄  Operations Board" />
+                            </RadioButton>
+                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="Containers">
+                                <TextBlock Text="📥  Containers" />
+                            </RadioButton>
+                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="Dispatches">
+                                <TextBlock Text="🚚  Dispatches" />
+                            </RadioButton>
+                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="Transits">
+                                <TextBlock Text="🛣  Transits" />
+                            </RadioButton>
+                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="GatePasses">
+                                <Grid Width="200">
+                                    <TextBlock Text="⏱  Company Gatepasses" VerticalAlignment="Center" />
+                                    <Border Background="{StaticResource JacxiGoldLightBrush}" CornerRadius="8" Padding="6,1" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Badges.PendingGatePasses}" FontSize="10" FontWeight="Bold" Foreground="{StaticResource JacxiGoldActiveBrush}" />
+                                    </Border>
+                                </Grid>
+                            </RadioButton>
+                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="Tracking">
+                                <TextBlock Text="🌐  Track Shipments" />
+                            </RadioButton>
+
+                            <!-- FINANCE & ACCOUNTING -->
+                            <TextBlock Text="FINANCE &amp; ACCOUNTING" FontSize="10" FontWeight="Bold" Foreground="#6B7280" Margin="8,14,0,6" />
+                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="Finance">
+                                <TextBlock Text="🏛  Finance &amp; Ledgers" />
+                            </RadioButton>
+                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="Invoices">
+                                <Grid Width="200">
+                                    <TextBlock Text="🧾  Invoices" VerticalAlignment="Center" />
+                                    <Border Background="{StaticResource JacxiErrorBgBrush}" CornerRadius="8" Padding="6,1" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Badges.OverdueInvoices}" FontSize="10" FontWeight="Bold" Foreground="{StaticResource JacxiErrorBrush}" />
+                                    </Border>
+                                </Grid>
+                            </RadioButton>
+                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="OfficeExpenses">
+                                <TextBlock Text="💳  Office Expenses" />
+                            </RadioButton>
+                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="CompanyLedgers">
+                                <TextBlock Text="🏢  Company Ledgers" />
+                            </RadioButton>
+
+                            <!-- CUSTOMERS & PORTALS -->
+                            <TextBlock Text="CUSTOMERS &amp; PORTALS" FontSize="10" FontWeight="Bold" Foreground="#6B7280" Margin="8,14,0,6" />
+                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="Customers">
+                                <TextBlock Text="👥  Customers &amp; Users" />
+                            </RadioButton>
+                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="PartnerPortals">
+                                <TextBlock Text="🛡  Partner Portals" />
+                            </RadioButton>
+
+                            <!-- TOOLS & ADMIN SYSTEM -->
+                            <TextBlock Text="TOOLS &amp; SYSTEM" FontSize="10" FontWeight="Bold" Foreground="#6B7280" Margin="8,14,0,6" />
+                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="Calculator">
+                                <TextBlock Text="⚡  Rate Calculator" />
+                            </RadioButton>
+                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="Documents">
+                                <TextBlock Text="📄  Documents" />
+                            </RadioButton>
+                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="Analytics">
+                                <TextBlock Text="📊  Analytics &amp; AR Aging" />
+                            </RadioButton>
+                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="Settings">
+                                <TextBlock Text="⚙  Cloud Sync &amp; Settings" />
+                            </RadioButton>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <!-- Admin Profile & Lock Button -->
+                    <Border Grid.Row="2" Padding="14,14" BorderBrush="{StaticResource JacxiDarkShellBorderBrush}" BorderThickness="0,1,0,0">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <Border Width="34" Height="34" CornerRadius="17" Background="{StaticResource JacxiDarkShellSubtleBrush}" BorderBrush="{StaticResource JacxiGoldBrush}" BorderThickness="1.5" Margin="0,0,10,0">
+                                <TextBlock Text="{Binding CurrentAdmin.Initials}" Foreground="{StaticResource JacxiGoldBrush}" FontWeight="Bold" FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Border>
 
-                            <StackPanel VerticalAlignment="Center">
-                                <TextBlock Text="JACXI"
-                                           FontFamily="{StaticResource JacxiFontFamily}"
-                                           FontSize="18"
-                                           FontWeight="Bold"
-                                           Foreground="#FFFFFF" />
-                                <TextBlock Text="SHIPPING"
-                                           FontFamily="{StaticResource JacxiFontFamily}"
-                                           FontSize="10"
-                                           FontWeight="SemiBold"
-                                           Foreground="{StaticResource JacxiGoldBrush}"
-                                           Margin="0,-2,0,0" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding CurrentAdmin.Name}" Foreground="#FFFFFF" FontWeight="SemiBold" FontSize="12" TextTrimming="CharacterEllipsis" />
+                                <TextBlock Text="{Binding CurrentAdmin.RoleUpper}" Foreground="{StaticResource JacxiGoldBrush}" FontSize="9" FontWeight="Bold" />
                             </StackPanel>
-                        </StackPanel>
 
-                        <TextBlock Text="LOGISTICS OPERATIONS SUITE"
-                                   FontFamily="{StaticResource JacxiFontFamily}"
-                                   FontSize="9"
-                                   FontWeight="Bold"
-                                   Foreground="#9CA3AF"
-                                   Margin="0,14,0,0" />
-                    </StackPanel>
-                </Border>
-
-                <!-- Navigation Links -->
-                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="14,16,14,16">
-                    <StackPanel>
-                        <TextBlock Text="MAIN NAVIGATION"
-                                   FontSize="10"
-                                   FontWeight="Bold"
-                                   Foreground="#6B7280"
-                                   Margin="8,0,0,10" />
-
-                        <!-- Dashboard Tab -->
-                        <RadioButton Style="{StaticResource JacxiNavButton}"
-                                     GroupName="NavMenu"
-                                     IsChecked="True"
-                                     Command="{Binding NavigateCommand}"
-                                     CommandParameter="Dashboard">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="⊞" FontSize="14" Margin="0,0,10,0" VerticalAlignment="Center" />
-                                <TextBlock Text="Operations Dashboard" VerticalAlignment="Center" />
-                            </StackPanel>
-                        </RadioButton>
-
-                        <!-- Shipments Tab -->
-                        <RadioButton Style="{StaticResource JacxiNavButton}"
-                                     GroupName="NavMenu"
-                                     Command="{Binding NavigateCommand}"
-                                     CommandParameter="Shipments">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="📦" FontSize="13" Margin="0,0,10,0" VerticalAlignment="Center" />
-                                <TextBlock Text="Shipments &amp; Cargo" VerticalAlignment="Center" />
-                            </StackPanel>
-                        </RadioButton>
-
-                        <!-- Rate Calculator Tab -->
-                        <RadioButton Style="{StaticResource JacxiNavButton}"
-                                     GroupName="NavMenu"
-                                     Command="{Binding NavigateCommand}"
-                                     CommandParameter="Calculator">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="⚡" FontSize="13" Margin="0,0,10,0" VerticalAlignment="Center" />
-                                <TextBlock Text="Rate Calculator" VerticalAlignment="Center" />
-                            </StackPanel>
-                        </RadioButton>
-
-                        <!-- Live Tracking Tab -->
-                        <RadioButton Style="{StaticResource JacxiNavButton}"
-                                     GroupName="NavMenu"
-                                     Command="{Binding NavigateCommand}"
-                                     CommandParameter="Tracking">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="🌐" FontSize="13" Margin="0,0,10,0" VerticalAlignment="Center" />
-                                <TextBlock Text="Live Tracking" VerticalAlignment="Center" />
-                            </StackPanel>
-                        </RadioButton>
-
-                        <!-- Document Center Tab -->
-                        <RadioButton Style="{StaticResource JacxiNavButton}"
-                                     GroupName="NavMenu"
-                                     Command="{Binding NavigateCommand}"
-                                     CommandParameter="Documents">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="📄" FontSize="13" Margin="0,0,10,0" VerticalAlignment="Center" />
-                                <TextBlock Text="Document Center" VerticalAlignment="Center" />
-                            </StackPanel>
-                        </RadioButton>
-
-                        <Separator Background="{StaticResource JacxiDarkShellBorderBrush}" Margin="8,16,8,16" />
-
-                        <TextBlock Text="DESTINATION HUBS"
-                                   FontSize="10"
-                                   FontWeight="Bold"
-                                   Foreground="#6B7280"
-                                   Margin="8,0,0,10" />
-
-                        <TextBlock Text="● Mersin Yard (TR)" FontSize="11" Foreground="#9CA3AF" Margin="10,0,0,6" />
-                        <TextBlock Text="● Jebel Ali Free Zone (UAE)" FontSize="11" Foreground="#9CA3AF" Margin="10,0,0,6" />
-                        <TextBlock Text="● Poti Black Sea (GE)" FontSize="11" Foreground="#9CA3AF" Margin="10,0,0,6" />
-                        <TextBlock Text="● Islam Qala Terminal (AFG)" FontSize="11" Foreground="#9CA3AF" Margin="10,0,0,6" />
-                        <TextBlock Text="● Hairatan Inland Port (AFG)" FontSize="11" Foreground="#9CA3AF" Margin="10,0,0,6" />
-                    </StackPanel>
-                </ScrollViewer>
-
-                <!-- Footer User Profile & Build Version -->
-                <Border Grid.Row="2"
-                        Padding="16,16"
-                        BorderBrush="{StaticResource JacxiDarkShellBorderBrush}"
-                        BorderThickness="0,1,0,0">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-
-                        <!-- Avatar -->
-                        <Border Width="36"
-                                Height="36"
-                                CornerRadius="18"
-                                Background="{StaticResource JacxiDarkShellSubtleBrush}"
-                                BorderBrush="{StaticResource JacxiGoldBrush}"
-                                BorderThickness="1.5"
-                                Margin="0,0,12,0">
-                            <TextBlock Text="JX"
-                                       Foreground="{StaticResource JacxiGoldBrush}"
-                                       FontWeight="Bold"
-                                       FontSize="12"
-                                       HorizontalAlignment="Center"
-                                       VerticalAlignment="Center" />
-                        </Border>
-
-                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                            <TextBlock Text="Operations Desk"
-                                       Foreground="#FFFFFF"
-                                       FontWeight="SemiBold"
-                                       FontSize="12" />
-                            <TextBlock Text="v1.0.0 Windows (x64)"
-                                       Foreground="#9CA3AF"
-                                       FontSize="10" />
-                        </StackPanel>
-                    </Grid>
-                </Border>
-            </Grid>
-        </Border>
-
-        <!-- ================================================================= -->
-        <!-- TOP APP BAR & ACTIVE CONTENT HOST                                 -->
-        <!-- ================================================================= -->
-        <Grid Grid.Column="1">
-            <Grid.RowDefinitions>
-                <!-- Top Navigation & Action Bar -->
-                <RowDefinition Height="58" />
-                <!-- Dynamic Content Area -->
-                <RowDefinition Height="*" />
-            </Grid.RowDefinitions>
-
-            <!-- Top Header Bar -->
-            <Border Grid.Row="0"
-                    Background="{StaticResource JacxiPanelBrush}"
-                    BorderBrush="{StaticResource JacxiBorderBrush}"
-                    BorderThickness="0,0,0,1"
-                    Padding="28,0">
-                <Grid VerticalAlignment="Center">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-
-                    <!-- System Status Indicator -->
-                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Border Background="{StaticResource JacxiSuccessBgBrush}"
-                                BorderBrush="{StaticResource JacxiSuccessBorderBrush}"
-                                BorderThickness="1"
-                                CornerRadius="12"
-                                Padding="8,4"
-                                Margin="0,0,12,0">
-                            <StackPanel Orientation="Horizontal">
-                                <Ellipse Width="6" Height="6" Fill="{StaticResource JacxiSuccessBrush}" Margin="0,0,6,0" VerticalAlignment="Center" />
-                                <TextBlock Text="JACXI CLOUD CONNECTED"
-                                           FontSize="10"
-                                           FontWeight="Bold"
-                                           Foreground="{StaticResource JacxiSuccessBrush}"
-                                           VerticalAlignment="Center" />
-                            </StackPanel>
-                        </Border>
-
-                        <TextBlock Text="Official Enterprise Desktop Client • Standard Port Rates 2026"
-                                   FontSize="12"
-                                   Foreground="{StaticResource JacxiTextSecondaryBrush}"
-                                   VerticalAlignment="Center" />
-                    </StackPanel>
-
-                    <!-- Header Quick Nav Buttons -->
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Button Content="Quick Rate"
-                                Style="{StaticResource JacxiOutlineButton}"
-                                Command="{Binding NavigateCommand}"
-                                CommandParameter="Calculator"
-                                Padding="12,6"
-                                Margin="0,0,10,0" />
-                        <Button Content="Track Cargo"
-                                Style="{StaticResource JacxiPrimaryButton}"
-                                Command="{Binding NavigateCommand}"
-                                CommandParameter="Tracking"
-                                Padding="14,6" />
-                    </StackPanel>
+                            <Button Grid.Column="2" Content="Lock" Command="{Binding SignOutCommand}" Background="Transparent" Foreground="#9CA3AF" BorderThickness="0" FontSize="11" Cursor="Hand" Padding="6,4" />
+                        </Grid>
+                    </Border>
                 </Grid>
             </Border>
 
-            <!-- Dynamic Body View (mapped via DataTemplates in App.xaml) -->
-            <ContentControl Grid.Row="1" Content="{Binding CurrentView}" />
+            <!-- TOP ADMIN BAR & CONTENT HOST -->
+            <Grid Grid.Column="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="58" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <!-- Top Header Bar -->
+                <Border Grid.Row="0" Background="{StaticResource JacxiPanelBrush}" BorderBrush="{StaticResource JacxiBorderBrush}" BorderThickness="0,0,0,1" Padding="28,0">
+                    <Grid VerticalAlignment="Center">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Status Badge -->
+                        <Border Grid.Column="0" Background="{StaticResource JacxiSuccessBgBrush}" BorderBrush="{StaticResource JacxiSuccessBorderBrush}" BorderThickness="1" CornerRadius="12" Padding="10,4" Margin="0,0,16,0" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal">
+                                <Ellipse Width="6" Height="6" Fill="{StaticResource JacxiSuccessBrush}" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding CloudStatusLabel}" FontSize="10" FontWeight="Bold" Foreground="{StaticResource JacxiSuccessBrush}" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Global Admin Search -->
+                        <Grid Grid.Column="1" MaxWidth="420" HorizontalAlignment="Left">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="320" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0" Style="{StaticResource JacxiTextBox}" Text="{Binding GlobalSearchQuery, UpdateSourceTrigger=PropertyChanged}" Height="34" Padding="10,6" />
+                            <Button Grid.Column="1" Content="Search" Style="{StaticResource JacxiOutlineButton}" Command="{Binding GlobalSearchCommand}" Padding="12,5" Margin="6,0,0,0" Height="34" />
+                        </Grid>
+
+                        <!-- Quick Actions -->
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Button Content="Operations Board" Style="{StaticResource JacxiOutlineButton}" Command="{Binding NavigateCommand}" CommandParameter="OperationsBoard" Padding="12,6" Margin="0,0,8,0" />
+                            <Button Content="Invoices" Style="{StaticResource JacxiOutlineButton}" Command="{Binding NavigateCommand}" CommandParameter="Invoices" Padding="12,6" Margin="0,0,8,0" />
+                            <Button Content="+ New Shipment" Style="{StaticResource JacxiPrimaryButton}" Command="{Binding NavigateCommand}" CommandParameter="Shipments" Padding="14,6" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- Dynamic Active View -->
+                <ContentControl Grid.Row="1" Content="{Binding CurrentView}" />
+            </Grid>
+        </Grid>
+
+        <!-- ================================================================= -->
+        <!-- LOCK / ADMIN SIGN-IN OVERLAY (When Signed Out)                    -->
+        <!-- ================================================================= -->
+        <Grid Background="{StaticResource JacxiDarkShellBrush}" Visibility="{Binding IsAdminAuthenticated, Converter={StaticResource InvBoolToVis}}">
+            <Border Style="{StaticResource JacxiCardBorder}" Width="420" VerticalAlignment="Center" HorizontalAlignment="Center" Padding="32">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,20">
+                        <Border Width="40" Height="40" CornerRadius="10" Background="{StaticResource JacxiGoldBrush}" Margin="0,0,12,0">
+                            <TextBlock Text="JX" FontWeight="Bold" FontSize="18" Foreground="#111827" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="JACXI SHIPPING" FontSize="18" FontWeight="Bold" />
+                            <TextBlock Text="ADMIN OPERATIONS ACCESS" FontSize="10" FontWeight="Bold" Foreground="{StaticResource JacxiGoldActiveBrush}" />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <TextBlock Text="Admin Email" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,4" />
+                    <TextBox Style="{StaticResource JacxiTextBox}" Text="{Binding LoginEmail}" Height="38" Margin="0,0,0,12" />
+
+                    <TextBlock Text="8-Character Login Code" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,4" />
+                    <TextBox Style="{StaticResource JacxiTextBox}" Text="{Binding LoginCodeInput}" Height="38" Margin="0,0,0,18" />
+
+                    <Button Content="Unlock Admin Suite" Style="{StaticResource JacxiPrimaryButton}" Command="{Binding SignInLocalCommand}" Height="42" />
+                    <TextBlock Text="{Binding LoginStatus}" FontSize="11" Foreground="{StaticResource JacxiTextSecondaryBrush}" TextAlignment="Center" Margin="0,12,0,0" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
         </Grid>
     </Grid>
 </Window>

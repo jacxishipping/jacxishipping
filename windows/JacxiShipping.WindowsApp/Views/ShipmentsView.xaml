@@ -6,109 +6,154 @@
              xmlns:controls="clr-namespace:JacxiShipping.WindowsApp.Controls"
              xmlns:converters="clr-namespace:JacxiShipping.WindowsApp.Converters"
              mc:Ignorable="d" 
-             d:DesignHeight="750" d:DesignWidth="1100">
+             d:DesignHeight="800" d:DesignWidth="1120">
 
     <UserControl.Resources>
         <converters:NullToVisibilityConverter x:Key="NullToVis" />
+        <converters:BoolToVisibilityConverter x:Key="BoolToVis" />
     </UserControl.Resources>
 
     <Grid Margin="32,24,32,32">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- Header Section -->
-        <Grid Grid.Row="0" Margin="0,0,0,20">
+        <!-- Header -->
+        <Grid Grid.Row="0" Margin="0,0,0,16">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
-            <StackPanel Grid.Column="0">
-                <TextBlock Text="Shipment Inventory &amp; Logistics"
-                           FontFamily="{StaticResource JacxiFontFamily}"
+            <StackPanel>
+                <TextBlock Text="Shipments &amp; Vehicle Inventory"
                            FontSize="24"
                            FontWeight="Bold"
                            Foreground="{StaticResource JacxiTextPrimaryBrush}" />
-                <TextBlock Text="Manage container allocations, customs clearance tokens, and vehicle cargo."
-                           FontFamily="{StaticResource JacxiFontFamily}"
+                <TextBlock Text="Full admin control over auction vehicles, release tokens, invoices, and container assignments."
                            FontSize="13"
                            Foreground="{StaticResource JacxiTextSecondaryBrush}"
                            Margin="0,4,0,0" />
             </StackPanel>
 
             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                <Button Content="Export CSV Manifest"
+                <Button Content="Export CSV"
                         Style="{StaticResource JacxiOutlineButton}"
                         Command="{Binding ExportManifestCommand}"
-                        Margin="0,0,12,0" />
+                        Margin="0,0,10,0" />
+                <Button Content="+ New Shipment"
+                        Style="{StaticResource JacxiPrimaryButton}"
+                        Command="{Binding ToggleCreatePanelCommand}" />
             </StackPanel>
         </Grid>
 
-        <!-- Search and Filter Bar -->
-        <Grid Grid.Row="1" Margin="0,0,0,20">
+        <!-- Collapsible Create Shipment Panel -->
+        <Border Grid.Row="1"
+                Style="{StaticResource JacxiCardBorder}"
+                Visibility="{Binding IsCreatePanelOpen, Converter={StaticResource BoolToVis}}"
+                Margin="0,0,0,18">
+            <StackPanel>
+                <TextBlock Text="CREATE NEW ADMIN SHIPMENT"
+                           FontSize="11"
+                           FontWeight="Bold"
+                           Foreground="{StaticResource JacxiGoldActiveBrush}"
+                           Margin="0,0,0,12" />
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                        <TextBlock Text="VIN (17 chars)" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,4" />
+                        <TextBox Style="{StaticResource JacxiTextBox}" Text="{Binding NewVin, UpdateSourceTrigger=PropertyChanged}" Height="36" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Margin="0,0,10,0">
+                        <TextBlock Text="Year / Make / Model" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,4" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="70" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0" Style="{StaticResource JacxiTextBox}" Text="{Binding NewYear}" Height="36" Margin="0,0,4,0" />
+                            <TextBox Grid.Column="1" Style="{StaticResource JacxiTextBox}" Text="{Binding NewMake}" Height="36" Margin="0,0,4,0" />
+                            <TextBox Grid.Column="2" Style="{StaticResource JacxiTextBox}" Text="{Binding NewModel}" Height="36" />
+                        </Grid>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Margin="0,0,10,0">
+                        <TextBlock Text="Customer Name" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,4" />
+                        <TextBox Style="{StaticResource JacxiTextBox}" Text="{Binding NewCustomerName, UpdateSourceTrigger=PropertyChanged}" Height="36" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="3">
+                        <TextBlock Text="Total Shipping Price ($)" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,4" />
+                        <TextBox Style="{StaticResource JacxiTextBox}" Text="{Binding NewFreightPrice, UpdateSourceTrigger=PropertyChanged}" Height="36" />
+                    </StackPanel>
+                </Grid>
+                <Grid Margin="0,12,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                        <TextBlock Text="Auction Yard / Origin" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,4" />
+                        <TextBox Style="{StaticResource JacxiTextBox}" Text="{Binding NewAuctionYard}" Height="36" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Margin="0,0,10,0">
+                        <TextBlock Text="Destination Port" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,4" />
+                        <TextBox Style="{StaticResource JacxiTextBox}" Text="{Binding NewDestinationPort}" Height="36" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Bottom">
+                        <CheckBox Content="Purchase + Shipping" IsChecked="{Binding NewIsPurchaseAndShipping}" VerticalAlignment="Center" Margin="0,0,14,0" />
+                        <Button Content="Save Shipment" Style="{StaticResource JacxiPrimaryButton}" Command="{Binding SubmitNewShipmentCommand}" Height="36" />
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <!-- Search & Filters -->
+        <Grid Grid.Row="2" Margin="0,0,0,16">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="320" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
-            <!-- Search Box -->
             <TextBox Grid.Column="0"
                      Style="{StaticResource JacxiTextBox}"
                      Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}"
                      VerticalContentAlignment="Center"
-                     Height="40"
-                     Tag="Search by tracking, container, VIN, or customer..." />
+                     Height="38" />
 
-            <!-- Filter Status Chips -->
-            <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="20,0,0,0" VerticalAlignment="Center">
-                <Button Content="All"
-                        Style="{StaticResource JacxiOutlineButton}"
-                        Command="{Binding FilterAllCommand}"
-                        Padding="14,6"
-                        Margin="0,0,8,0" />
-                <Button Content="In Transit"
-                        Style="{StaticResource JacxiOutlineButton}"
-                        Command="{Binding FilterInTransitCommand}"
-                        Padding="14,6"
-                        Margin="0,0,8,0" />
-                <Button Content="Customs Hold"
-                        Style="{StaticResource JacxiOutlineButton}"
-                        Command="{Binding FilterCustomsCommand}"
-                        Padding="14,6"
-                        Margin="0,0,8,0" />
-                <Button Content="Delivered"
-                        Style="{StaticResource JacxiOutlineButton}"
-                        Command="{Binding FilterDeliveredCommand}"
-                        Padding="14,6"
-                        Margin="0,0,8,0" />
-                <Button Content="Booked"
-                        Style="{StaticResource JacxiOutlineButton}"
-                        Command="{Binding FilterBookedCommand}"
-                        Padding="14,6" />
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="16,0,0,0" VerticalAlignment="Center">
+                <Button Content="All" Style="{StaticResource JacxiOutlineButton}" Command="{Binding FilterAllCommand}" Padding="12,6" Margin="0,0,6,0" />
+                <Button Content="In Transit" Style="{StaticResource JacxiOutlineButton}" Command="{Binding FilterInTransitCommand}" Padding="12,6" Margin="0,0,6,0" />
+                <Button Content="Customs Hold" Style="{StaticResource JacxiOutlineButton}" Command="{Binding FilterCustomsCommand}" Padding="12,6" Margin="0,0,6,0" />
+                <Button Content="Delivered" Style="{StaticResource JacxiOutlineButton}" Command="{Binding FilterDeliveredCommand}" Padding="12,6" Margin="0,0,6,0" />
+                <Button Content="Booked" Style="{StaticResource JacxiOutlineButton}" Command="{Binding FilterBookedCommand}" Padding="12,6" />
             </StackPanel>
 
-            <!-- Feedback Message -->
             <TextBlock Grid.Column="2"
                        Text="{Binding StatusMessage}"
-                       FontFamily="{StaticResource JacxiFontFamily}"
                        FontSize="12"
                        FontWeight="SemiBold"
                        Foreground="{StaticResource JacxiSuccessBrush}"
                        VerticalAlignment="Center" />
         </Grid>
 
-        <!-- Master-Detail Layout -->
-        <Grid Grid.Row="2">
+        <!-- Master-Detail -->
+        <Grid Grid.Row="3">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="1.7*" />
-                <ColumnDefinition Width="1.1*" />
+                <ColumnDefinition Width="1.65*" />
+                <ColumnDefinition Width="1.15*" />
             </Grid.ColumnDefinitions>
 
-            <!-- Left: Shipments DataGrid -->
+            <!-- DataGrid -->
             <Border Grid.Column="0" Style="{StaticResource JacxiCardBorder}" Margin="0,0,20,0" Padding="0">
                 <DataGrid ItemsSource="{Binding FilteredShipments}"
                           SelectedItem="{Binding SelectedShipment, Mode=TwoWay}"
@@ -123,74 +168,51 @@
                           RowStyle="{StaticResource JacxiDataGridRow}"
                           SelectionMode="Single">
                     <DataGrid.Columns>
-                        <!-- Tracking -->
-                        <DataGridTemplateColumn Header="TRACKING / CONTAINER" Width="170">
+                        <DataGridTemplateColumn Header="TRACKING / CONTAINER" Width="160">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
-                                    <StackPanel VerticalAlignment="Center" Margin="12,6">
-                                        <TextBlock Text="{Binding TrackingNumber}"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="{StaticResource JacxiTextPrimaryBrush}" />
-                                        <TextBlock Text="{Binding ContainerNumber}"
-                                                   FontSize="11"
-                                                   Foreground="{StaticResource JacxiTextSecondaryBrush}" />
+                                    <StackPanel VerticalAlignment="Center" Margin="10,6">
+                                        <TextBlock Text="{Binding TrackingNumber}" FontWeight="SemiBold" />
+                                        <TextBlock Text="{Binding ContainerNumber}" FontSize="11" Foreground="{StaticResource JacxiTextSecondaryBrush}" />
                                     </StackPanel>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
 
-                        <!-- Vehicle -->
                         <DataGridTemplateColumn Header="VEHICLE / VIN" Width="*">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
-                                    <StackPanel VerticalAlignment="Center" Margin="8,6">
-                                        <TextBlock Text="{Binding Vehicle.FullDescription}"
-                                                   FontWeight="Medium"
-                                                   Foreground="{StaticResource JacxiTextPrimaryBrush}" />
-                                        <TextBlock Text="{Binding Vehicle.Vin}"
-                                                   FontSize="11"
-                                                   Foreground="{StaticResource JacxiTextSecondaryBrush}" />
+                                    <StackPanel VerticalAlignment="Center" Margin="6,6">
+                                        <TextBlock Text="{Binding Vehicle.FullDescription}" FontWeight="Medium" />
+                                        <TextBlock Text="{Binding Vehicle.Vin}" FontSize="11" Foreground="{StaticResource JacxiTextSecondaryBrush}" />
                                     </StackPanel>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
 
-                        <!-- Destination -->
-                        <DataGridTemplateColumn Header="DESTINATION" Width="160">
+                        <DataGridTemplateColumn Header="CUSTOMER" Width="150">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
-                                    <StackPanel VerticalAlignment="Center" Margin="8,6">
-                                        <TextBlock Text="{Binding DestinationPort}"
-                                                   FontSize="12"
-                                                   Foreground="{StaticResource JacxiTextPrimaryBrush}"
-                                                   TextTrimming="CharacterEllipsis" />
-                                        <TextBlock Text="{Binding CustomerName}"
-                                                   FontSize="11"
-                                                   Foreground="{StaticResource JacxiTextSecondaryBrush}" />
+                                    <StackPanel VerticalAlignment="Center" Margin="6,6">
+                                        <TextBlock Text="{Binding CustomerName}" FontSize="12" FontWeight="Medium" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{Binding DestinationPort}" FontSize="10" Foreground="{StaticResource JacxiTextSecondaryBrush}" TextTrimming="CharacterEllipsis" />
                                     </StackPanel>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
 
-                        <!-- Status Badge -->
-                        <DataGridTemplateColumn Header="STATUS" Width="130">
+                        <DataGridTemplateColumn Header="STATUS" Width="125">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
-                                    <controls:StatusBadge Status="{Binding Status}" Margin="6,0" />
+                                    <controls:StatusBadge Status="{Binding Status}" Margin="4,0" />
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
 
-                        <!-- Cost -->
-                        <DataGridTemplateColumn Header="COST" Width="85">
+                        <DataGridTemplateColumn Header="TOTAL" Width="80">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
-                                    <TextBlock Text="{Binding TotalCostFormatted}"
-                                               FontWeight="Bold"
-                                               Foreground="{StaticResource JacxiTextPrimaryBrush}"
-                                               VerticalAlignment="Center"
-                                               HorizontalAlignment="Right"
-                                               Margin="0,0,14,0" />
+                                    <TextBlock Text="{Binding TotalCostFormatted}" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,12,0" />
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
@@ -198,148 +220,61 @@
                 </DataGrid>
             </Border>
 
-            <!-- Right: Detail Inspection Drawer -->
+            <!-- Admin Inspection & Actions Drawer -->
             <Border Grid.Column="1" Style="{StaticResource JacxiCardBorder}">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel Visibility="{Binding SelectedShipment, Converter={StaticResource NullToVis}}">
-                        <!-- Drawer Header -->
-                        <Grid Margin="0,0,0,16">
+                        <Grid Margin="0,0,0,12">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-
-                            <StackPanel Grid.Column="0">
-                                <TextBlock Text="{Binding SelectedShipment.TrackingNumber}"
-                                           FontFamily="{StaticResource JacxiFontFamily}"
-                                           FontSize="18"
-                                           FontWeight="Bold"
-                                           Foreground="{StaticResource JacxiTextPrimaryBrush}" />
-                                <TextBlock Text="{Binding SelectedShipment.ContainerNumber}"
-                                           FontFamily="{StaticResource JacxiFontFamily}"
-                                           FontSize="12"
-                                           Foreground="{StaticResource JacxiTextSecondaryBrush}" />
+                            <StackPanel>
+                                <TextBlock Text="{Binding SelectedShipment.TrackingNumber}" FontSize="18" FontWeight="Bold" />
+                                <TextBlock Text="{Binding SelectedShipment.ServiceTypeLabel}" FontSize="11" Foreground="{StaticResource JacxiGoldActiveBrush}" FontWeight="SemiBold" />
                             </StackPanel>
-
                             <controls:StatusBadge Grid.Column="1" Status="{Binding SelectedShipment.Status}" />
                         </Grid>
 
-                        <Separator Background="{StaticResource JacxiBorderBrush}" Margin="0,0,0,16" />
+                        <Separator Background="{StaticResource JacxiBorderBrush}" Margin="0,0,0,12" />
 
-                        <!-- Vehicle Specs Card -->
-                        <Border Background="{StaticResource JacxiBackgroundBrush}"
-                                BorderBrush="{StaticResource JacxiBorderBrush}"
-                                BorderThickness="1"
-                                CornerRadius="8"
-                                Padding="14"
-                                Margin="0,0,0,16">
+                        <!-- Vehicle & Token Specs -->
+                        <Border Background="{StaticResource JacxiBackgroundBrush}" BorderBrush="{StaticResource JacxiBorderBrush}" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,0,12">
                             <StackPanel>
-                                <TextBlock Text="VEHICLE SPECIFICATIONS"
-                                           FontFamily="{StaticResource JacxiFontFamily}"
-                                           FontSize="10"
-                                           FontWeight="Bold"
-                                           Foreground="{StaticResource JacxiTextSecondaryBrush}"
-                                           Margin="0,0,0,8" />
-
-                                <TextBlock Text="{Binding SelectedShipment.Vehicle.FullDescription}"
-                                           FontFamily="{StaticResource JacxiFontFamily}"
-                                           FontSize="14"
-                                           FontWeight="SemiBold"
-                                           Foreground="{StaticResource JacxiTextPrimaryBrush}"
-                                           Margin="0,0,0,4" />
-
-                                <TextBlock Text="{Binding SelectedShipment.Vehicle.Vin, StringFormat='VIN: {0}'}"
-                                           FontFamily="{StaticResource JacxiFontFamily}"
-                                           FontSize="12"
-                                           Foreground="{StaticResource JacxiTextSecondaryBrush}"
-                                           Margin="0,0,0,8" />
-
-                                <Grid Margin="0,0,0,4">
-                                    <TextBlock Text="Auction Yard:" FontSize="11" Foreground="{StaticResource JacxiTextSecondaryBrush}" />
-                                    <TextBlock Text="{Binding SelectedShipment.Vehicle.AuctionYard}" FontSize="11" FontWeight="Medium" HorizontalAlignment="Right" />
-                                </Grid>
-                                <Grid Margin="0,0,0,4">
-                                    <TextBlock Text="Lot Number:" FontSize="11" Foreground="{StaticResource JacxiTextSecondaryBrush}" />
-                                    <TextBlock Text="{Binding SelectedShipment.Vehicle.LotNumber}" FontSize="11" FontWeight="Medium" HorizontalAlignment="Right" />
-                                </Grid>
-                                <Grid Margin="0,0,0,4">
-                                    <TextBlock Text="Title Status:" FontSize="11" Foreground="{StaticResource JacxiTextSecondaryBrush}" />
-                                    <TextBlock Text="{Binding SelectedShipment.Vehicle.TitleStatus}" FontSize="11" FontWeight="Medium" Foreground="{StaticResource JacxiSuccessBrush}" HorizontalAlignment="Right" />
-                                </Grid>
-                                <Grid>
-                                    <TextBlock Text="Condition Photos:" FontSize="11" Foreground="{StaticResource JacxiTextSecondaryBrush}" />
-                                    <TextBlock Text="{Binding SelectedShipment.Vehicle.PhotoCount, StringFormat='{}{0} Photos logged'}" FontSize="11" FontWeight="Medium" HorizontalAlignment="Right" />
-                                </Grid>
+                                <TextBlock Text="VEHICLE &amp; ADMIN DETAILS" FontSize="10" FontWeight="Bold" Foreground="{StaticResource JacxiTextSecondaryBrush}" Margin="0,0,0,6" />
+                                <TextBlock Text="{Binding SelectedShipment.Vehicle.FullDescription}" FontSize="14" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding SelectedShipment.Vehicle.Vin, StringFormat='VIN: {0}'}" FontSize="11" Foreground="{StaticResource JacxiTextSecondaryBrush}" Margin="0,0,0,6" />
+                                <Grid Margin="0,0,0,3"><TextBlock Text="Customer:" FontSize="11" Foreground="{StaticResource JacxiTextSecondaryBrush}" /><TextBlock Text="{Binding SelectedShipment.CustomerName}" FontSize="11" FontWeight="Medium" HorizontalAlignment="Right" /></Grid>
+                                <Grid Margin="0,0,0,3"><TextBlock Text="Payment Status:" FontSize="11" Foreground="{StaticResource JacxiTextSecondaryBrush}" /><TextBlock Text="{Binding SelectedShipment.PaymentStatus}" FontSize="11" FontWeight="Bold" HorizontalAlignment="Right" /></Grid>
+                                <Grid Margin="0,0,0,3"><TextBlock Text="Gross Margin:" FontSize="11" Foreground="{StaticResource JacxiTextSecondaryBrush}" /><TextBlock Text="{Binding SelectedShipment.GrossMarginFormatted}" FontSize="11" FontWeight="Bold" Foreground="{StaticResource JacxiSuccessBrush}" HorizontalAlignment="Right" /></Grid>
+                                <Grid><TextBlock Text="Release Token:" FontSize="11" Foreground="{StaticResource JacxiTextSecondaryBrush}" /><TextBlock Text="{Binding SelectedShipment.ReleaseToken, FallbackValue='Not Issued'}" FontSize="11" FontWeight="Bold" Foreground="{StaticResource JacxiGoldActiveBrush}" HorizontalAlignment="Right" /></Grid>
                             </StackPanel>
                         </Border>
 
-                        <!-- Route & Ocean Carrier -->
-                        <Border Background="{StaticResource JacxiBackgroundBrush}"
-                                BorderBrush="{StaticResource JacxiBorderBrush}"
-                                BorderThickness="1"
-                                CornerRadius="8"
-                                Padding="14"
-                                Margin="0,0,0,16">
-                            <StackPanel>
-                                <TextBlock Text="CARRIER &amp; ROUTE"
-                                           FontFamily="{StaticResource JacxiFontFamily}"
-                                           FontSize="10"
-                                           FontWeight="Bold"
-                                           Foreground="{StaticResource JacxiTextSecondaryBrush}"
-                                           Margin="0,0,0,8" />
+                        <!-- Admin Quick Actions -->
+                        <TextBlock Text="ADMIN WORKFLOW ACTIONS" FontSize="10" FontWeight="Bold" Foreground="{StaticResource JacxiTextSecondaryBrush}" Margin="0,0,0,8" />
+                        <Button Content="Advance Next Milestone" Style="{StaticResource JacxiPrimaryButton}" Command="{Binding AdvanceMilestoneCommand}" Margin="0,0,0,8" />
 
-                                <Grid Margin="0,0,0,4">
-                                    <TextBlock Text="Port of Loading:" FontSize="11" Foreground="{StaticResource JacxiTextSecondaryBrush}" />
-                                    <TextBlock Text="{Binding SelectedShipment.OriginPort}" FontSize="11" FontWeight="Medium" HorizontalAlignment="Right" />
-                                </Grid>
-                                <Grid Margin="0,0,0,4">
-                                    <TextBlock Text="Port of Discharge:" FontSize="11" Foreground="{StaticResource JacxiTextSecondaryBrush}" />
-                                    <TextBlock Text="{Binding SelectedShipment.DestinationPort}" FontSize="11" FontWeight="Medium" HorizontalAlignment="Right" />
-                                </Grid>
-                                <Grid Margin="0,0,0,4">
-                                    <TextBlock Text="Vessel / Voyage:" FontSize="11" Foreground="{StaticResource JacxiTextSecondaryBrush}" />
-                                    <TextBlock Text="{Binding SelectedShipment.VesselName}" FontSize="11" FontWeight="Medium" HorizontalAlignment="Right" />
-                                </Grid>
-                                <Grid>
-                                    <TextBlock Text="Estimated Delivery:" FontSize="11" Foreground="{StaticResource JacxiTextSecondaryBrush}" />
-                                    <TextBlock Text="{Binding SelectedShipment.EstimatedDelivery}" FontSize="11" FontWeight="Bold" Foreground="{StaticResource JacxiGoldActiveBrush}" HorizontalAlignment="Right" />
-                                </Grid>
-                            </StackPanel>
-                        </Border>
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Button Grid.Column="0" Content="Generate Invoice" Style="{StaticResource JacxiOutlineButton}" Command="{Binding GenerateInvoiceCommand}" Margin="0,0,4,0" />
+                            <Button Grid.Column="1" Content="Generate BOL" Style="{StaticResource JacxiOutlineButton}" Command="{Binding GenerateBOLCommand}" Margin="4,0,0,0" />
+                        </Grid>
 
-                        <!-- Stepper Section -->
-                        <TextBlock Text="MILESTONE PROGRESSION"
-                                   FontFamily="{StaticResource JacxiFontFamily}"
-                                   FontSize="11"
-                                   FontWeight="Bold"
-                                   Foreground="{StaticResource JacxiTextSecondaryBrush}"
-                                   Margin="0,0,0,12" />
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Button Grid.Column="0" Content="Issue Release Token" Style="{StaticResource JacxiOutlineButton}" Command="{Binding IssueReleaseTokenCommand}" Margin="0,0,4,0" />
+                            <Button Grid.Column="1" Content="Request Gate Pass" Style="{StaticResource JacxiOutlineButton}" Command="{Binding RequestGatePassCommand}" Margin="4,0,0,0" />
+                        </Grid>
 
-                        <controls:MilestoneStepper Milestones="{Binding SelectedShipment.Milestones}" Margin="0,0,0,16" />
-
-                        <!-- Drawer Action Buttons -->
-                        <StackPanel Orientation="Vertical">
-                            <Button Content="Advance Next Milestone"
-                                    Style="{StaticResource JacxiPrimaryButton}"
-                                    Command="{Binding AdvanceMilestoneCommand}"
-                                    Margin="0,0,0,8" />
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-                                <Button Grid.Column="0"
-                                        Content="Generate BOL"
-                                        Style="{StaticResource JacxiOutlineButton}"
-                                        Command="{Binding GenerateBOLCommand}"
-                                        Margin="0,0,4,0" />
-                                <Button Grid.Column="1"
-                                        Content="Mark Delivered"
-                                        Style="{StaticResource JacxiOutlineButton}"
-                                        Command="{Binding MarkDeliveredCommand}"
-                                        Margin="4,0,0,0" />
-                            </Grid>
-                        </StackPanel>
+                        <TextBlock Text="MILESTONE TIMELINE" FontSize="10" FontWeight="Bold" Foreground="{StaticResource JacxiTextSecondaryBrush}" Margin="0,0,0,10" />
+                        <controls:MilestoneStepper Milestones="{Binding SelectedShipment.Milestones}" />
                     </StackPanel>
                 </ScrollViewer>
             </Border>

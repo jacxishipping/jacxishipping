@@ -5,10 +5,10 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:controls="clr-namespace:JacxiShipping.WindowsApp.Controls"
              mc:Ignorable="d" 
-             d:DesignHeight="700" d:DesignWidth="1000">
+             d:DesignHeight="800" d:DesignWidth="1050">
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
         <StackPanel Margin="32,24,32,32">
-            <!-- Header Section -->
+            <!-- Admin Command Center Header -->
             <Grid Margin="0,0,0,24">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
@@ -16,32 +16,31 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Grid.Column="0">
-                    <TextBlock Text="Operations Dashboard"
+                    <TextBlock Text="Admin Command Center"
                                FontFamily="{StaticResource JacxiFontFamily}"
                                FontSize="24"
                                FontWeight="Bold"
                                Foreground="{StaticResource JacxiTextPrimaryBrush}" />
-                    <TextBlock Text="Live vehicle cargo dispatch, ocean line logistics, and customs gateway status."
+                    <TextBlock Text="Unified oversight across shipments, ocean containers, receivables, and exception alerts."
                                FontFamily="{StaticResource JacxiFontFamily}"
                                FontSize="13"
                                Foreground="{StaticResource JacxiTextSecondaryBrush}"
                                Margin="0,4,0,0" />
                 </StackPanel>
 
-                <!-- Quick Action Buttons -->
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Content="Calculate Rate"
+                    <Button Content="Rate Calculator"
                             Style="{StaticResource JacxiOutlineButton}"
                             Command="{Binding GoToCalculatorCommand}"
-                            Margin="0,0,12,0" />
-                    <Button Content="+ New Booking"
+                            Margin="0,0,10,0" />
+                    <Button Content="All Shipments →"
                             Style="{StaticResource JacxiPrimaryButton}"
-                            Command="{Binding GoToCalculatorCommand}" />
+                            Command="{Binding GoToShipmentsCommand}" />
                 </StackPanel>
             </Grid>
 
-            <!-- 4 Key Metrics Cards -->
-            <Grid Margin="0,0,0,28">
+            <!-- Online-Parity 4 Admin KPI Cards -->
+            <Grid Margin="0,0,0,24">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="*" />
@@ -50,126 +49,95 @@
                 </Grid.ColumnDefinitions>
 
                 <controls:StatsCard Grid.Column="0"
-                                    Title="TOTAL ACTIVE SHIPMENTS"
-                                    Value="{Binding Stats.TotalShipments}"
-                                    Subtitle="↑ 12% vs last month" />
+                                    Title="ACTIVE SHIPMENTS"
+                                    Value="{Binding Stats.ActiveShipmentsCount}"
+                                    Subtitle="Across yard, ocean &amp; transit" />
 
                 <controls:StatsCard Grid.Column="1"
-                                    Title="IN OCEAN TRANSIT"
-                                    Value="{Binding Stats.ActiveInTransit}"
-                                    Subtitle="5 active vessels en route" />
+                                    Title="ACTIVE CONTAINERS"
+                                    Value="{Binding Stats.ActiveContainersCount}"
+                                    Subtitle="Loaded, sailing or customs" />
 
                 <controls:StatsCard Grid.Column="2"
-                                    Title="CUSTOMS CLEARANCE"
-                                    Value="{Binding Stats.CustomsPending}"
-                                    Subtitle="● Awaiting documentation" />
+                                    Title="PENDING RECEIVABLES"
+                                    Value="{Binding Stats.PendingInvoicesFormatted}"
+                                    Subtitle="Unpaid &amp; overdue invoices" />
 
                 <controls:StatsCard Grid.Column="3"
-                                    Title="DELIVERIES (THIS MONTH)"
-                                    Value="{Binding Stats.DeliveredMonth}"
-                                    Subtitle="100% on-time release" />
+                                    Title="COLLECTED REVENUE"
+                                    Value="{Binding Stats.CollectedRevenueFormatted}"
+                                    Subtitle="Settled customer invoices" />
             </Grid>
 
-            <!-- Two-Column Section: Recent Shipments & Operational Status -->
-            <Grid>
+            <!-- Middle Section: Today's Work / Exceptions & Container Utilization -->
+            <Grid Margin="0,0,0,24">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="2.2*" />
+                    <ColumnDefinition Width="1.4*" />
                     <ColumnDefinition Width="1*" />
                 </Grid.ColumnDefinitions>
 
-                <!-- Left: Recent Shipments Table -->
-                <Border Grid.Column="0" Style="{StaticResource JacxiCardBorder}" Margin="0,0,24,0">
+                <!-- Today's Work / Exceptions Queue -->
+                <Border Grid.Column="0" Style="{StaticResource JacxiCardBorder}" Margin="0,0,20,0">
                     <StackPanel>
-                        <Grid Margin="0,0,0,16">
+                        <Grid Margin="0,0,0,14">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <StackPanel Grid.Column="0">
-                                <TextBlock Text="Recent Shipments"
-                                           FontFamily="{StaticResource JacxiFontFamily}"
+                            <StackPanel>
+                                <TextBlock Text="Today's Work &amp; Exception Queue"
                                            FontSize="16"
                                            FontWeight="SemiBold"
                                            Foreground="{StaticResource JacxiTextPrimaryBrush}" />
-                                <TextBlock Text="Latest containers dispatched from US terminals"
-                                           FontFamily="{StaticResource JacxiFontFamily}"
+                                <TextBlock Text="Overdue invoices, customs holds, and pending gate passes requiring action"
                                            FontSize="12"
                                            Foreground="{StaticResource JacxiTextSecondaryBrush}" />
                             </StackPanel>
-
-                            <Button Grid.Column="1"
-                                    Content="View All Shipments →"
-                                    Style="{StaticResource JacxiGhostButton}"
-                                    Command="{Binding GoToShipmentsCommand}" />
+                            <Border Grid.Column="1"
+                                    Background="{StaticResource JacxiWarningBgBrush}"
+                                    BorderBrush="{StaticResource JacxiWarningBorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="12"
+                                    Padding="10,4"
+                                    VerticalAlignment="Center">
+                                <TextBlock Text="{Binding ExceptionAlerts.Count, StringFormat='{}{0} Open'}"
+                                           FontSize="11"
+                                           FontWeight="Bold"
+                                           Foreground="{StaticResource JacxiWarningBrush}" />
+                            </Border>
                         </Grid>
 
-                        <!-- Shipments List -->
-                        <ItemsControl ItemsSource="{Binding RecentShipments}">
+                        <ItemsControl ItemsSource="{Binding ExceptionAlerts}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Border BorderBrush="{StaticResource JacxiBorderSubtleBrush}"
-                                            BorderThickness="0,0,0,1"
-                                            Padding="0,12">
+                                    <Border Background="{StaticResource JacxiBackgroundBrush}"
+                                            BorderBrush="{StaticResource JacxiBorderBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="8"
+                                            Padding="12,10"
+                                            Margin="0,0,0,8">
                                         <Grid>
                                             <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="140" />
                                                 <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="180" />
-                                                <ColumnDefinition Width="130" />
-                                                <ColumnDefinition Width="80" />
+                                                <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-
-                                            <!-- Tracking & Container -->
-                                            <StackPanel Grid.Column="0">
-                                                <TextBlock Text="{Binding TrackingNumber}"
-                                                           FontFamily="{StaticResource JacxiFontFamily}"
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding Title}"
                                                            FontSize="13"
                                                            FontWeight="SemiBold"
                                                            Foreground="{StaticResource JacxiTextPrimaryBrush}" />
-                                                <TextBlock Text="{Binding ContainerNumber}"
-                                                           FontFamily="{StaticResource JacxiFontFamily}"
+                                                <TextBlock Text="{Binding Subtitle}"
                                                            FontSize="11"
-                                                           Foreground="{StaticResource JacxiTextSecondaryBrush}" />
+                                                           Foreground="{StaticResource JacxiTextSecondaryBrush}"
+                                                           Margin="0,2,0,0" />
                                             </StackPanel>
-
-                                            <!-- Vehicle & Consignee -->
-                                            <StackPanel Grid.Column="1" Margin="12,0">
-                                                <TextBlock Text="{Binding Vehicle.FullDescription}"
-                                                           FontFamily="{StaticResource JacxiFontFamily}"
-                                                           FontSize="13"
-                                                           FontWeight="Medium"
-                                                           Foreground="{StaticResource JacxiTextPrimaryBrush}" />
-                                                <TextBlock Text="{Binding CustomerName}"
-                                                           FontFamily="{StaticResource JacxiFontFamily}"
-                                                           FontSize="11"
-                                                           Foreground="{StaticResource JacxiTextSecondaryBrush}" />
-                                            </StackPanel>
-
-                                            <!-- Route -->
-                                            <StackPanel Grid.Column="2">
-                                                <TextBlock Text="{Binding DestinationPort}"
-                                                           FontFamily="{StaticResource JacxiFontFamily}"
-                                                           FontSize="12"
-                                                           FontWeight="Medium"
-                                                           Foreground="{StaticResource JacxiTextPrimaryBrush}" />
-                                                <TextBlock Text="{Binding OriginPort}"
-                                                           FontFamily="{StaticResource JacxiFontFamily}"
-                                                           FontSize="11"
-                                                           Foreground="{StaticResource JacxiTextSecondaryBrush}" />
-                                            </StackPanel>
-
-                                            <!-- Status Badge -->
-                                            <controls:StatusBadge Grid.Column="3" Status="{Binding Status}" />
-
-                                            <!-- Total -->
-                                            <TextBlock Grid.Column="4"
-                                                       Text="{Binding TotalCostFormatted}"
-                                                       FontFamily="{StaticResource JacxiFontFamily}"
-                                                       FontSize="13"
-                                                       FontWeight="Bold"
-                                                       Foreground="{StaticResource JacxiTextPrimaryBrush}"
-                                                       VerticalAlignment="Center"
-                                                       HorizontalAlignment="Right" />
+                                            <Button Grid.Column="1"
+                                                    Content="Open →"
+                                                    Style="{StaticResource JacxiOutlineButton}"
+                                                    Padding="10,5"
+                                                    FontSize="11"
+                                                    Command="{Binding DataContext.NavigateAlertCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding TargetTab}" />
                                         </Grid>
                                     </Border>
                                 </DataTemplate>
@@ -178,115 +146,128 @@
                     </StackPanel>
                 </Border>
 
-                <!-- Right: Terminal & Line Status -->
-                <StackPanel Grid.Column="1">
-                    <Border Style="{StaticResource JacxiCardBorder}" Margin="0,0,0,20">
-                        <StackPanel>
-                            <TextBlock Text="Port Terminal Status"
-                                       FontFamily="{StaticResource JacxiFontFamily}"
-                                       FontSize="15"
-                                       FontWeight="SemiBold"
-                                       Foreground="{StaticResource JacxiTextPrimaryBrush}"
-                                       Margin="0,0,0,14" />
+                <!-- Container Utilization -->
+                <Border Grid.Column="1" Style="{StaticResource JacxiCardBorder}">
+                    <StackPanel>
+                        <TextBlock Text="Container Utilization"
+                                   FontSize="16"
+                                   FontWeight="SemiBold"
+                                   Foreground="{StaticResource JacxiTextPrimaryBrush}"
+                                   Margin="0,0,0,4" />
+                        <TextBlock Text="Vehicle stuffing capacity across active ocean containers"
+                                   FontSize="12"
+                                   Foreground="{StaticResource JacxiTextSecondaryBrush}"
+                                   Margin="0,0,0,14" />
 
-                            <!-- Port 1 -->
-                            <Grid Margin="0,0,0,10">
-                                <TextBlock Text="Port of Newark, NJ"
-                                           FontFamily="{StaticResource JacxiFontFamily}"
-                                           FontSize="12"
-                                           Foreground="{StaticResource JacxiTextPrimaryBrush}" />
-                                <TextBlock Text="● Operational"
-                                           FontFamily="{StaticResource JacxiFontFamily}"
-                                           FontSize="11"
-                                           FontWeight="SemiBold"
-                                           Foreground="{StaticResource JacxiSuccessBrush}"
-                                           HorizontalAlignment="Right" />
-                            </Grid>
-
-                            <!-- Port 2 -->
-                            <Grid Margin="0,0,0,10">
-                                <TextBlock Text="Port of Houston, TX"
-                                           FontFamily="{StaticResource JacxiFontFamily}"
-                                           FontSize="12"
-                                           Foreground="{StaticResource JacxiTextPrimaryBrush}" />
-                                <TextBlock Text="● Operational"
-                                           FontFamily="{StaticResource JacxiFontFamily}"
-                                           FontSize="11"
-                                           FontWeight="SemiBold"
-                                           Foreground="{StaticResource JacxiSuccessBrush}"
-                                           HorizontalAlignment="Right" />
-                            </Grid>
-
-                            <!-- Port 3 -->
-                            <Grid Margin="0,0,0,10">
-                                <TextBlock Text="Port of Mersin, Turkey"
-                                           FontFamily="{StaticResource JacxiFontFamily}"
-                                           FontSize="12"
-                                           Foreground="{StaticResource JacxiTextPrimaryBrush}" />
-                                <TextBlock Text="● Normal Gate"
-                                           FontFamily="{StaticResource JacxiFontFamily}"
-                                           FontSize="11"
-                                           FontWeight="SemiBold"
-                                           Foreground="{StaticResource JacxiSuccessBrush}"
-                                           HorizontalAlignment="Right" />
-                            </Grid>
-
-                            <!-- Port 4 -->
-                            <Grid Margin="0,0,0,10">
-                                <TextBlock Text="Jebel Ali Port, UAE"
-                                           FontFamily="{StaticResource JacxiFontFamily}"
-                                           FontSize="12"
-                                           Foreground="{StaticResource JacxiTextPrimaryBrush}" />
-                                <TextBlock Text="● High Volume"
-                                           FontFamily="{StaticResource JacxiFontFamily}"
-                                           FontSize="11"
-                                           FontWeight="SemiBold"
-                                           Foreground="{StaticResource JacxiWarningBrush}"
-                                           HorizontalAlignment="Right" />
-                            </Grid>
-
-                            <!-- Port 5 -->
-                            <Grid>
-                                <TextBlock Text="Hairatan Inland Port"
-                                           FontFamily="{StaticResource JacxiFontFamily}"
-                                           FontSize="12"
-                                           Foreground="{StaticResource JacxiTextPrimaryBrush}" />
-                                <TextBlock Text="● Border Open"
-                                           FontFamily="{StaticResource JacxiFontFamily}"
-                                           FontSize="11"
-                                           FontWeight="SemiBold"
-                                           Foreground="{StaticResource JacxiSuccessBrush}"
-                                           HorizontalAlignment="Right" />
-                            </Grid>
-                        </StackPanel>
-                    </Border>
-
-                    <!-- Quick Tracking Banner -->
-                    <Border Background="{StaticResource JacxiGoldLightBrush}"
-                            BorderBrush="{StaticResource JacxiGoldBorderBrush}"
-                            BorderThickness="1"
-                            CornerRadius="{StaticResource JacxiRadiusCard}"
-                            Padding="20">
-                        <StackPanel>
-                            <TextBlock Text="TRACK CARGO INSTANTLY"
-                                       FontFamily="{StaticResource JacxiFontFamily}"
-                                       FontSize="11"
-                                       FontWeight="Bold"
-                                       Foreground="{StaticResource JacxiGoldActiveBrush}"
-                                       Margin="0,0,0,6" />
-                            <TextBlock Text="Look up container or vehicle by VIN across ocean &amp; border milestones."
-                                       FontFamily="{StaticResource JacxiFontFamily}"
-                                       FontSize="12"
-                                       Foreground="{StaticResource JacxiTextPrimaryBrush}"
-                                       TextWrapping="Wrap"
-                                       Margin="0,0,0,14" />
-                            <Button Content="Open Live Tracker →"
-                                    Style="{StaticResource JacxiPrimaryButton}"
-                                    Command="{Binding GoToTrackingCommand}" />
-                        </StackPanel>
-                    </Border>
-                </StackPanel>
+                        <ItemsControl ItemsSource="{Binding ContainerUtilization}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Margin="0,0,0,12">
+                                        <Grid Margin="0,0,0,4">
+                                            <TextBlock Text="{Binding ContainerNumber}"
+                                                       FontSize="12"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{StaticResource JacxiTextPrimaryBrush}" />
+                                            <TextBlock Text="{Binding CapacityDisplay}"
+                                                       FontSize="11"
+                                                       FontWeight="Medium"
+                                                       Foreground="{StaticResource JacxiGoldActiveBrush}"
+                                                       HorizontalAlignment="Right" />
+                                        </Grid>
+                                        <ProgressBar Value="{Binding CurrentCount}"
+                                                     Maximum="{Binding MaxCapacity}"
+                                                     Height="7"
+                                                     Foreground="{StaticResource JacxiGoldBrush}"
+                                                     Background="{StaticResource JacxiBorderSubtleBrush}"
+                                                     BorderThickness="0" />
+                                        <TextBlock Text="{Binding DestinationPort}"
+                                                   FontSize="10"
+                                                   Foreground="{StaticResource JacxiTextSecondaryBrush}"
+                                                   Margin="0,2,0,0" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
             </Grid>
+
+            <!-- Recent Shipments Table -->
+            <Border Style="{StaticResource JacxiCardBorder}">
+                <StackPanel>
+                    <Grid Margin="0,0,0,14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="Recent Shipments Feed"
+                                       FontSize="16"
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource JacxiTextPrimaryBrush}" />
+                            <TextBlock Text="Latest vehicles logged across auction dispatches and ocean containers"
+                                       FontSize="12"
+                                       Foreground="{StaticResource JacxiTextSecondaryBrush}" />
+                        </StackPanel>
+                        <Button Grid.Column="1"
+                                Content="Manage All Shipments →"
+                                Style="{StaticResource JacxiGhostButton}"
+                                Command="{Binding GoToShipmentsCommand}" />
+                    </Grid>
+
+                    <ItemsControl ItemsSource="{Binding RecentShipments}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border BorderBrush="{StaticResource JacxiBorderSubtleBrush}"
+                                        BorderThickness="0,0,0,1"
+                                        Padding="0,11">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="140" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="190" />
+                                            <ColumnDefinition Width="140" />
+                                            <ColumnDefinition Width="130" />
+                                            <ColumnDefinition Width="85" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="{Binding TrackingNumber}" FontSize="13" FontWeight="SemiBold" />
+                                            <TextBlock Text="{Binding ContainerNumber}" FontSize="11" Foreground="{StaticResource JacxiTextSecondaryBrush}" />
+                                        </StackPanel>
+
+                                        <StackPanel Grid.Column="1" Margin="10,0">
+                                            <TextBlock Text="{Binding Vehicle.FullDescription}" FontSize="13" FontWeight="Medium" />
+                                            <TextBlock Text="{Binding Vehicle.Vin}" FontSize="11" Foreground="{StaticResource JacxiTextSecondaryBrush}" />
+                                        </StackPanel>
+
+                                        <StackPanel Grid.Column="2">
+                                            <TextBlock Text="{Binding CustomerName}" FontSize="12" FontWeight="Medium" />
+                                            <TextBlock Text="{Binding DestinationPort}" FontSize="11" Foreground="{StaticResource JacxiTextSecondaryBrush}" />
+                                        </StackPanel>
+
+                                        <TextBlock Grid.Column="3"
+                                                   Text="{Binding SimpleStatusLabel}"
+                                                   FontSize="11"
+                                                   FontWeight="Medium"
+                                                   Foreground="{StaticResource JacxiTextSecondaryBrush}"
+                                                   VerticalAlignment="Center" />
+
+                                        <controls:StatusBadge Grid.Column="4" Status="{Binding Status}" />
+
+                                        <TextBlock Grid.Column="5"
+                                                   Text="{Binding TotalCostFormatted}"
+                                                   FontSize="13"
+                                                   FontWeight="Bold"
+                                                   VerticalAlignment="Center"
+                                                   HorizontalAlignment="Right" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
         </StackPanel>
     </ScrollViewer>
 </UserControl>

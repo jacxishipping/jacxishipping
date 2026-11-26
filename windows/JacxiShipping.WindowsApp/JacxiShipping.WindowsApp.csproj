@@ -9,12 +9,12 @@
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <AssemblyName>JacxiShipping</AssemblyName>
     <RootNamespace>JacxiShipping.WindowsApp</RootNamespace>
-    <ApplicationTitle>JACXI Shipping - Logistics Operations Suite</ApplicationTitle>
+    <ApplicationTitle>JACXI Shipping — Enterprise Admin Suite</ApplicationTitle>
     <Company>JACXI Shipping LLC</Company>
-    <Product>JACXI Shipping Windows Suite</Product>
-    <Version>1.0.0</Version>
-    <AssemblyVersion>1.0.0.0</AssemblyVersion>
-    <FileVersion>1.0.0.0</FileVersion>
+    <Product>JACXI Shipping Windows Admin Suite</Product>
+    <Version>2.0.0</Version>
+    <AssemblyVersion>2.0.0.0</AssemblyVersion>
+    <FileVersion>2.0.0.0</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>

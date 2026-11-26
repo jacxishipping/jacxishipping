@@ -1,0 +1,67 @@
+<UserControl x:Class="JacxiShipping.WindowsApp.Views.AnalyticsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:controls="clr-namespace:JacxiShipping.WindowsApp.Controls"
+             mc:Ignorable="d" d:DesignHeight="800" d:DesignWidth="1120">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="32,24,32,32">
+            <StackPanel Margin="0,0,0,20">
+                <TextBlock Text="Executive Analytics &amp; Financial Reports" FontSize="24" FontWeight="Bold" />
+                <TextBlock Text="AR Aging Buckets, Container P&amp;L performance, and operational throughput metrics." FontSize="13" Foreground="{StaticResource JacxiTextSecondaryBrush}" Margin="0,4,0,0" />
+            </StackPanel>
+
+            <Grid Margin="0,0,0,22">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <controls:StatsCard Grid.Column="0" Title="GROSS BILLABLE VALUE" Value="{Binding Stats.TotalRevenueFormatted}" Subtitle="All active &amp; delivered" />
+                <controls:StatsCard Grid.Column="1" Title="COLLECTED CASH" Value="{Binding Stats.CollectedRevenueFormatted}" Subtitle="Confirmed payments" />
+                <controls:StatsCard Grid.Column="2" Title="OPEN RECEIVABLES" Value="{Binding Stats.PendingInvoicesFormatted}" Subtitle="Pending &amp; overdue" />
+                <controls:StatsCard Grid.Column="3" Title="ESTIMATED NET PROFIT" Value="{Binding Stats.GrossProfitFormatted}" Subtitle="After carrier &amp; OpEx" />
+            </Grid>
+
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="1*" /><ColumnDefinition Width="1.4*" /></Grid.ColumnDefinitions>
+
+                <!-- AR Aging Report -->
+                <Border Grid.Column="0" Style="{StaticResource JacxiCardBorder}" Margin="0,0,20,0">
+                    <StackPanel>
+                        <TextBlock Text="ACCOUNTS RECEIVABLE (AR) AGING" FontSize="11" FontWeight="Bold" Foreground="{StaticResource JacxiTextSecondaryBrush}" Margin="0,0,0,14" />
+                        <ItemsControl ItemsSource="{Binding ArAging}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="{StaticResource JacxiBackgroundBrush}" BorderBrush="{StaticResource JacxiBorderBrush}" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="0,0,0,10">
+                                        <Grid>
+                                            <TextBlock Text="{Binding Label}" FontSize="13" FontWeight="SemiBold" />
+                                            <TextBlock Text="{Binding FormattedAmount}" FontSize="14" FontWeight="Bold" Foreground="{StaticResource JacxiGoldActiveBrush}" HorizontalAlignment="Right" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+
+                <!-- Container P&L Summary -->
+                <Border Grid.Column="1" Style="{StaticResource JacxiCardBorder}" Padding="0">
+                    <StackPanel>
+                        <TextBlock Text="CONTAINER COST &amp; UTILIZATION SUMMARY" FontSize="11" FontWeight="Bold" Foreground="{StaticResource JacxiTextSecondaryBrush}" Margin="16,16,16,10" />
+                        <DataGrid ItemsSource="{Binding ContainerPnL}" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column"
+                                  GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="{StaticResource JacxiBorderBrush}"
+                                  Background="{StaticResource JacxiPanelBrush}" BorderThickness="0"
+                                  ColumnHeaderStyle="{StaticResource JacxiDataGridColumnHeader}" RowStyle="{StaticResource JacxiDataGridRow}">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="CONTAINER #" Binding="{Binding ContainerNumber}" Width="130" />
+                                <DataGridTextColumn Header="DESTINATION" Binding="{Binding DestinationPort}" Width="*" />
+                                <DataGridTextColumn Header="CAPACITY" Binding="{Binding CapacityDisplay}" Width="115" />
+                                <DataGridTextColumn Header="EXPENSES" Binding="{Binding ExpensesFormatted}" Width="105" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

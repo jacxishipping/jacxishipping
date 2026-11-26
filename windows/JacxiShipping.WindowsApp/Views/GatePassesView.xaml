@@ -1,0 +1,48 @@
+<UserControl x:Class="JacxiShipping.WindowsApp.Views.GatePassesView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             mc:Ignorable="d" d:DesignHeight="800" d:DesignWidth="1100">
+    <Grid Margin="32,24,32,32">
+        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+
+        <Grid Grid.Row="0" Margin="0,0,0,20">
+            <StackPanel>
+                <TextBlock Text="Company Gate Passes &amp; Release Tokens" FontSize="24" FontWeight="Bold" />
+                <TextBlock Text="Monitor active port gate pass requests, validate release tokens, and log completion turnaround." FontSize="13" Foreground="{StaticResource JacxiTextSecondaryBrush}" Margin="0,4,0,0" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <TextBlock Text="{Binding StatusMessage}" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource JacxiSuccessBrush}" VerticalAlignment="Center" Margin="0,0,14,0" />
+                <Button Content="Refresh Queue" Style="{StaticResource JacxiOutlineButton}" Command="{Binding RefreshCommand}" />
+            </StackPanel>
+        </Grid>
+
+        <Border Grid.Row="1" Style="{StaticResource JacxiCardBorder}" Padding="0">
+            <DataGrid ItemsSource="{Binding GatePasses}" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column"
+                      GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="{StaticResource JacxiBorderBrush}"
+                      Background="{StaticResource JacxiPanelBrush}" BorderThickness="0"
+                      ColumnHeaderStyle="{StaticResource JacxiDataGridColumnHeader}" RowStyle="{StaticResource JacxiDataGridRow}">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="TRACKING / TOKEN" Binding="{Binding ReleaseToken}" Width="140" />
+                    <DataGridTextColumn Header="VEHICLE" Binding="{Binding VehicleLabel}" Width="*" />
+                    <DataGridTextColumn Header="VIN" Binding="{Binding Vin}" Width="170" />
+                    <DataGridTextColumn Header="CUSTOMER" Binding="{Binding CustomerName}" Width="170" />
+                    <DataGridTextColumn Header="CONTAINER" Binding="{Binding ContainerNumber}" Width="130" />
+                    <DataGridTextColumn Header="STATUS" Binding="{Binding Status}" Width="120" />
+                    <DataGridTemplateColumn Header="ACTION" Width="160">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Button Content="Complete Gate Pass ✓"
+                                        Style="{StaticResource JacxiPrimaryButton}"
+                                        Padding="10,5" FontSize="11"
+                                        Command="{Binding DataContext.CompleteGatePassCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        CommandParameter="{Binding}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+    </Grid>
+</UserControl>

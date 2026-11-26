@@ -5,18 +5,48 @@ namespace JacxiShipping.WindowsApp.ViewModels;
 
 public class MainViewModel : ViewModelBase
 {
+    private readonly IAdminStoreService _store;
     private readonly IShipmentService _shipmentService;
     private readonly IRateCalculatorService _calculatorService;
     private readonly IDocumentService _documentService;
+    private readonly IJacxiCloudClient _cloudClient;
 
-    private string _currentTab = "Dashboard";
+    private string _currentTab = string.Empty;
     private object? _currentView;
+    private string _globalSearchQuery = string.Empty;
+    private NavBadges _badges = new();
+    private bool _isAdminAuthenticated = true; // Auto-authenticated as JACXI Operations Admin, lockable via Sign Out
+    private string _loginEmail = "admin@jacxishipping.com";
+    private string _loginCodeInput = "JX884910";
+    private string _loginStatus = string.Empty;
 
     public DashboardViewModel DashboardVM { get; }
     public ShipmentsViewModel ShipmentsVM { get; }
-    public CalculatorViewModel CalculatorVM { get; }
+    public OperationsBoardViewModel OperationsBoardVM { get; }
+    public ContainersViewModel ContainersVM { get; }
+    public DispatchesViewModel DispatchesVM { get; }
+    public TransitsViewModel TransitsVM { get; }
+    public GatePassesViewModel GatePassesVM { get; }
     public TrackingViewModel TrackingVM { get; }
+    public FinanceViewModel FinanceVM { get; }
+    public InvoicesViewModel InvoicesVM { get; }
+    public OfficeExpensesViewModel OfficeExpensesVM { get; }
+    public CompanyLedgersViewModel CompanyLedgersVM { get; }
+    public CustomersViewModel CustomersVM { get; }
+    public PartnerPortalsViewModel PartnerPortalsVM { get; }
+    public CalculatorViewModel CalculatorVM { get; }
     public DocumentsViewModel DocumentsVM { get; }
+    public AnalyticsViewModel AnalyticsVM { get; }
+    public SettingsViewModel SettingsVM { get; }
+
+    public AdminUser CurrentAdmin => _store.Session.CurrentAdmin;
+    public string CloudStatusLabel => _store.Session.IsCloudConnected ? "CLOUD SYNCED" : "LOCAL ADMIN SUITE";
+
+    public NavBadges Badges
+    {
+        get => _badges;
+        set => SetProperty(ref _badges, value);
+    }
 
     public string CurrentTab
     {
@@ -36,19 +66,57 @@ public class MainViewModel : ViewModelBase
         set => SetProperty(ref _currentView, value);
     }
 
-    public RelayCommand NavigateCommand { get; }
-
-    public MainViewModel()
+    public string GlobalSearchQuery
     {
-        _shipmentService = new ShipmentService();
+        get => _globalSearchQuery;
+        set => SetProperty(ref _globalSearchQuery, value);
+    }
+
+    public bool IsAdminAuthenticated
+    {
+        get => _isAdminAuthenticated;
+        set => SetProperty(ref _isAdminAuthenticated, value);
+    }
+
+    public string LoginEmail { get => _loginEmail; set => SetProperty(ref _loginEmail, value); }
+    public string LoginCodeInput { get => _loginCodeInput; set => SetProperty(ref _loginCodeInput, value); }
+    public string LoginStatus { get => _loginStatus; set => SetProperty(ref _loginStatus, value); }
+
+    public RelayCommand NavigateCommand { get; }
+    public RelayCommand GlobalSearchCommand { get; }
+    public RelayCommand SignOutCommand { get; }
+    public RelayCommand SignInLocalCommand { get; }
+
+    public MainViewModel() : this(new AdminStoreService())
+    {
+    }
+
+    public MainViewModel(IAdminStoreService store)
+    {
+        _store = store;
+        _shipmentService = new ShipmentService(_store);
         _calculatorService = new RateCalculatorService();
         _documentService = new DocumentService();
+        _cloudClient = new JacxiCloudClient();
 
-        DashboardVM = new DashboardViewModel(_shipmentService, Navigate);
-        ShipmentsVM = new ShipmentsViewModel(_shipmentService, _documentService);
-        CalculatorVM = new CalculatorViewModel(_calculatorService, _shipmentService);
+        DashboardVM = new DashboardViewModel(_store, Navigate);
+        ShipmentsVM = new ShipmentsViewModel(_store, _shipmentService, _documentService);
+        OperationsBoardVM = new OperationsBoardViewModel(_store);
+        ContainersVM = new ContainersViewModel(_store);
+        DispatchesVM = new DispatchesViewModel(_store);
+        TransitsVM = new TransitsViewModel(_store);
+        GatePassesVM = new GatePassesViewModel(_store);
         TrackingVM = new TrackingViewModel(_shipmentService);
+        FinanceVM = new FinanceViewModel(_store);
+        InvoicesVM = new InvoicesViewModel(_store);
+        OfficeExpensesVM = new OfficeExpensesViewModel(_store);
+        CompanyLedgersVM = new CompanyLedgersViewModel(_store);
+        CustomersVM = new CustomersViewModel(_store);
+        PartnerPortalsVM = new PartnerPortalsViewModel(_store);
+        CalculatorVM = new CalculatorViewModel(_calculatorService, _shipmentService);
         DocumentsVM = new DocumentsViewModel(_documentService, _shipmentService);
+        AnalyticsVM = new AnalyticsViewModel(_store);
+        SettingsVM = new SettingsViewModel(_store, _cloudClient);
 
         NavigateCommand = new RelayCommand(param =>
         {
@@ -58,16 +126,61 @@ public class MainViewModel : ViewModelBase
             }
         });
 
-        _currentTab = string.Empty;
+        GlobalSearchCommand = new RelayCommand(() =>
+        {
+            if (string.IsNullOrWhiteSpace(GlobalSearchQuery)) return;
+            ShipmentsVM.SearchQuery = GlobalSearchQuery;
+            Navigate("Shipments");
+        });
+
+        SignOutCommand = new RelayCommand(() =>
+        {
+            IsAdminAuthenticated = false;
+            LoginStatus = "Session locked. Sign in with your Admin Email or 8-char Login Code.";
+        });
+
+        SignInLocalCommand = new RelayCommand(() =>
+        {
+            var matched = _store.GetUsers().FirstOrDefault(u =>
+                u.Email.Equals(LoginEmail, StringComparison.OrdinalIgnoreCase) ||
+                (!string.IsNullOrWhiteSpace(LoginCodeInput) && u.LoginCode.Equals(LoginCodeInput.Trim(), StringComparison.OrdinalIgnoreCase)));
+
+            if (matched != null)
+            {
+                _store.Session.CurrentAdmin = matched;
+                OnPropertyChanged(nameof(CurrentAdmin));
+            }
+
+            IsAdminAuthenticated = true;
+            LoginStatus = string.Empty;
+        });
+
         Navigate("Dashboard");
     }
 
     public void Navigate(string tab)
     {
         CurrentTab = tab;
-        if (tab == "Dashboard") DashboardVM.RefreshData();
-        if (tab == "Shipments") ShipmentsVM.ApplyFilter();
-        if (tab == "Documents") DocumentsVM.LoadDocuments();
+        Badges = _store.GetNavBadges();
+
+        switch (tab)
+        {
+            case "Dashboard": DashboardVM.RefreshData(); break;
+            case "Shipments": ShipmentsVM.ApplyFilter(); break;
+            case "OperationsBoard": OperationsBoardVM.Refresh(); break;
+            case "Containers": ContainersVM.Refresh(); break;
+            case "Dispatches": DispatchesVM.Refresh(); break;
+            case "Transits": TransitsVM.Refresh(); break;
+            case "GatePasses": GatePassesVM.Refresh(); break;
+            case "Finance": FinanceVM.Refresh(); break;
+            case "Invoices": InvoicesVM.Refresh(); break;
+            case "OfficeExpenses": OfficeExpensesVM.Refresh(); break;
+            case "CompanyLedgers": CompanyLedgersVM.Refresh(); break;
+            case "Customers": CustomersVM.Refresh(); break;
+            case "PartnerPortals": PartnerPortalsVM.Refresh(); break;
+            case "Documents": DocumentsVM.LoadDocuments(); break;
+            case "Analytics": AnalyticsVM.Refresh(); break;
+        }
     }
 
     private void UpdateCurrentView()
@@ -76,9 +189,22 @@ public class MainViewModel : ViewModelBase
         {
             "Dashboard" => DashboardVM,
             "Shipments" => ShipmentsVM,
-            "Calculator" => CalculatorVM,
+            "OperationsBoard" => OperationsBoardVM,
+            "Containers" => ContainersVM,
+            "Dispatches" => DispatchesVM,
+            "Transits" => TransitsVM,
+            "GatePasses" => GatePassesVM,
             "Tracking" => TrackingVM,
+            "Finance" => FinanceVM,
+            "Invoices" => InvoicesVM,
+            "OfficeExpenses" => OfficeExpensesVM,
+            "CompanyLedgers" => CompanyLedgersVM,
+            "Customers" => CustomersVM,
+            "PartnerPortals" => PartnerPortalsVM,
+            "Calculator" => CalculatorVM,
             "Documents" => DocumentsVM,
+            "Analytics" => AnalyticsVM,
+            "Settings" => SettingsVM,
             _ => DashboardVM
         };
     }

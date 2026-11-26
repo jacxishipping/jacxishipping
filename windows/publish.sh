@@ -2,18 +2,18 @@
 set -e
 
 echo "=========================================================="
-echo "  JACXI SHIPPING - WINDOWS APP RELEASE PACKAGER           "
+echo "  JACXI SHIPPING - WINDOWS ADMIN RELEASE PACKAGER         "
 echo "=========================================================="
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
 DIST_DIR="$SCRIPT_DIR/dist/win-x64"
-ZIP_FILE="$SCRIPT_DIR/dist/JacxiShipping-Windows-x64-v1.0.0.zip"
+ZIP_FILE="$SCRIPT_DIR/dist/JacxiShipping-Admin-Windows-x64-v2.0.0.zip"
 
 mkdir -p "$DIST_DIR"
 
-echo ">> Publishing single-file Windows (x64) release executable..."
+echo ">> Publishing single-file Windows (x64) Admin release executable..."
 dotnet publish JacxiShipping.WindowsApp/JacxiShipping.WindowsApp.csproj \
   -c Release \
   -r win-x64 \

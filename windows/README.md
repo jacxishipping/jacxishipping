@@ -1,113 +1,47 @@
-# JACXI Shipping - Windows Desktop Operations Suite (C# / WPF / .NET 10)
+# JACXI Shipping — Enterprise Admin Windows Suite (C# / WPF / .NET 10)
 
-The official **JACXI Shipping** Windows desktop enterprise application built in **C#** and **WPF** (.NET 10), strictly implementing the **JACXI Design System** (`TEAM_DESIGN_SYSTEM_RULES.txt`).
-
----
-
-## 🎨 Design System Implementation
-
-The application adheres strictly to JACXI's brand identity and enterprise design tokens:
-
-| Token / Concept | Value | Usage in Application |
-|---|---|---|
-| **Background** | `#F9FAFB` | Clean, calm soft-gray enterprise app canvas |
-| **Panel / Cards** | `#FFFFFF` | Elevated white panels with subtle 1px border (`#E5E7EB`) |
-| **Accent Gold** | `#D4AF37` | Primary buttons, active indicators, focus rings, and milestone highlights |
-| **Gold Hover / Active** | `#C5A028` / `#997C1F` | Smooth interactive press and hover states |
-| **Neutral Text** | `#1C1C1E` & `#5F6368` | High contrast primary typography and secondary metadata |
-| **Dark Shell** | `#111827` / `#1F2937` | High-efficiency contrast sidebar navigation |
-| **Success** | `#10B981` (tint `#ECFDF5`) | Delivered status, positive trends, operational terminals |
-| **Warning** | `#F59E0B` (tint `#FFFBEB`) | Customs holds, high port traffic alerts |
-| **Error** | `#EF4444` (tint `#FEF2F2`) | Validation alerts, missing documentation |
-| **Info** | `#3B82F6` (tint `#EFF6FF`) | Ocean transit, in-progress container loading |
-| **Corner Radius** | `14px` cards, `8px` controls | Modern rounded surfaces per design system rules |
-| **Typography** | Segoe UI / Inter sans stack | Micro-labels in uppercase bold, semibold headers |
+The official **JACXI Shipping Windows Admin Desktop Application** built in **C# (.NET 10 / WPF)**, implementing **full feature parity** with the online JACXI Shipping Admin Dashboard (`src/app/dashboard/*`) and strictly following the **JACXI Design System** (`TEAM_DESIGN_SYSTEM_RULES.txt`).
 
 ---
 
-## 🏗️ Architecture & Solution Layout
+## 🖥️ Complete Online Admin Parity (18 Modules)
 
-The solution is partitioned cleanly into a 3-tier enterprise structure:
+### 1. Main & Command Center
+- **Admin Dashboard**: 4 live KPI cards (Active Shipments, Active Containers, Pending Receivables, Collected Revenue), **Today's Work & Exception Queue** (overdue invoices, customs holds, pending gate passes), Container Utilization capacity bars, and Recent Shipments feed.
 
-```
-windows/
-├── JacxiShipping.slnx               # Visual Studio / .NET solution
-├── JacxiShipping.Core/              # Cross-platform .NET 10 core domain library
-│   ├── Models/                     # Shipment, Vehicle, Milestone, RateQuote, DashboardStats, DocumentItem
-│   ├── Services/                   # IShipmentService, RateCalculatorService, DocumentService
-│   └── ViewModels/                 # MainViewModel, DashboardViewModel, ShipmentsViewModel, CalculatorViewModel, TrackingViewModel, DocumentsViewModel
-├── JacxiShipping.WindowsApp/        # Native Windows WPF application (.NET 10 Windows Desktop)
-│   ├── Themes/                     # JacxiDesignTokens.xaml, JacxiControls.xaml
-│   ├── Controls/                   # StatsCard, StatusBadge, MilestoneStepper
-│   ├── Converters/                 # StatusConverters, GeneralConverters
-│   ├── Views/                      # DashboardView, ShipmentsView, CalculatorView, TrackingView, DocumentsView
-│   ├── MainWindow.xaml             # Master window shell with branded sidebar & dynamic content
-│   └── App.xaml                    # Application startup & resource dictionary merges
-├── JacxiShipping.WindowsApp.Tests/  # Comprehensive xUnit test suite (16 tests, 100% pass)
-│   ├── ShipmentServiceTests.cs
-│   ├── RateCalculatorServiceTests.cs
-│   ├── DocumentServiceTests.cs
-│   └── ViewModelTests.cs
-└── dist/
-    ├── win-x64/                    # Standalone published Windows binary files (JacxiShipping.exe)
-    └── JacxiShipping-Windows-x64-v1.0.0.zip
-```
+### 2. Shipments & Logistics (with Live Sidebar Badges)
+- **Shipments & Vehicle Inventory**: Create new shipments (`SHIPPING_ONLY` or `PURCHASE_AND_SHIPPING`), live search, status filter chips, inspect gross margin, issue Release Tokens, request Gate Passes, generate Invoices & Bills of Lading, and export CSV manifests.
+- **Operations Board**: 6-stage Kanban pipeline (`ON_HAND` → `DISPATCHING` → `IN_TRANSIT` → `RELEASED` → `IN_TRANSIT_TO_DESTINATION` → `DELIVERED`) with one-click stage advancement.
+- **Containers**: Create ocean containers, track capacity (`CurrentCount / MaxCapacity`), advance 8-stage container lifecycle (`CREATED` through `CLOSED`), and load unassigned vehicles.
+- **Dispatches**: Manage origin auction yard-to-port inland towing (`PENDING` → `DISPATCHED` → `ARRIVED_AT_PORT` → `COMPLETED`).
+- **Transits**: Manage cross-border convoys (UAE/Turkey → Kabul/Hairatan/Islam Qala) and record delivery receiver proof.
+- **Company Gate Passes**: Queue and complete gate pass requests with release token verification.
+- **Live Cargo Tracking**: Search by tracking number or VIN with maritime route visualization and 6-step milestone timeline.
 
----
+### 3. Finance & Accounting
+- **Finance & Customer Ledgers**: Receivables, Collected Cash, OpEx, Net Profit KPIs, Customer Balance table, and manual Debit/Credit ledger postings.
+- **Invoices**: Filter by status (`PENDING`, `OVERDUE`, `PARTIALLY_PAID`, `PAID`), inspect line items, apply partial/full payments (automatically crediting the Customer Ledger), and flag overdue invoices.
+- **Office Expenses & Budgets**: Record OpEx across categories (`RENT`, `SALARIES_PAYROLL`, `UTILITIES`, `SOFTWARE_SUBSCRIPTIONS`, etc.) with live monthly budget progress caps.
+- **Company Ledgers & Transfers**: Ocean/dispatch/transit company balances and inter-ledger transfers.
 
-## 🚀 Key Features
+### 4. Customers & Portals
+- **Customers & Users (RBAC)**: Manage roles (`admin`, `manager`, `finance`, `operations`, `customer_service`, `user`), collection statuses, and 8-character Login Code generation.
+- **Partner Portals**: Provision white-label B2B portals with custom domains and toggle active status.
 
-1. **Operations Dashboard**:
-   - 4 Live KPI StatCards (Active Shipments, In Ocean Transit, Customs Clearance Holds, Deliveries this month).
-   - Real-time Port Terminal status badges (Newark, Houston, Mersin, Jebel Ali, Hairatan).
-   - Recent Shipments feed with quick links.
-
-2. **Shipment Inventory & Inspection Drawer**:
-   - Live search by Tracking Number, Container ID, VIN, or Customer.
-   - Status filter chips (`All`, `In Transit`, `Customs Hold`, `Delivered`, `Booked`).
-   - Deep inspection drawer displaying full vehicle specs (Year/Make/Model, VIN, Auction Yard, Lot #, Title Status, Condition Photos count).
-   - Interactive 6-step `MilestoneStepper`.
-   - Action controls: "Advance Next Milestone", "Mark Delivered", "Generate BOL".
-
-3. **Instant Freight Rate Calculator & Booking Engine**:
-   - State-by-state US auction inland towing calculation (Copart & IAAI yards).
-   - Destination port ocean freight routing (Mersin, Jebel Ali, Poti, Hairatan, Islam Qala).
-   - Vehicle category multiplier (Sedan 1.0x, SUV 1.15x, Truck 1.30x, Machinery 1.75x, Motorcycle 0.6x).
-   - Detailed cost breakdown: Towing + Ocean Freight + Terminal Handling (THC) + Customs Title Validation.
-   - **"Confirm Booking & Generate Tracking"** button creates an active shipment directly in the database.
-
-4. **Live Cargo & Container Tracking**:
-   - Search by tracking number (`JCX-...`) or VIN.
-   - Origin-to-Destination maritime transit visual route indicator.
-   - Milestone progress tracker showing timestamps and terminal locations.
-
-5. **Maritime Document Center**:
-   - Official Bill of Lading (BOL), Terminal Dock Receipts, and Inspection Reports.
-   - Built-in monospace inspection viewer formatted to international shipping standards.
+### 5. Tools & System
+- **Rate Calculator**: Official Copart/IAAI state-by-state towing + ocean freight tariffs with instant booking conversion.
+- **Document Center**: Bill of Lading, Dock Receipt, and Vehicle Inspection manifest viewer.
+- **Analytics & Reports**: Accounts Receivable (AR) Aging buckets and Container P&L summary.
+- **Cloud Sync & Settings**: Authenticate directly against a live JACXI Next.js backend (`/api/auth/signin`), export JSON database snapshots, or reset demo state. Also supports locking the session with the Admin Sign-In screen.
 
 ---
 
-## 💻 Building and Publishing
+## 💻 Building, Testing & Packaging
 
-### 1. Build and Run Tests
 ```bash
-cd windows
-dotnet test JacxiShipping.WindowsApp.Tests/JacxiShipping.WindowsApp.Tests.csproj
-```
+# Run all 23 xUnit tests & compile Release build
+./windows/build-and-test.sh
 
-### 2. Build Solution
-```bash
-dotnet build JacxiShipping.slnx
+# Publish Windows x64 executable & zip archive
+./windows/publish.sh
 ```
-
-### 3. Publish Windows Release Executable
-```bash
-dotnet publish JacxiShipping.WindowsApp/JacxiShipping.WindowsApp.csproj \
-  -c Release \
-  -r win-x64 \
-  -p:PublishSingleFile=true \
-  --self-contained false \
-  -o dist/win-x64
-```
-
-The output executable is ready at `windows/dist/win-x64/JacxiShipping.exe` or zipped in `windows/dist/JacxiShipping-Windows-x64-v1.0.0.zip`.
