@@ -1,0 +1,80 @@
+<UserControl x:Class="JacxiShipping.WindowsApp.Views.CallAgentSettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:controls="clr-namespace:JacxiShipping.WindowsApp.Controls"
+             mc:Ignorable="d"
+             d:DesignHeight="800" d:DesignWidth="1120">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="32,24,32,32">
+            <!-- Header -->
+            <Grid Margin="0,0,0,20">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Text="Call Agent &amp; Voice AI Settings" FontSize="22" FontWeight="Bold" Foreground="{StaticResource JacxiTextPrimaryBrush}" />
+                    <TextBlock Text="Twilio Voice Webhooks, WebSocket audio streaming, and Gemini Live telephony models." FontSize="12.5" Foreground="{StaticResource JacxiTextSecondaryBrush}" Margin="0,4,0,0" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Content="Sync Cloud Readiness" Style="{StaticResource JacxiOutlineButton}" Command="{Binding SyncFromCloudCommand}" Margin="0,0,8,0" />
+                    <Button Content="Save Config" Style="{StaticResource JacxiPrimaryButton}" Command="{Binding SaveConfigCommand}" />
+                </StackPanel>
+            </Grid>
+
+            <!-- Readiness KPIs -->
+            <controls:ResponsiveColumnsPanel MaxColumns="4" MinColumnWidth="210" ColumnGap="16" RowGap="16" Margin="0,0,0,20">
+                <controls:StatsCard Title="Voice Webhook" Value="Ready" Subtitle="{Binding Config.PreferredBaseUrl}" />
+                <controls:StatsCard Title="Twilio SIP / Voice" Value="{Binding Config.TwilioPhoneNumber}" Subtitle="Inbound + Outbound" />
+                <controls:StatsCard Title="Standard Model" Value="{Binding Config.GeminiVoiceModel}" Subtitle="Async call summaries" />
+                <controls:StatsCard Title="Live Audio Model" Value="{Binding Config.GeminiLiveModel}" Subtitle="Real-time WebSocket" />
+            </controls:ResponsiveColumnsPanel>
+
+            <controls:ResponsiveColumnsPanel MaxColumns="2" MinColumnWidth="420" ColumnGap="20" RowGap="20" Margin="0,0,0,20">
+                <Border Style="{StaticResource JacxiCardBorder}">
+                    <StackPanel>
+                        <TextBlock Text="WEBHOOK &amp; STREAMING ENDPOINTS" FontSize="11" FontWeight="Bold" Foreground="{StaticResource JacxiTextMutedBrush}" Margin="0,0,0,12" />
+
+                        <TextBlock Text="Twilio Voice POST Webhook" FontSize="11.5" FontWeight="SemiBold" Margin="0,0,0,4" />
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                            <TextBox Style="{StaticResource JacxiTextBox}" Text="{Binding Config.WebhookUrl, UpdateSourceTrigger=PropertyChanged}" Height="36" Margin="0,0,8,0" />
+                            <Button Grid.Column="1" Content="Copy" Style="{StaticResource JacxiOutlineButton}" Command="{Binding CopyWebhookCommand}" />
+                        </Grid>
+
+                        <TextBlock Text="Gemini Live Media Stream WebSocket" FontSize="11.5" FontWeight="SemiBold" Margin="0,0,0,4" />
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                            <TextBox Style="{StaticResource JacxiTextBox}" Text="{Binding Config.WebsocketUrl, UpdateSourceTrigger=PropertyChanged}" Height="36" Margin="0,0,8,0" />
+                            <Button Grid.Column="1" Content="Copy" Style="{StaticResource JacxiOutlineButton}" Command="{Binding CopyWebsocketCommand}" />
+                        </Grid>
+
+                        <TextBlock Text="Twilio Phone Number" FontSize="11.5" FontWeight="SemiBold" Margin="0,0,0,4" />
+                        <TextBox Style="{StaticResource JacxiTextBox}" Text="{Binding Config.TwilioPhoneNumber, UpdateSourceTrigger=PropertyChanged}" Height="36" Margin="0,0,0,12" />
+
+                        <TextBlock Text="Gemini Live Model ID" FontSize="11.5" FontWeight="SemiBold" Margin="0,0,0,4" />
+                        <TextBox Style="{StaticResource JacxiTextBox}" Text="{Binding Config.GeminiLiveModel, UpdateSourceTrigger=PropertyChanged}" Height="36" />
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource JacxiCardBorder}">
+                    <StackPanel>
+                        <TextBlock Text="RECENT VOICE CALL LOGS" FontSize="11" FontWeight="Bold" Foreground="{StaticResource JacxiTextMutedBrush}" Margin="0,0,0,12" />
+                        <DataGrid ItemsSource="{Binding CallLogs}" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column" MinHeight="240">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Customer" Binding="{Binding CustomerName}" Width="140" />
+                                <DataGridTextColumn Header="Dir" Binding="{Binding Direction}" Width="85" />
+                                <DataGridTextColumn Header="Dur" Binding="{Binding Duration}" Width="65" />
+                                <DataGridTextColumn Header="Summary" Binding="{Binding Summary}" Width="*" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </StackPanel>
+                </Border>
+            </controls:ResponsiveColumnsPanel>
+
+            <TextBlock Text="{Binding StatusMessage}" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource JacxiGoldActiveBrush}" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

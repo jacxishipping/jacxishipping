@@ -3,19 +3,25 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:controls="clr-namespace:JacxiShipping.WindowsApp.Controls"
              mc:Ignorable="d" d:DesignHeight="800" d:DesignWidth="1120">
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="32,24,32,32">
-            <StackPanel Margin="0,0,0,20">
-                <TextBlock Text="Admin Settings &amp; Live Cloud Sync" FontSize="24" FontWeight="Bold" />
-                <TextBlock Text="Connect this Windows client directly to your live JACXI Next.js backend API or manage local database backups." FontSize="13" Foreground="{StaticResource JacxiTextSecondaryBrush}" Margin="0,4,0,0" />
-            </StackPanel>
+            <Grid Margin="0,0,0,20">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Text="Admin Settings &amp; Live Cloud Sync" FontSize="24" FontWeight="Bold" />
+                    <TextBlock Text="Connect this Windows client directly to https://jacxishipping.com or manage local backups and appearance." FontSize="13" Foreground="{StaticResource JacxiTextSecondaryBrush}" Margin="0,4,0,0" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Content="Toggle Light/Dark" Style="{StaticResource JacxiOutlineButton}" Command="{Binding ToggleThemeCommand}" Margin="0,0,8,0" />
+                    <Button Content="Open Web Portal ↗" Style="{StaticResource JacxiOutlineButton}" Command="{Binding OpenWebPortalCommand}" />
+                </StackPanel>
+            </Grid>
 
-            <Grid>
-                <Grid.ColumnDefinitions><ColumnDefinition Width="1*" /><ColumnDefinition Width="1.2*" /></Grid.ColumnDefinitions>
-
+            <controls:ResponsiveColumnsPanel MaxColumns="2" MinColumnWidth="420" ColumnGap="20" RowGap="20">
                 <!-- Cloud Server Connection -->
-                <Border Grid.Column="0" Style="{StaticResource JacxiCardBorder}" Margin="0,0,20,0">
+                <Border Style="{StaticResource JacxiCardBorder}">
                     <StackPanel>
                         <TextBlock Text="JACXI CLOUD API CONNECTION" FontSize="11" FontWeight="Bold" Foreground="{StaticResource JacxiGoldActiveBrush}" Margin="0,0,0,12" />
 
@@ -28,7 +34,7 @@
                         <TextBlock Text="Admin Password" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,4" />
                         <TextBox Style="{StaticResource JacxiTextBox}" Text="{Binding AdminPassword}" Height="38" Margin="0,0,0,16" />
 
-                        <Button Content="Authenticate &amp; Connect Cloud API" Style="{StaticResource JacxiPrimaryButton}" Command="{Binding ConnectCloudCommand}" Margin="0,0,0,8" />
+                        <Button Content="Authenticate &amp; Sync Live Records" Style="{StaticResource JacxiPrimaryButton}" Command="{Binding ConnectCloudCommand}" Margin="0,0,0,8" />
                         <Button Content="Pull Live Operations from Cloud" Style="{StaticResource JacxiOutlineButton}" Command="{Binding PullCloudSyncCommand}" Margin="0,0,0,12" />
 
                         <Border Background="{StaticResource JacxiBackgroundBrush}" BorderBrush="{StaticResource JacxiBorderBrush}" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,0,14">
@@ -54,7 +60,7 @@
                 </Border>
 
                 <!-- JSON Snapshot Viewer -->
-                <Border Grid.Column="1" Style="{StaticResource JacxiCardBorder}">
+                <Border Style="{StaticResource JacxiCardBorder}">
                     <Grid>
                         <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="420" /></Grid.RowDefinitions>
                         <TextBlock Text="DATABASE SNAPSHOT EXPORT (JSON)" FontSize="11" FontWeight="Bold" Foreground="{StaticResource JacxiTextSecondaryBrush}" Margin="0,0,0,10" />
@@ -65,7 +71,7 @@
                         </Border>
                     </Grid>
                 </Border>
-            </Grid>
+            </controls:ResponsiveColumnsPanel>
         </StackPanel>
     </ScrollViewer>
 </UserControl>

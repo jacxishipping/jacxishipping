@@ -7,6 +7,7 @@ namespace JacxiShipping.WindowsApp.ViewModels;
 public class BankingViewModel : ViewModelBase
 {
     private readonly IAdminStoreService _store;
+    private readonly IPlatformInteractionService _platform;
     private BankTransactionRecord? _selectedTransaction;
     private UserInvoiceRecord? _selectedInvoiceToMatch;
     private string _csvInput = "2026-11-26,WIRE FROM ARIANA TRANSIT,1950.00,WIRE-51289";
@@ -20,12 +21,24 @@ public class BankingViewModel : ViewModelBase
     public string CsvInput { get => _csvInput; set => SetProperty(ref _csvInput, value); }
     public string StatusMessage { get => _statusMessage; set => SetProperty(ref _statusMessage, value); }
 
+    public RelayCommand BrowseCsvFileCommand { get; }
     public RelayCommand ImportCsvCommand { get; }
     public RelayCommand ReconcileSelectedCommand { get; }
 
-    public BankingViewModel(IAdminStoreService store)
+    public BankingViewModel(IAdminStoreService store, IPlatformInteractionService? platform = null)
     {
         _store = store;
+        _platform = platform ?? new HeadlessPlatformInteractionService();
+
+        BrowseCsvFileCommand = new RelayCommand(() =>
+        {
+            var path = _platform.OpenFileDialog("Import Bank Statement CSV", "CSV Files (*.csv;*.txt)|*.csv;*.txt|All Files (*.*)|*.*");
+            if (string.IsNullOrWhiteSpace(path) || !File.Exists(path)) return;
+            CsvInput = File.ReadAllText(path);
+            var count = _store.ImportBankCsv(CsvInput);
+            Refresh();
+            StatusMessage = $"Loaded `{Path.GetFileName(path)}` -> Imported {count} bank transaction(s).";
+        });
 
         ImportCsvCommand = new RelayCommand(() =>
         {
@@ -134,7 +147,9 @@ public class InspectionsViewModel : ViewModelBase
     private string _notes = "Exterior body verified, keys & title present, 4-point tie-down inspected.";
     private string _damageCost = "0";
     private string _damageLiability = "NONE";
+    private readonly IPlatformInteractionService _platform;
     private string _photoName = "container_loading_photo.jpg";
+    private string _photoPreviewPath = string.Empty;
     private string _statusMessage = string.Empty;
 
     public ObservableCollection<QualityCheckRecord> QualityChecks { get; } = new();
@@ -149,18 +164,35 @@ public class InspectionsViewModel : ViewModelBase
     public string DamageCost { get => _damageCost; set => SetProperty(ref _damageCost, value); }
     public string DamageLiability { get => _damageLiability; set => SetProperty(ref _damageLiability, value); }
     public string PhotoName { get => _photoName; set => SetProperty(ref _photoName, value); }
+    public string PhotoPreviewPath { get => _photoPreviewPath; set => SetProperty(ref _photoPreviewPath, value); }
     public string StatusMessage { get => _statusMessage; set => SetProperty(ref _statusMessage, value); }
 
+    public RelayCommand BrowsePhotoCommand { get; }
     public RelayCommand RecordInspectionCommand { get; }
 
-    public InspectionsViewModel(IAdminStoreService store)
+    public InspectionsViewModel(IAdminStoreService store, IPlatformInteractionService? platform = null)
     {
         _store = store;
+        _platform = platform ?? new HeadlessPlatformInteractionService();
+
+        BrowsePhotoCommand = new RelayCommand(() =>
+        {
+            var path = _platform.OpenFileDialog("Select Vehicle Inspection Photo", "Image Files (*.jpg;*.jpeg;*.png;*.webp)|*.jpg;*.jpeg;*.png;*.webp|All Files (*.*)|*.*");
+            if (string.IsNullOrWhiteSpace(path)) return;
+            PhotoPreviewPath = path;
+            PhotoName = Path.GetFileName(path);
+            StatusMessage = $"Attached photo `{PhotoName}` for inspection.";
+        });
 
         RecordInspectionCommand = new RelayCommand(() =>
         {
             if (SelectedShipment == null) return;
             decimal.TryParse(DamageCost, out var dmg);
+
+            var photos = new List<string>();
+            if (!string.IsNullOrWhiteSpace(PhotoPreviewPath)) photos.Add(PhotoPreviewPath);
+            else photos.Add(PhotoName);
+            photos.Add("vin_plate_verified.jpg");
 
             var qc = new QualityCheckRecord
             {
@@ -172,7 +204,7 @@ public class InspectionsViewModel : ViewModelBase
                 Notes = Notes,
                 DamageCost = dmg,
                 DamageLiability = DamageLiability,
-                PhotoUrls = new List<string> { PhotoName, "vin_plate_verified.jpg" }
+                PhotoUrls = photos
             };
 
             _store.AddQualityCheck(qc);
@@ -199,6 +231,7 @@ public class InspectionsViewModel : ViewModelBase
 public class TrackingDiagnosticsViewModel : ViewModelBase
 {
     private readonly IAdminStoreService _store;
+    private readonly IPlatformInteractionService _platform;
     private ContainerRecord? _selectedContainer;
     private string _statusMessage = string.Empty;
 
@@ -209,10 +242,12 @@ public class TrackingDiagnosticsViewModel : ViewModelBase
     public string StatusMessage { get => _statusMessage; set => SetProperty(ref _statusMessage, value); }
 
     public RelayCommand SyncContainerCommand { get; }
+    public RelayCommand OpenVesselMapCommand { get; }
 
-    public TrackingDiagnosticsViewModel(IAdminStoreService store)
+    public TrackingDiagnosticsViewModel(IAdminStoreService store, IPlatformInteractionService? platform = null)
     {
         _store = store;
+        _platform = platform ?? new HeadlessPlatformInteractionService();
 
         SyncContainerCommand = new RelayCommand(() =>
         {
@@ -220,6 +255,14 @@ public class TrackingDiagnosticsViewModel : ViewModelBase
             var diag = _store.RunTrackingSync(SelectedContainer.ContainerNumber);
             Refresh();
             StatusMessage = $"AIS Sync OK ({diag.LatencyMs}ms): {diag.ContainerNumber} at {diag.VesselPosition}";
+        });
+
+        OpenVesselMapCommand = new RelayCommand(() =>
+        {
+            var query = SelectedContainer?.ContainerNumber ?? "MSC";
+            var url = $"https://www.marinetraffic.com/en/ais/home/centerx:-5.35/centery:36.14/zoom:6";
+            _platform.OpenPathWithShell(url);
+            StatusMessage = $"Opened live MarineTraffic AIS map for {query}.";
         });
 
         Refresh();

@@ -8,6 +8,7 @@ public class CalculatorViewModel : ViewModelBase
 {
     private readonly IRateCalculatorService _calculatorService;
     private readonly IShipmentService _shipmentService;
+    private readonly IPlatformInteractionService _platform;
 
     private string _selectedState = "TX";
     private string _selectedDestination = "Port of Mersin, Turkey";
@@ -97,17 +98,35 @@ public class CalculatorViewModel : ViewModelBase
     }
 
     public RelayCommand CreateBookingCommand { get; }
+    public RelayCommand ImportRateSheetCommand { get; }
 
-    public CalculatorViewModel(IRateCalculatorService calculatorService, IShipmentService shipmentService)
+    public CalculatorViewModel(IRateCalculatorService calculatorService, IShipmentService shipmentService, IPlatformInteractionService? platform = null)
     {
         _calculatorService = calculatorService;
         _shipmentService = shipmentService;
+        _platform = platform ?? new HeadlessPlatformInteractionService();
 
         foreach (var s in _calculatorService.GetSupportedStates()) States.Add(s);
         foreach (var d in _calculatorService.GetSupportedDestinations()) Destinations.Add(d);
         foreach (var v in _calculatorService.GetVehicleCategories()) VehicleCategories.Add(v);
 
         Recalculate();
+
+        ImportRateSheetCommand = new RelayCommand(() =>
+        {
+            var path = _platform.OpenFileDialog("Import Carrier Rate Sheet (CSV / Text)", "Rate Files (*.csv;*.txt)|*.csv;*.txt|All Files (*.*)|*.*");
+            if (string.IsNullOrWhiteSpace(path) || !File.Exists(path)) return;
+            var content = File.ReadAllText(path);
+            var count = _calculatorService.ImportRatesFromCsvOrText(content);
+            States.Clear();
+            foreach (var s in _calculatorService.GetSupportedStates()) States.Add(s);
+            Destinations.Clear();
+            foreach (var d in _calculatorService.GetSupportedDestinations()) Destinations.Add(d);
+            Recalculate();
+            SuccessMessage = count > 0
+                ? $"✓ Imported {count} carrier rate override(s) from {Path.GetFileName(path)}."
+                : "No valid State,Rate rows found in selected file.";
+        });
 
         CreateBookingCommand = new RelayCommand(() =>
         {

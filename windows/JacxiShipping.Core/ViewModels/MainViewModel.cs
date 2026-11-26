@@ -13,6 +13,9 @@ public class MainViewModel : ViewModelBase
     private readonly IJacxiCloudClient _cloudClient;
     private readonly IPdfExportService _pdfService;
     private readonly IAdminCopilotService _copilotService;
+    private readonly IPlatformInteractionService _platform;
+    private readonly SynchronizationContext? _uiSyncContext;
+    private CancellationTokenSource? _sseCts;
 
     private string _currentTab = string.Empty;
     private object? _currentView;
@@ -26,6 +29,7 @@ public class MainViewModel : ViewModelBase
     private bool _isNotificationsOpen;
     private bool _isCopilotDrawerOpen;
     private bool _isSidebarCollapsed;
+    private bool _isDarkMode;
     private int _unreadNotificationCount;
 
     public DashboardViewModel DashboardVM { get; }
@@ -50,13 +54,16 @@ public class MainViewModel : ViewModelBase
     public DocumentsViewModel DocumentsVM { get; }
     public CommunicationsViewModel CommunicationsVM { get; }
     public AiCopilotViewModel AiCopilotVM { get; }
+    public McpServerViewModel McpServerVM { get; }
+    public CallAgentSettingsViewModel CallAgentVM { get; }
+    public ProfileViewModel ProfileVM { get; }
     public AnalyticsViewModel AnalyticsVM { get; }
     public SettingsViewModel SettingsVM { get; }
 
     public ObservableCollection<AdminNotificationItem> Notifications { get; } = new();
 
     public AdminUser CurrentAdmin => _store.Session.CurrentAdmin;
-    public string CloudStatusLabel => _store.Session.IsCloudConnected ? "Cloud Synced" : "Local Suite";
+    public string CloudStatusLabel => _store.Session.IsCloudConnected ? "jacxishipping.com Synced" : "https://jacxishipping.com";
 
     // RBAC Visibility Properties (from RbacService)
     public bool CanViewFinance => RbacService.HasPermission(CurrentAdmin.Role, "finance:view");
@@ -101,6 +108,9 @@ public class MainViewModel : ViewModelBase
         "Documents" => "Documents & PDFs",
         "Communications" => "Communications",
         "AiCopilot" => "AI Copilot & Voice",
+        "McpServer" => "MCP AI Gateway",
+        "CallAgent" => "Call Agent Settings",
+        "Profile" => "My Admin Profile",
         "Analytics" => "Analytics & Charts",
         "Settings" => "Settings & Sync",
         _ => "Dashboard"
@@ -116,6 +126,7 @@ public class MainViewModel : ViewModelBase
     public bool IsNotificationsOpen { get => _isNotificationsOpen; set => SetProperty(ref _isNotificationsOpen, value); }
     public bool IsCopilotDrawerOpen { get => _isCopilotDrawerOpen; set => SetProperty(ref _isCopilotDrawerOpen, value); }
     public bool IsSidebarCollapsed { get => _isSidebarCollapsed; set => SetProperty(ref _isSidebarCollapsed, value); }
+    public bool IsDarkMode { get => _isDarkMode; set => SetProperty(ref _isDarkMode, value); }
     public int UnreadNotificationCount { get => _unreadNotificationCount; set => SetProperty(ref _unreadNotificationCount, value); }
 
     public RelayCommand NavigateCommand { get; }
@@ -126,15 +137,19 @@ public class MainViewModel : ViewModelBase
     public RelayCommand MarkNotificationsReadCommand { get; }
     public RelayCommand ToggleCopilotDrawerCommand { get; }
     public RelayCommand ToggleSidebarCommand { get; }
+    public RelayCommand ToggleThemeCommand { get; }
+    public RelayCommand OpenWebPortalCommand { get; }
     public RelayCommand RefreshAllCommand { get; }
 
-    public MainViewModel() : this(new AdminStoreService())
+    public MainViewModel() : this(new AdminStoreService(), null)
     {
     }
 
-    public MainViewModel(IAdminStoreService store)
+    public MainViewModel(IAdminStoreService store, IPlatformInteractionService? platform = null)
     {
         _store = store;
+        _platform = platform ?? new HeadlessPlatformInteractionService();
+        _uiSyncContext = SynchronizationContext.Current;
         _shipmentService = new ShipmentService(_store);
         _calculatorService = new RateCalculatorService();
         _documentService = new DocumentService();
@@ -143,29 +158,32 @@ public class MainViewModel : ViewModelBase
         _copilotService = new AdminCopilotService(_store, _cloudClient);
 
         DashboardVM = new DashboardViewModel(_store, Navigate);
-        ShipmentsVM = new ShipmentsViewModel(_store, _shipmentService, _documentService);
+        ShipmentsVM = new ShipmentsViewModel(_store, _shipmentService, _documentService, _platform, _cloudClient);
         OperationsBoardVM = new OperationsBoardViewModel(_store);
         ContainersVM = new ContainersViewModel(_store);
         DispatchesVM = new DispatchesViewModel(_store);
         TransitsVM = new TransitsViewModel(_store);
         GatePassesVM = new GatePassesViewModel(_store);
-        InspectionsVM = new InspectionsViewModel(_store);
+        InspectionsVM = new InspectionsViewModel(_store, _platform);
         TrackingVM = new TrackingViewModel(_shipmentService);
-        TrackingDiagnosticsVM = new TrackingDiagnosticsViewModel(_store);
+        TrackingDiagnosticsVM = new TrackingDiagnosticsViewModel(_store, _platform);
         FinanceVM = new FinanceViewModel(_store);
-        BankingVM = new BankingViewModel(_store);
+        BankingVM = new BankingViewModel(_store, _platform);
         InvoicesVM = new InvoicesViewModel(_store);
         OfficeExpensesVM = new OfficeExpensesViewModel(_store);
         CompanyLedgersVM = new CompanyLedgersViewModel(_store);
         PriceComparisonVM = new PriceComparisonViewModel(_store);
         CustomersVM = new CustomersViewModel(_store);
         PartnerPortalsVM = new PartnerPortalsViewModel(_store);
-        CalculatorVM = new CalculatorViewModel(_calculatorService, _shipmentService);
-        DocumentsVM = new DocumentsViewModel(_documentService, _shipmentService, _store, _pdfService);
+        CalculatorVM = new CalculatorViewModel(_calculatorService, _shipmentService, _platform);
+        DocumentsVM = new DocumentsViewModel(_documentService, _shipmentService, _store, _pdfService, _platform);
         CommunicationsVM = new CommunicationsViewModel(_store, _cloudClient);
         AiCopilotVM = new AiCopilotViewModel(_store, _copilotService);
+        McpServerVM = new McpServerViewModel(_store, _cloudClient, _platform);
+        CallAgentVM = new CallAgentSettingsViewModel(_store, _cloudClient, _platform);
+        ProfileVM = new ProfileViewModel(_store, _cloudClient, _platform);
         AnalyticsVM = new AnalyticsViewModel(_store);
-        SettingsVM = new SettingsViewModel(_store, _cloudClient);
+        SettingsVM = new SettingsViewModel(_store, _cloudClient, _platform);
 
         NavigateCommand = new RelayCommand(param =>
         {
@@ -181,11 +199,13 @@ public class MainViewModel : ViewModelBase
 
         SignOutCommand = new RelayCommand(() =>
         {
+            if (!_platform.ConfirmAction("Lock Admin Session", "Lock JACXI Admin Suite and return to the sign-in screen?", "Lock Screen"))
+                return;
             IsAdminAuthenticated = false;
             LoginStatus = "Session locked. Sign in with your Admin Email or 8-char Login Code.";
         });
 
-        SignInLocalCommand = new RelayCommand(() =>
+        SignInLocalCommand = new RelayCommand(async () =>
         {
             var matched = _store.GetUsers().FirstOrDefault(u =>
                 u.Email.Equals(LoginEmail, StringComparison.OrdinalIgnoreCase) ||
@@ -194,11 +214,24 @@ public class MainViewModel : ViewModelBase
             if (matched != null)
             {
                 _store.Session.CurrentAdmin = matched;
-                OnPropertyChanged(nameof(CurrentAdmin));
-                OnPropertyChanged(nameof(CanViewFinance));
-                OnPropertyChanged(nameof(CanManageUsers));
-                OnPropertyChanged(nameof(CanViewAnalytics));
             }
+            else if (!string.IsNullOrWhiteSpace(LoginCodeInput))
+            {
+                var cloudAuth = await _cloudClient.SignInWithCodeAsync(_store.Session.ServerUrl, LoginCodeInput);
+                if (cloudAuth.Success && !string.IsNullOrWhiteSpace(cloudAuth.Token))
+                {
+                    _store.Session.BearerToken = cloudAuth.Token;
+                    _store.Session.IsCloudConnected = true;
+                    if (cloudAuth.User != null) _store.Session.CurrentAdmin = cloudAuth.User;
+                    StartNotificationStreamIfConnected();
+                }
+            }
+
+            OnPropertyChanged(nameof(CurrentAdmin));
+            OnPropertyChanged(nameof(CloudStatusLabel));
+            OnPropertyChanged(nameof(CanViewFinance));
+            OnPropertyChanged(nameof(CanManageUsers));
+            OnPropertyChanged(nameof(CanViewAnalytics));
 
             IsAdminAuthenticated = true;
             LoginStatus = string.Empty;
@@ -224,9 +257,55 @@ public class MainViewModel : ViewModelBase
         });
 
         ToggleSidebarCommand = new RelayCommand(() => IsSidebarCollapsed = !IsSidebarCollapsed);
+
+        ToggleThemeCommand = new RelayCommand(() =>
+        {
+            IsDarkMode = !IsDarkMode;
+            _platform.SetThemeMode(IsDarkMode);
+        });
+
+        OpenWebPortalCommand = new RelayCommand(() =>
+        {
+            var baseUrl = (_store.Session.ServerUrl ?? "https://jacxishipping.com").TrimEnd('/');
+            _platform.OpenPathWithShell($"{baseUrl}/dashboard");
+        });
+
         RefreshAllCommand = new RelayCommand(() => Navigate(CurrentTab));
 
         Navigate("Dashboard");
+        StartNotificationStreamIfConnected();
+    }
+
+    public void StartNotificationStreamIfConnected()
+    {
+        if (!_store.Session.IsCloudConnected || string.IsNullOrWhiteSpace(_store.Session.BearerToken))
+            return;
+
+        _sseCts?.Cancel();
+        _sseCts = new CancellationTokenSource();
+        var ct = _sseCts.Token;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await _cloudClient.ListenNotificationStreamAsync(_store.Session.ServerUrl, _store.Session.BearerToken, item =>
+                {
+                    void Apply()
+                    {
+                        _store.AddNotification(item.Title, item.Description, item.Type);
+                        RefreshNotifications();
+                    }
+
+                    if (_uiSyncContext != null) _uiSyncContext.Post(_ => Apply(), null);
+                    else Apply();
+                }, ct);
+            }
+            catch
+            {
+                // Cloud stream is best-effort
+            }
+        }, ct);
     }
 
     public void Navigate(string tab)
@@ -257,6 +336,9 @@ public class MainViewModel : ViewModelBase
             case "Documents": DocumentsVM.LoadDocuments(); break;
             case "Communications": CommunicationsVM.Refresh(); break;
             case "AiCopilot": AiCopilotVM.Refresh(); break;
+            case "McpServer": McpServerVM.Refresh(); break;
+            case "CallAgent": CallAgentVM.Refresh(); break;
+            case "Profile": ProfileVM.Refresh(); break;
             case "Analytics": AnalyticsVM.Refresh(); break;
         }
     }
@@ -294,6 +376,9 @@ public class MainViewModel : ViewModelBase
             "Documents" => DocumentsVM,
             "Communications" => CommunicationsVM,
             "AiCopilot" => AiCopilotVM,
+            "McpServer" => McpServerVM,
+            "CallAgent" => CallAgentVM,
+            "Profile" => ProfileVM,
             "Analytics" => AnalyticsVM,
             "Settings" => SettingsVM,
             _ => DashboardVM

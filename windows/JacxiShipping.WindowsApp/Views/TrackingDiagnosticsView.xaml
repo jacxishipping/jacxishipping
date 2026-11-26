@@ -17,9 +17,13 @@
 
         <Border Grid.Row="1" Style="{StaticResource JacxiCardBorder}" Margin="0,0,0,18">
             <Grid>
-                <Grid.ColumnDefinitions><ColumnDefinition Width="280" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                <ComboBox Grid.Column="0" Style="{StaticResource JacxiComboBox}" ItemsSource="{Binding Containers}" SelectedItem="{Binding SelectedContainer}" DisplayMemberPath="ContainerNumber" Height="38" Margin="0,0,12,0" />
-                <Button Grid.Column="1" Content="Run Live AIS / Carrier Sync" Style="{StaticResource JacxiPrimaryButton}" Command="{Binding SyncContainerCommand}" Height="38" />
+                <Grid.ColumnDefinitions><ColumnDefinition Width="260" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                <ComboBox Grid.Column="0" Style="{StaticResource JacxiComboBox}" ItemsSource="{Binding Containers}" SelectedItem="{Binding SelectedContainer}" DisplayMemberPath="ContainerNumber" Height="38" Margin="0,0,10,0" />
+                <Button Grid.Column="1" Content="Run Live AIS / Carrier Sync" Style="{StaticResource JacxiPrimaryButton}" Command="{Binding SyncContainerCommand}" Height="38" Margin="0,0,8,0" />
+                <Button Grid.Column="2" Content="Open MarineTraffic Map ↗" Style="{StaticResource JacxiOutlineButton}" Command="{Binding OpenVesselMapCommand}" Height="38" />
+                <StackPanel Grid.Column="3" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <TextBlock Text="US East Coast → Gibraltar → Mediterranean / Gulf Corridor" FontSize="11.5" Foreground="{StaticResource JacxiTextSecondaryBrush}" VerticalAlignment="Center" />
+                </StackPanel>
             </Grid>
         </Border>
 

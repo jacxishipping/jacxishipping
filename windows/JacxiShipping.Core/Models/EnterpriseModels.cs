@@ -146,8 +146,8 @@ public class ChartBarPoint
 public class AppUpdateCheckResult
 {
     public bool UpdateAvailable { get; set; }
-    public string CurrentVersion { get; set; } = "3.0.0";
-    public string LatestTag { get; set; } = "v3.0.0-windows-admin";
+    public string CurrentVersion { get; set; } = "3.1.0";
+    public string LatestTag { get; set; } = "v3.1.0-windows-admin";
     public string ReleaseUrl { get; set; } = "https://github.com/jacxishipping/jacxishipping/releases";
     public string Message { get; set; } = string.Empty;
 }

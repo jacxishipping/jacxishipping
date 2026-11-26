@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Input;
+using JacxiShipping.WindowsApp.Services;
 using JacxiShipping.WindowsApp.ViewModels;
 
 namespace JacxiShipping.WindowsApp;
@@ -11,6 +12,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        DataContext = new MainViewModel(new AdminStoreService(), new WpfPlatformInteractionService());
     }
 
     private void MainWindow_SizeChanged(object sender, SizeChangedEventArgs e)

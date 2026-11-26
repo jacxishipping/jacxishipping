@@ -38,6 +38,7 @@
             </StackPanel>
 
             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button Content="Open Last PDF" Style="{StaticResource JacxiOutlineButton}" Command="{Binding OpenExportedFileCommand}" Padding="10,6" Margin="0,0,6,0" />
                 <Button Content="Invoice PDF" Style="{StaticResource JacxiOutlineButton}" Command="{Binding ExportInvoicePdfCommand}" Padding="10,6" Margin="0,0,6,0" />
                 <Button Content="Release Token PDF" Style="{StaticResource JacxiOutlineButton}" Command="{Binding ExportReleaseTokenPdfCommand}" Padding="10,6" Margin="0,0,6,0" />
                 <Button Content="Customs Packet PDF" Style="{StaticResource JacxiOutlineButton}" Command="{Binding ExportCustomsPacketPdfCommand}" Padding="10,6" Margin="0,0,6,0" />

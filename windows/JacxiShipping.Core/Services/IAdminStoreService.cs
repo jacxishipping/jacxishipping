@@ -84,7 +84,16 @@ public interface IAdminStoreService
     void AddPartnerPortal(PartnerPortalRecord portal);
     void TogglePartnerPortalActive(string portalId);
 
-    // Persistence & Backup
+    // MCP, Call Agent & Profile
+    McpServerConfig GetMcpConfig();
+    void SaveMcpConfig(McpServerConfig config);
+    string RegenerateMcpApiKey();
+    CallAgentConfigModel GetCallAgentConfig();
+    void SaveCallAgentConfig(CallAgentConfigModel config);
+    void UpdateCurrentAdminProfile(string name, string phone, string address, string city, string country);
+
+    // Cloud Hydration, Persistence & Backup
+    int MergeCloudPayload(CloudSyncPayload payload);
     string ExportSnapshotJson();
     void ResetToDemoData();
     void SaveState();

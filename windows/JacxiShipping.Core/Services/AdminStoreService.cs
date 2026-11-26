@@ -860,6 +860,99 @@ public class AdminStoreService : IAdminStoreService
         }
     }
 
+    public McpServerConfig GetMcpConfig() { lock (_lock) return _state.McpConfig; }
+
+    public void SaveMcpConfig(McpServerConfig config)
+    {
+        lock (_lock)
+        {
+            _state.McpConfig = config;
+            SaveStateInternal();
+        }
+    }
+
+    public string RegenerateMcpApiKey()
+    {
+        lock (_lock)
+        {
+            var newKey = $"jx_mcp_live_{Guid.NewGuid().ToString("N")[..18]}";
+            _state.McpConfig.ApiKey = newKey;
+            SaveStateInternal();
+            return newKey;
+        }
+    }
+
+    public CallAgentConfigModel GetCallAgentConfig() { lock (_lock) return _state.CallAgentConfig; }
+
+    public void SaveCallAgentConfig(CallAgentConfigModel config)
+    {
+        lock (_lock)
+        {
+            _state.CallAgentConfig = config;
+            SaveStateInternal();
+        }
+    }
+
+    public void UpdateCurrentAdminProfile(string name, string phone, string address, string city, string country)
+    {
+        lock (_lock)
+        {
+            var adm = _state.Session.CurrentAdmin;
+            if (!string.IsNullOrWhiteSpace(name)) adm.Name = name.Trim();
+            adm.Phone = phone.Trim();
+            adm.Address = address.Trim();
+            adm.City = city.Trim();
+            adm.Country = country.Trim();
+            var inList = _state.Users.FirstOrDefault(u => u.Id == adm.Id || u.Email.Equals(adm.Email, StringComparison.OrdinalIgnoreCase));
+            if (inList != null)
+            {
+                inList.Name = adm.Name;
+                inList.Phone = adm.Phone;
+                inList.Address = adm.Address;
+                inList.City = adm.City;
+                inList.Country = adm.Country;
+            }
+            SaveStateInternal();
+        }
+    }
+
+    public int MergeCloudPayload(CloudSyncPayload payload)
+    {
+        if (!payload.Success) return 0;
+        var merged = 0;
+        lock (_lock)
+        {
+            foreach (var s in payload.Shipments)
+            {
+                var idx = _state.Shipments.FindIndex(x => x.Id == s.Id || (!string.IsNullOrWhiteSpace(s.Vehicle.Vin) && x.Vehicle.Vin == s.Vehicle.Vin));
+                if (idx >= 0) _state.Shipments[idx] = s;
+                else _state.Shipments.Insert(0, s);
+                merged++;
+            }
+            foreach (var c in payload.Containers)
+            {
+                var idx = _state.Containers.FindIndex(x => x.Id == c.Id || x.ContainerNumber == c.ContainerNumber);
+                if (idx >= 0) _state.Containers[idx] = c;
+                else _state.Containers.Insert(0, c);
+                merged++;
+            }
+            foreach (var inv in payload.Invoices)
+            {
+                var idx = _state.Invoices.FindIndex(x => x.Id == inv.Id || x.InvoiceNumber == inv.InvoiceNumber);
+                if (idx >= 0) _state.Invoices[idx] = inv;
+                else _state.Invoices.Insert(0, inv);
+                merged++;
+            }
+            _state.Session.LastSyncAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm");
+            if (merged > 0)
+            {
+                AddNotificationInternal("Cloud Sync Complete", $"Merged {merged} live records from {_state.Session.ServerUrl}.", "SUCCESS");
+            }
+            SaveStateInternal();
+        }
+        return merged;
+    }
+
     public string ExportSnapshotJson()
     {
         lock (_lock)
@@ -1269,6 +1362,8 @@ public class AdminStoreService : IAdminStoreService
     private class AdminDatabaseState
     {
         public CloudSessionConfig Session { get; set; } = new();
+        public McpServerConfig McpConfig { get; set; } = new();
+        public CallAgentConfigModel CallAgentConfig { get; set; } = new();
         public List<Shipment> Shipments { get; set; } = new();
         public List<ContainerRecord> Containers { get; set; } = new();
         public List<DispatchRecord> Dispatches { get; set; } = new();

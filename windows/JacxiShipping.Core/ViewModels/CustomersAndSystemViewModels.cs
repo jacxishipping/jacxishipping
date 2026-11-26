@@ -246,12 +246,13 @@ public class SettingsViewModel : ViewModelBase
 {
     private readonly IAdminStoreService _store;
     private readonly IJacxiCloudClient _cloudClient;
+    private readonly IPlatformInteractionService _platform;
     private readonly IAutoUpdateService _updateService = new AutoUpdateService();
     private string _serverUrl;
     private string _adminEmail;
     private string _adminPassword = string.Empty;
-    private string _connectionStatus = "Local Enterprise Mode (Instant Persistence)";
-    private string _updateStatus = "Version 3.0.0 Enterprise Admin";
+    private string _connectionStatus = "Ready to sync with https://jacxishipping.com";
+    private string _updateStatus = "Version 3.1.0 Enterprise Admin";
     private string _snapshotPreview = string.Empty;
 
     public string ServerUrl { get => _serverUrl; set => SetProperty(ref _serverUrl, value); }
@@ -266,27 +267,31 @@ public class SettingsViewModel : ViewModelBase
     public RelayCommand CheckUpdatesCommand { get; }
     public RelayCommand ExportBackupCommand { get; }
     public RelayCommand ResetDemoDataCommand { get; }
+    public RelayCommand ToggleThemeCommand { get; }
+    public RelayCommand OpenWebPortalCommand { get; }
 
-    public SettingsViewModel(IAdminStoreService store, IJacxiCloudClient cloudClient)
+    public SettingsViewModel(IAdminStoreService store, IJacxiCloudClient cloudClient, IPlatformInteractionService? platform = null)
     {
         _store = store;
         _cloudClient = cloudClient;
+        _platform = platform ?? new HeadlessPlatformInteractionService();
         _serverUrl = store.Session.ServerUrl;
         _adminEmail = store.Session.CurrentAdmin.Email;
 
         ConnectCloudCommand = new RelayCommand(async () =>
         {
-            ConnectionStatus = "Connecting to JACXI Cloud API...";
+            ConnectionStatus = $"Connecting to {ServerUrl}...";
             var res = await _cloudClient.SignInAsync(ServerUrl, AdminEmail, AdminPassword);
-            if (res.Success)
+            if (res.Success && !string.IsNullOrWhiteSpace(res.Token))
             {
                 _store.Session.ServerUrl = ServerUrl;
                 _store.Session.BearerToken = res.Token;
                 _store.Session.IsCloudConnected = true;
                 _store.Session.LastSyncAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm");
                 if (res.User != null) _store.Session.CurrentAdmin = res.User;
-                _store.SaveState();
-                ConnectionStatus = $"✓ Connected to {ServerUrl} as {res.User?.Name ?? AdminEmail} ({res.User?.Role})";
+                var full = await _cloudClient.PullLiveOperationsFullAsync(ServerUrl, res.Token);
+                var merged = _store.MergeCloudPayload(full);
+                ConnectionStatus = $"✓ Connected to {ServerUrl} as {res.User?.Name ?? AdminEmail} ({merged} live records hydrated)";
             }
             else
             {
@@ -298,17 +303,20 @@ public class SettingsViewModel : ViewModelBase
         {
             if (!_store.Session.IsCloudConnected || string.IsNullOrWhiteSpace(_store.Session.BearerToken))
             {
-                ConnectionStatus = "Authenticate with JACXI Cloud API first before syncing live records.";
+                ConnectionStatus = $"Authenticate with {ServerUrl} first before syncing live records.";
                 return;
             }
-            var summary = await _cloudClient.PullLiveOperationsAsync(ServerUrl, _store.Session.BearerToken);
-            ConnectionStatus = summary.Message;
+            var full = await _cloudClient.PullLiveOperationsFullAsync(ServerUrl, _store.Session.BearerToken);
+            var merged = _store.MergeCloudPayload(full);
+            ConnectionStatus = full.Success
+                ? $"{full.Message} ({merged} records merged into local store)"
+                : full.Message;
         });
 
         CheckUpdatesCommand = new RelayCommand(async () =>
         {
             UpdateStatus = "Checking GitHub Releases...";
-            var res = await _updateService.CheckForUpdatesAsync("3.0.0");
+            var res = await _updateService.CheckForUpdatesAsync("3.1.0");
             UpdateStatus = res.Message;
         });
 
@@ -320,8 +328,24 @@ public class SettingsViewModel : ViewModelBase
 
         ResetDemoDataCommand = new RelayCommand(() =>
         {
+            if (!_platform.ConfirmAction("Reset Local Database", "Reset all local shipments, containers, and ledgers back to the JACXI Enterprise demo dataset? Unsynced local edits will be replaced.", "Reset Database", isDestructive: true))
+                return;
+
             _store.ResetToDemoData();
             ConnectionStatus = "Database reset to default JACXI enterprise demo dataset.";
+        });
+
+        ToggleThemeCommand = new RelayCommand(() =>
+        {
+            _platform.SetThemeMode(!_platform.IsDarkMode);
+            ConnectionStatus = _platform.IsDarkMode ? "Switched to Night Operations Dark Theme." : "Switched to JACXI Enterprise Light Theme.";
+        });
+
+        OpenWebPortalCommand = new RelayCommand(() =>
+        {
+            var baseUrl = (ServerUrl ?? "https://jacxishipping.com").TrimEnd('/');
+            _platform.OpenPathWithShell($"{baseUrl}/dashboard");
+            ConnectionStatus = $"Opened web admin portal: {baseUrl}/dashboard";
         });
     }
 }

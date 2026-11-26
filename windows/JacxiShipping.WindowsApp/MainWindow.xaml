@@ -6,11 +6,12 @@
         xmlns:vm="clr-namespace:JacxiShipping.WindowsApp.ViewModels;assembly=JacxiShipping.Core"
         xmlns:converters="clr-namespace:JacxiShipping.WindowsApp.Converters"
         mc:Ignorable="d"
-        Title="JACXI Shipping — Admin Suite" 
+        Title="JACXI Shipping — Admin Suite"
+        Icon="Assets/jacxi.ico"
         Height="860" 
         Width="1380"
         MinHeight="640" 
-        MinWidth="960"
+        MinWidth="920"
         WindowStartupLocation="CenterScreen"
         Background="{StaticResource JacxiBackgroundBrush}"
         FontFamily="{StaticResource JacxiFontFamily}"
@@ -45,10 +46,6 @@
             <Setter Property="Visibility" Value="{Binding IsSidebarCollapsed, Converter={StaticResource InvBoolToVis}}" />
         </Style>
     </Window.Resources>
-
-    <Window.DataContext>
-        <vm:MainViewModel />
-    </Window.DataContext>
 
     <Grid>
         <!-- MAIN AUTHENTICATED ADMIN SHELL -->
@@ -264,10 +261,28 @@
                                     <TextBlock Text="AI Copilot" Margin="11,0,0,0" VerticalAlignment="Center" Visibility="{Binding IsSidebarCollapsed, Converter={StaticResource InvBoolToVis}}" />
                                 </StackPanel>
                             </RadioButton>
+                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="McpServer" ToolTip="MCP AI Gateway">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Style="{StaticResource NavIconStyle}" Data="{StaticResource IconMcp}" />
+                                    <TextBlock Text="MCP Server" Margin="11,0,0,0" VerticalAlignment="Center" Visibility="{Binding IsSidebarCollapsed, Converter={StaticResource InvBoolToVis}}" />
+                                </StackPanel>
+                            </RadioButton>
+                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="CallAgent" ToolTip="Call Agent Settings">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Style="{StaticResource NavIconStyle}" Data="{StaticResource IconPhone}" />
+                                    <TextBlock Text="Call Agent" Margin="11,0,0,0" VerticalAlignment="Center" Visibility="{Binding IsSidebarCollapsed, Converter={StaticResource InvBoolToVis}}" />
+                                </StackPanel>
+                            </RadioButton>
                             <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Visibility="{Binding CanViewAnalytics, Converter={StaticResource BoolToVis}}" Command="{Binding NavigateCommand}" CommandParameter="Analytics" ToolTip="Analytics &amp; Charts">
                                 <StackPanel Orientation="Horizontal">
                                     <Path Style="{StaticResource NavIconStyle}" Data="{StaticResource IconChart}" />
                                     <TextBlock Text="Analytics" Margin="11,0,0,0" VerticalAlignment="Center" Visibility="{Binding IsSidebarCollapsed, Converter={StaticResource InvBoolToVis}}" />
+                                </StackPanel>
+                            </RadioButton>
+                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="Profile" ToolTip="My Admin Profile">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Style="{StaticResource NavIconStyle}" Data="{StaticResource IconUser}" />
+                                    <TextBlock Text="My Profile" Margin="11,0,0,0" VerticalAlignment="Center" Visibility="{Binding IsSidebarCollapsed, Converter={StaticResource InvBoolToVis}}" />
                                 </StackPanel>
                             </RadioButton>
                             <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="Settings" ToolTip="Settings &amp; Sync">
@@ -349,6 +364,14 @@
                                      Padding="10,6"
                                      Margin="0,0,8,0"
                                      KeyDown="GlobalSearchBox_KeyDown" />
+
+                            <Button Style="{StaticResource JacxiOutlineButton}" Command="{Binding ToggleThemeCommand}" Padding="9,6" Margin="0,0,8,0" ToolTip="Switch Light / Dark Mode">
+                                <Path Width="14" Height="14" Stretch="Uniform" Data="{StaticResource IconMoon}" Stroke="{StaticResource JacxiTextPrimaryBrush}" StrokeThickness="1.7" />
+                            </Button>
+
+                            <Button Style="{StaticResource JacxiOutlineButton}" Command="{Binding OpenWebPortalCommand}" Padding="9,6" Margin="0,0,8,0" ToolTip="Open https://jacxishipping.com/dashboard">
+                                <Path Width="14" Height="14" Stretch="Uniform" Data="{StaticResource IconExternal}" Stroke="{StaticResource JacxiTextPrimaryBrush}" StrokeThickness="1.7" />
+                            </Button>
 
                             <Button Style="{StaticResource JacxiOutlineButton}" Command="{Binding ToggleNotificationsCommand}" Padding="10,6" Margin="0,0,8,0" ToolTip="Notifications">
                                 <StackPanel Orientation="Horizontal">

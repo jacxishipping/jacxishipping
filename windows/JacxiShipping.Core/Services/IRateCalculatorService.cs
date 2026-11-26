@@ -8,4 +8,5 @@ public interface IRateCalculatorService
     IReadOnlyList<string> GetSupportedDestinations();
     IReadOnlyList<string> GetVehicleCategories();
     RateQuote CalculateQuote(string stateCode, string destination, string vehicleCategory);
+    int ImportRatesFromCsvOrText(string rawContent);
 }

@@ -10,10 +10,12 @@ public class DocumentsViewModel : ViewModelBase
     private readonly IShipmentService _shipmentService;
     private readonly IAdminStoreService? _store;
     private readonly IPdfExportService _pdfService;
+    private readonly IPlatformInteractionService _platform;
     private DocumentItem? _selectedDocument;
     private string _previewText = string.Empty;
     private string _statusNotice = string.Empty;
     private string _lastExportedFilePath = string.Empty;
+    private bool _autoOpenAfterExport = true;
 
     public ObservableCollection<DocumentItem> Documents { get; } = new();
 
@@ -32,6 +34,7 @@ public class DocumentsViewModel : ViewModelBase
     public string PreviewText { get => _previewText; set => SetProperty(ref _previewText, value); }
     public string StatusNotice { get => _statusNotice; set => SetProperty(ref _statusNotice, value); }
     public string LastExportedFilePath { get => _lastExportedFilePath; set => SetProperty(ref _lastExportedFilePath, value); }
+    public bool AutoOpenAfterExport { get => _autoOpenAfterExport; set => SetProperty(ref _autoOpenAfterExport, value); }
 
     public RelayCommand RefreshCommand { get; }
     public RelayCommand ExportTextCommand { get; }
@@ -39,18 +42,20 @@ public class DocumentsViewModel : ViewModelBase
     public RelayCommand ExportReleaseTokenPdfCommand { get; }
     public RelayCommand ExportCustomsPacketPdfCommand { get; }
     public RelayCommand ExportStatementPdfCommand { get; }
+    public RelayCommand OpenExportedFileCommand { get; }
 
     public DocumentsViewModel(IDocumentService documentService, IShipmentService shipmentService)
-        : this(documentService, shipmentService, null, new PdfExportService())
+        : this(documentService, shipmentService, null, new PdfExportService(), null)
     {
     }
 
-    public DocumentsViewModel(IDocumentService documentService, IShipmentService shipmentService, IAdminStoreService? store, IPdfExportService pdfService)
+    public DocumentsViewModel(IDocumentService documentService, IShipmentService shipmentService, IAdminStoreService? store, IPdfExportService pdfService, IPlatformInteractionService? platform = null)
     {
         _documentService = documentService;
         _shipmentService = shipmentService;
         _store = store;
         _pdfService = pdfService;
+        _platform = platform ?? new HeadlessPlatformInteractionService();
 
         RefreshCommand = new RelayCommand(LoadDocuments);
         ExportTextCommand = new RelayCommand(() =>
@@ -69,6 +74,7 @@ public class DocumentsViewModel : ViewModelBase
             var outPath = GetExportPath($"Invoice_{inv.InvoiceNumber}.pdf");
             _pdfService.GenerateInvoicePdf(inv, cust, outPath);
             LastExportedFilePath = outPath;
+            if (AutoOpenAfterExport) _platform.OpenPathWithShell(outPath);
             StatusNotice = $"✓ Generated Branded Invoice PDF: {Path.GetFileName(outPath)}";
         });
 
@@ -79,6 +85,7 @@ public class DocumentsViewModel : ViewModelBase
             var outPath = GetExportPath($"ReleaseToken_{shp.TrackingNumber}.pdf");
             _pdfService.GenerateReleaseTokenPdf(shp, outPath);
             LastExportedFilePath = outPath;
+            if (AutoOpenAfterExport) _platform.OpenPathWithShell(outPath);
             StatusNotice = $"✓ Generated Release Token PDF: {Path.GetFileName(outPath)}";
         });
 
@@ -90,6 +97,7 @@ public class DocumentsViewModel : ViewModelBase
             var outPath = GetExportPath($"CustomsPacket_{shp.TrackingNumber}.pdf");
             _pdfService.GenerateCustomsPacketPdf(shp, cnt, outPath);
             LastExportedFilePath = outPath;
+            if (AutoOpenAfterExport) _platform.OpenPathWithShell(outPath);
             StatusNotice = $"✓ Generated Customs Packet PDF: {Path.GetFileName(outPath)}";
         });
 
@@ -101,7 +109,19 @@ public class DocumentsViewModel : ViewModelBase
             var outPath = GetExportPath($"Statement_{cust.LoginCode}.pdf");
             _pdfService.GenerateCustomerStatementPdf(cust, entries, outPath);
             LastExportedFilePath = outPath;
+            if (AutoOpenAfterExport) _platform.OpenPathWithShell(outPath);
             StatusNotice = $"✓ Generated Customer Statement PDF: {Path.GetFileName(outPath)}";
+        });
+
+        OpenExportedFileCommand = new RelayCommand(() =>
+        {
+            if (string.IsNullOrWhiteSpace(LastExportedFilePath))
+            {
+                StatusNotice = "Export a PDF document first to open it.";
+                return;
+            }
+            var ok = _platform.OpenPathWithShell(LastExportedFilePath);
+            StatusNotice = ok ? $"Opened `{Path.GetFileName(LastExportedFilePath)}` in default viewer." : $"Could not launch `{LastExportedFilePath}`.";
         });
 
         LoadDocuments();

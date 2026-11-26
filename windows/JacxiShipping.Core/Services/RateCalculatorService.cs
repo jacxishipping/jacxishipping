@@ -4,7 +4,7 @@ namespace JacxiShipping.WindowsApp.Services;
 
 public class RateCalculatorService : IRateCalculatorService
 {
-    private static readonly Dictionary<string, decimal> StateInlandRates = new(StringComparer.OrdinalIgnoreCase)
+    private readonly Dictionary<string, decimal> StateInlandRates = new(StringComparer.OrdinalIgnoreCase)
     {
         ["NJ"] = 280m, ["NY"] = 320m, ["PA"] = 380m, ["CT"] = 350m, ["MA"] = 420m,
         ["MD"] = 390m, ["DE"] = 360m, ["VA"] = 480m, ["NC"] = 520m, ["SC"] = 450m,
@@ -15,7 +15,7 @@ public class RateCalculatorService : IRateCalculatorService
         ["UT"] = 980m, ["ID"] = 1050m, ["MN"] = 820m, ["WI"] = 780m, ["IA"] = 790m
     };
 
-    private static readonly Dictionary<string, decimal> DestinationOceanRates = new(StringComparer.OrdinalIgnoreCase)
+    private readonly Dictionary<string, decimal> DestinationOceanRates = new(StringComparer.OrdinalIgnoreCase)
     {
         ["Port of Mersin, Turkey"] = 1350m,
         ["Jebel Ali Port, Dubai, UAE"] = 1250m,
@@ -71,5 +71,36 @@ public class RateCalculatorService : IRateCalculatorService
             TerminalHandling = terminalHandling,
             DocumentationFee = docFee
         };
+    }
+
+    public int ImportRatesFromCsvOrText(string rawContent)
+    {
+        if (string.IsNullOrWhiteSpace(rawContent)) return 0;
+        var updated = 0;
+        var lines = rawContent.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+        foreach (var line in lines)
+        {
+            var trimmed = line.Trim();
+            if (string.IsNullOrWhiteSpace(trimmed) || trimmed.StartsWith("#")) continue;
+            var commaIdx = trimmed.LastIndexOf(',');
+            if (commaIdx <= 0 || commaIdx >= trimmed.Length - 1) continue;
+            var key = trimmed[..commaIdx].Trim().Trim('"');
+            var valStr = trimmed[(commaIdx + 1)..].Trim().Replace("$", "");
+            if (!decimal.TryParse(valStr, out var val) || val <= 0) continue;
+
+            if (key.Length == 2)
+            {
+                StateInlandRates[key.ToUpperInvariant()] = val;
+                updated++;
+            }
+            else if (key.Contains("Port", StringComparison.OrdinalIgnoreCase) ||
+                     key.Contains("Border", StringComparison.OrdinalIgnoreCase) ||
+                     key.Contains("Dubai", StringComparison.OrdinalIgnoreCase))
+            {
+                DestinationOceanRates[key] = val;
+                updated++;
+            }
+        }
+        return updated;
     }
 }

@@ -3,7 +3,12 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:converters="clr-namespace:JacxiShipping.WindowsApp.Converters"
              mc:Ignorable="d" d:DesignHeight="800" d:DesignWidth="1120">
+    <UserControl.Resources>
+        <converters:SafeImagePathConverter x:Key="SafeImageConverter" />
+        <converters:NonEmptyStringToVisibilityConverter x:Key="NonEmptyStrVis" />
+    </UserControl.Resources>
     <Grid Margin="32,24,32,32">
         <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
 
@@ -57,19 +62,28 @@
                         </Grid>
 
                         <Grid Margin="0,0,0,10">
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="120" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="105" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                             <StackPanel Grid.Column="0" Margin="0,0,8,0">
                                 <TextBlock Text="Damage ($)" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,4" />
                                 <TextBox Style="{StaticResource JacxiTextBox}" Text="{Binding DamageCost}" Height="36" />
                             </StackPanel>
-                            <StackPanel Grid.Column="1">
+                            <StackPanel Grid.Column="1" Margin="0,0,8,0">
                                 <TextBlock Text="Photo Filename" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,4" />
                                 <TextBox Style="{StaticResource JacxiTextBox}" Text="{Binding PhotoName}" Height="36" />
                             </StackPanel>
+                            <Button Grid.Column="2" Content="Attach..." Style="{StaticResource JacxiOutlineButton}" Command="{Binding BrowsePhotoCommand}" Height="36" VerticalAlignment="Bottom" />
                         </Grid>
 
+                        <Border Background="{StaticResource JacxiBackgroundBrush}" BorderBrush="{StaticResource JacxiBorderBrush}" BorderThickness="1" CornerRadius="8" Padding="8" Margin="0,0,0,10"
+                                Visibility="{Binding PhotoPreviewPath, Converter={StaticResource NonEmptyStrVis}}">
+                            <StackPanel>
+                                <TextBlock Text="SELECTED PHOTO PREVIEW" FontSize="9.5" FontWeight="Bold" Foreground="{StaticResource JacxiTextMutedBrush}" Margin="0,0,0,6" />
+                                <Image Source="{Binding PhotoPreviewPath, Converter={StaticResource SafeImageConverter}}" MaxHeight="140" Stretch="Uniform" />
+                            </StackPanel>
+                        </Border>
+
                         <TextBlock Text="Inspection Notes" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,4" />
-                        <TextBox Style="{StaticResource JacxiTextBox}" Text="{Binding Notes}" Height="64" TextWrapping="Wrap" Margin="0,0,0,12" />
+                        <TextBox Style="{StaticResource JacxiTextBox}" Text="{Binding Notes}" Height="60" TextWrapping="Wrap" Margin="0,0,0,12" />
 
                         <Button Content="Save Inspection &amp; Update Ledger" Style="{StaticResource JacxiPrimaryButton}" Command="{Binding RecordInspectionCommand}" Margin="0,0,0,16" />
 

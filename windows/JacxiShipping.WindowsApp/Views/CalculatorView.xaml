@@ -3,23 +3,28 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:controls="clr-namespace:JacxiShipping.WindowsApp.Controls"
              mc:Ignorable="d" 
              d:DesignHeight="750" d:DesignWidth="1050">
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="32,24,32,32">
             <!-- Header -->
-            <StackPanel Margin="0,0,0,24">
-                <TextBlock Text="Instant Freight Rate Calculator &amp; Booking Engine"
-                           FontFamily="{StaticResource JacxiFontFamily}"
-                           FontSize="24"
-                           FontWeight="Bold"
-                           Foreground="{StaticResource JacxiTextPrimaryBrush}" />
-                <TextBlock Text="Calculate inland towing, containerized ocean freight, and customs documentation based on official JACXI tariffs."
-                           FontFamily="{StaticResource JacxiFontFamily}"
-                           FontSize="13"
-                           Foreground="{StaticResource JacxiTextSecondaryBrush}"
-                           Margin="0,4,0,0" />
-            </StackPanel>
+            <Grid Margin="0,0,0,24">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Text="Instant Freight Rate Calculator &amp; Booking Engine"
+                               FontFamily="{StaticResource JacxiFontFamily}"
+                               FontSize="24"
+                               FontWeight="Bold"
+                               Foreground="{StaticResource JacxiTextPrimaryBrush}" />
+                    <TextBlock Text="Calculate inland towing, containerized ocean freight, and customs documentation based on official JACXI tariffs."
+                               FontFamily="{StaticResource JacxiFontFamily}"
+                               FontSize="13"
+                               Foreground="{StaticResource JacxiTextSecondaryBrush}"
+                               Margin="0,4,0,0" />
+                </StackPanel>
+                <Button Grid.Column="1" Content="Import Rate Sheet (CSV)..." Style="{StaticResource JacxiOutlineButton}" Command="{Binding ImportRateSheetCommand}" VerticalAlignment="Center" />
+            </Grid>
 
             <!-- Success Banner (if any) -->
             <Border Background="{StaticResource JacxiSuccessBgBrush}"
@@ -48,14 +53,9 @@
                 </Grid>
             </Border>
 
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="1.4*" />
-                    <ColumnDefinition Width="1.1*" />
-                </Grid.ColumnDefinitions>
-
+            <controls:ResponsiveColumnsPanel MaxColumns="2" MinColumnWidth="420" ColumnGap="20" RowGap="20">
                 <!-- Left Form: Origin, Destination, Vehicle -->
-                <Border Grid.Column="0" Style="{StaticResource JacxiCardBorder}" Margin="0,0,24,0">
+                <Border Style="{StaticResource JacxiCardBorder}">
                     <StackPanel>
                         <TextBlock Text="1. ROUTE &amp; VEHICLE PARAMETERS"
                                    FontFamily="{StaticResource JacxiFontFamily}"
@@ -145,7 +145,7 @@
                 </Border>
 
                 <!-- Right Card: Instant Quote Breakdown & Action -->
-                <Border Grid.Column="1" Style="{StaticResource JacxiCardBorder}">
+                <Border Style="{StaticResource JacxiCardBorder}">
                     <StackPanel>
                         <TextBlock Text="FREIGHT QUOTE ESTIMATION"
                                    FontFamily="{StaticResource JacxiFontFamily}"
@@ -231,7 +231,7 @@
                                    TextWrapping="Wrap" />
                     </StackPanel>
                 </Border>
-            </Grid>
+            </controls:ResponsiveColumnsPanel>
         </StackPanel>
     </ScrollViewer>
 </UserControl>

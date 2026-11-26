@@ -6,7 +6,7 @@ on:
       tag:
         description: 'Release tag'
         required: true
-        default: 'v3.0.0-windows-admin'
+        default: 'v3.1.0-windows-admin'
   push:
     tags:
       - 'v*'
@@ -39,17 +39,27 @@ jobs:
             --self-contained false `
             -o dist/win-x64
 
+      - name: Build Windows Setup Installer (Inno Setup)
+        shell: pwsh
+        run: |
+          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) {
+            choco install innosetup -y --no-progress
+          }
+          & $iscc "windows/installer/JacxiShipping.iss"
+
       - name: Create Zip Archive
         shell: pwsh
         run: |
-          Compress-Archive -Path dist/win-x64/* -DestinationPath dist/JacxiShipping-Admin-Windows-x64-v3.0.0.zip -Force
+          Compress-Archive -Path dist/win-x64/* -DestinationPath dist/JacxiShipping-Admin-Windows-x64-v3.1.0.zip -Force
 
       - name: Upload Binaries to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.event.inputs.tag || github.ref_name }}
           files: |
-            dist/JacxiShipping-Admin-Windows-x64-v3.0.0.zip
+            dist/JacxiShipping-Setup-v3.1.0.exe
+            dist/JacxiShipping-Admin-Windows-x64-v3.1.0.zip
             dist/win-x64/JacxiShipping.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

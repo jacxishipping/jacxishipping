@@ -93,16 +93,21 @@ public class ShipmentsViewModel : ViewModelBase
     public RelayCommand ToggleCreatePanelCommand { get; }
     public RelayCommand SubmitNewShipmentCommand { get; }
 
+    private readonly IPlatformInteractionService _platform;
+    private readonly IJacxiCloudClient? _cloud;
+
     public ShipmentsViewModel(IShipmentService shipmentService, IDocumentService documentService)
-        : this(null, shipmentService, documentService)
+        : this(null, shipmentService, documentService, null, null)
     {
     }
 
-    public ShipmentsViewModel(IAdminStoreService? store, IShipmentService shipmentService, IDocumentService documentService)
+    public ShipmentsViewModel(IAdminStoreService? store, IShipmentService shipmentService, IDocumentService documentService, IPlatformInteractionService? platform = null, IJacxiCloudClient? cloud = null)
     {
         _store = store;
         _shipmentService = shipmentService;
         _documentService = documentService;
+        _platform = platform ?? new HeadlessPlatformInteractionService();
+        _cloud = cloud;
 
         FilterAllCommand = new RelayCommand(() => SelectedFilter = "All");
         FilterInTransitCommand = new RelayCommand(() => SelectedFilter = "InTransit");
@@ -150,7 +155,15 @@ public class ShipmentsViewModel : ViewModelBase
         MarkDeliveredCommand = new RelayCommand(() =>
         {
             if (SelectedShipment == null) return;
+            if (!_platform.ConfirmAction("Mark Shipment Delivered", $"Mark {SelectedShipment.TrackingNumber} ({SelectedShipment.Vehicle.FullDescription}) as Delivered?", "Mark Delivered"))
+                return;
+
+            var targetId = SelectedShipment.Id;
             _shipmentService.UpdateStatus(SelectedShipment.TrackingNumber, ShipmentStatus.Delivered);
+            if (_store?.Session.IsCloudConnected == true && !string.IsNullOrWhiteSpace(_store.Session.BearerToken) && _cloud != null)
+            {
+                _ = _cloud.PushShipmentStatusAsync(_store.Session.ServerUrl, _store.Session.BearerToken, targetId, ShipmentSimpleStatus.DELIVERED);
+            }
             ApplyFilter();
             SelectedShipment = _shipmentService.GetByTrackingNumber(SelectedShipment.TrackingNumber);
             StatusMessage = $"Shipment #{SelectedShipment?.TrackingNumber} marked as Delivered!";
@@ -169,7 +182,23 @@ public class ShipmentsViewModel : ViewModelBase
                 ShipmentStatus.CustomsCleared => ShipmentStatus.Delivered,
                 _ => ShipmentStatus.Delivered
             };
+            var nextSimple = next switch
+            {
+                ShipmentStatus.Booked => ShipmentSimpleStatus.DISPATCHING,
+                ShipmentStatus.VehicleReceived => ShipmentSimpleStatus.ON_HAND,
+                ShipmentStatus.ContainerLoaded => ShipmentSimpleStatus.IN_TRANSIT,
+                ShipmentStatus.InTransit => ShipmentSimpleStatus.IN_TRANSIT,
+                ShipmentStatus.CustomsHold => ShipmentSimpleStatus.IN_TRANSIT,
+                ShipmentStatus.CustomsCleared => ShipmentSimpleStatus.RELEASED,
+                ShipmentStatus.Delivered => ShipmentSimpleStatus.DELIVERED,
+                _ => ShipmentSimpleStatus.ON_HAND
+            };
+            var targetId = SelectedShipment.Id;
             _shipmentService.UpdateStatus(SelectedShipment.TrackingNumber, next);
+            if (_store?.Session.IsCloudConnected == true && !string.IsNullOrWhiteSpace(_store.Session.BearerToken) && _cloud != null)
+            {
+                _ = _cloud.PushShipmentStatusAsync(_store.Session.ServerUrl, _store.Session.BearerToken, targetId, nextSimple);
+            }
             ApplyFilter();
             SelectedShipment = _shipmentService.GetByTrackingNumber(SelectedShipment.TrackingNumber);
             StatusMessage = $"Advanced status to {SelectedShipment?.StatusDisplayText}.";
@@ -192,6 +221,7 @@ public class ShipmentsViewModel : ViewModelBase
             if (string.IsNullOrWhiteSpace(docs)) docs = Path.GetTempPath();
             var path = Path.Combine(docs, "JacxiShipping", "Exports", $"Shipments_{DateTime.Now:yyyyMMdd_HHmm}.xlsx");
             new ExcelExportService().ExportShipmentsWorkbook(FilteredShipments, path);
+            _platform.OpenPathWithShell(path);
             StatusMessage = $"✓ Exported Excel workbook ({FilteredShipments.Count} rows) → {Path.GetFileName(path)}";
         });
 

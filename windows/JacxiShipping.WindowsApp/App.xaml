@@ -35,6 +35,9 @@
             <DataTemplate DataType="{x:Type vm:DocumentsViewModel}"><views:DocumentsView /></DataTemplate>
             <DataTemplate DataType="{x:Type vm:CommunicationsViewModel}"><views:CommunicationsView /></DataTemplate>
             <DataTemplate DataType="{x:Type vm:AiCopilotViewModel}"><views:AiCopilotView /></DataTemplate>
+            <DataTemplate DataType="{x:Type vm:McpServerViewModel}"><views:McpServerView /></DataTemplate>
+            <DataTemplate DataType="{x:Type vm:CallAgentSettingsViewModel}"><views:CallAgentSettingsView /></DataTemplate>
+            <DataTemplate DataType="{x:Type vm:ProfileViewModel}"><views:ProfileView /></DataTemplate>
             <DataTemplate DataType="{x:Type vm:AnalyticsViewModel}"><views:AnalyticsView /></DataTemplate>
             <DataTemplate DataType="{x:Type vm:SettingsViewModel}"><views:SettingsView /></DataTemplate>
         </ResourceDictionary>
