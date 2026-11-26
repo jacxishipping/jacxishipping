@@ -30,6 +30,7 @@ public class FinanceViewModel : ViewModelBase
     public string StatusMessage { get => _statusMessage; set => SetProperty(ref _statusMessage, value); }
 
     public RelayCommand PostLedgerEntryCommand { get; }
+    public RelayCommand ExportLedgerExcelCommand { get; }
     public RelayCommand RefreshCommand { get; }
 
     public FinanceViewModel(IAdminStoreService store)
@@ -37,6 +38,14 @@ public class FinanceViewModel : ViewModelBase
         _store = store;
 
         RefreshCommand = new RelayCommand(Refresh);
+        ExportLedgerExcelCommand = new RelayCommand(() =>
+        {
+            var docs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            if (string.IsNullOrWhiteSpace(docs)) docs = Path.GetTempPath();
+            var path = Path.Combine(docs, "JacxiShipping", "Exports", $"GeneralLedger_{DateTime.Now:yyyyMMdd_HHmm}.xlsx");
+            new ExcelExportService().ExportLedgerWorkbook(LedgerEntries, CustomerBalances, path);
+            StatusMessage = $"✓ Exported multi-sheet Excel Ledger → {Path.GetFileName(path)}";
+        });
         PostLedgerEntryCommand = new RelayCommand(() =>
         {
             if (SelectedCustomer == null) return;
@@ -164,6 +173,7 @@ public class OfficeExpensesViewModel : ViewModelBase
 
     public ObservableCollection<OfficeExpenseRecord> Expenses { get; } = new();
     public ObservableCollection<ExpenseBudgetRecord> Budgets { get; } = new();
+    public ObservableCollection<RecurringExpenseRecord> RecurringExpenses { get; } = new();
     public Array Categories => Enum.GetValues(typeof(OfficeExpenseCategory));
 
     public string NewTitle { get => _newTitle; set => SetProperty(ref _newTitle, value); }
@@ -176,10 +186,18 @@ public class OfficeExpensesViewModel : ViewModelBase
     public string TotalMonthlySpendFormatted => $"${TotalMonthlySpend:N2}";
 
     public RelayCommand AddExpenseCommand { get; }
+    public RelayCommand RunDueRecurringCommand { get; }
 
     public OfficeExpensesViewModel(IAdminStoreService store)
     {
         _store = store;
+
+        RunDueRecurringCommand = new RelayCommand(() =>
+        {
+            var count = _store.RunDueRecurringExpenses();
+            Refresh();
+            StatusMessage = $"✓ Posted {count} recurring expenses & updated monthly budget bars.";
+        });
 
         AddExpenseCommand = new RelayCommand(() =>
         {
@@ -214,6 +232,9 @@ public class OfficeExpensesViewModel : ViewModelBase
 
         Budgets.Clear();
         foreach (var b in _store.GetExpenseBudgets()) Budgets.Add(b);
+
+        RecurringExpenses.Clear();
+        foreach (var r in _store.GetRecurringExpenses()) RecurringExpenses.Add(r);
 
         OnPropertyChanged(nameof(TotalMonthlySpend));
         OnPropertyChanged(nameof(TotalMonthlySpendFormatted));

@@ -1,0 +1,59 @@
+<UserControl x:Class="JacxiShipping.WindowsApp.Views.CommunicationsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             mc:Ignorable="d" d:DesignHeight="800" d:DesignWidth="1120">
+    <Grid Margin="32,24,32,32">
+        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+
+        <Grid Grid.Row="0" Margin="0,0,0,18">
+            <StackPanel>
+                <TextBlock Text="Customer Communications Dispatch" FontSize="24" FontWeight="Bold" />
+                <TextBlock Text="Send direct Email, SMS, WhatsApp, or Telegram alerts for container departures, release tokens, and invoices." FontSize="13" Foreground="{StaticResource JacxiTextSecondaryBrush}" Margin="0,4,0,0" />
+            </StackPanel>
+            <TextBlock Text="{Binding StatusMessage}" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource JacxiSuccessBrush}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+        </Grid>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="1*" /><ColumnDefinition Width="1.4*" /></Grid.ColumnDefinitions>
+
+            <!-- Compose Card -->
+            <Border Grid.Column="0" Style="{StaticResource JacxiCardBorder}" Margin="0,0,20,0">
+                <StackPanel>
+                    <TextBlock Text="DISPATCH CUSTOMER ALERT" FontSize="11" FontWeight="Bold" Foreground="{StaticResource JacxiGoldActiveBrush}" Margin="0,0,0,12" />
+
+                    <TextBlock Text="Channel" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,4" />
+                    <ComboBox Style="{StaticResource JacxiComboBox}" ItemsSource="{Binding Channels}" SelectedItem="{Binding Channel}" Height="36" Margin="0,0,0,10" />
+
+                    <TextBlock Text="Recipient (Phone / Email / Telegram ID)" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,4" />
+                    <TextBox Style="{StaticResource JacxiTextBox}" Text="{Binding Recipient}" Height="36" Margin="0,0,0,10" />
+
+                    <TextBlock Text="Subject" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,4" />
+                    <TextBox Style="{StaticResource JacxiTextBox}" Text="{Binding Subject}" Height="36" Margin="0,0,0,10" />
+
+                    <TextBlock Text="Message Body" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,4" />
+                    <TextBox Style="{StaticResource JacxiTextBox}" Text="{Binding Body}" Height="110" TextWrapping="Wrap" Margin="0,0,0,16" />
+
+                    <Button Content="Send Notification Now" Style="{StaticResource JacxiPrimaryButton}" Command="{Binding SendMessageCommand}" Height="40" />
+                </StackPanel>
+            </Border>
+
+            <!-- Dispatch History -->
+            <Border Grid.Column="1" Style="{StaticResource JacxiCardBorder}" Padding="0">
+                <DataGrid ItemsSource="{Binding Dispatches}" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column"
+                          GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="{StaticResource JacxiBorderBrush}"
+                          Background="{StaticResource JacxiPanelBrush}" BorderThickness="0"
+                          ColumnHeaderStyle="{StaticResource JacxiDataGridColumnHeader}" RowStyle="{StaticResource JacxiDataGridRow}">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="CHANNEL" Binding="{Binding Channel}" Width="95" />
+                        <DataGridTextColumn Header="RECIPIENT" Binding="{Binding Recipient}" Width="155" />
+                        <DataGridTextColumn Header="SUBJECT" Binding="{Binding Subject}" Width="*" />
+                        <DataGridTextColumn Header="STATUS" Binding="{Binding Status}" Width="80" />
+                        <DataGridTextColumn Header="SENT AT" Binding="{Binding SentAt}" Width="125" />
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>

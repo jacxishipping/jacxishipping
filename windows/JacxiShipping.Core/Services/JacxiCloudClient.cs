@@ -13,11 +13,24 @@ public class CloudAuthResult
     public AdminUser? User { get; set; }
 }
 
+public class CloudSyncSummary
+{
+    public bool Success { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public int ShipmentsPulled { get; set; }
+    public int ContainersPulled { get; set; }
+    public int InvoicesPulled { get; set; }
+}
+
 public interface IJacxiCloudClient
 {
     Task<CloudAuthResult> SignInAsync(string serverUrl, string email, string password);
     Task<CloudAuthResult> SignInWithCodeAsync(string serverUrl, string loginCode);
     Task<string> TestConnectionAndSyncAsync(string serverUrl, string bearerToken);
+    Task<CloudSyncSummary> PullLiveOperationsAsync(string serverUrl, string bearerToken);
+    Task<bool> PushShipmentStatusAsync(string serverUrl, string bearerToken, string shipmentId, ShipmentSimpleStatus status);
+    Task<bool> DispatchCommunicationAsync(string serverUrl, string bearerToken, CommunicationDispatchRecord dispatch);
+    Task<string?> AskGeminiCopilotAsync(string serverUrl, string bearerToken, string prompt);
 }
 
 public class JacxiCloudClient : IJacxiCloudClient
@@ -35,9 +48,7 @@ public class JacxiCloudClient : IJacxiCloudClient
             var body = await resp.Content.ReadAsStringAsync();
 
             if (!resp.IsSuccessStatusCode)
-            {
                 return new CloudAuthResult { Success = false, Message = $"Server returned {(int)resp.StatusCode}: {body}" };
-            }
 
             using var doc = JsonDocument.Parse(body);
             var token = doc.RootElement.TryGetProperty("token", out var tokEl) ? tokEl.GetString() : null;
@@ -79,9 +90,7 @@ public class JacxiCloudClient : IJacxiCloudClient
             var body = await resp.Content.ReadAsStringAsync();
 
             if (!resp.IsSuccessStatusCode)
-            {
                 return new CloudAuthResult { Success = false, Message = $"Code login failed ({(int)resp.StatusCode})." };
-            }
 
             using var doc = JsonDocument.Parse(body);
             var token = doc.RootElement.TryGetProperty("token", out var tokEl) ? tokEl.GetString() : null;
@@ -101,15 +110,130 @@ public class JacxiCloudClient : IJacxiCloudClient
             using var req = new HttpRequestMessage(HttpMethod.Get, $"{baseUrl}/api/mobile-auth/me");
             req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", bearerToken);
             using var resp = await Http.SendAsync(req);
-            if (!resp.IsSuccessStatusCode)
-            {
-                return $"Sync check failed: HTTP {(int)resp.StatusCode}";
-            }
-            return $"Verified live cloud session at {DateTime.Now:HH:mm:ss}.";
+            return resp.IsSuccessStatusCode
+                ? $"Verified live cloud session at {DateTime.Now:HH:mm:ss}."
+                : $"Sync check failed: HTTP {(int)resp.StatusCode}";
         }
         catch (Exception ex)
         {
             return $"Cloud unreachable: {ex.Message}";
+        }
+    }
+
+    public async Task<CloudSyncSummary> PullLiveOperationsAsync(string serverUrl, string bearerToken)
+    {
+        try
+        {
+            var baseUrl = NormalizeUrl(serverUrl);
+            int sCount = 0, cCount = 0, iCount = 0;
+
+            using var sReq = new HttpRequestMessage(HttpMethod.Get, $"{baseUrl}/api/shipments?limit=50");
+            sReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", bearerToken);
+            using var sResp = await Http.SendAsync(sReq);
+            if (sResp.IsSuccessStatusCode)
+            {
+                using var doc = JsonDocument.Parse(await sResp.Content.ReadAsStringAsync());
+                if (doc.RootElement.TryGetProperty("shipments", out var arr) && arr.ValueKind == JsonValueKind.Array)
+                    sCount = arr.GetArrayLength();
+            }
+
+            using var cReq = new HttpRequestMessage(HttpMethod.Get, $"{baseUrl}/api/containers?limit=50");
+            cReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", bearerToken);
+            using var cResp = await Http.SendAsync(cReq);
+            if (cResp.IsSuccessStatusCode)
+            {
+                using var doc = JsonDocument.Parse(await cResp.Content.ReadAsStringAsync());
+                if (doc.RootElement.TryGetProperty("containers", out var arr) && arr.ValueKind == JsonValueKind.Array)
+                    cCount = arr.GetArrayLength();
+            }
+
+            using var iReq = new HttpRequestMessage(HttpMethod.Get, $"{baseUrl}/api/invoices?limit=50");
+            iReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", bearerToken);
+            using var iResp = await Http.SendAsync(iReq);
+            if (iResp.IsSuccessStatusCode)
+            {
+                using var doc = JsonDocument.Parse(await iResp.Content.ReadAsStringAsync());
+                if (doc.RootElement.TryGetProperty("invoices", out var arr) && arr.ValueKind == JsonValueKind.Array)
+                    iCount = arr.GetArrayLength();
+            }
+
+            return new CloudSyncSummary
+            {
+                Success = true,
+                ShipmentsPulled = sCount,
+                ContainersPulled = cCount,
+                InvoicesPulled = iCount,
+                Message = $"Synced with {baseUrl}: {sCount} shipments, {cCount} containers, {iCount} invoices."
+            };
+        }
+        catch (Exception ex)
+        {
+            return new CloudSyncSummary { Success = false, Message = $"Cloud sync error: {ex.Message}" };
+        }
+    }
+
+    public async Task<bool> PushShipmentStatusAsync(string serverUrl, string bearerToken, string shipmentId, ShipmentSimpleStatus status)
+    {
+        try
+        {
+            var baseUrl = NormalizeUrl(serverUrl);
+            var payload = JsonSerializer.Serialize(new { status = status.ToString() });
+            using var req = new HttpRequestMessage(HttpMethod.Patch, $"{baseUrl}/api/shipments/{shipmentId}");
+            req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", bearerToken);
+            req.Content = new StringContent(payload, Encoding.UTF8, "application/json");
+            using var resp = await Http.SendAsync(req);
+            return resp.IsSuccessStatusCode;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public async Task<bool> DispatchCommunicationAsync(string serverUrl, string bearerToken, CommunicationDispatchRecord dispatch)
+    {
+        try
+        {
+            var baseUrl = NormalizeUrl(serverUrl);
+            var payload = JsonSerializer.Serialize(new
+            {
+                channel = dispatch.Channel.ToLowerInvariant(),
+                to = dispatch.Recipient,
+                subject = dispatch.Subject,
+                message = dispatch.Body
+            });
+            using var req = new HttpRequestMessage(HttpMethod.Post, $"{baseUrl}/api/communications/dispatch");
+            req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", bearerToken);
+            req.Content = new StringContent(payload, Encoding.UTF8, "application/json");
+            using var resp = await Http.SendAsync(req);
+            return resp.IsSuccessStatusCode;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public async Task<string?> AskGeminiCopilotAsync(string serverUrl, string bearerToken, string prompt)
+    {
+        try
+        {
+            var baseUrl = NormalizeUrl(serverUrl);
+            var payload = JsonSerializer.Serialize(new { prompt });
+            using var req = new HttpRequestMessage(HttpMethod.Post, $"{baseUrl}/api/gemini");
+            req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", bearerToken);
+            req.Content = new StringContent(payload, Encoding.UTF8, "application/json");
+            using var resp = await Http.SendAsync(req);
+            if (!resp.IsSuccessStatusCode) return null;
+            var json = await resp.Content.ReadAsStringAsync();
+            using var doc = JsonDocument.Parse(json);
+            if (doc.RootElement.TryGetProperty("response", out var r)) return r.GetString();
+            if (doc.RootElement.TryGetProperty("text", out var t)) return t.GetString();
+            return null;
+        }
+        catch
+        {
+            return null;
         }
     }
 

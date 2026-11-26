@@ -1,0 +1,43 @@
+<UserControl x:Class="JacxiShipping.WindowsApp.Views.TrackingDiagnosticsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             mc:Ignorable="d" d:DesignHeight="800" d:DesignWidth="1120">
+    <Grid Margin="32,24,32,32">
+        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+
+        <Grid Grid.Row="0" Margin="0,0,0,16">
+            <StackPanel>
+                <TextBlock Text="AIS Vessel &amp; Carrier Tracking Diagnostics" FontSize="24" FontWeight="Bold" />
+                <TextBlock Text="Monitor carrier EDI feeds, MarineTraffic satellite AIS coordinates, and trigger manual container syncs." FontSize="13" Foreground="{StaticResource JacxiTextSecondaryBrush}" Margin="0,4,0,0" />
+            </StackPanel>
+            <TextBlock Text="{Binding StatusMessage}" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource JacxiSuccessBrush}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+        </Grid>
+
+        <Border Grid.Row="1" Style="{StaticResource JacxiCardBorder}" Margin="0,0,0,18">
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="280" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                <ComboBox Grid.Column="0" Style="{StaticResource JacxiComboBox}" ItemsSource="{Binding Containers}" SelectedItem="{Binding SelectedContainer}" DisplayMemberPath="ContainerNumber" Height="38" Margin="0,0,12,0" />
+                <Button Grid.Column="1" Content="Run Live AIS / Carrier Sync" Style="{StaticResource JacxiPrimaryButton}" Command="{Binding SyncContainerCommand}" Height="38" />
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="2" Style="{StaticResource JacxiCardBorder}" Padding="0">
+            <DataGrid ItemsSource="{Binding Diagnostics}" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column"
+                      GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="{StaticResource JacxiBorderBrush}"
+                      Background="{StaticResource JacxiPanelBrush}" BorderThickness="0"
+                      ColumnHeaderStyle="{StaticResource JacxiDataGridColumnHeader}" RowStyle="{StaticResource JacxiDataGridRow}">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="CONTAINER #" Binding="{Binding ContainerNumber}" Width="130" />
+                    <DataGridTextColumn Header="API / PROVIDER" Binding="{Binding CarrierApi}" Width="*" />
+                    <DataGridTextColumn Header="VESSEL POSITION" Binding="{Binding VesselPosition}" Width="180" />
+                    <DataGridTextColumn Header="LOCATION" Binding="{Binding LastLocation}" Width="170" />
+                    <DataGridTextColumn Header="STATUS" Binding="{Binding SyncStatus}" Width="95" />
+                    <DataGridTextColumn Header="LATENCY (MS)" Binding="{Binding LatencyMs}" Width="105" />
+                    <DataGridTextColumn Header="SYNCED AT" Binding="{Binding SyncedAt}" Width="150" />
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+    </Grid>
+</UserControl>

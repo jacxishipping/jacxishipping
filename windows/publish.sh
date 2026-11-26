@@ -9,7 +9,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
 DIST_DIR="$SCRIPT_DIR/dist/win-x64"
-ZIP_FILE="$SCRIPT_DIR/dist/JacxiShipping-Admin-Windows-x64-v2.0.0.zip"
+ZIP_FILE="$SCRIPT_DIR/dist/JacxiShipping-Admin-Windows-x64-v3.0.0.zip"
 
 mkdir -p "$DIST_DIR"
 

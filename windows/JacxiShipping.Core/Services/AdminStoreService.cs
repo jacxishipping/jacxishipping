@@ -7,7 +7,6 @@ public class AdminStoreService : IAdminStoreService
 {
     private readonly object _lock = new();
     private readonly string _storagePath;
-
     private AdminDatabaseState _state = new();
 
     public CloudSessionConfig Session => _state.Session;
@@ -42,9 +41,19 @@ public class AdminStoreService : IAdminStoreService
     public IReadOnlyList<LedgerEntryRecord> GetLedgerEntries() { lock (_lock) return _state.LedgerEntries.ToList(); }
     public IReadOnlyList<OfficeExpenseRecord> GetOfficeExpenses() { lock (_lock) return _state.OfficeExpenses.ToList(); }
     public IReadOnlyList<ExpenseBudgetRecord> GetExpenseBudgets() { lock (_lock) return _state.ExpenseBudgets.ToList(); }
+    public IReadOnlyList<RecurringExpenseRecord> GetRecurringExpenses() { lock (_lock) return _state.RecurringExpenses.ToList(); }
     public IReadOnlyList<LedgerTransferRecord> GetLedgerTransfers() { lock (_lock) return _state.LedgerTransfers.ToList(); }
     public IReadOnlyList<PartnerPortalRecord> GetPartnerPortals() { lock (_lock) return _state.PartnerPortals.ToList(); }
     public IReadOnlyList<GatePassRequest> GetGatePassRequests() { lock (_lock) return _state.GatePassRequests.ToList(); }
+    public IReadOnlyList<BankTransactionRecord> GetBankTransactions() { lock (_lock) return _state.BankTransactions.ToList(); }
+    public IReadOnlyList<ExchangeRateRecord> GetExchangeRates() { lock (_lock) return _state.ExchangeRates.ToList(); }
+    public IReadOnlyList<CarrierPriceQuote> GetCarrierQuotes() { lock (_lock) return _state.CarrierQuotes.ToList(); }
+    public IReadOnlyList<QualityCheckRecord> GetQualityChecks() { lock (_lock) return _state.QualityChecks.ToList(); }
+    public IReadOnlyList<TrackingDiagnosticRecord> GetTrackingDiagnostics() { lock (_lock) return _state.TrackingDiagnostics.ToList(); }
+    public IReadOnlyList<AiInteractionRecord> GetAiInteractions() { lock (_lock) return _state.AiInteractions.ToList(); }
+    public IReadOnlyList<VoiceCallLogRecord> GetVoiceCallLogs() { lock (_lock) return _state.VoiceCallLogs.ToList(); }
+    public IReadOnlyList<CommunicationDispatchRecord> GetCommunicationDispatches() { lock (_lock) return _state.CommunicationDispatches.ToList(); }
+    public IReadOnlyList<AdminNotificationItem> GetNotifications() { lock (_lock) return _state.Notifications.ToList(); }
 
     public DashboardStats GetDashboardStats()
     {
@@ -188,6 +197,7 @@ public class AdminStoreService : IAdminStoreService
                 user.Balance += shipment.TotalCost;
             }
 
+            AddNotificationInternal("New Shipment Created", $"{shipment.TrackingNumber} ({shipment.Vehicle.FullDescription})", "SUCCESS");
             SaveStateInternal();
         }
     }
@@ -272,6 +282,7 @@ public class AdminStoreService : IAdminStoreService
             var s = _state.Shipments.FirstOrDefault(x => x.Id == shipmentId || x.TrackingNumber == shipmentId);
             if (s == null) return;
             s.ReleaseToken = $"REL-{Random.Shared.Next(100000, 999999)}";
+            AddNotificationInternal("Release Token Issued", $"{s.TrackingNumber}: {s.ReleaseToken}", "INFO");
             SaveStateInternal();
         }
     }
@@ -386,6 +397,7 @@ public class AdminStoreService : IAdminStoreService
                     Status = "REQUESTED"
                 });
             }
+            AddNotificationInternal("Gate Pass Requested", $"{s.Vehicle.FullDescription} ({s.ReleaseToken})", "WARNING");
             SaveStateInternal();
         }
     }
@@ -479,38 +491,44 @@ public class AdminStoreService : IAdminStoreService
     {
         lock (_lock)
         {
-            var inv = _state.Invoices.FirstOrDefault(i => i.Id == invoiceId || i.InvoiceNumber == invoiceId);
-            if (inv == null || amount <= 0) return;
-
-            var applied = Math.Min(amount, inv.AmountRemaining);
-            if (applied <= 0) applied = amount;
-
-            inv.AmountPaid += applied;
-            inv.PaymentMethod = method;
-            if (inv.AmountRemaining <= 0.01m)
-            {
-                inv.Status = UserInvoiceStatus.PAID;
-                inv.PaidDate = DateTime.UtcNow.ToString("yyyy-MM-dd");
-            }
-            else
-            {
-                inv.Status = UserInvoiceStatus.PARTIALLY_PAID;
-            }
-
-            if (!string.IsNullOrWhiteSpace(inv.ShipmentId))
-            {
-                var shp = _state.Shipments.FirstOrDefault(s => s.Id == inv.ShipmentId);
-                if (shp != null)
-                {
-                    shp.PaymentStatus = inv.Status == UserInvoiceStatus.PAID
-                        ? PaymentStatus.COMPLETED
-                        : PaymentStatus.PROCESSING;
-                }
-            }
-
-            AddLedgerEntryInternal(inv.UserId, $"Payment for {inv.InvoiceNumber} ({method})", LedgerEntryType.CREDIT, applied, "SHIPPING_PAYMENT");
+            RecordInvoicePaymentInternal(invoiceId, amount, method);
             SaveStateInternal();
         }
+    }
+
+    private void RecordInvoicePaymentInternal(string invoiceId, decimal amount, string method)
+    {
+        var inv = _state.Invoices.FirstOrDefault(i => i.Id == invoiceId || i.InvoiceNumber == invoiceId);
+        if (inv == null || amount <= 0) return;
+
+        var applied = Math.Min(amount, inv.AmountRemaining);
+        if (applied <= 0) applied = amount;
+
+        inv.AmountPaid += applied;
+        inv.PaymentMethod = method;
+        if (inv.AmountRemaining <= 0.01m)
+        {
+            inv.Status = UserInvoiceStatus.PAID;
+            inv.PaidDate = DateTime.UtcNow.ToString("yyyy-MM-dd");
+        }
+        else
+        {
+            inv.Status = UserInvoiceStatus.PARTIALLY_PAID;
+        }
+
+        if (!string.IsNullOrWhiteSpace(inv.ShipmentId))
+        {
+            var shp = _state.Shipments.FirstOrDefault(s => s.Id == inv.ShipmentId);
+            if (shp != null)
+            {
+                shp.PaymentStatus = inv.Status == UserInvoiceStatus.PAID
+                    ? PaymentStatus.COMPLETED
+                    : PaymentStatus.PROCESSING;
+            }
+        }
+
+        AddLedgerEntryInternal(inv.UserId, $"Payment for {inv.InvoiceNumber} ({method})", LedgerEntryType.CREDIT, applied, "SHIPPING_PAYMENT");
+        AddNotificationInternal("Payment Recorded", $"{inv.InvoiceNumber}: ${applied:N2} ({method})", "SUCCESS");
     }
 
     public void MarkInvoiceOverdue(string invoiceId)
@@ -567,6 +585,45 @@ public class AdminStoreService : IAdminStoreService
         }
     }
 
+    public void AddRecurringExpense(RecurringExpenseRecord recurring)
+    {
+        lock (_lock)
+        {
+            _state.RecurringExpenses.Insert(0, recurring);
+            SaveStateInternal();
+        }
+    }
+
+    public int RunDueRecurringExpenses()
+    {
+        lock (_lock)
+        {
+            int count = 0;
+            foreach (var rec in _state.RecurringExpenses.Where(r => r.IsActive))
+            {
+                var exp = new OfficeExpenseRecord
+                {
+                    Title = $"{rec.Title} ({rec.Frequency})",
+                    Category = rec.Category,
+                    Amount = rec.Amount,
+                    Vendor = rec.Vendor,
+                    ReferenceNumber = $"AUTO-{Random.Shared.Next(1000, 9999)}",
+                    Notes = $"Generated from recurring schedule {rec.Id}"
+                };
+                _state.OfficeExpenses.Insert(0, exp);
+                var budget = _state.ExpenseBudgets.FirstOrDefault(b => b.Category == exp.Category);
+                if (budget != null) budget.SpentAmount += exp.Amount;
+                count++;
+            }
+            if (count > 0)
+            {
+                AddNotificationInternal("Recurring OpEx Posted", $"Generated {count} office expenses from active schedules.", "INFO");
+                SaveStateInternal();
+            }
+            return count;
+        }
+    }
+
     public void AddLedgerTransfer(LedgerTransferType type, string sourceName, string destName, decimal amount, string reference)
     {
         lock (_lock)
@@ -581,6 +638,156 @@ public class AdminStoreService : IAdminStoreService
                 Reference = reference,
                 Status = "COMPLETED"
             });
+            SaveStateInternal();
+        }
+    }
+
+    public int ImportBankCsv(string csvContent)
+    {
+        lock (_lock)
+        {
+            int added = 0;
+            var lines = (csvContent ?? string.Empty).Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var line in lines)
+            {
+                var parts = line.Split(',');
+                if (parts.Length < 3) continue;
+                if (!decimal.TryParse(parts[2].Trim().Trim('$'), out var amt) || amt <= 0) continue;
+
+                _state.BankTransactions.Insert(0, new BankTransactionRecord
+                {
+                    BankSource = "BOA_CSV",
+                    TransactionDate = parts[0].Trim(),
+                    Description = parts[1].Trim(),
+                    Amount = amt,
+                    Reference = parts.Length > 3 ? parts[3].Trim() : $"CSV-{Random.Shared.Next(1000, 9999)}",
+                    Status = BankReconciliationStatus.UNMATCHED
+                });
+                added++;
+            }
+            if (added > 0) SaveStateInternal();
+            return added;
+        }
+    }
+
+    public void ReconcileBankTransaction(string bankTxnId, string invoiceNumber)
+    {
+        lock (_lock)
+        {
+            var txn = _state.BankTransactions.FirstOrDefault(b => b.Id == bankTxnId);
+            var inv = _state.Invoices.FirstOrDefault(i => i.InvoiceNumber == invoiceNumber);
+            if (txn == null || inv == null) return;
+
+            txn.Status = BankReconciliationStatus.MATCHED;
+            txn.MatchedInvoiceNumber = inv.InvoiceNumber;
+            txn.MatchedCustomerName = inv.CustomerName;
+
+            RecordInvoicePaymentInternal(inv.Id, txn.Amount, $"BANK_{txn.BankSource}");
+            SaveStateInternal();
+        }
+    }
+
+    public void UpdateExchangeRate(string currency, decimal rateFromUsd)
+    {
+        lock (_lock)
+        {
+            var ex = _state.ExchangeRates.FirstOrDefault(r => r.Currency.Equals(currency, StringComparison.OrdinalIgnoreCase));
+            if (ex != null)
+            {
+                ex.RateFromUsd = rateFromUsd;
+                ex.EffectiveDate = DateTime.UtcNow.ToString("yyyy-MM-dd");
+                ex.Source = "MANUAL";
+                SaveStateInternal();
+            }
+        }
+    }
+
+    public void AddQualityCheck(QualityCheckRecord check)
+    {
+        lock (_lock)
+        {
+            _state.QualityChecks.Insert(0, check);
+            if (check.DamageCost > 0)
+            {
+                var shp = _state.Shipments.FirstOrDefault(s => s.Id == check.ShipmentId || s.TrackingNumber == check.TrackingNumber);
+                if (shp != null)
+                {
+                    if (check.DamageLiability == "WE_PAY") shp.DamageCredit += check.DamageCost;
+                    else shp.DamageCost += check.DamageCost;
+                }
+            }
+            SaveStateInternal();
+        }
+    }
+
+    public TrackingDiagnosticRecord RunTrackingSync(string containerNumber)
+    {
+        lock (_lock)
+        {
+            var c = _state.Containers.FirstOrDefault(x => x.ContainerNumber.Equals(containerNumber, StringComparison.OrdinalIgnoreCase));
+            if (c != null && c.Progress < 95)
+            {
+                c.Progress = Math.Min(95, c.Progress + 5);
+            }
+
+            var diag = new TrackingDiagnosticRecord
+            {
+                ContainerNumber = containerNumber,
+                CarrierApi = "MarineTraffic AIS + Carrier EDI",
+                SyncStatus = "OK (200)",
+                LatencyMs = Random.Shared.Next(120, 340),
+                VesselPosition = $"{32 + Random.Shared.NextDouble() * 8:F4}° N, {10 + Random.Shared.NextDouble() * 18:F4}° E",
+                LastLocation = c?.CurrentLocation ?? "Mid-Atlantic Corridor"
+            };
+            _state.TrackingDiagnostics.Insert(0, diag);
+            SaveStateInternal();
+            return diag;
+        }
+    }
+
+    public void AddAiInteraction(AiInteractionRecord log)
+    {
+        lock (_lock)
+        {
+            _state.AiInteractions.Insert(0, log);
+            SaveStateInternal();
+        }
+    }
+
+    public void AddCommunicationDispatch(CommunicationDispatchRecord dispatch)
+    {
+        lock (_lock)
+        {
+            _state.CommunicationDispatches.Insert(0, dispatch);
+            AddNotificationInternal($"{dispatch.Channel} Sent", $"To {dispatch.Recipient}: {dispatch.Subject}", "SUCCESS");
+            SaveStateInternal();
+        }
+    }
+
+    public void AddNotification(string title, string description, string type = "INFO")
+    {
+        lock (_lock)
+        {
+            AddNotificationInternal(title, description, type);
+            SaveStateInternal();
+        }
+    }
+
+    private void AddNotificationInternal(string title, string description, string type)
+    {
+        _state.Notifications.Insert(0, new AdminNotificationItem
+        {
+            Title = title,
+            Description = description,
+            Type = type
+        });
+    }
+
+    public void MarkAllNotificationsRead()
+    {
+        lock (_lock)
+        {
+            foreach (var n in _state.Notifications) n.IsRead = true;
             SaveStateInternal();
         }
     }
@@ -684,10 +891,7 @@ public class AdminStoreService : IAdminStoreService
             var json = JsonSerializer.Serialize(_state, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText(_storagePath, json);
         }
-        catch
-        {
-            // Non-fatal in sandboxed / read-only environments
-        }
+        catch { }
     }
 
     private bool TryLoadState()
@@ -699,6 +903,7 @@ public class AdminStoreService : IAdminStoreService
             var loaded = JsonSerializer.Deserialize<AdminDatabaseState>(json);
             if (loaded == null || loaded.Shipments.Count == 0) return false;
             _state = loaded;
+            if (_state.BankTransactions.Count == 0) SeedEnterpriseModules();
             return true;
         }
         catch
@@ -738,7 +943,6 @@ public class AdminStoreService : IAdminStoreService
     {
         _state = new AdminDatabaseState();
 
-        // 1. Seed Users & Customers
         _state.Users.AddRange(new[]
         {
             new AdminUser { Id = "adm-001", Name = "JACXI Operations Admin", Email = "admin@jacxishipping.com", Role = "admin", Phone = "+1 (201) 555-0100", City = "Newark", Country = "USA", LoginCode = "JX884910", CollectionStatus = CollectionStatus.CURRENT, Balance = 0m, ShipmentCount = 0 },
@@ -751,7 +955,6 @@ public class AdminStoreService : IAdminStoreService
             new AdminUser { Id = "stf-003", Name = "Omar Karim (Operations)", Email = "omar@jacxishipping.com", Role = "operations", Phone = "+971 50 442 1190", City = "Dubai", Country = "UAE", LoginCode = "OPS2026Y", CollectionStatus = CollectionStatus.CURRENT }
         });
 
-        // 2. Seed Companies
         _state.Companies.AddRange(new[]
         {
             new ShippingCompany { Id = "cmp-001", Name = "MSC Mediterranean Shipping", Code = "MSC", Email = "booking@msc.example", Phone = "+1 800 672 5463", Country = "Switzerland / Global", IsShipping = true, Balance = -14200m },
@@ -760,7 +963,6 @@ public class AdminStoreService : IAdminStoreService
             new ShippingCompany { Id = "cmp-004", Name = "Silk Road Border Transit", Code = "SRBT", Email = "border@silkroadtransit.af", Phone = "+971 4 555 8890", Country = "UAE / Afghanistan", IsTransit = true, Balance = -4100m }
         });
 
-        // 3. Seed Containers
         _state.Containers.AddRange(new[]
         {
             new ContainerRecord { Id = "cnt-001", ContainerNumber = "MSCU7829104", TrackingNumber = "TRK-884910", CompanyId = "cmp-001", CompanyName = "MSC Mediterranean Shipping", VesselName = "MSC MEDITERRANEAN V", VoyageNumber = "TX2026-B", ShippingLine = "MSC", BookingNumber = "EBKG994012", LoadingPort = "Port of Newark, NJ", DestinationPort = "Port of Mersin, Turkey", Status = ContainerLifecycleStatus.IN_TRANSIT, CurrentLocation = "Mid-Atlantic Corridor", Progress = 65, MaxCapacity = 4, CurrentCount = 2, ExpensesTotal = 4600m },
@@ -769,7 +971,6 @@ public class AdminStoreService : IAdminStoreService
             new ContainerRecord { Id = "cnt-004", ContainerNumber = "ONEU8819203", TrackingNumber = "TRK-648190", CompanyId = "cmp-002", CompanyName = "ONE Line", VesselName = "ONE INTEGRITY", VoyageNumber = "ONE-084E", ShippingLine = "ONE", BookingNumber = "ONEY881920", LoadingPort = "Port of Newark, NJ", DestinationPort = "Islam Qala Border, Afghanistan", Status = ContainerLifecycleStatus.LOADED, CurrentLocation = "Newark Berth 12", Progress = 35, MaxCapacity = 4, CurrentCount = 1, ExpensesTotal = 4900m }
         });
 
-        // 4. Seed Dispatches
         _state.Dispatches.AddRange(new[]
         {
             new DispatchRecord { Id = "dsp-001", ReferenceNumber = "DSP-2611-101", CompanyId = "cmp-003", CompanyName = "Atlantic Auto Towing LLC", Origin = "Copart North Boston, MA", Destination = "Port of Newark, NJ", Status = DispatchStatus.COMPLETED, Cost = 400m, VehicleCount = 1, Notes = "Delivered to Yard 4 on schedule." },
@@ -777,306 +978,112 @@ public class AdminStoreService : IAdminStoreService
             new DispatchRecord { Id = "dsp-003", ReferenceNumber = "DSP-2611-103", CompanyId = "cmp-003", CompanyName = "Atlantic Auto Towing LLC", Origin = "Copart Hartford, CT", Destination = "Port of Newark, NJ", Status = DispatchStatus.COMPLETED, Cost = 400m, VehicleCount = 1, Notes = "Gate verified." }
         });
 
-        // 5. Seed Transits
         _state.Transits.AddRange(new[]
         {
             new TransitRecord { Id = "trn-001", ReferenceNumber = "TRN-2611-401", CompanyId = "cmp-004", CompanyName = "Silk Road Border Transit", Origin = "Jebel Ali Port, UAE", Destination = "Kabul, Afghanistan", BorderCrossing = "Islam Qala", Status = TransitStatus.IN_TRANSIT, Cost = 1150m, VehicleCount = 1, Notes = "Bonded flatbed convoy cleared customs zone." },
             new TransitRecord { Id = "trn-002", ReferenceNumber = "TRN-2611-402", CompanyId = "cmp-004", CompanyName = "Silk Road Border Transit", Origin = "Bandar Abbas Port", Destination = "Hairatan, Afghanistan", BorderCrossing = "Hairatan Rail", Status = TransitStatus.PENDING, Cost = 1250m, VehicleCount = 1, Notes = "Awaiting vessel discharge." }
         });
 
-        // 6. Seed Shipments
         _state.Shipments.AddRange(new[]
         {
             new Shipment
             {
-                Id = "shp-001",
-                TrackingNumber = "JCX-2601-88491",
-                ContainerId = "cnt-001",
-                ContainerNumber = "MSCU7829104",
-                DispatchId = "dsp-001",
-                UserId = "usr-001",
-                ServiceType = ServiceType.SHIPPING_ONLY,
-                SimpleStatus = ShipmentSimpleStatus.IN_TRANSIT,
-                BookingDate = "2026-11-12",
-                EstimatedDelivery = "2026-12-10",
-                OriginPort = "Port of Newark, NJ",
-                DestinationPort = "Port of Mersin, Turkey",
-                Status = ShipmentStatus.InTransit,
-                PaymentStatus = PaymentStatus.PENDING,
-                CustomerName = "Tariq Logistics Ltd",
-                CustomerEmail = "dispatch@tariqlogistics.tr",
-                CustomerPhone = "+90 532 994 1283",
-                OceanFreightCost = 1450m,
-                InlandTowingCost = 400m,
-                DocumentationFee = 150m,
-                CompanyShippingFare = 1420m,
-                VesselName = "MSC MEDITERRANEAN V",
-                VoyageNumber = "TX2026-B",
-                Vehicle = new VehicleInspection
-                {
-                    Vin = "1HGCR2F83HA029184",
-                    Year = 2023,
-                    Make = "Toyota",
-                    Model = "RAV4 XLE AWD",
-                    LotNumber = "54889576",
-                    AuctionYard = "Copart North Boston, MA",
-                    RunsAndDrives = true,
-                    HasKeys = true,
-                    TitleStatus = "Clean Export Title",
-                    ConditionNotes = "Clean run & drive. Front bumper scuff. High battery health.",
-                    PhotoCount = 16
-                },
+                Id = "shp-001", TrackingNumber = "JCX-2601-88491", ContainerId = "cnt-001", ContainerNumber = "MSCU7829104", DispatchId = "dsp-001", UserId = "usr-001",
+                ServiceType = ServiceType.SHIPPING_ONLY, SimpleStatus = ShipmentSimpleStatus.IN_TRANSIT, BookingDate = "2026-11-12", EstimatedDelivery = "2026-12-10",
+                OriginPort = "Port of Newark, NJ", DestinationPort = "Port of Mersin, Turkey", Status = ShipmentStatus.InTransit, PaymentStatus = PaymentStatus.PENDING,
+                CustomerName = "Tariq Logistics Ltd", CustomerEmail = "dispatch@tariqlogistics.tr", CustomerPhone = "+90 532 994 1283",
+                OceanFreightCost = 1450m, InlandTowingCost = 400m, DocumentationFee = 150m, CompanyShippingFare = 1420m, VesselName = "MSC MEDITERRANEAN V", VoyageNumber = "TX2026-B",
+                Vehicle = new VehicleInspection { Vin = "1HGCR2F83HA029184", Year = 2023, Make = "Toyota", Model = "RAV4 XLE AWD", LotNumber = "54889576", AuctionYard = "Copart North Boston, MA", RunsAndDrives = true, HasKeys = true, TitleStatus = "Clean Export Title", ConditionNotes = "Clean run & drive. Front bumper scuff.", PhotoCount = 16 },
                 Milestones = new List<ShipmentMilestone>
                 {
-                    new("Booking Confirmed", "Port of Newark, NJ", "2026-11-12 09:30", true, false, "Booking generated and customs file created."),
-                    new("Vehicle Received at Terminal", "Newark Terminal Yard 4", "2026-11-15 14:10", true, false, "Vehicle unloaded and condition verified. 16 photos logged."),
-                    new("Loaded in Container", "Container MSCU7829104", "2026-11-18 11:45", true, false, "Chocked, strapped, and sealed. Seal #JCX-99401."),
-                    new("Ocean Transit", "MSC MEDITERRANEAN V", "2026-11-20 06:00", false, true, "Vessel departed Port of Newark. Currently in mid-Atlantic."),
-                    new("Customs Clearance", "Port of Mersin, Turkey", "Est. 2026-12-05", false, false, "Manifest forwarded to Mersin Port Authority."),
-                    new("Final Delivery", "Mersin Free Zone Yard B", "Est. 2026-12-10", false, false, "Consignee release upon token verification.")
+                    new("Booking Confirmed", "Port of Newark, NJ", "2026-11-12 09:30", true, false, "Booking generated."),
+                    new("Vehicle Received at Terminal", "Newark Terminal Yard 4", "2026-11-15 14:10", true, false, "16 photos logged."),
+                    new("Loaded in Container", "Container MSCU7829104", "2026-11-18 11:45", true, false, "Sealed #JCX-99401."),
+                    new("Ocean Transit", "MSC MEDITERRANEAN V", "2026-11-20 06:00", false, true, "Mid-Atlantic underway."),
+                    new("Customs Clearance", "Port of Mersin, Turkey", "Est. 2026-12-05", false, false, "Manifest queued."),
+                    new("Final Delivery", "Mersin Free Zone Yard B", "Est. 2026-12-10", false, false, "Token release.")
                 }
             },
             new Shipment
             {
-                Id = "shp-002",
-                TrackingNumber = "JCX-2601-72940",
-                ContainerId = "cnt-002",
-                ContainerNumber = "CMAU4920193",
-                UserId = "usr-002",
-                ServiceType = ServiceType.PURCHASE_AND_SHIPPING,
-                PurchasePrice = 18500m,
-                SimpleStatus = ShipmentSimpleStatus.IN_TRANSIT,
-                BookingDate = "2026-11-05",
-                EstimatedDelivery = "2026-12-02",
-                OriginPort = "Port of Houston, TX",
-                DestinationPort = "Jebel Ali Port, Dubai, UAE",
-                Status = ShipmentStatus.CustomsHold,
-                PaymentStatus = PaymentStatus.PENDING,
-                CustomerName = "Al-Nour Auto Trading",
-                CustomerEmail = "accounts@alnourauto.ae",
-                CustomerPhone = "+971 4 883 9102",
-                OceanFreightCost = 1350m,
-                InlandTowingCost = 350m,
-                DocumentationFee = 150m,
-                CompanyShippingFare = 1310m,
-                ReleaseToken = "REL-729401",
-                CompanyGatePassRequested = true,
-                CompanyGatePassRequestedAt = "2026-11-25 14:15",
-                VesselName = "CMA CGM ANTOINE",
-                VoyageNumber = "UAE441-X",
-                Vehicle = new VehicleInspection
-                {
-                    Vin = "4T1B11HK5JU773910",
-                    Year = 2024,
-                    Make = "Lexus",
-                    Model = "RX 350 Luxury",
-                    LotNumber = "61902844",
-                    AuctionYard = "Copart Dallas, TX",
-                    RunsAndDrives = true,
-                    HasKeys = true,
-                    TitleStatus = "Pending Title Validation",
-                    ConditionNotes = "Awaiting physical title original from Texas DMV for customs release.",
-                    PhotoCount = 20
-                },
+                Id = "shp-002", TrackingNumber = "JCX-2601-72940", ContainerId = "cnt-002", ContainerNumber = "CMAU4920193", UserId = "usr-002",
+                ServiceType = ServiceType.PURCHASE_AND_SHIPPING, PurchasePrice = 18500m, SimpleStatus = ShipmentSimpleStatus.IN_TRANSIT, BookingDate = "2026-11-05", EstimatedDelivery = "2026-12-02",
+                OriginPort = "Port of Houston, TX", DestinationPort = "Jebel Ali Port, Dubai, UAE", Status = ShipmentStatus.CustomsHold, PaymentStatus = PaymentStatus.PENDING,
+                CustomerName = "Al-Nour Auto Trading", CustomerEmail = "accounts@alnourauto.ae", CustomerPhone = "+971 4 883 9102",
+                OceanFreightCost = 1350m, InlandTowingCost = 350m, DocumentationFee = 150m, CompanyShippingFare = 1310m, ReleaseToken = "REL-729401", CompanyGatePassRequested = true, CompanyGatePassRequestedAt = "2026-11-25 14:15", VesselName = "CMA CGM ANTOINE", VoyageNumber = "UAE441-X",
+                Vehicle = new VehicleInspection { Vin = "4T1B11HK5JU773910", Year = 2024, Make = "Lexus", Model = "RX 350 Luxury", LotNumber = "61902844", AuctionYard = "Copart Dallas, TX", RunsAndDrives = true, HasKeys = true, TitleStatus = "Pending Title Validation", ConditionNotes = "Awaiting physical title original.", PhotoCount = 20 },
                 Milestones = new List<ShipmentMilestone>
                 {
                     new("Booking Confirmed", "Port of Houston, TX", "2026-11-05 10:00", true, false, "File opened."),
-                    new("Vehicle Received at Terminal", "Houston Bay Terminal", "2026-11-08 16:30", true, false, "Inspection complete."),
-                    new("Loaded in Container", "Container CMAU4920193", "2026-11-11 13:00", true, false, "Loading manifest signed."),
-                    new("Ocean Transit", "CMA CGM ANTOINE", "2026-11-13 08:00", true, false, "Arrived at Jebel Ali outer anchorage."),
-                    new("Customs Clearance", "Jebel Ali Customs Gate 3", "2026-11-25 15:00", false, true, "Title certificate requested by customs inspector."),
-                    new("Final Delivery", "Dubai Auto Zone Yard 7", "Est. 2026-12-02", false, false, "Ready for gate pickup after clearance.")
+                    new("Vehicle Received", "Houston Bay Terminal", "2026-11-08 16:30", true, false, "Inspection complete."),
+                    new("Loaded in Container", "CMAU4920193", "2026-11-11 13:00", true, false, "Signed."),
+                    new("Ocean Transit", "CMA CGM ANTOINE", "2026-11-13 08:00", true, false, "Arrived Jebel Ali."),
+                    new("Customs Clearance", "Jebel Ali Customs Gate 3", "2026-11-25 15:00", false, true, "Title certificate requested."),
+                    new("Final Delivery", "Dubai Auto Zone Yard 7", "Est. 2026-12-02", false, false, "Pending clearance.")
                 }
             },
             new Shipment
             {
-                Id = "shp-003",
-                TrackingNumber = "JCX-2601-93012",
-                ContainerId = "cnt-003",
-                ContainerNumber = "HLXU9182746",
-                UserId = "usr-003",
-                ServiceType = ServiceType.SHIPPING_ONLY,
-                SimpleStatus = ShipmentSimpleStatus.DELIVERED,
-                BookingDate = "2026-10-22",
-                EstimatedDelivery = "2026-11-24",
-                OriginPort = "Port of Savannah, GA",
-                DestinationPort = "Port of Poti, Georgia",
-                Status = ShipmentStatus.Delivered,
-                PaymentStatus = PaymentStatus.COMPLETED,
-                CustomerName = "Caucasus Motor Group",
-                CustomerEmail = "ops@caucasusmotors.ge",
-                CustomerPhone = "+995 32 291 0044",
-                OceanFreightCost = 1550m,
-                InlandTowingCost = 450m,
-                DocumentationFee = 150m,
-                CompanyShippingFare = 1580m,
-                ReleaseToken = "REL-930120",
-                VesselName = "HAPAG-LLOYD EXPRESS",
-                VoyageNumber = "GE2026-09",
-                Vehicle = new VehicleInspection
-                {
-                    Vin = "WAUZZZF27NA019283",
-                    Year = 2022,
-                    Make = "Audi",
-                    Model = "Q5 45 TFSI Quattro",
-                    LotNumber = "49018273",
-                    AuctionYard = "IAAI Atlanta, GA",
-                    RunsAndDrives = true,
-                    HasKeys = true,
-                    TitleStatus = "Clean Export Title",
-                    ConditionNotes = "Complete run & drive. Released to customer with signed delivery receipt.",
-                    PhotoCount = 18
-                },
+                Id = "shp-003", TrackingNumber = "JCX-2601-93012", ContainerId = "cnt-003", ContainerNumber = "HLXU9182746", UserId = "usr-003",
+                ServiceType = ServiceType.SHIPPING_ONLY, SimpleStatus = ShipmentSimpleStatus.DELIVERED, BookingDate = "2026-10-22", EstimatedDelivery = "2026-11-24",
+                OriginPort = "Port of Savannah, GA", DestinationPort = "Port of Poti, Georgia", Status = ShipmentStatus.Delivered, PaymentStatus = PaymentStatus.COMPLETED,
+                CustomerName = "Caucasus Motor Group", CustomerEmail = "ops@caucasusmotors.ge", CustomerPhone = "+995 32 291 0044",
+                OceanFreightCost = 1550m, InlandTowingCost = 450m, DocumentationFee = 150m, CompanyShippingFare = 1580m, ReleaseToken = "REL-930120", VesselName = "HAPAG-LLOYD EXPRESS", VoyageNumber = "GE2026-09",
+                Vehicle = new VehicleInspection { Vin = "WAUZZZF27NA019283", Year = 2022, Make = "Audi", Model = "Q5 45 TFSI Quattro", LotNumber = "49018273", AuctionYard = "IAAI Atlanta, GA", RunsAndDrives = true, HasKeys = true, TitleStatus = "Clean Export Title", ConditionNotes = "Released to customer.", PhotoCount = 18 },
                 Milestones = new List<ShipmentMilestone>
                 {
-                    new("Booking Confirmed", "Port of Savannah, GA", "2026-10-22 11:00", true, false, "Booking completed."),
-                    new("Vehicle Received at Terminal", "Savannah Ocean Terminal", "2026-10-25 09:00", true, false, "Received and checked."),
-                    new("Loaded in Container", "Container HLXU9182746", "2026-10-28 14:00", true, false, "Loaded in 40ft High Cube."),
-                    new("Ocean Transit", "HAPAG-LLOYD EXPRESS", "2026-10-31 18:00", true, false, "Discharged at Poti Sea Port."),
-                    new("Customs Clearance", "Poti Customs Zone", "2026-11-20 10:00", true, false, "Customs duties cleared."),
-                    new("Final Delivery", "Poti Terminal B", "2026-11-24 16:30", true, false, "Consignee received vehicle. Signed BOL.")
+                    new("Booking Confirmed", "Port of Savannah, GA", "2026-10-22 11:00", true, false, "Completed."),
+                    new("Vehicle Received", "Savannah Terminal", "2026-10-25 09:00", true, false, "Checked."),
+                    new("Loaded in Container", "HLXU9182746", "2026-10-28 14:00", true, false, "40ft High Cube."),
+                    new("Ocean Transit", "HAPAG-LLOYD EXPRESS", "2026-10-31 18:00", true, false, "Discharged Poti."),
+                    new("Customs Clearance", "Poti Customs", "2026-11-20 10:00", true, false, "Cleared."),
+                    new("Final Delivery", "Poti Terminal B", "2026-11-24 16:30", true, false, "Signed BOL.")
                 }
             },
             new Shipment
             {
-                Id = "shp-004",
-                TrackingNumber = "JCX-2601-51289",
-                ContainerNumber = "MSCU3019281",
-                DispatchId = "dsp-002",
-                TransitId = "trn-002",
-                UserId = "usr-004",
-                ServiceType = ServiceType.SHIPPING_ONLY,
-                SimpleStatus = ShipmentSimpleStatus.DISPATCHING,
-                BookingDate = "2026-11-22",
-                EstimatedDelivery = "2026-12-28",
-                OriginPort = "Port of Los Angeles, CA",
-                DestinationPort = "Hairatan Border, Afghanistan",
-                Status = ShipmentStatus.Booked,
-                PaymentStatus = PaymentStatus.PENDING,
-                CustomerName = "Ariana Transit Services",
-                CustomerEmail = "import@arianatransit.af",
-                CustomerPhone = "+93 70 029 8831",
-                OceanFreightCost = 2100m,
-                InlandTowingCost = 650m,
-                DocumentationFee = 200m,
-                CompanyShippingFare = 2250m,
-                VesselName = "EVER GIVEN II",
-                VoyageNumber = "AFG-PACIFIC-11",
-                Vehicle = new VehicleInspection
-                {
-                    Vin = "5UXCR6C04N9G20194",
-                    Year = 2023,
-                    Make = "BMW",
-                    Model = "X5 xDrive40i",
-                    LotNumber = "77291045",
-                    AuctionYard = "Copart Los Angeles, CA",
-                    RunsAndDrives = true,
-                    HasKeys = true,
-                    TitleStatus = "Clean Certificate of Title",
-                    ConditionNotes = "Awaiting terminal arrival from Copart LA yard. Dispatch driver assigned.",
-                    PhotoCount = 8
-                },
+                Id = "shp-004", TrackingNumber = "JCX-2601-51289", ContainerNumber = "MSCU3019281", DispatchId = "dsp-002", TransitId = "trn-002", UserId = "usr-004",
+                ServiceType = ServiceType.SHIPPING_ONLY, SimpleStatus = ShipmentSimpleStatus.DISPATCHING, BookingDate = "2026-11-22", EstimatedDelivery = "2026-12-28",
+                OriginPort = "Port of Los Angeles, CA", DestinationPort = "Hairatan Border, Afghanistan", Status = ShipmentStatus.Booked, PaymentStatus = PaymentStatus.PENDING,
+                CustomerName = "Ariana Transit Services", CustomerEmail = "import@arianatransit.af", CustomerPhone = "+93 70 029 8831",
+                OceanFreightCost = 2100m, InlandTowingCost = 650m, DocumentationFee = 200m, CompanyShippingFare = 2250m, VesselName = "EVER GIVEN II", VoyageNumber = "AFG-PACIFIC-11",
+                Vehicle = new VehicleInspection { Vin = "5UXCR6C04N9G20194", Year = 2023, Make = "BMW", Model = "X5 xDrive40i", LotNumber = "77291045", AuctionYard = "Copart Los Angeles, CA", RunsAndDrives = true, HasKeys = true, TitleStatus = "Clean Certificate of Title", ConditionNotes = "Flatbed dispatched.", PhotoCount = 8 },
                 Milestones = new List<ShipmentMilestone>
                 {
-                    new("Booking Confirmed", "Port of Los Angeles, CA", "2026-11-22 08:30", true, false, "Booking confirmed with shipping line."),
-                    new("Vehicle Dispatch & Towing", "Copart Los Angeles Yard", "In Progress", false, true, "Flatbed dispatched for yard pickup."),
-                    new("Loaded in Container", "LA Pier 400", "Pending Arrival", false, false, "Scheduled for loading in 40ft container."),
-                    new("Ocean & Rail Transit", "EVER GIVEN II / Rail via Bandar Abbas", "Est. 2026-12-02", false, false, "Multimodal maritime and rail leg."),
-                    new("Customs Clearance", "Hairatan Border Post", "Est. 2026-12-22", false, false, "Afghan Customs clearance."),
-                    new("Final Delivery", "Hairatan Inland Port", "Est. 2026-12-28", false, false, "Release to consignee.")
+                    new("Booking Confirmed", "Port of Los Angeles, CA", "2026-11-22 08:30", true, false, "Confirmed."),
+                    new("Vehicle Dispatch", "Copart LA", "In Progress", false, true, "Driver assigned."),
+                    new("Loaded in Container", "LA Pier 400", "Pending", false, false, "Scheduled."),
+                    new("Ocean & Rail", "EVER GIVEN II", "Est. 2026-12-02", false, false, "Multimodal."),
+                    new("Customs Clearance", "Hairatan Border", "Est. 2026-12-22", false, false, "Border post."),
+                    new("Final Delivery", "Hairatan Port", "Est. 2026-12-28", false, false, "Release.")
                 }
             },
             new Shipment
             {
-                Id = "shp-005",
-                TrackingNumber = "JCX-2601-64819",
-                ContainerId = "cnt-004",
-                ContainerNumber = "ONEU8819203",
-                DispatchId = "dsp-003",
-                TransitId = "trn-001",
-                UserId = "usr-005",
-                ServiceType = ServiceType.SHIPPING_ONLY,
-                SimpleStatus = ShipmentSimpleStatus.ON_HAND,
-                BookingDate = "2026-11-19",
-                EstimatedDelivery = "2026-12-22",
-                OriginPort = "Port of Newark, NJ",
-                DestinationPort = "Islam Qala Border, Afghanistan",
-                Status = ShipmentStatus.ContainerLoaded,
-                PaymentStatus = PaymentStatus.PENDING,
-                CustomerName = "Khorasan Transport Co.",
-                CustomerEmail = "khorasan@freight.af",
-                CustomerPhone = "+93 79 912 3456",
-                OceanFreightCost = 2250m,
-                InlandTowingCost = 400m,
-                DocumentationFee = 200m,
-                CompanyShippingFare = 2190m,
-                VesselName = "ONE INTEGRITY",
-                VoyageNumber = "ONE-084E",
-                Vehicle = new VehicleInspection
-                {
-                    Vin = "3FA6P0HD8LR192840",
-                    Year = 2021,
-                    Make = "Ford",
-                    Model = "Fusion Titanium AWD",
-                    LotNumber = "58190284",
-                    AuctionYard = "Copart Hartford, CT",
-                    RunsAndDrives = true,
-                    HasKeys = true,
-                    TitleStatus = "Salvage Certificate (Export Allowed)",
-                    ConditionNotes = "Right quarter panel damage. Key present. Starts and drives.",
-                    PhotoCount = 14
-                },
+                Id = "shp-005", TrackingNumber = "JCX-2601-64819", ContainerId = "cnt-004", ContainerNumber = "ONEU8819203", DispatchId = "dsp-003", TransitId = "trn-001", UserId = "usr-005",
+                ServiceType = ServiceType.SHIPPING_ONLY, SimpleStatus = ShipmentSimpleStatus.ON_HAND, BookingDate = "2026-11-19", EstimatedDelivery = "2026-12-22",
+                OriginPort = "Port of Newark, NJ", DestinationPort = "Islam Qala Border, Afghanistan", Status = ShipmentStatus.ContainerLoaded, PaymentStatus = PaymentStatus.PENDING,
+                CustomerName = "Khorasan Transport Co.", CustomerEmail = "khorasan@freight.af", CustomerPhone = "+93 79 912 3456",
+                OceanFreightCost = 2250m, InlandTowingCost = 400m, DocumentationFee = 200m, CompanyShippingFare = 2190m, VesselName = "ONE INTEGRITY", VoyageNumber = "ONE-084E",
+                Vehicle = new VehicleInspection { Vin = "3FA6P0HD8LR192840", Year = 2021, Make = "Ford", Model = "Fusion Titanium AWD", LotNumber = "58190284", AuctionYard = "Copart Hartford, CT", RunsAndDrives = true, HasKeys = true, TitleStatus = "Salvage Certificate (Export Allowed)", ConditionNotes = "Right quarter panel damage.", PhotoCount = 14 },
                 Milestones = new List<ShipmentMilestone>
                 {
-                    new("Booking Confirmed", "Port of Newark, NJ", "2026-11-19 14:00", true, false, "Booking generated."),
-                    new("Vehicle Received at Terminal", "Newark Terminal Yard 2", "2026-11-21 11:20", true, false, "Vehicle unloaded and staged."),
-                    new("Loaded in Container", "Container ONEU8819203", "2026-11-24 16:00", true, false, "Loaded and sealed with bolt seal #JCX-88192."),
-                    new("Ocean Transit", "ONE INTEGRITY", "Est. 2026-11-28", false, true, "Awaiting vessel boarding at Newark Berth 12."),
-                    new("Customs Clearance", "Islam Qala Terminal", "Est. 2026-12-18", false, false, "Border transit documentation prepared."),
-                    new("Final Delivery", "Islam Qala Customs Yard", "Est. 2026-12-22", false, false, "Direct handover to owner.")
+                    new("Booking Confirmed", "Port of Newark, NJ", "2026-11-19 14:00", true, false, "Generated."),
+                    new("Vehicle Received", "Newark Yard 2", "2026-11-21 11:20", true, false, "Staged."),
+                    new("Loaded in Container", "ONEU8819203", "2026-11-24 16:00", true, false, "Sealed #JCX-88192."),
+                    new("Ocean Transit", "ONE INTEGRITY", "Est. 2026-11-28", false, true, "Awaiting boarding."),
+                    new("Customs Clearance", "Islam Qala", "Est. 2026-12-18", false, false, "Prepared."),
+                    new("Final Delivery", "Islam Qala Yard", "Est. 2026-12-22", false, false, "Handover.")
                 }
             },
             new Shipment
             {
-                Id = "shp-006",
-                TrackingNumber = "JCX-2601-33019",
-                ContainerId = "cnt-001",
-                ContainerNumber = "MSCU7829104",
-                UserId = "usr-001",
-                ServiceType = ServiceType.SHIPPING_ONLY,
-                SimpleStatus = ShipmentSimpleStatus.RELEASED,
-                BookingDate = "2026-11-10",
-                EstimatedDelivery = "2026-11-30",
-                OriginPort = "Port of Newark, NJ",
-                DestinationPort = "Port of Mersin, Turkey",
-                Status = ShipmentStatus.CustomsCleared,
-                PaymentStatus = PaymentStatus.COMPLETED,
-                CustomerName = "Tariq Logistics Ltd",
-                CustomerEmail = "dispatch@tariqlogistics.tr",
-                CustomerPhone = "+90 532 994 1283",
-                OceanFreightCost = 1450m,
-                InlandTowingCost = 320m,
-                DocumentationFee = 150m,
-                CompanyShippingFare = 1390m,
-                ReleaseToken = "REL-330194",
-                CompanyGatePassRequested = true,
-                CompanyGatePassRequestedAt = "2026-11-26 09:00",
-                VesselName = "MSC MEDITERRANEAN V",
-                VoyageNumber = "TX2026-B",
-                Vehicle = new VehicleInspection
-                {
-                    Vin = "5NPE24AF0JH649102",
-                    Year = 2023,
-                    Make = "Hyundai",
-                    Model = "Sonata SEL",
-                    LotNumber = "51990381",
-                    AuctionYard = "IAAI Avenel, NJ",
-                    RunsAndDrives = true,
-                    HasKeys = true,
-                    TitleStatus = "Clean Export Title",
-                    ConditionNotes = "Ready for terminal gate pickup.",
-                    PhotoCount = 12
-                },
+                Id = "shp-006", TrackingNumber = "JCX-2601-33019", ContainerId = "cnt-001", ContainerNumber = "MSCU7829104", UserId = "usr-001",
+                ServiceType = ServiceType.SHIPPING_ONLY, SimpleStatus = ShipmentSimpleStatus.RELEASED, BookingDate = "2026-11-10", EstimatedDelivery = "2026-11-30",
+                OriginPort = "Port of Newark, NJ", DestinationPort = "Port of Mersin, Turkey", Status = ShipmentStatus.CustomsCleared, PaymentStatus = PaymentStatus.COMPLETED,
+                CustomerName = "Tariq Logistics Ltd", CustomerEmail = "dispatch@tariqlogistics.tr", CustomerPhone = "+90 532 994 1283",
+                OceanFreightCost = 1450m, InlandTowingCost = 320m, DocumentationFee = 150m, CompanyShippingFare = 1390m, ReleaseToken = "REL-330194", CompanyGatePassRequested = true, CompanyGatePassRequestedAt = "2026-11-26 09:00", VesselName = "MSC MEDITERRANEAN V", VoyageNumber = "TX2026-B",
+                Vehicle = new VehicleInspection { Vin = "5NPE24AF0JH649102", Year = 2023, Make = "Hyundai", Model = "Sonata SEL", LotNumber = "51990381", AuctionYard = "IAAI Avenel, NJ", RunsAndDrives = true, HasKeys = true, TitleStatus = "Clean Export Title", ConditionNotes = "Ready for pickup.", PhotoCount = 12 },
                 Milestones = new List<ShipmentMilestone>
                 {
                     new("Booking Confirmed", "Port of Newark, NJ", "2026-11-10 10:00", true, false, "Booked."),
@@ -1084,19 +1091,17 @@ public class AdminStoreService : IAdminStoreService
                     new("Container Loaded", "MSCU7829104", "2026-11-15 15:00", true, false, "Loaded."),
                     new("Ocean Transit", "MSC MEDITERRANEAN V", "2026-11-22 08:00", true, false, "Arrived Mersin."),
                     new("Customs Cleared", "Port of Mersin", "2026-11-26 08:45", true, false, "Cleared."),
-                    new("Gate Release", "Mersin Yard B", "Pending Pickup", false, true, "Gate pass queued.")
+                    new("Gate Release", "Mersin Yard B", "Pending Pickup", false, true, "Queued.")
                 }
             }
         });
 
-        // 7. Seed Gate Pass Requests
         _state.GatePassRequests.AddRange(new[]
         {
             new GatePassRequest { Id = "gp-001", ShipmentId = "shp-002", TrackingNumber = "JCX-2601-72940", VehicleLabel = "2024 Lexus RX 350 Luxury", Vin = "4T1B11HK5JU773910", CustomerName = "Al-Nour Auto Trading", ContainerNumber = "CMAU4920193", ReleaseToken = "REL-729401", RequestedAt = "2026-11-25 14:15", Status = "REQUESTED" },
             new GatePassRequest { Id = "gp-002", ShipmentId = "shp-006", TrackingNumber = "JCX-2601-33019", VehicleLabel = "2023 Hyundai Sonata SEL", Vin = "5NPE24AF0JH649102", CustomerName = "Tariq Logistics Ltd", ContainerNumber = "MSCU7829104", ReleaseToken = "REL-330194", RequestedAt = "2026-11-26 09:00", Status = "IN_PROGRESS" }
         });
 
-        // 8. Seed Invoices
         _state.Invoices.AddRange(new[]
         {
             new UserInvoiceRecord
@@ -1150,7 +1155,6 @@ public class AdminStoreService : IAdminStoreService
             }
         });
 
-        // 9. Seed Ledger Entries
         _state.LedgerEntries.AddRange(new[]
         {
             new LedgerEntryRecord { Id = "ldg-001", UserId = "usr-003", CustomerName = "Caucasus Motor Group", ShipmentId = "shp-003", TransactionDate = "2026-11-02", Description = "Wire payment for INV-2026-1003", Type = LedgerEntryType.CREDIT, Amount = 2150m, Balance = 0m, TransactionInfoType = "SHIPPING_PAYMENT" },
@@ -1159,7 +1163,6 @@ public class AdminStoreService : IAdminStoreService
             new LedgerEntryRecord { Id = "ldg-004", UserId = "usr-001", CustomerName = "Tariq Logistics Ltd", ShipmentId = "shp-001", TransactionDate = "2026-11-12", Description = "Freight Charge: 2023 Toyota RAV4 (JCX-2601-88491)", Type = LedgerEntryType.DEBIT, Amount = 2000m, Balance = 2000m, TransactionInfoType = "SHIPPING_PAYMENT" }
         });
 
-        // 10. Seed Office Expenses & Budgets
         _state.OfficeExpenses.AddRange(new[]
         {
             new OfficeExpenseRecord { Id = "exp-001", Title = "Newark Terminal Office Lease", Category = OfficeExpenseCategory.RENT, Amount = 4200m, ExpenseDate = "2026-11-01", Vendor = "Port Newark Realty", ReferenceNumber = "RENT-2611" },
@@ -1176,18 +1179,90 @@ public class AdminStoreService : IAdminStoreService
             new ExpenseBudgetRecord { Id = "bdg-004", Name = "Utilities & Connectivity", Category = OfficeExpenseCategory.UTILITIES, MonthlyLimit = 800m, SpentAmount = 485m }
         });
 
-        // 11. Seed Transfers
         _state.LedgerTransfers.AddRange(new[]
         {
             new LedgerTransferRecord { Id = "trf-001", TransferNumber = "TRF-2611-8801", TransferType = LedgerTransferType.USER_TO_COMPANY, SourceName = "Caucasus Motor Group", DestName = "MSC Mediterranean Shipping", Amount = 1580m, TransferDate = "2026-11-03", Reference = "Settled HLXU9182746" },
             new LedgerTransferRecord { Id = "trf-002", TransferNumber = "TRF-2611-8802", TransferType = LedgerTransferType.COMPANY_TO_COMPANY, SourceName = "JACXI Treasury", DestName = "Atlantic Auto Towing LLC", Amount = 800m, TransferDate = "2026-11-19", Reference = "Batch Towing Settlement" }
         });
 
-        // 12. Seed Partner Portals
         _state.PartnerPortals.AddRange(new[]
         {
             new PartnerPortalRecord { Id = "prt-001", Name = "Mersin Auto Hub Portal", Code = "MERSIN-HUB", CustomDomain = "portal.mersinauto.tr", AccentColor = "#D4AF37", CustomerCount = 14, AssignedShipmentsCount = 38, Balance = 12400m, IsActive = true },
             new PartnerPortalRecord { Id = "prt-002", Name = "Dubai Al-Nour Partner Desk", Code = "DUBAI-ALNOUR", CustomDomain = "ship.alnourauto.ae", AccentColor = "#3B82F6", CustomerCount = 9, AssignedShipmentsCount = 21, Balance = 6850m, IsActive = true }
+        });
+
+        SeedEnterpriseModules();
+    }
+
+    private void SeedEnterpriseModules()
+    {
+        _state.BankTransactions.AddRange(new[]
+        {
+            new BankTransactionRecord { Id = "bnk-001", BankSource = "PLAID", TransactionDate = "2026-11-26", Description = "WIRE IN: TARIQ LOGISTICS LTD", Amount = 2000m, Reference = "FEDWIRE-994012", Status = BankReconciliationStatus.UNMATCHED },
+            new BankTransactionRecord { Id = "bnk-002", BankSource = "BOA_CSV", TransactionDate = "2026-11-25", Description = "ACH CREDIT: AL-NOUR AUTO DUBAI", Amount = 1850m, Reference = "ACH-729400", Status = BankReconciliationStatus.UNMATCHED },
+            new BankTransactionRecord { Id = "bnk-003", BankSource = "PLAID", TransactionDate = "2026-11-02", Description = "WIRE: CAUCASUS MOTOR GROUP", Amount = 2150m, Reference = "SWIFT-93012", Status = BankReconciliationStatus.MATCHED, MatchedInvoiceNumber = "INV-2026-1003", MatchedCustomerName = "Caucasus Motor Group" }
+        });
+
+        _state.ExchangeRates.AddRange(new[]
+        {
+            new ExchangeRateRecord { Currency = "USD", Name = "US Dollar (Base)", RateFromUsd = 1.0000m, Source = "FIXED" },
+            new ExchangeRateRecord { Currency = "AED", Name = "UAE Dirham", RateFromUsd = 3.6725m, Source = "FIXED" },
+            new ExchangeRateRecord { Currency = "TRY", Name = "Turkish Lira", RateFromUsd = 34.4800m, Source = "EXCHANGERATE_API" },
+            new ExchangeRateRecord { Currency = "EUR", Name = "Euro", RateFromUsd = 0.9480m, Source = "EXCHANGERATE_API" },
+            new ExchangeRateRecord { Currency = "GEL", Name = "Georgian Lari", RateFromUsd = 2.7400m, Source = "MANUAL" },
+            new ExchangeRateRecord { Currency = "AFN", Name = "Afghan Afghani", RateFromUsd = 68.5000m, Source = "MANUAL" }
+        });
+
+        _state.CarrierQuotes.AddRange(new[]
+        {
+            new CarrierPriceQuote { CarrierName = "MSC Mediterranean Shipping", Route = "Newark → Mersin, Turkey", TransitDays = 21, OceanRate = 1350m, HandlingFee = 120m, ReliabilityScore = "98%", IsRecommended = true },
+            new CarrierPriceQuote { CarrierName = "CMA CGM Group", Route = "Houston → Jebel Ali, UAE", TransitDays = 25, OceanRate = 1250m, HandlingFee = 135m, ReliabilityScore = "96%", IsRecommended = true },
+            new CarrierPriceQuote { CarrierName = "Hapag-Lloyd Express", Route = "Savannah → Poti, Georgia", TransitDays = 28, OceanRate = 1450m, HandlingFee = 150m, ReliabilityScore = "95%" },
+            new CarrierPriceQuote { CarrierName = "ONE Line (Ocean Network)", Route = "Newark → Bandar Abbas / Islam Qala", TransitDays = 34, OceanRate = 2100m, HandlingFee = 180m, ReliabilityScore = "93%" }
+        });
+
+        _state.RecurringExpenses.AddRange(new[]
+        {
+            new RecurringExpenseRecord { Id = "rec-001", Title = "Newark Terminal Office Lease", Category = OfficeExpenseCategory.RENT, Amount = 4200m, Frequency = "MONTHLY", Vendor = "Port Newark Realty", NextDueDate = "2026-12-01" },
+            new RecurringExpenseRecord { Id = "rec-002", Title = "MarineTraffic AIS + Cloud Hosting", Category = OfficeExpenseCategory.SOFTWARE_SUBSCRIPTIONS, Amount = 640m, Frequency = "MONTHLY", Vendor = "Vercel / MarineTraffic", NextDueDate = "2026-12-10" },
+            new RecurringExpenseRecord { Id = "rec-003", Title = "Operations Payroll Cycle", Category = OfficeExpenseCategory.SALARIES_PAYROLL, Amount = 12800m, Frequency = "MONTHLY", Vendor = "Gusto Payroll", NextDueDate = "2026-12-15" }
+        });
+
+        _state.QualityChecks.AddRange(new[]
+        {
+            new QualityCheckRecord { Id = "qc-001", ShipmentId = "shp-001", TrackingNumber = "JCX-2601-88491", VehicleLabel = "2023 Toyota RAV4 XLE AWD", CheckType = "POST_LOADING", Status = "PASSED", Inspector = "M. Alvarez (Newark)", Notes = "Chocked & strapped with 4-point tie downs. 16 arrival photos verified.", PhotoUrls = new List<string> { "arrival_front.jpg", "arrival_vin.jpg", "container_seal.jpg" } },
+            new QualityCheckRecord { Id = "qc-002", ShipmentId = "shp-005", TrackingNumber = "JCX-2601-64819", VehicleLabel = "2021 Ford Fusion Titanium", CheckType = "DAMAGE_ASSESSMENT", Status = "REQUIRES_ATTENTION", Inspector = "K. Patel (Newark)", Notes = "Minor right quarter scratch documented at gate intake.", DamageCost = 150m, DamageLiability = "COMPANY_PAYS", PhotoUrls = new List<string> { "quarter_panel.jpg", "odometer.jpg" } }
+        });
+
+        _state.TrackingDiagnostics.AddRange(new[]
+        {
+            new TrackingDiagnosticRecord { ContainerNumber = "MSCU7829104", CarrierApi = "MSC EDI + AIS Satellite", SyncStatus = "OK (200)", LatencyMs = 184, VesselPosition = "36.1408° N, 5.3536° W", LastLocation = "Strait of Gibraltar" },
+            new TrackingDiagnosticRecord { ContainerNumber = "CMAU4920193", CarrierApi = "CMA CGM API v2", SyncStatus = "OK (200)", LatencyMs = 242, VesselPosition = "25.0113° N, 55.0612° E", LastLocation = "Jebel Ali Anchorage" }
+        });
+
+        _state.AiInteractions.AddRange(new[]
+        {
+            new AiInteractionRecord { Feature = "ADMIN_COPILOT", Provider = "JACXI Operations Engine", Prompt = "Which invoices are currently overdue?", Response = "INV-2026-1002 (Al-Nour Auto Trading) has $1,850.00 remaining overdue since 2026-11-19." },
+            new AiInteractionRecord { Feature = "RATE_PDF_IMPORT", Provider = "Gemini Vision", Prompt = "Extract Mersin 2026 Auction Rates PDF", Response = "Imported 48 state & yard rates cleanly." }
+        });
+
+        _state.VoiceCallLogs.AddRange(new[]
+        {
+            new VoiceCallLogRecord { CallerPhone = "+90 532 994 1283", CustomerName = "Tariq Logistics Ltd", Direction = "INBOUND", Duration = "01:48", Summary = "AI Voice Agent provided live ETA Dec 10 for MSCU7829104." },
+            new VoiceCallLogRecord { CallerPhone = "+971 4 883 9102", CustomerName = "Al-Nour Auto Trading", Direction = "OUTBOUND", Duration = "02:35", Summary = "Automated payment reminder sent for INV-2026-1002." }
+        });
+
+        _state.CommunicationDispatches.AddRange(new[]
+        {
+            new CommunicationDispatchRecord { Channel = "WHATSAPP", Recipient = "+90 532 994 1283", Subject = "Container Sailing Update", Body = "Your 2023 Toyota RAV4 is sailing aboard MSC MEDITERRANEAN V (ETA Dec 10)." },
+            new CommunicationDispatchRecord { Channel = "EMAIL", Recipient = "accounts@alnourauto.ae", Subject = "Overdue Balance Reminder: INV-2026-1002", Body = "Please settle the remaining $1,850.00 to expedite Jebel Ali Gate 3 release." }
+        });
+
+        _state.Notifications.AddRange(new[]
+        {
+            new AdminNotificationItem { Title = "Customs Hold Alert", Description = "JCX-2601-72940 (Lexus RX 350) awaiting Texas DMV original title at Jebel Ali.", Type = "WARNING" },
+            new AdminNotificationItem { Title = "Bank Deposit Unmatched", Description = "Plaid detected $2,000.00 wire from Tariq Logistics Ltd ready to reconcile.", Type = "INFO" },
+            new AdminNotificationItem { Title = "Gate Pass Requested", Description = "2023 Hyundai Sonata SEL (REL-330194) queued at Port of Mersin.", Type = "SUCCESS" }
         });
     }
 
@@ -1204,8 +1279,18 @@ public class AdminStoreService : IAdminStoreService
         public List<LedgerEntryRecord> LedgerEntries { get; set; } = new();
         public List<OfficeExpenseRecord> OfficeExpenses { get; set; } = new();
         public List<ExpenseBudgetRecord> ExpenseBudgets { get; set; } = new();
+        public List<RecurringExpenseRecord> RecurringExpenses { get; set; } = new();
         public List<LedgerTransferRecord> LedgerTransfers { get; set; } = new();
         public List<PartnerPortalRecord> PartnerPortals { get; set; } = new();
         public List<GatePassRequest> GatePassRequests { get; set; } = new();
+        public List<BankTransactionRecord> BankTransactions { get; set; } = new();
+        public List<ExchangeRateRecord> ExchangeRates { get; set; } = new();
+        public List<CarrierPriceQuote> CarrierQuotes { get; set; } = new();
+        public List<QualityCheckRecord> QualityChecks { get; set; } = new();
+        public List<TrackingDiagnosticRecord> TrackingDiagnostics { get; set; } = new();
+        public List<AiInteractionRecord> AiInteractions { get; set; } = new();
+        public List<VoiceCallLogRecord> VoiceCallLogs { get; set; } = new();
+        public List<CommunicationDispatchRecord> CommunicationDispatches { get; set; } = new();
+        public List<AdminNotificationItem> Notifications { get; set; } = new();
     }
 }

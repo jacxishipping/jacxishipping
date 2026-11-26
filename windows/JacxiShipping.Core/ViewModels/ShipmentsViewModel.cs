@@ -89,6 +89,7 @@ public class ShipmentsViewModel : ViewModelBase
     public RelayCommand MarkDeliveredCommand { get; }
     public RelayCommand AdvanceMilestoneCommand { get; }
     public RelayCommand ExportManifestCommand { get; }
+    public RelayCommand ExportExcelCommand { get; }
     public RelayCommand ToggleCreatePanelCommand { get; }
     public RelayCommand SubmitNewShipmentCommand { get; }
 
@@ -183,6 +184,15 @@ public class ShipmentsViewModel : ViewModelBase
                 sb.AppendLine($"{s.TrackingNumber},{s.ContainerNumber},\"{s.CustomerName}\",{s.Vehicle.Vin},\"{s.Vehicle.FullDescription}\",\"{s.OriginPort}\",\"{s.DestinationPort}\",{s.StatusDisplayText},{s.TotalCost}");
             }
             StatusMessage = $"Manifest exported {FilteredShipments.Count} shipments to CSV buffer.";
+        });
+
+        ExportExcelCommand = new RelayCommand(() =>
+        {
+            var docs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            if (string.IsNullOrWhiteSpace(docs)) docs = Path.GetTempPath();
+            var path = Path.Combine(docs, "JacxiShipping", "Exports", $"Shipments_{DateTime.Now:yyyyMMdd_HHmm}.xlsx");
+            new ExcelExportService().ExportShipmentsWorkbook(FilteredShipments, path);
+            StatusMessage = $"✓ Exported Excel workbook ({FilteredShipments.Count} rows) → {Path.GetFileName(path)}";
         });
 
         ToggleCreatePanelCommand = new RelayCommand(() => IsCreatePanelOpen = !IsCreatePanelOpen);

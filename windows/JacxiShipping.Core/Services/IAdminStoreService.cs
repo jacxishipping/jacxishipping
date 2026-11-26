@@ -16,9 +16,19 @@ public interface IAdminStoreService
     IReadOnlyList<LedgerEntryRecord> GetLedgerEntries();
     IReadOnlyList<OfficeExpenseRecord> GetOfficeExpenses();
     IReadOnlyList<ExpenseBudgetRecord> GetExpenseBudgets();
+    IReadOnlyList<RecurringExpenseRecord> GetRecurringExpenses();
     IReadOnlyList<LedgerTransferRecord> GetLedgerTransfers();
     IReadOnlyList<PartnerPortalRecord> GetPartnerPortals();
     IReadOnlyList<GatePassRequest> GetGatePassRequests();
+    IReadOnlyList<BankTransactionRecord> GetBankTransactions();
+    IReadOnlyList<ExchangeRateRecord> GetExchangeRates();
+    IReadOnlyList<CarrierPriceQuote> GetCarrierQuotes();
+    IReadOnlyList<QualityCheckRecord> GetQualityChecks();
+    IReadOnlyList<TrackingDiagnosticRecord> GetTrackingDiagnostics();
+    IReadOnlyList<AiInteractionRecord> GetAiInteractions();
+    IReadOnlyList<VoiceCallLogRecord> GetVoiceCallLogs();
+    IReadOnlyList<CommunicationDispatchRecord> GetCommunicationDispatches();
+    IReadOnlyList<AdminNotificationItem> GetNotifications();
 
     DashboardStats GetDashboardStats();
     NavBadges GetNavBadges();
@@ -45,13 +55,26 @@ public interface IAdminStoreService
     void RequestGatePass(string shipmentId);
     void CompleteGatePass(string gatePassId);
 
-    // Finance & Invoice Operations
+    // Finance, Banking & Invoice Operations
     UserInvoiceRecord GenerateInvoiceForShipment(string shipmentId);
     void RecordInvoicePayment(string invoiceId, decimal amount, string method);
     void MarkInvoiceOverdue(string invoiceId);
     void AddLedgerEntry(string userId, string description, LedgerEntryType type, decimal amount, string infoType);
     void AddOfficeExpense(OfficeExpenseRecord expense);
+    void AddRecurringExpense(RecurringExpenseRecord recurring);
+    int RunDueRecurringExpenses();
     void AddLedgerTransfer(LedgerTransferType type, string sourceName, string destName, decimal amount, string reference);
+    int ImportBankCsv(string csvContent);
+    void ReconcileBankTransaction(string bankTxnId, string invoiceNumber);
+    void UpdateExchangeRate(string currency, decimal rateFromUsd);
+
+    // Inspections, Diagnostics, AI & Comms
+    void AddQualityCheck(QualityCheckRecord check);
+    TrackingDiagnosticRecord RunTrackingSync(string containerNumber);
+    void AddAiInteraction(AiInteractionRecord log);
+    void AddCommunicationDispatch(CommunicationDispatchRecord dispatch);
+    void AddNotification(string title, string description, string type = "INFO");
+    void MarkAllNotificationsRead();
 
     // Users & Partner Portals
     void AddUser(AdminUser user);

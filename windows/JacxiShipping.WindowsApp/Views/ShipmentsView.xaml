@@ -40,10 +40,14 @@
             </StackPanel>
 
             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button Content="Export Excel (.xlsx)"
+                        Style="{StaticResource JacxiOutlineButton}"
+                        Command="{Binding ExportExcelCommand}"
+                        Margin="0,0,8,0" />
                 <Button Content="Export CSV"
                         Style="{StaticResource JacxiOutlineButton}"
                         Command="{Binding ExportManifestCommand}"
-                        Margin="0,0,10,0" />
+                        Margin="0,0,8,0" />
                 <Button Content="+ New Shipment"
                         Style="{StaticResource JacxiPrimaryButton}"
                         Command="{Binding ToggleCreatePanelCommand}" />

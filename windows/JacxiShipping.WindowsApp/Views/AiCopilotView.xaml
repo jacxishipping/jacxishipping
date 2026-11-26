@@ -1,0 +1,75 @@
+<UserControl x:Class="JacxiShipping.WindowsApp.Views.AiCopilotView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             mc:Ignorable="d" d:DesignHeight="800" d:DesignWidth="1120">
+    <Grid Margin="32,24,32,32">
+        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Margin="0,0,0,16">
+            <TextBlock Text="Admin AI Copilot, AI Logs &amp; Voice Call Agent" FontSize="24" FontWeight="Bold" />
+            <TextBlock Text="Query shipments, overdue invoices, containers, and review Gemini AI &amp; Twilio Voice Agent logs." FontSize="13" Foreground="{StaticResource JacxiTextSecondaryBrush}" Margin="0,4,0,0" />
+        </StackPanel>
+
+        <!-- Prompt Box -->
+        <Border Grid.Row="1" Style="{StaticResource JacxiCardBorder}" Margin="0,0,0,18">
+            <StackPanel>
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <TextBox Grid.Column="0" Style="{StaticResource JacxiTextBox}" Text="{Binding PromptInput, UpdateSourceTrigger=PropertyChanged}" Height="42" Margin="0,0,12,0" />
+                    <Button Grid.Column="1" Content="Ask AI Copilot" Style="{StaticResource JacxiPrimaryButton}" Command="{Binding AskCopilotCommand}" Height="42" />
+                </Grid>
+
+                <StackPanel Orientation="Horizontal" Margin="0,10,0,12">
+                    <Button Content="Overdue Invoices" Style="{StaticResource JacxiGhostButton}" Command="{Binding QuickPromptCommand}" CommandParameter="Which invoices are overdue?" FontSize="11" Margin="0,0,6,0" />
+                    <Button Content="Active Containers" Style="{StaticResource JacxiGhostButton}" Command="{Binding QuickPromptCommand}" CommandParameter="Show active containers and capacity" FontSize="11" Margin="0,0,6,0" />
+                    <Button Content="Customs Holds" Style="{StaticResource JacxiGhostButton}" Command="{Binding QuickPromptCommand}" CommandParameter="Any customs holds or pending gate passes?" FontSize="11" Margin="0,0,6,0" />
+                    <Button Content="Profit &amp; Revenue" Style="{StaticResource JacxiGhostButton}" Command="{Binding QuickPromptCommand}" CommandParameter="Summarize profit and revenue" FontSize="11" />
+                </StackPanel>
+
+                <Border Background="{StaticResource JacxiDarkShellBrush}" CornerRadius="8" Padding="14">
+                    <TextBlock Text="{Binding LatestAnswer}" FontFamily="Consolas, Segoe UI" FontSize="12.5" Foreground="#E5E7EB" TextWrapping="Wrap" />
+                </Border>
+            </StackPanel>
+        </Border>
+
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="1.2*" /><ColumnDefinition Width="1*" /></Grid.ColumnDefinitions>
+
+            <!-- AI Interaction Logs -->
+            <Border Grid.Column="0" Style="{StaticResource JacxiCardBorder}" Margin="0,0,20,0" Padding="0">
+                <StackPanel>
+                    <TextBlock Text="AI INTERACTION LOGS" FontSize="10" FontWeight="Bold" Foreground="{StaticResource JacxiTextSecondaryBrush}" Margin="16,14,16,8" />
+                    <DataGrid ItemsSource="{Binding AiLogs}" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column"
+                              GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="{StaticResource JacxiBorderBrush}"
+                              Background="{StaticResource JacxiPanelBrush}" BorderThickness="0"
+                              ColumnHeaderStyle="{StaticResource JacxiDataGridColumnHeader}" RowStyle="{StaticResource JacxiDataGridRow}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="TIME" Binding="{Binding CreatedAt}" Width="125" />
+                            <DataGridTextColumn Header="FEATURE" Binding="{Binding Feature}" Width="135" />
+                            <DataGridTextColumn Header="PROMPT" Binding="{Binding Prompt}" Width="*" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </StackPanel>
+            </Border>
+
+            <!-- Voice Call Agent Logs -->
+            <Border Grid.Column="1" Style="{StaticResource JacxiCardBorder}" Padding="0">
+                <StackPanel>
+                    <TextBlock Text="VOICE CALL AGENT LOGS (TWILIO + GEMINI LIVE)" FontSize="10" FontWeight="Bold" Foreground="{StaticResource JacxiGoldActiveBrush}" Margin="16,14,16,8" />
+                    <DataGrid ItemsSource="{Binding VoiceLogs}" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column"
+                              GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="{StaticResource JacxiBorderBrush}"
+                              Background="{StaticResource JacxiPanelBrush}" BorderThickness="0"
+                              ColumnHeaderStyle="{StaticResource JacxiDataGridColumnHeader}" RowStyle="{StaticResource JacxiDataGridRow}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="CUSTOMER" Binding="{Binding CustomerName}" Width="145" />
+                            <DataGridTextColumn Header="DIR" Binding="{Binding Direction}" Width="80" />
+                            <DataGridTextColumn Header="SUMMARY" Binding="{Binding Summary}" Width="*" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>

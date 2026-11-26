@@ -22,6 +22,29 @@
                 <controls:StatsCard Grid.Column="3" Title="ESTIMATED NET PROFIT" Value="{Binding Stats.GrossProfitFormatted}" Subtitle="After carrier &amp; OpEx" />
             </Grid>
 
+            <!-- Monthly Revenue Trend Bar Chart -->
+            <Border Style="{StaticResource JacxiCardBorder}" Margin="0,0,0,22">
+                <StackPanel>
+                    <TextBlock Text="6-MONTH BILLABLE REVENUE TREND (USD)" FontSize="11" FontWeight="Bold" Foreground="{StaticResource JacxiTextSecondaryBrush}" Margin="0,0,0,16" />
+                    <ItemsControl ItemsSource="{Binding RevenueChartBars}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid Rows="1" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel VerticalAlignment="Bottom" Margin="10,0">
+                                    <TextBlock Text="{Binding ValueFormatted}" FontSize="11" FontWeight="Bold" Foreground="{StaticResource JacxiTextPrimaryBrush}" HorizontalAlignment="Center" Margin="0,0,0,6" />
+                                    <Border Height="{Binding HeightRatio}" Width="44" Background="{StaticResource JacxiGoldBrush}" CornerRadius="6,6,0,0" HorizontalAlignment="Center" />
+                                    <TextBlock Text="{Binding Label}" FontSize="11" Foreground="{StaticResource JacxiTextSecondaryBrush}" HorizontalAlignment="Center" Margin="0,6,0,0" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
             <Grid>
                 <Grid.ColumnDefinitions><ColumnDefinition Width="1*" /><ColumnDefinition Width="1.4*" /></Grid.ColumnDefinitions>
 

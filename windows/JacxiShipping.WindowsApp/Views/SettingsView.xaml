@@ -28,13 +28,22 @@
                         <TextBlock Text="Admin Password" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,4" />
                         <TextBox Style="{StaticResource JacxiTextBox}" Text="{Binding AdminPassword}" Height="38" Margin="0,0,0,16" />
 
-                        <Button Content="Authenticate &amp; Connect Cloud API" Style="{StaticResource JacxiPrimaryButton}" Command="{Binding ConnectCloudCommand}" Margin="0,0,0,12" />
+                        <Button Content="Authenticate &amp; Connect Cloud API" Style="{StaticResource JacxiPrimaryButton}" Command="{Binding ConnectCloudCommand}" Margin="0,0,0,8" />
+                        <Button Content="Pull Live Operations from Cloud" Style="{StaticResource JacxiOutlineButton}" Command="{Binding PullCloudSyncCommand}" Margin="0,0,0,12" />
 
-                        <Border Background="{StaticResource JacxiBackgroundBrush}" BorderBrush="{StaticResource JacxiBorderBrush}" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,0,16">
+                        <Border Background="{StaticResource JacxiBackgroundBrush}" BorderBrush="{StaticResource JacxiBorderBrush}" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,0,14">
                             <TextBlock Text="{Binding ConnectionStatus}" FontSize="12" TextWrapping="Wrap" Foreground="{StaticResource JacxiTextPrimaryBrush}" />
                         </Border>
 
-                        <Separator Background="{StaticResource JacxiBorderBrush}" Margin="0,0,0,16" />
+                        <Separator Background="{StaticResource JacxiBorderBrush}" Margin="0,0,0,14" />
+                        <TextBlock Text="WINDOWS AUTO-UPDATER (GITHUB RELEASES)" FontSize="10" FontWeight="Bold" Foreground="{StaticResource JacxiGoldActiveBrush}" Margin="0,0,0,8" />
+                        <Grid Margin="0,0,0,14">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                            <TextBlock Text="{Binding UpdateStatus}" FontSize="12" VerticalAlignment="Center" TextWrapping="Wrap" />
+                            <Button Grid.Column="1" Content="Check Updates" Style="{StaticResource JacxiOutlineButton}" Command="{Binding CheckUpdatesCommand}" Padding="10,5" FontSize="11" />
+                        </Grid>
+
+                        <Separator Background="{StaticResource JacxiBorderBrush}" Margin="0,0,0,14" />
                         <TextBlock Text="LOCAL DATABASE CONTROLS" FontSize="10" FontWeight="Bold" Foreground="{StaticResource JacxiTextSecondaryBrush}" Margin="0,0,0,10" />
                         <Grid>
                             <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>

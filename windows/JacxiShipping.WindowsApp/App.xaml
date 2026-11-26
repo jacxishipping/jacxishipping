@@ -12,61 +12,31 @@
                 <ResourceDictionary Source="Themes/JacxiControls.xaml" />
             </ResourceDictionary.MergedDictionaries>
 
-            <!-- MVVM View-ViewModel mappings (Full Online Admin Parity) -->
-            <DataTemplate DataType="{x:Type vm:DashboardViewModel}">
-                <views:DashboardView />
-            </DataTemplate>
-            <DataTemplate DataType="{x:Type vm:ShipmentsViewModel}">
-                <views:ShipmentsView />
-            </DataTemplate>
-            <DataTemplate DataType="{x:Type vm:OperationsBoardViewModel}">
-                <views:OperationsBoardView />
-            </DataTemplate>
-            <DataTemplate DataType="{x:Type vm:ContainersViewModel}">
-                <views:ContainersView />
-            </DataTemplate>
-            <DataTemplate DataType="{x:Type vm:DispatchesViewModel}">
-                <views:DispatchesView />
-            </DataTemplate>
-            <DataTemplate DataType="{x:Type vm:TransitsViewModel}">
-                <views:TransitsView />
-            </DataTemplate>
-            <DataTemplate DataType="{x:Type vm:GatePassesViewModel}">
-                <views:GatePassesView />
-            </DataTemplate>
-            <DataTemplate DataType="{x:Type vm:TrackingViewModel}">
-                <views:TrackingView />
-            </DataTemplate>
-            <DataTemplate DataType="{x:Type vm:FinanceViewModel}">
-                <views:FinanceView />
-            </DataTemplate>
-            <DataTemplate DataType="{x:Type vm:InvoicesViewModel}">
-                <views:InvoicesView />
-            </DataTemplate>
-            <DataTemplate DataType="{x:Type vm:OfficeExpensesViewModel}">
-                <views:OfficeExpensesView />
-            </DataTemplate>
-            <DataTemplate DataType="{x:Type vm:CompanyLedgersViewModel}">
-                <views:CompanyLedgersView />
-            </DataTemplate>
-            <DataTemplate DataType="{x:Type vm:CustomersViewModel}">
-                <views:CustomersView />
-            </DataTemplate>
-            <DataTemplate DataType="{x:Type vm:PartnerPortalsViewModel}">
-                <views:PartnerPortalsView />
-            </DataTemplate>
-            <DataTemplate DataType="{x:Type vm:CalculatorViewModel}">
-                <views:CalculatorView />
-            </DataTemplate>
-            <DataTemplate DataType="{x:Type vm:DocumentsViewModel}">
-                <views:DocumentsView />
-            </DataTemplate>
-            <DataTemplate DataType="{x:Type vm:AnalyticsViewModel}">
-                <views:AnalyticsView />
-            </DataTemplate>
-            <DataTemplate DataType="{x:Type vm:SettingsViewModel}">
-                <views:SettingsView />
-            </DataTemplate>
+            <!-- MVVM View-ViewModel mappings (Full 24-Module Enterprise Admin Suite) -->
+            <DataTemplate DataType="{x:Type vm:DashboardViewModel}"><views:DashboardView /></DataTemplate>
+            <DataTemplate DataType="{x:Type vm:ShipmentsViewModel}"><views:ShipmentsView /></DataTemplate>
+            <DataTemplate DataType="{x:Type vm:OperationsBoardViewModel}"><views:OperationsBoardView /></DataTemplate>
+            <DataTemplate DataType="{x:Type vm:ContainersViewModel}"><views:ContainersView /></DataTemplate>
+            <DataTemplate DataType="{x:Type vm:DispatchesViewModel}"><views:DispatchesView /></DataTemplate>
+            <DataTemplate DataType="{x:Type vm:TransitsViewModel}"><views:TransitsView /></DataTemplate>
+            <DataTemplate DataType="{x:Type vm:GatePassesViewModel}"><views:GatePassesView /></DataTemplate>
+            <DataTemplate DataType="{x:Type vm:InspectionsViewModel}"><views:InspectionsView /></DataTemplate>
+            <DataTemplate DataType="{x:Type vm:TrackingViewModel}"><views:TrackingView /></DataTemplate>
+            <DataTemplate DataType="{x:Type vm:TrackingDiagnosticsViewModel}"><views:TrackingDiagnosticsView /></DataTemplate>
+            <DataTemplate DataType="{x:Type vm:FinanceViewModel}"><views:FinanceView /></DataTemplate>
+            <DataTemplate DataType="{x:Type vm:BankingViewModel}"><views:BankingView /></DataTemplate>
+            <DataTemplate DataType="{x:Type vm:InvoicesViewModel}"><views:InvoicesView /></DataTemplate>
+            <DataTemplate DataType="{x:Type vm:OfficeExpensesViewModel}"><views:OfficeExpensesView /></DataTemplate>
+            <DataTemplate DataType="{x:Type vm:CompanyLedgersViewModel}"><views:CompanyLedgersView /></DataTemplate>
+            <DataTemplate DataType="{x:Type vm:PriceComparisonViewModel}"><views:PriceComparisonView /></DataTemplate>
+            <DataTemplate DataType="{x:Type vm:CustomersViewModel}"><views:CustomersView /></DataTemplate>
+            <DataTemplate DataType="{x:Type vm:PartnerPortalsViewModel}"><views:PartnerPortalsView /></DataTemplate>
+            <DataTemplate DataType="{x:Type vm:CalculatorViewModel}"><views:CalculatorView /></DataTemplate>
+            <DataTemplate DataType="{x:Type vm:DocumentsViewModel}"><views:DocumentsView /></DataTemplate>
+            <DataTemplate DataType="{x:Type vm:CommunicationsViewModel}"><views:CommunicationsView /></DataTemplate>
+            <DataTemplate DataType="{x:Type vm:AiCopilotViewModel}"><views:AiCopilotView /></DataTemplate>
+            <DataTemplate DataType="{x:Type vm:AnalyticsViewModel}"><views:AnalyticsView /></DataTemplate>
+            <DataTemplate DataType="{x:Type vm:SettingsViewModel}"><views:SettingsView /></DataTemplate>
         </ResourceDictionary>
     </Application.Resources>
 </Application>
