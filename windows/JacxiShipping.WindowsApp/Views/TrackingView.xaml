@@ -40,6 +40,7 @@
                         <TextBox Grid.Column="0"
                                  Style="{StaticResource JacxiTextBox}"
                                  Text="{Binding SearchNumber, UpdateSourceTrigger=PropertyChanged}"
+                                 Tag="Enter tracking # (JCX-...) or 17-digit VIN..."
                                  Height="44"
                                  FontSize="14"
                                  VerticalContentAlignment="Center"

@@ -25,6 +25,7 @@ public class MainViewModel : ViewModelBase
 
     private bool _isNotificationsOpen;
     private bool _isCopilotDrawerOpen;
+    private bool _isSidebarCollapsed;
     private int _unreadNotificationCount;
 
     public DashboardViewModel DashboardVM { get; }
@@ -55,7 +56,7 @@ public class MainViewModel : ViewModelBase
     public ObservableCollection<AdminNotificationItem> Notifications { get; } = new();
 
     public AdminUser CurrentAdmin => _store.Session.CurrentAdmin;
-    public string CloudStatusLabel => _store.Session.IsCloudConnected ? "CLOUD SYNCED" : "LOCAL ADMIN SUITE v3.0";
+    public string CloudStatusLabel => _store.Session.IsCloudConnected ? "Cloud Synced" : "Local Suite";
 
     // RBAC Visibility Properties (from RbacService)
     public bool CanViewFinance => RbacService.HasPermission(CurrentAdmin.Role, "finance:view");
@@ -63,7 +64,48 @@ public class MainViewModel : ViewModelBase
     public bool CanViewAnalytics => RbacService.HasPermission(CurrentAdmin.Role, "analytics:view");
 
     public NavBadges Badges { get => _badges; set => SetProperty(ref _badges, value); }
-    public string CurrentTab { get => _currentTab; set { if (SetProperty(ref _currentTab, value)) UpdateCurrentView(); } }
+    public string CurrentTab
+    {
+        get => _currentTab;
+        set
+        {
+            if (SetProperty(ref _currentTab, value))
+            {
+                UpdateCurrentView();
+                OnPropertyChanged(nameof(CurrentPageTitle));
+            }
+        }
+    }
+
+    public string CurrentPageTitle => CurrentTab switch
+    {
+        "Dashboard" => "Dashboard",
+        "Shipments" => "Shipments",
+        "OperationsBoard" => "Operations Board",
+        "Containers" => "Containers",
+        "Dispatches" => "Dispatches",
+        "Transits" => "Transits",
+        "GatePasses" => "Gate Passes",
+        "Inspections" => "Quality & Photos",
+        "Tracking" => "Live Tracking",
+        "TrackingDiagnostics" => "Tracking Diagnostics",
+        "Finance" => "Finance & Ledgers",
+        "Banking" => "Banking & CSV",
+        "Invoices" => "Invoices",
+        "OfficeExpenses" => "Office Expenses",
+        "CompanyLedgers" => "Company Ledgers",
+        "PriceComparison" => "Rates & FX",
+        "Customers" => "Customers & Users",
+        "PartnerPortals" => "Partner Portals",
+        "Calculator" => "Rate Calculator",
+        "Documents" => "Documents & PDFs",
+        "Communications" => "Communications",
+        "AiCopilot" => "AI Copilot & Voice",
+        "Analytics" => "Analytics & Charts",
+        "Settings" => "Settings & Sync",
+        _ => "Dashboard"
+    };
+
     public object? CurrentView { get => _currentView; set => SetProperty(ref _currentView, value); }
     public string GlobalSearchQuery { get => _globalSearchQuery; set => SetProperty(ref _globalSearchQuery, value); }
     public bool IsAdminAuthenticated { get => _isAdminAuthenticated; set => SetProperty(ref _isAdminAuthenticated, value); }
@@ -73,6 +115,7 @@ public class MainViewModel : ViewModelBase
 
     public bool IsNotificationsOpen { get => _isNotificationsOpen; set => SetProperty(ref _isNotificationsOpen, value); }
     public bool IsCopilotDrawerOpen { get => _isCopilotDrawerOpen; set => SetProperty(ref _isCopilotDrawerOpen, value); }
+    public bool IsSidebarCollapsed { get => _isSidebarCollapsed; set => SetProperty(ref _isSidebarCollapsed, value); }
     public int UnreadNotificationCount { get => _unreadNotificationCount; set => SetProperty(ref _unreadNotificationCount, value); }
 
     public RelayCommand NavigateCommand { get; }
@@ -82,6 +125,7 @@ public class MainViewModel : ViewModelBase
     public RelayCommand ToggleNotificationsCommand { get; }
     public RelayCommand MarkNotificationsReadCommand { get; }
     public RelayCommand ToggleCopilotDrawerCommand { get; }
+    public RelayCommand ToggleSidebarCommand { get; }
     public RelayCommand RefreshAllCommand { get; }
 
     public MainViewModel() : this(new AdminStoreService())
@@ -179,6 +223,7 @@ public class MainViewModel : ViewModelBase
             if (IsCopilotDrawerOpen) IsNotificationsOpen = false;
         });
 
+        ToggleSidebarCommand = new RelayCommand(() => IsSidebarCollapsed = !IsSidebarCollapsed);
         RefreshAllCommand = new RelayCommand(() => Navigate(CurrentTab));
 
         Navigate("Dashboard");

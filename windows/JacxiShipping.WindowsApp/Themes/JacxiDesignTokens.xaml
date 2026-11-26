@@ -2,10 +2,10 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <!-- ========================================================================= -->
-    <!-- JACXI SHIPPING DESIGN TOKENS (from TEAM_DESIGN_SYSTEM_RULES.txt)           -->
+    <!-- JACXI SHIPPING DESIGN TOKENS (TEAM_DESIGN_SYSTEM_RULES.txt)               -->
     <!-- ========================================================================= -->
 
-    <!-- Core Colors -->
+    <!-- Core Light Surface Colors -->
     <Color x:Key="JacxiBackgroundRawColor">#F9FAFB</Color>
     <Color x:Key="JacxiPanelRawColor">#FFFFFF</Color>
     <Color x:Key="JacxiBorderRawColor">#E5E7EB</Color>
@@ -24,7 +24,7 @@
     <!-- Dark Shell / Sidebar Colors -->
     <Color x:Key="JacxiDarkShellRawColor">#111827</Color>
     <Color x:Key="JacxiDarkShellSubtleRawColor">#1F2937</Color>
-    <Color x:Key="JacxiDarkShellBorderRawColor">#374151</Color>
+    <Color x:Key="JacxiDarkShellBorderRawColor">#263143</Color>
 
     <!-- Semantic / Status Colors -->
     <Color x:Key="JacxiSuccessRawColor">#10B981</Color>
@@ -85,29 +85,58 @@
     <CornerRadius x:Key="JacxiRadiusWindow">16</CornerRadius>
     <CornerRadius x:Key="JacxiRadiusPill">999</CornerRadius>
 
-    <!-- Typography Styles -->
-    <FontFamily x:Key="JacxiFontFamily">Segoe UI, Inter, Arial, sans-serif</FontFamily>
+    <!-- Typography -->
+    <FontFamily x:Key="JacxiFontFamily">Segoe UI Variable Display, Segoe UI, Inter, Arial, sans-serif</FontFamily>
 
-    <!-- Drop Shadows -->
+    <!-- Soft Minimalist Shadows -->
     <DropShadowEffect x:Key="JacxiSoftShadow"
-                      BlurRadius="16"
+                      BlurRadius="14"
                       Direction="270"
-                      Opacity="0.05"
-                      ShadowDepth="3"
-                      Color="#000000" />
+                      Opacity="0.035"
+                      ShadowDepth="2"
+                      Color="#0F172A" />
 
     <DropShadowEffect x:Key="JacxiCardShadow"
-                      BlurRadius="20"
+                      BlurRadius="24"
                       Direction="270"
-                      Opacity="0.07"
+                      Opacity="0.08"
                       ShadowDepth="4"
                       Color="#0F172A" />
 
     <DropShadowEffect x:Key="JacxiGoldGlow"
-                      BlurRadius="12"
+                      BlurRadius="10"
                       Direction="0"
-                      Opacity="0.30"
+                      Opacity="0.25"
                       ShadowDepth="0"
                       Color="{StaticResource JacxiGoldRawColor}" />
+
+    <!-- Minimal Vector Icon Geometries (16x16 / 24x24 clean paths) -->
+    <Geometry x:Key="IconDashboard">M3,3 H10 V10 H3 Z M14,3 H21 V10 H14 Z M3,14 H10 V21 H3 Z M14,14 H21 V21 H14 Z</Geometry>
+    <Geometry x:Key="IconBox">M21,16 V8 A2,2 0 0 0 20,6.27 L13,2.27 A2,2 0 0 0 11,2.27 L4,6.27 A2,2 0 0 0 3,8 V16 A2,2 0 0 0 4,17.73 L11,21.73 A2,2 0 0 0 13,21.73 L20,17.73 A2,2 0 0 0 21,16 Z M3.27,6.96 L12,12.01 L20.73,6.96 M12,22.08 V12</Geometry>
+    <Geometry x:Key="IconBoard">M4,4 H9 V20 H4 Z M10.5,4 H14.5 V15 H10.5 Z M16,4 H20 V18 H16 Z</Geometry>
+    <Geometry x:Key="IconContainer">M2,7 H22 V19 H2 Z M6,7 V19 M10,7 V19 M14,7 V19 M18,7 V19</Geometry>
+    <Geometry x:Key="IconTruck">M1,4 H15 V16 H1 Z M15,8 H19 L22,11 V16 H15 Z M5.5,18 A2,2 0 1 0 5.5,14 A2,2 0 1 0 5.5,18 Z M18.5,18 A2,2 0 1 0 18.5,14 A2,2 0 1 0 18.5,18 Z</Geometry>
+    <Geometry x:Key="IconRoute">M5,19 A2,2 0 1 0 5,15 A2,2 0 1 0 5,19 Z M19,9 A2,2 0 1 0 19,5 A2,2 0 1 0 19,9 Z M7,17 H14 A3,3 0 0 0 14,11 H10 A3,3 0 0 1 10,7 H17</Geometry>
+    <Geometry x:Key="IconClock">M12,22 A10,10 0 1 1 12,2 A10,10 0 1 1 12,22 Z M12,6 V12 L16,14</Geometry>
+    <Geometry x:Key="IconCamera">M23,19 A2,2 0 0 1 21,21 H3 A2,2 0 0 1 1,19 V8 A2,2 0 0 1 3,6 H7 L9,3 H15 L17,6 H21 A2,2 0 0 1 23,8 Z M12,17 A4,4 0 1 0 12,9 A4,4 0 1 0 12,17 Z</Geometry>
+    <Geometry x:Key="IconGlobe">M12,22 A10,10 0 1 1 12,2 A10,10 0 1 1 12,22 Z M2,12 H22 M12,2 A15,15 0 0 1 16,12 A15,15 0 0 1 12,22 A15,15 0 0 1 8,12 A15,15 0 0 1 12,2 Z</Geometry>
+    <Geometry x:Key="IconSignal">M2,20 H2.01 M7,20 V16 M12,20 V12 M17,20 V8 M22,20 V4</Geometry>
+    <Geometry x:Key="IconFinance">M3,21 H21 M3,10 H21 M5,6 L12,2 L19,6 M6,10 V18 M10,10 V18 M14,10 V18 M18,10 V18</Geometry>
+    <Geometry x:Key="IconBank">M2,7 H22 V19 H2 Z M2,11 H22 M6,15 H10</Geometry>
+    <Geometry x:Key="IconInvoice">M6,2 H18 V22 L15,20 L12,22 L9,20 L6,22 Z M9,8 H15 M9,12 H15 M9,16 H12</Geometry>
+    <Geometry x:Key="IconExpense">M12,1 V23 M17,5 H9.5 A3.5,3.5 0 0 0 9.5,12 H14.5 A3.5,3.5 0 0 1 14.5,19 H6</Geometry>
+    <Geometry x:Key="IconBuilding">M3,21 H21 M5,21 V5 A2,2 0 0 1 7,3 H17 A2,2 0 0 1 19,5 V21 M9,7 H11 M13,7 H15 M9,11 H11 M13,11 H15 M9,15 H11 M13,15 H15</Geometry>
+    <Geometry x:Key="IconRates">M4,7 H20 M16,3 L20,7 L16,11 M20,17 H4 M8,13 L4,17 L8,21</Geometry>
+    <Geometry x:Key="IconUsers">M17,21 V19 A4,4 0 0 0 13,15 H5 A4,4 0 0 0 1,19 V21 M9,11 A4,4 0 1 0 9,3 A4,4 0 1 0 9,11 Z M23,21 V19 A4,4 0 0 0 20,15.13 M16,3.13 A4,4 0 0 1 16,10.87</Geometry>
+    <Geometry x:Key="IconShield">M12,22 S20,18 20,12 V5 L12,2 L4,5 V12 C4,18 12,22 12,22 Z</Geometry>
+    <Geometry x:Key="IconChat">M21,15 A2,2 0 0 1 19,17 H7 L3,21 V5 A2,2 0 0 1 5,3 H19 A2,2 0 0 1 21,5 Z</Geometry>
+    <Geometry x:Key="IconBolt">M13,2 L3,14 H12 L11,22 L21,10 H12 L13,2 Z</Geometry>
+    <Geometry x:Key="IconDoc">M14,2 H6 A2,2 0 0 0 4,4 V20 A2,2 0 0 0 6,22 H18 A2,2 0 0 0 20,20 V8 Z M14,2 V8 H20 M8,13 H16 M8,17 H14</Geometry>
+    <Geometry x:Key="IconSparkles">M12,2 L14.5,9.5 L22,12 L14.5,14.5 L12,22 L9.5,14.5 L2,12 L9.5,9.5 Z</Geometry>
+    <Geometry x:Key="IconChart">M3,3 V21 H21 M7,16 L11,11 L15,14 L20,7</Geometry>
+    <Geometry x:Key="IconSettings">M12,15 A3,3 0 1 0 12,9 A3,3 0 1 0 12,15 Z M19.4,15 A1.65,1.65 0 0 0 19.73,16.82 L19.79,16.88 A2,2 0 1 1 16.96,19.71 L16.9,19.65 A1.65,1.65 0 0 0 15.08,19.32 A1.65,1.65 0 0 0 14,20.85 V21 A2,2 0 1 1 10,21 V20.91 A1.65,1.65 0 0 0 8.92,19.4 A1.65,1.65 0 0 0 7.1,19.73 L7.04,19.79 A2,2 0 1 1 4.21,16.96 L4.27,16.9 A1.65,1.65 0 0 0 4.6,15.08 A1.65,1.65 0 0 0 3.07,14 H3 A2,2 0 1 1 3,10 H3.09 A1.65,1.65 0 0 0 4.6,8.92 A1.65,1.65 0 0 0 4.27,7.1 L4.21,7.04 A2,2 0 1 1 7.04,4.21 L7.1,4.27 A1.65,1.65 0 0 0 8.92,4.6 A1.65,1.65 0 0 0 10,3.07 V3 A2,2 0 1 1 14,3 V3.09 A1.65,1.65 0 0 0 15.08,4.6 A1.65,1.65 0 0 0 16.9,4.27 L16.96,4.21 A2,2 0 1 1 19.79,7.04 L19.73,7.1 A1.65,1.65 0 0 0 19.4,8.92 A1.65,1.65 0 0 0 20.93,10 H21 A2,2 0 1 1 21,14 H20.91 A1.65,1.65 0 0 0 19.4,15 Z</Geometry>
+    <Geometry x:Key="IconMenu">M3,6 H21 M3,12 H21 M3,18 H21</Geometry>
+    <Geometry x:Key="IconBell">M18,8 A6,6 0 0 0 6,8 C6,15 3,17 3,17 H21 C21,17 18,15 18,8 Z M13.73,21 A2,2 0 0 1 10.27,21</Geometry>
+    <Geometry x:Key="IconSearch">M11,19 A8,8 0 1 0 11,3 A8,8 0 1 0 11,19 Z M21,21 L16.65,16.65</Geometry>
 
 </ResourceDictionary>

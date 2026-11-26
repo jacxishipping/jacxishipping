@@ -6,17 +6,52 @@
     </ResourceDictionary.MergedDictionaries>
 
     <!-- ========================================================================= -->
+    <!-- MINIMALIST SCROLLBAR (Sleek 6px thin pill thumb)                         -->
+    <!-- ========================================================================= -->
+    <Style TargetType="ScrollBar">
+        <Setter Property="Width" Value="7" />
+        <Setter Property="MinWidth" Value="7" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ScrollBar">
+                    <Grid Background="Transparent">
+                        <Track x:Name="PART_Track" IsDirectionReversed="True">
+                            <Track.Thumb>
+                                <Thumb>
+                                    <Thumb.Template>
+                                        <ControlTemplate TargetType="Thumb">
+                                            <Border Background="#CBD5E1" CornerRadius="3.5" Margin="1" Opacity="0.65" />
+                                        </ControlTemplate>
+                                    </Thumb.Template>
+                                </Thumb>
+                            </Track.Thumb>
+                        </Track>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="Orientation" Value="Horizontal">
+                            <Setter Property="Width" Value="Auto" />
+                            <Setter Property="Height" Value="7" />
+                            <Setter Property="MinHeight" Value="7" />
+                            <Setter TargetName="PART_Track" Property="IsDirectionReversed" Value="False" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ========================================================================= -->
     <!-- JACXI BUTTONS                                                             -->
     <!-- ========================================================================= -->
 
-    <!-- Primary Gold Button (Brand Signature) -->
     <Style x:Key="JacxiPrimaryButton" TargetType="Button">
         <Setter Property="Background" Value="{StaticResource JacxiGoldBrush}" />
-        <Setter Property="Foreground" Value="{StaticResource JacxiTextPrimaryBrush}" />
+        <Setter Property="Foreground" Value="#111827" />
         <Setter Property="FontFamily" Value="{StaticResource JacxiFontFamily}" />
         <Setter Property="FontWeight" Value="SemiBold" />
-        <Setter Property="FontSize" Value="13" />
-        <Setter Property="Padding" Value="18,10" />
+        <Setter Property="FontSize" Value="12.5" />
+        <Setter Property="Padding" Value="16,9" />
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="SnapsToDevicePixels" Value="True" />
@@ -25,8 +60,6 @@
                 <ControlTemplate TargetType="Button">
                     <Border x:Name="border"
                             Background="{TemplateBinding Background}"
-                            BorderBrush="{TemplateBinding BorderBrush}"
-                            BorderThickness="{TemplateBinding BorderThickness}"
                             CornerRadius="{StaticResource JacxiRadiusControl}"
                             Padding="{TemplateBinding Padding}">
                         <ContentPresenter HorizontalAlignment="Center"
@@ -51,7 +84,6 @@
         </Setter>
     </Style>
 
-    <!-- Secondary Outline Button -->
     <Style x:Key="JacxiOutlineButton" TargetType="Button">
         <Setter Property="Background" Value="{StaticResource JacxiPanelBrush}" />
         <Setter Property="Foreground" Value="{StaticResource JacxiTextPrimaryBrush}" />
@@ -59,8 +91,8 @@
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="FontFamily" Value="{StaticResource JacxiFontFamily}" />
         <Setter Property="FontWeight" Value="Medium" />
-        <Setter Property="FontSize" Value="13" />
-        <Setter Property="Padding" Value="16,9" />
+        <Setter Property="FontSize" Value="12.5" />
+        <Setter Property="Padding" Value="14,8" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="SnapsToDevicePixels" Value="True" />
         <Setter Property="Template">
@@ -78,11 +110,11 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="{StaticResource JacxiBorderSubtleBrush}" />
+                            <Setter TargetName="border" Property="Background" Value="{StaticResource JacxiBackgroundBrush}" />
                             <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource JacxiGoldBrush}" />
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="{StaticResource JacxiBorderBrush}" />
+                            <Setter TargetName="border" Property="Background" Value="{StaticResource JacxiBorderSubtleBrush}" />
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter Property="Foreground" Value="{StaticResource JacxiTextMutedBrush}" />
@@ -94,15 +126,14 @@
         </Setter>
     </Style>
 
-    <!-- Ghost Button -->
     <Style x:Key="JacxiGhostButton" TargetType="Button">
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="Foreground" Value="{StaticResource JacxiTextSecondaryBrush}" />
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="FontFamily" Value="{StaticResource JacxiFontFamily}" />
         <Setter Property="FontWeight" Value="Medium" />
-        <Setter Property="FontSize" Value="13" />
-        <Setter Property="Padding" Value="12,8" />
+        <Setter Property="FontSize" Value="12.5" />
+        <Setter Property="Padding" Value="10,7" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Template">
             <Setter.Value>
@@ -127,14 +158,15 @@
         </Setter>
     </Style>
 
-    <!-- Sidebar Navigation Item Button -->
+    <!-- Minimalist Sidebar Nav RadioButton -->
     <Style x:Key="JacxiNavButton" TargetType="RadioButton">
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="Foreground" Value="#9CA3AF" />
         <Setter Property="FontFamily" Value="{StaticResource JacxiFontFamily}" />
         <Setter Property="FontWeight" Value="Medium" />
-        <Setter Property="FontSize" Value="13" />
-        <Setter Property="Padding" Value="14,10" />
+        <Setter Property="FontSize" Value="12.5" />
+        <Setter Property="Padding" Value="10,8.5" />
+        <Setter Property="Margin" Value="0,1" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Template">
             <Setter.Value>
@@ -142,38 +174,35 @@
                     <Border x:Name="border"
                             Background="{TemplateBinding Background}"
                             CornerRadius="8"
-                            Margin="0,2"
                             Padding="{TemplateBinding Padding}">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
 
-                            <!-- Active Gold Left Indicator -->
                             <Rectangle x:Name="indicator"
                                        Grid.Column="0"
                                        Width="3"
-                                       Height="18"
+                                       Height="16"
                                        RadiusX="1.5"
                                        RadiusY="1.5"
                                        Fill="{StaticResource JacxiGoldBrush}"
-                                       Margin="-8,0,8,0"
+                                       Margin="-6,0,8,0"
                                        Visibility="Collapsed" />
 
                             <ContentPresenter Grid.Column="1"
                                               VerticalAlignment="Center"
-                                              HorizontalAlignment="Left" />
+                                              HorizontalAlignment="Stretch" />
                         </Grid>
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="{StaticResource JacxiDarkShellSubtleBrush}" />
-                            <Setter Property="Foreground" Value="#FFFFFF" />
+                            <Setter TargetName="border" Property="Background" Value="#1E293B" />
+                            <Setter Property="Foreground" Value="#F9FAFB" />
                         </Trigger>
                         <Trigger Property="IsChecked" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="{StaticResource JacxiDarkShellSubtleBrush}" />
+                            <Setter TargetName="border" Property="Background" Value="#1F2937" />
                             <Setter Property="Foreground" Value="#FFFFFF" />
                             <Setter Property="FontWeight" Value="SemiBold" />
                             <Setter TargetName="indicator" Property="Visibility" Value="Visible" />
@@ -185,9 +214,8 @@
     </Style>
 
     <!-- ========================================================================= -->
-    <!-- JACXI TEXTBOX & INPUTS                                                    -->
+    <!-- JACXI TEXTBOX WITH BUILT-IN TAG PLACEHOLDER WATERMARK                     -->
     <!-- ========================================================================= -->
-
     <Style x:Key="JacxiTextBox" TargetType="TextBox">
         <Setter Property="Background" Value="{StaticResource JacxiPanelBrush}" />
         <Setter Property="Foreground" Value="{StaticResource JacxiTextPrimaryBrush}" />
@@ -195,7 +223,8 @@
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="FontFamily" Value="{StaticResource JacxiFontFamily}" />
         <Setter Property="FontSize" Value="13" />
-        <Setter Property="Padding" Value="12,9" />
+        <Setter Property="Padding" Value="11,8" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="SnapsToDevicePixels" Value="True" />
         <Setter Property="Template">
             <Setter.Value>
@@ -205,15 +234,34 @@
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
                             CornerRadius="{StaticResource JacxiRadiusControl}">
-                        <ScrollViewer x:Name="PART_ContentHost"
-                                      Margin="{TemplateBinding Padding}"
-                                      Focusable="false"
-                                      HorizontalScrollBarVisibility="Hidden"
-                                      VerticalScrollBarVisibility="Hidden" />
+                        <Grid>
+                            <TextBlock x:Name="PlaceholderText"
+                                       Text="{TemplateBinding Tag}"
+                                       Foreground="{StaticResource JacxiTextMutedBrush}"
+                                       FontFamily="{TemplateBinding FontFamily}"
+                                       FontSize="{TemplateBinding FontSize}"
+                                       Margin="{TemplateBinding Padding}"
+                                       VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                       IsHitTestVisible="False"
+                                       Visibility="Collapsed" />
+                            <ScrollViewer x:Name="PART_ContentHost"
+                                          Margin="{TemplateBinding Padding}"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                          Focusable="false"
+                                          HorizontalScrollBarVisibility="Hidden"
+                                          VerticalScrollBarVisibility="Hidden" />
+                        </Grid>
                     </Border>
                     <ControlTemplate.Triggers>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="Text" Value="" />
+                                <Condition Property="IsKeyboardFocused" Value="False" />
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="PlaceholderText" Property="Visibility" Value="Visible" />
+                        </MultiTrigger>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource JacxiTextSecondaryBrush}" />
+                            <Setter TargetName="border" Property="BorderBrush" Value="#CBD5E1" />
                         </Trigger>
                         <Trigger Property="IsFocused" Value="True">
                             <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource JacxiGoldBrush}" />
@@ -225,7 +273,9 @@
         </Setter>
     </Style>
 
-    <!-- ComboBox -->
+    <!-- ========================================================================= -->
+    <!-- CUSTOM MINIMALIST COMBOBOX (Matches JacxiTextBox & Design Tokens)         -->
+    <!-- ========================================================================= -->
     <Style x:Key="JacxiComboBox" TargetType="ComboBox">
         <Setter Property="Background" Value="{StaticResource JacxiPanelBrush}" />
         <Setter Property="Foreground" Value="{StaticResource JacxiTextPrimaryBrush}" />
@@ -233,15 +283,89 @@
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="FontFamily" Value="{StaticResource JacxiFontFamily}" />
         <Setter Property="FontSize" Value="13" />
-        <Setter Property="Padding" Value="12,8" />
+        <Setter Property="Padding" Value="11,7" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="SnapsToDevicePixels" Value="True" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ComboBox">
+                    <Grid>
+                        <ToggleButton x:Name="ToggleButton"
+                                      Focusable="false"
+                                      IsChecked="{Binding Path=IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                      ClickMode="Press"
+                                      Cursor="Hand">
+                            <ToggleButton.Template>
+                                <ControlTemplate TargetType="ToggleButton">
+                                    <Border x:Name="box"
+                                            Background="{StaticResource JacxiPanelBrush}"
+                                            BorderBrush="{StaticResource JacxiBorderBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="{StaticResource JacxiRadiusControl}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="28" />
+                                            </Grid.ColumnDefinitions>
+                                            <Path Grid.Column="1"
+                                                  Data="M0,0 L4,4 L8,0"
+                                                  Stroke="{StaticResource JacxiTextSecondaryBrush}"
+                                                  StrokeThickness="1.5"
+                                                  HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center" />
+                                        </Grid>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="box" Property="BorderBrush" Value="#CBD5E1" />
+                                        </Trigger>
+                                        <Trigger Property="IsChecked" Value="True">
+                                            <Setter TargetName="box" Property="BorderBrush" Value="{StaticResource JacxiGoldBrush}" />
+                                            <Setter TargetName="box" Property="BorderThickness" Value="1.5" />
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </ToggleButton.Template>
+                        </ToggleButton>
+
+                        <ContentPresenter x:Name="ContentSite"
+                                          IsHitTestVisible="False"
+                                          Content="{TemplateBinding SelectionBoxItem}"
+                                          ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                          Margin="12,0,30,0"
+                                          VerticalAlignment="Center"
+                                          HorizontalAlignment="Left" />
+
+                        <Popup x:Name="Popup"
+                               Placement="Bottom"
+                               IsOpen="{TemplateBinding IsDropDownOpen}"
+                               AllowsTransparency="True"
+                               Focusable="False"
+                               PopupAnimation="Fade">
+                            <Border x:Name="DropDownBorder"
+                                    MinWidth="{TemplateBinding ActualWidth}"
+                                    MaxHeight="260"
+                                    Margin="0,4,0,0"
+                                    Background="{StaticResource JacxiPanelBrush}"
+                                    BorderBrush="{StaticResource JacxiBorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="8"
+                                    Padding="4"
+                                    Effect="{StaticResource JacxiSoftShadow}">
+                                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                    <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Contained" />
+                                </ScrollViewer>
+                            </Border>
+                        </Popup>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
 
     <!-- ========================================================================= -->
     <!-- JACXI CARDS & PANELS                                                      -->
     <!-- ========================================================================= -->
-
     <Style x:Key="JacxiCardBorder" TargetType="Border">
         <Setter Property="Background" Value="{StaticResource JacxiPanelBrush}" />
         <Setter Property="BorderBrush" Value="{StaticResource JacxiBorderBrush}" />
@@ -251,39 +375,14 @@
         <Setter Property="Effect" Value="{StaticResource JacxiSoftShadow}" />
     </Style>
 
-    <!-- Window Chrome Button -->
-    <Style x:Key="JacxiWindowChromeButton" TargetType="Button">
-        <Setter Property="Background" Value="Transparent" />
-        <Setter Property="Foreground" Value="{StaticResource JacxiTextSecondaryBrush}" />
-        <Setter Property="BorderThickness" Value="0" />
-        <Setter Property="Width" Value="36" />
-        <Setter Property="Height" Value="32" />
-        <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="Button">
-                    <Border x:Name="b" Background="{TemplateBinding Background}">
-                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
-                    </Border>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="b" Property="Background" Value="{StaticResource JacxiBorderSubtleBrush}" />
-                            <Setter Property="Foreground" Value="{StaticResource JacxiTextPrimaryBrush}" />
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-    </Style>
-
-    <!-- DataGrid Styling -->
+    <!-- DataGrid Minimalist Styling -->
     <Style x:Key="JacxiDataGridColumnHeader" TargetType="DataGridColumnHeader">
-        <Setter Property="Background" Value="{StaticResource JacxiBackgroundBrush}" />
+        <Setter Property="Background" Value="#FAFAFA" />
         <Setter Property="Foreground" Value="{StaticResource JacxiTextSecondaryBrush}" />
         <Setter Property="FontFamily" Value="{StaticResource JacxiFontFamily}" />
-        <Setter Property="FontSize" Value="11" />
+        <Setter Property="FontSize" Value="10.5" />
         <Setter Property="FontWeight" Value="SemiBold" />
-        <Setter Property="Padding" Value="14,12" />
+        <Setter Property="Padding" Value="14,11" />
         <Setter Property="BorderBrush" Value="{StaticResource JacxiBorderBrush}" />
         <Setter Property="BorderThickness" Value="0,0,0,1" />
     </Style>
@@ -292,14 +391,14 @@
         <Setter Property="Background" Value="{StaticResource JacxiPanelBrush}" />
         <Setter Property="Foreground" Value="{StaticResource JacxiTextPrimaryBrush}" />
         <Setter Property="FontFamily" Value="{StaticResource JacxiFontFamily}" />
-        <Setter Property="FontSize" Value="13" />
-        <Setter Property="BorderBrush" Value="{StaticResource JacxiBorderBrush}" />
+        <Setter Property="FontSize" Value="12.5" />
+        <Setter Property="BorderBrush" Value="{StaticResource JacxiBorderSubtleBrush}" />
         <Setter Property="BorderThickness" Value="0,0,0,1" />
-        <Setter Property="Padding" Value="0,6" />
+        <Setter Property="Padding" Value="0,5" />
         <Setter Property="Cursor" Value="Hand" />
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
-                <Setter Property="Background" Value="{StaticResource JacxiBorderSubtleBrush}" />
+                <Setter Property="Background" Value="#F9FAFB" />
             </Trigger>
             <Trigger Property="IsSelected" Value="True">
                 <Setter Property="Background" Value="{StaticResource JacxiGoldLightBrush}" />

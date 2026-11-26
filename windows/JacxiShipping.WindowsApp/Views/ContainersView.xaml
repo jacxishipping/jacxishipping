@@ -58,7 +58,7 @@
         <!-- Search Bar -->
         <Grid Grid.Row="2" Margin="0,0,0,16">
             <Grid.ColumnDefinitions><ColumnDefinition Width="320" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-            <TextBox Grid.Column="0" Style="{StaticResource JacxiTextBox}" Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}" Height="38" />
+            <TextBox Grid.Column="0" Style="{StaticResource JacxiTextBox}" Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}" Tag="Search container, vessel, port..." Height="38" />
             <TextBlock Grid.Column="1" Text="{Binding StatusMessage}" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource JacxiSuccessBrush}" VerticalAlignment="Center" Margin="16,0,0,0" />
         </Grid>
 

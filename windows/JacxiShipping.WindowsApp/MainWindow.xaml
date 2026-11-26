@@ -6,19 +6,44 @@
         xmlns:vm="clr-namespace:JacxiShipping.WindowsApp.ViewModels;assembly=JacxiShipping.Core"
         xmlns:converters="clr-namespace:JacxiShipping.WindowsApp.Converters"
         mc:Ignorable="d"
-        Title="JACXI Shipping — Enterprise Admin Suite v3.0" 
-        Height="900" 
-        Width="1460"
-        MinHeight="740" 
-        MinWidth="1180"
+        Title="JACXI Shipping — Admin Suite" 
+        Height="860" 
+        Width="1380"
+        MinHeight="640" 
+        MinWidth="960"
         WindowStartupLocation="CenterScreen"
         Background="{StaticResource JacxiBackgroundBrush}"
         FontFamily="{StaticResource JacxiFontFamily}"
-        KeyDown="MainWindow_KeyDown">
+        KeyDown="MainWindow_KeyDown"
+        SizeChanged="MainWindow_SizeChanged">
 
     <Window.Resources>
         <converters:BoolToVisibilityConverter x:Key="BoolToVis" />
         <converters:InverseBoolToVisibilityConverter x:Key="InvBoolToVis" />
+        <converters:PositiveIntToVisibilityConverter x:Key="PosIntToVis" />
+
+        <!-- Vector Icon Path Style for Sidebar -->
+        <Style x:Key="NavIconStyle" TargetType="Path">
+            <Setter Property="Width" Value="15" />
+            <Setter Property="Height" Value="15" />
+            <Setter Property="Stretch" Value="Uniform" />
+            <Setter Property="Stroke" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" />
+            <Setter Property="StrokeThickness" Value="1.7" />
+            <Setter Property="StrokeStartLineCap" Value="Round" />
+            <Setter Property="StrokeEndLineCap" Value="Round" />
+            <Setter Property="StrokeLineJoin" Value="Round" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+        </Style>
+
+        <!-- Section Micro-Header Style -->
+        <Style x:Key="NavGroupHeader" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="9.5" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#64748B" />
+            <Setter Property="Margin" Value="10,14,0,4" />
+            <Setter Property="Visibility" Value="{Binding IsSidebarCollapsed, Converter={StaticResource InvBoolToVis}}" />
+        </Style>
     </Window.Resources>
 
     <Window.DataContext>
@@ -29,144 +54,233 @@
         <!-- MAIN AUTHENTICATED ADMIN SHELL -->
         <Grid Visibility="{Binding IsAdminAuthenticated, Converter={StaticResource BoolToVis}}">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="264" />
+                <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
-            <!-- LEFT GROUPED ADMIN SIDEBAR (24 Modules) -->
+            <!-- MINIMALIST RESPONSIVE SIDEBAR -->
             <Border Grid.Column="0"
                     Background="{StaticResource JacxiDarkShellBrush}"
                     BorderBrush="{StaticResource JacxiDarkShellBorderBrush}"
                     BorderThickness="0,0,1,0">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Width" Value="236" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsSidebarCollapsed}" Value="True">
+                                <Setter Property="Width" Value="64" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+
                 <Grid>
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="58" />
                         <RowDefinition Height="*" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
-                    <!-- Brand Header -->
-                    <Border Grid.Row="0" Padding="20,18,20,14" BorderBrush="{StaticResource JacxiDarkShellBorderBrush}" BorderThickness="0,0,0,1">
+                    <!-- Clean Brand Header -->
+                    <Border Grid.Row="0" Padding="14,0" BorderBrush="{StaticResource JacxiDarkShellBorderBrush}" BorderThickness="0,0,0,1">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <Border Width="34" Height="34" CornerRadius="8" Background="{StaticResource JacxiGoldBrush}" Margin="0,0,12,0">
-                                <TextBlock Text="JX" FontWeight="Bold" FontSize="15" Foreground="#111827" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <Border Width="32" Height="32" CornerRadius="8" Background="{StaticResource JacxiGoldBrush}" HorizontalAlignment="Center">
+                                <TextBlock Text="JX" FontWeight="Bold" FontSize="14" Foreground="#111827" HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Border>
-                            <StackPanel VerticalAlignment="Center">
-                                <TextBlock Text="JACXI" FontSize="18" FontWeight="Bold" Foreground="#FFFFFF" />
-                                <TextBlock Text="ENTERPRISE ADMIN v3" FontSize="9.5" FontWeight="SemiBold" Foreground="{StaticResource JacxiGoldBrush}" Margin="0,-2,0,0" />
+                            <StackPanel VerticalAlignment="Center" Margin="10,0,0,0" Visibility="{Binding IsSidebarCollapsed, Converter={StaticResource InvBoolToVis}}">
+                                <TextBlock Text="JACXI" FontSize="16" FontWeight="Bold" Foreground="#FFFFFF" />
+                                <TextBlock Text="ADMIN" FontSize="9" FontWeight="Bold" Foreground="{StaticResource JacxiGoldBrush}" Margin="0,-2,0,0" />
                             </StackPanel>
                         </StackPanel>
                     </Border>
 
-                    <!-- Grouped Scrollable Navigation -->
-                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="10,10,10,10">
+                    <!-- Clean Grouped Navigation with Vector Icons -->
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="8,10">
                         <StackPanel>
-                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" IsChecked="True" Command="{Binding NavigateCommand}" CommandParameter="Dashboard">
-                                <TextBlock Text="⊞  Admin Dashboard" />
+                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" IsChecked="True" Command="{Binding NavigateCommand}" CommandParameter="Dashboard" ToolTip="Admin Dashboard">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Style="{StaticResource NavIconStyle}" Data="{StaticResource IconDashboard}" />
+                                    <TextBlock Text="Dashboard" Margin="11,0,0,0" VerticalAlignment="Center" Visibility="{Binding IsSidebarCollapsed, Converter={StaticResource InvBoolToVis}}" />
+                                </StackPanel>
                             </RadioButton>
 
-                            <!-- SHIPMENTS & LOGISTICS -->
-                            <TextBlock Text="SHIPMENTS &amp; LOGISTICS" FontSize="10" FontWeight="Bold" Foreground="#6B7280" Margin="8,12,0,4" />
-                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="Shipments">
-                                <Grid Width="200">
-                                    <TextBlock Text="📦  Shipments" VerticalAlignment="Center" />
-                                    <Border Background="{StaticResource JacxiWarningBgBrush}" CornerRadius="8" Padding="6,1" HorizontalAlignment="Right" VerticalAlignment="Center">
-                                        <TextBlock Text="{Binding Badges.AgingShipments}" FontSize="10" FontWeight="Bold" Foreground="{StaticResource JacxiWarningBrush}" />
+                            <!-- LOGISTICS -->
+                            <TextBlock Text="LOGISTICS" Style="{StaticResource NavGroupHeader}" />
+                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="Shipments" ToolTip="Shipments">
+                                <Grid>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Path Style="{StaticResource NavIconStyle}" Data="{StaticResource IconBox}" />
+                                        <TextBlock Text="Shipments" Margin="11,0,0,0" VerticalAlignment="Center" Visibility="{Binding IsSidebarCollapsed, Converter={StaticResource InvBoolToVis}}" />
+                                    </StackPanel>
+                                    <Border Background="{StaticResource JacxiWarningBgBrush}" CornerRadius="8" Padding="5,1" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                            Visibility="{Binding Badges.AgingShipments, Converter={StaticResource PosIntToVis}}">
+                                        <TextBlock Text="{Binding Badges.AgingShipments}" FontSize="9.5" FontWeight="Bold" Foreground="{StaticResource JacxiWarningBrush}"
+                                                   Visibility="{Binding IsSidebarCollapsed, Converter={StaticResource InvBoolToVis}}" />
                                     </Border>
                                 </Grid>
                             </RadioButton>
-                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="OperationsBoard">
-                                <TextBlock Text="⇄  Operations Board" />
+                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="OperationsBoard" ToolTip="Operations Board">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Style="{StaticResource NavIconStyle}" Data="{StaticResource IconBoard}" />
+                                    <TextBlock Text="Operations Board" Margin="11,0,0,0" VerticalAlignment="Center" Visibility="{Binding IsSidebarCollapsed, Converter={StaticResource InvBoolToVis}}" />
+                                </StackPanel>
                             </RadioButton>
-                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="Containers">
-                                <TextBlock Text="📥  Containers" />
+                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="Containers" ToolTip="Containers">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Style="{StaticResource NavIconStyle}" Data="{StaticResource IconContainer}" />
+                                    <TextBlock Text="Containers" Margin="11,0,0,0" VerticalAlignment="Center" Visibility="{Binding IsSidebarCollapsed, Converter={StaticResource InvBoolToVis}}" />
+                                </StackPanel>
                             </RadioButton>
-                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="Dispatches">
-                                <TextBlock Text="🚚  Dispatches" />
+                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="Dispatches" ToolTip="Dispatches">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Style="{StaticResource NavIconStyle}" Data="{StaticResource IconTruck}" />
+                                    <TextBlock Text="Dispatches" Margin="11,0,0,0" VerticalAlignment="Center" Visibility="{Binding IsSidebarCollapsed, Converter={StaticResource InvBoolToVis}}" />
+                                </StackPanel>
                             </RadioButton>
-                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="Transits">
-                                <TextBlock Text="🛣  Transits" />
+                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="Transits" ToolTip="Transits">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Style="{StaticResource NavIconStyle}" Data="{StaticResource IconRoute}" />
+                                    <TextBlock Text="Transits" Margin="11,0,0,0" VerticalAlignment="Center" Visibility="{Binding IsSidebarCollapsed, Converter={StaticResource InvBoolToVis}}" />
+                                </StackPanel>
                             </RadioButton>
-                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="GatePasses">
-                                <Grid Width="200">
-                                    <TextBlock Text="⏱  Company Gatepasses" VerticalAlignment="Center" />
-                                    <Border Background="{StaticResource JacxiGoldLightBrush}" CornerRadius="8" Padding="6,1" HorizontalAlignment="Right" VerticalAlignment="Center">
-                                        <TextBlock Text="{Binding Badges.PendingGatePasses}" FontSize="10" FontWeight="Bold" Foreground="{StaticResource JacxiGoldActiveBrush}" />
+                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="GatePasses" ToolTip="Gate Passes">
+                                <Grid>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Path Style="{StaticResource NavIconStyle}" Data="{StaticResource IconClock}" />
+                                        <TextBlock Text="Gate Passes" Margin="11,0,0,0" VerticalAlignment="Center" Visibility="{Binding IsSidebarCollapsed, Converter={StaticResource InvBoolToVis}}" />
+                                    </StackPanel>
+                                    <Border Background="{StaticResource JacxiGoldLightBrush}" CornerRadius="8" Padding="5,1" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                            Visibility="{Binding Badges.PendingGatePasses, Converter={StaticResource PosIntToVis}}">
+                                        <TextBlock Text="{Binding Badges.PendingGatePasses}" FontSize="9.5" FontWeight="Bold" Foreground="{StaticResource JacxiGoldActiveBrush}"
+                                                   Visibility="{Binding IsSidebarCollapsed, Converter={StaticResource InvBoolToVis}}" />
                                     </Border>
                                 </Grid>
                             </RadioButton>
-                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="Inspections">
-                                <TextBlock Text="📷  Quality &amp; Photos" />
+                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="Inspections" ToolTip="Quality &amp; Photos">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Style="{StaticResource NavIconStyle}" Data="{StaticResource IconCamera}" />
+                                    <TextBlock Text="Quality &amp; Photos" Margin="11,0,0,0" VerticalAlignment="Center" Visibility="{Binding IsSidebarCollapsed, Converter={StaticResource InvBoolToVis}}" />
+                                </StackPanel>
                             </RadioButton>
-                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="Tracking">
-                                <TextBlock Text="🌐  Track Shipments" />
+                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="Tracking" ToolTip="Live Tracking">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Style="{StaticResource NavIconStyle}" Data="{StaticResource IconGlobe}" />
+                                    <TextBlock Text="Live Tracking" Margin="11,0,0,0" VerticalAlignment="Center" Visibility="{Binding IsSidebarCollapsed, Converter={StaticResource InvBoolToVis}}" />
+                                </StackPanel>
                             </RadioButton>
-                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="TrackingDiagnostics">
-                                <TextBlock Text="🛰  Tracking Diagnostics" />
+                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="TrackingDiagnostics" ToolTip="AIS Diagnostics">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Style="{StaticResource NavIconStyle}" Data="{StaticResource IconSignal}" />
+                                    <TextBlock Text="AIS Diagnostics" Margin="11,0,0,0" VerticalAlignment="Center" Visibility="{Binding IsSidebarCollapsed, Converter={StaticResource InvBoolToVis}}" />
+                                </StackPanel>
                             </RadioButton>
 
-                            <!-- FINANCE & ACCOUNTING (RBAC Gated) -->
+                            <!-- FINANCE (RBAC Gated) -->
                             <StackPanel Visibility="{Binding CanViewFinance, Converter={StaticResource BoolToVis}}">
-                                <TextBlock Text="FINANCE &amp; ACCOUNTING" FontSize="10" FontWeight="Bold" Foreground="#6B7280" Margin="8,12,0,4" />
-                                <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="Finance">
-                                    <TextBlock Text="🏛  Finance &amp; Ledgers" />
+                                <TextBlock Text="FINANCE" Style="{StaticResource NavGroupHeader}" />
+                                <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="Finance" ToolTip="Finance &amp; Ledgers">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Path Style="{StaticResource NavIconStyle}" Data="{StaticResource IconFinance}" />
+                                        <TextBlock Text="Finance &amp; Ledgers" Margin="11,0,0,0" VerticalAlignment="Center" Visibility="{Binding IsSidebarCollapsed, Converter={StaticResource InvBoolToVis}}" />
+                                    </StackPanel>
                                 </RadioButton>
-                                <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="Banking">
-                                    <TextBlock Text="🏦  Banking &amp; CSV Match" />
+                                <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="Banking" ToolTip="Banking &amp; CSV">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Path Style="{StaticResource NavIconStyle}" Data="{StaticResource IconBank}" />
+                                        <TextBlock Text="Banking &amp; CSV" Margin="11,0,0,0" VerticalAlignment="Center" Visibility="{Binding IsSidebarCollapsed, Converter={StaticResource InvBoolToVis}}" />
+                                    </StackPanel>
                                 </RadioButton>
-                                <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="Invoices">
-                                    <Grid Width="200">
-                                        <TextBlock Text="🧾  Invoices" VerticalAlignment="Center" />
-                                        <Border Background="{StaticResource JacxiErrorBgBrush}" CornerRadius="8" Padding="6,1" HorizontalAlignment="Right" VerticalAlignment="Center">
-                                            <TextBlock Text="{Binding Badges.OverdueInvoices}" FontSize="10" FontWeight="Bold" Foreground="{StaticResource JacxiErrorBrush}" />
+                                <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="Invoices" ToolTip="Invoices">
+                                    <Grid>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Path Style="{StaticResource NavIconStyle}" Data="{StaticResource IconInvoice}" />
+                                            <TextBlock Text="Invoices" Margin="11,0,0,0" VerticalAlignment="Center" Visibility="{Binding IsSidebarCollapsed, Converter={StaticResource InvBoolToVis}}" />
+                                        </StackPanel>
+                                        <Border Background="{StaticResource JacxiErrorBgBrush}" CornerRadius="8" Padding="5,1" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                Visibility="{Binding Badges.OverdueInvoices, Converter={StaticResource PosIntToVis}}">
+                                            <TextBlock Text="{Binding Badges.OverdueInvoices}" FontSize="9.5" FontWeight="Bold" Foreground="{StaticResource JacxiErrorBrush}"
+                                                       Visibility="{Binding IsSidebarCollapsed, Converter={StaticResource InvBoolToVis}}" />
                                         </Border>
                                     </Grid>
                                 </RadioButton>
-                                <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="OfficeExpenses">
-                                    <TextBlock Text="💳  Office Expenses" />
+                                <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="OfficeExpenses" ToolTip="Office Expenses">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Path Style="{StaticResource NavIconStyle}" Data="{StaticResource IconExpense}" />
+                                        <TextBlock Text="Office Expenses" Margin="11,0,0,0" VerticalAlignment="Center" Visibility="{Binding IsSidebarCollapsed, Converter={StaticResource InvBoolToVis}}" />
+                                    </StackPanel>
                                 </RadioButton>
-                                <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="CompanyLedgers">
-                                    <TextBlock Text="🏢  Company Ledgers" />
+                                <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="CompanyLedgers" ToolTip="Company Ledgers">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Path Style="{StaticResource NavIconStyle}" Data="{StaticResource IconBuilding}" />
+                                        <TextBlock Text="Company Ledgers" Margin="11,0,0,0" VerticalAlignment="Center" Visibility="{Binding IsSidebarCollapsed, Converter={StaticResource InvBoolToVis}}" />
+                                    </StackPanel>
                                 </RadioButton>
-                                <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="PriceComparison">
-                                    <TextBlock Text="💱  Carrier Rates &amp; FX" />
+                                <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="PriceComparison" ToolTip="Carrier Rates &amp; FX">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Path Style="{StaticResource NavIconStyle}" Data="{StaticResource IconRates}" />
+                                        <TextBlock Text="Rates &amp; FX" Margin="11,0,0,0" VerticalAlignment="Center" Visibility="{Binding IsSidebarCollapsed, Converter={StaticResource InvBoolToVis}}" />
+                                    </StackPanel>
                                 </RadioButton>
                             </StackPanel>
 
-                            <!-- CUSTOMERS & PORTALS -->
-                            <TextBlock Text="CUSTOMERS &amp; PORTALS" FontSize="10" FontWeight="Bold" Foreground="#6B7280" Margin="8,12,0,4" />
-                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="Customers">
-                                <TextBlock Text="👥  Customers &amp; Users" />
+                            <!-- CUSTOMERS -->
+                            <TextBlock Text="CUSTOMERS" Style="{StaticResource NavGroupHeader}" />
+                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="Customers" ToolTip="Customers &amp; Users">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Style="{StaticResource NavIconStyle}" Data="{StaticResource IconUsers}" />
+                                    <TextBlock Text="Customers &amp; Users" Margin="11,0,0,0" VerticalAlignment="Center" Visibility="{Binding IsSidebarCollapsed, Converter={StaticResource InvBoolToVis}}" />
+                                </StackPanel>
                             </RadioButton>
-                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="PartnerPortals">
-                                <TextBlock Text="🛡  Partner Portals" />
+                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="PartnerPortals" ToolTip="Partner Portals">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Style="{StaticResource NavIconStyle}" Data="{StaticResource IconShield}" />
+                                    <TextBlock Text="Partner Portals" Margin="11,0,0,0" VerticalAlignment="Center" Visibility="{Binding IsSidebarCollapsed, Converter={StaticResource InvBoolToVis}}" />
+                                </StackPanel>
                             </RadioButton>
-                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="Communications">
-                                <TextBlock Text="💬  Comms Dispatch" />
+                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="Communications" ToolTip="Communications">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Style="{StaticResource NavIconStyle}" Data="{StaticResource IconChat}" />
+                                    <TextBlock Text="Communications" Margin="11,0,0,0" VerticalAlignment="Center" Visibility="{Binding IsSidebarCollapsed, Converter={StaticResource InvBoolToVis}}" />
+                                </StackPanel>
                             </RadioButton>
 
-                            <!-- TOOLS, AI & SYSTEM -->
-                            <TextBlock Text="TOOLS, AI &amp; SYSTEM" FontSize="10" FontWeight="Bold" Foreground="#6B7280" Margin="8,12,0,4" />
-                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="Calculator">
-                                <TextBlock Text="⚡  Rate Calculator" />
+                            <!-- TOOLS & SYSTEM -->
+                            <TextBlock Text="SYSTEM" Style="{StaticResource NavGroupHeader}" />
+                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="Calculator" ToolTip="Rate Calculator">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Style="{StaticResource NavIconStyle}" Data="{StaticResource IconBolt}" />
+                                    <TextBlock Text="Rate Calculator" Margin="11,0,0,0" VerticalAlignment="Center" Visibility="{Binding IsSidebarCollapsed, Converter={StaticResource InvBoolToVis}}" />
+                                </StackPanel>
                             </RadioButton>
-                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="Documents">
-                                <TextBlock Text="📄  Documents &amp; PDFs" />
+                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="Documents" ToolTip="Documents &amp; PDFs">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Style="{StaticResource NavIconStyle}" Data="{StaticResource IconDoc}" />
+                                    <TextBlock Text="Documents &amp; PDFs" Margin="11,0,0,0" VerticalAlignment="Center" Visibility="{Binding IsSidebarCollapsed, Converter={StaticResource InvBoolToVis}}" />
+                                </StackPanel>
                             </RadioButton>
-                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="AiCopilot">
-                                <TextBlock Text="🤖  AI Copilot &amp; Voice" />
+                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="AiCopilot" ToolTip="AI Copilot &amp; Voice">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Style="{StaticResource NavIconStyle}" Data="{StaticResource IconSparkles}" />
+                                    <TextBlock Text="AI Copilot" Margin="11,0,0,0" VerticalAlignment="Center" Visibility="{Binding IsSidebarCollapsed, Converter={StaticResource InvBoolToVis}}" />
+                                </StackPanel>
                             </RadioButton>
-                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Visibility="{Binding CanViewAnalytics, Converter={StaticResource BoolToVis}}" Command="{Binding NavigateCommand}" CommandParameter="Analytics">
-                                <TextBlock Text="📊  Analytics &amp; Charts" />
+                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Visibility="{Binding CanViewAnalytics, Converter={StaticResource BoolToVis}}" Command="{Binding NavigateCommand}" CommandParameter="Analytics" ToolTip="Analytics &amp; Charts">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Style="{StaticResource NavIconStyle}" Data="{StaticResource IconChart}" />
+                                    <TextBlock Text="Analytics" Margin="11,0,0,0" VerticalAlignment="Center" Visibility="{Binding IsSidebarCollapsed, Converter={StaticResource InvBoolToVis}}" />
+                                </StackPanel>
                             </RadioButton>
-                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="Settings">
-                                <TextBlock Text="⚙  Cloud Sync &amp; Updates" />
+                            <RadioButton Style="{StaticResource JacxiNavButton}" GroupName="NavMenu" Command="{Binding NavigateCommand}" CommandParameter="Settings" ToolTip="Settings &amp; Sync">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Style="{StaticResource NavIconStyle}" Data="{StaticResource IconSettings}" />
+                                    <TextBlock Text="Settings &amp; Sync" Margin="11,0,0,0" VerticalAlignment="Center" Visibility="{Binding IsSidebarCollapsed, Converter={StaticResource InvBoolToVis}}" />
+                                </StackPanel>
                             </RadioButton>
                         </StackPanel>
                     </ScrollViewer>
 
-                    <!-- Admin Profile & Lock Button -->
-                    <Border Grid.Row="2" Padding="14,12" BorderBrush="{StaticResource JacxiDarkShellBorderBrush}" BorderThickness="0,1,0,0">
+                    <!-- Clean Admin Footer -->
+                    <Border Grid.Row="2" Padding="12,11" BorderBrush="{StaticResource JacxiDarkShellBorderBrush}" BorderThickness="0,1,0,0">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" />
@@ -174,30 +288,31 @@
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
 
-                            <Border Width="34" Height="34" CornerRadius="17" Background="{StaticResource JacxiDarkShellSubtleBrush}" BorderBrush="{StaticResource JacxiGoldBrush}" BorderThickness="1.5" Margin="0,0,10,0">
+                            <Border Width="32" Height="32" CornerRadius="16" Background="{StaticResource JacxiDarkShellSubtleBrush}" BorderBrush="{StaticResource JacxiGoldBrush}" BorderThickness="1.2">
                                 <TextBlock Text="{Binding CurrentAdmin.Initials}" Foreground="{StaticResource JacxiGoldBrush}" FontWeight="Bold" FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Border>
 
-                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                <TextBlock Text="{Binding CurrentAdmin.Name}" Foreground="#FFFFFF" FontWeight="SemiBold" FontSize="12" TextTrimming="CharacterEllipsis" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="10,0,0,0" Visibility="{Binding IsSidebarCollapsed, Converter={StaticResource InvBoolToVis}}">
+                                <TextBlock Text="{Binding CurrentAdmin.Name}" Foreground="#FFFFFF" FontWeight="SemiBold" FontSize="11.5" TextTrimming="CharacterEllipsis" />
                                 <TextBlock Text="{Binding CurrentAdmin.RoleUpper}" Foreground="{StaticResource JacxiGoldBrush}" FontSize="9" FontWeight="Bold" />
                             </StackPanel>
 
-                            <Button Grid.Column="2" Content="Lock" Command="{Binding SignOutCommand}" Background="Transparent" Foreground="#9CA3AF" BorderThickness="0" FontSize="11" Cursor="Hand" Padding="6,4" />
+                            <Button Grid.Column="2" Content="Lock" Command="{Binding SignOutCommand}" Background="Transparent" Foreground="#9CA3AF" BorderThickness="0" FontSize="11" Cursor="Hand" Padding="6,4"
+                                    Visibility="{Binding IsSidebarCollapsed, Converter={StaticResource InvBoolToVis}}" />
                         </Grid>
                     </Border>
                 </Grid>
             </Border>
 
-            <!-- TOP ADMIN BAR, CONTENT HOST, AND RIGHT DRAWERS -->
+            <!-- TOP HEADER BAR & RESPONSIVE CONTENT HOST -->
             <Grid Grid.Column="1">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="58" />
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
 
-                <!-- Top Header Bar -->
-                <Border Grid.Row="0" Background="{StaticResource JacxiPanelBrush}" BorderBrush="{StaticResource JacxiBorderBrush}" BorderThickness="0,0,0,1" Padding="24,0">
+                <!-- Minimalist Top Bar -->
+                <Border Grid.Row="0" Background="{StaticResource JacxiPanelBrush}" BorderBrush="{StaticResource JacxiBorderBrush}" BorderThickness="0,0,0,1" Padding="20,0">
                     <Grid VerticalAlignment="Center">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
@@ -205,115 +320,139 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
 
-                        <!-- Status Badge -->
-                        <Border Grid.Column="0" Background="{StaticResource JacxiSuccessBgBrush}" BorderBrush="{StaticResource JacxiSuccessBorderBrush}" BorderThickness="1" CornerRadius="12" Padding="10,4" Margin="0,0,14,0" VerticalAlignment="Center">
-                            <StackPanel Orientation="Horizontal">
-                                <Ellipse Width="6" Height="6" Fill="{StaticResource JacxiSuccessBrush}" Margin="0,0,6,0" VerticalAlignment="Center" />
-                                <TextBlock Text="{Binding CloudStatusLabel}" FontSize="10" FontWeight="Bold" Foreground="{StaticResource JacxiSuccessBrush}" VerticalAlignment="Center" />
-                            </StackPanel>
-                        </Border>
+                        <!-- Left: Sidebar Toggle + Clean Breadcrumb + Status Dot -->
+                        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Button Style="{StaticResource JacxiGhostButton}" Command="{Binding ToggleSidebarCommand}" Padding="8" Margin="0,0,10,0" ToolTip="Toggle Sidebar">
+                                <Path Width="16" Height="16" Stretch="Uniform" Data="{StaticResource IconMenu}" Stroke="{StaticResource JacxiTextSecondaryBrush}" StrokeThickness="1.8" />
+                            </Button>
 
-                        <!-- Global Admin Search (Ctrl+K) -->
-                        <Grid Grid.Column="1" MaxWidth="440" HorizontalAlignment="Left">
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="300" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                            <TextBox x:Name="GlobalSearchBox" Grid.Column="0" Style="{StaticResource JacxiTextBox}" Text="{Binding GlobalSearchQuery, UpdateSourceTrigger=PropertyChanged}" Height="34" Padding="10,6" />
-                            <Button Grid.Column="1" Content="Search (Ctrl+K)" Style="{StaticResource JacxiOutlineButton}" Command="{Binding GlobalSearchCommand}" Padding="10,5" Margin="6,0,0,0" Height="34" FontSize="11" />
-                        </Grid>
+                            <TextBlock Text="JACXI" FontSize="12.5" Foreground="{StaticResource JacxiTextSecondaryBrush}" VerticalAlignment="Center" />
+                            <TextBlock Text=" / " FontSize="12.5" Foreground="{StaticResource JacxiTextMutedBrush}" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding CurrentPageTitle}" FontSize="13.5" FontWeight="SemiBold" Foreground="{StaticResource JacxiTextPrimaryBrush}" VerticalAlignment="Center" Margin="0,0,14,0" />
 
-                        <!-- Quick Actions + Notification Bell + Copilot Drawer -->
+                            <Border Background="{StaticResource JacxiSuccessBgBrush}" BorderBrush="{StaticResource JacxiSuccessBorderBrush}" BorderThickness="1" CornerRadius="10" Padding="8,3" VerticalAlignment="Center">
+                                <StackPanel Orientation="Horizontal">
+                                    <Ellipse Width="5.5" Height="5.5" Fill="{StaticResource JacxiSuccessBrush}" Margin="0,0,5,0" VerticalAlignment="Center" />
+                                    <TextBlock Text="{Binding CloudStatusLabel}" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource JacxiSuccessBrush}" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+
+                        <!-- Right: Search + Notifications + Copilot + Primary Action -->
                         <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                            <Button Content="{Binding UnreadNotificationCount, StringFormat='🔔 ({0})'}"
-                                    Style="{StaticResource JacxiOutlineButton}"
-                                    Command="{Binding ToggleNotificationsCommand}"
-                                    Padding="10,6" Margin="0,0,8,0" />
-                            <Button Content="🤖 AI Copilot"
-                                    Style="{StaticResource JacxiOutlineButton}"
-                                    Command="{Binding ToggleCopilotDrawerCommand}"
-                                    Padding="10,6" Margin="0,0,8,0" />
-                            <Button Content="Operations Board" Style="{StaticResource JacxiOutlineButton}" Command="{Binding NavigateCommand}" CommandParameter="OperationsBoard" Padding="10,6" Margin="0,0,8,0" />
-                            <Button Content="+ New Shipment" Style="{StaticResource JacxiPrimaryButton}" Command="{Binding NavigateCommand}" CommandParameter="Shipments" Padding="12,6" />
+                            <TextBox x:Name="GlobalSearchBox"
+                                     Style="{StaticResource JacxiTextBox}"
+                                     Text="{Binding GlobalSearchQuery, UpdateSourceTrigger=PropertyChanged}"
+                                     Tag="Search VIN, tracking, container... (Ctrl+K)"
+                                     Width="250"
+                                     Height="34"
+                                     Padding="10,6"
+                                     Margin="0,0,8,0"
+                                     KeyDown="GlobalSearchBox_KeyDown" />
+
+                            <Button Style="{StaticResource JacxiOutlineButton}" Command="{Binding ToggleNotificationsCommand}" Padding="10,6" Margin="0,0,8,0" ToolTip="Notifications">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Width="14" Height="14" Stretch="Uniform" Data="{StaticResource IconBell}" Stroke="{StaticResource JacxiTextPrimaryBrush}" StrokeThickness="1.7" />
+                                    <Border Background="{StaticResource JacxiGoldBrush}" CornerRadius="7" Padding="5,0" Margin="6,0,0,0"
+                                            Visibility="{Binding UnreadNotificationCount, Converter={StaticResource PosIntToVis}}">
+                                        <TextBlock Text="{Binding UnreadNotificationCount}" FontSize="9.5" FontWeight="Bold" Foreground="#111827" />
+                                    </Border>
+                                </StackPanel>
+                            </Button>
+
+                            <Button Style="{StaticResource JacxiOutlineButton}" Command="{Binding ToggleCopilotDrawerCommand}" Padding="11,6" Margin="0,0,8,0" ToolTip="AI Copilot">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Width="13" Height="13" Stretch="Uniform" Data="{StaticResource IconSparkles}" Stroke="{StaticResource JacxiGoldActiveBrush}" StrokeThickness="1.7" Margin="0,0,6,0" />
+                                    <TextBlock Text="Copilot" />
+                                </StackPanel>
+                            </Button>
+
+                            <Button Content="+ New" Style="{StaticResource JacxiPrimaryButton}" Command="{Binding NavigateCommand}" CommandParameter="Shipments" Padding="14,7" />
                         </StackPanel>
                     </Grid>
                 </Border>
 
-                <!-- Dynamic Active View + Optional Overlay Drawers -->
+                <!-- Dynamic Content & Drawers -->
                 <Grid Grid.Row="1">
                     <ContentControl Content="{Binding CurrentView}" />
 
-                    <!-- Slide-Over Notifications Drawer -->
-                    <Border Width="340" HorizontalAlignment="Right" Background="{StaticResource JacxiPanelBrush}" BorderBrush="{StaticResource JacxiBorderBrush}" BorderThickness="1,0,0,0" Padding="18"
+                    <!-- Minimalist Notifications Drawer -->
+                    <Border Width="330" HorizontalAlignment="Right" Background="{StaticResource JacxiPanelBrush}" BorderBrush="{StaticResource JacxiBorderBrush}" BorderThickness="1,0,0,0" Padding="18"
                             Visibility="{Binding IsNotificationsOpen, Converter={StaticResource BoolToVis}}"
                             Effect="{StaticResource JacxiCardShadow}">
                         <Grid>
                             <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                            <Grid Grid.Row="0" Margin="0,0,0,12">
-                                <TextBlock Text="NOTIFICATIONS" FontSize="12" FontWeight="Bold" VerticalAlignment="Center" />
-                                <Button Content="Mark All Read" Style="{StaticResource JacxiGhostButton}" Command="{Binding MarkNotificationsReadCommand}" HorizontalAlignment="Right" Padding="6,2" FontSize="11" />
+                            <Grid Grid.Row="0" Margin="0,0,0,14">
+                                <TextBlock Text="Notifications" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                <Button Content="Mark read" Style="{StaticResource JacxiGhostButton}" Command="{Binding MarkNotificationsReadCommand}" HorizontalAlignment="Right" Padding="6,2" FontSize="11" />
                             </Grid>
                             <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                                 <ItemsControl ItemsSource="{Binding Notifications}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <Border Background="{StaticResource JacxiBackgroundBrush}" BorderBrush="{StaticResource JacxiBorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10" Margin="0,0,0,8">
+                                            <Border Background="{StaticResource JacxiBackgroundBrush}" BorderBrush="{StaticResource JacxiBorderBrush}" BorderThickness="1" CornerRadius="10" Padding="12" Margin="0,0,0,8">
                                                 <StackPanel>
                                                     <Grid>
                                                         <TextBlock Text="{Binding Title}" FontSize="12" FontWeight="SemiBold" />
-                                                        <TextBlock Text="{Binding Timestamp}" FontSize="10" Foreground="{StaticResource JacxiTextSecondaryBrush}" HorizontalAlignment="Right" />
+                                                        <TextBlock Text="{Binding Timestamp}" FontSize="10" Foreground="{StaticResource JacxiTextMutedBrush}" HorizontalAlignment="Right" />
                                                     </Grid>
-                                                    <TextBlock Text="{Binding Description}" FontSize="11" Foreground="{StaticResource JacxiTextSecondaryBrush}" TextWrapping="Wrap" Margin="0,3,0,0" />
+                                                    <TextBlock Text="{Binding Description}" FontSize="11.5" Foreground="{StaticResource JacxiTextSecondaryBrush}" TextWrapping="Wrap" Margin="0,4,0,0" />
                                                 </StackPanel>
                                             </Border>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
                             </ScrollViewer>
-                            <Button Grid.Row="2" Content="Close Drawer" Style="{StaticResource JacxiOutlineButton}" Command="{Binding ToggleNotificationsCommand}" Margin="0,10,0,0" />
+                            <Button Grid.Row="2" Content="Close" Style="{StaticResource JacxiOutlineButton}" Command="{Binding ToggleNotificationsCommand}" Margin="0,12,0,0" />
                         </Grid>
                     </Border>
 
-                    <!-- Slide-Over Admin AI Copilot Drawer -->
-                    <Border Width="370" HorizontalAlignment="Right" Background="{StaticResource JacxiPanelBrush}" BorderBrush="{StaticResource JacxiGoldBrush}" BorderThickness="1.5,0,0,0" Padding="18"
+                    <!-- Minimalist AI Copilot Drawer -->
+                    <Border Width="360" HorizontalAlignment="Right" Background="{StaticResource JacxiPanelBrush}" BorderBrush="{StaticResource JacxiGoldBrush}" BorderThickness="1,0,0,0" Padding="18"
                             Visibility="{Binding IsCopilotDrawerOpen, Converter={StaticResource BoolToVis}}"
                             Effect="{StaticResource JacxiCardShadow}">
                         <Grid>
                             <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                            <Grid Grid.Row="0" Margin="0,0,0,12">
-                                <TextBlock Text="🤖 JACXI ADMIN COPILOT" FontSize="12" FontWeight="Bold" Foreground="{StaticResource JacxiGoldActiveBrush}" VerticalAlignment="Center" />
+                            <Grid Grid.Row="0" Margin="0,0,0,14">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Path Width="14" Height="14" Stretch="Uniform" Data="{StaticResource IconSparkles}" Stroke="{StaticResource JacxiGoldActiveBrush}" StrokeThickness="1.8" Margin="0,0,8,0" />
+                                    <TextBlock Text="JACXI Copilot" FontSize="15" FontWeight="SemiBold" />
+                                </StackPanel>
                                 <Button Content="Close" Style="{StaticResource JacxiGhostButton}" Command="{Binding ToggleCopilotDrawerCommand}" HorizontalAlignment="Right" Padding="6,2" FontSize="11" />
                             </Grid>
                             <StackPanel Grid.Row="1">
-                                <TextBox Style="{StaticResource JacxiTextBox}" Text="{Binding AiCopilotVM.PromptInput, UpdateSourceTrigger=PropertyChanged}" Height="38" Margin="0,0,0,8" />
+                                <TextBox Style="{StaticResource JacxiTextBox}" Text="{Binding AiCopilotVM.PromptInput, UpdateSourceTrigger=PropertyChanged}" Tag="Ask about overdue invoices, containers..." Height="38" Margin="0,0,0,8" />
                                 <Button Content="Ask Copilot" Style="{StaticResource JacxiPrimaryButton}" Command="{Binding AiCopilotVM.AskCopilotCommand}" Margin="0,0,0,12" />
-                                <Border Background="{StaticResource JacxiDarkShellBrush}" CornerRadius="8" Padding="12">
-                                    <TextBlock Text="{Binding AiCopilotVM.LatestAnswer}" FontSize="12" Foreground="#E5E7EB" TextWrapping="Wrap" />
+                                <Border Background="{StaticResource JacxiDarkShellBrush}" CornerRadius="10" Padding="14">
+                                    <TextBlock Text="{Binding AiCopilotVM.LatestAnswer}" FontSize="12" Foreground="#E5E7EB" TextWrapping="Wrap" LineHeight="18" />
                                 </Border>
                             </StackPanel>
-                            <Button Grid.Row="2" Content="Open Full AI &amp; Voice Console →" Style="{StaticResource JacxiOutlineButton}" Command="{Binding NavigateCommand}" CommandParameter="AiCopilot" />
+                            <Button Grid.Row="2" Content="Open AI &amp; Voice Console →" Style="{StaticResource JacxiOutlineButton}" Command="{Binding NavigateCommand}" CommandParameter="AiCopilot" />
                         </Grid>
                     </Border>
                 </Grid>
             </Grid>
         </Grid>
 
-        <!-- LOCK / ADMIN SIGN-IN OVERLAY -->
+        <!-- CLEAN LOCK / SIGN-IN OVERLAY -->
         <Grid Background="{StaticResource JacxiDarkShellBrush}" Visibility="{Binding IsAdminAuthenticated, Converter={StaticResource InvBoolToVis}}">
-            <Border Style="{StaticResource JacxiCardBorder}" Width="420" VerticalAlignment="Center" HorizontalAlignment="Center" Padding="32">
+            <Border Style="{StaticResource JacxiCardBorder}" Width="400" VerticalAlignment="Center" HorizontalAlignment="Center" Padding="32">
                 <StackPanel>
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,20">
-                        <Border Width="40" Height="40" CornerRadius="10" Background="{StaticResource JacxiGoldBrush}" Margin="0,0,12,0">
-                            <TextBlock Text="JX" FontWeight="Bold" FontSize="18" Foreground="#111827" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,22">
+                        <Border Width="38" Height="38" CornerRadius="10" Background="{StaticResource JacxiGoldBrush}" Margin="0,0,12,0">
+                            <TextBlock Text="JX" FontWeight="Bold" FontSize="16" Foreground="#111827" HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
                         <StackPanel VerticalAlignment="Center">
-                            <TextBlock Text="JACXI SHIPPING" FontSize="18" FontWeight="Bold" />
-                            <TextBlock Text="ADMIN OPERATIONS ACCESS" FontSize="10" FontWeight="Bold" Foreground="{StaticResource JacxiGoldActiveBrush}" />
+                            <TextBlock Text="JACXI SHIPPING" FontSize="17" FontWeight="Bold" />
+                            <TextBlock Text="ADMIN ACCESS" FontSize="9.5" FontWeight="Bold" Foreground="{StaticResource JacxiGoldActiveBrush}" />
                         </StackPanel>
                     </StackPanel>
 
                     <TextBlock Text="Admin Email" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,4" />
-                    <TextBox Style="{StaticResource JacxiTextBox}" Text="{Binding LoginEmail}" Height="38" Margin="0,0,0,12" />
+                    <TextBox Style="{StaticResource JacxiTextBox}" Text="{Binding LoginEmail}" Tag="admin@jacxishipping.com" Height="38" Margin="0,0,0,12" />
 
                     <TextBlock Text="8-Character Login Code" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,4" />
-                    <TextBox Style="{StaticResource JacxiTextBox}" Text="{Binding LoginCodeInput}" Height="38" Margin="0,0,0,18" />
+                    <TextBox Style="{StaticResource JacxiTextBox}" Text="{Binding LoginCodeInput}" Tag="e.g. JX884910" Height="38" Margin="0,0,0,18" />
 
                     <Button Content="Unlock Admin Suite" Style="{StaticResource JacxiPrimaryButton}" Command="{Binding SignInLocalCommand}" Height="42" />
                     <TextBlock Text="{Binding LoginStatus}" FontSize="11" Foreground="{StaticResource JacxiTextSecondaryBrush}" TextAlignment="Center" Margin="0,12,0,0" TextWrapping="Wrap" />

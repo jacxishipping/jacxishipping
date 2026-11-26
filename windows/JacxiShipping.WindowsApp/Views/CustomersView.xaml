@@ -50,7 +50,7 @@
             <Border Grid.Column="0" Style="{StaticResource JacxiCardBorder}" Margin="0,0,20,0" Padding="0">
                 <Grid>
                     <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
-                    <TextBox Grid.Row="0" Style="{StaticResource JacxiTextBox}" Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}" Margin="14,14,14,10" Height="36" />
+                    <TextBox Grid.Row="0" Style="{StaticResource JacxiTextBox}" Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}" Tag="Search name, email, login code, role..." Margin="14,14,14,10" Height="36" />
                     <DataGrid Grid.Row="1" ItemsSource="{Binding FilteredUsers}" SelectedItem="{Binding SelectedUser, Mode=TwoWay}"
                               AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column"
                               GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="{StaticResource JacxiBorderBrush}"

@@ -18,22 +18,17 @@
                 </StackPanel>
             </Grid>
 
-            <!-- Financial KPIs -->
-            <Grid Margin="0,0,0,22">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-                <controls:StatsCard Grid.Column="0" Title="PENDING RECEIVABLES" Value="{Binding Stats.PendingInvoicesFormatted}" Subtitle="Open customer invoices" />
-                <controls:StatsCard Grid.Column="1" Title="COLLECTED REVENUE" Value="{Binding Stats.CollectedRevenueFormatted}" Subtitle="Posted payments" />
-                <controls:StatsCard Grid.Column="2" Title="OFFICE OPEX" Value="{Binding Stats.OfficeExpensesFormatted}" Subtitle="Monthly operating expenses" />
-                <controls:StatsCard Grid.Column="3" Title="ESTIMATED NET PROFIT" Value="{Binding Stats.GrossProfitFormatted}" Subtitle="Margin after OpEx" />
-            </Grid>
+            <!-- Responsive Financial KPIs -->
+            <controls:ResponsiveColumnsPanel MaxColumns="4" MinColumnWidth="210" ColumnGap="16" RowGap="16" Margin="0,0,0,22">
+                <controls:StatsCard Title="PENDING RECEIVABLES" Value="{Binding Stats.PendingInvoicesFormatted}" Subtitle="Open customer invoices" />
+                <controls:StatsCard Title="COLLECTED REVENUE" Value="{Binding Stats.CollectedRevenueFormatted}" Subtitle="Posted payments" />
+                <controls:StatsCard Title="OFFICE OPEX" Value="{Binding Stats.OfficeExpensesFormatted}" Subtitle="Monthly operating expenses" />
+                <controls:StatsCard Title="ESTIMATED NET PROFIT" Value="{Binding Stats.GrossProfitFormatted}" Subtitle="Margin after OpEx" />
+            </controls:ResponsiveColumnsPanel>
 
-            <Grid>
-                <Grid.ColumnDefinitions><ColumnDefinition Width="1.2*" /><ColumnDefinition Width="1.4*" /></Grid.ColumnDefinitions>
-
+            <controls:ResponsiveColumnsPanel MaxColumns="2" MinColumnWidth="420" ColumnGap="20" RowGap="20">
                 <!-- Left: Customer Balances + Post Entry -->
-                <StackPanel Grid.Column="0" Margin="0,0,20,0">
+                <StackPanel>
                     <Border Style="{StaticResource JacxiCardBorder}" Margin="0,0,0,18">
                         <StackPanel>
                             <TextBlock Text="CUSTOMER BALANCES (SELECT TO POST ENTRY)" FontSize="10" FontWeight="Bold" Foreground="{StaticResource JacxiTextSecondaryBrush}" Margin="0,0,0,10" />
@@ -75,7 +70,7 @@
                 </StackPanel>
 
                 <!-- Right: Ledger Transaction Log -->
-                <Border Grid.Column="1" Style="{StaticResource JacxiCardBorder}" Padding="0">
+                <Border Style="{StaticResource JacxiCardBorder}" Padding="0">
                     <StackPanel>
                         <TextBlock Text="GENERAL LEDGER ENTRIES" FontSize="11" FontWeight="Bold" Foreground="{StaticResource JacxiTextSecondaryBrush}" Margin="16,16,16,10" />
                         <DataGrid ItemsSource="{Binding LedgerEntries}" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column"
@@ -92,7 +87,7 @@
                         </DataGrid>
                     </StackPanel>
                 </Border>
-            </Grid>
+            </controls:ResponsiveColumnsPanel>
         </StackPanel>
     </ScrollViewer>
 </UserControl>
