@@ -1,0 +1,237 @@
+<UserControl x:Class="JacxiShipping.WindowsApp.Views.CalculatorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             mc:Ignorable="d" 
+             d:DesignHeight="750" d:DesignWidth="1050">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="32,24,32,32">
+            <!-- Header -->
+            <StackPanel Margin="0,0,0,24">
+                <TextBlock Text="Instant Freight Rate Calculator &amp; Booking Engine"
+                           FontFamily="{StaticResource JacxiFontFamily}"
+                           FontSize="24"
+                           FontWeight="Bold"
+                           Foreground="{StaticResource JacxiTextPrimaryBrush}" />
+                <TextBlock Text="Calculate inland towing, containerized ocean freight, and customs documentation based on official JACXI tariffs."
+                           FontFamily="{StaticResource JacxiFontFamily}"
+                           FontSize="13"
+                           Foreground="{StaticResource JacxiTextSecondaryBrush}"
+                           Margin="0,4,0,0" />
+            </StackPanel>
+
+            <!-- Success Banner (if any) -->
+            <Border Background="{StaticResource JacxiSuccessBgBrush}"
+                    BorderBrush="{StaticResource JacxiSuccessBorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="{StaticResource JacxiRadiusControl}"
+                    Padding="16,12"
+                    Margin="0,0,0,20">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding SuccessMessage, Converter={x:Null}}" Value="False">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="✓" Foreground="{StaticResource JacxiSuccessBrush}" FontWeight="Bold" Margin="0,0,10,0" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="1" Text="{Binding SuccessMessage}" Foreground="{StaticResource JacxiSuccessBrush}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </Grid>
+            </Border>
+
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1.4*" />
+                    <ColumnDefinition Width="1.1*" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Left Form: Origin, Destination, Vehicle -->
+                <Border Grid.Column="0" Style="{StaticResource JacxiCardBorder}" Margin="0,0,24,0">
+                    <StackPanel>
+                        <TextBlock Text="1. ROUTE &amp; VEHICLE PARAMETERS"
+                                   FontFamily="{StaticResource JacxiFontFamily}"
+                                   FontSize="11"
+                                   FontWeight="Bold"
+                                   Foreground="{StaticResource JacxiTextSecondaryBrush}"
+                                   Margin="0,0,0,16" />
+
+                        <!-- Origin US State -->
+                        <TextBlock Text="Origin State (Copart / IAAI Auction)"
+                                   FontFamily="{StaticResource JacxiFontFamily}"
+                                   FontSize="12"
+                                   FontWeight="SemiBold"
+                                   Foreground="{StaticResource JacxiTextPrimaryBrush}"
+                                   Margin="0,0,0,6" />
+                        <ComboBox Style="{StaticResource JacxiComboBox}"
+                                  ItemsSource="{Binding States}"
+                                  SelectedItem="{Binding SelectedState, Mode=TwoWay}"
+                                  Height="40"
+                                  Margin="0,0,0,16" />
+
+                        <!-- Destination Port -->
+                        <TextBlock Text="Destination Port / Border Crossing"
+                                   FontFamily="{StaticResource JacxiFontFamily}"
+                                   FontSize="12"
+                                   FontWeight="SemiBold"
+                                   Foreground="{StaticResource JacxiTextPrimaryBrush}"
+                                   Margin="0,0,0,6" />
+                        <ComboBox Style="{StaticResource JacxiComboBox}"
+                                  ItemsSource="{Binding Destinations}"
+                                  SelectedItem="{Binding SelectedDestination, Mode=TwoWay}"
+                                  Height="40"
+                                  Margin="0,0,0,16" />
+
+                        <!-- Vehicle Category -->
+                        <TextBlock Text="Vehicle Category &amp; Size Multiplier"
+                                   FontFamily="{StaticResource JacxiFontFamily}"
+                                   FontSize="12"
+                                   FontWeight="SemiBold"
+                                   Foreground="{StaticResource JacxiTextPrimaryBrush}"
+                                   Margin="0,0,0,6" />
+                        <ComboBox Style="{StaticResource JacxiComboBox}"
+                                  ItemsSource="{Binding VehicleCategories}"
+                                  SelectedItem="{Binding SelectedVehicleCategory, Mode=TwoWay}"
+                                  Height="40"
+                                  Margin="0,0,24" />
+
+                        <Separator Background="{StaticResource JacxiBorderBrush}" Margin="0,0,0,16" />
+
+                        <TextBlock Text="2. VEHICLE &amp; CLIENT PARTICULARS"
+                                   FontFamily="{StaticResource JacxiFontFamily}"
+                                   FontSize="11"
+                                   FontWeight="Bold"
+                                   Foreground="{StaticResource JacxiTextSecondaryBrush}"
+                                   Margin="0,0,0,16" />
+
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                <TextBlock Text="Vehicle Year / Make / Model" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                <TextBox Style="{StaticResource JacxiTextBox}" Text="{Binding MakeModelInput, UpdateSourceTrigger=PropertyChanged}" Height="38" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                <TextBlock Text="Vehicle VIN (17 digits)" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                <TextBox Style="{StaticResource JacxiTextBox}" Text="{Binding VinInput, UpdateSourceTrigger=PropertyChanged}" Height="38" />
+                            </StackPanel>
+                        </Grid>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                <TextBlock Text="Consignee / Client Name" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                <TextBox Style="{StaticResource JacxiTextBox}" Text="{Binding CustomerNameInput, UpdateSourceTrigger=PropertyChanged}" Height="38" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                <TextBlock Text="Phone / WhatsApp Contact" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                <TextBox Style="{StaticResource JacxiTextBox}" Text="{Binding CustomerPhoneInput, UpdateSourceTrigger=PropertyChanged}" Height="38" />
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Right Card: Instant Quote Breakdown & Action -->
+                <Border Grid.Column="1" Style="{StaticResource JacxiCardBorder}">
+                    <StackPanel>
+                        <TextBlock Text="FREIGHT QUOTE ESTIMATION"
+                                   FontFamily="{StaticResource JacxiFontFamily}"
+                                   FontSize="11"
+                                   FontWeight="Bold"
+                                   Foreground="{StaticResource JacxiGoldActiveBrush}"
+                                   Margin="0,0,0,12" />
+
+                        <!-- Large Amount Display -->
+                        <Border Background="{StaticResource JacxiGoldLightBrush}"
+                                BorderBrush="{StaticResource JacxiGoldBorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="{StaticResource JacxiRadiusControl}"
+                                Padding="20,16"
+                                Margin="0,0,0,20">
+                            <StackPanel>
+                                <TextBlock Text="TOTAL ESTIMATED FREIGHT"
+                                           FontFamily="{StaticResource JacxiFontFamily}"
+                                           FontSize="11"
+                                           FontWeight="SemiBold"
+                                           Foreground="{StaticResource JacxiTextSecondaryBrush}" />
+                                <TextBlock Text="{Binding CurrentQuote.FormattedTotal}"
+                                           FontFamily="{StaticResource JacxiFontFamily}"
+                                           FontSize="36"
+                                           FontWeight="Bold"
+                                           Foreground="{StaticResource JacxiTextPrimaryBrush}"
+                                           Margin="0,4,0,0" />
+                                <TextBlock Text="Includes ocean shipping, terminal tow &amp; customs documentation"
+                                           FontFamily="{StaticResource JacxiFontFamily}"
+                                           FontSize="11"
+                                           Foreground="{StaticResource JacxiTextSecondaryBrush}"
+                                           Margin="0,2,0,0" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Breakdown items -->
+                        <TextBlock Text="COST BREAKDOWN"
+                                   FontFamily="{StaticResource JacxiFontFamily}"
+                                   FontSize="11"
+                                   FontWeight="Bold"
+                                   Foreground="{StaticResource JacxiTextSecondaryBrush}"
+                                   Margin="0,0,0,12" />
+
+                        <Grid Margin="0,0,0,10">
+                            <TextBlock Text="Inland Auction Towing" FontSize="13" Foreground="{StaticResource JacxiTextPrimaryBrush}" />
+                            <TextBlock Text="{Binding CurrentQuote.InlandTowing, StringFormat='${0:N0}'}" FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                        </Grid>
+
+                        <Grid Margin="0,0,0,10">
+                            <TextBlock Text="Base Ocean Freight" FontSize="13" Foreground="{StaticResource JacxiTextPrimaryBrush}" />
+                            <TextBlock Text="{Binding CurrentQuote.OceanFreight, StringFormat='${0:N0}'}" FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                        </Grid>
+
+                        <Grid Margin="0,0,0,10">
+                            <TextBlock Text="Size Multiplier" FontSize="13" Foreground="{StaticResource JacxiTextSecondaryBrush}" />
+                            <TextBlock Text="{Binding CurrentQuote.Multiplier, StringFormat='{}{0}x'}" FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                        </Grid>
+
+                        <Grid Margin="0,0,0,10">
+                            <TextBlock Text="Terminal Handling (THC)" FontSize="13" Foreground="{StaticResource JacxiTextPrimaryBrush}" />
+                            <TextBlock Text="{Binding CurrentQuote.TerminalHandling, StringFormat='${0:N0}'}" FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                        </Grid>
+
+                        <Grid Margin="0,0,0,16">
+                            <TextBlock Text="Customs &amp; Export Verification" FontSize="13" Foreground="{StaticResource JacxiTextPrimaryBrush}" />
+                            <TextBlock Text="{Binding CurrentQuote.DocumentationFee, StringFormat='${0:N0}'}" FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                        </Grid>
+
+                        <Separator Background="{StaticResource JacxiBorderBrush}" Margin="0,0,0,20" />
+
+                        <!-- Confirm Button -->
+                        <Button Content="Confirm Booking &amp; Generate Tracking"
+                                Style="{StaticResource JacxiPrimaryButton}"
+                                Command="{Binding CreateBookingCommand}"
+                                Height="44"
+                                Margin="0,0,0,10" />
+
+                        <TextBlock Text="A new shipment and container booking file will be opened immediately upon confirmation."
+                                   FontFamily="{StaticResource JacxiFontFamily}"
+                                   FontSize="11"
+                                   Foreground="{StaticResource JacxiTextSecondaryBrush}"
+                                   TextAlignment="Center"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

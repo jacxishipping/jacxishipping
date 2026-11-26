@@ -1,0 +1,250 @@
+<UserControl x:Class="JacxiShipping.WindowsApp.Views.TrackingView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:controls="clr-namespace:JacxiShipping.WindowsApp.Controls"
+             xmlns:converters="clr-namespace:JacxiShipping.WindowsApp.Converters"
+             mc:Ignorable="d" 
+             d:DesignHeight="800" d:DesignWidth="1050">
+
+    <UserControl.Resources>
+        <converters:NullToVisibilityConverter x:Key="NullToVis" />
+    </UserControl.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="32,24,32,32">
+            <!-- Header -->
+            <StackPanel Margin="0,0,0,24">
+                <TextBlock Text="Live Cargo &amp; Container Tracking"
+                           FontFamily="{StaticResource JacxiFontFamily}"
+                           FontSize="24"
+                           FontWeight="Bold"
+                           Foreground="{StaticResource JacxiTextPrimaryBrush}" />
+                <TextBlock Text="Real-time multi-modal logistics milestone tracking across ocean vessels and border gates."
+                           FontFamily="{StaticResource JacxiFontFamily}"
+                           FontSize="13"
+                           Foreground="{StaticResource JacxiTextSecondaryBrush}"
+                           Margin="0,4,0,0" />
+            </StackPanel>
+
+            <!-- Search Bar Card -->
+            <Border Style="{StaticResource JacxiCardBorder}" Margin="0,0,0,24">
+                <StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBox Grid.Column="0"
+                                 Style="{StaticResource JacxiTextBox}"
+                                 Text="{Binding SearchNumber, UpdateSourceTrigger=PropertyChanged}"
+                                 Height="44"
+                                 FontSize="14"
+                                 VerticalContentAlignment="Center"
+                                 Margin="0,0,12,0" />
+
+                        <Button Grid.Column="1"
+                                Content="Track Shipment"
+                                Style="{StaticResource JacxiPrimaryButton}"
+                                Command="{Binding TrackCommand}"
+                                Height="44"
+                                Width="140" />
+                    </Grid>
+
+                    <!-- Quick Preset Badges -->
+                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="Sample Tracking:"
+                                   FontSize="11"
+                                   FontWeight="SemiBold"
+                                   Foreground="{StaticResource JacxiTextSecondaryBrush}"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,8,0" />
+                        <Button Content="JCX-2601-88491 (Mersin)"
+                                Style="{StaticResource JacxiGhostButton}"
+                                Command="{Binding QuickSearchCommand}"
+                                CommandParameter="JCX-2601-88491"
+                                FontSize="11"
+                                Padding="8,4"
+                                Margin="0,0,4,0" />
+                        <Button Content="JCX-2601-72940 (Dubai)"
+                                Style="{StaticResource JacxiGhostButton}"
+                                Command="{Binding QuickSearchCommand}"
+                                CommandParameter="JCX-2601-72940"
+                                FontSize="11"
+                                Padding="8,4"
+                                Margin="0,0,4,0" />
+                        <Button Content="JCX-2601-93012 (Poti)"
+                                Style="{StaticResource JacxiGhostButton}"
+                                Command="{Binding QuickSearchCommand}"
+                                CommandParameter="JCX-2601-93012"
+                                FontSize="11"
+                                Padding="8,4"
+                                Margin="0,0,4,0" />
+                        <Button Content="JCX-2601-51289 (Hairatan)"
+                                Style="{StaticResource JacxiGhostButton}"
+                                Command="{Binding QuickSearchCommand}"
+                                CommandParameter="JCX-2601-51289"
+                                FontSize="11"
+                                Padding="8,4" />
+                    </StackPanel>
+
+                    <TextBlock Text="{Binding ErrorMessage}"
+                               Foreground="{StaticResource JacxiErrorBrush}"
+                               FontSize="12"
+                               Margin="0,8,0,0"
+                               Visibility="{Binding ErrorMessage, Converter={StaticResource NullToVis}}" />
+                </StackPanel>
+            </Border>
+
+            <!-- Tracking Result Details (when loaded) -->
+            <StackPanel Visibility="{Binding TrackedShipment, Converter={StaticResource NullToVis}}">
+                <!-- Route & Vessel Hero Card -->
+                <Border Background="{StaticResource JacxiPanelBrush}"
+                        BorderBrush="{StaticResource JacxiBorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="{StaticResource JacxiRadiusCard}"
+                        Padding="24"
+                        Margin="0,0,0,24">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <!-- Tracking & Status Badge -->
+                        <Grid Grid.Row="0" Margin="0,0,0,20">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="{Binding TrackedShipment.TrackingNumber}"
+                                           FontFamily="{StaticResource JacxiFontFamily}"
+                                           FontSize="22"
+                                           FontWeight="Bold"
+                                           Foreground="{StaticResource JacxiTextPrimaryBrush}" />
+                                <TextBlock Text="{Binding TrackedShipment.ContainerNumber, StringFormat='Container #{0}'}"
+                                           FontFamily="{StaticResource JacxiFontFamily}"
+                                           FontSize="13"
+                                           Foreground="{StaticResource JacxiTextSecondaryBrush}" />
+                            </StackPanel>
+
+                            <controls:StatusBadge Grid.Column="1" Status="{Binding TrackedShipment.Status}" />
+                        </Grid>
+
+                        <!-- Route Visual Row -->
+                        <Border Grid.Row="1"
+                                Background="{StaticResource JacxiBackgroundBrush}"
+                                BorderBrush="{StaticResource JacxiBorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="10"
+                                Padding="20,16"
+                                Margin="0,0,0,20">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Origin Port -->
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="PORT OF LOADING"
+                                               FontSize="10"
+                                               FontWeight="Bold"
+                                               Foreground="{StaticResource JacxiTextSecondaryBrush}" />
+                                    <TextBlock Text="{Binding TrackedShipment.OriginPort}"
+                                               FontSize="14"
+                                               FontWeight="SemiBold"
+                                               Foreground="{StaticResource JacxiTextPrimaryBrush}"
+                                               Margin="0,4,0,0" />
+                                    <TextBlock Text="{Binding TrackedShipment.BookingDate, StringFormat='Departed {0}'}"
+                                               FontSize="11"
+                                               Foreground="{StaticResource JacxiTextSecondaryBrush}" />
+                                </StackPanel>
+
+                                <!-- Transit Arrow -->
+                                <StackPanel Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="24,0">
+                                    <TextBlock Text="━━━━━━━━▶"
+                                               FontSize="14"
+                                               Foreground="{StaticResource JacxiGoldActiveBrush}"
+                                               HorizontalAlignment="Center" />
+                                    <TextBlock Text="{Binding TrackedShipment.VesselName}"
+                                               FontSize="11"
+                                               FontWeight="Medium"
+                                               Foreground="{StaticResource JacxiTextSecondaryBrush}"
+                                               HorizontalAlignment="Center" />
+                                </StackPanel>
+
+                                <!-- Destination Port -->
+                                <StackPanel Grid.Column="2" HorizontalAlignment="Right">
+                                    <TextBlock Text="PORT OF DISCHARGE"
+                                               FontSize="10"
+                                               FontWeight="Bold"
+                                               Foreground="{StaticResource JacxiTextSecondaryBrush}"
+                                               HorizontalAlignment="Right" />
+                                    <TextBlock Text="{Binding TrackedShipment.DestinationPort}"
+                                               FontSize="14"
+                                               FontWeight="SemiBold"
+                                               Foreground="{StaticResource JacxiTextPrimaryBrush}"
+                                               HorizontalAlignment="Right"
+                                               Margin="0,4,0,0" />
+                                    <TextBlock Text="{Binding TrackedShipment.EstimatedDelivery, StringFormat='Est. Arrival {0}'}"
+                                               FontSize="11"
+                                               FontWeight="Bold"
+                                               Foreground="{StaticResource JacxiGoldActiveBrush}"
+                                               HorizontalAlignment="Right" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <!-- Consignee & Vehicle Info -->
+                        <Grid Grid.Row="2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="VEHICLE / CARGO" FontSize="10" FontWeight="Bold" Foreground="{StaticResource JacxiTextSecondaryBrush}" />
+                                <TextBlock Text="{Binding TrackedShipment.Vehicle.FullDescription}" FontSize="13" FontWeight="SemiBold" Margin="0,2,0,0" />
+                                <TextBlock Text="{Binding TrackedShipment.Vehicle.Vin, StringFormat='VIN: {0}'}" FontSize="11" Foreground="{StaticResource JacxiTextSecondaryBrush}" />
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1">
+                                <TextBlock Text="CONSIGNEE" FontSize="10" FontWeight="Bold" Foreground="{StaticResource JacxiTextSecondaryBrush}" />
+                                <TextBlock Text="{Binding TrackedShipment.CustomerName}" FontSize="13" FontWeight="SemiBold" Margin="0,2,0,0" />
+                                <TextBlock Text="{Binding TrackedShipment.CustomerPhone}" FontSize="11" Foreground="{StaticResource JacxiTextSecondaryBrush}" />
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="AUCTION ORIGIN" FontSize="10" FontWeight="Bold" Foreground="{StaticResource JacxiTextSecondaryBrush}" />
+                                <TextBlock Text="{Binding TrackedShipment.Vehicle.AuctionYard}" FontSize="13" FontWeight="SemiBold" Margin="0,2,0,0" />
+                                <TextBlock Text="{Binding TrackedShipment.Vehicle.LotNumber, StringFormat='Lot #{0}'}" FontSize="11" Foreground="{StaticResource JacxiTextSecondaryBrush}" />
+                            </StackPanel>
+                        </Grid>
+                    </Grid>
+                </Border>
+
+                <!-- Detailed Milestone Stepper Card -->
+                <Border Style="{StaticResource JacxiCardBorder}">
+                    <StackPanel>
+                        <TextBlock Text="LOGISTICS MILESTONES &amp; TIMELINE"
+                                   FontFamily="{StaticResource JacxiFontFamily}"
+                                   FontSize="13"
+                                   FontWeight="Bold"
+                                   Foreground="{StaticResource JacxiTextPrimaryBrush}"
+                                   Margin="0,0,0,20" />
+
+                        <controls:MilestoneStepper Milestones="{Binding TrackedShipment.Milestones}" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

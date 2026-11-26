@@ -1,0 +1,63 @@
+<UserControl x:Class="JacxiShipping.WindowsApp.Controls.StatsCard"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             mc:Ignorable="d" 
+             x:Name="StatsRoot">
+    <Border Style="{StaticResource JacxiCardBorder}" Margin="0,0,16,0">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- Header Row with Micro-label and optional icon pill -->
+            <Grid Grid.Row="0" Margin="0,0,0,8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock x:Name="TxtTitle"
+                           Grid.Column="0"
+                           FontFamily="{StaticResource JacxiFontFamily}"
+                           FontSize="11"
+                           FontWeight="SemiBold"
+                           Foreground="{StaticResource JacxiTextSecondaryBrush}"
+                           VerticalAlignment="Center" />
+
+                <!-- Gold Accent Dot / Badge -->
+                <Border Grid.Column="1"
+                        Background="{StaticResource JacxiGoldLightBrush}"
+                        BorderBrush="{StaticResource JacxiGoldBorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="6,2">
+                    <TextBlock x:Name="TxtBadge"
+                               Text="●"
+                               Foreground="{StaticResource JacxiGoldActiveBrush}"
+                               FontSize="9"
+                               FontWeight="Bold" />
+                </Border>
+            </Grid>
+
+            <!-- Value Row -->
+            <TextBlock x:Name="TxtValue"
+                       Grid.Row="1"
+                       FontFamily="{StaticResource JacxiFontFamily}"
+                       FontSize="26"
+                       FontWeight="Bold"
+                       Foreground="{StaticResource JacxiTextPrimaryBrush}"
+                       Margin="0,0,0,4" />
+
+            <!-- Subtitle / Trend Row -->
+            <TextBlock x:Name="TxtSubtitle"
+                       Grid.Row="2"
+                       FontFamily="{StaticResource JacxiFontFamily}"
+                       FontSize="11"
+                       Foreground="{StaticResource JacxiSuccessBrush}" />
+        </Grid>
+    </Border>
+</UserControl>

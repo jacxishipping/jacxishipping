@@ -1,0 +1,123 @@
+<UserControl x:Class="JacxiShipping.WindowsApp.Controls.MilestoneStepper"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             mc:Ignorable="d" 
+             x:Name="StepperRoot">
+    <ItemsControl x:Name="ItemsHost" ItemsSource="{Binding ElementName=StepperRoot, Path=Milestones}">
+        <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+                <StackPanel Orientation="Vertical" />
+            </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+            <DataTemplate>
+                <Grid Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="32" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <!-- Connecting Vertical Line -->
+                    <Rectangle Grid.Column="0"
+                               Grid.RowSpan="2"
+                               Width="2"
+                               Fill="{StaticResource JacxiBorderBrush}"
+                               HorizontalAlignment="Center"
+                               Margin="0,20,0,-8" />
+
+                    <!-- Step Node (Circle) -->
+                    <Border Grid.Column="0"
+                            Grid.Row="0"
+                            Width="24"
+                            Height="24"
+                            CornerRadius="12"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Top">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Background" Value="{StaticResource JacxiBackgroundBrush}" />
+                                <Setter Property="BorderBrush" Value="{StaticResource JacxiBorderBrush}" />
+                                <Setter Property="BorderThickness" Value="2" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsCompleted}" Value="True">
+                                        <Setter Property="Background" Value="{StaticResource JacxiSuccessBrush}" />
+                                        <Setter Property="BorderBrush" Value="{StaticResource JacxiSuccessBrush}" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding IsCurrent}" Value="True">
+                                        <Setter Property="Background" Value="{StaticResource JacxiGoldBrush}" />
+                                        <Setter Property="BorderBrush" Value="{StaticResource JacxiGoldActiveBrush}" />
+                                        <Setter Property="Effect" Value="{StaticResource JacxiGoldGlow}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+
+                        <!-- Icon / Dot inside Node -->
+                        <TextBlock HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   FontSize="10"
+                                   FontWeight="Bold">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Text" Value="○" />
+                                    <Setter Property="Foreground" Value="{StaticResource JacxiTextMutedBrush}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsCompleted}" Value="True">
+                                            <Setter Property="Text" Value="✓" />
+                                            <Setter Property="Foreground" Value="#FFFFFF" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding IsCurrent}" Value="True">
+                                            <Setter Property="Text" Value="●" />
+                                            <Setter Property="Foreground" Value="{StaticResource JacxiTextPrimaryBrush}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Border>
+
+                    <!-- Milestone Content -->
+                    <StackPanel Grid.Column="1" Grid.Row="0" Margin="10,0,0,0">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Text="{Binding Title}"
+                                       FontFamily="{StaticResource JacxiFontFamily}"
+                                       FontSize="13"
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource JacxiTextPrimaryBrush}" />
+
+                            <TextBlock Grid.Column="1"
+                                       Text="{Binding Timestamp}"
+                                       FontFamily="{StaticResource JacxiFontFamily}"
+                                       FontSize="11"
+                                       Foreground="{StaticResource JacxiTextSecondaryBrush}" />
+                        </Grid>
+
+                        <TextBlock Text="{Binding Location}"
+                                   FontFamily="{StaticResource JacxiFontFamily}"
+                                   FontSize="11"
+                                   FontWeight="Medium"
+                                   Foreground="{StaticResource JacxiGoldActiveBrush}"
+                                   Margin="0,2,0,2" />
+
+                        <TextBlock Text="{Binding Description}"
+                                   FontFamily="{StaticResource JacxiFontFamily}"
+                                   FontSize="11"
+                                   Foreground="{StaticResource JacxiTextSecondaryBrush}"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                </Grid>
+            </DataTemplate>
+        </ItemsControl.ItemTemplate>
+    </ItemsControl>
+</UserControl>

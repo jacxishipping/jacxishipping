@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="JacxiShipping.Core/JacxiShipping.Core.csproj" />
+  <Project Path="JacxiShipping.WindowsApp.Tests/JacxiShipping.WindowsApp.Tests.csproj" />
+  <Project Path="JacxiShipping.WindowsApp/JacxiShipping.WindowsApp.csproj" />
+</Solution>

@@ -1,0 +1,9 @@
+# .NET build and publish artifacts
+[Bb]in/
+[Oo]bj/
+dist/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vs/

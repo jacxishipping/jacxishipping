@@ -1,0 +1,29 @@
+<UserControl x:Class="JacxiShipping.WindowsApp.Controls.StatusBadge"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             mc:Ignorable="d" 
+             x:Name="BadgeRoot">
+    <Border x:Name="BadgeBorder"
+            CornerRadius="12"
+            BorderThickness="1"
+            Padding="10,4"
+            HorizontalAlignment="Left"
+            VerticalAlignment="Center">
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+            <!-- Status Dot Indicator -->
+            <Ellipse x:Name="StatusDot"
+                     Width="7"
+                     Height="7"
+                     Margin="0,0,6,0"
+                     VerticalAlignment="Center" />
+            <!-- Status Text -->
+            <TextBlock x:Name="StatusLabel"
+                       FontFamily="{StaticResource JacxiFontFamily}"
+                       FontSize="11"
+                       FontWeight="SemiBold"
+                       VerticalAlignment="Center" />
+        </StackPanel>
+    </Border>
+</UserControl>
