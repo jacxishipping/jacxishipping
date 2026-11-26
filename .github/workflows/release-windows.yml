@@ -1,0 +1,55 @@
+name: Release Windows App
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag'
+        required: true
+        default: 'v1.0.0-windows'
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Run Tests
+        run: |
+          dotnet test windows/JacxiShipping.WindowsApp.Tests/JacxiShipping.WindowsApp.Tests.csproj -c Release
+
+      - name: Publish Windows App (win-x64)
+        run: |
+          dotnet publish windows/JacxiShipping.WindowsApp/JacxiShipping.WindowsApp.csproj `
+            -c Release `
+            -r win-x64 `
+            -p:PublishSingleFile=true `
+            --self-contained false `
+            -o dist/win-x64
+
+      - name: Create Zip Archive
+        shell: pwsh
+        run: |
+          Compress-Archive -Path dist/win-x64/* -DestinationPath dist/JacxiShipping-Windows-x64-v1.0.0.zip -Force
+
+      - name: Upload Binaries to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          files: |
+            dist/JacxiShipping-Windows-x64-v1.0.0.zip
+            dist/win-x64/JacxiShipping.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
